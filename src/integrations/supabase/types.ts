@@ -14,7 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contacts: {
+        Row: {
+          archived: boolean
+          civilite: Database["public"]["Enums"]["civilite"] | null
+          code_postal: string | null
+          commentaires: string | null
+          created_at: string
+          custom_id: string | null
+          date_delivrance_permis: string | null
+          date_expiration_carte: string | null
+          date_naissance: string | null
+          email: string | null
+          filleul: string | null
+          fonction: string | null
+          formation: Database["public"]["Enums"]["formation_type"] | null
+          id: string
+          nom: string
+          nom_naissance: string | null
+          numero_carte_professionnelle: string | null
+          numero_permis: string | null
+          parrain: string | null
+          pays_naissance: string | null
+          precisions: string | null
+          prefecture_carte: string | null
+          prefecture_permis: string | null
+          prenom: string
+          rue: string | null
+          source: string | null
+          statut: Database["public"]["Enums"]["contact_statut"] | null
+          telephone: string | null
+          uid: string | null
+          updated_at: string
+          ville: string | null
+          ville_naissance: string | null
+        }
+        Insert: {
+          archived?: boolean
+          civilite?: Database["public"]["Enums"]["civilite"] | null
+          code_postal?: string | null
+          commentaires?: string | null
+          created_at?: string
+          custom_id?: string | null
+          date_delivrance_permis?: string | null
+          date_expiration_carte?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          filleul?: string | null
+          fonction?: string | null
+          formation?: Database["public"]["Enums"]["formation_type"] | null
+          id?: string
+          nom: string
+          nom_naissance?: string | null
+          numero_carte_professionnelle?: string | null
+          numero_permis?: string | null
+          parrain?: string | null
+          pays_naissance?: string | null
+          precisions?: string | null
+          prefecture_carte?: string | null
+          prefecture_permis?: string | null
+          prenom: string
+          rue?: string | null
+          source?: string | null
+          statut?: Database["public"]["Enums"]["contact_statut"] | null
+          telephone?: string | null
+          uid?: string | null
+          updated_at?: string
+          ville?: string | null
+          ville_naissance?: string | null
+        }
+        Update: {
+          archived?: boolean
+          civilite?: Database["public"]["Enums"]["civilite"] | null
+          code_postal?: string | null
+          commentaires?: string | null
+          created_at?: string
+          custom_id?: string | null
+          date_delivrance_permis?: string | null
+          date_expiration_carte?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          filleul?: string | null
+          fonction?: string | null
+          formation?: Database["public"]["Enums"]["formation_type"] | null
+          id?: string
+          nom?: string
+          nom_naissance?: string | null
+          numero_carte_professionnelle?: string | null
+          numero_permis?: string | null
+          parrain?: string | null
+          pays_naissance?: string | null
+          precisions?: string | null
+          prefecture_carte?: string | null
+          prefecture_permis?: string | null
+          prenom?: string
+          rue?: string | null
+          source?: string | null
+          statut?: Database["public"]["Enums"]["contact_statut"] | null
+          telephone?: string | null
+          uid?: string | null
+          updated_at?: string
+          ville?: string | null
+          ville_naissance?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +127,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      civilite: "Monsieur" | "Madame"
+      contact_statut: "En attente de validation" | "Client" | "Bravo"
+      formation_type:
+        | "TAXI"
+        | "VTC"
+        | "VMDTR"
+        | "ACC VTC"
+        | "ACC VTC 75"
+        | "Formation continue Taxi"
+        | "Formation continue VTC"
+        | "Mobilité Taxi"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +264,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      civilite: ["Monsieur", "Madame"],
+      contact_statut: ["En attente de validation", "Client", "Bravo"],
+      formation_type: [
+        "TAXI",
+        "VTC",
+        "VMDTR",
+        "ACC VTC",
+        "ACC VTC 75",
+        "Formation continue Taxi",
+        "Formation continue VTC",
+        "Mobilité Taxi",
+      ],
+    },
   },
 } as const
