@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -20,53 +21,54 @@ import {
 } from "@/components/ui/select";
 import { Search, Filter, MoreHorizontal, Phone, Mail, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Contact {
-  id: string;
-  nom: string;
-  prenom: string;
-  email: string;
-  telephone: string;
-  status: "prospect" | "inscrit" | "stagiaire" | "ancien";
-  formation: string;
-  source: string;
-  dateContact: string;
-}
-
-const mockContacts: Contact[] = [
-  { id: "1", nom: "Dupont", prenom: "Jean", email: "jean.dupont@email.com", telephone: "06 12 34 56 78", status: "prospect", formation: "Formation Taxi", source: "Google", dateContact: "10/01/2026" },
-  { id: "2", nom: "Martin", prenom: "Marie", email: "marie.martin@email.com", telephone: "06 98 76 54 32", status: "inscrit", formation: "Formation VTC", source: "Site web", dateContact: "09/01/2026" },
-  { id: "3", nom: "Bernard", prenom: "Pierre", email: "pierre.bernard@email.com", telephone: "06 11 22 33 44", status: "stagiaire", formation: "Formation Continue", source: "Recommandation", dateContact: "08/01/2026" },
-  { id: "4", nom: "Petit", prenom: "Sophie", email: "sophie.petit@email.com", telephone: "06 55 66 77 88", status: "ancien", formation: "Formation VMDTR", source: "CPF", dateContact: "07/01/2026" },
-  { id: "5", nom: "Robert", prenom: "Lucas", email: "lucas.robert@email.com", telephone: "06 33 44 55 66", status: "prospect", formation: "Formation Mobilité", source: "Téléphone", dateContact: "06/01/2026" },
-  { id: "6", nom: "Moreau", prenom: "Emma", email: "emma.moreau@email.com", telephone: "06 77 88 99 00", status: "inscrit", formation: "Formation Taxi", source: "Entreprise", dateContact: "05/01/2026" },
-];
+import { useContacts, type Contact } from "@/hooks/useContacts";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const statusConfig = {
-  prospect: { label: "Prospect", class: "bg-info/10 text-info border-info/20" },
-  inscrit: { label: "Inscrit", class: "bg-warning/10 text-warning border-warning/20" },
-  stagiaire: { label: "En formation", class: "bg-success/10 text-success border-success/20" },
-  ancien: { label: "Ancien", class: "bg-muted text-muted-foreground border-muted" },
+  "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
+  "Client": { label: "Client", class: "bg-success/10 text-success border-success/20" },
+  "Bravo": { label: "Bravo", class: "bg-warning/10 text-warning border-warning/20" },
+};
+
+const formationLabels: Record<string, string> = {
+  TAXI: "Taxi",
+  VTC: "VTC",
+  VMDTR: "VMDTR",
+  "ACC VTC": "ACC VTC",
+  "ACC VTC 75": "ACC VTC 75",
+  "Formation continue Taxi": "Continue Taxi",
+  "Formation continue VTC": "Continue VTC",
+  "Mobilité Taxi": "Mobilité Taxi",
 };
 
 export function ContactsTable() {
+  const { data: contacts, isLoading, error } = useContacts();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formationFilter, setFormationFilter] = useState<string>("all");
 
-  const filteredContacts = mockContacts.filter((contact) => {
+  const filteredContacts = (contacts ?? []).filter((contact) => {
     const matchesSearch =
       contact.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     
-    const matchesStatus = statusFilter === "all" || contact.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || contact.statut === statusFilter;
     const matchesFormation = formationFilter === "all" || contact.formation === formationFilter;
     
     return matchesSearch && matchesStatus && matchesFormation;
   });
 
-  const formations = [...new Set(mockContacts.map((c) => c.formation))];
+  const formations = [...new Set(contacts?.map((c) => c.formation).filter(Boolean) ?? [])];
+
+  if (error) {
+    return (
+      <div className="card-elevated p-8 text-center text-destructive">
+        Erreur lors du chargement des contacts
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -89,10 +91,9 @@ export function ContactsTable() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            <SelectItem value="prospect">Prospect</SelectItem>
-            <SelectItem value="inscrit">Inscrit</SelectItem>
-            <SelectItem value="stagiaire">En formation</SelectItem>
-            <SelectItem value="ancien">Ancien</SelectItem>
+            <SelectItem value="En attente de validation">En attente</SelectItem>
+            <SelectItem value="Client">Client</SelectItem>
+            <SelectItem value="Bravo">Bravo</SelectItem>
           </SelectContent>
         </Select>
 
@@ -103,10 +104,17 @@ export function ContactsTable() {
           <SelectContent>
             <SelectItem value="all">Toutes les formations</SelectItem>
             {formations.map((f) => (
-              <SelectItem key={f} value={f}>{f}</SelectItem>
+              <SelectItem key={f} value={f!}>
+                {formationLabels[f!] || f}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-4 text-sm text-muted-foreground">
+        <span>{filteredContacts.length} contact{filteredContacts.length > 1 ? 's' : ''}</span>
       </div>
 
       {/* Table */}
@@ -114,8 +122,10 @@ export function ContactsTable() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
+              <TableHead className="font-semibold">ID</TableHead>
               <TableHead className="font-semibold">Contact</TableHead>
               <TableHead className="font-semibold">Téléphone</TableHead>
+              <TableHead className="font-semibold">Ville</TableHead>
               <TableHead className="font-semibold">Formation</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
               <TableHead className="font-semibold">Statut</TableHead>
@@ -124,69 +134,127 @@ export function ContactsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredContacts.map((contact) => {
-              const initials = `${contact.prenom[0]}${contact.nom[0]}`.toUpperCase();
-              
-              return (
-                <TableRow key={contact.id} className="table-row-hover">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {contact.prenom} {contact.nom}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {contact.email}
-                        </p>
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-40" />
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {contact.telephone}
-                  </TableCell>
-                  <TableCell>{contact.formation}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {contact.source}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn("text-xs", statusConfig[contact.status].class)}
-                    >
-                      {statusConfig[contact.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {contact.dateContact}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
                 </TableRow>
-              );
-            })}
+              ))
+            ) : (
+              filteredContacts.map((contact) => {
+                const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
+                const status = contact.statut ?? "En attente de validation";
+                
+                return (
+                  <TableRow key={contact.id} className="table-row-hover">
+                    <TableCell className="text-muted-foreground font-mono text-xs">
+                      {contact.custom_id || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                            {initials || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {contact.email || 'Pas d\'email'}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contact.telephone || '-'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contact.ville || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {contact.formation ? (
+                        <Badge variant="outline" className="text-xs">
+                          {formationLabels[contact.formation] || contact.formation}
+                        </Badge>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contact.source || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs", statusConfig[status]?.class ?? "bg-muted")}
+                      >
+                        {statusConfig[status]?.label ?? status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(contact.created_at), 'dd/MM/yyyy', { locale: fr })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {contact.telephone && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => window.open(`tel:${contact.telephone}`, '_blank')}
+                          >
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {contact.email && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {contact.telephone && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => window.open(`https://wa.me/${contact.telephone?.replace(/\s/g, '')}`, '_blank')}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
 
-        {filteredContacts.length === 0 && (
+        {!isLoading && filteredContacts.length === 0 && (
           <div className="py-12 text-center text-muted-foreground">
             Aucun contact trouvé
           </div>
