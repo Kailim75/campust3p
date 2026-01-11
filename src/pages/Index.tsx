@@ -1,12 +1,47 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Dashboard } from "@/components/dashboard/Dashboard";
+import { ContactsPage } from "@/components/contacts/ContactsPage";
+import { FormationsPage } from "@/components/formations/FormationsPage";
+import { SessionsPage } from "@/components/sessions/SessionsPage";
+import { DocumentsPage } from "@/components/documents/DocumentsPage";
+import { PaiementsPage } from "@/components/paiements/PaiementsPage";
+import { AlertesPage } from "@/components/alertes/AlertesPage";
 
 const Index = () => {
+  const [activeSection, setActiveSection] = useState("dashboard");
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case "dashboard":
+        return <Dashboard />;
+      case "contacts":
+        return <ContactsPage />;
+      case "formations":
+        return <FormationsPage />;
+      case "sessions":
+        return <SessionsPage />;
+      case "documents":
+        return <DocumentsPage />;
+      case "paiements":
+        return <PaiementsPage />;
+      case "alertes":
+        return <AlertesPage />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Sidebar 
+        activeSection={activeSection} 
+        onSectionChange={setActiveSection} 
+      />
+      
+      <main className="transition-all duration-300 ml-64">
+        {renderContent()}
+      </main>
     </div>
   );
 };
