@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,8 @@ import {
   MessageCircle, 
   MessageSquare, 
   Users,
-  Loader2 
+  Loader2,
+  Bell
 } from "lucide-react";
 import { useCreateHistorique, HistoriqueType } from "@/hooks/useContactHistorique";
 
@@ -55,6 +57,10 @@ export function HistoriqueFormDialog({
   const [titre, setTitre] = useState("");
   const [contenu, setContenu] = useState("");
   const [duree, setDuree] = useState("");
+  const [alerteActive, setAlerteActive] = useState(false);
+  const [dateRappel, setDateRappel] = useState("");
+  const [heureRappel, setHeureRappel] = useState("09:00");
+  const [rappelDescription, setRappelDescription] = useState("");
   
   const createHistorique = useCreateHistorique();
 
@@ -63,12 +69,20 @@ export function HistoriqueFormDialog({
     
     if (!titre.trim()) return;
 
+    let dateRappelFull: string | null = null;
+    if (alerteActive && dateRappel) {
+      dateRappelFull = `${dateRappel}T${heureRappel}:00`;
+    }
+
     await createHistorique.mutateAsync({
       contact_id: contactId,
       type,
       titre: titre.trim(),
       contenu: contenu.trim() || null,
       duree_minutes: duree ? parseInt(duree) : null,
+      alerte_active: alerteActive,
+      date_rappel: dateRappelFull,
+      rappel_description: rappelDescription.trim() || null,
     });
 
     // Reset form
@@ -76,6 +90,10 @@ export function HistoriqueFormDialog({
     setTitre("");
     setContenu("");
     setDuree("");
+    setAlerteActive(false);
+    setDateRappel("");
+    setHeureRappel("09:00");
+    setRappelDescription("");
     onOpenChange(false);
   };
 
@@ -84,6 +102,10 @@ export function HistoriqueFormDialog({
     setTitre("");
     setContenu("");
     setDuree("");
+    setAlerteActive(false);
+    setDateRappel("");
+    setHeureRappel("09:00");
+    setRappelDescription("");
     onOpenChange(false);
   };
 
@@ -138,7 +160,7 @@ export function HistoriqueFormDialog({
               value={contenu}
               onChange={(e) => setContenu(e.target.value)}
               placeholder="Notes, résumé de la conversation..."
-              rows={4}
+              rows={3}
             />
           </div>
 
@@ -156,11 +178,64 @@ export function HistoriqueFormDialog({
             </div>
           )}
 
+          {/* Section Alerte/Rappel */}
+          <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-warning" />
+                <Label htmlFor="alerte" className="font-medium">Créer un rappel</Label>
+              </div>
+              <Switch
+                id="alerte"
+                checked={alerteActive}
+                onCheckedChange={setAlerteActive}
+              />
+            </div>
+
+            {alerteActive && (
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="dateRappel" className="text-xs">Date *</Label>
+                    <Input
+                      id="dateRappel"
+                      type="date"
+                      value={dateRappel}
+                      onChange={(e) => setDateRappel(e.target.value)}
+                      required={alerteActive}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="heureRappel" className="text-xs">Heure</Label>
+                    <Input
+                      id="heureRappel"
+                      type="time"
+                      value={heureRappel}
+                      onChange={(e) => setHeureRappel(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="rappelDescription" className="text-xs">Note de rappel</Label>
+                  <Input
+                    id="rappelDescription"
+                    value={rappelDescription}
+                    onChange={(e) => setRappelDescription(e.target.value)}
+                    placeholder="Ex: Rappeler pour confirmation RDV"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
               Annuler
             </Button>
-            <Button type="submit" disabled={createHistorique.isPending || !titre.trim()}>
+            <Button 
+              type="submit" 
+              disabled={createHistorique.isPending || !titre.trim() || (alerteActive && !dateRappel)}
+            >
               {createHistorique.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
