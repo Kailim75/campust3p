@@ -33,6 +33,7 @@ import { useFacture, FactureStatut, FinancementType, useDeleteFacture } from "@/
 import { useFacturePaiements, useDeletePaiement, ModePaiement } from "@/hooks/usePaiements";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,6 +129,132 @@ export function FactureDetailSheet({
     } catch (error) {
       toast.error("Erreur lors de la suppression");
     }
+  };
+
+  const generatePDF = () => {
+    if (!facture) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("FACTURE", pageWidth / 2, 25, { align: "center" });
+    
+    doc.setFontSize(14);
+    doc.text(facture.numero_facture, pageWidth / 2, 35, { align: "center" });
+    
+    // Status badge
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Statut: ${statutConfig[facture.statut].label}`, pageWidth - 20, 25, { align: "right" });
+    
+    // Line separator
+    doc.setLineWidth(0.5);
+    doc.line(20, 45, pageWidth - 20, 45);
+    
+    // Client info
+    let yPos = 60;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Client", 20, yPos);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    yPos += 8;
+    doc.text(`${facture.contact?.prenom || ""} ${facture.contact?.nom || ""}`, 20, yPos);
+    if (facture.contact?.email) {
+      yPos += 6;
+      doc.text(facture.contact.email, 20, yPos);
+    }
+    if (facture.contact?.telephone) {
+      yPos += 6;
+      doc.text(facture.contact.telephone, 20, yPos);
+    }
+    
+    // Dates on the right
+    doc.setFontSize(10);
+    doc.text(`Date emission: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : "-"}`, pageWidth - 20, 60, { align: "right" });
+    doc.text(`Date echeance: ${facture.date_echeance ? format(new Date(facture.date_echeance), "dd/MM/yyyy") : "-"}`, pageWidth - 20, 68, { align: "right" });
+    
+    // Line separator
+    yPos = 100;
+    doc.line(20, yPos, pageWidth - 20, yPos);
+    
+    // Invoice details
+    yPos += 15;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Details de la facture", 20, yPos);
+    
+    yPos += 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, yPos - 5, pageWidth - 40, 10, "F");
+    doc.text("Description", 25, yPos);
+    doc.text("Montant", pageWidth - 25, yPos, { align: "right" });
+    
+    yPos += 15;
+    doc.text("Formation", 25, yPos);
+    doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+    
+    // Financement
+    yPos += 8;
+    doc.setTextColor(100);
+    doc.text(`Financement: ${financementConfig[facture.type_financement].label}`, 25, yPos);
+    doc.setTextColor(0);
+    
+    // Separator
+    yPos += 15;
+    doc.line(20, yPos, pageWidth - 20, yPos);
+    
+    // Totals
+    yPos += 15;
+    doc.setFontSize(11);
+    doc.text("Montant total:", pageWidth - 80, yPos);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+    
+    yPos += 10;
+    doc.setFont("helvetica", "normal");
+    doc.text("Montant paye:", pageWidth - 80, yPos);
+    doc.setTextColor(34, 139, 34);
+    doc.text(`${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+    
+    yPos += 10;
+    doc.setTextColor(0);
+    doc.text("Reste a payer:", pageWidth - 80, yPos);
+    if (montantRestant > 0) {
+      doc.setTextColor(220, 53, 69);
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text(`${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+    doc.setTextColor(0);
+    
+    // Comments if any
+    if (facture.commentaires) {
+      yPos += 25;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("Commentaires:", 20, yPos);
+      doc.setFont("helvetica", "normal");
+      yPos += 8;
+      const splitComments = doc.splitTextToSize(facture.commentaires, pageWidth - 40);
+      doc.text(splitComments, 20, yPos);
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text("Document genere automatiquement", pageWidth / 2, 280, { align: "center" });
+    
+    // Save
+    doc.save(`facture-${facture.numero_facture}.pdf`);
+    toast.success("PDF telecharge");
   };
 
   return (
@@ -320,35 +447,7 @@ export function FactureDetailSheet({
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => {
-                        // Generate PDF content for download
-                        const content = `
-FACTURE ${facture.numero_facture}
-================================
-Date: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : "-"}
-Échéance: ${facture.date_echeance ? format(new Date(facture.date_echeance), "dd/MM/yyyy") : "-"}
-
-Client: ${facture.contact?.prenom || ""} ${facture.contact?.nom || ""}
-Email: ${facture.contact?.email || "-"}
-
-Montant total: ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-Montant payé: ${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-Reste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-
-Statut: ${statutConfig[facture.statut].label}
-Financement: ${financementConfig[facture.type_financement].label}
-${facture.commentaires ? `\nCommentaires: ${facture.commentaires}` : ""}
-                        `.trim();
-                        
-                        const blob = new Blob([content], { type: "text/plain" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `facture-${facture.numero_facture}.txt`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        toast.success("Facture téléchargée");
-                      }}
+                      onClick={generatePDF}
                     >
                       <Download className="h-4 w-4 mr-1" />
                       PDF
