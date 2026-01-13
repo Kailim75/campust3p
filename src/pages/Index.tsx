@@ -7,9 +7,12 @@ import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { DocumentsPage } from "@/components/documents/DocumentsPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
+  const isMobile = useIsMobile();
 
   const renderContent = () => {
     switch (activeSection) {
@@ -39,7 +42,10 @@ const Index = () => {
         onSectionChange={setActiveSection} 
       />
       
-      <main className="transition-all duration-300 ml-64">
+      <main className={cn(
+        "transition-all duration-300",
+        isMobile ? "ml-0" : "ml-64"
+      )}>
         {renderContent()}
       </main>
     </div>
