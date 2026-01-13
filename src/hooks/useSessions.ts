@@ -97,6 +97,27 @@ export function useSessionInscriptionsCount(sessionId: string) {
   });
 }
 
+// Fetch all inscriptions counts in one query for efficiency
+export function useAllSessionInscriptionsCounts() {
+  return useQuery({
+    queryKey: ["session_inscriptions", "all_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("session_inscriptions")
+        .select("session_id");
+
+      if (error) throw error;
+
+      // Count inscriptions per session
+      const counts: Record<string, number> = {};
+      data.forEach((inscription) => {
+        counts[inscription.session_id] = (counts[inscription.session_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+}
+
 export function useCreateSession() {
   const queryClient = useQueryClient();
 
