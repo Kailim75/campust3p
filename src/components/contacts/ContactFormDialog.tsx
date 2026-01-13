@@ -46,6 +46,15 @@ const contactSchema = z.object({
   date_naissance: z.string().optional(),
   ville_naissance: z.string().max(100).optional(),
   pays_naissance: z.string().max(100).optional(),
+  // Permis de conduire
+  numero_permis: z.string().max(50).optional(),
+  prefecture_permis: z.string().max(100).optional(),
+  date_delivrance_permis: z.string().optional(),
+  // Carte professionnelle
+  numero_carte_professionnelle: z.string().max(50).optional(),
+  prefecture_carte: z.string().max(100).optional(),
+  date_expiration_carte: z.string().optional(),
+  // Formation & autres
   formation: z.enum(formationTypes).nullable().optional(),
   statut: z.enum(statutTypes).nullable().optional(),
   source: z.string().max(100).optional(),
@@ -79,6 +88,12 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
       date_naissance: "",
       ville_naissance: "",
       pays_naissance: "",
+      numero_permis: "",
+      prefecture_permis: "",
+      date_delivrance_permis: "",
+      numero_carte_professionnelle: "",
+      prefecture_carte: "",
+      date_expiration_carte: "",
       formation: null,
       statut: "En attente de validation",
       source: "",
@@ -100,6 +115,12 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         date_naissance: contact.date_naissance || "",
         ville_naissance: contact.ville_naissance || "",
         pays_naissance: contact.pays_naissance || "",
+        numero_permis: contact.numero_permis || "",
+        prefecture_permis: contact.prefecture_permis || "",
+        date_delivrance_permis: contact.date_delivrance_permis || "",
+        numero_carte_professionnelle: contact.numero_carte_professionnelle || "",
+        prefecture_carte: contact.prefecture_carte || "",
+        date_expiration_carte: contact.date_expiration_carte || "",
         formation: contact.formation,
         statut: contact.statut,
         source: contact.source || "",
@@ -118,6 +139,12 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         date_naissance: "",
         ville_naissance: "",
         pays_naissance: "",
+        numero_permis: "",
+        prefecture_permis: "",
+        date_delivrance_permis: "",
+        numero_carte_professionnelle: "",
+        prefecture_carte: "",
+        date_expiration_carte: "",
         formation: null,
         statut: "En attente de validation",
         source: "",
@@ -140,6 +167,12 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         date_naissance: values.date_naissance || null,
         ville_naissance: values.ville_naissance || null,
         pays_naissance: values.pays_naissance || null,
+        numero_permis: values.numero_permis || null,
+        prefecture_permis: values.prefecture_permis || null,
+        date_delivrance_permis: values.date_delivrance_permis || null,
+        numero_carte_professionnelle: values.numero_carte_professionnelle || null,
+        prefecture_carte: values.prefecture_carte || null,
+        date_expiration_carte: values.date_expiration_carte || null,
         formation: values.formation ?? null,
         statut: values.statut ?? null,
         source: values.source || null,
@@ -348,6 +381,102 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                       <FormLabel>Pays de naissance</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="France" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Permis de conduire */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Permis de conduire
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="numero_permis"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro de permis</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="12AB34567" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="prefecture_permis"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Préfecture</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Paris" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="date_delivrance_permis"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date de délivrance</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Carte professionnelle */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Carte professionnelle
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="numero_carte_professionnelle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro de carte</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="T-75-2026-001234" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="prefecture_carte"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Préfecture</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Paris" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="date_expiration_carte"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date d'expiration</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="date" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
