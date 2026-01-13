@@ -127,10 +127,11 @@ export function GlobalSearch() {
   const handleSelect = (result: SearchResult) => {
     setQuery("");
     setIsOpen(false);
+
     if (result.type === "contact") {
-      navigate(`/contacts?id=${result.id}`);
+      navigate(`/?section=contacts&id=${result.id}`);
     } else if (result.type === "session") {
-      navigate(`/sessions?id=${result.id}`);
+      navigate(`/?section=sessions&id=${result.id}`);
     }
   };
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ const formationLabels: Record<string, string> = {
 };
 
 export function SessionsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: sessions, isLoading, error } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
   const deleteSession = useDeleteSession();
@@ -70,6 +72,16 @@ export function SessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Handle URL parameter to open session detail
+  useEffect(() => {
+    const idFromUrl = searchParams.get("id");
+    if (idFromUrl) {
+      setDetailSessionId(idFromUrl);
+      setDetailOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredSessions = (sessions ?? []).filter((session) => {
     const matchesSearch = session.nom.toLowerCase().includes(searchQuery.toLowerCase());
