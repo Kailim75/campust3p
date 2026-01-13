@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import * as XLSX from "xlsx";
 
 // CSV columns mapping
 const CSV_COLUMNS = [
@@ -223,22 +224,73 @@ export function SettingsPage() {
     return { valid, errors };
   };
 
+  // Parse XLSX file
+  const parseXLSX = (buffer: ArrayBuffer): { headers: string[]; rows: string[][] } => {
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    
+    // Convert to array of arrays
+    const data: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+    if (data.length === 0) return { headers: [], rows: [] };
+    
+    const headers = data[0].map((h: any) => String(h || "").trim().toLowerCase());
+    const rows = data.slice(1).map((row: any[]) => 
+      row.map((cell: any) => {
+        if (cell === null || cell === undefined) return "";
+        // Handle Excel dates (numbers)
+        if (typeof cell === "number" && headers[row.indexOf(cell)]?.includes("date")) {
+          try {
+            const date = XLSX.SSF.parse_date_code(cell);
+            if (date) {
+              const year = date.y;
+              const month = String(date.m).padStart(2, "0");
+              const day = String(date.d).padStart(2, "0");
+              return `${year}-${month}-${day}`;
+            }
+          } catch {
+            // Not a date, return as string
+          }
+        }
+        return String(cell).trim();
+      })
+    );
+    
+    return { headers, rows };
+  };
+
   // Handle file selection
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Veuillez sélectionner un fichier CSV");
+    const isCSV = file.name.toLowerCase().endsWith(".csv");
+    const isXLSX = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+
+    if (!isCSV && !isXLSX) {
+      toast.error("Veuillez sélectionner un fichier CSV ou Excel (.xlsx, .xls)");
       return;
     }
 
     try {
-      const text = await file.text();
-      const { headers, rows } = parseCSV(text);
+      let headers: string[];
+      let rows: string[][];
+
+      if (isCSV) {
+        const text = await file.text();
+        const parsed = parseCSV(text);
+        headers = parsed.headers;
+        rows = parsed.rows;
+      } else {
+        const buffer = await file.arrayBuffer();
+        const parsed = parseXLSX(buffer);
+        headers = parsed.headers;
+        rows = parsed.rows;
+      }
       
       if (rows.length === 0) {
-        toast.error("Le fichier CSV est vide");
+        toast.error("Le fichier est vide");
         return;
       }
 
@@ -345,17 +397,18 @@ export function SettingsPage() {
               Gestion des contacts
             </CardTitle>
             <CardDescription>
-              Importez ou exportez vos contacts en masse au format CSV
+              Importez ou exportez vos contacts en masse au format CSV ou Excel
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Info alert */}
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Format CSV</AlertTitle>
+              <AlertTitle>Formats supportés</AlertTitle>
               <AlertDescription>
-                Le fichier CSV doit utiliser le point-virgule (;) comme séparateur. 
-                Les colonnes obligatoires sont : <strong>nom</strong> et <strong>prenom</strong>.
+                <strong>CSV</strong> : utilise le point-virgule (;) comme séparateur.<br />
+                <strong>Excel</strong> : fichiers .xlsx et .xls.<br />
+                Colonnes obligatoires : <strong>nom</strong> et <strong>prenom</strong>.
               </AlertDescription>
             </Alert>
 
@@ -401,14 +454,14 @@ export function SettingsPage() {
                   <div>
                     <h4 className="font-medium">Importer des contacts</h4>
                     <p className="text-sm text-muted-foreground">
-                      Ajoutez des contacts depuis un fichier CSV
+                      Ajoutez des contacts depuis un fichier CSV ou Excel
                     </p>
                   </div>
                 </div>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xlsx,.xls"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -418,7 +471,7 @@ export function SettingsPage() {
                   className="w-full"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Sélectionner un fichier CSV
+                  Sélectionner CSV ou Excel
                 </Button>
               </div>
             </div>
