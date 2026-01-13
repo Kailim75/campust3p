@@ -119,6 +119,102 @@ export type Database = {
         }
         Relationships: []
       }
+      session_inscriptions: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_inscription: string
+          id: string
+          session_id: string
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_inscription?: string
+          id?: string
+          session_id: string
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_inscription?: string
+          id?: string
+          session_id?: string
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_inscriptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_inscriptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          date_debut: string
+          date_fin: string
+          description: string | null
+          formateur: string | null
+          formation_type: Database["public"]["Enums"]["formation_type"]
+          id: string
+          lieu: string | null
+          nom: string
+          places_totales: number
+          prix: number | null
+          statut: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_debut: string
+          date_fin: string
+          description?: string | null
+          formateur?: string | null
+          formation_type: Database["public"]["Enums"]["formation_type"]
+          id?: string
+          lieu?: string | null
+          nom: string
+          places_totales?: number
+          prix?: number | null
+          statut?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_debut?: string
+          date_fin?: string
+          description?: string | null
+          formateur?: string | null
+          formation_type?: Database["public"]["Enums"]["formation_type"]
+          id?: string
+          lieu?: string | null
+          nom?: string
+          places_totales?: number
+          prix?: number | null
+          statut?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -138,6 +234,12 @@ export type Database = {
         | "Formation continue Taxi"
         | "Formation continue VTC"
         | "Mobilité Taxi"
+      session_status:
+        | "a_venir"
+        | "en_cours"
+        | "terminee"
+        | "annulee"
+        | "complet"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -277,6 +379,7 @@ export const Constants = {
         "Formation continue VTC",
         "Mobilité Taxi",
       ],
+      session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
     },
   },
 } as const
