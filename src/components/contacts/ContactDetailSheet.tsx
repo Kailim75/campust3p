@@ -35,6 +35,8 @@ import {
   MessageSquare,
   Users,
   Clock,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -63,9 +65,10 @@ import {
 } from "@/hooks/useContactDocuments";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { useContactFactures, FactureStatut, FinancementType } from "@/hooks/useFactures";
-import { useContactHistorique, useDeleteHistorique, HistoriqueType } from "@/hooks/useContactHistorique";
+import { useContactHistorique, useDeleteHistorique, useUpdateHistoriqueAlert, HistoriqueType } from "@/hooks/useContactHistorique";
 import { HistoriqueFormDialog } from "./HistoriqueFormDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -168,6 +171,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
   const deleteContact = useDeleteContact();
   const deleteDocument = useDeleteDocument();
   const deleteHistorique = useDeleteHistorique();
+  const updateHistoriqueAlert = useUpdateHistoriqueAlert();
 
   const handleDelete = async () => {
     if (!contact) return;
@@ -728,6 +732,42 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                             {item.contenu && (
                               <p className="text-sm text-muted-foreground pl-8">{item.contenu}</p>
                             )}
+                            
+                            {/* Alerte/Rappel Section */}
+                            {item.alerte_active && item.date_rappel && (
+                              <div className={cn(
+                                "flex items-center gap-2 text-xs p-2 rounded-md ml-8",
+                                new Date(item.date_rappel) < new Date() 
+                                  ? "bg-destructive/10 text-destructive" 
+                                  : "bg-warning/10 text-warning"
+                              )}>
+                                <Bell className="h-3.5 w-3.5" />
+                                <span className="font-medium">
+                                  Rappel : {format(new Date(item.date_rappel), "dd MMM yyyy à HH:mm", { locale: fr })}
+                                </span>
+                                {item.rappel_description && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{item.rappel_description}</span>
+                                  </>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1.5 ml-auto"
+                                  onClick={() => updateHistoriqueAlert.mutate({
+                                    id: item.id,
+                                    contactId: item.contact_id,
+                                    alerte_active: false,
+                                    date_rappel: null,
+                                    rappel_description: null,
+                                  })}
+                                >
+                                  <BellOff className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            
                             <p className="text-xs text-muted-foreground pl-8">
                               {format(new Date(item.date_echange), "dd MMM yyyy à HH:mm", { locale: fr })}
                             </p>

@@ -66,35 +66,44 @@ export type Database = {
       }
       contact_historique: {
         Row: {
+          alerte_active: boolean | null
           contact_id: string
           contenu: string | null
           created_at: string
           created_by: string | null
           date_echange: string
+          date_rappel: string | null
           duree_minutes: number | null
           id: string
+          rappel_description: string | null
           titre: string
           type: string
         }
         Insert: {
+          alerte_active?: boolean | null
           contact_id: string
           contenu?: string | null
           created_at?: string
           created_by?: string | null
           date_echange?: string
+          date_rappel?: string | null
           duree_minutes?: number | null
           id?: string
+          rappel_description?: string | null
           titre: string
           type: string
         }
         Update: {
+          alerte_active?: boolean | null
           contact_id?: string
           contenu?: string | null
           created_at?: string
           created_by?: string | null
           date_echange?: string
+          date_rappel?: string | null
           duree_minutes?: number | null
           id?: string
+          rappel_description?: string | null
           titre?: string
           type?: string
         }
