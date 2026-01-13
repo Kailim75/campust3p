@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ const formationLabels: Record<string, string> = {
 };
 
 export function ContactsTable() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: contacts, isLoading, error } = useContacts();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -58,6 +60,17 @@ export function ContactsTable() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
+
+  // Handle URL parameter to open contact detail
+  useEffect(() => {
+    const idFromUrl = searchParams.get("id");
+    if (idFromUrl) {
+      setSelectedContactId(idFromUrl);
+      setDetailOpen(true);
+      // Clear the URL parameter
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredContacts = (contacts ?? []).filter((contact) => {
     const matchesSearch =
