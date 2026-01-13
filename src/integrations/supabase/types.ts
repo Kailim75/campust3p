@@ -64,6 +64,50 @@ export type Database = {
           },
         ]
       }
+      contact_historique: {
+        Row: {
+          contact_id: string
+          contenu: string | null
+          created_at: string
+          created_by: string | null
+          date_echange: string
+          duree_minutes: number | null
+          id: string
+          titre: string
+          type: string
+        }
+        Insert: {
+          contact_id: string
+          contenu?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echange?: string
+          duree_minutes?: number | null
+          id?: string
+          titre: string
+          type: string
+        }
+        Update: {
+          contact_id?: string
+          contenu?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echange?: string
+          duree_minutes?: number | null
+          id?: string
+          titre?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_historique_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           archived: boolean
