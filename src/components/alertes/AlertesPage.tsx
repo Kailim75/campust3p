@@ -1,41 +1,26 @@
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   AlertTriangle, 
-  FileWarning, 
-  Clock, 
   CreditCard,
+  Clock, 
+  Calendar,
   CheckCircle,
-  XCircle,
-  Bell
+  Bell,
+  Car,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Alerte {
-  id: string;
-  type: "document" | "payment" | "session" | "urgent";
-  priority: "high" | "medium" | "low";
-  title: string;
-  description: string;
-  date: string;
-  action?: string;
-}
-
-const alertes: Alerte[] = [
-  { id: "1", type: "document", priority: "high", title: "Permis expiré", description: "Le permis de Jean Dupont a expiré le 05/01/2026", date: "Il y a 5 jours", action: "Contacter le stagiaire" },
-  { id: "2", type: "payment", priority: "high", title: "Paiement en retard", description: "Pierre Bernard - 350€ impayés depuis 10 jours", date: "Il y a 10 jours", action: "Envoyer relance" },
-  { id: "3", type: "session", priority: "medium", title: "Session presque complète", description: "Formation VTC du 20/01 - 1 place restante", date: "Il y a 2 jours", action: "Voir session" },
-  { id: "4", type: "document", priority: "medium", title: "Document manquant", description: "Certificat médical manquant pour Marie Martin", date: "Il y a 3 jours", action: "Demander document" },
-  { id: "5", type: "session", priority: "low", title: "Rappel formation", description: "Formation Continue Taxi démarre dans 5 jours", date: "Aujourd'hui", action: "Envoyer convocations" },
-  { id: "6", type: "document", priority: "medium", title: "Casier à vérifier", description: "Casier judiciaire de Marie Martin en attente de vérification", date: "Il y a 2 jours", action: "Vérifier document" },
-];
+import { useAllAlerts, type Alert } from "@/hooks/useAlerts";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const typeConfig = {
-  document: { icon: FileWarning, label: "Document", color: "text-warning" },
-  payment: { icon: CreditCard, label: "Paiement", color: "text-destructive" },
-  session: { icon: Clock, label: "Session", color: "text-info" },
-  urgent: { icon: AlertTriangle, label: "Urgent", color: "text-destructive" },
+  carte_pro: { icon: CreditCard, label: "Carte Pro", color: "text-warning" },
+  permis: { icon: Car, label: "Permis", color: "text-info" },
+  session: { icon: Calendar, label: "Session", color: "text-primary" },
 };
 
 const priorityConfig = {
@@ -45,11 +30,13 @@ const priorityConfig = {
 };
 
 export function AlertesPage() {
+  const { data: alerts, isLoading } = useAllAlerts();
+
   const stats = {
-    total: alertes.length,
-    high: alertes.filter((a) => a.priority === "high").length,
-    medium: alertes.filter((a) => a.priority === "medium").length,
-    low: alertes.filter((a) => a.priority === "low").length,
+    total: alerts.length,
+    high: alerts.filter((a) => a.priority === "high").length,
+    medium: alerts.filter((a) => a.priority === "medium").length,
+    low: alerts.filter((a) => a.priority === "low").length,
   };
 
   return (
@@ -102,64 +89,95 @@ export function AlertesPage() {
 
         {/* Alerts List */}
         <div className="space-y-3">
-          {alertes.map((alerte) => {
-            const TypeIcon = typeConfig[alerte.type].icon;
-            
-            return (
-              <div
-                key={alerte.id}
-                className={cn(
-                  "card-elevated p-4 border-l-4 transition-all hover:shadow-lg",
-                  alerte.priority === "high" && "border-l-destructive",
-                  alerte.priority === "medium" && "border-l-warning",
-                  alerte.priority === "low" && "border-l-info"
-                )}
-              >
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card-elevated p-4">
                 <div className="flex items-start gap-4">
-                  <div className={cn("mt-0.5", typeConfig[alerte.type].color)}>
-                    <TypeIcon className="h-5 w-5" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-foreground">
-                        {alerte.title}
-                      </h4>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", priorityConfig[alerte.priority].class)}
-                      >
-                        {priorityConfig[alerte.priority].label}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {typeConfig[alerte.type].label}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {alerte.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {alerte.date}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {alerte.action && (
-                      <Button size="sm" variant="secondary">
-                        {alerte.action}
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" className="h-8 w-8">
-                      <CheckCircle className="h-4 w-4 text-success" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8">
-                      <XCircle className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                  <Skeleton className="h-5 w-5 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-64" />
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : alerts.length === 0 ? (
+            <div className="card-elevated p-12 text-center">
+              <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
+              <h3 className="font-display font-semibold text-lg text-foreground mb-2">
+                Aucune alerte
+              </h3>
+              <p className="text-muted-foreground">
+                Toutes les cartes pro et permis sont à jour !
+              </p>
+            </div>
+          ) : (
+            alerts.map((alert) => {
+              const TypeIcon = typeConfig[alert.type]?.icon || Bell;
+              
+              return (
+                <div
+                  key={alert.id}
+                  className={cn(
+                    "card-elevated p-4 border-l-4 transition-all hover:shadow-lg",
+                    alert.priority === "high" && "border-l-destructive",
+                    alert.priority === "medium" && "border-l-warning",
+                    alert.priority === "low" && "border-l-info"
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={cn("mt-0.5", typeConfig[alert.type]?.color || "text-muted-foreground")}>
+                      <TypeIcon className="h-5 w-5" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h4 className="font-medium text-foreground">
+                          {alert.title}
+                        </h4>
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs", priorityConfig[alert.priority].class)}
+                        >
+                          {priorityConfig[alert.priority].label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {typeConfig[alert.type]?.label || "Alerte"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {alert.description}
+                      </p>
+                      {alert.expiryDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Expire le {format(new Date(alert.expiryDate), 'dd MMMM yyyy', { locale: fr })}
+                        </p>
+                      )}
+                      {alert.contactName && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          {alert.contactName}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {alert.contactId && (
+                        <Button size="sm" variant="secondary">
+                          Voir contact
+                        </Button>
+                      )}
+                      {alert.sessionId && (
+                        <Button size="sm" variant="secondary">
+                          Voir session
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </main>
     </div>
