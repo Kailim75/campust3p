@@ -20,6 +20,8 @@ import {
   User,
   GraduationCap,
   FileText,
+  CreditCard,
+  Car,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -108,6 +110,22 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
   ]
     .filter(Boolean)
     .join(", ");
+
+  const permisInfo = contact?.numero_permis
+    ? `${contact.numero_permis}${contact.prefecture_permis ? ` (${contact.prefecture_permis})` : ""}${
+        contact.date_delivrance_permis
+          ? ` - Délivré le ${format(new Date(contact.date_delivrance_permis), "dd/MM/yyyy", { locale: fr })}`
+          : ""
+      }`
+    : null;
+
+  const carteProInfo = contact?.numero_carte_professionnelle
+    ? `${contact.numero_carte_professionnelle}${contact.prefecture_carte ? ` (${contact.prefecture_carte})` : ""}${
+        contact.date_expiration_carte
+          ? ` - Expire le ${format(new Date(contact.date_expiration_carte), "dd/MM/yyyy", { locale: fr })}`
+          : ""
+      }`
+    : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -211,6 +229,34 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
               <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
               <InfoRow icon={User} label="ID personnalisé" value={contact.custom_id} />
             </div>
+
+            <Separator />
+
+            {/* Permis de conduire */}
+            {permisInfo && (
+              <>
+                <div className="py-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Permis de conduire
+                  </h3>
+                  <InfoRow icon={Car} label="Permis" value={permisInfo} />
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Carte professionnelle */}
+            {carteProInfo && (
+              <>
+                <div className="py-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Carte professionnelle
+                  </h3>
+                  <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
+                </div>
+                <Separator />
+              </>
+            )}
 
             <Separator />
 
