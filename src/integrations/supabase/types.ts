@@ -169,6 +169,107 @@ export type Database = {
         }
         Relationships: []
       }
+      factures: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_echeance: string | null
+          date_emission: string | null
+          id: string
+          montant_total: number
+          numero_facture: string
+          session_inscription_id: string | null
+          statut: Database["public"]["Enums"]["facture_statut"]
+          type_financement: Database["public"]["Enums"]["financement_type"]
+          updated_at: string
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_echeance?: string | null
+          date_emission?: string | null
+          id?: string
+          montant_total: number
+          numero_facture: string
+          session_inscription_id?: string | null
+          statut?: Database["public"]["Enums"]["facture_statut"]
+          type_financement?: Database["public"]["Enums"]["financement_type"]
+          updated_at?: string
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_echeance?: string | null
+          date_emission?: string | null
+          id?: string
+          montant_total?: number
+          numero_facture?: string
+          session_inscription_id?: string | null
+          statut?: Database["public"]["Enums"]["facture_statut"]
+          type_financement?: Database["public"]["Enums"]["financement_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paiements: {
+        Row: {
+          commentaires: string | null
+          created_at: string
+          date_paiement: string
+          facture_id: string
+          id: string
+          mode_paiement: Database["public"]["Enums"]["mode_paiement"]
+          montant: number
+          reference: string | null
+        }
+        Insert: {
+          commentaires?: string | null
+          created_at?: string
+          date_paiement?: string
+          facture_id: string
+          id?: string
+          mode_paiement: Database["public"]["Enums"]["mode_paiement"]
+          montant: number
+          reference?: string | null
+        }
+        Update: {
+          commentaires?: string | null
+          created_at?: string
+          date_paiement?: string
+          facture_id?: string
+          id?: string
+          mode_paiement?: Database["public"]["Enums"]["mode_paiement"]
+          montant?: number
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_inscriptions: {
         Row: {
           commentaires: string | null
@@ -270,11 +371,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_numero_facture: { Args: never; Returns: string }
     }
     Enums: {
       civilite: "Monsieur" | "Madame"
       contact_statut: "En attente de validation" | "Client" | "Bravo"
+      facture_statut:
+        | "brouillon"
+        | "emise"
+        | "payee"
+        | "partiel"
+        | "impayee"
+        | "annulee"
+      financement_type: "personnel" | "entreprise" | "cpf" | "opco"
       formation_type:
         | "TAXI"
         | "VTC"
@@ -284,6 +393,7 @@ export type Database = {
         | "Formation continue Taxi"
         | "Formation continue VTC"
         | "Mobilité Taxi"
+      mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf"
       session_status:
         | "a_venir"
         | "en_cours"
@@ -419,6 +529,15 @@ export const Constants = {
     Enums: {
       civilite: ["Monsieur", "Madame"],
       contact_statut: ["En attente de validation", "Client", "Bravo"],
+      facture_statut: [
+        "brouillon",
+        "emise",
+        "payee",
+        "partiel",
+        "impayee",
+        "annulee",
+      ],
+      financement_type: ["personnel", "entreprise", "cpf", "opco"],
       formation_type: [
         "TAXI",
         "VTC",
@@ -429,6 +548,7 @@ export const Constants = {
         "Formation continue VTC",
         "Mobilité Taxi",
       ],
+      mode_paiement: ["cb", "virement", "cheque", "especes", "cpf"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
     },
   },
