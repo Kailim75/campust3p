@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_documents: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_expiration: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          nom: string
+          type_document: string
+          updated_at: string
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_expiration?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          nom: string
+          type_document: string
+          updated_at?: string
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_expiration?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          nom?: string
+          type_document?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           archived: boolean
