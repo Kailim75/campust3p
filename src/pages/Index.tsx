@@ -8,6 +8,7 @@ import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { DocumentsPage } from "@/components/documents/DocumentsPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
+import { SettingsPage } from "@/components/settings/SettingsPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,8 @@ const Index = () => {
         return <PaiementsPage />;
       case "alertes":
         return <AlertesPage />;
+      case "settings":
+        return <SettingsPage />;
       default:
         return <Dashboard />;
     }
