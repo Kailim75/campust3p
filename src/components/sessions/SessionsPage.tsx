@@ -19,13 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus, Calendar, Users, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { Search, Filter, Plus, Calendar, MapPin, Edit, Trash2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessions, useDeleteSession, type Session } from "@/hooks/useSessions";
+import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, type Session } from "@/hooks/useSessions";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SessionFormDialog } from "./SessionFormDialog";
 import { SessionDetailSheet } from "./SessionDetailSheet";
+import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -60,6 +61,7 @@ const formationLabels: Record<string, string> = {
 
 export function SessionsPage() {
   const { data: sessions, isLoading, error } = useSessions();
+  const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
   const deleteSession = useDeleteSession();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,7 +159,7 @@ export function SessionsPage() {
                   <TableHead className="font-semibold">Formation</TableHead>
                   <TableHead className="font-semibold">Dates</TableHead>
                   <TableHead className="font-semibold">Lieu</TableHead>
-                  <TableHead className="font-semibold">Places</TableHead>
+                  <TableHead className="font-semibold">Inscrits</TableHead>
                   <TableHead className="font-semibold">Statut</TableHead>
                   <TableHead className="text-right font-semibold">Actions</TableHead>
                 </TableRow>
@@ -212,10 +214,10 @@ export function SessionsPage() {
                         ) : '-'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{session.places_totales}</span>
-                        </div>
+                        <SessionEnrollmentBadge
+                          enrolled={inscriptionsCounts[session.id] || 0}
+                          total={session.places_totales}
+                        />
                       </TableCell>
                       <TableCell>
                         <Badge
