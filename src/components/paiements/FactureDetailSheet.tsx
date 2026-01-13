@@ -22,6 +22,9 @@ import {
   Wallet,
   BookOpen,
   Loader2,
+  Download,
+  MessageCircle,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -305,6 +308,91 @@ export function FactureDetailSheet({
                       ))}
                     </div>
                   )}
+                </div>
+
+                <Separator />
+
+                {/* Share actions */}
+                <div>
+                  <h3 className="font-semibold mb-3">Partager la facture</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        // Generate PDF content for download
+                        const content = `
+FACTURE ${facture.numero_facture}
+================================
+Date: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : "-"}
+Échéance: ${facture.date_echeance ? format(new Date(facture.date_echeance), "dd/MM/yyyy") : "-"}
+
+Client: ${facture.contact?.prenom || ""} ${facture.contact?.nom || ""}
+Email: ${facture.contact?.email || "-"}
+
+Montant total: ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+Montant payé: ${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+Reste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+
+Statut: ${statutConfig[facture.statut].label}
+Financement: ${financementConfig[facture.type_financement].label}
+${facture.commentaires ? `\nCommentaires: ${facture.commentaires}` : ""}
+                        `.trim();
+                        
+                        const blob = new Blob([content], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `facture-${facture.numero_facture}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Facture téléchargée");
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        const phone = facture.contact?.telephone?.replace(/\s/g, "").replace(/^0/, "33");
+                        if (!phone) {
+                          toast.error("Aucun numéro de téléphone");
+                          return;
+                        }
+                        const message = encodeURIComponent(
+                          `Bonjour ${facture.contact?.prenom || ""},\n\nVoici votre facture ${facture.numero_facture} d'un montant de ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€.\n\nReste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€\n\nCordialement`
+                        );
+                        window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        const email = facture.contact?.email;
+                        if (!email) {
+                          toast.error("Aucun email");
+                          return;
+                        }
+                        const subject = encodeURIComponent(`Facture ${facture.numero_facture}`);
+                        const body = encodeURIComponent(
+                          `Bonjour ${facture.contact?.prenom || ""},\n\nVeuillez trouver ci-joint votre facture ${facture.numero_facture}.\n\nMontant total: ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€\nReste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€\n\nCordialement`
+                        );
+                        window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
+                      }}
+                    >
+                      <Mail className="h-4 w-4 mr-1" />
+                      Email
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />
