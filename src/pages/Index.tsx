@@ -9,6 +9,7 @@ import { DocumentsPage } from "@/components/documents/DocumentsPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
+import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,8 @@ const Index = () => {
         return <DocumentsPage />;
       case "paiements":
         return <PaiementsPage />;
+      case "communications":
+        return <CommunicationsPage />;
       case "alertes":
         return <AlertesPage />;
       case "settings":

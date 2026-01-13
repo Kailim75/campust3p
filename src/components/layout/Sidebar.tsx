@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Car,
   Menu,
-  X
+  X,
+  Mail
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -32,6 +33,7 @@ const menuItems = [
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "paiements", label: "Paiements", icon: CreditCard },
+  { id: "communications", label: "Communications", icon: Mail },
   { id: "alertes", label: "Alertes", icon: Bell },
 ];
 

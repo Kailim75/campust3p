@@ -222,6 +222,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          actif: boolean
+          categorie: string
+          contenu: string
+          created_at: string
+          id: string
+          nom: string
+          sujet: string
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          contenu: string
+          created_at?: string
+          id?: string
+          nom: string
+          sujet: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          contenu?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          sujet?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       factures: {
         Row: {
           commentaires: string | null
