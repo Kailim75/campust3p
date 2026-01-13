@@ -19,13 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Phone, Mail, MessageCircle, Plus } from "lucide-react";
+import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ContactDetailSheet } from "./ContactDetailSheet";
 import { ContactFormDialog } from "./ContactFormDialog";
+import { QuickStatusDropdown } from "./QuickStatusDropdown";
+import { QuickEnrollDialog } from "./QuickEnrollDialog";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -54,6 +56,8 @@ export function ContactsTable() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+  const [enrollOpen, setEnrollOpen] = useState(false);
 
   const filteredContacts = (contacts ?? []).filter((contact) => {
     const matchesSearch =
@@ -83,6 +87,11 @@ export function ContactsTable() {
   const handleAddNew = () => {
     setEditingContact(null);
     setFormOpen(true);
+  };
+
+  const handleEnrollClick = (contact: Contact) => {
+    setEnrollContact(contact);
+    setEnrollOpen(true);
   };
 
   if (error) {
@@ -231,19 +240,26 @@ export function ContactsTable() {
                       <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
                         {contact.source || '-'}
                       </TableCell>
-                      <TableCell onClick={() => handleContactClick(contact)}>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", statusConfig[status]?.class ?? "bg-muted")}
-                        >
-                          {statusConfig[status]?.label ?? status}
-                        </Badge>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <QuickStatusDropdown contact={contact} />
                       </TableCell>
                       <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
                         {format(new Date(contact.created_at), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Inscrire à une session"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEnrollClick(contact);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
                           {contact.telephone && (
                             <Button 
                               variant="ghost" 
@@ -313,6 +329,13 @@ export function ContactsTable() {
         open={formOpen}
         onOpenChange={setFormOpen}
         contact={editingContact}
+      />
+
+      {/* Quick Enroll Dialog */}
+      <QuickEnrollDialog
+        contact={enrollContact}
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
       />
     </>
   );
