@@ -3,6 +3,10 @@ import { StatCard } from "./StatCard";
 import { AlertCard } from "./AlertCard";
 import { SessionsOverview } from "./SessionsOverview";
 import { RecentContacts } from "./RecentContacts";
+import { MonthlyCAChart } from "./MonthlyCAChart";
+import { FormationPieChart } from "./FormationPieChart";
+import { FinancialSummaryCard } from "./FinancialSummaryCard";
+import { InscriptionTrendChart } from "./InscriptionTrendChart";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useContactsStats } from "@/hooks/useContacts";
 
@@ -59,20 +63,29 @@ export function Dashboard() {
           ))}
         </div>
 
-        {/* Main Content Grid */}
+        {/* Graphiques CA et Finance */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sessions Overview - Takes 2 columns */}
+          <MonthlyCAChart />
+          <FinancialSummaryCard />
+        </div>
+
+        {/* Graphiques Formations et Inscriptions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FormationPieChart />
+          <InscriptionTrendChart />
+        </div>
+
+        {/* Sessions and Alerts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <SessionsOverview />
           </div>
-
-          {/* Alerts - Now connected to real data */}
           <div>
             <AlertCard />
           </div>
         </div>
 
-        {/* Recent Contacts - Now connected to DB */}
+        {/* Recent Contacts */}
         <div className="grid grid-cols-1">
           <RecentContacts />
         </div>
