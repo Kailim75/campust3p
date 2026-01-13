@@ -4,7 +4,7 @@ import { addDays, differenceInDays, isPast, parseISO } from "date-fns";
 
 export interface Alert {
   id: string;
-  type: "carte_pro" | "permis" | "session";
+  type: "carte_pro" | "permis" | "session" | "document" | "payment";
   priority: "high" | "medium" | "low";
   title: string;
   description: string;
@@ -13,6 +13,9 @@ export interface Alert {
   contactName?: string;
   expiryDate?: string;
   sessionId?: string;
+  factureId?: string;
+  documentId?: string;
+  montant?: number;
 }
 
 // Alerts for expiring professional cards and permits
@@ -145,12 +148,162 @@ export function useSessionAlerts() {
   });
 }
 
+// Alerts for overdue payments
+export function usePaymentAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "payments"],
+    queryFn: async () => {
+      const alerts: Alert[] = [];
+      const today = new Date();
+
+      // Fetch invoices with due dates that are past or soon
+      const { data: factures, error } = await supabase
+        .from("factures")
+        .select(`
+          id,
+          numero_facture,
+          montant_total,
+          date_echeance,
+          statut,
+          contact:contacts (id, nom, prenom)
+        `)
+        .in("statut", ["emise", "partiel", "impayee"])
+        .not("date_echeance", "is", null);
+
+      if (error) throw error;
+
+      // Fetch payments to calculate remaining amounts
+      const { data: paiements, error: paiementsError } = await supabase
+        .from("paiements")
+        .select("facture_id, montant");
+
+      if (paiementsError) throw paiementsError;
+
+      // Calculate total paid per invoice
+      const paidAmounts: Record<string, number> = {};
+      paiements?.forEach((p) => {
+        paidAmounts[p.facture_id] = (paidAmounts[p.facture_id] || 0) + Number(p.montant);
+      });
+
+      factures?.forEach((facture: any) => {
+        if (!facture.date_echeance) return;
+        
+        const dueDate = parseISO(facture.date_echeance);
+        const daysUntilDue = differenceInDays(dueDate, today);
+        const totalPaid = paidAmounts[facture.id] || 0;
+        const remaining = Number(facture.montant_total) - totalPaid;
+
+        if (remaining <= 0) return; // Fully paid
+
+        const contactName = facture.contact 
+          ? `${facture.contact.prenom} ${facture.contact.nom}` 
+          : "Contact inconnu";
+
+        // Alert for overdue invoices
+        if (daysUntilDue < 0) {
+          const daysOverdue = Math.abs(daysUntilDue);
+          alerts.push({
+            id: `payment_overdue_${facture.id}`,
+            type: "payment",
+            priority: daysOverdue > 30 ? "high" : daysOverdue > 14 ? "high" : "medium",
+            title: "Paiement en retard",
+            description: `${contactName} - ${remaining.toLocaleString("fr-FR")}€ impayés (${daysOverdue}j de retard)`,
+            daysUntilExpiry: daysUntilDue,
+            contactId: facture.contact?.id,
+            contactName,
+            factureId: facture.id,
+            montant: remaining,
+          });
+        }
+        // Alert for due soon (within 7 days)
+        else if (daysUntilDue <= 7) {
+          alerts.push({
+            id: `payment_soon_${facture.id}`,
+            type: "payment",
+            priority: daysUntilDue <= 2 ? "medium" : "low",
+            title: "Échéance proche",
+            description: daysUntilDue === 0 
+              ? `${contactName} - ${remaining.toLocaleString("fr-FR")}€ à échéance aujourd'hui`
+              : `${contactName} - ${remaining.toLocaleString("fr-FR")}€ dans ${daysUntilDue}j`,
+            daysUntilExpiry: daysUntilDue,
+            contactId: facture.contact?.id,
+            contactName,
+            factureId: facture.id,
+            montant: remaining,
+          });
+        }
+      });
+
+      return alerts;
+    },
+  });
+}
+
+// Alerts for expiring documents
+export function useDocumentAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "documents"],
+    queryFn: async () => {
+      const alerts: Alert[] = [];
+      const today = new Date();
+      const alertThresholdDays = 60;
+
+      // Fetch documents with expiration dates
+      const { data: documents, error } = await supabase
+        .from("contact_documents")
+        .select(`
+          id,
+          nom,
+          type_document,
+          date_expiration,
+          contact:contacts (id, nom, prenom)
+        `)
+        .not("date_expiration", "is", null);
+
+      if (error) throw error;
+
+      documents?.forEach((doc: any) => {
+        if (!doc.date_expiration) return;
+
+        const expiryDate = parseISO(doc.date_expiration);
+        const daysUntil = differenceInDays(expiryDate, today);
+
+        if (daysUntil <= alertThresholdDays) {
+          const isExpired = isPast(expiryDate);
+          const contactName = doc.contact 
+            ? `${doc.contact.prenom} ${doc.contact.nom}` 
+            : "Contact inconnu";
+
+          alerts.push({
+            id: `document_${doc.id}`,
+            type: "document",
+            priority: isExpired ? "high" : daysUntil <= 14 ? "high" : daysUntil <= 30 ? "medium" : "low",
+            title: isExpired ? "Document expiré" : "Document bientôt expiré",
+            description: isExpired 
+              ? `${doc.type_document} de ${contactName} a expiré`
+              : `${doc.type_document} de ${contactName} expire dans ${daysUntil}j`,
+            daysUntilExpiry: daysUntil,
+            contactId: doc.contact?.id,
+            contactName,
+            documentId: doc.id,
+            expiryDate: doc.date_expiration,
+          });
+        }
+      });
+
+      return alerts;
+    },
+  });
+}
+
 // Combined alerts
 export function useAllAlerts() {
   const { data: expirationAlerts = [], isLoading: loadingExpirations } = useExpirationAlerts();
   const { data: sessionAlerts = [], isLoading: loadingSessions } = useSessionAlerts();
+  const { data: paymentAlerts = [], isLoading: loadingPayments } = usePaymentAlerts();
+  const { data: documentAlerts = [], isLoading: loadingDocuments } = useDocumentAlerts();
 
-  const allAlerts = [...expirationAlerts, ...sessionAlerts].sort((a, b) => {
+  const allAlerts = [...expirationAlerts, ...sessionAlerts, ...paymentAlerts, ...documentAlerts].sort((a, b) => {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -160,6 +313,13 @@ export function useAllAlerts() {
 
   return {
     data: allAlerts,
-    isLoading: loadingExpirations || loadingSessions,
+    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments,
+    counts: {
+      total: allAlerts.length,
+      high: allAlerts.filter(a => a.priority === "high").length,
+      payments: paymentAlerts.length,
+      documents: documentAlerts.length + expirationAlerts.length,
+      sessions: sessionAlerts.length,
+    }
   };
 }

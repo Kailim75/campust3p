@@ -6,13 +6,6 @@ import { RecentContacts } from "./RecentContacts";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useContactsStats } from "@/hooks/useContacts";
 
-// Mock data for alerts (to be connected to DB later)
-const alerts = [
-  { id: "1", type: "document" as const, title: "Document expiré", description: "Permis de Jean Dupont expire dans 3 jours", date: "Aujourd'hui" },
-  { id: "2", type: "payment" as const, title: "Paiement en retard", description: "Marie Martin - Solde de 450€ impayé", date: "Hier" },
-  { id: "3", type: "session" as const, title: "Places limitées", description: "Session VTC du 20/01 - 1 place restante", date: "Il y a 2j" },
-];
-
 export function Dashboard() {
   const { data: contactStats, isLoading } = useContactsStats();
 
@@ -73,9 +66,9 @@ export function Dashboard() {
             <SessionsOverview />
           </div>
 
-          {/* Alerts */}
+          {/* Alerts - Now connected to real data */}
           <div>
-            <AlertCard alerts={alerts} />
+            <AlertCard />
           </div>
         </div>
 
