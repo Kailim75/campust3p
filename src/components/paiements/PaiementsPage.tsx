@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Loader2 } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Loader2, Filter, X, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -18,7 +18,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useFactures, useFacturesStats, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { FactureFormDialog } from "./FactureFormDialog";
@@ -48,8 +61,51 @@ export function PaiementsPage() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null);
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
 
+  // Filters state
+  const [statutFilter, setStatutFilter] = useState<string>("all");
+  const [financementFilter, setFinancementFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
   const { data: factures = [], isLoading } = useFactures();
   const { data: stats } = useFacturesStats();
+
+  // Filtered factures
+  const filteredFactures = useMemo(() => {
+    return factures.filter((facture) => {
+      // Filter by status
+      if (statutFilter !== "all" && facture.statut !== statutFilter) {
+        return false;
+      }
+      // Filter by financement
+      if (financementFilter !== "all" && facture.type_financement !== financementFilter) {
+        return false;
+      }
+      // Filter by date range (using date_emission)
+      if (dateFrom && facture.date_emission) {
+        const emissionDate = new Date(facture.date_emission);
+        if (isBefore(emissionDate, startOfDay(dateFrom))) {
+          return false;
+        }
+      }
+      if (dateTo && facture.date_emission) {
+        const emissionDate = new Date(facture.date_emission);
+        if (isAfter(emissionDate, endOfDay(dateTo))) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [factures, statutFilter, financementFilter, dateFrom, dateTo]);
+
+  const hasActiveFilters = statutFilter !== "all" || financementFilter !== "all" || dateFrom || dateTo;
+
+  const clearFilters = () => {
+    setStatutFilter("all");
+    setFinancementFilter("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   const handleOpenDetail = (factureId: string) => {
     setSelectedFactureId(factureId);
@@ -122,26 +178,145 @@ export function PaiementsPage() {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="card-elevated p-4 mb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">Filtres</span>
+            </div>
+
+            {/* Statut filter */}
+            <Select value={statutFilter} onValueChange={setStatutFilter}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous statuts</SelectItem>
+                <SelectItem value="brouillon">Brouillon</SelectItem>
+                <SelectItem value="emise">Émise</SelectItem>
+                <SelectItem value="payee">Payée</SelectItem>
+                <SelectItem value="partiel">Partiel</SelectItem>
+                <SelectItem value="impayee">Impayée</SelectItem>
+                <SelectItem value="annulee">Annulée</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Financement filter */}
+            <Select value={financementFilter} onValueChange={setFinancementFilter}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Financement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous types</SelectItem>
+                <SelectItem value="personnel">Personnel</SelectItem>
+                <SelectItem value="entreprise">Entreprise</SelectItem>
+                <SelectItem value="cpf">CPF</SelectItem>
+                <SelectItem value="opco">OPCO</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Date from */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-[130px] justify-start text-left font-normal h-9",
+                    !dateFrom && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Du"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Date to */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-[130px] justify-start text-left font-normal h-9",
+                    !dateTo && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "dd/MM/yyyy") : "Au"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Réinitialiser
+              </Button>
+            )}
+
+            {/* Results count */}
+            <div className="ml-auto text-sm text-muted-foreground">
+              {filteredFactures.length} facture{filteredFactures.length !== 1 ? "s" : ""}
+              {hasActiveFilters && ` sur ${factures.length}`}
+            </div>
+          </div>
+        </div>
+
         {/* Table */}
         <div className="card-elevated overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : factures.length === 0 ? (
+          ) : filteredFactures.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Aucune facture</p>
-              <Button
-                variant="link"
-                className="mt-2"
-                onClick={() => {
-                  setEditingFacture(null);
-                  setShowFactureForm(true);
-                }}
-              >
-                Créer une première facture
-              </Button>
+              <p className="text-muted-foreground">
+                {hasActiveFilters ? "Aucune facture ne correspond aux filtres" : "Aucune facture"}
+              </p>
+              {hasActiveFilters ? (
+                <Button variant="link" className="mt-2" onClick={clearFilters}>
+                  Réinitialiser les filtres
+                </Button>
+              ) : (
+                <Button
+                  variant="link"
+                  className="mt-2"
+                  onClick={() => {
+                    setEditingFacture(null);
+                    setShowFactureForm(true);
+                  }}
+                >
+                  Créer une première facture
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
@@ -158,7 +333,7 @@ export function PaiementsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {factures.map((facture) => {
+                {filteredFactures.map((facture) => {
                   const paidPercentage = (facture.total_paye / Number(facture.montant_total)) * 100;
                   const montantRestant = Number(facture.montant_total) - facture.total_paye;
                   
