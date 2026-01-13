@@ -6,18 +6,11 @@ import { RecentContacts } from "./RecentContacts";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useContactsStats } from "@/hooks/useContacts";
 
-// Mock data for alerts and sessions (to be connected to DB later)
+// Mock data for alerts (to be connected to DB later)
 const alerts = [
   { id: "1", type: "document" as const, title: "Document expiré", description: "Permis de Jean Dupont expire dans 3 jours", date: "Aujourd'hui" },
   { id: "2", type: "payment" as const, title: "Paiement en retard", description: "Marie Martin - Solde de 450€ impayé", date: "Hier" },
   { id: "3", type: "session" as const, title: "Places limitées", description: "Session VTC du 20/01 - 1 place restante", date: "Il y a 2j" },
-];
-
-const sessions = [
-  { id: "1", formation: "Formation Initiale Taxi", type: "Taxi" as const, dateDebut: "15/01/2026", dateFin: "12/02/2026", inscrits: 8, places: 10, status: "a_venir" as const },
-  { id: "2", formation: "Formation VTC", type: "VTC" as const, dateDebut: "20/01/2026", dateFin: "17/02/2026", inscrits: 10, places: 10, status: "complet" as const },
-  { id: "3", formation: "Formation Continue Taxi", type: "Continue" as const, dateDebut: "05/02/2026", dateFin: "07/02/2026", inscrits: 6, places: 12, status: "a_venir" as const },
-  { id: "4", formation: "Formation Mobilité", type: "Mobilité" as const, dateDebut: "10/02/2026", dateFin: "12/02/2026", inscrits: 4, places: 8, status: "a_venir" as const },
 ];
 
 export function Dashboard() {
@@ -77,7 +70,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sessions Overview - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <SessionsOverview sessions={sessions} />
+            <SessionsOverview />
           </div>
 
           {/* Alerts */}

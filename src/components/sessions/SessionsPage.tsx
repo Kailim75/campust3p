@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -9,177 +11,293 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Users, MoreHorizontal, Eye, Edit, UserPlus } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-interface Session {
-  id: string;
-  formation: string;
-  type: "Taxi" | "VTC" | "VMDTR" | "Continue" | "Mobilité";
-  dateDebut: string;
-  dateFin: string;
-  inscrits: number;
-  places: number;
-  status: "en_cours" | "a_venir" | "complet" | "termine";
-  formateur: string;
-}
-
-const sessions: Session[] = [
-  { id: "1", formation: "Formation Initiale Taxi", type: "Taxi", dateDebut: "15/01/2026", dateFin: "12/02/2026", inscrits: 8, places: 10, status: "a_venir", formateur: "M. Dubois" },
-  { id: "2", formation: "Formation VTC", type: "VTC", dateDebut: "20/01/2026", dateFin: "17/02/2026", inscrits: 10, places: 10, status: "complet", formateur: "M. Laurent" },
-  { id: "3", formation: "Formation Continue Taxi", type: "Continue", dateDebut: "05/02/2026", dateFin: "07/02/2026", inscrits: 6, places: 12, status: "a_venir", formateur: "Mme Moreau" },
-  { id: "4", formation: "Formation Mobilité", type: "Mobilité", dateDebut: "10/02/2026", dateFin: "12/02/2026", inscrits: 4, places: 8, status: "a_venir", formateur: "M. Dubois" },
-  { id: "5", formation: "Formation VMDTR", type: "VMDTR", dateDebut: "01/01/2026", dateFin: "10/01/2026", inscrits: 12, places: 12, status: "en_cours", formateur: "M. Martin" },
-  { id: "6", formation: "Formation Initiale VTC", type: "VTC", dateDebut: "01/12/2025", dateFin: "15/12/2025", inscrits: 9, places: 10, status: "termine", formateur: "M. Laurent" },
-];
-
-const typeColors = {
-  Taxi: "bg-primary/10 text-primary border-primary/20",
-  VTC: "bg-success/10 text-success border-success/20",
-  VMDTR: "bg-info/10 text-info border-info/20",
-  Continue: "bg-warning/10 text-warning border-warning/20",
-  Mobilité: "bg-accent/10 text-accent-foreground border-accent/20",
-};
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Search, Filter, Plus, Calendar, Users, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useSessions, useDeleteSession, type Session } from "@/hooks/useSessions";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { SessionFormDialog } from "./SessionFormDialog";
+import { SessionDetailSheet } from "./SessionDetailSheet";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const statusConfig = {
-  en_cours: { label: "En cours", class: "bg-success text-success-foreground" },
-  a_venir: { label: "À venir", class: "bg-info text-info-foreground" },
-  complet: { label: "Complet", class: "bg-warning text-warning-foreground" },
-  termine: { label: "Terminé", class: "bg-muted text-muted-foreground" },
+  a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
+  en_cours: { label: "En cours", class: "bg-warning/10 text-warning border-warning/20" },
+  terminee: { label: "Terminée", class: "bg-muted text-muted-foreground border-muted" },
+  annulee: { label: "Annulée", class: "bg-destructive/10 text-destructive border-destructive/20" },
+  complet: { label: "Complet", class: "bg-success/10 text-success border-success/20" },
+};
+
+const formationLabels: Record<string, string> = {
+  TAXI: "Taxi",
+  VTC: "VTC",
+  VMDTR: "VMDTR",
+  "ACC VTC": "ACC VTC",
+  "ACC VTC 75": "ACC VTC 75",
+  "Formation continue Taxi": "Continue Taxi",
+  "Formation continue VTC": "Continue VTC",
+  "Mobilité Taxi": "Mobilité Taxi",
 };
 
 export function SessionsPage() {
+  const { data: sessions, isLoading, error } = useSessions();
+  const deleteSession = useDeleteSession();
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const filteredSessions = (sessions ?? []).filter((session) => {
+    const matchesSearch = session.nom.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || session.statut === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleAddNew = () => {
+    setEditingSession(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (session: Session) => {
+    setEditingSession(session);
+    setFormOpen(true);
+  };
+
+  const handleViewDetail = (session: Session) => {
+    setDetailSessionId(session.id);
+    setDetailOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSession.mutateAsync(id);
+      toast.success("Session supprimée");
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header 
         title="Sessions de formation" 
-        subtitle="Planifiez et suivez vos sessions"
-        addLabel="Nouvelle session"
-        onAddClick={() => console.log("Add session")}
+        subtitle="Gérez vos sessions et inscriptions"
       />
 
-      <main className="p-6 animate-fade-in">
+      <main className="p-6 space-y-6 animate-fade-in">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une session..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 input-focus"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-44">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les statuts</SelectItem>
+              {Object.entries(statusConfig).map(([key, { label }]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button onClick={handleAddNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle session
+          </Button>
+        </div>
+
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Sessions actives</p>
-            <p className="text-2xl font-display font-bold text-foreground">5</p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Places disponibles</p>
-            <p className="text-2xl font-display font-bold text-foreground">18</p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Taux de remplissage</p>
-            <p className="text-2xl font-display font-bold text-success">78%</p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Ce mois</p>
-            <p className="text-2xl font-display font-bold text-foreground">3</p>
-          </div>
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span>{filteredSessions.length} session{filteredSessions.length > 1 ? 's' : ''}</span>
         </div>
 
         {/* Table */}
-        <div className="card-elevated overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Formation</TableHead>
-                <TableHead className="font-semibold">Dates</TableHead>
-                <TableHead className="font-semibold">Formateur</TableHead>
-                <TableHead className="font-semibold">Inscriptions</TableHead>
-                <TableHead className="font-semibold">Statut</TableHead>
-                <TableHead className="text-right font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sessions.map((session) => {
-                const fillRate = (session.inscrits / session.places) * 100;
-                
-                return (
-                  <TableRow key={session.id} className="table-row-hover">
-                    <TableCell>
-                      <div className="space-y-1">
-                        <p className="font-medium text-foreground">
-                          {session.formation}
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", typeColors[session.type])}
-                        >
-                          {session.type}
+        {error ? (
+          <div className="card-elevated p-8 text-center text-destructive">
+            Erreur lors du chargement des sessions
+          </div>
+        ) : (
+          <div className="card-elevated overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Session</TableHead>
+                  <TableHead className="font-semibold">Formation</TableHead>
+                  <TableHead className="font-semibold">Dates</TableHead>
+                  <TableHead className="font-semibold">Lieu</TableHead>
+                  <TableHead className="font-semibold">Places</TableHead>
+                  <TableHead className="font-semibold">Statut</TableHead>
+                  <TableHead className="text-right font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  filteredSessions.map((session) => (
+                    <TableRow key={session.id} className="table-row-hover">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-foreground">{session.nom}</p>
+                          {session.formateur && (
+                            <p className="text-sm text-muted-foreground">
+                              Formateur: {session.formateur}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {formationLabels[session.formation_type] || session.formation_type}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{session.dateDebut} → {session.dateFin}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {session.formateur}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {session.inscrits}/{session.places}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span className="text-sm">
+                            {format(new Date(session.date_debut), 'dd/MM/yyyy', { locale: fr })}
+                            {' - '}
+                            {format(new Date(session.date_fin), 'dd/MM/yyyy', { locale: fr })}
                           </span>
                         </div>
-                        <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={cn(
-                              "h-full rounded-full transition-all",
-                              fillRate >= 100 ? "bg-warning" : fillRate >= 70 ? "bg-success" : "bg-primary"
-                            )}
-                            style={{ width: `${Math.min(fillRate, 100)}%` }}
-                          />
+                      </TableCell>
+                      <TableCell>
+                        {session.lieu ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-sm">{session.lieu}</span>
+                          </div>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{session.places_totales}</span>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn("text-xs", statusConfig[session.status].class)}>
-                        {statusConfig[session.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs", statusConfig[session.statut]?.class)}
+                        >
+                          {statusConfig[session.statut]?.label || session.statut}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleViewDetail(session)}
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Voir détails
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Inscrire stagiaire
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Modifier
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEdit(session)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. Toutes les inscriptions associées seront également supprimées.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(session.id)}>
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+
+            {!isLoading && filteredSessions.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                Aucune session trouvée
+              </div>
+            )}
+          </div>
+        )}
       </main>
+
+      {/* Form Dialog */}
+      <SessionFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        session={editingSession}
+      />
+
+      {/* Detail Sheet */}
+      <SessionDetailSheet
+        sessionId={detailSessionId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onEdit={(session) => {
+          setDetailOpen(false);
+          handleEdit(session);
+        }}
+      />
     </div>
   );
 }
