@@ -7,8 +7,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Phone,
   Mail,
@@ -22,6 +22,9 @@ import {
   FileText,
   CreditCard,
   Car,
+  ClipboardList,
+  FolderOpen,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -40,6 +43,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -78,8 +83,37 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
+function useContactInscriptions(contactId: string | null) {
+  return useQuery({
+    queryKey: ["contact-inscriptions", contactId],
+    queryFn: async () => {
+      if (!contactId) return [];
+      const { data, error } = await supabase
+        .from("session_inscriptions")
+        .select(`
+          *,
+          sessions (
+            id,
+            nom,
+            date_debut,
+            date_fin,
+            formation_type,
+            lieu
+          )
+        `)
+        .eq("contact_id", contactId)
+        .order("date_inscription", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!contactId,
+  });
+}
+
 export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: ContactDetailSheetProps) {
   const { data: contact, isLoading } = useContact(contactId);
+  const { data: inscriptions = [], isLoading: inscriptionsLoading } = useContactInscriptions(contactId);
   const deleteContact = useDeleteContact();
 
   const handleDelete = async () => {
@@ -127,6 +161,13 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
       }`
     : null;
 
+  const inscriptionStatusConfig: Record<string, { label: string; class: string }> = {
+    inscrit: { label: "Inscrit", class: "bg-success/10 text-success border-success/20" },
+    en_attente: { label: "En attente", class: "bg-warning/10 text-warning border-warning/20" },
+    annule: { label: "Annulé", class: "bg-destructive/10 text-destructive border-destructive/20" },
+    complete: { label: "Complété", class: "bg-info/10 text-info border-info/20" },
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
@@ -169,7 +210,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
             </SheetHeader>
 
             {/* Actions rapides */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-4">
               {contact.telephone && (
                 <>
                   <Button
@@ -207,94 +248,171 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
               )}
             </div>
 
-            <Separator />
+            {/* Onglets */}
+            <Tabs defaultValue="infos" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 mb-4">
+                <TabsTrigger value="infos" className="text-xs">
+                  <User className="h-3 w-3 mr-1" />
+                  Infos
+                </TabsTrigger>
+                <TabsTrigger value="sessions" className="text-xs">
+                  <ClipboardList className="h-3 w-3 mr-1" />
+                  Sessions
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs">
+                  <FolderOpen className="h-3 w-3 mr-1" />
+                  Docs
+                </TabsTrigger>
+                <TabsTrigger value="historique" className="text-xs">
+                  <History className="h-3 w-3 mr-1" />
+                  Historique
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Informations de contact */}
-            <div className="py-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Contact
-              </h3>
-              <InfoRow icon={Mail} label="Email" value={contact.email} />
-              <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
-              <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
-            </div>
-
-            <Separator />
-
-            {/* Informations personnelles */}
-            <div className="py-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Informations personnelles
-              </h3>
-              <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
-              <InfoRow icon={User} label="ID personnalisé" value={contact.custom_id} />
-            </div>
-
-            <Separator />
-
-            {/* Permis de conduire */}
-            {permisInfo && (
-              <>
-                <div className="py-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    Permis de conduire
+              {/* Onglet Infos */}
+              <TabsContent value="infos" className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Contact
                   </h3>
-                  <InfoRow icon={Car} label="Permis" value={permisInfo} />
+                  <InfoRow icon={Mail} label="Email" value={contact.email} />
+                  <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
+                  <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
                 </div>
-                <Separator />
-              </>
-            )}
 
-            {/* Carte professionnelle */}
-            {carteProInfo && (
-              <>
-                <div className="py-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    Carte professionnelle
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Informations personnelles
                   </h3>
-                  <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
+                  <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
+                  <InfoRow icon={User} label="ID personnalisé" value={contact.custom_id} />
                 </div>
-                <Separator />
-              </>
-            )}
 
-            <Separator />
+                {permisInfo && (
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Permis de conduire
+                    </h3>
+                    <InfoRow icon={Car} label="Permis" value={permisInfo} />
+                  </div>
+                )}
 
-            {/* Formation */}
-            <div className="py-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Formation
-              </h3>
-              <InfoRow
-                icon={GraduationCap}
-                label="Type de formation"
-                value={contact.formation ? formationLabels[contact.formation] || contact.formation : null}
-              />
-              <InfoRow icon={FileText} label="Source" value={contact.source} />
-              {contact.commentaires && (
-                <div className="mt-2 p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Commentaires</p>
-                  <p className="text-sm">{contact.commentaires}</p>
+                {carteProInfo && (
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Carte professionnelle
+                    </h3>
+                    <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Formation
+                  </h3>
+                  <InfoRow
+                    icon={GraduationCap}
+                    label="Type de formation"
+                    value={contact.formation ? formationLabels[contact.formation] || contact.formation : null}
+                  />
+                  <InfoRow icon={FileText} label="Source" value={contact.source} />
+                  {contact.commentaires && (
+                    <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Commentaires</p>
+                      <p className="text-sm">{contact.commentaires}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </TabsContent>
 
-            <Separator />
+              {/* Onglet Sessions */}
+              <TabsContent value="sessions" className="space-y-3">
+                {inscriptionsLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ) : inscriptions.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Aucune inscription</p>
+                  </div>
+                ) : (
+                  inscriptions.map((inscription: any) => (
+                    <div
+                      key={inscription.id}
+                      className="p-3 border rounded-lg space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-sm">
+                            {inscription.sessions?.nom || "Session inconnue"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {inscription.sessions?.formation_type}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs",
+                            inscriptionStatusConfig[inscription.statut]?.class ?? "bg-muted"
+                          )}
+                        >
+                          {inscriptionStatusConfig[inscription.statut]?.label ?? inscription.statut}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {inscription.sessions?.date_debut
+                            ? format(new Date(inscription.sessions.date_debut), "dd/MM/yyyy", { locale: fr })
+                            : "N/A"}
+                        </span>
+                        {inscription.sessions?.lieu && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {inscription.sessions.lieu}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
 
-            {/* Métadonnées */}
-            <div className="py-4 text-sm text-muted-foreground">
-              <p>
-                Créé le{" "}
-                {format(new Date(contact.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
-              </p>
-              <p>
-                Modifié le{" "}
-                {format(new Date(contact.updated_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
-              </p>
-            </div>
+              {/* Onglet Documents */}
+              <TabsContent value="documents" className="space-y-3">
+                <div className="text-center py-8 text-muted-foreground">
+                  <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Gestion des documents à venir</p>
+                  <p className="text-xs mt-1">CNI, permis, attestations...</p>
+                </div>
+              </TabsContent>
+
+              {/* Onglet Historique */}
+              <TabsContent value="historique" className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-success" />
+                    <span className="text-muted-foreground">Créé le</span>
+                    <span className="font-medium">
+                      {format(new Date(contact.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-info" />
+                    <span className="text-muted-foreground">Dernière modification</span>
+                    <span className="font-medium">
+                      {format(new Date(contact.updated_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-4 mt-4 border-t">
               <Button className="flex-1" onClick={() => onEdit(contact)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Modifier
