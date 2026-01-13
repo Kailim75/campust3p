@@ -1,6 +1,5 @@
-import { Bell, Search, Plus, LogOut } from "lucide-react";
+import { Bell, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface HeaderProps {
   title: string;
@@ -46,14 +46,8 @@ export function Header({ title, subtitle, onAddClick, addLabel }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher..."
-              className="w-64 pl-9 input-focus"
-            />
-          </div>
+          {/* Global Search */}
+          <GlobalSearch />
 
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
