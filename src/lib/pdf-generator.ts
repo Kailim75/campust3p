@@ -42,7 +42,18 @@ export interface SessionInfo {
   lieu?: string;
   duree_heures?: number;
   prix?: number;
+  prix_ht?: number;
+  tva_percent?: number;
   formateur?: string;
+  // Nouvelles informations enrichies
+  numero_session?: string;
+  heure_debut?: string;
+  heure_fin?: string;
+  adresse_rue?: string;
+  adresse_code_postal?: string;
+  adresse_ville?: string;
+  objectifs?: string;
+  prerequis?: string;
 }
 
 export interface FactureInfo {
@@ -338,6 +349,32 @@ export function generateAttestationPDF(
   return doc;
 }
 
+// Helper function to format full address
+function formatFullAddress(session: SessionInfo): string {
+  const parts = [];
+  if (session.adresse_rue) parts.push(session.adresse_rue);
+  if (session.adresse_code_postal || session.adresse_ville) {
+    parts.push(`${session.adresse_code_postal || ""} ${session.adresse_ville || ""}`.trim());
+  }
+  if (parts.length === 0 && session.lieu) return session.lieu;
+  return parts.join(", ") || "À définir";
+}
+
+// Helper function to format session hours
+function formatSessionHours(session: SessionInfo): string {
+  if (session.heure_debut && session.heure_fin) {
+    return `${session.heure_debut} - ${session.heure_fin}`;
+  }
+  return "9h00 - 12h30 / 13h30 - 17h00";
+}
+
+// Helper function to calculate TTC price
+function calculateTTC(session: SessionInfo): number {
+  const prixHT = session.prix_ht || session.prix || 0;
+  const tva = session.tva_percent || 0;
+  return prixHT * (1 + tva / 100);
+}
+
 // ==================== CONVENTION PDF ====================
 export function generateConventionPDF(
   contact: ContactInfo,
@@ -349,7 +386,7 @@ export function generateConventionPDF(
   
   addHeader(doc, company);
   
-  // Title
+  // Title with session number
   let yPos = 55;
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
@@ -360,8 +397,17 @@ export function generateConventionPDF(
   doc.setFont("helvetica", "normal");
   doc.text("(Article L.6353-1 et suivants du Code du travail)", pageWidth / 2, yPos, { align: "center" });
   
+  // Session number badge
+  if (session.numero_session) {
+    yPos += 8;
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Réf. Session : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+    doc.setTextColor(0);
+  }
+  
   // Parties
-  yPos += 20;
+  yPos += 15;
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("ENTRE LES SOUSSIGNES :", 20, yPos);
@@ -412,29 +458,64 @@ export function generateConventionPDF(
   const splitArticle1 = doc.splitTextToSize(article1, pageWidth - 40);
   doc.text(splitArticle1, 20, yPos);
   
-  // Article 2
+  // Article 2 - Enrichi
   yPos += splitArticle1.length * 5 + 10;
   doc.setFont("helvetica", "bold");
   doc.text("Article 2 - Nature et caracteristiques de l'action", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
   doc.text(`- Intitule : ${session.nom}`, 25, yPos);
+  if (session.numero_session) {
+    yPos += 5;
+    doc.text(`- Numero de session : ${session.numero_session}`, 25, yPos);
+  }
   yPos += 5;
   doc.text(`- Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 25, yPos);
   yPos += 5;
+  doc.text(`- Horaires : ${formatSessionHours(session)}`, 25, yPos);
+  yPos += 5;
   doc.text(`- Duree : ${session.duree_heures || "-"} heures`, 25, yPos);
   yPos += 5;
-  doc.text(`- Lieu : ${session.lieu || "A definir"}`, 25, yPos);
+  doc.text(`- Lieu : ${formatFullAddress(session)}`, 25, yPos);
+  if (session.formateur) {
+    yPos += 5;
+    doc.text(`- Formateur : ${session.formateur}`, 25, yPos);
+  }
   
-  // Article 3
-  yPos += 12;
+  // Objectifs et prérequis
+  if (session.objectifs) {
+    yPos += 8;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    const objectifsText = doc.splitTextToSize(`Objectifs : ${session.objectifs}`, pageWidth - 50);
+    doc.text(objectifsText, 25, yPos);
+    yPos += objectifsText.length * 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+  }
+  
+  // Article 3 - Prix enrichi
+  yPos += 10;
   doc.setFont("helvetica", "bold");
   doc.text("Article 3 - Prix de la formation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
-  doc.text(`Le prix de la formation est fixe a ${session.prix?.toLocaleString("fr-FR") || "-"} EUR TTC.`, 25, yPos);
+  
+  const prixHT = session.prix_ht || session.prix || 0;
+  const tvaPercent = session.tva_percent || 0;
+  const prixTTC = calculateTTC(session);
+  
+  doc.text(`Le prix de la formation est fixe a :`, 25, yPos);
   yPos += 5;
-  doc.text("TVA non applicable - Article 261.4.4 a du CGI", 25, yPos);
+  doc.text(`- Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
+  yPos += 5;
+  if (tvaPercent > 0) {
+    doc.text(`- TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
+    yPos += 5;
+    doc.text(`- Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
+  } else {
+    doc.text("TVA non applicable - Article 261.4.4 a du CGI", 30, yPos);
+  }
   
   // Article 4
   yPos += 12;
@@ -478,18 +559,28 @@ export function generateConvocationPDF(
   
   addHeader(doc, company);
   
-  // Title
+  // Title with session reference
   let yPos = 55;
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("CONVOCATION A LA FORMATION", pageWidth / 2, yPos, { align: "center" });
   
+  // Session reference
+  if (session.numero_session) {
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Réf. Session : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+    doc.setTextColor(0);
+  }
+  
   // Destinataire
-  yPos += 20;
+  yPos += 15;
   yPos = addContactBlock(doc, contact, pageWidth - 80, yPos, "");
   
   // Corps
-  yPos = Math.max(yPos, 100);
+  yPos = Math.max(yPos, 105);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   
@@ -500,10 +591,11 @@ export function generateConvocationPDF(
   const intro = `Nous avons le plaisir de vous confirmer votre inscription a la formation suivante :`;
   doc.text(intro, 20, yPos);
   
-  // Formation box
+  // Formation box - enrichi
   yPos += 15;
   doc.setFillColor(245, 245, 245);
-  doc.roundedRect(20, yPos, pageWidth - 40, 55, 3, 3, "F");
+  const boxHeight = session.formateur ? 75 : 65;
+  doc.roundedRect(20, yPos, pageWidth - 40, boxHeight, 3, 3, "F");
   
   yPos += 12;
   doc.setFont("helvetica", "bold");
@@ -516,16 +608,21 @@ export function generateConvocationPDF(
   doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 30, yPos);
   
   yPos += 8;
-  doc.text(`Horaires : 9h00 - 12h30 / 13h30 - 17h00`, 30, yPos);
+  doc.text(`Horaires : ${formatSessionHours(session)}`, 30, yPos);
   
   yPos += 8;
-  doc.text(`Lieu : ${session.lieu || "Nos locaux"}`, 30, yPos);
+  doc.text(`Lieu : ${formatFullAddress(session)}`, 30, yPos);
   
   yPos += 8;
   doc.text(`Duree totale : ${session.duree_heures || "-"} heures`, 30, yPos);
   
+  if (session.formateur) {
+    yPos += 8;
+    doc.text(`Formateur : ${session.formateur}`, 30, yPos);
+  }
+  
   // Documents a apporter
-  yPos += 25;
+  yPos += 20;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text("Documents a apporter le jour de la formation :", 20, yPos);
@@ -539,12 +636,24 @@ export function generateConvocationPDF(
   yPos += 6;
   doc.text("- Attestation d'inscription (cette convocation)", 25, yPos);
   
+  // Prérequis si présents
+  if (session.prerequis) {
+    yPos += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Prerequis :", 20, yPos);
+    doc.setFont("helvetica", "normal");
+    yPos += 6;
+    const prerequisText = doc.splitTextToSize(session.prerequis, pageWidth - 50);
+    doc.text(prerequisText, 25, yPos);
+    yPos += prerequisText.length * 5;
+  }
+  
   // Contact
-  yPos += 15;
+  yPos = Math.min(yPos + 15, 230);
   doc.text(`Pour toute question, contactez-nous au ${company.phone} ou par email a ${company.email}`, 20, yPos);
   
   // Signature
-  yPos += 25;
+  yPos += 20;
   doc.text("Cordialement,", 20, yPos);
   yPos += 15;
   doc.text("L'equipe Formation", 20, yPos);
