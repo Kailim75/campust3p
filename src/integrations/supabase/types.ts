@@ -409,6 +409,45 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          actif: boolean
+          categorie: string
+          contenu: string
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          type_document: string
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          contenu: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          type_document?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          contenu?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          type_document?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           actif: boolean
