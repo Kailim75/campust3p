@@ -12,6 +12,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Calendar,
   MapPin,
   Users,
@@ -21,6 +27,10 @@ import {
   Trash2,
   ClipboardList,
   Info,
+  FileDown,
+  FileText,
+  Award,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -43,6 +53,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { EmargementSheet } from "./EmargementSheet";
+import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -78,11 +89,66 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const removeInscription = useRemoveInscription();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
   const inscriptionCount = inscriptions?.length ?? 0;
   const placesRestantes = session ? session.places_totales - inscriptionCount : 0;
+
+  const sessionInfo = session ? {
+    nom: session.nom,
+    formation_type: session.formation_type,
+    date_debut: session.date_debut,
+    date_fin: session.date_fin,
+    lieu: session.lieu || undefined,
+    duree_heures: 35, // Default training hours
+    prix: session.prix ? Number(session.prix) : undefined,
+  } : null;
+
+  const handleGenerateDocument = (type: DocumentType, contact: Contact) => {
+    if (!sessionInfo) return;
+    
+    const contactInfo = {
+      civilite: contact.civilite || undefined,
+      nom: contact.nom,
+      prenom: contact.prenom,
+      email: contact.email || undefined,
+      telephone: contact.telephone || undefined,
+      rue: contact.rue || undefined,
+      code_postal: contact.code_postal || undefined,
+      ville: contact.ville || undefined,
+      date_naissance: contact.date_naissance || undefined,
+      ville_naissance: contact.ville_naissance || undefined,
+    };
+    
+    generateDocument(type, contactInfo, sessionInfo);
+  };
+
+  const handleGenerateBulkDocuments = (type: DocumentType) => {
+    if (!sessionInfo || !inscriptions?.length) {
+      toast.error("Aucun stagiaire inscrit");
+      return;
+    }
+    
+    const contactsInfo = inscriptions.map((inscription) => {
+      const contact = inscription.contacts as unknown as Contact;
+      return {
+        civilite: contact.civilite || undefined,
+        nom: contact.nom,
+        prenom: contact.prenom,
+        email: contact.email || undefined,
+        telephone: contact.telephone || undefined,
+        rue: contact.rue || undefined,
+        code_postal: contact.code_postal || undefined,
+        ville: contact.ville || undefined,
+        date_naissance: contact.date_naissance || undefined,
+        ville_naissance: contact.ville_naissance || undefined,
+      };
+    });
+    
+    generateBulkDocuments(type, contactsInfo, sessionInfo);
+  };
 
   const handleAddInscription = async (contact: Contact) => {
     if (!sessionId) return;
@@ -195,6 +261,35 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     </>
                   )}
+
+                  <Separator />
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Documents
+                    </h3>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Générer les documents
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convocation")}>
+                          <Send className="h-4 w-4 mr-2" />
+                          Toutes les convocations
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convention")}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Toutes les conventions
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
+                          <Award className="h-4 w-4 mr-2" />
+                          Toutes les attestations
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
                   <Separator />
                   <div className="flex gap-2">

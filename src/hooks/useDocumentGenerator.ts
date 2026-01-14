@@ -1,0 +1,116 @@
+import { useCallback } from "react";
+import { toast } from "sonner";
+import {
+  generateFacturePDF,
+  generateAttestationPDF,
+  generateConventionPDF,
+  generateConvocationPDF,
+  downloadPDF,
+  type ContactInfo,
+  type SessionInfo,
+  type FactureInfo,
+} from "@/lib/pdf-generator";
+
+export type DocumentType = "facture" | "attestation" | "convention" | "convocation";
+
+export function useDocumentGenerator() {
+  const generateDocument = useCallback(
+    (
+      type: DocumentType,
+      contact: ContactInfo,
+      session?: SessionInfo,
+      facture?: FactureInfo
+    ) => {
+      try {
+        let doc;
+        let filename: string;
+
+        switch (type) {
+          case "facture":
+            if (!facture) {
+              toast.error("Données de facture manquantes");
+              return null;
+            }
+            doc = generateFacturePDF(facture, contact, session);
+            filename = `facture-${facture.numero_facture}.pdf`;
+            break;
+
+          case "attestation":
+            if (!session) {
+              toast.error("Données de session manquantes");
+              return null;
+            }
+            doc = generateAttestationPDF(contact, session);
+            filename = `attestation-${contact.nom}-${contact.prenom}.pdf`;
+            break;
+
+          case "convention":
+            if (!session) {
+              toast.error("Données de session manquantes");
+              return null;
+            }
+            doc = generateConventionPDF(contact, session);
+            filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
+            break;
+
+          case "convocation":
+            if (!session) {
+              toast.error("Données de session manquantes");
+              return null;
+            }
+            doc = generateConvocationPDF(contact, session);
+            filename = `convocation-${contact.nom}-${contact.prenom}.pdf`;
+            break;
+
+          default:
+            toast.error("Type de document non supporté");
+            return null;
+        }
+
+        downloadPDF(doc, filename);
+        toast.success(`${getDocumentLabel(type)} téléchargé`);
+        return doc;
+      } catch (error) {
+        console.error("Erreur génération PDF:", error);
+        toast.error("Erreur lors de la génération du PDF");
+        return null;
+      }
+    },
+    []
+  );
+
+  const generateBulkDocuments = useCallback(
+    (
+      type: DocumentType,
+      contacts: ContactInfo[],
+      session: SessionInfo
+    ) => {
+      let successCount = 0;
+      
+      contacts.forEach((contact) => {
+        const result = generateDocument(type, contact, session);
+        if (result) successCount++;
+      });
+
+      if (successCount > 0) {
+        toast.success(`${successCount} document(s) généré(s)`);
+      }
+    },
+    [generateDocument]
+  );
+
+  return {
+    generateDocument,
+    generateBulkDocuments,
+  };
+}
+
+function getDocumentLabel(type: DocumentType): string {
+  const labels: Record<DocumentType, string> = {
+    facture: "Facture",
+    attestation: "Attestation",
+    convention: "Convention",
+    convocation: "Convocation",
+  };
+  return labels[type];
+}
