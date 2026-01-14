@@ -7,6 +7,7 @@ import { FormationsPage } from "@/components/formations/FormationsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { DocumentsPage } from "@/components/documents/DocumentsPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
+import { DevisPage } from "@/components/devis/DevisPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
@@ -44,6 +45,8 @@ const Index = () => {
         return <DocumentsPage />;
       case "paiements":
         return <PaiementsPage />;
+      case "devis":
+        return <DevisPage />;
       case "communications":
         return <CommunicationsPage />;
       case "alertes":

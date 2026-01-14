@@ -276,6 +276,139 @@ export type Database = {
         }
         Relationships: []
       }
+      devis: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_emission: string | null
+          date_validite: string | null
+          facture_id: string | null
+          id: string
+          montant_total: number
+          numero_devis: string
+          session_inscription_id: string | null
+          statut: Database["public"]["Enums"]["devis_statut"]
+          type_financement: Database["public"]["Enums"]["financement_type"]
+          updated_at: string
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_emission?: string | null
+          date_validite?: string | null
+          facture_id?: string | null
+          id?: string
+          montant_total?: number
+          numero_devis: string
+          session_inscription_id?: string | null
+          statut?: Database["public"]["Enums"]["devis_statut"]
+          type_financement?: Database["public"]["Enums"]["financement_type"]
+          updated_at?: string
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_emission?: string | null
+          date_validite?: string | null
+          facture_id?: string | null
+          id?: string
+          montant_total?: number
+          numero_devis?: string
+          session_inscription_id?: string | null
+          statut?: Database["public"]["Enums"]["devis_statut"]
+          type_financement?: Database["public"]["Enums"]["financement_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis_lignes: {
+        Row: {
+          catalogue_formation_id: string | null
+          created_at: string
+          description: string
+          devis_id: string
+          id: string
+          montant_ht: number | null
+          montant_ttc: number | null
+          montant_tva: number | null
+          ordre: number
+          prix_unitaire_ht: number
+          quantite: number
+          remise_percent: number
+          tva_percent: number
+        }
+        Insert: {
+          catalogue_formation_id?: string | null
+          created_at?: string
+          description: string
+          devis_id: string
+          id?: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          montant_tva?: number | null
+          ordre?: number
+          prix_unitaire_ht: number
+          quantite?: number
+          remise_percent?: number
+          tva_percent?: number
+        }
+        Update: {
+          catalogue_formation_id?: string | null
+          created_at?: string
+          description?: string
+          devis_id?: string
+          id?: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          montant_tva?: number | null
+          ordre?: number
+          prix_unitaire_ht?: number
+          quantite?: number
+          remise_percent?: number
+          tva_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_lignes_catalogue_formation_id_fkey"
+            columns: ["catalogue_formation_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_lignes_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           actif: boolean
@@ -574,11 +707,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
     }
     Enums: {
       civilite: "Monsieur" | "Madame"
       contact_statut: "En attente de validation" | "Client" | "Bravo"
+      devis_statut:
+        | "brouillon"
+        | "envoye"
+        | "accepte"
+        | "refuse"
+        | "expire"
+        | "converti"
       facture_statut:
         | "brouillon"
         | "emise"
@@ -732,6 +873,14 @@ export const Constants = {
     Enums: {
       civilite: ["Monsieur", "Madame"],
       contact_statut: ["En attente de validation", "Client", "Bravo"],
+      devis_statut: [
+        "brouillon",
+        "envoye",
+        "accepte",
+        "refuse",
+        "expire",
+        "converti",
+      ],
       facture_statut: [
         "brouillon",
         "emise",
