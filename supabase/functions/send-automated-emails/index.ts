@@ -32,11 +32,15 @@ serve(async (req) => {
 
   try {
     // ========================================
-    // 1. RELANCES FACTURES IMPAYÉES
+    // 1. RELANCES PAIEMENT J-7 (7 jours avant échéance)
     // ========================================
-    console.log("Checking for unpaid invoices...");
+    console.log("Checking for invoices due in 7 days...");
     
-    const { data: unpaidInvoices, error: invoicesError } = await supabase
+    const sevenDaysFromNowPayment = new Date(today);
+    sevenDaysFromNowPayment.setDate(sevenDaysFromNowPayment.getDate() + 7);
+    const paymentJ7Date = sevenDaysFromNowPayment.toISOString().split("T")[0];
+
+    const { data: upcomingInvoices, error: invoicesError } = await supabase
       .from("factures")
       .select(`
         id,
@@ -45,37 +49,32 @@ serve(async (req) => {
         date_echeance,
         contact:contacts(id, nom, prenom, email)
       `)
-      .in("statut", ["emise", "partiel", "impayee"])
-      .not("date_echeance", "is", null)
-      .lt("date_echeance", today.toISOString().split("T")[0]);
+      .in("statut", ["emise", "partiel"])
+      .eq("date_echeance", paymentJ7Date);
 
     if (invoicesError) {
-      console.error("Error fetching unpaid invoices:", invoicesError);
-    } else if (unpaidInvoices && unpaidInvoices.length > 0) {
-      console.log(`Found ${unpaidInvoices.length} overdue invoices`);
+      console.error("Error fetching upcoming invoices:", invoicesError);
+    } else if (upcomingInvoices && upcomingInvoices.length > 0) {
+      console.log(`Found ${upcomingInvoices.length} invoices due in 7 days`);
       
-      for (const invoice of unpaidInvoices) {
+      for (const invoice of upcomingInvoices) {
         const contact = invoice.contact as any;
         if (!contact?.email) continue;
 
         try {
-          const daysOverdue = Math.floor(
-            (today.getTime() - new Date(invoice.date_echeance!).getTime()) / (1000 * 60 * 60 * 24)
-          );
-
-          const emailResponse = await resend.emails.send({
+          await resend.emails.send({
             from: "T3P Formation <noreply@resend.dev>",
             to: [contact.email],
-            subject: `Rappel de paiement - Facture ${invoice.numero_facture}`,
+            subject: `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Rappel de paiement</h2>
+                <h2 style="color: #f59e0b;">⏰ Rappel de paiement</h2>
                 <p>Bonjour ${contact.prenom} ${contact.nom},</p>
                 <p>Nous vous rappelons que la facture <strong>${invoice.numero_facture}</strong> 
                    d'un montant de <strong>${Number(invoice.montant_total).toLocaleString("fr-FR")}€</strong> 
-                   était due le <strong>${new Date(invoice.date_echeance!).toLocaleDateString("fr-FR")}</strong>.</p>
-                <p style="color: #e74c3c;">Cette facture est en retard de <strong>${daysOverdue} jour(s)</strong>.</p>
-                <p>Nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais.</p>
+                   arrive à échéance le <strong>${new Date(invoice.date_echeance!).toLocaleDateString("fr-FR")}</strong>.</p>
+                <p style="color: #f59e0b; font-weight: bold;">L'échéance est dans 7 jours.</p>
+                <p>Nous vous remercions de bien vouloir procéder au règlement avant cette date.</p>
                 <p>Si vous avez déjà effectué le paiement, veuillez ignorer ce message.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                 <p style="color: #888; font-size: 12px;">
@@ -86,19 +85,19 @@ serve(async (req) => {
           });
 
           results.push({
-            type: "invoice_reminder",
+            type: "payment_reminder_j7",
             recipient: contact.email,
             success: true,
           });
-          console.log(`Payment reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
+          console.log(`Payment J-7 reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
         } catch (emailError: any) {
           results.push({
-            type: "invoice_reminder",
+            type: "payment_reminder_j7",
             recipient: contact.email,
             success: false,
             error: emailError.message,
           });
-          console.error(`Failed to send reminder to ${contact.email}:`, emailError);
+          console.error(`Failed to send payment reminder to ${contact.email}:`, emailError);
         }
       }
     }
@@ -292,9 +291,9 @@ serve(async (req) => {
       successful: results.filter((r) => r.success).length,
       failed: results.filter((r) => !r.success).length,
       breakdown: {
-        invoice_reminders: results.filter((r) => r.type === "invoice_reminder").length,
-        j7_reminders: results.filter((r) => r.type === "reminder_j7").length,
-        j1_reminders: results.filter((r) => r.type === "reminder_j1").length,
+        payment_reminders_j7: results.filter((r) => r.type === "payment_reminder_j7").length,
+        formation_reminders_j7: results.filter((r) => r.type === "reminder_j7").length,
+        formation_reminders_j1: results.filter((r) => r.type === "reminder_j1").length,
       },
       details: results,
     };
