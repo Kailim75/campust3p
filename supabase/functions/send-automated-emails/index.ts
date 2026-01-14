@@ -49,6 +49,23 @@ serve(async (req) => {
     );
   }
   
+  // Use service role key for role check (bypasses RLS)
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Check user has admin or staff role
+  const { data: userRole, error: roleError } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single();
+  
+  if (roleError || !userRole || !['admin', 'staff'].includes(userRole.role)) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden - Insufficient permissions' }), 
+      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+  
   // Use service role key for database operations after authentication is verified
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
