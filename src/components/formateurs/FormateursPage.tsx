@@ -21,6 +21,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   User, 
   Users, 
@@ -31,12 +41,29 @@ import {
   CalendarDays,
   CheckCircle,
   Clock,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  Phone,
+  Mail,
+  Award,
+  UserPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useFormateursStats, useFormateursDisponibilite } from "@/hooks/useFormateurs";
+import { toast } from "sonner";
+import { 
+  useFormateursStats, 
+  useFormateursDisponibilite,
+  useFormateursTable,
+  useDeleteFormateur,
+  Formateur
+} from "@/hooks/useFormateurs";
+import { FormateurFormDialog } from "./FormateurFormDialog";
+import { FormateurDetailSheet } from "./FormateurDetailSheet";
 import { 
   BarChart, 
   Bar, 
@@ -59,8 +86,16 @@ const COLORS = [
 
 export function FormateursPage() {
   const [selectedFormateur, setSelectedFormateur] = useState<string>("all");
+  const [mainTab, setMainTab] = useState<"gestion" | "stats">("gestion");
+  const [showForm, setShowForm] = useState(false);
+  const [editingFormateur, setEditingFormateur] = useState<Formateur | null>(null);
+  const [detailFormateurId, setDetailFormateurId] = useState<string | null>(null);
+  const [deleteFormateurId, setDeleteFormateurId] = useState<string | null>(null);
+
+  const { data: formateursTable = [], isLoading: isLoadingTable } = useFormateursTable();
   const { data: formateursStats, isLoading } = useFormateursStats();
   const { data: disponibilites } = useFormateursDisponibilite();
+  const deleteFormateur = useDeleteFormateur();
 
   const filteredStats = selectedFormateur === "all" 
     ? formateursStats 
@@ -100,14 +135,252 @@ export function FormateursPage() {
     disponibiliteByMonth[d.mois]!.push(d);
   });
 
+  const handleEdit = (formateur: Formateur) => {
+    setEditingFormateur(formateur);
+    setShowForm(true);
+    setDetailFormateurId(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteFormateurId) return;
+    try {
+      await deleteFormateur.mutateAsync(deleteFormateurId);
+      toast.success("Formateur supprimé");
+      setDeleteFormateurId(null);
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header 
-        title="Statistiques Formateurs" 
-        subtitle="Performances et disponibilités"
+        title="Formateurs" 
+        subtitle="Gestion et statistiques des formateurs"
+        addLabel="Nouveau formateur"
+        onAddClick={() => {
+          setEditingFormateur(null);
+          setShowForm(true);
+        }}
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
+        {/* Main Tabs */}
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "gestion" | "stats")}>
+          <TabsList>
+            <TabsTrigger value="gestion" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Gestion
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Statistiques
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Gestion Tab */}
+          <TabsContent value="gestion" className="space-y-6 mt-6">
+            {/* Stats summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="card-elevated">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-primary/10">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total formateurs</p>
+                      <p className="text-2xl font-display font-bold">
+                        {isLoadingTable ? "..." : formateursTable.length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="card-elevated">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-success/10">
+                      <CheckCircle className="h-6 w-6 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Actifs</p>
+                      <p className="text-2xl font-display font-bold text-success">
+                        {isLoadingTable ? "..." : formateursTable.filter((f) => f.actif).length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="card-elevated">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-muted">
+                      <Clock className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Inactifs</p>
+                      <p className="text-2xl font-display font-bold text-muted-foreground">
+                        {isLoadingTable ? "..." : formateursTable.filter((f) => !f.actif).length}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Formateurs Table */}
+            <Card className="card-elevated overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Formateur</TableHead>
+                    <TableHead className="font-semibold">Contact</TableHead>
+                    <TableHead className="font-semibold">Spécialités</TableHead>
+                    <TableHead className="font-semibold">Taux horaire</TableHead>
+                    <TableHead className="font-semibold">Statut</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingTable ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-10 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : formateursTable.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>Aucun formateur enregistré</p>
+                        <Button 
+                          variant="link" 
+                          className="mt-2"
+                          onClick={() => setShowForm(true)}
+                        >
+                          Ajouter un formateur
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    formateursTable.map((formateur) => (
+                      <TableRow 
+                        key={formateur.id} 
+                        className="table-row-hover cursor-pointer"
+                        onClick={() => setDetailFormateurId(formateur.id)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{formateur.prenom} {formateur.nom}</p>
+                              {formateur.diplomes && formateur.diplomes.length > 0 && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Award className="h-3 w-3" />
+                                  {formateur.diplomes.slice(0, 2).join(", ")}
+                                  {formateur.diplomes.length > 2 && ` +${formateur.diplomes.length - 2}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1 text-sm">
+                            {formateur.email && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                <span className="truncate max-w-[150px]">{formateur.email}</span>
+                              </div>
+                            )}
+                            {formateur.telephone && (
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                <span>{formateur.telephone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {formateur.specialites?.slice(0, 2).map((spec) => (
+                              <Badge key={spec} variant="secondary" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                            {formateur.specialites && formateur.specialites.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{formateur.specialites.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {formateur.taux_horaire && Number(formateur.taux_horaire) > 0 ? (
+                            <span className="font-medium">{Number(formateur.taux_horaire).toFixed(2)}€/h</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={formateur.actif ? "default" : "secondary"}>
+                            {formateur.actif ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailFormateurId(formateur.id);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(formateur);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteFormateurId(formateur.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          {/* Stats Tab */}
+          <TabsContent value="stats" className="space-y-6 mt-6">
         {/* Global Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="card-elevated">
@@ -141,8 +414,6 @@ export function FormateursPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="card-elevated">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-xl bg-success/10">
@@ -496,7 +767,40 @@ export function FormateursPage() {
             )}
           </TabsContent>
         </Tabs>
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Form Dialog */}
+      <FormateurFormDialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        formateur={editingFormateur}
+      />
+
+      {/* Detail Sheet */}
+      <FormateurDetailSheet
+        formateurId={detailFormateurId}
+        open={!!detailFormateurId}
+        onOpenChange={(open) => !open && setDetailFormateurId(null)}
+        onEdit={handleEdit}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteFormateurId} onOpenChange={() => setDeleteFormateurId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce formateur ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Toutes les factures associées seront également supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

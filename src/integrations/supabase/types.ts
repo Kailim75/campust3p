@@ -565,6 +565,175 @@ export type Database = {
           },
         ]
       }
+      formateur_documents: {
+        Row: {
+          commentaires: string | null
+          created_at: string
+          date_expiration: string | null
+          date_obtention: string | null
+          file_path: string | null
+          formateur_id: string
+          id: string
+          nom: string
+          type_document: string
+        }
+        Insert: {
+          commentaires?: string | null
+          created_at?: string
+          date_expiration?: string | null
+          date_obtention?: string | null
+          file_path?: string | null
+          formateur_id: string
+          id?: string
+          nom: string
+          type_document: string
+        }
+        Update: {
+          commentaires?: string | null
+          created_at?: string
+          date_expiration?: string | null
+          date_obtention?: string | null
+          file_path?: string | null
+          formateur_id?: string
+          id?: string
+          nom?: string
+          type_document?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formateur_documents_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formateur_factures: {
+        Row: {
+          commentaires: string | null
+          created_at: string
+          date_facture: string
+          date_paiement: string | null
+          formateur_id: string
+          id: string
+          montant_ht: number
+          montant_ttc: number
+          numero_facture: string
+          periode_debut: string | null
+          periode_fin: string | null
+          statut: string
+          tva_percent: number
+          updated_at: string
+        }
+        Insert: {
+          commentaires?: string | null
+          created_at?: string
+          date_facture?: string
+          date_paiement?: string | null
+          formateur_id: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture: string
+          periode_debut?: string | null
+          periode_fin?: string | null
+          statut?: string
+          tva_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          commentaires?: string | null
+          created_at?: string
+          date_facture?: string
+          date_paiement?: string | null
+          formateur_id?: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture?: string
+          periode_debut?: string | null
+          periode_fin?: string | null
+          statut?: string
+          tva_percent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formateur_factures_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formateurs: {
+        Row: {
+          actif: boolean
+          adresse: string | null
+          code_postal: string | null
+          created_at: string
+          date_agrement: string | null
+          diplomes: string[] | null
+          email: string | null
+          id: string
+          nom: string
+          notes: string | null
+          numero_agrement: string | null
+          prenom: string
+          rib: string | null
+          siret: string | null
+          specialites: string[] | null
+          taux_horaire: number | null
+          telephone: string | null
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          actif?: boolean
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          date_agrement?: string | null
+          diplomes?: string[] | null
+          email?: string | null
+          id?: string
+          nom: string
+          notes?: string | null
+          numero_agrement?: string | null
+          prenom: string
+          rib?: string | null
+          siret?: string | null
+          specialites?: string[] | null
+          taux_horaire?: number | null
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          actif?: boolean
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          date_agrement?: string | null
+          diplomes?: string[] | null
+          email?: string | null
+          id?: string
+          nom?: string
+          notes?: string | null
+          numero_agrement?: string | null
+          prenom?: string
+          rib?: string | null
+          siret?: string | null
+          specialites?: string[] | null
+          taux_horaire?: number | null
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
       paiements: {
         Row: {
           commentaires: string | null

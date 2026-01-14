@@ -1,6 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format, parseISO, isWithinInterval, addMonths } from "date-fns";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+
+// Types
+export type Formateur = Tables<"formateurs">;
+export type FormateurInsert = TablesInsert<"formateurs">;
+export type FormateurUpdate = TablesUpdate<"formateurs">;
+export type FormateurDocument = Tables<"formateur_documents">;
+export type FormateurFacture = Tables<"formateur_factures">;
 
 export interface FormateurStats {
   formateur: string;
@@ -233,6 +241,230 @@ export function useFormateursDisponibilite() {
       });
 
       return result;
+    },
+  });
+}
+
+// ========== CRUD Operations for Formateurs ==========
+
+// Fetch all formateurs from dedicated table
+export function useFormateursTable() {
+  return useQuery({
+    queryKey: ["formateurs", "table"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formateurs")
+        .select("*")
+        .order("nom", { ascending: true });
+
+      if (error) throw error;
+      return data as Formateur[];
+    },
+  });
+}
+
+// Fetch single formateur
+export function useFormateur(id: string | null) {
+  return useQuery({
+    queryKey: ["formateurs", "detail", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("formateurs")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data as Formateur;
+    },
+    enabled: !!id,
+  });
+}
+
+// Create formateur
+export function useCreateFormateur() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (formateur: FormateurInsert) => {
+      const { data, error } = await supabase
+        .from("formateurs")
+        .insert(formateur)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs"] });
+    },
+  });
+}
+
+// Update formateur
+export function useUpdateFormateur() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: FormateurUpdate & { id: string }) => {
+      const { data, error } = await supabase
+        .from("formateurs")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs"] });
+    },
+  });
+}
+
+// Delete formateur
+export function useDeleteFormateur() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("formateurs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs"] });
+    },
+  });
+}
+
+// ========== Formateur Documents ==========
+
+export function useFormateurDocuments(formateurId: string | null) {
+  return useQuery({
+    queryKey: ["formateurs", "documents", formateurId],
+    queryFn: async () => {
+      if (!formateurId) return [];
+      const { data, error } = await supabase
+        .from("formateur_documents")
+        .select("*")
+        .eq("formateur_id", formateurId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as FormateurDocument[];
+    },
+    enabled: !!formateurId,
+  });
+}
+
+export function useCreateFormateurDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (doc: Omit<FormateurDocument, "id" | "created_at">) => {
+      const { data, error } = await supabase
+        .from("formateur_documents")
+        .insert(doc)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
+    },
+  });
+}
+
+export function useDeleteFormateurDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("formateur_documents").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
+    },
+  });
+}
+
+// ========== Formateur Factures ==========
+
+export function useFormateurFactures(formateurId: string | null) {
+  return useQuery({
+    queryKey: ["formateurs", "factures", formateurId],
+    queryFn: async () => {
+      if (!formateurId) return [];
+      const { data, error } = await supabase
+        .from("formateur_factures")
+        .select("*")
+        .eq("formateur_id", formateurId)
+        .order("date_facture", { ascending: false });
+
+      if (error) throw error;
+      return data as FormateurFacture[];
+    },
+    enabled: !!formateurId,
+  });
+}
+
+export function useCreateFormateurFacture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (facture: Omit<FormateurFacture, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("formateur_factures")
+        .insert(facture)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
+    },
+  });
+}
+
+export function useUpdateFormateurFacture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<FormateurFacture> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("formateur_factures")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
+    },
+  });
+}
+
+export function useDeleteFormateurFacture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("formateur_factures").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
   });
 }
