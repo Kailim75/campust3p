@@ -10,8 +10,9 @@ import {
   Loader2, 
   CheckCircle2,
   AlertCircle,
-  Info
+  Info,
 } from "lucide-react";
+import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -506,6 +507,9 @@ export function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Document Templates Section */}
+        <DocumentTemplatesSection />
       </main>
 
       {/* Import Preview Dialog */}
