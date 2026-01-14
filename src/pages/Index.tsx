@@ -5,6 +5,7 @@ import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsPage } from "@/components/contacts/ContactsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
+import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { DocumentsPage } from "@/components/documents/DocumentsPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { DevisPage } from "@/components/devis/DevisPage";
@@ -41,6 +42,8 @@ const Index = () => {
         return <FormationsPage />;
       case "sessions":
         return <SessionsPage />;
+      case "formateurs":
+        return <FormateursPage />;
       case "documents":
         return <DocumentsPage />;
       case "paiements":

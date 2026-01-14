@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Mail,
-  FileEdit
+  FileEdit,
+  User
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -32,6 +33,7 @@ const menuItems = [
   { id: "contacts", label: "Contacts", icon: Users },
   { id: "formations", label: "Formations", icon: GraduationCap },
   { id: "sessions", label: "Sessions", icon: Calendar },
+  { id: "formateurs", label: "Formateurs", icon: User },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "devis", label: "Devis", icon: FileEdit },
   { id: "paiements", label: "Paiements", icon: CreditCard },
