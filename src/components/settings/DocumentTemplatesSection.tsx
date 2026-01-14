@@ -52,6 +52,7 @@ import {
   ScrollText,
   FileSpreadsheet,
   Mail,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -62,6 +63,7 @@ import {
   DocumentTemplate,
   documentTypes,
   documentCategories,
+  downloadTemplateAsText,
 } from "@/hooks/useDocumentTemplates";
 import { DocumentTemplateFormDialog } from "./DocumentTemplateFormDialog";
 import { DocumentTemplatePreviewDialog } from "./DocumentTemplatePreviewDialog";
@@ -163,6 +165,11 @@ export function DocumentTemplatesSection() {
       description: template.description,
     });
     toast.success("Modèle dupliqué");
+  };
+
+  const handleDownload = (template: DocumentTemplate) => {
+    downloadTemplateAsText(template);
+    toast.success("Modèle téléchargé");
   };
 
   const handleCreate = () => {
@@ -375,6 +382,10 @@ export function DocumentTemplatesSection() {
                                     <DropdownMenuItem onClick={() => handleDuplicate(template)}>
                                       <Copy className="h-4 w-4 mr-2" />
                                       Dupliquer
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDownload(template)}>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Télécharger
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem

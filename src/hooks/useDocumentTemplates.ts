@@ -58,13 +58,24 @@ export const availableVariables = [
   { key: "formation", label: "Type de formation", category: "Contact" },
   // Session
   { key: "session_nom", label: "Nom de la session", category: "Session" },
+  { key: "session_numero", label: "Numéro de session", category: "Session" },
   { key: "session_date_debut", label: "Date de début", category: "Session" },
   { key: "session_date_fin", label: "Date de fin", category: "Session" },
-  { key: "session_lieu", label: "Lieu", category: "Session" },
+  { key: "session_heure_debut", label: "Heure de début", category: "Session" },
+  { key: "session_heure_fin", label: "Heure de fin", category: "Session" },
+  { key: "session_lieu", label: "Lieu (ancien)", category: "Session" },
+  { key: "session_adresse_rue", label: "Adresse (rue)", category: "Session" },
+  { key: "session_adresse_code_postal", label: "Code postal", category: "Session" },
+  { key: "session_adresse_ville", label: "Ville", category: "Session" },
+  { key: "session_adresse_complete", label: "Adresse complète", category: "Session" },
   { key: "session_formateur", label: "Formateur", category: "Session" },
-  { key: "session_prix", label: "Prix", category: "Session" },
+  { key: "session_prix_ht", label: "Prix HT", category: "Session" },
+  { key: "session_tva_percent", label: "TVA (%)", category: "Session" },
+  { key: "session_prix_ttc", label: "Prix TTC", category: "Session" },
   { key: "session_duree", label: "Durée (heures)", category: "Session" },
   { key: "session_places", label: "Places totales", category: "Session" },
+  { key: "session_objectifs", label: "Objectifs", category: "Session" },
+  { key: "session_prerequis", label: "Prérequis", category: "Session" },
   // Dates
   { key: "date_jour", label: "Date du jour", category: "Dates" },
   { key: "annee", label: "Année en cours", category: "Dates" },
@@ -214,13 +225,39 @@ export function replaceVariables(
   // Variables de session - escape HTML to prevent XSS
   if (session) {
     result = result.replace(/\{\{session_nom\}\}/g, escapeHtml(session.nom || ""));
+    result = result.replace(/\{\{session_numero\}\}/g, escapeHtml(session.numero_session || ""));
     result = result.replace(/\{\{session_date_debut\}\}/g, escapeHtml(session.date_debut || ""));
     result = result.replace(/\{\{session_date_fin\}\}/g, escapeHtml(session.date_fin || ""));
+    result = result.replace(/\{\{session_heure_debut\}\}/g, escapeHtml(session.heure_debut || ""));
+    result = result.replace(/\{\{session_heure_fin\}\}/g, escapeHtml(session.heure_fin || ""));
     result = result.replace(/\{\{session_lieu\}\}/g, escapeHtml(session.lieu || ""));
+    result = result.replace(/\{\{session_adresse_rue\}\}/g, escapeHtml(session.adresse_rue || ""));
+    result = result.replace(/\{\{session_adresse_code_postal\}\}/g, escapeHtml(session.adresse_code_postal || ""));
+    result = result.replace(/\{\{session_adresse_ville\}\}/g, escapeHtml(session.adresse_ville || ""));
+    
+    // Adresse complète formatée
+    const adresseParts = [];
+    if (session.adresse_rue) adresseParts.push(session.adresse_rue);
+    if (session.adresse_code_postal || session.adresse_ville) {
+      adresseParts.push(`${session.adresse_code_postal || ""} ${session.adresse_ville || ""}`.trim());
+    }
+    const adresseComplete = adresseParts.join(", ") || session.lieu || "";
+    result = result.replace(/\{\{session_adresse_complete\}\}/g, escapeHtml(adresseComplete));
+    
     result = result.replace(/\{\{session_formateur\}\}/g, escapeHtml(session.formateur || ""));
-    result = result.replace(/\{\{session_prix\}\}/g, escapeHtml(session.prix?.toString() || ""));
+    result = result.replace(/\{\{session_prix_ht\}\}/g, escapeHtml(session.prix_ht?.toString() || session.prix?.toString() || ""));
+    result = result.replace(/\{\{session_tva_percent\}\}/g, escapeHtml(session.tva_percent?.toString() || "0"));
+    
+    // Calcul prix TTC
+    const prixHT = session.prix_ht || session.prix || 0;
+    const tva = session.tva_percent || 0;
+    const prixTTC = prixHT * (1 + tva / 100);
+    result = result.replace(/\{\{session_prix_ttc\}\}/g, escapeHtml(prixTTC.toFixed(2)));
+    
     result = result.replace(/\{\{session_duree\}\}/g, escapeHtml(session.duree_heures?.toString() || ""));
     result = result.replace(/\{\{session_places\}\}/g, escapeHtml(session.places_totales?.toString() || ""));
+    result = result.replace(/\{\{session_objectifs\}\}/g, escapeHtml(session.objectifs || ""));
+    result = result.replace(/\{\{session_prerequis\}\}/g, escapeHtml(session.prerequis || ""));
   }
   
   // Variables de date
@@ -229,4 +266,28 @@ export function replaceVariables(
   result = result.replace(/\{\{annee\}\}/g, escapeHtml(now.getFullYear().toString()));
   
   return result;
+}
+
+// Fonction pour exporter un template en fichier texte téléchargeable
+export function downloadTemplateAsText(template: DocumentTemplate): void {
+  const content = `=== ${template.nom} ===
+Type: ${template.type_document}
+Catégorie: ${template.categorie}
+Description: ${template.description || "N/A"}
+Variables utilisées: ${template.variables?.join(", ") || "Aucune"}
+
+--- CONTENU DU MODÈLE ---
+
+${template.contenu}
+`;
+  
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `modele-${template.type_document}-${template.nom.toLowerCase().replace(/\s+/g, "-")}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
