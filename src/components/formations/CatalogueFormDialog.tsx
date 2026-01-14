@@ -55,6 +55,7 @@ export function CatalogueFormDialog({
   const [dureeHeures, setDureeHeures] = useState("14");
   const [prixHt, setPrixHt] = useState("0");
   const [tvaPercent, setTvaPercent] = useState("0");
+  const [remisePercent, setRemisePercent] = useState("0");
   const [actif, setActif] = useState(true);
   const [prerequis, setPrerequis] = useState("");
   const [objectifs, setObjectifs] = useState("");
@@ -74,6 +75,7 @@ export function CatalogueFormDialog({
       setDureeHeures(formation.duree_heures.toString());
       setPrixHt(formation.prix_ht.toString());
       setTvaPercent(formation.tva_percent.toString());
+      setRemisePercent(formation.remise_percent?.toString() || "0");
       setActif(formation.actif);
       setPrerequis(formation.prerequis || "");
       setObjectifs(formation.objectifs || "");
@@ -91,6 +93,7 @@ export function CatalogueFormDialog({
     setDureeHeures("14");
     setPrixHt("0");
     setTvaPercent("0");
+    setRemisePercent("0");
     setActif(true);
     setPrerequis("");
     setObjectifs("");
@@ -108,6 +111,7 @@ export function CatalogueFormDialog({
       duree_heures: parseInt(dureeHeures) || 0,
       prix_ht: parseFloat(prixHt) || 0,
       tva_percent: parseFloat(tvaPercent) || 0,
+      remise_percent: parseFloat(remisePercent) || 0,
       actif,
       prerequis: prerequis.trim() || null,
       objectifs: objectifs.trim() || null,
@@ -125,7 +129,10 @@ export function CatalogueFormDialog({
 
   const isPending = createFormation.isPending || updateFormation.isPending;
 
-  const prixTtc = (parseFloat(prixHt) || 0) * (1 + (parseFloat(tvaPercent) || 0) / 100);
+  const remise = parseFloat(remisePercent) || 0;
+  const prixBase = parseFloat(prixHt) || 0;
+  const prixApresRemise = prixBase * (1 - remise / 100);
+  const prixTtc = prixApresRemise * (1 + (parseFloat(tvaPercent) || 0) / 100);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,7 +226,7 @@ export function CatalogueFormDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="prixHt">Prix HT (€)</Label>
               <Input
@@ -229,6 +236,19 @@ export function CatalogueFormDialog({
                 step="0.01"
                 value={prixHt}
                 onChange={(e) => setPrixHt(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="remisePercent">Remise (%)</Label>
+              <Input
+                id="remisePercent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={remisePercent}
+                onChange={(e) => setRemisePercent(e.target.value)}
               />
             </div>
 
@@ -249,6 +269,9 @@ export function CatalogueFormDialog({
               <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm font-medium">
                 {prixTtc.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
               </div>
+              {remise > 0 && (
+                <p className="text-xs text-success">Remise de {remise}% appliquée</p>
+              )}
             </div>
           </div>
 

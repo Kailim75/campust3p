@@ -12,6 +12,7 @@ export interface CatalogueFormation {
   duree_heures: number;
   prix_ht: number;
   tva_percent: number;
+  remise_percent: number;
   actif: boolean;
   prerequis: string | null;
   objectifs: string | null;
@@ -28,6 +29,7 @@ export interface CatalogueFormationInsert {
   duree_heures?: number;
   prix_ht?: number;
   tva_percent?: number;
+  remise_percent?: number;
   actif?: boolean;
   prerequis?: string | null;
   objectifs?: string | null;
@@ -42,6 +44,7 @@ export interface CatalogueFormationUpdate {
   duree_heures?: number;
   prix_ht?: number;
   tva_percent?: number;
+  remise_percent?: number;
   actif?: boolean;
   prerequis?: string | null;
   objectifs?: string | null;
