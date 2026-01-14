@@ -29,12 +29,17 @@ import {
   Info,
   FileDown,
   FileText,
+  Hash,
+  Clock,
+  GraduationCap,
+  User,
   Award,
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
 import { useContacts, type Contact } from "@/hooks/useContacts";
+import { useFormateur } from "@/hooks/useFormateurs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -85,6 +90,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const { data: session, isLoading } = useSession(sessionId);
   const { data: inscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
+  const { data: formateur } = useFormateur(session?.formateur_id ?? null);
   const addInscription = useAddInscription();
   const removeInscription = useRemoveInscription();
   
@@ -185,9 +191,16 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
             <>
               <SheetHeader className="pb-4">
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="space-y-2">
+                    {/* Session Number Badge */}
+                    {session.numero_session && (
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">
+                        <Hash className="h-3 w-3 mr-1" />
+                        {session.numero_session}
+                      </Badge>
+                    )}
                     <SheetTitle className="text-xl">{session.nom}</SheetTitle>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         {formationLabels[session.formation_type] || session.formation_type}
                       </Badge>
@@ -198,6 +211,22 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         {statusConfig[session.statut]?.label || session.statut}
                       </Badge>
                     </div>
+                    
+                    {/* Formateur Badge */}
+                    {formateur && (
+                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-accent/50 border border-accent">
+                        <Avatar className="h-7 w-7 border-2 border-primary/20">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                            {`${formateur.prenom?.[0] ?? ""}${formateur.nom?.[0] ?? ""}`.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Formateur</span>
+                          <span className="text-sm font-medium">{formateur.prenom} {formateur.nom}</span>
+                        </div>
+                        <GraduationCap className="h-4 w-4 text-primary ml-auto" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </SheetHeader>
@@ -229,12 +258,34 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         {format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}
                       </span>
                     </div>
-                    {session.lieu && (
+                    
+                    {/* Horaires */}
+                    {(session.heure_debut || session.heure_fin) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{session.lieu}</span>
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {session.heure_debut?.slice(0, 5) || "--:--"} - {session.heure_fin?.slice(0, 5) || "--:--"}
+                          {session.duree_heures && ` (${session.duree_heures}h)`}
+                        </span>
                       </div>
                     )}
+                    
+                    {/* Adresse structurée */}
+                    {(session.adresse_rue || session.adresse_ville || session.lieu) && (
+                      <div className="flex items-start gap-3 text-muted-foreground">
+                        <MapPin className="h-4 w-4 mt-0.5" />
+                        <div className="flex flex-col">
+                          {session.adresse_rue && <span>{session.adresse_rue}</span>}
+                          {(session.adresse_code_postal || session.adresse_ville) && (
+                            <span>{[session.adresse_code_postal, session.adresse_ville].filter(Boolean).join(" ")}</span>
+                          )}
+                          {!session.adresse_rue && !session.adresse_ville && session.lieu && (
+                            <span>{session.lieu}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span>
@@ -242,13 +293,51 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         {placesRestantes > 0 && ` (${placesRestantes} places restantes)`}
                       </span>
                     </div>
-                    {session.prix && (
+                    
+                    {/* Prix HT/TTC */}
+                    {(session.prix_ht || session.prix) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Euro className="h-4 w-4" />
-                        <span>{Number(session.prix).toLocaleString('fr-FR')} €</span>
+                        <span>
+                          {session.prix_ht 
+                            ? `${Number(session.prix_ht).toLocaleString('fr-FR')} € HT`
+                            : `${Number(session.prix).toLocaleString('fr-FR')} €`
+                          }
+                          {session.tva_percent && session.prix_ht && (
+                            <span className="text-xs ml-1">
+                              (TVA {session.tva_percent}%)
+                            </span>
+                          )}
+                        </span>
                       </div>
                     )}
                   </div>
+
+                  {/* Objectifs pédagogiques */}
+                  {session.objectifs && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Objectifs pédagogiques
+                        </h3>
+                        <p className="text-sm whitespace-pre-line">{session.objectifs}</p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Prérequis */}
+                  {session.prerequis && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Prérequis
+                        </h3>
+                        <p className="text-sm whitespace-pre-line">{session.prerequis}</p>
+                      </div>
+                    </>
+                  )}
 
                   {session.description && (
                     <>
