@@ -25,9 +25,8 @@ const authSchema = z.object({
 type AuthFormValues = z.infer<typeof authSchema>;
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, isAuthenticated, loading } = useAuth();
+  const { signIn, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm<AuthFormValues>({
@@ -47,29 +46,16 @@ export default function Auth() {
   const onSubmit = async (values: AuthFormValues) => {
     setIsLoading(true);
     try {
-      if (isLogin) {
-        const { error } = await signIn(values.email, values.password);
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast.error("Email ou mot de passe incorrect");
-          } else {
-            toast.error(error.message);
-          }
-          return;
+      const { error } = await signIn(values.email, values.password);
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Email ou mot de passe incorrect");
+        } else {
+          toast.error(error.message);
         }
-        toast.success("Connexion réussie");
-      } else {
-        const { error } = await signUp(values.email, values.password);
-        if (error) {
-          if (error.message.includes("User already registered")) {
-            toast.error("Cet email est déjà utilisé");
-          } else {
-            toast.error(error.message);
-          }
-          return;
-        }
-        toast.success("Compte créé avec succès !");
+        return;
       }
+      toast.success("Connexion réussie");
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +84,7 @@ export default function Auth() {
         {/* Card */}
         <div className="card-elevated p-8">
           <h2 className="text-xl font-semibold text-center mb-6">
-            {isLogin ? "Connexion" : "Créer un compte"}
+            Connexion
           </h2>
 
           <Form {...form}>
@@ -143,22 +129,14 @@ export default function Auth() {
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLogin ? "Se connecter" : "Créer le compte"}
+                Se connecter
               </Button>
             </form>
           </Form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin
-                ? "Pas encore de compte ? Créer un compte"
-                : "Déjà un compte ? Se connecter"}
-            </button>
-          </div>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Contactez un administrateur pour créer un compte.
+          </p>
         </div>
       </div>
     </div>

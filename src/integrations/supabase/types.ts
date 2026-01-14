@@ -988,6 +988,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -995,8 +1016,16 @@ export type Database = {
     Functions: {
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "staff"
       civilite: "Monsieur" | "Madame"
       contact_statut: "En attente de validation" | "Client" | "Bravo"
       devis_statut:
@@ -1157,6 +1186,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "staff"],
       civilite: ["Monsieur", "Madame"],
       contact_statut: ["En attente de validation", "Client", "Bravo"],
       devis_statut: [
