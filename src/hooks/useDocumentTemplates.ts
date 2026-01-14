@@ -189,7 +189,14 @@ export function extractVariables(text: string): string[] {
   return Array.from(matches);
 }
 
-// Fonction pour remplacer les variables par les valeurs
+// Helper function to escape HTML entities to prevent XSS
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Fonction pour remplacer les variables par les valeurs (avec échappement HTML)
 export function replaceVariables(
   template: string,
   contact: Record<string, any>,
@@ -197,28 +204,29 @@ export function replaceVariables(
 ): string {
   let result = template;
   
-  // Variables du contact
+  // Variables du contact - escape HTML to prevent XSS
   Object.entries(contact).forEach(([key, value]) => {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
-    result = result.replace(regex, value?.toString() || "");
+    const safeValue = escapeHtml(value?.toString() || "");
+    result = result.replace(regex, safeValue);
   });
   
-  // Variables de session
+  // Variables de session - escape HTML to prevent XSS
   if (session) {
-    result = result.replace(/\{\{session_nom\}\}/g, session.nom || "");
-    result = result.replace(/\{\{session_date_debut\}\}/g, session.date_debut || "");
-    result = result.replace(/\{\{session_date_fin\}\}/g, session.date_fin || "");
-    result = result.replace(/\{\{session_lieu\}\}/g, session.lieu || "");
-    result = result.replace(/\{\{session_formateur\}\}/g, session.formateur || "");
-    result = result.replace(/\{\{session_prix\}\}/g, session.prix?.toString() || "");
-    result = result.replace(/\{\{session_duree\}\}/g, session.duree_heures?.toString() || "");
-    result = result.replace(/\{\{session_places\}\}/g, session.places_totales?.toString() || "");
+    result = result.replace(/\{\{session_nom\}\}/g, escapeHtml(session.nom || ""));
+    result = result.replace(/\{\{session_date_debut\}\}/g, escapeHtml(session.date_debut || ""));
+    result = result.replace(/\{\{session_date_fin\}\}/g, escapeHtml(session.date_fin || ""));
+    result = result.replace(/\{\{session_lieu\}\}/g, escapeHtml(session.lieu || ""));
+    result = result.replace(/\{\{session_formateur\}\}/g, escapeHtml(session.formateur || ""));
+    result = result.replace(/\{\{session_prix\}\}/g, escapeHtml(session.prix?.toString() || ""));
+    result = result.replace(/\{\{session_duree\}\}/g, escapeHtml(session.duree_heures?.toString() || ""));
+    result = result.replace(/\{\{session_places\}\}/g, escapeHtml(session.places_totales?.toString() || ""));
   }
   
   // Variables de date
   const now = new Date();
-  result = result.replace(/\{\{date_jour\}\}/g, now.toLocaleDateString("fr-FR"));
-  result = result.replace(/\{\{annee\}\}/g, now.getFullYear().toString());
+  result = result.replace(/\{\{date_jour\}\}/g, escapeHtml(now.toLocaleDateString("fr-FR")));
+  result = result.replace(/\{\{annee\}\}/g, escapeHtml(now.getFullYear().toString()));
   
   return result;
 }
