@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalogue_formations: {
+        Row: {
+          actif: boolean
+          categorie: string
+          code: string
+          created_at: string
+          description: string | null
+          duree_heures: number
+          id: string
+          intitule: string
+          objectifs: string | null
+          prerequis: string | null
+          prix_ht: number
+          tva_percent: number
+          type_formation: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          code: string
+          created_at?: string
+          description?: string | null
+          duree_heures?: number
+          id?: string
+          intitule: string
+          objectifs?: string | null
+          prerequis?: string | null
+          prix_ht?: number
+          tva_percent?: number
+          type_formation?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          duree_heures?: number
+          id?: string
+          intitule?: string
+          objectifs?: string | null
+          prerequis?: string | null
+          prix_ht?: number
+          tva_percent?: number
+          type_formation?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_documents: {
         Row: {
           commentaires: string | null
@@ -257,6 +308,66 @@ export type Database = {
           variables?: string[] | null
         }
         Relationships: []
+      }
+      facture_lignes: {
+        Row: {
+          catalogue_formation_id: string | null
+          created_at: string
+          description: string
+          facture_id: string
+          id: string
+          montant_ht: number | null
+          montant_ttc: number | null
+          montant_tva: number | null
+          ordre: number
+          prix_unitaire_ht: number
+          quantite: number
+          tva_percent: number
+        }
+        Insert: {
+          catalogue_formation_id?: string | null
+          created_at?: string
+          description: string
+          facture_id: string
+          id?: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          montant_tva?: number | null
+          ordre?: number
+          prix_unitaire_ht: number
+          quantite?: number
+          tva_percent?: number
+        }
+        Update: {
+          catalogue_formation_id?: string | null
+          created_at?: string
+          description?: string
+          facture_id?: string
+          id?: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          montant_tva?: number | null
+          ordre?: number
+          prix_unitaire_ht?: number
+          quantite?: number
+          tva_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_lignes_catalogue_formation_id_fkey"
+            columns: ["catalogue_formation_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facture_lignes_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       factures: {
         Row: {

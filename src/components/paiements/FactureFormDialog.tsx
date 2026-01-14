@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -29,11 +31,21 @@ import {
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
-import { Loader2 } from "lucide-react";
+import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
+import { useCreateFactureLignes, useDeleteFactureLignesByFacture } from "@/hooks/useFactureLignes";
+import { Loader2, Plus, Trash2, Package } from "lucide-react";
+
+interface LigneFacture {
+  id: string;
+  catalogue_formation_id: string | null;
+  description: string;
+  quantite: number;
+  prix_unitaire_ht: number;
+  tva_percent: number;
+}
 
 const formSchema = z.object({
   contact_id: z.string().min(1, "Veuillez sélectionner un contact"),
-  montant_total: z.coerce.number().min(0, "Le montant doit être positif"),
   type_financement: z.enum(["personnel", "entreprise", "cpf", "opco"]),
   statut: z.enum(["brouillon", "emise", "payee", "partiel", "impayee", "annulee"]),
   date_emission: z.string().optional(),
@@ -73,10 +85,15 @@ export function FactureFormDialog({
   defaultContactId,
 }: FactureFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lignes, setLignes] = useState<LigneFacture[]>([]);
+  
   const { data: contacts = [] } = useContacts();
+  const { data: catalogue = [] } = useCatalogueFormations(true);
   const { data: nextNumero } = useGenerateNumeroFacture();
   const createFacture = useCreateFacture();
   const updateFacture = useUpdateFacture();
+  const createLignes = useCreateFactureLignes();
+  const deleteLignes = useDeleteFactureLignesByFacture();
 
   const isEditing = !!facture;
 
@@ -84,7 +101,6 @@ export function FactureFormDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       contact_id: defaultContactId || "",
-      montant_total: 0,
       type_financement: "personnel",
       statut: "brouillon",
       date_emission: "",
@@ -97,52 +113,126 @@ export function FactureFormDialog({
     if (facture) {
       form.reset({
         contact_id: facture.contact_id,
-        montant_total: Number(facture.montant_total),
         type_financement: facture.type_financement,
         statut: facture.statut,
         date_emission: facture.date_emission || "",
         date_echeance: facture.date_echeance || "",
         commentaires: facture.commentaires || "",
       });
+      // Pour l'édition, on garderait les lignes existantes - simplifié ici
+      setLignes([]);
     } else {
       form.reset({
         contact_id: defaultContactId || "",
-        montant_total: 0,
         type_financement: "personnel",
         statut: "brouillon",
         date_emission: "",
         date_echeance: "",
         commentaires: "",
       });
+      setLignes([]);
     }
-  }, [facture, defaultContactId, form]);
+  }, [facture, defaultContactId, form, open]);
+
+  const addLigne = (item?: CatalogueFormation) => {
+    const newLigne: LigneFacture = {
+      id: crypto.randomUUID(),
+      catalogue_formation_id: item?.id || null,
+      description: item?.intitule || "",
+      quantite: 1,
+      prix_unitaire_ht: item?.prix_ht || 0,
+      tva_percent: item?.tva_percent || 0,
+    };
+    setLignes([...lignes, newLigne]);
+  };
+
+  const updateLigne = (id: string, field: keyof LigneFacture, value: any) => {
+    setLignes(lignes.map(l => l.id === id ? { ...l, [field]: value } : l));
+  };
+
+  const removeLigne = (id: string) => {
+    setLignes(lignes.filter(l => l.id !== id));
+  };
+
+  const selectCatalogueItem = (ligneId: string, catalogueId: string) => {
+    const item = catalogue.find(c => c.id === catalogueId);
+    if (item) {
+      setLignes(lignes.map(l => l.id === ligneId ? {
+        ...l,
+        catalogue_formation_id: item.id,
+        description: item.intitule,
+        prix_unitaire_ht: item.prix_ht,
+        tva_percent: item.tva_percent,
+      } : l));
+    }
+  };
+
+  const totalHT = lignes.reduce((acc, l) => acc + (l.quantite * l.prix_unitaire_ht), 0);
+  const totalTVA = lignes.reduce((acc, l) => acc + (l.quantite * l.prix_unitaire_ht * l.tva_percent / 100), 0);
+  const totalTTC = totalHT + totalTVA;
 
   const onSubmit = async (values: FormValues) => {
+    if (lignes.length === 0) {
+      toast.error("Ajoutez au moins un article à la facture");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (isEditing && facture) {
+        // Mise à jour facture
         await updateFacture.mutateAsync({
           id: facture.id,
           contact_id: values.contact_id,
-          montant_total: values.montant_total,
+          montant_total: totalTTC,
           type_financement: values.type_financement,
           statut: values.statut,
           date_emission: values.date_emission || null,
           date_echeance: values.date_echeance || null,
           commentaires: values.commentaires || null,
         });
+        
+        // Supprimer anciennes lignes et créer nouvelles
+        await deleteLignes.mutateAsync(facture.id);
+        await createLignes.mutateAsync(
+          lignes.map((l, idx) => ({
+            facture_id: facture.id,
+            catalogue_formation_id: l.catalogue_formation_id,
+            description: l.description,
+            quantite: l.quantite,
+            prix_unitaire_ht: l.prix_unitaire_ht,
+            tva_percent: l.tva_percent,
+            ordre: idx,
+          }))
+        );
+        
         toast.success("Facture mise à jour");
       } else {
-        await createFacture.mutateAsync({
+        // Création facture
+        const newFacture = await createFacture.mutateAsync({
           contact_id: values.contact_id,
           numero_facture: nextNumero || `FAC-${Date.now()}`,
-          montant_total: values.montant_total,
+          montant_total: totalTTC,
           type_financement: values.type_financement,
           statut: values.statut,
           date_emission: values.date_emission || null,
           date_echeance: values.date_echeance || null,
           commentaires: values.commentaires || null,
         });
+
+        // Créer les lignes
+        await createLignes.mutateAsync(
+          lignes.map((l, idx) => ({
+            facture_id: newFacture.id,
+            catalogue_formation_id: l.catalogue_formation_id,
+            description: l.description,
+            quantite: l.quantite,
+            prix_unitaire_ht: l.prix_unitaire_ht,
+            tva_percent: l.tva_percent,
+            ordre: idx,
+          }))
+        );
+
         toast.success("Facture créée");
       }
       onOpenChange(false);
@@ -154,9 +244,16 @@ export function FactureFormDialog({
     }
   };
 
+  const formatPrix = (prix: number) => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(prix);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la facture" : "Nouvelle facture"}
@@ -164,150 +261,271 @@ export function FactureFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {!isEditing && nextNumero && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Numéro de facture</p>
-                <p className="font-mono font-semibold">{nextNumero}</p>
-              </div>
-            )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4 pb-4">
+                {!isEditing && nextNumero && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Numéro de facture</p>
+                    <p className="font-mono font-semibold">{nextNumero}</p>
+                  </div>
+                )}
 
-            <FormField
-              control={form.control}
-              name="contact_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un contact" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {contacts.map((contact) => (
-                        <SelectItem key={contact.id} value={contact.id}>
-                          {contact.prenom} {contact.nom}
-                        </SelectItem>
+                <FormField
+                  control={form.control}
+                  name="contact_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un contact" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {contacts.map((contact) => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                              {contact.prenom} {contact.nom}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Lignes de facture */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Articles / Formations</FormLabel>
+                    <Button type="button" variant="outline" size="sm" onClick={() => addLigne()}>
+                      <Plus className="h-3 w-3 mr-1" />
+                      Ligne libre
+                    </Button>
+                  </div>
+
+                  {/* Catalogue rapide */}
+                  <div className="flex flex-wrap gap-1">
+                    {catalogue.slice(0, 8).map((item) => (
+                      <Button
+                        key={item.id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => addLigne(item)}
+                      >
+                        <Package className="h-3 w-3 mr-1" />
+                        {item.code}
+                      </Button>
+                    ))}
+                    {catalogue.length > 8 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{catalogue.length - 8} articles
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Liste des lignes */}
+                  {lignes.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
+                      <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Ajoutez des articles depuis le catalogue</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {lignes.map((ligne, idx) => (
+                        <div key={ligne.id} className="flex gap-2 items-start p-2 border rounded-lg bg-muted/30">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex gap-2">
+                              <Select 
+                                value={ligne.catalogue_formation_id || ""} 
+                                onValueChange={(v) => selectCatalogueItem(ligne.id, v)}
+                              >
+                                <SelectTrigger className="w-[200px]">
+                                  <SelectValue placeholder="Choisir article..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogue.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {item.code} - {item.intitule}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                className="flex-1"
+                                value={ligne.description}
+                                onChange={(e) => updateLigne(ligne.id, "description", e.target.value)}
+                                placeholder="Description"
+                              />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                min="1"
+                                className="w-16"
+                                value={ligne.quantite}
+                                onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
+                              />
+                              <span className="text-xs text-muted-foreground">×</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="w-24"
+                                value={ligne.prix_unitaire_ht}
+                                onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
+                              />
+                              <span className="text-xs text-muted-foreground">€ HT</span>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                className="w-16"
+                                value={ligne.tva_percent}
+                                onChange={(e) => updateLigne(ligne.id, "tva_percent", parseFloat(e.target.value) || 0)}
+                              />
+                              <span className="text-xs text-muted-foreground">% TVA</span>
+                              <span className="ml-auto font-medium text-sm">
+                                {formatPrix(ligne.quantite * ligne.prix_unitaire_ht * (1 + ligne.tva_percent / 100))}
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removeLigne(ligne.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </div>
+                  )}
 
-            <FormField
-              control={form.control}
-              name="montant_total"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Montant total (€) *</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  {/* Totaux */}
+                  {lignes.length > 0 && (
+                    <div className="flex justify-end">
+                      <div className="w-64 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total HT</span>
+                          <span>{formatPrix(totalHT)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">TVA</span>
+                          <span>{formatPrix(totalTVA)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-base pt-1 border-t">
+                          <span>Total TTC</span>
+                          <span className="text-primary">{formatPrix(totalTTC)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type_financement"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Financement</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="type_financement"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Financement</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {financementOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="statut"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Statut</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {statutOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="date_emission"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date d'émission</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="date_echeance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date d'échéance</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="commentaires"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Commentaires</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Textarea rows={2} {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {financementOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </ScrollArea>
 
-              <FormField
-                control={form.control}
-                name="statut"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Statut</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {statutOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date_emission"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date d'émission</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="date_echeance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date d'échéance</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="commentaires"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Commentaires</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -315,9 +533,9 @@ export function FactureFormDialog({
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || lignes.length === 0}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isEditing ? "Enregistrer" : "Créer"}
+                {isEditing ? "Enregistrer" : "Créer la facture"}
               </Button>
             </div>
           </form>
