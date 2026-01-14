@@ -454,6 +454,54 @@ export type Database = {
           },
         ]
       }
+      document_template_files: {
+        Row: {
+          actif: boolean | null
+          categorie: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          nom: string
+          type_fichier: string
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          actif?: boolean | null
+          categorie?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          nom: string
+          type_fichier: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          actif?: boolean | null
+          categorie?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          nom?: string
+          type_fichier?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       document_templates: {
         Row: {
           actif: boolean
@@ -962,6 +1010,83 @@ export type Database = {
           ville?: string | null
         }
         Relationships: []
+      }
+      generated_documents: {
+        Row: {
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          nom: string
+          session_id: string | null
+          template_file_id: string | null
+          template_text_id: string | null
+          version: number | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          nom: string
+          session_id?: string | null
+          template_file_id?: string | null
+          template_text_id?: string | null
+          version?: number | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          nom?: string
+          session_id?: string | null
+          template_file_id?: string | null
+          template_text_id?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_file_id_fkey"
+            columns: ["template_file_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_text_id_fkey"
+            columns: ["template_text_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
