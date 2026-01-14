@@ -34,7 +34,8 @@ import {
   Clock,
   Euro,
   LayoutGrid,
-  List
+  List,
+  Percent
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -212,6 +213,12 @@ export function FormationsPage() {
                             {formatPrix(formation.prix_ht)} HT
                           </span>
                         </span>
+                        {formation.remise_percent > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-success/10 text-success">
+                            <Percent className="h-3 w-3 mr-1" />
+                            -{formation.remise_percent}%
+                          </Badge>
+                        )}
                       </div>
                       
                       {formation.description && (
@@ -267,6 +274,7 @@ export function FormationsPage() {
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Durée</TableHead>
                       <TableHead className="text-right">Prix HT</TableHead>
+                      <TableHead className="text-center">Remise</TableHead>
                       <TableHead className="text-center">Actif</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -286,6 +294,15 @@ export function FormationsPage() {
                         </TableCell>
                         <TableCell className="text-right">{formation.duree_heures}h</TableCell>
                         <TableCell className="text-right font-medium">{formatPrix(formation.prix_ht)}</TableCell>
+                        <TableCell className="text-center">
+                          {formation.remise_percent > 0 ? (
+                            <Badge variant="secondary" className="text-xs bg-success/10 text-success">
+                              -{formation.remise_percent}%
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-center">
                           {formation.actif ? "✓" : "✗"}
                         </TableCell>

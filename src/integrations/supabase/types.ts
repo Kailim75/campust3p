@@ -27,6 +27,7 @@ export type Database = {
           objectifs: string | null
           prerequis: string | null
           prix_ht: number
+          remise_percent: number
           tva_percent: number
           type_formation: string
           updated_at: string
@@ -43,6 +44,7 @@ export type Database = {
           objectifs?: string | null
           prerequis?: string | null
           prix_ht?: number
+          remise_percent?: number
           tva_percent?: number
           type_formation?: string
           updated_at?: string
@@ -59,6 +61,7 @@ export type Database = {
           objectifs?: string | null
           prerequis?: string | null
           prix_ht?: number
+          remise_percent?: number
           tva_percent?: number
           type_formation?: string
           updated_at?: string
