@@ -26,7 +26,23 @@ import {
   type SeanceConduite 
 } from "@/hooks/useSeancesConduite";
 import { useActiveVehicules } from "@/hooks/useVehicules";
-import { useFormateurs } from "@/hooks/useFormateurs";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+function useFormateursTable() {
+  return useQuery({
+    queryKey: ["formateurs-table"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formateurs")
+        .select("id, nom, prenom, actif")
+        .eq("actif", true)
+        .order("nom");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 interface SeanceConduiteFormDialogProps {
   ficheId: string;
@@ -44,7 +60,7 @@ export function SeanceConduiteFormDialog({
   onOpenChange 
 }: SeanceConduiteFormDialogProps) {
   const { data: vehicules = [] } = useActiveVehicules();
-  const { data: formateurs = [] } = useFormateurs();
+  const { data: formateurs = [] } = useFormateursTable();
 
   const [formData, setFormData] = useState({
     date_seance: seance?.date_seance || new Date().toISOString().split("T")[0],
@@ -244,7 +260,7 @@ export function SeanceConduiteFormDialog({
                   <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {formateurs.filter(f => f.actif).map((f) => (
+                  {formateurs.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.prenom} {f.nom}
                     </SelectItem>
