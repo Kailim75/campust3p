@@ -36,7 +36,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveSection} />;
       case "contacts":
         return <ContactsPage />;
       case "formations":

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, FileWarning, Clock, CreditCard, IdCard, Loader2 } from "lucide-react";
+import { AlertTriangle, FileWarning, Clock, CreditCard, IdCard, Loader2, ChevronRight } from "lucide-react";
 import { useAllAlerts, Alert } from "@/hooks/useAlerts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -26,20 +26,35 @@ const priorityBadge: Record<Alert["priority"], { label: string; class: string }>
   low: { label: "Info", class: "bg-muted text-muted-foreground" },
 };
 
-export function AlertCard() {
+interface AlertCardProps {
+  onClick?: () => void;
+}
+
+export function AlertCard({ onClick }: AlertCardProps) {
   const { data: alerts, isLoading, counts } = useAllAlerts();
 
   return (
-    <div className="card-elevated p-5">
+    <div 
+      className={cn(
+        "card-elevated p-5 transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display font-semibold text-foreground">
           Alertes
         </h3>
-        {counts && counts.high > 0 && (
-          <Badge variant="destructive" className="text-xs">
-            {counts.high} urgent{counts.high > 1 ? "es" : "e"}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {counts && counts.high > 0 && (
+            <Badge variant="destructive" className="text-xs">
+              {counts.high} urgent{counts.high > 1 ? "es" : "e"}
+            </Badge>
+          )}
+          {onClick && (
+            <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+        </div>
       </div>
 
       {/* Quick stats */}
@@ -78,7 +93,7 @@ export function AlertCard() {
                   <div
                     key={alert.id}
                     className={cn(
-                      "flex items-start gap-3 p-3 rounded-lg border-l-4 transition-colors cursor-pointer hover:opacity-80",
+                      "flex items-start gap-3 p-3 rounded-lg border-l-4 transition-colors",
                       alertStyles[alert.type] || "border-l-muted bg-muted/5"
                     )}
                   >
