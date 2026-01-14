@@ -364,7 +364,7 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
                     <div key={ligne.id} className="p-4 space-y-3">
                       <div className="flex items-start gap-4">
                         <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-3">
                           <div className="md:col-span-2">
                             <Label className="text-xs">Description</Label>
                             <Input
@@ -393,6 +393,19 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
                               value={ligne.prix_unitaire_ht}
                               onChange={(e) =>
                                 updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Remise %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={ligne.remise_percent}
+                              onChange={(e) =>
+                                updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)
                               }
                             />
                           </div>

@@ -42,6 +42,7 @@ interface LigneFacture {
   quantite: number;
   prix_unitaire_ht: number;
   tva_percent: number;
+  remise_percent: number;
 }
 
 const formSchema = z.object({
@@ -135,13 +136,15 @@ export function FactureFormDialog({
   }, [facture, defaultContactId, form, open]);
 
   const addLigne = (item?: CatalogueFormation) => {
+    const prixApresRemiseCatalogue = item ? item.prix_ht * (1 - (item.remise_percent || 0) / 100) : 0;
     const newLigne: LigneFacture = {
       id: crypto.randomUUID(),
       catalogue_formation_id: item?.id || null,
       description: item?.intitule || "",
       quantite: 1,
-      prix_unitaire_ht: item?.prix_ht || 0,
+      prix_unitaire_ht: prixApresRemiseCatalogue,
       tva_percent: item?.tva_percent || 0,
+      remise_percent: 0,
     };
     setLignes([...lignes, newLigne]);
   };
@@ -157,18 +160,21 @@ export function FactureFormDialog({
   const selectCatalogueItem = (ligneId: string, catalogueId: string) => {
     const item = catalogue.find(c => c.id === catalogueId);
     if (item) {
+      const prixApresRemiseCatalogue = item.prix_ht * (1 - (item.remise_percent || 0) / 100);
       setLignes(lignes.map(l => l.id === ligneId ? {
         ...l,
         catalogue_formation_id: item.id,
         description: item.intitule,
-        prix_unitaire_ht: item.prix_ht,
+        prix_unitaire_ht: prixApresRemiseCatalogue,
         tva_percent: item.tva_percent,
+        remise_percent: 0,
       } : l));
     }
   };
 
-  const totalHT = lignes.reduce((acc, l) => acc + (l.quantite * l.prix_unitaire_ht), 0);
-  const totalTVA = lignes.reduce((acc, l) => acc + (l.quantite * l.prix_unitaire_ht * l.tva_percent / 100), 0);
+  const calculateLigneHT = (l: LigneFacture) => l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100);
+  const totalHT = lignes.reduce((acc, l) => acc + calculateLigneHT(l), 0);
+  const totalTVA = lignes.reduce((acc, l) => acc + (calculateLigneHT(l) * l.tva_percent / 100), 0);
   const totalTTC = totalHT + totalTVA;
 
   const onSubmit = async (values: FormValues) => {
@@ -362,33 +368,52 @@ export function FactureFormDialog({
                                 placeholder="Description"
                               />
                             </div>
-                            <div className="flex gap-2 items-center">
-                              <Input
-                                type="number"
-                                min="1"
-                                className="w-16"
-                                value={ligne.quantite}
-                                onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
-                              />
-                              <span className="text-xs text-muted-foreground">×</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                className="w-24"
-                                value={ligne.prix_unitaire_ht}
-                                onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
-                              />
-                              <span className="text-xs text-muted-foreground">€ HT</span>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                className="w-16"
-                                value={ligne.tva_percent}
-                                onChange={(e) => updateLigne(ligne.id, "tva_percent", parseFloat(e.target.value) || 0)}
-                              />
-                              <span className="text-xs text-muted-foreground">% TVA</span>
+                            <div className="flex gap-2 items-center flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  className="w-16"
+                                  value={ligne.quantite}
+                                  onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
+                                />
+                                <span className="text-xs text-muted-foreground">×</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="w-24"
+                                  value={ligne.prix_unitaire_ht}
+                                  onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
+                                />
+                                <span className="text-xs text-muted-foreground">€ HT</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.5"
+                                  className="w-16"
+                                  value={ligne.remise_percent}
+                                  onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
+                                  placeholder="0"
+                                />
+                                <span className="text-xs text-muted-foreground">% remise</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  className="w-16"
+                                  value={ligne.tva_percent}
+                                  onChange={(e) => updateLigne(ligne.id, "tva_percent", parseFloat(e.target.value) || 0)}
+                                />
+                                <span className="text-xs text-muted-foreground">% TVA</span>
+                              </div>
                               <span className="ml-auto font-medium text-sm">
-                                {formatPrix(ligne.quantite * ligne.prix_unitaire_ht * (1 + ligne.tva_percent / 100))}
+                                {formatPrix(calculateLigneHT(ligne) * (1 + ligne.tva_percent / 100))}
                               </span>
                             </div>
                           </div>
