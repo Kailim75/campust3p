@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import DOMPurify from "dompurify";
 import {
   Dialog,
   DialogContent,
@@ -66,11 +67,23 @@ export function DocumentTemplatePreviewDialog({
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (printWindow) {
+      // Sanitize the content to prevent XSS attacks
+      const sanitizedContent = DOMPurify.sanitize(previewContent.replace(/\n/g, "<br>"), {
+        ALLOWED_TAGS: ['br', 'p', 'strong', 'em', 'u', 'b', 'i', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div'],
+        ALLOWED_ATTR: []
+      });
+      
+      // Sanitize the title as well
+      const sanitizedTitle = DOMPurify.sanitize(template?.nom || "Document", {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: []
+      });
+      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${template?.nom || "Document"}</title>
+          <title>${sanitizedTitle}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -81,7 +94,7 @@ export function DocumentTemplatePreviewDialog({
           </style>
         </head>
         <body>
-          ${previewContent.replace(/\n/g, "<br>")}
+          ${sanitizedContent}
         </body>
         </html>
       `);
