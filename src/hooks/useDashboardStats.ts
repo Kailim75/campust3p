@@ -211,3 +211,82 @@ export function useFinancialSummary() {
     },
   });
 }
+
+// Taux de conversion prospects -> clients
+export function useConversionRate() {
+  return useQuery({
+    queryKey: ["dashboard", "conversion-rate"],
+    queryFn: async () => {
+      const { data: contacts, error } = await supabase
+        .from("contacts")
+        .select("statut, created_at")
+        .eq("archived", false);
+
+      if (error) throw error;
+
+      const total = contacts?.length || 0;
+      
+      // Prospects = en attente de validation
+      const prospects = contacts?.filter((c) => 
+        c.statut === "En attente de validation"
+      ).length || 0;
+      
+      // Clients = Client ou Bravo (formations terminées)
+      const clients = contacts?.filter((c) => 
+        c.statut === "Client" || c.statut === "Bravo"
+      ).length || 0;
+
+      // Calcul du taux de conversion (clients / total contacts)
+      const tauxConversion = total > 0 ? Math.round((clients / total) * 100) : 0;
+
+      return {
+        total,
+        prospects,
+        clients,
+        tauxConversion,
+      };
+    },
+  });
+}
+
+export interface CAParSource {
+  source: string;
+  ca: number;
+  count: number;
+}
+
+// CA par source de lead
+export function useCAParSource() {
+  return useQuery({
+    queryKey: ["dashboard", "ca-par-source"],
+    queryFn: async () => {
+      // Récupérer les factures avec les contacts et leur source
+      const { data: factures, error } = await supabase
+        .from("factures")
+        .select(`
+          montant_total,
+          statut,
+          contact:contacts (
+            source
+          )
+        `)
+        .not("statut", "eq", "annulee");
+
+      if (error) throw error;
+
+      // Grouper par source
+      const sourceStats: Record<string, CAParSource> = {};
+
+      (factures || []).forEach((f: any) => {
+        const source = f.contact?.source || "Non défini";
+        if (!sourceStats[source]) {
+          sourceStats[source] = { source, ca: 0, count: 0 };
+        }
+        sourceStats[source].ca += Number(f.montant_total);
+        sourceStats[source].count += 1;
+      });
+
+      return Object.values(sourceStats).sort((a, b) => b.ca - a.ca);
+    },
+  });
+}

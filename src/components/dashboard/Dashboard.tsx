@@ -7,6 +7,8 @@ import { MonthlyCAChart } from "./MonthlyCAChart";
 import { FormationPieChart } from "./FormationPieChart";
 import { FinancialSummaryCard } from "./FinancialSummaryCard";
 import { InscriptionTrendChart } from "./InscriptionTrendChart";
+import { ConversionKPICard } from "./ConversionKPICard";
+import { CAParSourceChart } from "./CAParSourceChart";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useContactsStats } from "@/hooks/useContacts";
 
@@ -61,6 +63,12 @@ export function Dashboard() {
           {stats.map((stat) => (
             <StatCard key={stat.title} {...stat} />
           ))}
+        </div>
+
+        {/* KPIs avancés: Conversion + CA par source */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ConversionKPICard />
+          <CAParSourceChart />
         </div>
 
         {/* Graphiques CA et Finance */}
