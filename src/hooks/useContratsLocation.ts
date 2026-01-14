@@ -240,3 +240,69 @@ export function useDeleteContratLocation() {
     },
   });
 }
+
+export function useSignContratLocation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      contactId,
+      signatureData,
+      ipAddress,
+      userAgent,
+    }: {
+      id: string;
+      contactId: string;
+      signatureData: string;
+      ipAddress?: string;
+      userAgent?: string;
+    }) => {
+      // Upload signature image to storage
+      const fileName = `contrat_${id}_${Date.now()}.png`;
+      const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, "");
+      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+      const { error: uploadError } = await supabase.storage
+        .from("signatures")
+        .upload(fileName, binaryData, {
+          contentType: "image/png",
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("signatures")
+        .getPublicUrl(fileName);
+
+      // Update contract with signature
+      const { data, error } = await supabase
+        .from("contrats_location")
+        .update({
+          statut: "signe",
+          date_signature: new Date().toISOString(),
+          signature_data: signatureData,
+          document_signe_path: urlData.publicUrl,
+          signature_ip: ipAddress || null,
+          signature_user_agent: userAgent || null,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, contactId };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["contrats-location", "contact", result.contactId] });
+      queryClient.invalidateQueries({ queryKey: ["contrats-location"] });
+      queryClient.invalidateQueries({ queryKey: ["contrat-historique", result.data.id] });
+      toast.success("Contrat signé avec succès !");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur lors de la signature du contrat");
+      console.error(error);
+    },
+  });
+}

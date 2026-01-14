@@ -40,7 +40,8 @@ import {
   Clock,
   Send,
   CheckCircle,
-  XCircle
+  XCircle,
+  PenLine
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -65,6 +66,7 @@ interface ContratFormDialogProps {
   contrat?: ContratLocation;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenSignature?: () => void;
 }
 
 export function ContratFormDialog({
@@ -72,6 +74,7 @@ export function ContratFormDialog({
   contrat,
   open,
   onOpenChange,
+  onOpenSignature,
 }: ContratFormDialogProps) {
   const { data: vehicules = [] } = useActiveVehicules();
   const { data: historique = [] } = useContratHistorique(contrat?.id || null);
@@ -440,6 +443,16 @@ export function ContratFormDialog({
                 <div className="space-y-3 py-2">
                   {/* Quick actions */}
                   <div className="flex gap-2 flex-wrap">
+                    {(contrat.statut === "brouillon" || contrat.statut === "envoye") && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={onOpenSignature}
+                      >
+                        <PenLine className="h-4 w-4 mr-1" />
+                        Signer le contrat
+                      </Button>
+                    )}
                     {contrat.statut === "brouillon" && (
                       <Button
                         size="sm"
@@ -454,7 +467,7 @@ export function ContratFormDialog({
                       <>
                         <Button
                           size="sm"
-                          variant="default"
+                          variant="outline"
                           onClick={() => handleStatusChange("signe")}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />

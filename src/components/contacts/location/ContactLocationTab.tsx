@@ -11,7 +11,9 @@ import {
   ChevronRight,
   Car,
   Package,
-  FileText
+  FileText,
+  PenLine,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -21,6 +23,7 @@ import {
   type ContratLocation 
 } from "@/hooks/useContratsLocation";
 import { ContratFormDialog } from "./ContratFormDialog";
+import { ContratSignatureDialog } from "./ContratSignatureDialog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -31,6 +34,7 @@ interface ContactLocationTabProps {
 export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingContrat, setEditingContrat] = useState<ContratLocation | null>(null);
+  const [signingContrat, setSigningContrat] = useState<ContratLocation | null>(null);
   const { data: contrats = [], isLoading } = useContactContrats(contactId);
 
   return (
@@ -64,6 +68,7 @@ export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
                 key={contrat.id} 
                 contrat={contrat} 
                 onClick={() => setEditingContrat(contrat)}
+                onSign={() => setSigningContrat(contrat)}
               />
             ))}
           </div>
@@ -82,6 +87,18 @@ export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
           contrat={editingContrat}
           open={!!editingContrat}
           onOpenChange={(open) => !open && setEditingContrat(null)}
+          onOpenSignature={() => {
+            setSigningContrat(editingContrat);
+            setEditingContrat(null);
+          }}
+        />
+      )}
+
+      {signingContrat && (
+        <ContratSignatureDialog
+          contrat={signingContrat}
+          open={!!signingContrat}
+          onOpenChange={(open) => !open && setSigningContrat(null)}
         />
       )}
     </div>
@@ -91,6 +108,7 @@ export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
 interface ContratCardProps {
   contrat: ContratLocation;
   onClick: () => void;
+  onSign: () => void;
 }
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -99,9 +117,15 @@ const typeIcons: Record<string, React.ElementType> = {
   autre: FileText,
 };
 
-function ContratCard({ contrat, onClick }: ContratCardProps) {
+function ContratCard({ contrat, onClick, onSign }: ContratCardProps) {
   const statusConfig = contratStatutConfig[contrat.statut];
   const TypeIcon = typeIcons[contrat.type_contrat] || FileText;
+  const canSign = contrat.statut === "envoye" || contrat.statut === "brouillon";
+
+  const handleSignClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSign();
+  };
 
   return (
     <div 
@@ -122,6 +146,9 @@ function ContratCard({ contrat, onClick }: ContratCardProps) {
           <Badge variant="outline" className={cn("text-xs", statusConfig.class)}>
             {statusConfig.label}
           </Badge>
+          {contrat.statut === "signe" && (
+            <CheckCircle2 className="h-4 w-4 text-success" />
+          )}
           <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
@@ -138,16 +165,38 @@ function ContratCard({ contrat, onClick }: ContratCardProps) {
       )}
 
       {/* Dates and amount */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          {format(new Date(contrat.date_debut), "dd/MM/yyyy")} - {format(new Date(contrat.date_fin), "dd/MM/yyyy")}
-        </span>
-        <span className="flex items-center gap-1">
-          <Euro className="h-3 w-3" />
-          {contrat.montant_mensuel.toFixed(2)}€/mois
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {format(new Date(contrat.date_debut), "dd/MM/yyyy")} - {format(new Date(contrat.date_fin), "dd/MM/yyyy")}
+          </span>
+          <span className="flex items-center gap-1">
+            <Euro className="h-3 w-3" />
+            {contrat.montant_mensuel.toFixed(2)}€/mois
+          </span>
+        </div>
+        
+        {canSign && (
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-7 gap-1"
+            onClick={handleSignClick}
+          >
+            <PenLine className="h-3 w-3" />
+            Signer
+          </Button>
+        )}
       </div>
+
+      {/* Signature info */}
+      {contrat.statut === "signe" && contrat.date_signature && (
+        <p className="text-xs text-success mt-2 flex items-center gap-1">
+          <PenLine className="h-3 w-3" />
+          Signé le {format(new Date(contrat.date_signature), "dd/MM/yyyy à HH:mm", { locale: fr })}
+        </p>
+      )}
     </div>
   );
 }
