@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUpcomingSessions, type Session } from "@/hooks/useSessions";
 import { format } from "date-fns";
@@ -25,15 +25,28 @@ const statusLabels = {
   annulee: { label: "Annulée", class: "bg-destructive/10 text-destructive" },
 };
 
-export function SessionsOverview() {
+interface SessionsOverviewProps {
+  onClick?: () => void;
+}
+
+export function SessionsOverview({ onClick }: SessionsOverviewProps) {
   const { data: sessions, isLoading } = useUpcomingSessions(4);
 
   return (
-    <div className="card-elevated p-5">
+    <div 
+      className={cn(
+        "card-elevated p-5 transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display font-semibold text-foreground">
           Sessions à venir
         </h3>
+        {onClick && (
+          <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
       </div>
 
       <div className="space-y-3">

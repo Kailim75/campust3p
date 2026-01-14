@@ -2,10 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useFinancialSummary } from "@/hooks/useDashboardStats";
-import { Euro, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Euro, AlertCircle, CheckCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function FinancialSummaryCard() {
+interface FinancialSummaryCardProps {
+  onClick?: () => void;
+}
+
+export function FinancialSummaryCard({ onClick }: FinancialSummaryCardProps) {
   const { data, isLoading } = useFinancialSummary();
 
   const formatEuro = (value: number) => {
@@ -32,11 +36,20 @@ export function FinancialSummaryCard() {
   }
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Euro className="h-4 w-4 text-primary" />
           Résumé financier
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

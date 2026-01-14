@@ -10,20 +10,34 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Users } from "lucide-react";
+import { Users, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function InscriptionTrendChart() {
+interface InscriptionTrendChartProps {
+  onClick?: () => void;
+}
+
+export function InscriptionTrendChart({ onClick }: InscriptionTrendChartProps) {
   const { data, isLoading } = useInscriptionTrend();
 
   const totalInscriptions = data?.reduce((acc, m) => acc + m.inscriptions, 0) || 0;
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
             Évolution des inscriptions
+            {onClick && (
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
             6 derniers mois

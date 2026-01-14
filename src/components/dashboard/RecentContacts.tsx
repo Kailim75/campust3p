@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useRecentContacts } from "@/hooks/useContacts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { ChevronRight } from "lucide-react";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info" },
@@ -23,7 +24,11 @@ const formationLabels: Record<string, string> = {
   "Mobilité Taxi": "Mobilité Taxi",
 };
 
-export function RecentContacts() {
+interface RecentContactsProps {
+  onClick?: () => void;
+}
+
+export function RecentContacts({ onClick }: RecentContactsProps) {
   const { data: contacts, isLoading, error } = useRecentContacts(5);
 
   if (error) {
@@ -35,14 +40,20 @@ export function RecentContacts() {
   }
 
   return (
-    <div className="card-elevated p-5">
+    <div 
+      className={cn(
+        "card-elevated p-5 transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display font-semibold text-foreground">
           Contacts récents
         </h3>
-        <button className="text-sm text-primary hover:underline">
-          Voir tout
-        </button>
+        {onClick && (
+          <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
       </div>
 
       <div className="space-y-3">
@@ -65,7 +76,7 @@ export function RecentContacts() {
             return (
               <div
                 key={contact.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">

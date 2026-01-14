@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useSessions } from "@/hooks/useSessions";
-import { Users, TrendingUp } from "lucide-react";
+import { Users, TrendingUp, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function FillRateCard() {
+interface FillRateCardProps {
+  onClick?: () => void;
+}
+
+export function FillRateCard({ onClick }: FillRateCardProps) {
   const { data: sessions, isLoading } = useSessions();
 
   // Calculate fill rate for upcoming sessions
@@ -24,11 +29,20 @@ export function FillRateCard() {
   };
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <Users className="h-4 w-4" />
           Taux de remplissage
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

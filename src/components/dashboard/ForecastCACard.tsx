@@ -1,11 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Euro, TrendingUp, Calendar } from "lucide-react";
+import { Euro, TrendingUp, Calendar, ChevronRight } from "lucide-react";
 import { startOfMonth, endOfMonth, addMonths, format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
-export function ForecastCACard() {
+interface ForecastCACardProps {
+  onClick?: () => void;
+}
+
+export function ForecastCACard({ onClick }: ForecastCACardProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["forecast-ca"],
     queryFn: async () => {
@@ -69,11 +74,20 @@ export function ForecastCACard() {
   };
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <TrendingUp className="h-4 w-4" />
           CA Prévisionnel
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, UserCheck } from "lucide-react";
+import { TrendingUp, Users, UserCheck, ChevronRight } from "lucide-react";
 import { useConversionRate } from "@/hooks/useDashboardStats";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-export function ConversionKPICard() {
+interface ConversionKPICardProps {
+  onClick?: () => void;
+}
+
+export function ConversionKPICard({ onClick }: ConversionKPICardProps) {
   const { data, isLoading } = useConversionRate();
 
   if (isLoading) {
@@ -20,11 +25,20 @@ export function ConversionKPICard() {
   }
 
   return (
-    <Card className="card-elevated">
+    <Card 
+      className={cn(
+        "card-elevated transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
           Taux de conversion
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>

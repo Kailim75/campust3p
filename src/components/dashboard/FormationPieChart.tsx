@@ -9,7 +9,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -22,17 +23,30 @@ const COLORS = [
   "hsl(262, 83%, 58%)",
 ];
 
-export function FormationPieChart() {
+interface FormationPieChartProps {
+  onClick?: () => void;
+}
+
+export function FormationPieChart({ onClick }: FormationPieChartProps) {
   const { data, isLoading } = useFormationStats();
 
   const totalInscriptions = data?.reduce((acc, f) => acc + f.count, 0) || 0;
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md group"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <GraduationCap className="h-4 w-4 text-primary" />
           Répartition par formation
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           {totalInscriptions} inscriptions au total
