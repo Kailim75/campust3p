@@ -267,14 +267,14 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Formation du catalogue</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || "__none__"} onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionner une formation (optionnel)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">-- Aucune --</SelectItem>
+                        <SelectItem value="__none__">-- Aucune --</SelectItem>
                         {catalogueFormations.map((formation) => (
                           <SelectItem key={formation.id} value={formation.id}>
                             {formation.code} - {formation.intitule}
@@ -381,14 +381,14 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Formateur assigné</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || "__none__"} onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionner un formateur" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">-- Aucun --</SelectItem>
+                        <SelectItem value="__none__">-- Aucun --</SelectItem>
                         {activeFormateurs.map((formateur) => (
                           <SelectItem key={formateur.id} value={formateur.id}>
                             {formateur.prenom} {formateur.nom}
