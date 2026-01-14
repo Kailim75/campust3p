@@ -1,4 +1,4 @@
-import { Bell, Plus, LogOut } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { GlobalSearch } from "./GlobalSearch";
+import { NotificationBell } from "./NotificationBell";
 
 interface HeaderProps {
   title: string;
@@ -50,10 +51,7 @@ export function Header({ title, subtitle, onAddClick, addLabel }: HeaderProps) {
           <GlobalSearch />
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
-          </Button>
+          <NotificationBell />
 
           {/* Add Button */}
           {onAddClick && (

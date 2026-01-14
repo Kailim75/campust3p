@@ -602,6 +602,78 @@ export type Database = {
         }
         Relationships: []
       }
+      emargements: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_emargement: string
+          date_signature: string | null
+          heure_debut: string | null
+          heure_fin: string | null
+          id: string
+          ip_signature: string | null
+          periode: string
+          present: boolean
+          session_id: string
+          signature_data: string | null
+          signature_url: string | null
+          updated_at: string
+          user_agent_signature: string | null
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_emargement: string
+          date_signature?: string | null
+          heure_debut?: string | null
+          heure_fin?: string | null
+          id?: string
+          ip_signature?: string | null
+          periode: string
+          present?: boolean
+          session_id: string
+          signature_data?: string | null
+          signature_url?: string | null
+          updated_at?: string
+          user_agent_signature?: string | null
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_emargement?: string
+          date_signature?: string | null
+          heure_debut?: string | null
+          heure_fin?: string | null
+          id?: string
+          ip_signature?: string | null
+          periode?: string
+          present?: boolean
+          session_id?: string
+          signature_data?: string | null
+          signature_url?: string | null
+          updated_at?: string
+          user_agent_signature?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emargements_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emargements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facture_lignes: {
         Row: {
           catalogue_formation_id: string | null
@@ -888,6 +960,42 @@ export type Database = {
           telephone?: string | null
           updated_at?: string
           ville?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          message: string
+          metadata: Json | null
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }

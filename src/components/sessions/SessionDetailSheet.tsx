@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   MapPin,
@@ -18,6 +19,8 @@ import {
   Edit,
   UserPlus,
   Trash2,
+  ClipboardList,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -39,6 +42,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { EmargementSheet } from "./EmargementSheet";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -132,124 +136,144 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 </div>
               </SheetHeader>
 
-              {/* Informations */}
-              <div className="space-y-4 py-4">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    {format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })}
-                    {" - "}
-                    {format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}
-                  </span>
-                </div>
-                {session.lieu && (
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{session.lieu}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>
-                    {inscriptionCount} / {session.places_totales} inscrits
-                    {placesRestantes > 0 && ` (${placesRestantes} places restantes)`}
-                  </span>
-                </div>
-                {session.prix && (
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <Euro className="h-4 w-4" />
-                    <span>{Number(session.prix).toLocaleString('fr-FR')} €</span>
-                  </div>
-                )}
-              </div>
+              <Tabs defaultValue="info" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="info" className="gap-1">
+                    <Info className="h-4 w-4" />
+                    Infos
+                  </TabsTrigger>
+                  <TabsTrigger value="inscriptions" className="gap-1">
+                    <Users className="h-4 w-4" />
+                    Inscrits ({inscriptionCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="emargement" className="gap-1">
+                    <ClipboardList className="h-4 w-4" />
+                    Émargement
+                  </TabsTrigger>
+                </TabsList>
 
-              {session.description && (
-                <>
+                {/* Tab: Infos */}
+                <TabsContent value="info" className="space-y-4 pt-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })}
+                        {" - "}
+                        {format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}
+                      </span>
+                    </div>
+                    {session.lieu && (
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span>{session.lieu}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>
+                        {inscriptionCount} / {session.places_totales} inscrits
+                        {placesRestantes > 0 && ` (${placesRestantes} places restantes)`}
+                      </span>
+                    </div>
+                    {session.prix && (
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <Euro className="h-4 w-4" />
+                        <span>{Number(session.prix).toLocaleString('fr-FR')} €</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {session.description && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Description
+                        </h3>
+                        <p className="text-sm">{session.description}</p>
+                      </div>
+                    </>
+                  )}
+
                   <Separator />
-                  <div className="py-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                      Description
+                  <div className="flex gap-2">
+                    <Button className="flex-1" onClick={() => onEdit(session)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Modifier
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Tab: Inscriptions */}
+                <TabsContent value="inscriptions" className="pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Stagiaires inscrits
                     </h3>
-                    <p className="text-sm">{session.description}</p>
+                    <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Inscrire
+                    </Button>
                   </div>
-                </>
-              )}
 
-              <Separator />
-
-              {/* Inscriptions */}
-              <div className="py-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Stagiaires inscrits ({inscriptionCount})
-                  </h3>
-                  <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Inscrire
-                  </Button>
-                </div>
-
-                {inscriptionsLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
-                    ))}
-                  </div>
-                ) : inscriptions && inscriptions.length > 0 ? (
-                  <div className="space-y-2">
-                    {inscriptions.map((inscription) => {
-                      const contact = inscription.contacts as unknown as Contact;
-                      if (!contact) return null;
-                      const initials = `${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase();
-                      
-                      return (
-                        <div
-                          key={inscription.id}
-                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {initials}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {contact.prenom} {contact.nom}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {contact.email || contact.telephone || "Pas de contact"}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveInscription(contact.id)}
+                  {inscriptionsLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : inscriptions && inscriptions.length > 0 ? (
+                    <div className="space-y-2">
+                      {inscriptions.map((inscription) => {
+                        const contact = inscription.contacts as unknown as Contact;
+                        if (!contact) return null;
+                        const initials = `${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase();
+                        
+                        return (
+                          <div
+                            key={inscription.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Aucun stagiaire inscrit
-                  </p>
-                )}
-              </div>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {contact.prenom} {contact.nom}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {contact.email || contact.telephone || "Pas de contact"}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveInscription(contact.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Aucun stagiaire inscrit
+                    </p>
+                  )}
+                </TabsContent>
 
-              <Separator />
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-4">
-                <Button className="flex-1" onClick={() => onEdit(session)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Modifier
-                </Button>
-              </div>
+                {/* Tab: Émargement */}
+                <TabsContent value="emargement" className="pt-4">
+                  <EmargementSheet session={session} />
+                </TabsContent>
+              </Tabs>
             </>
           ) : (
             <div className="py-12 text-center text-muted-foreground">Session non trouvée</div>
