@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   FileText,
   Plus,
   Search,
@@ -40,6 +45,13 @@ import {
   Copy,
   Loader2,
   FileCheck,
+  ChevronDown,
+  ChevronRight,
+  FileSignature,
+  Award,
+  ScrollText,
+  FileSpreadsheet,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -55,23 +67,67 @@ import { DocumentTemplateFormDialog } from "./DocumentTemplateFormDialog";
 import { DocumentTemplatePreviewDialog } from "./DocumentTemplatePreviewDialog";
 import { toast } from "sonner";
 
+// Icônes par type de document
+const typeIcons: Record<string, React.ReactNode> = {
+  convention: <ScrollText className="h-4 w-4" />,
+  contrat: <FileSignature className="h-4 w-4" />,
+  attestation: <Award className="h-4 w-4" />,
+  convocation: <Mail className="h-4 w-4" />,
+  reglement: <FileSpreadsheet className="h-4 w-4" />,
+  facture: <FileText className="h-4 w-4" />,
+  devis: <FileText className="h-4 w-4" />,
+  autre: <FileText className="h-4 w-4" />,
+};
+
 export function DocumentTemplatesSection() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplate | null>(null);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    formation: true,
+    administratif: true,
+    communication: true,
+    comptabilite: true,
+  });
 
   const { data: templates = [], isLoading } = useDocumentTemplates();
   const deleteTemplate = useDeleteDocumentTemplate();
   const createTemplate = useCreateDocumentTemplate();
 
-  const filteredTemplates = templates.filter((t) =>
-    t.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.type_document.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.categorie.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtrer les templates
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((t) => {
+      const matchSearch =
+        t.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.type_document.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.categorie.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchCategory = filterCategory === "all" || t.categorie === filterCategory;
+      const matchType = filterType === "all" || t.type_document === filterType;
+      return matchSearch && matchCategory && matchType;
+    });
+  }, [templates, searchQuery, filterCategory, filterType]);
+
+  // Grouper par catégorie puis par type
+  const groupedTemplates = useMemo(() => {
+    const groups: Record<string, Record<string, DocumentTemplate[]>> = {};
+    
+    filteredTemplates.forEach((template) => {
+      if (!groups[template.categorie]) {
+        groups[template.categorie] = {};
+      }
+      if (!groups[template.categorie][template.type_document]) {
+        groups[template.categorie][template.type_document] = [];
+      }
+      groups[template.categorie][template.type_document].push(template);
+    });
+
+    return groups;
+  }, [filteredTemplates]);
 
   const handleEdit = (template: DocumentTemplate) => {
     setSelectedTemplate(template);
@@ -120,13 +176,30 @@ export function DocumentTemplatesSection() {
   const getCategoryLabel = (value: string) =>
     documentCategories.find((c) => c.value === value)?.label || value;
 
-  // Stats
-  const stats = {
-    total: templates.length,
-    actifs: templates.filter((t) => t.actif).length,
-    formation: templates.filter((t) => t.categorie === "formation").length,
-    administratif: templates.filter((t) => t.categorie === "administratif").length,
+  const toggleCategory = (category: string) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
   };
+
+  // Stats par type
+  const statsByType = useMemo(() => {
+    const stats: Record<string, number> = {};
+    templates.forEach((t) => {
+      stats[t.type_document] = (stats[t.type_document] || 0) + 1;
+    });
+    return stats;
+  }, [templates]);
+
+  // Stats par catégorie
+  const statsByCategory = useMemo(() => {
+    const stats: Record<string, number> = {};
+    templates.forEach((t) => {
+      stats[t.categorie] = (stats[t.categorie] || 0) + 1;
+    });
+    return stats;
+  }, [templates]);
 
   return (
     <>
@@ -149,38 +222,65 @@ export function DocumentTemplatesSection() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 border rounded-lg text-center">
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-            <div className="p-3 border rounded-lg text-center">
-              <p className="text-2xl font-bold text-success">{stats.actifs}</p>
-              <p className="text-xs text-muted-foreground">Actifs</p>
-            </div>
-            <div className="p-3 border rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">{stats.formation}</p>
-              <p className="text-xs text-muted-foreground">Formation</p>
-            </div>
-            <div className="p-3 border rounded-lg text-center">
-              <p className="text-2xl font-bold text-secondary-foreground">{stats.administratif}</p>
-              <p className="text-xs text-muted-foreground">Administratif</p>
-            </div>
+          {/* Stats par type */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {documentTypes.slice(0, 6).map((type) => (
+              <div
+                key={type.value}
+                className={`p-3 border rounded-lg text-center cursor-pointer transition-colors ${
+                  filterType === type.value ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                }`}
+                onClick={() => setFilterType(filterType === type.value ? "all" : type.value)}
+              >
+                <div className="flex justify-center mb-1 text-muted-foreground">
+                  {typeIcons[type.value]}
+                </div>
+                <p className="text-lg font-bold">{statsByType[type.value] || 0}</p>
+                <p className="text-xs text-muted-foreground truncate">{type.label}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un modèle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          {/* Filtres */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un modèle..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes catégories</SelectItem>
+                {documentCategories.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label} ({statsByCategory[cat.value] || 0})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                {documentTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label} ({statsByType[type.value] || 0})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Table */}
+          {/* Liste groupée */}
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -195,89 +295,106 @@ export function DocumentTemplatesSection() {
               </Button>
             </div>
           ) : (
-            <ScrollArea className="h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Variables</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Modifié le</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTemplates.map((template) => (
-                    <TableRow key={template.id}>
-                      <TableCell className="font-medium">
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-4">
+                {Object.entries(groupedTemplates).map(([category, typeGroups]) => (
+                  <Collapsible
+                    key={category}
+                    open={openCategories[category]}
+                    onOpenChange={() => toggleCategory(category)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          {template.nom}
+                          {openCategories[category] ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          <span className="font-semibold">{getCategoryLabel(category)}</span>
+                          <Badge variant="secondary">
+                            {Object.values(typeGroups).flat().length}
+                          </Badge>
                         </div>
-                        {template.description && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {template.description}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getTypeLabel(template.type_document)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{getCategoryLabel(template.categorie)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {template.variables && template.variables.length > 0 ? (
-                          <span className="text-sm">{template.variables.length}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={template.actif ? "default" : "secondary"}>
-                          {template.actif ? "Actif" : "Inactif"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {format(new Date(template.updated_at), "dd MMM yyyy", { locale: fr })}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handlePreview(template)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Prévisualiser
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(template)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(template)}>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Dupliquer
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(template)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-3">
+                      {Object.entries(typeGroups).map(([type, templateList]) => (
+                        <div key={type} className="ml-4">
+                          <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                            {typeIcons[type]}
+                            <span className="font-medium">{getTypeLabel(type)}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {templateList.length}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
+                            {templateList.map((template) => (
+                              <div
+                                key={template.id}
+                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors group"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium truncate">{template.nom}</span>
+                                    {!template.actif && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Inactif
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {template.description && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {template.description}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {template.variables?.length || 0} variables •{" "}
+                                    {format(new Date(template.updated_at), "dd MMM yyyy", { locale: fr })}
+                                  </p>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handlePreview(template)}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Prévisualiser
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEdit(template)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Modifier
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                                      <Copy className="h-4 w-4 mr-2" />
+                                      Dupliquer
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(template)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Supprimer
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
             </ScrollArea>
           )}
         </CardContent>
