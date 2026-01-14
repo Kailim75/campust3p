@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,9 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateSession, useUpdateSession, type Session, type SessionInsert } from "@/hooks/useSessions";
+import { useFormateursTable } from "@/hooks/useFormateurs";
+import { useCatalogueFormations } from "@/hooks/useCatalogueFormations";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, BookOpen, User, MapPin, Clock, Euro } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
+import { Separator } from "@/components/ui/separator";
 
 const formationTypes = Constants.public.Enums.formation_type;
 
@@ -44,12 +48,21 @@ const sessionStatuses = [
 const sessionSchema = z.object({
   nom: z.string().min(1, "Le nom est requis").max(200),
   formation_type: z.enum(formationTypes),
+  catalogue_formation_id: z.string().optional(),
   date_debut: z.string().min(1, "La date de début est requise"),
   date_fin: z.string().min(1, "La date de fin est requise"),
+  heure_debut: z.string().default("09:00"),
+  heure_fin: z.string().default("17:00"),
   places_totales: z.coerce.number().min(1, "Au moins 1 place requise").max(100),
-  lieu: z.string().max(200).optional(),
-  formateur: z.string().max(200).optional(),
-  prix: z.coerce.number().min(0).optional(),
+  formateur_id: z.string().optional(),
+  adresse_rue: z.string().max(200).optional(),
+  adresse_code_postal: z.string().max(10).optional(),
+  adresse_ville: z.string().max(100).optional(),
+  prix_ht: z.coerce.number().min(0).default(0),
+  tva_percent: z.coerce.number().min(0).max(100).default(0),
+  duree_heures: z.coerce.number().min(0).optional(),
+  objectifs: z.string().max(2000).optional(),
+  prerequis: z.string().max(1000).optional(),
   description: z.string().max(1000).optional(),
   statut: z.enum(["a_venir", "en_cours", "terminee", "annulee", "complet"]),
 });
@@ -65,6 +78,8 @@ interface SessionFormDialogProps {
 export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDialogProps) {
   const createSession = useCreateSession();
   const updateSession = useUpdateSession();
+  const { data: formateurs = [] } = useFormateursTable();
+  const { data: catalogueFormations = [] } = useCatalogueFormations(true);
   const isEditing = !!session;
 
   const form = useForm<SessionFormValues>({
@@ -72,28 +87,84 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
     defaultValues: {
       nom: "",
       formation_type: "TAXI",
+      catalogue_formation_id: "",
       date_debut: "",
       date_fin: "",
+      heure_debut: "09:00",
+      heure_fin: "17:00",
       places_totales: 10,
-      lieu: "",
-      formateur: "",
-      prix: 0,
+      formateur_id: "",
+      adresse_rue: "",
+      adresse_code_postal: "",
+      adresse_ville: "",
+      prix_ht: 0,
+      tva_percent: 0,
+      duree_heures: 0,
+      objectifs: "",
+      prerequis: "",
       description: "",
       statut: "a_venir",
     },
   });
+
+  const watchPrixHt = form.watch("prix_ht");
+  const watchTvaPercent = form.watch("tva_percent");
+  const watchCatalogueId = form.watch("catalogue_formation_id");
+
+  const prixTtc = useMemo(() => {
+    const ht = Number(watchPrixHt) || 0;
+    const tva = Number(watchTvaPercent) || 0;
+    return ht * (1 + tva / 100);
+  }, [watchPrixHt, watchTvaPercent]);
+
+  // Auto-fill from catalogue when selected
+  useEffect(() => {
+    if (watchCatalogueId && !isEditing) {
+      const selectedFormation = catalogueFormations.find(f => f.id === watchCatalogueId);
+      if (selectedFormation) {
+        form.setValue("nom", selectedFormation.intitule);
+        form.setValue("prix_ht", Number(selectedFormation.prix_ht) || 0);
+        form.setValue("tva_percent", Number(selectedFormation.tva_percent) || 0);
+        form.setValue("duree_heures", selectedFormation.duree_heures || 0);
+        form.setValue("objectifs", selectedFormation.objectifs || "");
+        form.setValue("prerequis", selectedFormation.prerequis || "");
+        form.setValue("description", selectedFormation.description || "");
+        
+        // Map category to formation_type if possible
+        const categoryToType: Record<string, string> = {
+          "TAXI": "TAXI",
+          "VTC": "VTC",
+          "VMDTR": "VMDTR",
+          "T3P": "T3P",
+        };
+        const matchedType = categoryToType[selectedFormation.categorie];
+        if (matchedType && formationTypes.includes(matchedType as typeof formationTypes[number])) {
+          form.setValue("formation_type", matchedType as typeof formationTypes[number]);
+        }
+      }
+    }
+  }, [watchCatalogueId, catalogueFormations, form, isEditing]);
 
   useEffect(() => {
     if (session) {
       form.reset({
         nom: session.nom,
         formation_type: session.formation_type,
+        catalogue_formation_id: (session as any).catalogue_formation_id || "",
         date_debut: session.date_debut,
         date_fin: session.date_fin,
+        heure_debut: (session as any).heure_debut?.slice(0, 5) || "09:00",
+        heure_fin: (session as any).heure_fin?.slice(0, 5) || "17:00",
         places_totales: session.places_totales,
-        lieu: session.lieu || "",
-        formateur: session.formateur || "",
-        prix: session.prix ? Number(session.prix) : 0,
+        formateur_id: (session as any).formateur_id || "",
+        adresse_rue: (session as any).adresse_rue || "",
+        adresse_code_postal: (session as any).adresse_code_postal || "",
+        adresse_ville: (session as any).adresse_ville || "",
+        prix_ht: Number((session as any).prix_ht) || 0,
+        tva_percent: Number((session as any).tva_percent) || 0,
+        duree_heures: (session as any).duree_heures || 0,
+        objectifs: (session as any).objectifs || "",
+        prerequis: (session as any).prerequis || "",
         description: session.description || "",
         statut: session.statut,
       });
@@ -101,12 +172,21 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
       form.reset({
         nom: "",
         formation_type: "TAXI",
+        catalogue_formation_id: "",
         date_debut: "",
         date_fin: "",
+        heure_debut: "09:00",
+        heure_fin: "17:00",
         places_totales: 10,
-        lieu: "",
-        formateur: "",
-        prix: 0,
+        formateur_id: "",
+        adresse_rue: "",
+        adresse_code_postal: "",
+        adresse_ville: "",
+        prix_ht: 0,
+        tva_percent: 0,
+        duree_heures: 0,
+        objectifs: "",
+        prerequis: "",
         description: "",
         statut: "a_venir",
       });
@@ -121,18 +201,37 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         date_debut: values.date_debut,
         date_fin: values.date_fin,
         places_totales: values.places_totales,
-        lieu: values.lieu || null,
-        formateur: values.formateur || null,
-        prix: values.prix || null,
         description: values.description || null,
         statut: values.statut,
+        // New fields - keep legacy fields for backwards compatibility
+        lieu: [values.adresse_rue, values.adresse_code_postal, values.adresse_ville].filter(Boolean).join(", ") || null,
+        formateur: formateurs.find(f => f.id === values.formateur_id)?.nom || null,
+        prix: prixTtc || null,
+        // Extended fields (will be added via spread to avoid type issues with current types)
+      };
+
+      // Add extended fields using spread
+      const extendedData = {
+        ...sessionData,
+        catalogue_formation_id: values.catalogue_formation_id || null,
+        formateur_id: values.formateur_id || null,
+        heure_debut: values.heure_debut || "09:00",
+        heure_fin: values.heure_fin || "17:00",
+        adresse_rue: values.adresse_rue || null,
+        adresse_code_postal: values.adresse_code_postal || null,
+        adresse_ville: values.adresse_ville || null,
+        prix_ht: values.prix_ht || 0,
+        tva_percent: values.tva_percent || 0,
+        duree_heures: values.duree_heures || null,
+        objectifs: values.objectifs || null,
+        prerequis: values.prerequis || null,
       };
 
       if (isEditing && session) {
-        await updateSession.mutateAsync({ id: session.id, updates: sessionData });
+        await updateSession.mutateAsync({ id: session.id, updates: extendedData as any });
         toast.success("Session mise à jour avec succès");
       } else {
-        await createSession.mutateAsync(sessionData);
+        await createSession.mutateAsync(extendedData as any);
         toast.success("Session créée avec succès");
       }
       onOpenChange(false);
@@ -142,10 +241,11 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
   };
 
   const isLoading = createSession.isPending || updateSession.isPending;
+  const activeFormateurs = formateurs.filter(f => f.actif);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la session" : "Créer une session"}
@@ -154,11 +254,50 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Lien au catalogue */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <BookOpen className="h-4 w-4" />
+                Catalogue de formations
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="catalogue_formation_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Formation du catalogue</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une formation (optionnel)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">-- Aucune --</SelectItem>
+                        {catalogueFormations.map((formation) => (
+                          <SelectItem key={formation.id} value={formation.id}>
+                            {formation.code} - {formation.intitule}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Sélectionner une formation pré-remplira automatiquement les informations
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
+
             {/* Informations générales */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 Informations générales
-              </h3>
+              </div>
               
               <FormField
                 control={form.control}
@@ -227,13 +366,57 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
               </div>
             </div>
 
-            {/* Dates et places */}
+            <Separator />
+
+            {/* Formateur */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Planning
-              </h3>
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <User className="h-4 w-4" />
+                Formateur
+              </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="formateur_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Formateur assigné</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un formateur" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">-- Aucun --</SelectItem>
+                        {activeFormateurs.map((formateur) => (
+                          <SelectItem key={formateur.id} value={formateur.id}>
+                            {formateur.prenom} {formateur.nom}
+                            {formateur.specialites?.length > 0 && (
+                              <span className="text-muted-foreground ml-2">
+                                ({formateur.specialites.join(", ")})
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Planning */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <Clock className="h-4 w-4" />
+                Planning
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <FormField
                   control={form.control}
                   name="date_debut"
@@ -264,6 +447,50 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
                 <FormField
                   control={form.control}
+                  name="heure_debut"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Heure de début</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="time" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="heure_fin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Heure de fin</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="time" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="duree_heures"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Durée totale (heures)</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" min={0} placeholder="14" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="places_totales"
                   render={({ field }) => (
                     <FormItem>
@@ -278,47 +505,76 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
               </div>
             </div>
 
-            {/* Détails */}
+            <Separator />
+
+            {/* Lieu */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Détails
-              </h3>
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <MapPin className="h-4 w-4" />
+                Lieu de formation
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="adresse_rue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adresse</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="123 rue de la Formation" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="adresse_code_postal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code postal</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="75001" maxLength={10} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="adresse_ville"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ville</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Paris" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Tarification */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <Euro className="h-4 w-4" />
+                Tarification
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="lieu"
+                  name="prix_ht"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Lieu</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Paris, Salle A" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="formateur"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Formateur</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Nom du formateur" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="prix"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix (€)</FormLabel>
+                      <FormLabel>Prix HT (€)</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" min={0} step={0.01} placeholder="1500" />
                       </FormControl>
@@ -326,16 +582,74 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="tva_percent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>TVA (%)</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" min={0} max={100} step={0.1} placeholder="20" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col justify-end">
+                  <FormLabel className="mb-2">Prix TTC</FormLabel>
+                  <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center font-medium">
+                    {prixTtc.toFixed(2)} €
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Contenu pédagogique */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Contenu pédagogique
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="objectifs"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Objectifs de la formation</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="Décrire les objectifs pédagogiques..." rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="prerequis"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prérequis</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="Lister les prérequis pour cette formation..." rows={2} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description / Notes</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Description de la session..." rows={3} />
+                      <Textarea {...field} placeholder="Description complémentaire..." rows={2} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
