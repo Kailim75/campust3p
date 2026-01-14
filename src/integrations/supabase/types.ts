@@ -871,6 +871,84 @@ export type Database = {
         }
         Relationships: []
       }
+      signature_requests: {
+        Row: {
+          commentaires: string | null
+          contact_id: string
+          created_at: string
+          date_envoi: string | null
+          date_expiration: string | null
+          date_signature: string | null
+          description: string | null
+          document_url: string | null
+          id: string
+          ip_signature: string | null
+          session_inscription_id: string | null
+          signature_data: string | null
+          signature_url: string | null
+          statut: string
+          titre: string
+          type_document: string
+          updated_at: string
+          user_agent_signature: string | null
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id: string
+          created_at?: string
+          date_envoi?: string | null
+          date_expiration?: string | null
+          date_signature?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          ip_signature?: string | null
+          session_inscription_id?: string | null
+          signature_data?: string | null
+          signature_url?: string | null
+          statut?: string
+          titre: string
+          type_document?: string
+          updated_at?: string
+          user_agent_signature?: string | null
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string
+          created_at?: string
+          date_envoi?: string | null
+          date_expiration?: string | null
+          date_signature?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          ip_signature?: string | null
+          session_inscription_id?: string | null
+          signature_data?: string | null
+          signature_url?: string | null
+          statut?: string
+          titre?: string
+          type_document?: string
+          updated_at?: string
+          user_agent_signature?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_requests_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

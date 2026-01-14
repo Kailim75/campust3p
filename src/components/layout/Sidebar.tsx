@@ -15,7 +15,8 @@ import {
   X,
   Mail,
   FileEdit,
-  User
+  User,
+  FileSignature
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,6 +36,7 @@ const menuItems = [
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "formateurs", label: "Formateurs", icon: User },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "signatures", label: "Signatures", icon: FileSignature },
   { id: "devis", label: "Devis", icon: FileEdit },
   { id: "paiements", label: "Paiements", icon: CreditCard },
   { id: "communications", label: "Communications", icon: Mail },

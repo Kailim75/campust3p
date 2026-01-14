@@ -12,6 +12,7 @@ import { DevisPage } from "@/components/devis/DevisPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
+import { SignaturesPage } from "@/components/signatures/SignaturesPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,8 @@ const Index = () => {
         return <FormateursPage />;
       case "documents":
         return <DocumentsPage />;
+      case "signatures":
+        return <SignaturesPage />;
       case "paiements":
         return <PaiementsPage />;
       case "devis":
