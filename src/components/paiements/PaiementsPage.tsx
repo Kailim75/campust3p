@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Loader2, Filter, X, CalendarIcon } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Loader2, Filter, X, CalendarIcon, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -33,10 +33,12 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useFactures, useFacturesStats, FinancementType, FactureStatut } from "@/hooks/useFactures";
+import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureWithDetails } from "@/hooks/useFactures";
 import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
   personnel: { label: "Personnel", class: "bg-muted text-muted-foreground" },
@@ -105,6 +107,75 @@ export function PaiementsPage() {
     setFinancementFilter("all");
     setDateFrom(undefined);
     setDateTo(undefined);
+  };
+
+  // Export comptable CSV/Excel
+  const handleExportComptable = (exportFormat: "csv" | "xlsx") => {
+    if (filteredFactures.length === 0) {
+      toast.error("Aucune facture à exporter");
+      return;
+    }
+
+    const exportData = filteredFactures.map((facture) => ({
+      "N° Facture": facture.numero_facture,
+      "Date émission": facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : "",
+      "Date échéance": facture.date_echeance ? format(new Date(facture.date_echeance), "dd/MM/yyyy") : "",
+      "Client": facture.contact ? `${facture.contact.prenom} ${facture.contact.nom}` : "",
+      "Email": facture.contact?.email || "",
+      "Téléphone": facture.contact?.telephone || "",
+      "Formation": facture.session_inscription?.session?.nom || "",
+      "Type financement": financementLabels[facture.type_financement].label,
+      "Montant HT": Number(facture.montant_total).toFixed(2),
+      "Montant payé": facture.total_paye.toFixed(2),
+      "Reste à payer": (Number(facture.montant_total) - facture.total_paye).toFixed(2),
+      "Statut": statusConfig[facture.statut].label,
+      "Commentaires": facture.commentaires || "",
+    }));
+
+    if (exportFormat === "csv") {
+      // Export CSV
+      const headers = Object.keys(exportData[0]);
+      const csvRows = [
+        headers.join(";"),
+        ...exportData.map(row => 
+          headers.map(h => {
+            const value = String(row[h as keyof typeof row] || "");
+            // Escape quotes and wrap in quotes if contains semicolon
+            if (value.includes(";") || value.includes('"') || value.includes("\n")) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          }).join(";")
+        )
+      ];
+      const csvContent = "\uFEFF" + csvRows.join("\n"); // BOM for Excel UTF-8
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `export_factures_${format(new Date(), "yyyy-MM-dd")}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${filteredFactures.length} facture(s) exportée(s) en CSV`);
+    } else {
+      // Export XLSX
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Factures");
+      
+      // Auto-size columns
+      const maxWidths = Object.keys(exportData[0]).map((key) => {
+        const maxLen = Math.max(
+          key.length,
+          ...exportData.map((row) => String(row[key as keyof typeof row] || "").length)
+        );
+        return { wch: Math.min(maxLen + 2, 50) };
+      });
+      worksheet["!cols"] = maxWidths;
+
+      XLSX.writeFile(workbook, `export_factures_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+      toast.success(`${filteredFactures.length} facture(s) exportée(s) en Excel`);
+    }
   };
 
   const handleOpenDetail = (factureId: string) => {
@@ -280,6 +351,26 @@ export function PaiementsPage() {
                 Réinitialiser
               </Button>
             )}
+
+            {/* Export button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export comptable
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExportComptable("csv")}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Exporter en CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportComptable("xlsx")}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Exporter en Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Results count */}
             <div className="ml-auto text-sm text-muted-foreground">
