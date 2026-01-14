@@ -321,6 +321,159 @@ export type Database = {
         }
         Relationships: []
       }
+      contrats_location: {
+        Row: {
+          conditions_particulieres: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          date_debut: string
+          date_envoi: string | null
+          date_fin: string
+          date_signature: string | null
+          document_genere_path: string | null
+          document_signe_path: string | null
+          id: string
+          modalite_paiement: string | null
+          montant_caution: number | null
+          montant_mensuel: number
+          notes: string | null
+          numero_contrat: string
+          objet_location: string
+          signature_data: string | null
+          signature_ip: string | null
+          signature_user_agent: string | null
+          statut: Database["public"]["Enums"]["contrat_location_statut"]
+          template_file_id: string | null
+          type_contrat: Database["public"]["Enums"]["contrat_location_type"]
+          updated_at: string
+          vehicule_id: string | null
+        }
+        Insert: {
+          conditions_particulieres?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          date_debut: string
+          date_envoi?: string | null
+          date_fin: string
+          date_signature?: string | null
+          document_genere_path?: string | null
+          document_signe_path?: string | null
+          id?: string
+          modalite_paiement?: string | null
+          montant_caution?: number | null
+          montant_mensuel?: number
+          notes?: string | null
+          numero_contrat: string
+          objet_location: string
+          signature_data?: string | null
+          signature_ip?: string | null
+          signature_user_agent?: string | null
+          statut?: Database["public"]["Enums"]["contrat_location_statut"]
+          template_file_id?: string | null
+          type_contrat?: Database["public"]["Enums"]["contrat_location_type"]
+          updated_at?: string
+          vehicule_id?: string | null
+        }
+        Update: {
+          conditions_particulieres?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          date_debut?: string
+          date_envoi?: string | null
+          date_fin?: string
+          date_signature?: string | null
+          document_genere_path?: string | null
+          document_signe_path?: string | null
+          id?: string
+          modalite_paiement?: string | null
+          montant_caution?: number | null
+          montant_mensuel?: number
+          notes?: string | null
+          numero_contrat?: string
+          objet_location?: string
+          signature_data?: string | null
+          signature_ip?: string | null
+          signature_user_agent?: string | null
+          statut?: Database["public"]["Enums"]["contrat_location_statut"]
+          template_file_id?: string | null
+          type_contrat?: Database["public"]["Enums"]["contrat_location_type"]
+          updated_at?: string
+          vehicule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrats_location_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrats_location_template_file_id_fkey"
+            columns: ["template_file_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrats_location_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrats_location_historique: {
+        Row: {
+          action: string
+          ancien_statut: string | null
+          contrat_id: string
+          created_at: string
+          details: string | null
+          id: string
+          ip_address: string | null
+          nouveau_statut: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          ancien_statut?: string | null
+          contrat_id: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          nouveau_statut?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          ancien_statut?: string | null
+          contrat_id?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          ip_address?: string | null
+          nouveau_statut?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrats_location_historique_contrat_id_fkey"
+            columns: ["contrat_id"]
+            isOneToOne: false
+            referencedRelation: "contrats_location"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devis: {
         Row: {
           commentaires: string | null
@@ -722,6 +875,75 @@ export type Database = {
           },
         ]
       }
+      examens_pratique: {
+        Row: {
+          adresse_centre: string | null
+          centre_examen: string | null
+          contact_id: string
+          created_at: string
+          date_examen: string
+          document_resultat_path: string | null
+          fiche_pratique_id: string
+          heure_examen: string | null
+          id: string
+          observations: string | null
+          resultat: string | null
+          score: number | null
+          statut: string
+          type_examen: string
+          updated_at: string
+        }
+        Insert: {
+          adresse_centre?: string | null
+          centre_examen?: string | null
+          contact_id: string
+          created_at?: string
+          date_examen: string
+          document_resultat_path?: string | null
+          fiche_pratique_id: string
+          heure_examen?: string | null
+          id?: string
+          observations?: string | null
+          resultat?: string | null
+          score?: number | null
+          statut?: string
+          type_examen: string
+          updated_at?: string
+        }
+        Update: {
+          adresse_centre?: string | null
+          centre_examen?: string | null
+          contact_id?: string
+          created_at?: string
+          date_examen?: string
+          document_resultat_path?: string | null
+          fiche_pratique_id?: string
+          heure_examen?: string | null
+          id?: string
+          observations?: string | null
+          resultat?: string | null
+          score?: number | null
+          statut?: string
+          type_examen?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examens_pratique_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examens_pratique_fiche_pratique_id_fkey"
+            columns: ["fiche_pratique_id"]
+            isOneToOne: false
+            referencedRelation: "fiches_pratique"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facture_lignes: {
         Row: {
           catalogue_formation_id: string | null
@@ -838,6 +1060,56 @@ export type Database = {
             columns: ["session_inscription_id"]
             isOneToOne: false
             referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiches_pratique: {
+        Row: {
+          contact_id: string
+          created_at: string
+          date_debut: string | null
+          date_fin_prevue: string | null
+          formation_type: string
+          heures_prevues: number
+          heures_realisees: number
+          id: string
+          notes: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          date_debut?: string | null
+          date_fin_prevue?: string | null
+          formation_type: string
+          heures_prevues?: number
+          heures_realisees?: number
+          id?: string
+          notes?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          date_debut?: string | null
+          date_fin_prevue?: string | null
+          formation_type?: string
+          heures_prevues?: number
+          heures_realisees?: number
+          id?: string
+          notes?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiches_pratique_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -1165,6 +1437,165 @@ export type Database = {
           },
         ]
       }
+      progression_pedagogique: {
+        Row: {
+          commentaire: string | null
+          competence: string
+          contact_id: string
+          created_at: string
+          date_evaluation: string
+          fiche_pratique_id: string
+          formateur_id: string | null
+          id: string
+          niveau: number
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string | null
+          competence: string
+          contact_id: string
+          created_at?: string
+          date_evaluation?: string
+          fiche_pratique_id: string
+          formateur_id?: string | null
+          id?: string
+          niveau?: number
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string | null
+          competence?: string
+          contact_id?: string
+          created_at?: string
+          date_evaluation?: string
+          fiche_pratique_id?: string
+          formateur_id?: string | null
+          id?: string
+          niveau?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progression_pedagogique_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "progression_pedagogique_fiche_pratique_id_fkey"
+            columns: ["fiche_pratique_id"]
+            isOneToOne: false
+            referencedRelation: "fiches_pratique"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "progression_pedagogique_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seances_conduite: {
+        Row: {
+          competences_travaillees: string[] | null
+          contact_id: string
+          created_at: string
+          date_seance: string
+          date_validation: string | null
+          duree_minutes: number
+          fiche_pratique_id: string
+          formateur_id: string | null
+          heure_debut: string
+          heure_fin: string
+          id: string
+          note_globale: number | null
+          observations: string | null
+          parcours: string | null
+          signature_data: string | null
+          signature_url: string | null
+          type_seance: string
+          updated_at: string
+          validation_formateur: boolean | null
+          vehicule_id: string | null
+        }
+        Insert: {
+          competences_travaillees?: string[] | null
+          contact_id: string
+          created_at?: string
+          date_seance: string
+          date_validation?: string | null
+          duree_minutes: number
+          fiche_pratique_id: string
+          formateur_id?: string | null
+          heure_debut: string
+          heure_fin: string
+          id?: string
+          note_globale?: number | null
+          observations?: string | null
+          parcours?: string | null
+          signature_data?: string | null
+          signature_url?: string | null
+          type_seance?: string
+          updated_at?: string
+          validation_formateur?: boolean | null
+          vehicule_id?: string | null
+        }
+        Update: {
+          competences_travaillees?: string[] | null
+          contact_id?: string
+          created_at?: string
+          date_seance?: string
+          date_validation?: string | null
+          duree_minutes?: number
+          fiche_pratique_id?: string
+          formateur_id?: string | null
+          heure_debut?: string
+          heure_fin?: string
+          id?: string
+          note_globale?: number | null
+          observations?: string | null
+          parcours?: string | null
+          signature_data?: string | null
+          signature_url?: string | null
+          type_seance?: string
+          updated_at?: string
+          validation_formateur?: boolean | null
+          vehicule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seances_conduite_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seances_conduite_fiche_pratique_id_fkey"
+            columns: ["fiche_pratique_id"]
+            isOneToOne: false
+            referencedRelation: "fiches_pratique"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seances_conduite_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seances_conduite_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_inscriptions: {
         Row: {
           commentaires: string | null
@@ -1414,11 +1845,63 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicules: {
+        Row: {
+          actif: boolean
+          categorie: string
+          created_at: string
+          date_assurance: string | null
+          date_controle_technique: string | null
+          date_mise_circulation: string | null
+          id: string
+          immatriculation: string
+          marque: string
+          modele: string
+          notes: string | null
+          statut: string
+          type_vehicule: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          date_assurance?: string | null
+          date_controle_technique?: string | null
+          date_mise_circulation?: string | null
+          id?: string
+          immatriculation: string
+          marque: string
+          modele: string
+          notes?: string | null
+          statut?: string
+          type_vehicule?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          date_assurance?: string | null
+          date_controle_technique?: string | null
+          date_mise_circulation?: string | null
+          id?: string
+          immatriculation?: string
+          marque?: string
+          modele?: string
+          notes?: string | null
+          statut?: string
+          type_vehicule?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_numero_contrat: { Args: never; Returns: string }
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
       has_role: {
@@ -1433,6 +1916,14 @@ export type Database = {
       app_role: "admin" | "staff"
       civilite: "Monsieur" | "Madame"
       contact_statut: "En attente de validation" | "Client" | "Bravo"
+      contrat_location_statut:
+        | "brouillon"
+        | "envoye"
+        | "signe"
+        | "refuse"
+        | "expire"
+        | "resilie"
+      contrat_location_type: "vehicule" | "materiel" | "autre"
       devis_statut:
         | "brouillon"
         | "envoye"
@@ -1594,6 +2085,15 @@ export const Constants = {
       app_role: ["admin", "staff"],
       civilite: ["Monsieur", "Madame"],
       contact_statut: ["En attente de validation", "Client", "Bravo"],
+      contrat_location_statut: [
+        "brouillon",
+        "envoye",
+        "signe",
+        "refuse",
+        "expire",
+        "resilie",
+      ],
+      contrat_location_type: ["vehicule", "materiel", "autre"],
       devis_statut: [
         "brouillon",
         "envoye",
