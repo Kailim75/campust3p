@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          changed_fields: string[] | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       catalogue_formations: {
         Row: {
           actif: boolean
@@ -448,6 +493,79 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          error_message: string | null
+          facture_id: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_name: string | null
+          resend_id: string | null
+          session_id: string | null
+          status: string
+          subject: string
+          template_used: string | null
+          type: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          facture_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_name?: string | null
+          resend_id?: string | null
+          session_id?: string | null
+          status?: string
+          subject: string
+          template_used?: string | null
+          type: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          facture_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_name?: string | null
+          resend_id?: string | null
+          session_id?: string | null
+          status?: string
+          subject?: string
+          template_used?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           actif: boolean
@@ -869,6 +987,7 @@ export type Database = {
           date_fin: string
           description: string | null
           formateur: string | null
+          formateur_id: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
           id: string
           lieu: string | null
@@ -884,6 +1003,7 @@ export type Database = {
           date_fin: string
           description?: string | null
           formateur?: string | null
+          formateur_id?: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
           id?: string
           lieu?: string | null
@@ -899,6 +1019,7 @@ export type Database = {
           date_fin?: string
           description?: string | null
           formateur?: string | null
+          formateur_id?: string | null
           formation_type?: Database["public"]["Enums"]["formation_type"]
           id?: string
           lieu?: string | null
@@ -908,7 +1029,15 @@ export type Database = {
           statut?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sessions_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       signature_requests: {
         Row: {

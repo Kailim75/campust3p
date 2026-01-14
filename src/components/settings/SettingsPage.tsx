@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
+import { UserManagementSection } from "./UserManagementSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -507,6 +508,9 @@ export function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* User Management Section */}
+        <UserManagementSection />
 
         {/* Document Templates Section */}
         <DocumentTemplatesSection />
