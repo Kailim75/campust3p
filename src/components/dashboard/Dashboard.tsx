@@ -9,6 +9,8 @@ import { FinancialSummaryCard } from "./FinancialSummaryCard";
 import { InscriptionTrendChart } from "./InscriptionTrendChart";
 import { ConversionKPICard } from "./ConversionKPICard";
 import { CAParSourceChart } from "./CAParSourceChart";
+import { FillRateCard } from "./FillRateCard";
+import { ForecastCACard } from "./ForecastCACard";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useContactsStats } from "@/hooks/useContacts";
 
@@ -65,9 +67,11 @@ export function Dashboard() {
           ))}
         </div>
 
-        {/* KPIs avancés: Conversion + CA par source */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* KPIs avancés: Conversion + CA par source + Fill Rate + Forecast */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <ConversionKPICard />
+          <FillRateCard />
+          <ForecastCACard />
           <CAParSourceChart />
         </div>
 

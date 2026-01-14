@@ -12,7 +12,13 @@ const corsHeaders = {
 interface EmailResult {
   type: string;
   recipient: string;
+  recipientName?: string;
+  contactId?: string;
+  sessionId?: string;
+  factureId?: string;
+  subject?: string;
   success: boolean;
+  resendId?: string;
   error?: string;
 }
 
@@ -104,11 +110,13 @@ serve(async (req) => {
         const contact = invoice.contact as any;
         if (!contact?.email) continue;
 
+        const emailSubject = `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`;
+
         try {
-          await resend.emails.send({
+          const emailResponse = await resend.emails.send({
             from: "T3P Formation <noreply@resend.dev>",
             to: [contact.email],
-            subject: `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`,
+            subject: emailSubject,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #f59e0b;">⏰ Rappel de paiement</h2>
@@ -127,16 +135,48 @@ serve(async (req) => {
             `,
           });
 
+          // Log email to database
+          await supabase.from("email_logs").insert({
+            type: "payment_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            facture_id: invoice.id,
+            subject: emailSubject,
+            template_used: "payment_reminder_j7",
+            status: "sent",
+            resend_id: emailResponse.data?.id,
+          });
+
           results.push({
             type: "payment_reminder_j7",
             recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            factureId: invoice.id,
+            subject: emailSubject,
             success: true,
+            resendId: emailResponse.data?.id,
           });
           console.log(`Payment J-7 reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
         } catch (emailError: any) {
+          // Log failed email
+          await supabase.from("email_logs").insert({
+            type: "payment_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            facture_id: invoice.id,
+            subject: emailSubject,
+            template_used: "payment_reminder_j7",
+            status: "failed",
+            error_message: emailError.message,
+          });
+
           results.push({
             type: "payment_reminder_j7",
             recipient: contact.email,
+            subject: emailSubject,
             success: false,
             error: emailError.message,
           });
