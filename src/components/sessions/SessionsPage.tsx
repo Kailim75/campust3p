@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus, Calendar, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { Search, Filter, Plus, Calendar, MapPin, Edit, Trash2, Eye, List, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, type Session } from "@/hooks/useSessions";
 import { format } from "date-fns";
@@ -28,6 +29,7 @@ import { fr } from "date-fns/locale";
 import { SessionFormDialog } from "./SessionFormDialog";
 import { SessionDetailSheet } from "./SessionDetailSheet";
 import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
+import { SessionCalendar } from "./SessionCalendar";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -68,6 +70,7 @@ export function SessionsPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
@@ -121,8 +124,22 @@ export function SessionsPage() {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
-        {/* Filters */}
+        {/* View Toggle + Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
+          {/* View mode toggle */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+            <TabsList>
+              <TabsTrigger value="list" className="gap-2">
+                <List className="h-4 w-4" />
+                Liste
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-2">
+                <CalendarDays className="h-4 w-4" />
+                Calendrier
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -157,141 +174,154 @@ export function SessionsPage() {
           <span>{filteredSessions.length} session{filteredSessions.length > 1 ? 's' : ''}</span>
         </div>
 
-        {/* Table */}
-        {error ? (
-          <div className="card-elevated p-8 text-center text-destructive">
-            Erreur lors du chargement des sessions
-          </div>
-        ) : (
-          <div className="card-elevated overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Session</TableHead>
-                  <TableHead className="font-semibold">Formation</TableHead>
-                  <TableHead className="font-semibold">Dates</TableHead>
-                  <TableHead className="font-semibold">Lieu</TableHead>
-                  <TableHead className="font-semibold">Inscrits</TableHead>
-                  <TableHead className="font-semibold">Statut</TableHead>
-                  <TableHead className="text-right font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  filteredSessions.map((session) => (
-                    <TableRow key={session.id} className="table-row-hover">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-foreground">{session.nom}</p>
-                          {session.formateur && (
-                            <p className="text-sm text-muted-foreground">
-                              Formateur: {session.formateur}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {formationLabels[session.formation_type] || session.formation_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-sm">
-                            {format(new Date(session.date_debut), 'dd/MM/yyyy', { locale: fr })}
-                            {' - '}
-                            {format(new Date(session.date_fin), 'dd/MM/yyyy', { locale: fr })}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {session.lieu ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">{session.lieu}</span>
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <SessionEnrollmentBadge
-                          enrolled={inscriptionsCounts[session.id] || 0}
-                          total={session.places_totales}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", statusConfig[session.statut]?.class)}
-                        >
-                          {statusConfig[session.statut]?.label || session.statut}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleViewDetail(session)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEdit(session)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Cette action est irréversible. Toutes les inscriptions associées seront également supprimées.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(session.id)}>
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+        {/* Calendar View */}
+        {viewMode === "calendar" && (
+          <SessionCalendar
+            sessions={filteredSessions}
+            onSessionClick={handleViewDetail}
+            onSessionEdit={handleEdit}
+          />
+        )}
 
-            {!isLoading && filteredSessions.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground">
-                Aucune session trouvée
+        {/* Table View */}
+        {viewMode === "list" && (
+          <>
+            {error ? (
+              <div className="card-elevated p-8 text-center text-destructive">
+                Erreur lors du chargement des sessions
+              </div>
+            ) : (
+              <div className="card-elevated overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Session</TableHead>
+                      <TableHead className="font-semibold">Formation</TableHead>
+                      <TableHead className="font-semibold">Dates</TableHead>
+                      <TableHead className="font-semibold">Lieu</TableHead>
+                      <TableHead className="font-semibold">Inscrits</TableHead>
+                      <TableHead className="font-semibold">Statut</TableHead>
+                      <TableHead className="text-right font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                          <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      filteredSessions.map((session) => (
+                        <TableRow key={session.id} className="table-row-hover">
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-foreground">{session.nom}</p>
+                              {session.formateur && (
+                                <p className="text-sm text-muted-foreground">
+                                  Formateur: {session.formateur}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {formationLabels[session.formation_type] || session.formation_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              <span className="text-sm">
+                                {format(new Date(session.date_debut), 'dd/MM/yyyy', { locale: fr })}
+                                {' - '}
+                                {format(new Date(session.date_fin), 'dd/MM/yyyy', { locale: fr })}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {session.lieu ? (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <MapPin className="h-4 w-4" />
+                                <span className="text-sm">{session.lieu}</span>
+                              </div>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <SessionEnrollmentBadge
+                              enrolled={inscriptionsCounts[session.id] || 0}
+                              total={session.places_totales}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={cn("text-xs", statusConfig[session.statut]?.class)}
+                            >
+                              {statusConfig[session.statut]?.label || session.statut}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleViewDetail(session)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEdit(session)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Cette action est irréversible. Toutes les inscriptions associées seront également supprimées.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(session.id)}>
+                                      Supprimer
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+
+                {!isLoading && filteredSessions.length === 0 && (
+                  <div className="py-12 text-center text-muted-foreground">
+                    Aucune session trouvée
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
 
