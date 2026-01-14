@@ -49,8 +49,22 @@ export interface ContratLocationHistorique {
   created_at: string;
 }
 
-export type ContratLocationInsert = Omit<ContratLocation, "id" | "numero_contrat" | "created_at" | "updated_at" | "vehicules" | "contacts">;
-export type ContratLocationUpdate = Partial<Omit<ContratLocationInsert, "contact_id">>;
+export interface ContratLocationFormData {
+  contact_id: string;
+  type_contrat: ContratLocationType;
+  vehicule_id?: string | null;
+  objet_location: string;
+  date_debut: string;
+  date_fin: string;
+  montant_mensuel: number;
+  montant_caution?: number | null;
+  modalite_paiement?: string | null;
+  conditions_particulieres?: string | null;
+  notes?: string | null;
+  statut?: ContratLocationStatut;
+}
+
+export type ContratLocationUpdate = Partial<Omit<ContratLocationFormData, "contact_id">>;
 
 export const contratTypeLabels: Record<ContratLocationType, string> = {
   vehicule: "Véhicule",
@@ -135,14 +149,25 @@ export function useCreateContratLocation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (contrat: ContratLocationInsert) => {
+    mutationFn: async (contrat: ContratLocationFormData) => {
       // Generate contract number
       const { data: numeroData } = await supabase.rpc("generate_numero_contrat");
       
       const { data, error } = await supabase
         .from("contrats_location")
         .insert({
-          ...contrat,
+          contact_id: contrat.contact_id,
+          type_contrat: contrat.type_contrat,
+          vehicule_id: contrat.vehicule_id || null,
+          objet_location: contrat.objet_location,
+          date_debut: contrat.date_debut,
+          date_fin: contrat.date_fin,
+          montant_mensuel: contrat.montant_mensuel,
+          montant_caution: contrat.montant_caution || null,
+          modalite_paiement: contrat.modalite_paiement || null,
+          conditions_particulieres: contrat.conditions_particulieres || null,
+          notes: contrat.notes || null,
+          statut: contrat.statut || "brouillon",
           numero_contrat: numeroData || `LOC-${Date.now()}`,
         })
         .select()

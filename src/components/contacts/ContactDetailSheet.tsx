@@ -37,6 +37,7 @@ import {
   Clock,
   Bell,
   BellOff,
+  FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -70,6 +71,8 @@ import { useContactHistorique, useDeleteHistorique, useUpdateHistoriqueAlert, Hi
 import { HistoriqueFormDialog } from "./HistoriqueFormDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { ContactPratiqueTab } from "./pratique/ContactPratiqueTab";
+import { ContactLocationTab } from "./location/ContactLocationTab";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -317,26 +320,34 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
 
             {/* Onglets */}
             <Tabs defaultValue="infos" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 mb-4">
-                <TabsTrigger value="infos" className="text-xs">
-                  <User className="h-3 w-3 mr-1" />
-                  Infos
+              <TabsList className="grid w-full grid-cols-7 mb-4">
+                <TabsTrigger value="infos" className="text-xs px-1">
+                  <User className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Infos</span>
                 </TabsTrigger>
-                <TabsTrigger value="sessions" className="text-xs">
-                  <ClipboardList className="h-3 w-3 mr-1" />
-                  Sessions
+                <TabsTrigger value="sessions" className="text-xs px-1">
+                  <ClipboardList className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Sessions</span>
                 </TabsTrigger>
-                <TabsTrigger value="factures" className="text-xs">
-                  <Receipt className="h-3 w-3 mr-1" />
-                  Factures
+                <TabsTrigger value="pratique" className="text-xs px-1">
+                  <Car className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Pratique</span>
                 </TabsTrigger>
-                <TabsTrigger value="documents" className="text-xs">
-                  <FolderOpen className="h-3 w-3 mr-1" />
-                  Docs
+                <TabsTrigger value="location" className="text-xs px-1">
+                  <FileSignature className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Location</span>
                 </TabsTrigger>
-                <TabsTrigger value="historique" className="text-xs">
-                  <History className="h-3 w-3 mr-1" />
-                  Hist.
+                <TabsTrigger value="factures" className="text-xs px-1">
+                  <Receipt className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Factures</span>
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs px-1">
+                  <FolderOpen className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Docs</span>
+                </TabsTrigger>
+                <TabsTrigger value="historique" className="text-xs px-1">
+                  <History className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Hist.</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -450,6 +461,16 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                     </div>
                   ))
                 )}
+              </TabsContent>
+
+              {/* Onglet Pratique */}
+              <TabsContent value="pratique">
+                <ContactPratiqueTab contactId={contact.id} />
+              </TabsContent>
+
+              {/* Onglet Location */}
+              <TabsContent value="location">
+                <ContactLocationTab contactId={contact.id} />
               </TabsContent>
 
               {/* Onglet Factures */}
