@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
+import { TemplateFilesSection } from "./TemplateFilesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -514,6 +515,9 @@ export function SettingsPage() {
 
         {/* Document Templates Section */}
         <DocumentTemplatesSection />
+
+        {/* Template Files Section */}
+        <TemplateFilesSection />
       </main>
 
       {/* Import Preview Dialog */}

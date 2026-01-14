@@ -64,6 +64,7 @@ import {
   documentTypes,
 } from "@/hooks/useContactDocuments";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
+import { GenerateDocumentDialog } from "./GenerateDocumentDialog";
 import { useContactFactures, FactureStatut, FinancementType } from "@/hooks/useFactures";
 import { useContactHistorique, useDeleteHistorique, useUpdateHistoriqueAlert, HistoriqueType } from "@/hooks/useContactHistorique";
 import { HistoriqueFormDialog } from "./HistoriqueFormDialog";
@@ -163,6 +164,7 @@ const historiqueTypeConfig: Record<HistoriqueType, { label: string; icon: React.
 export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: ContactDetailSheetProps) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [historiqueDialogOpen, setHistoriqueDialogOpen] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const { data: contact, isLoading } = useContact(contactId);
   const { data: inscriptions = [], isLoading: inscriptionsLoading } = useContactInscriptions(contactId);
   const { data: documents = [], isLoading: documentsLoading } = useContactDocuments(contactId);
@@ -303,6 +305,14 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                   Email
                 </Button>
               )}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setGenerateDialogOpen(true)}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Générer doc
+              </Button>
             </div>
 
             {/* Onglets */}
@@ -837,6 +847,15 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
           </>
         ) : (
           <div className="py-12 text-center text-muted-foreground">Contact non trouvé</div>
+        )}
+
+        {/* Generate Document Dialog */}
+        {contact && (
+          <GenerateDocumentDialog
+            open={generateDialogOpen}
+            onOpenChange={setGenerateDialogOpen}
+            contact={contact}
+          />
         )}
       </SheetContent>
     </Sheet>
