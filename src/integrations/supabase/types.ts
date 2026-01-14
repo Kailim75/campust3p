@@ -1090,54 +1090,97 @@ export type Database = {
       }
       sessions: {
         Row: {
+          adresse_code_postal: string | null
+          adresse_rue: string | null
+          adresse_ville: string | null
+          catalogue_formation_id: string | null
           created_at: string
           date_debut: string
           date_fin: string
           description: string | null
+          duree_heures: number | null
           formateur: string | null
           formateur_id: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
+          heure_debut: string | null
+          heure_fin: string | null
           id: string
           lieu: string | null
           nom: string
+          numero_session: string | null
+          objectifs: string | null
           places_totales: number
+          prerequis: string | null
           prix: number | null
+          prix_ht: number | null
           statut: Database["public"]["Enums"]["session_status"]
+          tva_percent: number | null
           updated_at: string
         }
         Insert: {
+          adresse_code_postal?: string | null
+          adresse_rue?: string | null
+          adresse_ville?: string | null
+          catalogue_formation_id?: string | null
           created_at?: string
           date_debut: string
           date_fin: string
           description?: string | null
+          duree_heures?: number | null
           formateur?: string | null
           formateur_id?: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
+          heure_debut?: string | null
+          heure_fin?: string | null
           id?: string
           lieu?: string | null
           nom: string
+          numero_session?: string | null
+          objectifs?: string | null
           places_totales?: number
+          prerequis?: string | null
           prix?: number | null
+          prix_ht?: number | null
           statut?: Database["public"]["Enums"]["session_status"]
+          tva_percent?: number | null
           updated_at?: string
         }
         Update: {
+          adresse_code_postal?: string | null
+          adresse_rue?: string | null
+          adresse_ville?: string | null
+          catalogue_formation_id?: string | null
           created_at?: string
           date_debut?: string
           date_fin?: string
           description?: string | null
+          duree_heures?: number | null
           formateur?: string | null
           formateur_id?: string | null
           formation_type?: Database["public"]["Enums"]["formation_type"]
+          heure_debut?: string | null
+          heure_fin?: string | null
           id?: string
           lieu?: string | null
           nom?: string
+          numero_session?: string | null
+          objectifs?: string | null
           places_totales?: number
+          prerequis?: string | null
           prix?: number | null
+          prix_ht?: number | null
           statut?: Database["public"]["Enums"]["session_status"]
+          tva_percent?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_catalogue_formation_id_fkey"
+            columns: ["catalogue_formation_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_formateur_id_fkey"
             columns: ["formateur_id"]
