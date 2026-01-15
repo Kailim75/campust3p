@@ -607,6 +607,82 @@ export type Database = {
           },
         ]
       }
+      document_envois: {
+        Row: {
+          commentaires: string | null
+          contact_id: string | null
+          created_at: string
+          date_envoi: string
+          date_reception: string | null
+          document_name: string
+          document_path: string | null
+          document_type: string
+          envoi_type: string
+          envoyé_par: string | null
+          formateur_id: string | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          statut: string
+        }
+        Insert: {
+          commentaires?: string | null
+          contact_id?: string | null
+          created_at?: string
+          date_envoi?: string
+          date_reception?: string | null
+          document_name: string
+          document_path?: string | null
+          document_type: string
+          envoi_type?: string
+          envoyé_par?: string | null
+          formateur_id?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          statut?: string
+        }
+        Update: {
+          commentaires?: string | null
+          contact_id?: string | null
+          created_at?: string
+          date_envoi?: string
+          date_reception?: string | null
+          document_name?: string
+          document_path?: string | null
+          document_type?: string
+          envoi_type?: string
+          envoyé_par?: string | null
+          formateur_id?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          statut?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_envois_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_envois_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_envois_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_template_files: {
         Row: {
           actif: boolean | null
