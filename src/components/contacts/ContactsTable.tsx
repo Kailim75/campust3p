@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -29,6 +30,9 @@ import { ContactDetailSheet } from "./ContactDetailSheet";
 import { ContactFormDialog } from "./ContactFormDialog";
 import { QuickStatusDropdown } from "./QuickStatusDropdown";
 import { QuickEnrollDialog } from "./QuickEnrollDialog";
+import { BulkActionsBar } from "./BulkActionsBar";
+import { BulkEnrollDialog } from "./BulkEnrollDialog";
+import { BulkSendDocumentsDialog } from "./BulkSendDocumentsDialog";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -60,6 +64,11 @@ export function ContactsTable() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEnrollOpen, setBulkEnrollOpen] = useState(false);
+  const [bulkSendDocsOpen, setBulkSendDocsOpen] = useState(false);
 
   // Handle URL parameter to open contact detail
   useEffect(() => {
@@ -85,6 +94,37 @@ export function ContactsTable() {
   });
 
   const formations = [...new Set(contacts?.map((c) => c.formation).filter(Boolean) ?? [])];
+
+  // Get selected contacts for bulk operations
+  const selectedContacts = useMemo(() => {
+    return filteredContacts.filter((c) => selectedIds.has(c.id));
+  }, [filteredContacts, selectedIds]);
+
+  // Check if all visible contacts are selected
+  const allSelected = filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.has(c.id));
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredContacts.map((c) => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (contactId: string, checked: boolean) => {
+    const newSet = new Set(selectedIds);
+    if (checked) {
+      newSet.add(contactId);
+    } else {
+      newSet.delete(contactId);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
 
   const handleContactClick = (contact: Contact) => {
     setSelectedContactId(contact.id);
@@ -168,11 +208,27 @@ export function ContactsTable() {
           <span>{filteredContacts.length} contact{filteredContacts.length > 1 ? 's' : ''}</span>
         </div>
 
+        {/* Bulk Actions Bar */}
+        <BulkActionsBar
+          selectedContacts={selectedContacts}
+          onClearSelection={handleClearSelection}
+          onBulkEnroll={() => setBulkEnrollOpen(true)}
+          onBulkSendDocuments={() => setBulkSendDocsOpen(true)}
+        />
+
         {/* Table */}
         <div className="card-elevated overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Sélectionner tout"
+                    className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  />
+                </TableHead>
                 <TableHead className="font-semibold">ID</TableHead>
                 <TableHead className="font-semibold">Contact</TableHead>
                 <TableHead className="font-semibold">Téléphone</TableHead>
@@ -211,9 +267,17 @@ export function ContactsTable() {
                 filteredContacts.map((contact) => {
                   const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
                   const status = contact.statut ?? "En attente de validation";
+                  const isSelected = selectedIds.has(contact.id);
                   
                   return (
-                    <TableRow key={contact.id} className="table-row-hover cursor-pointer">
+                    <TableRow key={contact.id} className={cn("table-row-hover cursor-pointer", isSelected && "bg-primary/5")}>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => handleSelectOne(contact.id, checked as boolean)}
+                          aria-label={`Sélectionner ${contact.prenom} ${contact.nom}`}
+                        />
+                      </TableCell>
                       <TableCell 
                         className="text-muted-foreground font-mono text-xs"
                         onClick={() => handleContactClick(contact)}
@@ -349,6 +413,22 @@ export function ContactsTable() {
         contact={enrollContact}
         open={enrollOpen}
         onOpenChange={setEnrollOpen}
+      />
+
+      {/* Bulk Enroll Dialog */}
+      <BulkEnrollDialog
+        open={bulkEnrollOpen}
+        onOpenChange={setBulkEnrollOpen}
+        selectedContacts={selectedContacts}
+        onSuccess={handleClearSelection}
+      />
+
+      {/* Bulk Send Documents Dialog */}
+      <BulkSendDocumentsDialog
+        open={bulkSendDocsOpen}
+        onOpenChange={setBulkSendDocsOpen}
+        selectedContacts={selectedContacts}
+        onSuccess={handleClearSelection}
       />
     </>
   );
