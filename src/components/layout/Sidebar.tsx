@@ -18,7 +18,8 @@ import {
   User,
   FileSignature,
   Kanban,
-  Workflow
+  Workflow,
+  Award
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -44,6 +45,7 @@ const menuItems = [
   { id: "paiements", label: "Paiements", icon: CreditCard },
   { id: "communications", label: "Communications", icon: Mail },
   { id: "workflows", label: "Workflows", icon: Workflow },
+  { id: "qualiopi", label: "QUALIOPI", icon: Award },
   { id: "alertes", label: "Alertes", icon: Bell },
 ];
 

@@ -15,6 +15,7 @@ import { CommunicationsPage } from "@/components/communications/CommunicationsPa
 import { SignaturesPage } from "@/components/signatures/SignaturesPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
+import QualiopiPage from "@/components/qualiopi/QualiopiPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +66,8 @@ const Index = () => {
         return <SettingsPage />;
       case "workflows":
         return <WorkflowsPage />;
+      case "qualiopi":
+        return <QualiopiPage />;
       default:
         return <Dashboard />;
     }
