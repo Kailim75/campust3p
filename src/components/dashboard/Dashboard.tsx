@@ -15,6 +15,7 @@ import { PeriodSelector } from "./PeriodSelector";
 import { ExamSuccessChart, ExamSuccessByFormation } from "./ExamSuccessChart";
 import { MonthlyProjectionsChart, ProjectionDetailsTable } from "./MonthlyProjectionsChart";
 import { CAByFormationChart } from "./CAByFormationChart";
+import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
 import { Users, GraduationCap, TrendingUp, Euro, CalendarDays } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
@@ -107,8 +108,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
         {/* Tabs for different dashboard views */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+            <TabsTrigger value="comparison">Comparaison</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="examens">Examens</TabsTrigger>
           </TabsList>
@@ -141,6 +143,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             {/* Recent Contacts */}
             <RecentContacts onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+          </TabsContent>
+
+          {/* Comparison Tab */}
+          <TabsContent value="comparison" className="space-y-6">
+            <PeriodComparisonDashboard />
           </TabsContent>
 
           {/* Finance Tab */}
