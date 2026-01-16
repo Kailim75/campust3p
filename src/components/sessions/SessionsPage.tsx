@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
@@ -12,24 +12,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus, Calendar, MapPin, Edit, Trash2, Eye, List, CalendarDays } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, Calendar, MapPin, Edit, Trash2, Eye, List, CalendarDays, Copy, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, type Session } from "@/hooks/useSessions";
-import { format } from "date-fns";
+import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
+import { useFormateursTable } from "@/hooks/useFormateurs";
+import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
+import { useSessionsExport } from "@/hooks/useSessionsExport";
+import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SessionFormDialog } from "./SessionFormDialog";
 import { SessionDetailSheet } from "./SessionDetailSheet";
 import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
 import { SessionCalendar } from "./SessionCalendar";
+import { SessionsKPICards } from "./SessionsKPICards";
+import { SessionsAdvancedFilters, type SessionFilters } from "./SessionsAdvancedFilters";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -62,19 +66,42 @@ const formationLabels: Record<string, string> = {
   "Mobilité Taxi": "Mobilité Taxi",
 };
 
+type SortField = 'nom' | 'formation_type' | 'date_debut' | 'lieu' | 'inscrits' | 'statut';
+type SortOrder = 'asc' | 'desc';
+
 export function SessionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: sessions, isLoading, error } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
+  const { data: formateurs = [] } = useFormateursTable();
   const deleteSession = useDeleteSession();
+  const createSession = useCreateSession();
+  const { updateSessionStatuses } = useAutoUpdateSessionStatus();
+  const { exportSessions } = useSessionsExport();
   
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<SessionFilters>({
+    search: "",
+    status: "all",
+    formationType: "all",
+    formateurId: "all",
+    lieu: "all",
+    dateStart: "",
+    dateEnd: "",
+  });
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('date_debut');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Auto-update session statuses on load
+  useEffect(() => {
+    if (sessions && sessions.length > 0) {
+      updateSessionStatuses.mutate(sessions);
+    }
+  }, [sessions?.length]);
 
   // Handle URL parameter to open session detail
   useEffect(() => {
@@ -86,11 +113,114 @@ export function SessionsPage() {
     }
   }, [searchParams, setSearchParams]);
 
-  const filteredSessions = (sessions ?? []).filter((session) => {
-    const matchesSearch = session.nom.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || session.statut === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Extract unique lieux and formation types for filters
+  const uniqueLieux = useMemo(() => {
+    if (!sessions) return [];
+    const lieux = sessions
+      .map(s => s.adresse_ville || s.lieu)
+      .filter((v, i, arr) => v && arr.indexOf(v) === i) as string[];
+    return lieux.sort();
+  }, [sessions]);
+
+  const uniqueFormationTypes = useMemo(() => {
+    if (!sessions) return [];
+    return [...new Set(sessions.map(s => s.formation_type))].sort();
+  }, [sessions]);
+
+  // Filter sessions
+  const filteredSessions = useMemo(() => {
+    if (!sessions) return [];
+    
+    return sessions.filter((session) => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch = 
+          session.nom.toLowerCase().includes(searchLower) ||
+          session.formation_type.toLowerCase().includes(searchLower) ||
+          session.numero_session?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+      
+      // Status filter
+      if (filters.status !== "all" && session.statut !== filters.status) return false;
+      
+      // Formation type filter
+      if (filters.formationType !== "all" && session.formation_type !== filters.formationType) return false;
+      
+      // Formateur filter
+      if (filters.formateurId !== "all" && session.formateur_id !== filters.formateurId) return false;
+      
+      // Lieu filter
+      if (filters.lieu !== "all") {
+        const sessionLieu = session.adresse_ville || session.lieu;
+        if (sessionLieu !== filters.lieu) return false;
+      }
+      
+      // Date filters
+      if (filters.dateStart) {
+        const filterStart = parseISO(filters.dateStart);
+        const sessionStart = parseISO(session.date_debut);
+        if (isBefore(sessionStart, filterStart)) return false;
+      }
+      
+      if (filters.dateEnd) {
+        const filterEnd = parseISO(filters.dateEnd);
+        const sessionEnd = parseISO(session.date_fin);
+        if (isAfter(sessionEnd, filterEnd)) return false;
+      }
+      
+      return true;
+    });
+  }, [sessions, filters]);
+
+  // Sort sessions
+  const sortedSessions = useMemo(() => {
+    return [...filteredSessions].sort((a, b) => {
+      let compareValue = 0;
+      
+      switch (sortField) {
+        case 'nom':
+          compareValue = a.nom.localeCompare(b.nom);
+          break;
+        case 'formation_type':
+          compareValue = a.formation_type.localeCompare(b.formation_type);
+          break;
+        case 'date_debut':
+          compareValue = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
+          break;
+        case 'lieu':
+          const lieuA = a.adresse_ville || a.lieu || '';
+          const lieuB = b.adresse_ville || b.lieu || '';
+          compareValue = lieuA.localeCompare(lieuB);
+          break;
+        case 'inscrits':
+          compareValue = (inscriptionsCounts[a.id] || 0) - (inscriptionsCounts[b.id] || 0);
+          break;
+        case 'statut':
+          compareValue = a.statut.localeCompare(b.statut);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+  }, [filteredSessions, sortField, sortOrder, inscriptionsCounts]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    return sortOrder === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   const handleAddNew = () => {
     setEditingSession(null);
@@ -116,6 +246,25 @@ export function SessionsPage() {
     }
   };
 
+  const handleDuplicate = async (session: Session) => {
+    try {
+      const { id, created_at, updated_at, numero_session, ...sessionData } = session as any;
+      await createSession.mutateAsync({
+        ...sessionData,
+        nom: `${session.nom} (copie)`,
+        statut: 'a_venir',
+      });
+      toast.success("Session dupliquée avec succès");
+    } catch {
+      toast.error("Erreur lors de la duplication");
+    }
+  };
+
+  const handleExport = (formatType: 'xlsx' | 'csv') => {
+    exportSessions(sortedSessions, inscriptionsCounts, formatType);
+    toast.success(`Export ${formatType.toUpperCase()} téléchargé`);
+  };
+
   return (
     <div className="min-h-screen">
       <Header 
@@ -124,6 +273,14 @@ export function SessionsPage() {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
+        {/* KPI Cards */}
+        {sessions && (
+          <SessionsKPICards 
+            sessions={sessions} 
+            inscriptionsCounts={inscriptionsCounts} 
+          />
+        )}
+
         {/* View Toggle + Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* View mode toggle */}
@@ -144,24 +301,37 @@ export function SessionsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Rechercher une session..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               className="pl-9 input-focus"
             />
           </div>
           
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-44">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              {Object.entries(statusConfig).map(([key, { label }]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SessionsAdvancedFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            formateurs={formateurs}
+            lieux={uniqueLieux}
+            formationTypes={uniqueFormationTypes}
+          />
+
+          {/* Export dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                Export Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                Export CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button onClick={handleAddNew}>
             <Plus className="h-4 w-4 mr-2" />
@@ -171,7 +341,7 @@ export function SessionsPage() {
 
         {/* Stats */}
         <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{filteredSessions.length} session{filteredSessions.length > 1 ? 's' : ''}</span>
+          <span>{sortedSessions.length} session{sortedSessions.length > 1 ? 's' : ''}</span>
         </div>
 
         {/* Calendar View */}
@@ -195,12 +365,60 @@ export function SessionsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Session</TableHead>
-                      <TableHead className="font-semibold">Formation</TableHead>
-                      <TableHead className="font-semibold">Dates</TableHead>
-                      <TableHead className="font-semibold">Lieu</TableHead>
-                      <TableHead className="font-semibold">Inscrits</TableHead>
-                      <TableHead className="font-semibold">Statut</TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('nom')}
+                      >
+                        <div className="flex items-center">
+                          Session
+                          <SortIcon field="nom" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('formation_type')}
+                      >
+                        <div className="flex items-center">
+                          Formation
+                          <SortIcon field="formation_type" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('date_debut')}
+                      >
+                        <div className="flex items-center">
+                          Dates
+                          <SortIcon field="date_debut" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('lieu')}
+                      >
+                        <div className="flex items-center">
+                          Lieu
+                          <SortIcon field="lieu" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('inscrits')}
+                      >
+                        <div className="flex items-center">
+                          Inscrits
+                          <SortIcon field="inscrits" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/80"
+                        onClick={() => handleSort('statut')}
+                      >
+                        <div className="flex items-center">
+                          Statut
+                          <SortIcon field="statut" />
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -218,11 +436,16 @@ export function SessionsPage() {
                         </TableRow>
                       ))
                     ) : (
-                      filteredSessions.map((session) => (
+                      sortedSessions.map((session) => (
                         <TableRow key={session.id} className="table-row-hover">
                           <TableCell>
                             <div>
                               <p className="font-medium text-foreground">{session.nom}</p>
+                              {session.numero_session && (
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {session.numero_session}
+                                </p>
+                              )}
                               {session.formateur && (
                                 <p className="text-sm text-muted-foreground">
                                   Formateur: {session.formateur}
@@ -246,10 +469,10 @@ export function SessionsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {session.lieu ? (
+                            {(session.adresse_ville || session.lieu) ? (
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <MapPin className="h-4 w-4" />
-                                <span className="text-sm">{session.lieu}</span>
+                                <span className="text-sm">{session.adresse_ville || session.lieu}</span>
                               </div>
                             ) : '-'}
                           </TableCell>
@@ -274,6 +497,7 @@ export function SessionsPage() {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleViewDetail(session)}
+                                title="Voir les détails"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -282,8 +506,18 @@ export function SessionsPage() {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleEdit(session)}
+                                title="Modifier"
                               >
                                 <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleDuplicate(session)}
+                                title="Dupliquer"
+                              >
+                                <Copy className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -314,7 +548,7 @@ export function SessionsPage() {
                   </TableBody>
                 </Table>
 
-                {!isLoading && filteredSessions.length === 0 && (
+                {!isLoading && sortedSessions.length === 0 && (
                   <div className="py-12 text-center text-muted-foreground">
                     Aucune session trouvée
                   </div>
