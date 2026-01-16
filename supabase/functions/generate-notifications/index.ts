@@ -217,6 +217,62 @@ serve(async (req) => {
       }
     }
 
+    // 5. Check for sessions with low fill rate starting in 7 days
+    const { data: upcomingSessions, error: sessionsError } = await supabase
+      .from("sessions")
+      .select("id, nom, date_debut, places_totales")
+      .in("statut", ["a_venir", "en_cours"])
+      .gte("date_debut", today.toISOString().split("T")[0])
+      .lte("date_debut", sevenDaysFromNow.toISOString().split("T")[0]);
+
+    if (!sessionsError && upcomingSessions) {
+      // Get inscription counts
+      const { data: inscriptions } = await supabase
+        .from("session_inscriptions")
+        .select("session_id");
+
+      const inscriptionCounts: Record<string, number> = {};
+      inscriptions?.forEach((i) => {
+        inscriptionCounts[i.session_id] = (inscriptionCounts[i.session_id] || 0) + 1;
+      });
+
+      for (const session of upcomingSessions) {
+        const inscrits = inscriptionCounts[session.id] || 0;
+        const fillRate = (inscrits / session.places_totales) * 100;
+        const daysUntil = Math.ceil((new Date(session.date_debut).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Alert if less than 50% filled and starting within 7 days
+        if (fillRate < 50 && daysUntil <= 7 && daysUntil > 0) {
+          for (const userId of userIds) {
+            const { data: existing } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("type", "session")
+              .like("link", `%${session.id}%`)
+              .gte("created_at", today.toISOString().split("T")[0]);
+
+            if (!existing || existing.length === 0) {
+              notifications.push({
+                user_id: userId,
+                type: "session",
+                title: `Session incomplète (${Math.round(fillRate)}%)`,
+                message: `${session.nom} - ${inscrits}/${session.places_totales} inscrits (J-${daysUntil})`,
+                link: `/?section=sessions&id=${session.id}`,
+                metadata: { 
+                  session_id: session.id, 
+                  fill_rate: fillRate, 
+                  days_until: daysUntil,
+                  inscrits: inscrits,
+                  places_totales: session.places_totales
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+
     // Insert all notifications
     if (notifications.length > 0) {
       const { error: insertError } = await supabase
@@ -240,6 +296,7 @@ serve(async (req) => {
           exams_pratique: notifications.filter(n => n.type === "exam_pratique").length,
           payments: notifications.filter(n => n.type === "payment").length,
           alerts: notifications.filter(n => n.type === "alert").length,
+          sessions: notifications.filter(n => n.type === "session").length,
         }
       }),
       { 
