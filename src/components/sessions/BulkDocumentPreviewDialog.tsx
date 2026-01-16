@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -30,6 +31,8 @@ import {
   AlertCircle,
   FileCode,
   Sparkles,
+  Upload,
+  File,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -42,6 +45,8 @@ import {
 } from '@/lib/pdf-generator';
 import type { DocumentType } from '@/hooks/useDocumentGenerator';
 import { useDocumentTemplates, replaceVariables, DocumentTemplate } from '@/hooks/useDocumentTemplates';
+import { useDocumentTemplateFiles, DocumentTemplateFile } from '@/hooks/useDocumentTemplateFiles';
+import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
 import DOMPurify from 'dompurify';
 
@@ -63,13 +68,18 @@ interface Inscrit {
   };
 }
 
+export interface TemplateSelection {
+  type: 'default' | 'text' | 'file';
+  templateId?: string;
+}
+
 interface BulkDocumentPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   documentType: DocumentType;
   inscrits: Inscrit[];
   sessionInfo: SessionInfo;
-  onConfirm: (templateId?: string) => void;
+  onConfirm: (selection?: TemplateSelection) => void;
 }
 
 const documentTypeLabels: Record<string, string> = {
@@ -96,20 +106,33 @@ export function BulkDocumentPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('default');
+  const [templateTab, setTemplateTab] = useState<'default' | 'text' | 'file'>('default');
+  const [selectedTextTemplateId, setSelectedTextTemplateId] = useState<string>('');
+  const [selectedFileTemplateId, setSelectedFileTemplateId] = useState<string>('');
 
-  const { data: templates = [] } = useDocumentTemplates();
+  const { data: textTemplates = [] } = useDocumentTemplates();
+  const { data: fileTemplates = [] } = useDocumentTemplateFiles();
 
   // Filter templates by document type
-  const availableTemplates = useMemo(() => {
+  const availableTextTemplates = useMemo(() => {
     const templateType = documentTypeToTemplateType[documentType];
-    return templates.filter(t => t.type_document === templateType && t.actif);
-  }, [templates, documentType]);
+    return textTemplates.filter(t => t.type_document === templateType && t.actif);
+  }, [textTemplates, documentType]);
 
-  const selectedTemplate = useMemo(() => {
-    if (selectedTemplateId === 'default') return null;
-    return availableTemplates.find(t => t.id === selectedTemplateId) || null;
-  }, [selectedTemplateId, availableTemplates]);
+  const availableFileTemplates = useMemo(() => {
+    // File templates with matching category (formation includes convocation, convention, attestation)
+    return fileTemplates.filter(t => t.actif && t.categorie === 'formation');
+  }, [fileTemplates]);
+
+  const selectedTextTemplate = useMemo(() => {
+    if (!selectedTextTemplateId) return null;
+    return availableTextTemplates.find(t => t.id === selectedTextTemplateId) || null;
+  }, [selectedTextTemplateId, availableTextTemplates]);
+
+  const selectedFileTemplate = useMemo(() => {
+    if (!selectedFileTemplateId) return null;
+    return availableFileTemplates.find(t => t.id === selectedFileTemplateId) || null;
+  }, [selectedFileTemplateId, availableFileTemplates]);
 
   const currentInscrit = inscrits[currentIndex];
   
@@ -131,22 +154,17 @@ export function BulkDocumentPreviewDialog({
     };
   }, [currentInscrit]);
 
-  // Generate PDF from template
-  const generatePDFFromTemplate = (template: DocumentTemplate, contact: ContactInfo, session: SessionInfo): jsPDF => {
+  // Generate PDF from text template
+  const generatePDFFromTextTemplate = (template: DocumentTemplate, contact: ContactInfo, session: SessionInfo): jsPDF => {
     const doc = new jsPDF();
     
-    // Replace variables in template content
     const content = replaceVariables(template.contenu, contact, session);
-    
-    // Sanitize content
     const cleanContent = DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
     
-    // Add title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text(template.nom, 20, 25);
     
-    // Add content with word wrapping
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     
@@ -163,7 +181,6 @@ export function BulkDocumentPreviewDialog({
       y += lineHeight;
     });
     
-    // Add footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -180,6 +197,23 @@ export function BulkDocumentPreviewDialog({
     return doc;
   };
 
+  // Generate preview from file template (shows the original file for preview)
+  const generatePreviewFromFileTemplate = async (template: DocumentTemplateFile): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('document-templates')
+        .download(template.file_path);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      return url;
+    } catch (error) {
+      console.error('Error loading file template:', error);
+      return null;
+    }
+  };
+
   // Generate PDF preview when current inscrit or document type changes
   useEffect(() => {
     if (!open || !contactInfo || !sessionInfo) {
@@ -189,15 +223,20 @@ export function BulkDocumentPreviewDialog({
 
     setIsGenerating(true);
     
-    const timeout = setTimeout(() => {
+    const generatePreview = async () => {
       try {
-        let doc;
+        let dataUrl: string | null = null;
         
-        if (selectedTemplate) {
-          // Use custom template
-          doc = generatePDFFromTemplate(selectedTemplate, contactInfo, sessionInfo);
+        if (templateTab === 'file' && selectedFileTemplate) {
+          // Use file template - show original file for preview
+          dataUrl = await generatePreviewFromFileTemplate(selectedFileTemplate);
+        } else if (templateTab === 'text' && selectedTextTemplate) {
+          // Use text template
+          const doc = generatePDFFromTextTemplate(selectedTextTemplate, contactInfo, sessionInfo);
+          dataUrl = doc.output('datauristring');
         } else {
           // Use default generation
+          let doc;
           switch (documentType) {
             case 'attestation':
               doc = generateAttestationPDF(contactInfo, sessionInfo);
@@ -211,28 +250,31 @@ export function BulkDocumentPreviewDialog({
             default:
               doc = null;
           }
+          if (doc) {
+            dataUrl = doc.output('datauristring');
+          }
         }
 
-        if (doc) {
-          const dataUrl = doc.output('datauristring');
-          setPdfDataUrl(dataUrl);
-        }
+        setPdfDataUrl(dataUrl);
       } catch (error) {
         console.error('Error generating preview:', error);
         setPdfDataUrl(null);
       } finally {
         setIsGenerating(false);
       }
-    }, 100);
+    };
 
+    const timeout = setTimeout(generatePreview, 100);
     return () => clearTimeout(timeout);
-  }, [open, contactInfo, sessionInfo, documentType, currentIndex, selectedTemplate]);
+  }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate]);
 
-  // Reset index when dialog opens
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setCurrentIndex(0);
-      setSelectedTemplateId('default');
+      setTemplateTab('default');
+      setSelectedTextTemplateId('');
+      setSelectedFileTemplateId('');
     }
   }, [open]);
 
@@ -245,8 +287,28 @@ export function BulkDocumentPreviewDialog({
   };
 
   const handleConfirmGeneration = () => {
-    onConfirm(selectedTemplateId !== 'default' ? selectedTemplateId : undefined);
+    let selection: TemplateSelection;
+    
+    if (templateTab === 'text' && selectedTextTemplateId) {
+      selection = { type: 'text', templateId: selectedTextTemplateId };
+    } else if (templateTab === 'file' && selectedFileTemplateId) {
+      selection = { type: 'file', templateId: selectedFileTemplateId };
+    } else {
+      selection = { type: 'default' };
+    }
+    
+    onConfirm(selection);
     onOpenChange(false);
+  };
+
+  const getSelectedTemplateName = () => {
+    if (templateTab === 'text' && selectedTextTemplate) {
+      return selectedTextTemplate.nom;
+    }
+    if (templateTab === 'file' && selectedFileTemplate) {
+      return `${selectedFileTemplate.nom}.${selectedFileTemplate.type_fichier}`;
+    }
+    return 'Modèle par défaut';
   };
 
   return (
@@ -263,48 +325,104 @@ export function BulkDocumentPreviewDialog({
         </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0 gap-4">
-          {/* Template selector */}
-          <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2">
+          {/* Template selector with tabs */}
+          <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+            <div className="flex items-center gap-2 mb-2">
               <FileCode className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-sm font-medium">Modèle :</Label>
+              <Label className="text-sm font-medium">Source du modèle :</Label>
             </div>
-            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Choisir un modèle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span>Modèle par défaut</span>
-                  </div>
-                </SelectItem>
-                {availableTemplates.length > 0 && (
-                  <>
-                    <Separator className="my-1" />
-                    {availableTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span>{template.nom}</span>
-                          {template.variables && template.variables.length > 0 && (
-                            <Badge variant="secondary" className="text-xs ml-1">
-                              {template.variables.length} var.
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </>
+            
+            <Tabs value={templateTab} onValueChange={(v) => setTemplateTab(v as typeof templateTab)}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="default" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Par défaut
+                </TabsTrigger>
+                <TabsTrigger value="text" className="text-xs">
+                  <FileText className="h-3 w-3 mr-1" />
+                  Modèle texte
+                </TabsTrigger>
+                <TabsTrigger value="file" className="text-xs">
+                  <Upload className="h-3 w-3 mr-1" />
+                  Fichier importé
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="default" className="mt-3">
+                <p className="text-sm text-muted-foreground">
+                  Utilise le modèle standard intégré au CRM avec mise en page automatique.
+                </p>
+              </TabsContent>
+
+              <TabsContent value="text" className="mt-3">
+                {availableTextTemplates.length > 0 ? (
+                  <Select value={selectedTextTemplateId} onValueChange={setSelectedTextTemplateId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un modèle texte..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTextTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            <span>{template.nom}</span>
+                            {template.variables && template.variables.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {template.variables.length} var.
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Aucun modèle texte disponible pour "{documentTypeLabels[documentType]}".
+                    <br />
+                    Créez-en un dans Paramètres → Modèles de documents.
+                  </p>
                 )}
-              </SelectContent>
-            </Select>
-            {availableTemplates.length === 0 && (
-              <span className="text-xs text-muted-foreground">
-                Aucun modèle personnalisé disponible pour ce type
-              </span>
-            )}
+              </TabsContent>
+
+              <TabsContent value="file" className="mt-3">
+                {availableFileTemplates.length > 0 ? (
+                  <Select value={selectedFileTemplateId} onValueChange={setSelectedFileTemplateId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un fichier modèle..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFileTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            {template.type_fichier === 'pdf' ? (
+                              <FileText className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <File className="h-4 w-4 text-blue-500" />
+                            )}
+                            <span>{template.nom}</span>
+                            <Badge variant="outline" className="text-xs uppercase">
+                              {template.type_fichier}
+                            </Badge>
+                            {template.variables && template.variables.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {template.variables.length} var.
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Aucun fichier modèle importé.
+                    <br />
+                    Importez un PDF ou DOCX dans Paramètres → Modèles de fichiers.
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Navigation between trainees */}
@@ -360,7 +478,11 @@ export function BulkDocumentPreviewDialog({
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <AlertCircle className="h-8 w-8" />
-                  <span className="text-sm">Impossible de générer l'aperçu</span>
+                  <span className="text-sm">
+                    {templateTab !== 'default' && !selectedTextTemplateId && !selectedFileTemplateId
+                      ? 'Sélectionnez un modèle pour voir l\'aperçu'
+                      : 'Impossible de générer l\'aperçu'}
+                  </span>
                 </div>
               </div>
             )}
@@ -368,7 +490,7 @@ export function BulkDocumentPreviewDialog({
 
           {/* Summary */}
           <div className="p-3 bg-accent/50 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Documents à générer :</span>
@@ -376,9 +498,8 @@ export function BulkDocumentPreviewDialog({
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {selectedTemplate ? `Modèle : ${selectedTemplate.nom}` : 'Modèle par défaut'}
-                </span>
+                <span className="text-muted-foreground">Modèle :</span>
+                <span className="font-medium">{getSelectedTemplateName()}</span>
               </div>
             </div>
           </div>
@@ -390,7 +511,13 @@ export function BulkDocumentPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleConfirmGeneration}>
+          <Button 
+            onClick={handleConfirmGeneration}
+            disabled={
+              (templateTab === 'text' && !selectedTextTemplateId) ||
+              (templateTab === 'file' && !selectedFileTemplateId)
+            }
+          >
             <FileDown className="h-4 w-4 mr-2" />
             Générer {inscrits.length} document(s)
           </Button>
