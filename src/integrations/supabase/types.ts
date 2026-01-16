@@ -1991,7 +1991,16 @@ export type Database = {
     Enums: {
       app_role: "admin" | "staff"
       civilite: "Monsieur" | "Madame"
-      contact_statut: "En attente de validation" | "Client" | "Bravo"
+      contact_statut:
+        | "En attente de validation"
+        | "Client"
+        | "Bravo"
+        | "En formation théorique"
+        | "Examen T3P programmé"
+        | "T3P obtenu"
+        | "En formation pratique"
+        | "Examen pratique programmé"
+        | "Abandonné"
       contrat_location_statut:
         | "brouillon"
         | "envoye"
@@ -2160,7 +2169,17 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "staff"],
       civilite: ["Monsieur", "Madame"],
-      contact_statut: ["En attente de validation", "Client", "Bravo"],
+      contact_statut: [
+        "En attente de validation",
+        "Client",
+        "Bravo",
+        "En formation théorique",
+        "Examen T3P programmé",
+        "T3P obtenu",
+        "En formation pratique",
+        "Examen pratique programmé",
+        "Abandonné",
+      ],
       contrat_location_statut: [
         "brouillon",
         "envoye",
