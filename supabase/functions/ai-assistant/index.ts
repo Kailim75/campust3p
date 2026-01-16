@@ -6,6 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Actions that require confirmation before execution
+const SENSITIVE_ACTIONS = [
+  'create_facture',
+  'register_payment',
+  'update_contact',
+  'create_session',
+  'enroll_contact_to_session',
+  'send_email'
+];
+
 // Tool definitions for the AI agent
 const TOOLS = [
   {
@@ -253,7 +263,7 @@ async function executeCreateContact(supabase: any, params: any) {
       civilite: params.civilite || null,
       formation: params.formation || null,
       statut: params.statut || 'Prospect',
-      notes: params.notes || null
+      commentaires: params.notes || null
     })
     .select()
     .single();
@@ -336,7 +346,7 @@ async function executeCreateSession(supabase: any, params: any) {
 async function executeEnrollContactToSession(supabase: any, params: any) {
   // Check if already enrolled
   const { data: existing } = await supabase
-    .from('session_inscrits')
+    .from('session_inscriptions')
     .select('id')
     .eq('contact_id', params.contact_id)
     .eq('session_id', params.session_id)
@@ -347,7 +357,7 @@ async function executeEnrollContactToSession(supabase: any, params: any) {
   }
   
   const { data, error } = await supabase
-    .from('session_inscrits')
+    .from('session_inscriptions')
     .insert({
       contact_id: params.contact_id,
       session_id: params.session_id,
@@ -388,9 +398,7 @@ async function executeCreateFacture(supabase: any, params: any) {
     .insert({
       contact_id: params.contact_id,
       montant_total: params.montant_total,
-      montant_ht: params.montant_ht || params.montant_total / 1.2,
-      tva: params.tva || params.montant_total - (params.montant_total / 1.2),
-      description: params.description || null,
+      commentaires: params.description || null,
       date_echeance: params.date_echeance || null,
       statut: 'brouillon'
     })
@@ -461,9 +469,11 @@ async function executeSendEmail(supabase: any, params: any) {
   // Log email
   await supabase.from('email_logs').insert({
     contact_id: params.contact_id,
-    email_type: params.email_type || 'information',
+    type: params.email_type || 'information',
     subject: params.subject,
     status: response.ok ? 'sent' : 'failed',
+    recipient_email: contact.email,
+    recipient_name: `${contact.prenom} ${contact.nom}`,
     metadata: emailResult
   });
   
@@ -574,7 +584,9 @@ async function executeAddContactHistorique(supabase: any, params: any) {
     .insert({
       contact_id: params.contact_id,
       type: params.type,
-      contenu: params.contenu
+      titre: `Note IA - ${params.type}`,
+      contenu: params.contenu,
+      date_echange: new Date().toISOString()
     })
     .select()
     .single();
@@ -583,39 +595,83 @@ async function executeAddContactHistorique(supabase: any, params: any) {
   return { success: true, historique: data, message: "Note ajoutée à l'historique du contact" };
 }
 
+// Log action to audit table
+async function logActionToAudit(supabase: any, userId: string | null, actionType: string, actionName: string, params: any, result: any, success: boolean) {
+  try {
+    await supabase.from('ai_actions_audit').insert({
+      user_id: userId,
+      action_type: actionType,
+      action_name: actionName,
+      parameters: params,
+      result: result,
+      success: success,
+      executed_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to log audit:', error);
+  }
+}
+
 // Main tool executor
-async function executeTool(supabase: any, toolName: string, params: any) {
+async function executeTool(supabase: any, toolName: string, params: any, userId: string | null) {
   console.log(`Executing tool: ${toolName}`, params);
   
-  switch (toolName) {
-    case 'create_contact':
-      return await executeCreateContact(supabase, params);
-    case 'search_contacts':
-      return await executeSearchContacts(supabase, params);
-    case 'update_contact':
-      return await executeUpdateContact(supabase, params);
-    case 'list_sessions':
-      return await executeListSessions(supabase, params);
-    case 'create_session':
-      return await executeCreateSession(supabase, params);
-    case 'enroll_contact_to_session':
-      return await executeEnrollContactToSession(supabase, params);
-    case 'list_factures':
-      return await executeListFactures(supabase, params);
-    case 'create_facture':
-      return await executeCreateFacture(supabase, params);
-    case 'register_payment':
-      return await executeRegisterPayment(supabase, params);
-    case 'send_email':
-      return await executeSendEmail(supabase, params);
-    case 'create_notification':
-      return await executeCreateNotification(supabase, params);
-    case 'get_dashboard_stats':
-      return await executeGetDashboardStats(supabase, params);
-    case 'add_contact_historique':
-      return await executeAddContactHistorique(supabase, params);
-    default:
-      return { success: false, error: `Unknown tool: ${toolName}` };
+  let result: any;
+  try {
+    switch (toolName) {
+      case 'create_contact':
+        result = await executeCreateContact(supabase, params);
+        break;
+      case 'search_contacts':
+        result = await executeSearchContacts(supabase, params);
+        break;
+      case 'update_contact':
+        result = await executeUpdateContact(supabase, params);
+        break;
+      case 'list_sessions':
+        result = await executeListSessions(supabase, params);
+        break;
+      case 'create_session':
+        result = await executeCreateSession(supabase, params);
+        break;
+      case 'enroll_contact_to_session':
+        result = await executeEnrollContactToSession(supabase, params);
+        break;
+      case 'list_factures':
+        result = await executeListFactures(supabase, params);
+        break;
+      case 'create_facture':
+        result = await executeCreateFacture(supabase, params);
+        break;
+      case 'register_payment':
+        result = await executeRegisterPayment(supabase, params);
+        break;
+      case 'send_email':
+        result = await executeSendEmail(supabase, params);
+        break;
+      case 'create_notification':
+        result = await executeCreateNotification(supabase, params);
+        break;
+      case 'get_dashboard_stats':
+        result = await executeGetDashboardStats(supabase, params);
+        break;
+      case 'add_contact_historique':
+        result = await executeAddContactHistorique(supabase, params);
+        break;
+      default:
+        result = { success: false, error: `Unknown tool: ${toolName}` };
+    }
+    
+    // Log to audit for non-read operations
+    const readOnlyActions = ['search_contacts', 'list_sessions', 'list_factures', 'get_dashboard_stats'];
+    if (!readOnlyActions.includes(toolName)) {
+      await logActionToAudit(supabase, userId, 'execute', toolName, params, result, result.success);
+    }
+    
+    return result;
+  } catch (error: any) {
+    await logActionToAudit(supabase, userId, 'execute', toolName, params, { error: error.message }, false);
+    throw error;
   }
 }
 
@@ -635,10 +691,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { message, action, userId, conversationHistory } = await req.json();
+    const { message, action, userId, conversationHistory, confirmedActions, pendingAction } = await req.json();
 
-    if (!message) {
+    if (!message && !pendingAction) {
       throw new Error("Message is required");
+    }
+
+    // Handle confirmed pending action
+    if (pendingAction && confirmedActions?.includes(pendingAction.tool)) {
+      console.log('Executing confirmed pending action:', pendingAction);
+      const result = await executeTool(supabase, pendingAction.tool, pendingAction.params, userId);
+      
+      return new Response(
+        JSON.stringify({
+          response: result.message || "Action exécutée avec succès",
+          toolResults: [{ tool: pendingAction.tool, result }],
+          success: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Build context
@@ -738,6 +809,7 @@ Instructions importantes :
     let data = await response.json();
     let assistantMessage = data.choices?.[0]?.message;
     const toolResults: any[] = [];
+    const pendingConfirmations: any[] = [];
 
     // Process tool calls if any
     while (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -747,26 +819,57 @@ Instructions importantes :
         const toolName = toolCall.function.name;
         const toolParams = JSON.parse(toolCall.function.arguments || '{}');
         
-        try {
-          const result = await executeTool(supabase, toolName, toolParams);
-          toolResults.push({ tool: toolName, result });
+        // Check if this is a sensitive action that requires confirmation
+        const isConfirmed = confirmedActions?.includes(toolName);
+        
+        if (SENSITIVE_ACTIONS.includes(toolName) && !isConfirmed) {
+          // Add to pending confirmations instead of executing
+          pendingConfirmations.push({
+            tool: toolName,
+            params: toolParams,
+            tool_call_id: toolCall.id
+          });
           
-          // Add tool result to messages
+          // Add a mock response for the tool
           messages.push(assistantMessage);
           messages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
-            content: JSON.stringify(result)
+            content: JSON.stringify({ 
+              success: false, 
+              pending_confirmation: true,
+              message: `Action "${toolName}" en attente de confirmation utilisateur` 
+            })
           });
-        } catch (error: any) {
-          console.error(`Tool ${toolName} error:`, error);
-          messages.push(assistantMessage);
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: JSON.stringify({ success: false, error: error.message })
-          });
+        } else {
+          // Execute the tool
+          try {
+            const result = await executeTool(supabase, toolName, toolParams, userId);
+            toolResults.push({ tool: toolName, result });
+            
+            // Add tool result to messages
+            messages.push(assistantMessage);
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(result)
+            });
+          } catch (error: any) {
+            console.error(`Tool ${toolName} error:`, error);
+            toolResults.push({ tool: toolName, result: { success: false, error: error.message } });
+            messages.push(assistantMessage);
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify({ success: false, error: error.message })
+            });
+          }
         }
+      }
+
+      // If there are pending confirmations, break the loop and ask for confirmation
+      if (pendingConfirmations.length > 0) {
+        break;
       }
 
       // Get AI response after tool execution
@@ -800,8 +903,7 @@ Instructions importantes :
         user_id: userId,
         user_message: message,
         assistant_response: finalResponse,
-        action: action || 'agent',
-        metadata: { toolResults }
+        action: action || 'agent'
       });
     }
 
@@ -809,6 +911,7 @@ Instructions importantes :
       JSON.stringify({ 
         response: finalResponse,
         toolResults,
+        pendingConfirmations,
         success: true 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

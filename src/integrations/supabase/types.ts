@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_actions_audit: {
+        Row: {
+          action_name: string
+          action_type: string
+          executed_at: string
+          id: string
+          ip_address: string | null
+          parameters: Json | null
+          result: Json | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_name: string
+          action_type: string
+          executed_at?: string
+          id?: string
+          ip_address?: string | null
+          parameters?: Json | null
+          result?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_name?: string
+          action_type?: string
+          executed_at?: string
+          id?: string
+          ip_address?: string | null
+          parameters?: Json | null
+          result?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_assistant_logs: {
         Row: {
           action: string | null
