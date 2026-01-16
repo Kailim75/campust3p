@@ -62,6 +62,8 @@ import {
   SignatureRequest,
 } from "@/hooks/useSignatures";
 import { useSendSignatureEmail } from "@/hooks/useSendSignatureEmail";
+import { SignatureFormDialog } from "./SignatureFormDialog";
+import { SignatureSigningDialog } from "./SignatureSigningDialog";
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
