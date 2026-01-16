@@ -61,6 +61,7 @@ import {
 import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 import { CloseSessionDialog } from "./CloseSessionDialog";
+import SessionInscritsTable from "./SessionInscritsTable";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -405,66 +406,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Inscriptions */}
                 <TabsContent value="inscriptions" className="pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Stagiaires inscrits
-                    </h3>
-                    <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Inscrire
-                    </Button>
-                  </div>
-
-                  {inscriptionsLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  ) : inscriptions && inscriptions.length > 0 ? (
-                    <div className="space-y-2">
-                      {inscriptions.map((inscription) => {
-                        const contact = inscription.contacts as unknown as Contact;
-                        if (!contact) return null;
-                        const initials = `${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase();
-                        
-                        return (
-                          <div
-                            key={inscription.id}
-                            className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                  {initials}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {contact.prenom} {contact.nom}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {contact.email || contact.telephone || "Pas de contact"}
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveInscription(contact.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Aucun stagiaire inscrit
-                    </p>
-                  )}
+                  <SessionInscritsTable sessionId={session.id} />
                 </TabsContent>
 
                 {/* Tab: Émargement */}
