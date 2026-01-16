@@ -13,6 +13,7 @@ import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
 import { SignaturesPage } from "@/components/signatures/SignaturesPage";
+import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,8 @@ const Index = () => {
     switch (activeSection) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveSection} />;
+      case "pipeline":
+        return <PipelinePage />;
       case "contacts":
         return <ContactsPage />;
       case "formations":
