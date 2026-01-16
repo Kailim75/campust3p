@@ -16,6 +16,7 @@ import { ExamSuccessChart, ExamSuccessByFormation } from "./ExamSuccessChart";
 import { MonthlyProjectionsChart, ProjectionDetailsTable } from "./MonthlyProjectionsChart";
 import { CAByFormationChart } from "./CAByFormationChart";
 import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
+import { ObjectifProgressCard } from "./ObjectifProgressCard";
 import { Users, GraduationCap, TrendingUp, Euro, CalendarDays } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
@@ -108,8 +109,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
         {/* Tabs for different dashboard views */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+            <TabsTrigger value="objectifs">Objectifs</TabsTrigger>
             <TabsTrigger value="comparison">Comparaison</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="examens">Examens</TabsTrigger>
@@ -143,6 +145,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             {/* Recent Contacts */}
             <RecentContacts onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+          </TabsContent>
+
+          {/* Objectifs Tab */}
+          <TabsContent value="objectifs" className="space-y-6">
+            <ObjectifProgressCard />
           </TabsContent>
 
           {/* Comparison Tab */}

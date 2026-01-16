@@ -1726,6 +1726,48 @@ export type Database = {
         }
         Relationships: []
       }
+      objectifs: {
+        Row: {
+          actif: boolean | null
+          annee: number
+          created_at: string
+          description: string | null
+          id: string
+          mois: number | null
+          trimestre: number | null
+          type_objectif: string
+          type_periode: string
+          updated_at: string
+          valeur_cible: number
+        }
+        Insert: {
+          actif?: boolean | null
+          annee: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          mois?: number | null
+          trimestre?: number | null
+          type_objectif: string
+          type_periode: string
+          updated_at?: string
+          valeur_cible: number
+        }
+        Update: {
+          actif?: boolean | null
+          annee?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          mois?: number | null
+          trimestre?: number | null
+          type_objectif?: string
+          type_periode?: string
+          updated_at?: string
+          valeur_cible?: number
+        }
+        Relationships: []
+      }
       paiements: {
         Row: {
           commentaires: string | null
