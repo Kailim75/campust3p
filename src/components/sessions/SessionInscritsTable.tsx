@@ -64,6 +64,7 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { BulkDocumentPreviewDialog } from './BulkDocumentPreviewDialog';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -98,6 +99,10 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [isSendingBulkEmails, setIsSendingBulkEmails] = useState(false);
   const [generateAndSend, setGenerateAndSend] = useState(true);
   
+  // Preview dialog state
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewDocumentType, setPreviewDocumentType] = useState<DocumentType | null>(null);
+  
   // Contacts disponibles (non inscrits)
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
@@ -124,12 +129,19 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     prix: session.prix ? Number(session.prix) : undefined,
   } : null;
 
-  // Générer les documents en masse
-  const handleGenerateBulkDocuments = (type: DocumentType) => {
+  // Ouvrir la prévisualisation avant génération
+  const handlePreviewBulkDocuments = (type: DocumentType) => {
     if (!sessionInfo || !inscrits?.length) {
       toast.error("Aucun stagiaire inscrit");
       return;
     }
+    setPreviewDocumentType(type);
+    setPreviewDialogOpen(true);
+  };
+
+  // Générer les documents en masse (appelé après confirmation de la prévisualisation)
+  const handleConfirmBulkGeneration = () => {
+    if (!previewDocumentType || !sessionInfo || !inscrits?.length) return;
     
     const contactsInfo = inscrits.map((inscrit) => {
       const contact = inscrit.contact;
@@ -147,7 +159,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       };
     });
     
-    generateBulkDocuments(type, contactsInfo, sessionInfo);
+    generateBulkDocuments(previewDocumentType, contactsInfo, sessionInfo);
+    setPreviewDocumentType(null);
   };
 
   // Envoyer documents par email à tous
@@ -369,15 +382,15 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convocation")}>
+              <DropdownMenuItem onClick={() => handlePreviewBulkDocuments("convocation")}>
                 <Send className="h-4 w-4 mr-2" />
                 Convocations ({inscrits.length})
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convention")}>
+              <DropdownMenuItem onClick={() => handlePreviewBulkDocuments("convention")}>
                 <FileText className="h-4 w-4 mr-2" />
                 Conventions ({inscrits.length})
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
+              <DropdownMenuItem onClick={() => handlePreviewBulkDocuments("attestation")}>
                 <Award className="h-4 w-4 mr-2" />
                 Attestations ({inscrits.length})
               </DropdownMenuItem>
@@ -699,6 +712,18 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Preview dialog before bulk generation */}
+      {previewDocumentType && sessionInfo && inscrits && (
+        <BulkDocumentPreviewDialog
+          open={previewDialogOpen}
+          onOpenChange={setPreviewDialogOpen}
+          documentType={previewDocumentType}
+          inscrits={inscrits}
+          sessionInfo={sessionInfo}
+          onConfirm={handleConfirmBulkGeneration}
+        />
+      )}
     </div>
   );
 }
