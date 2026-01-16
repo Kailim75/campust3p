@@ -59,6 +59,65 @@ export type Database = {
         }
         Relationships: []
       }
+      cartes_professionnelles: {
+        Row: {
+          contact_id: string
+          created_at: string
+          date_demande: string | null
+          date_expiration: string | null
+          date_obtention: string | null
+          documents_manquants: string[] | null
+          id: string
+          notes: string | null
+          numero_carte: string | null
+          numero_dossier: string | null
+          prefecture: string | null
+          statut: string
+          type_carte: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          date_demande?: string | null
+          date_expiration?: string | null
+          date_obtention?: string | null
+          documents_manquants?: string[] | null
+          id?: string
+          notes?: string | null
+          numero_carte?: string | null
+          numero_dossier?: string | null
+          prefecture?: string | null
+          statut?: string
+          type_carte: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          date_demande?: string | null
+          date_expiration?: string | null
+          date_obtention?: string | null
+          documents_manquants?: string[] | null
+          id?: string
+          notes?: string | null
+          numero_carte?: string | null
+          numero_dossier?: string | null
+          prefecture?: string | null
+          statut?: string
+          type_carte?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartes_professionnelles_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogue_formations: {
         Row: {
           actif: boolean
@@ -959,15 +1018,18 @@ export type Database = {
           created_at: string
           date_examen: string
           document_resultat_path: string | null
+          evaluateur_id: string | null
           fiche_pratique_id: string
           heure_examen: string | null
           id: string
+          numero_tentative: number | null
           observations: string | null
           resultat: string | null
           score: number | null
           statut: string
           type_examen: string
           updated_at: string
+          vehicule_id: string | null
         }
         Insert: {
           adresse_centre?: string | null
@@ -976,15 +1038,18 @@ export type Database = {
           created_at?: string
           date_examen: string
           document_resultat_path?: string | null
+          evaluateur_id?: string | null
           fiche_pratique_id: string
           heure_examen?: string | null
           id?: string
+          numero_tentative?: number | null
           observations?: string | null
           resultat?: string | null
           score?: number | null
           statut?: string
           type_examen: string
           updated_at?: string
+          vehicule_id?: string | null
         }
         Update: {
           adresse_centre?: string | null
@@ -993,15 +1058,18 @@ export type Database = {
           created_at?: string
           date_examen?: string
           document_resultat_path?: string | null
+          evaluateur_id?: string | null
           fiche_pratique_id?: string
           heure_examen?: string | null
           id?: string
+          numero_tentative?: number | null
           observations?: string | null
           resultat?: string | null
           score?: number | null
           statut?: string
           type_examen?: string
           updated_at?: string
+          vehicule_id?: string | null
         }
         Relationships: [
           {
@@ -1012,10 +1080,95 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "examens_pratique_evaluateur_id_fkey"
+            columns: ["evaluateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "examens_pratique_fiche_pratique_id_fkey"
             columns: ["fiche_pratique_id"]
             isOneToOne: false
             referencedRelation: "fiches_pratique"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examens_pratique_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examens_t3p: {
+        Row: {
+          centre_examen: string | null
+          contact_id: string
+          created_at: string
+          date_examen: string
+          date_expiration: string | null
+          date_reussite: string | null
+          departement: string | null
+          document_resultat_path: string | null
+          heure_examen: string | null
+          id: string
+          numero_convocation: string | null
+          numero_tentative: number
+          observations: string | null
+          resultat: string | null
+          score: number | null
+          statut: string
+          type_formation: string
+          updated_at: string
+        }
+        Insert: {
+          centre_examen?: string | null
+          contact_id: string
+          created_at?: string
+          date_examen: string
+          date_expiration?: string | null
+          date_reussite?: string | null
+          departement?: string | null
+          document_resultat_path?: string | null
+          heure_examen?: string | null
+          id?: string
+          numero_convocation?: string | null
+          numero_tentative?: number
+          observations?: string | null
+          resultat?: string | null
+          score?: number | null
+          statut?: string
+          type_formation: string
+          updated_at?: string
+        }
+        Update: {
+          centre_examen?: string | null
+          contact_id?: string
+          created_at?: string
+          date_examen?: string
+          date_expiration?: string | null
+          date_reussite?: string | null
+          departement?: string | null
+          document_resultat_path?: string | null
+          heure_examen?: string | null
+          id?: string
+          numero_convocation?: string | null
+          numero_tentative?: number
+          observations?: string | null
+          resultat?: string | null
+          score?: number | null
+          statut?: string
+          type_formation?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examens_t3p_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -1432,6 +1585,44 @@ export type Database = {
             columns: ["template_text_id"]
             isOneToOne: false
             referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grilles_evaluation: {
+        Row: {
+          categorie: string
+          commentaire: string | null
+          competence: string
+          created_at: string
+          examen_pratique_id: string | null
+          id: string
+          note: string | null
+        }
+        Insert: {
+          categorie: string
+          commentaire?: string | null
+          competence: string
+          created_at?: string
+          examen_pratique_id?: string | null
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          categorie?: string
+          commentaire?: string | null
+          competence?: string
+          created_at?: string
+          examen_pratique_id?: string | null
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grilles_evaluation_examen_pratique_id_fkey"
+            columns: ["examen_pratique_id"]
+            isOneToOne: false
+            referencedRelation: "examens_pratique"
             referencedColumns: ["id"]
           },
         ]
