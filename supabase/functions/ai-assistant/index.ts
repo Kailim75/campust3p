@@ -16,13 +16,18 @@ const SENSITIVE_ACTIONS = [
   'send_email'
 ];
 
+// Enum values from the database
+const CIVILITE_VALUES = ["Monsieur", "Madame"];
+const CONTACT_STATUT_VALUES = ["En attente de validation", "Client", "Bravo", "En formation théorique", "Examen T3P programmé", "T3P obtenu", "En formation pratique", "Examen pratique programmé", "Abandonné"];
+const FORMATION_TYPE_VALUES = ["TAXI", "VTC", "VMDTR", "ACC VTC", "ACC VTC 75", "Formation continue Taxi", "Formation continue VTC", "Mobilité Taxi"];
+
 // Tool definitions for the AI agent
 const TOOLS = [
   {
     type: "function",
     function: {
       name: "create_contact",
-      description: "Créer un nouveau contact/stagiaire dans le CRM",
+      description: "Créer un nouveau contact/stagiaire dans le CRM. IMPORTANT: utiliser les valeurs exactes des enums.",
       parameters: {
         type: "object",
         properties: {
@@ -30,10 +35,10 @@ const TOOLS = [
           prenom: { type: "string", description: "Prénom" },
           email: { type: "string", description: "Adresse email" },
           telephone: { type: "string", description: "Numéro de téléphone" },
-          civilite: { type: "string", enum: ["M.", "Mme", "Autre"], description: "Civilité" },
-          formation: { type: "string", enum: ["Taxi", "VTC", "Taxi-VTC", "Passerelle Taxi vers VTC", "Passerelle VTC vers Taxi", "Capacitaire"], description: "Type de formation souhaitée" },
-          statut: { type: "string", enum: ["Prospect", "Inscrit", "Stagiaire", "Client", "Archive"], description: "Statut du contact" },
-          notes: { type: "string", description: "Notes additionnelles" }
+          civilite: { type: "string", enum: CIVILITE_VALUES, description: "Civilité (Monsieur ou Madame)" },
+          formation: { type: "string", enum: FORMATION_TYPE_VALUES, description: "Type de formation: TAXI, VTC, VMDTR, ACC VTC, ACC VTC 75, Formation continue Taxi, Formation continue VTC, Mobilité Taxi" },
+          statut: { type: "string", enum: CONTACT_STATUT_VALUES, description: "Statut du contact. Par défaut: 'En attente de validation'" },
+          notes: { type: "string", description: "Notes additionnelles (stocké dans commentaires)" }
         },
         required: ["nom", "prenom"]
       }
@@ -48,8 +53,8 @@ const TOOLS = [
         type: "object",
         properties: {
           query: { type: "string", description: "Terme de recherche (nom, prénom, email ou téléphone)" },
-          statut: { type: "string", enum: ["Prospect", "Inscrit", "Stagiaire", "Client", "Archive"], description: "Filtrer par statut" },
-          formation: { type: "string", description: "Filtrer par type de formation" },
+          statut: { type: "string", enum: CONTACT_STATUT_VALUES, description: "Filtrer par statut" },
+          formation: { type: "string", enum: FORMATION_TYPE_VALUES, description: "Filtrer par type de formation" },
           limit: { type: "number", description: "Nombre maximum de résultats (défaut: 10)" }
         },
         required: ["query"]
@@ -73,8 +78,8 @@ const TOOLS = [
               prenom: { type: "string" },
               email: { type: "string" },
               telephone: { type: "string" },
-              statut: { type: "string", enum: ["Prospect", "Inscrit", "Stagiaire", "Client", "Archive"] },
-              formation: { type: "string" },
+              statut: { type: "string", enum: CONTACT_STATUT_VALUES },
+              formation: { type: "string", enum: FORMATION_TYPE_VALUES },
               notes: { type: "string" }
             }
           }
@@ -109,7 +114,7 @@ const TOOLS = [
         type: "object",
         properties: {
           nom: { type: "string", description: "Nom de la session" },
-          formation_type: { type: "string", enum: ["Taxi", "VTC", "Taxi-VTC", "Passerelle Taxi vers VTC", "Passerelle VTC vers Taxi", "Capacitaire"], description: "Type de formation" },
+          formation_type: { type: "string", enum: FORMATION_TYPE_VALUES, description: "Type de formation: TAXI, VTC, VMDTR, etc." },
           date_debut: { type: "string", description: "Date de début (YYYY-MM-DD)" },
           date_fin: { type: "string", description: "Date de fin (YYYY-MM-DD)" },
           places_max: { type: "number", description: "Nombre maximum de places" },
@@ -262,13 +267,16 @@ async function executeCreateContact(supabase: any, params: any) {
       telephone: params.telephone || null,
       civilite: params.civilite || null,
       formation: params.formation || null,
-      statut: params.statut || 'Prospect',
+      statut: params.statut || 'En attente de validation',
       commentaires: params.notes || null
     })
     .select()
     .single();
   
-  if (error) throw error;
+  if (error) {
+    console.error('Tool create_contact error:', error);
+    throw error;
+  }
   return { success: true, contact: data, message: `Contact ${params.prenom} ${params.nom} créé avec succès` };
 }
 
