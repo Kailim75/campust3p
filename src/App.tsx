@@ -9,6 +9,7 @@ import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { InstallPWA } from "./components/pwa/InstallPWA";
+import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingButton";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         <InstallPWA />
+        <AIAssistantFloatingButton />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
