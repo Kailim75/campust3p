@@ -109,14 +109,14 @@ export default function QualiopiActions() {
               <div>
                 <Label>Indicateur concerné (optionnel)</Label>
                 <Select 
-                  value={formData.indicateur_id} 
-                  onValueChange={(v) => setFormData({ ...formData, indicateur_id: v })}
+                  value={formData.indicateur_id || "none"} 
+                  onValueChange={(v) => setFormData({ ...formData, indicateur_id: v === "none" ? "" : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un indicateur" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun</SelectItem>
+                    <SelectItem value="none">Aucun</SelectItem>
                     {indicateurs?.map(ind => (
                       <SelectItem key={ind.id} value={ind.id}>
                         {ind.numero} - {ind.titre.substring(0, 40)}...
