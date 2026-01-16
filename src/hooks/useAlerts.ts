@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, differenceInDays, isPast, parseISO } from "date-fns";
+import { differenceInDays, isPast, parseISO } from "date-fns";
 
 export interface Alert {
   id: string;
-  type: "carte_pro" | "permis" | "session" | "document" | "payment";
+  type: "carte_pro" | "permis" | "session" | "document" | "payment" | "exam_t3p" | "exam_pratique";
   priority: "high" | "medium" | "low";
   title: string;
   description: string;
@@ -15,7 +15,9 @@ export interface Alert {
   sessionId?: string;
   factureId?: string;
   documentId?: string;
+  examenId?: string;
   montant?: number;
+  actionType?: "view_contact" | "view_session" | "view_facture" | "view_exam" | "send_reminder";
 }
 
 // Alerts for expiring professional cards and permits
@@ -57,12 +59,10 @@ export function useExpirationAlerts() {
               contactId: contact.id,
               contactName: fullName,
               expiryDate: contact.date_expiration_carte,
+              actionType: "view_contact",
             });
           }
         }
-
-        // Note: For permits, we don't have an expiry date field, but we could add logic based on issue date
-        // French permits are generally valid for 15 years, but for now we skip this
       });
 
       // Sort by priority (high first) then by days until expiry
@@ -72,6 +72,164 @@ export function useExpirationAlerts() {
           return priorityOrder[a.priority] - priorityOrder[b.priority];
         }
         return a.daysUntilExpiry - b.daysUntilExpiry;
+      });
+
+      return alerts;
+    },
+  });
+}
+
+// Alerts for T3P exams (upcoming in 7 days, expired, max attempts)
+export function useExamT3PAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "exams_t3p"],
+    queryFn: async () => {
+      const alerts: Alert[] = [];
+      const today = new Date();
+
+      // Fetch all T3P exams with contact info
+      const { data: examens, error } = await supabase
+        .from("examens_t3p")
+        .select(`
+          id,
+          contact_id,
+          type_formation,
+          date_examen,
+          statut,
+          resultat,
+          numero_tentative,
+          date_expiration,
+          contacts (id, nom, prenom)
+        `)
+        .order("date_examen", { ascending: true });
+
+      if (error) throw error;
+
+      examens?.forEach((examen: any) => {
+        const contact = examen.contacts;
+        if (!contact) return;
+        
+        const fullName = `${contact.prenom} ${contact.nom}`;
+        const examDate = parseISO(examen.date_examen);
+        const daysUntilExam = differenceInDays(examDate, today);
+
+        // Alert for upcoming exam (within 7 days)
+        if (examen.statut === "planifie" && daysUntilExam >= 0 && daysUntilExam <= 7) {
+          alerts.push({
+            id: `exam_t3p_upcoming_${examen.id}`,
+            type: "exam_t3p",
+            priority: daysUntilExam <= 2 ? "high" : daysUntilExam <= 4 ? "medium" : "low",
+            title: "Examen T3P à venir",
+            description: daysUntilExam === 0 
+              ? `${fullName} - ${examen.type_formation.toUpperCase()} aujourd'hui`
+              : `${fullName} - ${examen.type_formation.toUpperCase()} dans ${daysUntilExam}j`,
+            daysUntilExpiry: daysUntilExam,
+            contactId: contact.id,
+            contactName: fullName,
+            examenId: examen.id,
+            expiryDate: examen.date_examen,
+            actionType: "view_exam",
+          });
+        }
+
+        // Alert for expired T3P (attestation expired)
+        if (examen.resultat === "admis" && examen.date_expiration) {
+          const expirationDate = parseISO(examen.date_expiration);
+          const daysUntilExpiry = differenceInDays(expirationDate, today);
+          
+          if (daysUntilExpiry <= 90) { // Alert 90 days before expiry
+            const isExpired = isPast(expirationDate);
+            alerts.push({
+              id: `exam_t3p_expiry_${examen.id}`,
+              type: "exam_t3p",
+              priority: isExpired ? "high" : daysUntilExpiry <= 30 ? "high" : daysUntilExpiry <= 60 ? "medium" : "low",
+              title: isExpired ? "Attestation T3P expirée" : "Attestation T3P bientôt expirée",
+              description: isExpired 
+                ? `${fullName} - Attestation ${examen.type_formation.toUpperCase()} expirée`
+                : `${fullName} - ${examen.type_formation.toUpperCase()} expire dans ${daysUntilExpiry}j`,
+              daysUntilExpiry: daysUntilExpiry,
+              contactId: contact.id,
+              contactName: fullName,
+              examenId: examen.id,
+              expiryDate: examen.date_expiration,
+              actionType: "view_contact",
+            });
+          }
+        }
+
+        // Alert for max attempts reached (3 attempts)
+        if (examen.numero_tentative >= 3 && examen.resultat !== "admis") {
+          alerts.push({
+            id: `exam_t3p_max_${examen.id}`,
+            type: "exam_t3p",
+            priority: "high",
+            title: "Tentatives T3P épuisées",
+            description: `${fullName} - ${examen.type_formation.toUpperCase()} : 3 tentatives utilisées`,
+            daysUntilExpiry: 0,
+            contactId: contact.id,
+            contactName: fullName,
+            examenId: examen.id,
+            actionType: "view_contact",
+          });
+        }
+      });
+
+      return alerts;
+    },
+  });
+}
+
+// Alerts for practical exams (upcoming in 7 days)
+export function useExamPratiqueAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "exams_pratique"],
+    queryFn: async () => {
+      const alerts: Alert[] = [];
+      const today = new Date();
+
+      // Fetch all practical exams with contact info
+      const { data: examens, error } = await supabase
+        .from("examens_pratique")
+        .select(`
+          id,
+          contact_id,
+          type_examen,
+          date_examen,
+          statut,
+          resultat,
+          numero_tentative,
+          contacts (id, nom, prenom)
+        `)
+        .order("date_examen", { ascending: true });
+
+      if (error) throw error;
+
+      examens?.forEach((examen: any) => {
+        const contact = examen.contacts;
+        if (!contact) return;
+        
+        const fullName = `${contact.prenom} ${contact.nom}`;
+        const examDate = parseISO(examen.date_examen);
+        const daysUntilExam = differenceInDays(examDate, today);
+
+        // Alert for upcoming exam (within 7 days)
+        if (examen.statut === "planifie" && daysUntilExam >= 0 && daysUntilExam <= 7) {
+          alerts.push({
+            id: `exam_pratique_upcoming_${examen.id}`,
+            type: "exam_pratique",
+            priority: daysUntilExam <= 2 ? "high" : daysUntilExam <= 4 ? "medium" : "low",
+            title: "Examen pratique à venir",
+            description: daysUntilExam === 0 
+              ? `${fullName} - ${examen.type_examen} aujourd'hui`
+              : `${fullName} - ${examen.type_examen} dans ${daysUntilExam}j`,
+            daysUntilExpiry: daysUntilExam,
+            contactId: contact.id,
+            contactName: fullName,
+            examenId: examen.id,
+            expiryDate: examen.date_examen,
+            actionType: "view_exam",
+          });
+        }
       });
 
       return alerts;
@@ -124,6 +282,7 @@ export function useSessionAlerts() {
             description: `${session.nom} - ${session.places_totales - enrolled} place${session.places_totales - enrolled > 1 ? 's' : ''} restante${session.places_totales - enrolled > 1 ? 's' : ''}`,
             daysUntilExpiry: daysUntilStart,
             sessionId: session.id,
+            actionType: "view_session",
           });
         }
 
@@ -139,6 +298,7 @@ export function useSessionAlerts() {
               : `${session.nom} démarre dans ${daysUntilStart} jour${daysUntilStart > 1 ? 's' : ''}`,
             daysUntilExpiry: daysUntilStart,
             sessionId: session.id,
+            actionType: "view_session",
           });
         }
       });
@@ -165,7 +325,7 @@ export function usePaymentAlerts() {
           montant_total,
           date_echeance,
           statut,
-          contact:contacts (id, nom, prenom)
+          contact:contacts (id, nom, prenom, email)
         `)
         .in("statut", ["emise", "partiel", "impayee"])
         .not("date_echeance", "is", null);
@@ -213,6 +373,7 @@ export function usePaymentAlerts() {
             contactName,
             factureId: facture.id,
             montant: remaining,
+            actionType: "view_facture",
           });
         }
         // Alert for due soon (within 7 days)
@@ -230,6 +391,7 @@ export function usePaymentAlerts() {
             contactName,
             factureId: facture.id,
             montant: remaining,
+            actionType: "send_reminder",
           });
         }
       });
@@ -287,6 +449,7 @@ export function useDocumentAlerts() {
             contactName,
             documentId: doc.id,
             expiryDate: doc.date_expiration,
+            actionType: "view_contact",
           });
         }
       });
@@ -302,8 +465,17 @@ export function useAllAlerts() {
   const { data: sessionAlerts = [], isLoading: loadingSessions } = useSessionAlerts();
   const { data: paymentAlerts = [], isLoading: loadingPayments } = usePaymentAlerts();
   const { data: documentAlerts = [], isLoading: loadingDocuments } = useDocumentAlerts();
+  const { data: examT3PAlerts = [], isLoading: loadingExamT3P } = useExamT3PAlerts();
+  const { data: examPratiqueAlerts = [], isLoading: loadingExamPratique } = useExamPratiqueAlerts();
 
-  const allAlerts = [...expirationAlerts, ...sessionAlerts, ...paymentAlerts, ...documentAlerts].sort((a, b) => {
+  const allAlerts = [
+    ...expirationAlerts, 
+    ...sessionAlerts, 
+    ...paymentAlerts, 
+    ...documentAlerts,
+    ...examT3PAlerts,
+    ...examPratiqueAlerts,
+  ].sort((a, b) => {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -313,13 +485,14 @@ export function useAllAlerts() {
 
   return {
     data: allAlerts,
-    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments,
+    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments || loadingExamT3P || loadingExamPratique,
     counts: {
       total: allAlerts.length,
       high: allAlerts.filter(a => a.priority === "high").length,
       payments: paymentAlerts.length,
       documents: documentAlerts.length + expirationAlerts.length,
       sessions: sessionAlerts.length,
+      exams: examT3PAlerts.length + examPratiqueAlerts.length,
     }
   };
 }
