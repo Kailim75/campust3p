@@ -2075,6 +2075,132 @@ export type Database = {
           },
         ]
       }
+      reclamations: {
+        Row: {
+          categorie: string | null
+          contact_id: string | null
+          created_at: string | null
+          date_resolution: string | null
+          delai_traitement_jours: number | null
+          description: string
+          id: string
+          priorite: string | null
+          resolution: string | null
+          session_id: string | null
+          statut: string | null
+          titre: string
+          updated_at: string | null
+        }
+        Insert: {
+          categorie?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          date_resolution?: string | null
+          delai_traitement_jours?: number | null
+          description: string
+          id?: string
+          priorite?: string | null
+          resolution?: string | null
+          session_id?: string | null
+          statut?: string | null
+          titre: string
+          updated_at?: string | null
+        }
+        Update: {
+          categorie?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          date_resolution?: string | null
+          delai_traitement_jours?: number | null
+          description?: string
+          id?: string
+          priorite?: string | null
+          resolution?: string | null
+          session_id?: string | null
+          statut?: string | null
+          titre?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reclamations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      satisfaction_reponses: {
+        Row: {
+          commentaire: string | null
+          contact_id: string | null
+          created_at: string | null
+          date_reponse: string | null
+          id: string
+          note_formateur: number | null
+          note_globale: number | null
+          note_locaux: number | null
+          note_supports: number | null
+          nps_score: number | null
+          objectifs_atteints: string | null
+          session_id: string | null
+          type_questionnaire: string | null
+        }
+        Insert: {
+          commentaire?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          date_reponse?: string | null
+          id?: string
+          note_formateur?: number | null
+          note_globale?: number | null
+          note_locaux?: number | null
+          note_supports?: number | null
+          nps_score?: number | null
+          objectifs_atteints?: string | null
+          session_id?: string | null
+          type_questionnaire?: string | null
+        }
+        Update: {
+          commentaire?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          date_reponse?: string | null
+          id?: string
+          note_formateur?: number | null
+          note_globale?: number | null
+          note_locaux?: number | null
+          note_supports?: number | null
+          nps_score?: number | null
+          objectifs_atteints?: string | null
+          session_id?: string | null
+          type_questionnaire?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_reponses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satisfaction_reponses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seances_conduite: {
         Row: {
           competences_travaillees: string[] | null
