@@ -61,8 +61,7 @@ import {
   useDeleteSignatureRequest,
   SignatureRequest,
 } from "@/hooks/useSignatures";
-import { SignatureFormDialog } from "./SignatureFormDialog";
-import { SignatureSigningDialog } from "./SignatureSigningDialog";
+import { useSendSignatureEmail } from "@/hooks/useSendSignatureEmail";
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -81,6 +80,7 @@ export function SignaturesPage() {
   const { data: signatures = [], isLoading } = useSignatureRequests();
   const sendRequest = useSendSignatureRequest();
   const deleteRequest = useDeleteSignatureRequest();
+  const sendEmail = useSendSignatureEmail();
 
   const filteredSignatures = statutFilter === "all"
     ? signatures
@@ -97,10 +97,12 @@ export function SignaturesPage() {
 
   const handleSend = async (id: string) => {
     try {
-      await sendRequest.mutateAsync(id);
-      toast.success("Demande de signature envoyée");
+      await sendEmail.mutateAsync({
+        signatureRequestId: id,
+        type: "signature_request",
+      });
     } catch (error) {
-      toast.error("Erreur lors de l'envoi");
+      // Error handled in hook
     }
   };
 

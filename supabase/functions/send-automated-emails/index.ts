@@ -16,6 +16,8 @@ interface EmailResult {
   contactId?: string;
   sessionId?: string;
   factureId?: string;
+  examenId?: string;
+  contratId?: string;
   subject?: string;
   success: boolean;
   resendId?: string;
@@ -227,7 +229,7 @@ serve(async (req) => {
           if (!contact?.email) continue;
 
           try {
-            await resend.emails.send({
+            const emailResponse = await resend.emails.send({
               from: "T3P Formation <noreply@resend.dev>",
               to: [contact.email],
               subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
@@ -257,9 +259,22 @@ serve(async (req) => {
               `,
             });
 
+            await supabase.from("email_logs").insert({
+              type: "session_reminder_j7",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              session_id: session.id,
+              subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
+              template_used: "session_reminder_j7",
+              status: "sent",
+              resend_id: emailResponse.data?.id,
+            });
+
             results.push({
               type: "reminder_j7",
               recipient: contact.email,
+              sessionId: session.id,
               success: true,
             });
             console.log(`J-7 reminder sent to ${contact.email} for session ${session.nom}`);
@@ -317,7 +332,7 @@ serve(async (req) => {
           if (!contact?.email) continue;
 
           try {
-            await resend.emails.send({
+            const emailResponse = await resend.emails.send({
               from: "T3P Formation <noreply@resend.dev>",
               to: [contact.email],
               subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
@@ -347,9 +362,22 @@ serve(async (req) => {
               `,
             });
 
+            await supabase.from("email_logs").insert({
+              type: "session_reminder_j1",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              session_id: session.id,
+              subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
+              template_used: "session_reminder_j1",
+              status: "sent",
+              resend_id: emailResponse.data?.id,
+            });
+
             results.push({
               type: "reminder_j1",
               recipient: contact.email,
+              sessionId: session.id,
               success: true,
             });
             console.log(`J-1 reminder sent to ${contact.email} for session ${session.nom}`);
@@ -366,6 +394,229 @@ serve(async (req) => {
     }
 
     // ========================================
+    // 4. RAPPELS EXAMEN T3P J-7
+    // ========================================
+    console.log("Checking for T3P exams in 7 days...");
+    
+    const { data: examensT3PJ7, error: examensT3PError } = await supabase
+      .from("examens_t3p")
+      .select(`
+        id,
+        date_examen,
+        heure_examen,
+        centre_examen,
+        type_formation,
+        numero_tentative,
+        contact:contacts(id, nom, prenom, email)
+      `)
+      .eq("date_examen", j7Date)
+      .eq("statut", "planifie");
+
+    if (examensT3PError) {
+      console.error("Error fetching T3P exams:", examensT3PError);
+    } else if (examensT3PJ7 && examensT3PJ7.length > 0) {
+      console.log(`Found ${examensT3PJ7.length} T3P exams in 7 days`);
+      
+      for (const examen of examensT3PJ7) {
+        const contact = examen.contact as any;
+        if (!contact?.email) continue;
+
+        const emailSubject = `Rappel : Votre examen T3P ${examen.type_formation} dans 7 jours`;
+
+        try {
+          const emailResponse = await resend.emails.send({
+            from: "T3P Formation <noreply@resend.dev>",
+            to: [contact.email],
+            subject: emailSubject,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #7c3aed;">📝 Rappel Examen T3P - J-7</h2>
+                <p>Bonjour ${contact.prenom} ${contact.nom},</p>
+                <p>Votre examen T3P approche ! Voici les détails :</p>
+                <div style="background: #faf5ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed;">
+                  <h3 style="margin: 0 0 10px 0; color: #6d28d9;">Examen T3P - ${examen.type_formation}</h3>
+                  <p style="margin: 5px 0;"><strong>📅 Date :</strong> ${new Date(examen.date_examen).toLocaleDateString("fr-FR")}</p>
+                  ${examen.heure_examen ? `<p style="margin: 5px 0;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                  ${examen.centre_examen ? `<p style="margin: 5px 0;"><strong>📍 Centre :</strong> ${examen.centre_examen}</p>` : ""}
+                  <p style="margin: 5px 0;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative}</p>
+                </div>
+                <h3>Conseils pour réussir :</h3>
+                <ul>
+                  <li>📖 Révisez les cours théoriques</li>
+                  <li>🆔 N'oubliez pas votre pièce d'identité</li>
+                  <li>⏰ Arrivez 30 minutes avant l'heure</li>
+                  <li>💤 Reposez-vous bien la veille</li>
+                </ul>
+                <p style="color: #7c3aed; font-weight: bold;">Bonne chance pour votre examen !</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 12px;">
+                  T3P Formation - Centre de formation Taxi, VTC et VMDTR
+                </p>
+              </div>
+            `,
+          });
+
+          await supabase.from("email_logs").insert({
+            type: "exam_t3p_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            subject: emailSubject,
+            template_used: "exam_t3p_reminder_j7",
+            status: "sent",
+            resend_id: emailResponse.data?.id,
+            metadata: { examen_id: examen.id, type_formation: examen.type_formation },
+          });
+
+          results.push({
+            type: "exam_t3p_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            examenId: examen.id,
+            subject: emailSubject,
+            success: true,
+            resendId: emailResponse.data?.id,
+          });
+          console.log(`T3P exam J-7 reminder sent to ${contact.email}`);
+        } catch (emailError: any) {
+          await supabase.from("email_logs").insert({
+            type: "exam_t3p_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            subject: emailSubject,
+            template_used: "exam_t3p_reminder_j7",
+            status: "failed",
+            error_message: emailError.message,
+          });
+
+          results.push({
+            type: "exam_t3p_reminder_j7",
+            recipient: contact.email,
+            success: false,
+            error: emailError.message,
+          });
+          console.error(`Failed to send T3P exam reminder to ${contact.email}:`, emailError);
+        }
+      }
+    }
+
+    // ========================================
+    // 5. RAPPELS EXAMEN PRATIQUE J-7
+    // ========================================
+    console.log("Checking for practical exams in 7 days...");
+    
+    const { data: examensPratiqueJ7, error: examensPratiqueError } = await supabase
+      .from("examens_pratique")
+      .select(`
+        id,
+        date_examen,
+        heure_examen,
+        centre_examen,
+        adresse_centre,
+        type_examen,
+        numero_tentative,
+        contact:contacts(id, nom, prenom, email),
+        vehicule:vehicules(immatriculation, marque, modele)
+      `)
+      .eq("date_examen", j7Date)
+      .eq("statut", "planifie");
+
+    if (examensPratiqueError) {
+      console.error("Error fetching practical exams:", examensPratiqueError);
+    } else if (examensPratiqueJ7 && examensPratiqueJ7.length > 0) {
+      console.log(`Found ${examensPratiqueJ7.length} practical exams in 7 days`);
+      
+      for (const examen of examensPratiqueJ7) {
+        const contact = examen.contact as any;
+        const vehicule = examen.vehicule as any;
+        if (!contact?.email) continue;
+
+        const emailSubject = `Rappel : Votre examen pratique dans 7 jours`;
+
+        try {
+          const emailResponse = await resend.emails.send({
+            from: "T3P Formation <noreply@resend.dev>",
+            to: [contact.email],
+            subject: emailSubject,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #0891b2;">🚗 Rappel Examen Pratique - J-7</h2>
+                <p>Bonjour ${contact.prenom} ${contact.nom},</p>
+                <p>Votre examen pratique approche ! Voici les détails :</p>
+                <div style="background: #ecfeff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0891b2;">
+                  <h3 style="margin: 0 0 10px 0; color: #0e7490;">Examen Pratique - ${examen.type_examen}</h3>
+                  <p style="margin: 5px 0;"><strong>📅 Date :</strong> ${new Date(examen.date_examen).toLocaleDateString("fr-FR")}</p>
+                  ${examen.heure_examen ? `<p style="margin: 5px 0;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                  ${examen.centre_examen ? `<p style="margin: 5px 0;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
+                  ${examen.adresse_centre ? `<p style="margin: 5px 0;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
+                  ${vehicule ? `<p style="margin: 5px 0;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
+                  <p style="margin: 5px 0;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative || 1}</p>
+                </div>
+                <h3>À ne pas oublier :</h3>
+                <ul>
+                  <li>🆔 Pièce d'identité en cours de validité</li>
+                  <li>🪪 Permis de conduire</li>
+                  <li>📄 Attestation T3P</li>
+                  <li>⏰ Arrivez 30 minutes avant l'heure</li>
+                </ul>
+                <p style="color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 12px;">
+                  T3P Formation - Centre de formation Taxi, VTC et VMDTR
+                </p>
+              </div>
+            `,
+          });
+
+          await supabase.from("email_logs").insert({
+            type: "exam_pratique_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            subject: emailSubject,
+            template_used: "exam_pratique_reminder_j7",
+            status: "sent",
+            resend_id: emailResponse.data?.id,
+            metadata: { examen_id: examen.id, type_examen: examen.type_examen },
+          });
+
+          results.push({
+            type: "exam_pratique_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            examenId: examen.id,
+            subject: emailSubject,
+            success: true,
+            resendId: emailResponse.data?.id,
+          });
+          console.log(`Practical exam J-7 reminder sent to ${contact.email}`);
+        } catch (emailError: any) {
+          await supabase.from("email_logs").insert({
+            type: "exam_pratique_reminder_j7",
+            recipient_email: contact.email,
+            recipient_name: `${contact.prenom} ${contact.nom}`,
+            contact_id: contact.id,
+            subject: emailSubject,
+            template_used: "exam_pratique_reminder_j7",
+            status: "failed",
+            error_message: emailError.message,
+          });
+
+          results.push({
+            type: "exam_pratique_reminder_j7",
+            recipient: contact.email,
+            success: false,
+            error: emailError.message,
+          });
+          console.error(`Failed to send practical exam reminder to ${contact.email}:`, emailError);
+        }
+      }
+    }
+
+    // ========================================
     // SUMMARY
     // ========================================
     const summary = {
@@ -377,6 +628,8 @@ serve(async (req) => {
         payment_reminders_j7: results.filter((r) => r.type === "payment_reminder_j7").length,
         formation_reminders_j7: results.filter((r) => r.type === "reminder_j7").length,
         formation_reminders_j1: results.filter((r) => r.type === "reminder_j1").length,
+        exam_t3p_reminders_j7: results.filter((r) => r.type === "exam_t3p_reminder_j7").length,
+        exam_pratique_reminders_j7: results.filter((r) => r.type === "exam_pratique_reminder_j7").length,
       },
       details: results,
     };

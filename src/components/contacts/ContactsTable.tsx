@@ -21,7 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
@@ -33,6 +39,7 @@ import { QuickEnrollDialog } from "./QuickEnrollDialog";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { BulkEnrollDialog } from "./BulkEnrollDialog";
 import { BulkSendDocumentsDialog } from "./BulkSendDocumentsDialog";
+import { useExportData } from "@/hooks/useExportData";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -69,6 +76,8 @@ export function ContactsTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEnrollOpen, setBulkEnrollOpen] = useState(false);
   const [bulkSendDocsOpen, setBulkSendDocsOpen] = useState(false);
+  
+  const { exportFilteredContacts, exportContacts } = useExportData();
 
   // Handle URL parameter to open contact detail
   useEffect(() => {
@@ -196,6 +205,24 @@ export function ContactsTable() {
               ))}
             </SelectContent>
           </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportFilteredContacts(filteredContacts)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Exporter la sélection ({filteredContacts.length})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportContacts()}>
+                <FileText className="h-4 w-4 mr-2" />
+                Exporter tous les contacts
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button onClick={handleAddNew}>
             <Plus className="h-4 w-4 mr-2" />
