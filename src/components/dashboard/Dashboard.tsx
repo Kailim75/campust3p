@@ -12,9 +12,13 @@ import { CAParSourceChart } from "./CAParSourceChart";
 import { FillRateCard } from "./FillRateCard";
 import { ForecastCACard } from "./ForecastCACard";
 import { PeriodSelector } from "./PeriodSelector";
+import { ExamSuccessChart, ExamSuccessByFormation } from "./ExamSuccessChart";
+import { MonthlyProjectionsChart, ProjectionDetailsTable } from "./MonthlyProjectionsChart";
+import { CAByFormationChart } from "./CAByFormationChart";
 import { Users, GraduationCap, TrendingUp, Euro, CalendarDays } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -101,40 +105,80 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           ))}
         </div>
 
-        {/* KPIs avancés: Conversion + CA par source + Fill Rate + Forecast */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <ConversionKPICard onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
-          <FillRateCard onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
-          <ForecastCACard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
-          <CAParSourceChart />
-        </div>
+        {/* Tabs for different dashboard views */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+            <TabsTrigger value="finance">Finance</TabsTrigger>
+            <TabsTrigger value="examens">Examens</TabsTrigger>
+          </TabsList>
 
-        {/* Graphiques CA et Finance */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <MonthlyCAChart />
-          <FinancialSummaryCard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
-        </div>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* KPIs avancés */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <ConversionKPICard onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+              <FillRateCard onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              <ForecastCACard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+              <CAParSourceChart />
+            </div>
 
-        {/* Graphiques Formations et Inscriptions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FormationPieChart onClick={onNavigate ? () => onNavigate("formations") : undefined} />
-          <InscriptionTrendChart onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
-        </div>
+            {/* Sessions and Alerts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <SessionsOverview onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              </div>
+              <div>
+                <AlertCard onClick={onNavigate ? () => onNavigate("alertes") : undefined} />
+              </div>
+            </div>
 
-        {/* Sessions and Alerts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <SessionsOverview onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
-          </div>
-          <div>
-            <AlertCard onClick={onNavigate ? () => onNavigate("alertes") : undefined} />
-          </div>
-        </div>
+            {/* Formations and Inscriptions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <FormationPieChart onClick={onNavigate ? () => onNavigate("formations") : undefined} />
+              <InscriptionTrendChart onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+            </div>
 
-        {/* Recent Contacts */}
-        <div className="grid grid-cols-1">
-          <RecentContacts onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
-        </div>
+            {/* Recent Contacts */}
+            <RecentContacts onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+          </TabsContent>
+
+          {/* Finance Tab */}
+          <TabsContent value="finance" className="space-y-6">
+            {/* CA Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <MonthlyCAChart />
+              <FinancialSummaryCard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+            </div>
+
+            {/* Projections */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <MonthlyProjectionsChart onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              <ProjectionDetailsTable />
+            </div>
+
+            {/* CA by Formation */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CAByFormationChart onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+              <ForecastCACard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+            </div>
+          </TabsContent>
+
+          {/* Examens Tab */}
+          <TabsContent value="examens" className="space-y-6">
+            {/* Exam Success Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <ExamSuccessChart onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+              <ExamSuccessByFormation />
+            </div>
+
+            {/* Sessions Overview for exams context */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SessionsOverview onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              <AlertCard onClick={onNavigate ? () => onNavigate("alertes") : undefined} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
