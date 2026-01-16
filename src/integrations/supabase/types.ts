@@ -1100,6 +1100,44 @@ export type Database = {
           },
         ]
       }
+      envois_groupes: {
+        Row: {
+          created_at: string | null
+          date_envoi: string | null
+          destinataires_ids: string[]
+          id: string
+          nombre_destinataires: number
+          session_id: string | null
+          type_document: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_envoi?: string | null
+          destinataires_ids: string[]
+          id?: string
+          nombre_destinataires: number
+          session_id?: string | null
+          type_document: string
+        }
+        Update: {
+          created_at?: string | null
+          date_envoi?: string | null
+          destinataires_ids?: string[]
+          id?: string
+          nombre_destinataires?: number
+          session_id?: string | null
+          type_document?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envois_groupes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       examens_pratique: {
         Row: {
           adresse_centre: string | null
@@ -2305,9 +2343,11 @@ export type Database = {
           contact_id: string
           created_at: string
           date_inscription: string
+          documents_envoyes: string[] | null
           id: string
           session_id: string
           statut: string
+          statut_paiement: string | null
           updated_at: string
         }
         Insert: {
@@ -2315,9 +2355,11 @@ export type Database = {
           contact_id: string
           created_at?: string
           date_inscription?: string
+          documents_envoyes?: string[] | null
           id?: string
           session_id: string
           statut?: string
+          statut_paiement?: string | null
           updated_at?: string
         }
         Update: {
@@ -2325,9 +2367,11 @@ export type Database = {
           contact_id?: string
           created_at?: string
           date_inscription?: string
+          documents_envoyes?: string[] | null
           id?: string
           session_id?: string
           statut?: string
+          statut_paiement?: string | null
           updated_at?: string
         }
         Relationships: [
