@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
+import { useContacts } from '@/hooks/useContacts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Users, 
   UserPlus, 
   CheckSquare, 
   Eye,
   Send,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import {
   Table,
@@ -33,6 +36,16 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { useAddInscription, useRemoveInscription } from '@/hooks/useSessions';
+import { toast } from 'sonner';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -48,11 +61,42 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     isEmargement,
     isEnvoi
   } = useSessionInscrits(sessionId);
+  
+  const { data: allContacts } = useContacts();
+  const addInscription = useAddInscription();
+  const removeInscription = useRemoveInscription();
+  
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  
+  // Contacts disponibles (non inscrits)
+  const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
+  const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
   const [typeDocumentEnvoi, setTypeDocumentEnvoi] = useState('');
   const [contactDetail, setContactDetail] = useState<any>(null);
+
+  // Ajouter un stagiaire
+  const handleAddInscription = async (contact: any) => {
+    try {
+      await addInscription.mutateAsync({ sessionId, contactId: contact.id });
+      toast.success(`${contact.prenom} ${contact.nom} inscrit avec succès`);
+      setAddDialogOpen(false);
+    } catch {
+      toast.error("Erreur lors de l'inscription");
+    }
+  };
+
+  // Supprimer une inscription
+  const handleRemoveInscription = async (contactId: string) => {
+    try {
+      await removeInscription.mutateAsync({ sessionId, contactId });
+      toast.success("Inscription annulée");
+    } catch {
+      toast.error("Erreur lors de l'annulation");
+    }
+  };
 
   // Toggle sélection
   const toggleSelectAll = () => {
@@ -156,11 +200,15 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
 
       {/* Table */}
       <Card>
-        <CardHeader className="py-3">
+        <CardHeader className="py-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <Users className="h-4 w-4" />
             Stagiaires ({inscrits?.length || 0})
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Inscrire
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -198,14 +246,24 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                       {getStatutBadge(inscrit.statut)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setContactDetail(inscrit.contact)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setContactDetail(inscrit.contact)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveInscription(inscrit.contact_id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -288,6 +346,46 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog ajout stagiaire */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Inscrire un stagiaire</DialogTitle>
+          </DialogHeader>
+          <Command className="rounded-lg border">
+            <CommandInput placeholder="Rechercher un contact..." />
+            <CommandList className="max-h-64">
+              <CommandEmpty>Aucun contact trouvé</CommandEmpty>
+              <CommandGroup>
+                {availableContacts.map((contact) => (
+                  <CommandItem
+                    key={contact.id}
+                    onSelect={() => handleAddInscription(contact)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          {`${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {contact.prenom} {contact.nom}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {contact.email || contact.telephone || "Pas de contact"}
+                        </p>
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </DialogContent>
       </Dialog>
     </div>
