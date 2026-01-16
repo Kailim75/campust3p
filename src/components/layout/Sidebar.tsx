@@ -16,7 +16,8 @@ import {
   Mail,
   FileEdit,
   User,
-  FileSignature
+  FileSignature,
+  Kanban
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -31,6 +32,7 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { id: "pipeline", label: "Pipeline", icon: Kanban },
   { id: "contacts", label: "Contacts", icon: Users },
   { id: "formations", label: "Formations", icon: GraduationCap },
   { id: "sessions", label: "Sessions", icon: Calendar },
