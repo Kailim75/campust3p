@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Download, 
   Upload, 
@@ -11,10 +12,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  Building2,
+  FileText,
+  Settings2,
 } from "lucide-react";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
 import { UserManagementSection } from "./UserManagementSection";
+import { CentreFormationSettings } from "./CentreFormationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -96,7 +101,6 @@ export function SettingsPage() {
         return CSV_COLUMNS.map((col) => {
           const value = contact[col as keyof typeof contact];
           if (value === null || value === undefined) return "";
-          // Escape quotes and wrap in quotes if contains separator
           const strValue = String(value);
           if (strValue.includes(";") || strValue.includes('"') || strValue.includes("\n")) {
             return `"${strValue.replace(/"/g, '""')}"`;
@@ -106,8 +110,6 @@ export function SettingsPage() {
       });
 
       const csvContent = [headers, ...rows].join("\n");
-      
-      // Add BOM for Excel UTF-8 compatibility
       const BOM = "\uFEFF";
       const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
@@ -167,7 +169,6 @@ export function SettingsPage() {
     const errors: string[] = [];
     const valid: any[] = [];
 
-    // Check required columns
     const nomIndex = headers.indexOf("nom");
     const prenomIndex = headers.indexOf("prenom");
 
@@ -177,7 +178,7 @@ export function SettingsPage() {
     }
 
     rows.forEach((row, rowIndex) => {
-      const lineNum = rowIndex + 2; // +2 because header is line 1
+      const lineNum = rowIndex + 2;
       const contact: any = {};
       let rowErrors: string[] = [];
 
@@ -185,7 +186,6 @@ export function SettingsPage() {
         const value = row[colIndex]?.trim() || "";
         
         if (CSV_COLUMNS.includes(header)) {
-          // Validate specific fields
           if (header === "nom" && !value) {
             rowErrors.push(`Ligne ${lineNum}: Nom obligatoire`);
           }
@@ -205,7 +205,6 @@ export function SettingsPage() {
             rowErrors.push(`Ligne ${lineNum}: Civilité invalide (${value})`);
           }
           
-          // Date validation
           if (["date_naissance", "date_delivrance_permis", "date_expiration_carte"].includes(header) && value) {
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
             if (!dateRegex.test(value)) {
@@ -232,8 +231,6 @@ export function SettingsPage() {
     const workbook = XLSX.read(buffer, { type: "array" });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
-    
-    // Convert to array of arrays
     const data: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
     if (data.length === 0) return { headers: [], rows: [] };
@@ -242,7 +239,6 @@ export function SettingsPage() {
     const rows = data.slice(1).map((row: any[]) => 
       row.map((cell: any) => {
         if (cell === null || cell === undefined) return "";
-        // Handle Excel dates (numbers)
         if (typeof cell === "number" && headers[row.indexOf(cell)]?.includes("date")) {
           try {
             const date = XLSX.SSF.parse_date_code(cell);
@@ -253,7 +249,7 @@ export function SettingsPage() {
               return `${year}-${month}-${day}`;
             }
           } catch {
-            // Not a date, return as string
+            // Not a date
           }
         }
         return String(cell).trim();
@@ -307,7 +303,6 @@ export function SettingsPage() {
       toast.error("Erreur lors de la lecture du fichier");
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -319,7 +314,6 @@ export function SettingsPage() {
 
     setIsImporting(true);
     try {
-      // Insert contacts in batches
       const batchSize = 50;
       let imported = 0;
 
@@ -391,133 +385,162 @@ export function SettingsPage() {
         subtitle="Configuration et gestion des données"
       />
 
-      <main className="p-6 space-y-6 animate-fade-in">
-        {/* Import/Export Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Gestion des contacts
-            </CardTitle>
-            <CardDescription>
-              Importez ou exportez vos contacts en masse au format CSV ou Excel
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Info alert */}
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Formats supportés</AlertTitle>
-              <AlertDescription>
-                <strong>CSV</strong> : utilise le point-virgule (;) comme séparateur.<br />
-                <strong>Excel</strong> : fichiers .xlsx et .xls.<br />
-                Colonnes obligatoires : <strong>nom</strong> et <strong>prenom</strong>.
-              </AlertDescription>
-            </Alert>
+      <main className="p-6 animate-fade-in">
+        <Tabs defaultValue="centre" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="centre" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Centre</span>
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Contacts</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="utilisateurs" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+          </TabsList>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Export Card */}
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-success/10">
-                    <Download className="h-5 w-5 text-success" />
+          {/* Tab: Centre de Formation */}
+          <TabsContent value="centre" className="space-y-6">
+            <CentreFormationSettings />
+          </TabsContent>
+
+          {/* Tab: Contacts Import/Export */}
+          <TabsContent value="contacts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Gestion des contacts
+                </CardTitle>
+                <CardDescription>
+                  Importez ou exportez vos contacts en masse au format CSV ou Excel
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Formats supportés</AlertTitle>
+                  <AlertDescription>
+                    <strong>CSV</strong> : utilise le point-virgule (;) comme séparateur.<br />
+                    <strong>Excel</strong> : fichiers .xlsx et .xls.<br />
+                    Colonnes obligatoires : <strong>nom</strong> et <strong>prenom</strong>.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Export Card */}
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <Download className="h-5 w-5 text-success" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">Exporter les contacts</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Téléchargez tous vos contacts au format CSV
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleExport} 
+                      disabled={isExporting}
+                      className="w-full"
+                    >
+                      {isExporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Export en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Exporter CSV
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div>
-                    <h4 className="font-medium">Exporter les contacts</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Téléchargez tous vos contacts au format CSV
-                    </p>
+
+                  {/* Import Card */}
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Upload className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">Importer des contacts</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Ajoutez des contacts depuis un fichier CSV ou Excel
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Sélectionner CSV ou Excel
+                    </Button>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleExport} 
-                  disabled={isExporting}
-                  className="w-full"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Export en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Exporter CSV
-                    </>
-                  )}
-                </Button>
-              </div>
 
-              {/* Import Card */}
-              <div className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Upload className="h-5 w-5 text-primary" />
+                {/* Template download */}
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Modèle d'import</p>
+                      <p className="text-xs text-muted-foreground">
+                        Téléchargez un fichier exemple avec les colonnes requises
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium">Importer des contacts</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Ajoutez des contacts depuis un fichier CSV ou Excel
-                    </p>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Télécharger
+                  </Button>
+                </div>
+
+                {/* Columns reference */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Colonnes disponibles</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {CSV_COLUMNS.map((col) => (
+                      <Badge key={col} variant="outline" className="text-xs">
+                        {col}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Sélectionner CSV ou Excel
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            {/* Template download */}
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Modèle d'import</p>
-                  <p className="text-xs text-muted-foreground">
-                    Téléchargez un fichier exemple avec les colonnes requises
-                  </p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>
-                <Download className="h-4 w-4 mr-1" />
-                Télécharger
-              </Button>
-            </div>
+          {/* Tab: Documents */}
+          <TabsContent value="documents" className="space-y-6">
+            <DocumentTemplatesSection />
+            <TemplateFilesSection />
+          </TabsContent>
 
-            {/* Columns reference */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Colonnes disponibles</h4>
-              <div className="flex flex-wrap gap-1">
-                {CSV_COLUMNS.map((col) => (
-                  <Badge key={col} variant="outline" className="text-xs">
-                    {col}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* User Management Section */}
-        <UserManagementSection />
-
-        {/* Document Templates Section */}
-        <DocumentTemplatesSection />
-
-        {/* Template Files Section */}
-        <TemplateFilesSection />
+          {/* Tab: Utilisateurs */}
+          <TabsContent value="utilisateurs" className="space-y-6">
+            <UserManagementSection />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Import Preview Dialog */}
@@ -531,7 +554,6 @@ export function SettingsPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Summary */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-success" />
@@ -545,7 +567,6 @@ export function SettingsPage() {
               )}
             </div>
 
-            {/* Errors */}
             {importErrors.length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -565,7 +586,6 @@ export function SettingsPage() {
               </Alert>
             )}
 
-            {/* Preview table */}
             {importPreview && importPreview.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
                 <ScrollArea className="h-[200px]">

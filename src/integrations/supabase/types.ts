@@ -172,6 +172,69 @@ export type Database = {
         }
         Relationships: []
       }
+      centre_formation: {
+        Row: {
+          adresse_complete: string
+          bic: string
+          created_at: string | null
+          email: string
+          forme_juridique: string
+          iban: string
+          id: string
+          logo_url: string | null
+          nda: string
+          nom_commercial: string
+          nom_legal: string
+          region_declaration: string
+          responsable_legal_fonction: string
+          responsable_legal_nom: string
+          signature_cachet_url: string | null
+          siret: string
+          telephone: string
+          updated_at: string | null
+        }
+        Insert: {
+          adresse_complete: string
+          bic: string
+          created_at?: string | null
+          email: string
+          forme_juridique: string
+          iban: string
+          id?: string
+          logo_url?: string | null
+          nda: string
+          nom_commercial: string
+          nom_legal: string
+          region_declaration: string
+          responsable_legal_fonction: string
+          responsable_legal_nom: string
+          signature_cachet_url?: string | null
+          siret: string
+          telephone: string
+          updated_at?: string | null
+        }
+        Update: {
+          adresse_complete?: string
+          bic?: string
+          created_at?: string | null
+          email?: string
+          forme_juridique?: string
+          iban?: string
+          id?: string
+          logo_url?: string | null
+          nda?: string
+          nom_commercial?: string
+          nom_legal?: string
+          region_declaration?: string
+          responsable_legal_fonction?: string
+          responsable_legal_nom?: string
+          signature_cachet_url?: string | null
+          siret?: string
+          telephone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contact_documents: {
         Row: {
           commentaires: string | null
