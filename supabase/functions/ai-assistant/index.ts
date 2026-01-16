@@ -117,7 +117,7 @@ const TOOLS = [
           formation_type: { type: "string", enum: FORMATION_TYPE_VALUES, description: "Type de formation: TAXI, VTC, VMDTR, etc." },
           date_debut: { type: "string", description: "Date de début (YYYY-MM-DD)" },
           date_fin: { type: "string", description: "Date de fin (YYYY-MM-DD)" },
-          places_max: { type: "number", description: "Nombre maximum de places" },
+          places_totales: { type: "number", description: "Nombre maximum de places" },
           lieu: { type: "string", description: "Lieu de la formation" },
           formateur_id: { type: "string", description: "ID du formateur" }
         },
@@ -311,7 +311,7 @@ async function executeUpdateContact(supabase: any, params: any) {
 }
 
 async function executeListSessions(supabase: any, params: any) {
-  let query = supabase.from('sessions').select('id, nom, formation_type, date_debut, date_fin, statut, places_max, lieu');
+  let query = supabase.from('sessions').select('id, nom, formation_type, date_debut, date_fin, statut, places_totales, lieu');
   
   if (params.statut) {
     query = query.eq('statut', params.statut);
@@ -339,7 +339,7 @@ async function executeCreateSession(supabase: any, params: any) {
       formation_type: params.formation_type,
       date_debut: params.date_debut,
       date_fin: params.date_fin,
-      places_max: params.places_max || 10,
+      places_totales: params.places_totales || 10,
       lieu: params.lieu || null,
       formateur_id: params.formateur_id || null,
       statut: 'planifiee'
