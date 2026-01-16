@@ -1897,6 +1897,184 @@ export type Database = {
           },
         ]
       }
+      qualiopi_actions: {
+        Row: {
+          created_at: string | null
+          date_echeance: string | null
+          date_realisation: string | null
+          description: string
+          id: string
+          indicateur_id: string | null
+          priorite: string | null
+          responsable: string | null
+          statut: string | null
+          titre: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_echeance?: string | null
+          date_realisation?: string | null
+          description: string
+          id?: string
+          indicateur_id?: string | null
+          priorite?: string | null
+          responsable?: string | null
+          statut?: string | null
+          titre: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_echeance?: string | null
+          date_realisation?: string | null
+          description?: string
+          id?: string
+          indicateur_id?: string | null
+          priorite?: string | null
+          responsable?: string | null
+          statut?: string | null
+          titre?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualiopi_actions_indicateur_id_fkey"
+            columns: ["indicateur_id"]
+            isOneToOne: false
+            referencedRelation: "qualiopi_indicateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualiopi_audits: {
+        Row: {
+          created_at: string | null
+          date_audit: string
+          date_prochaine_echeance: string | null
+          id: string
+          non_conformites_majeures: number | null
+          non_conformites_mineures: number | null
+          observations: string | null
+          organisme_certificateur: string | null
+          score_global: number | null
+          statut: string | null
+          type_audit: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_audit: string
+          date_prochaine_echeance?: string | null
+          id?: string
+          non_conformites_majeures?: number | null
+          non_conformites_mineures?: number | null
+          observations?: string | null
+          organisme_certificateur?: string | null
+          score_global?: number | null
+          statut?: string | null
+          type_audit: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_audit?: string
+          date_prochaine_echeance?: string | null
+          id?: string
+          non_conformites_majeures?: number | null
+          non_conformites_mineures?: number | null
+          observations?: string | null
+          organisme_certificateur?: string | null
+          score_global?: number | null
+          statut?: string | null
+          type_audit?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      qualiopi_indicateurs: {
+        Row: {
+          created_at: string | null
+          critere: number
+          description: string
+          id: string
+          numero: string
+          preuves_attendues: string[] | null
+          statut: string | null
+          titre: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          critere: number
+          description: string
+          id?: string
+          numero: string
+          preuves_attendues?: string[] | null
+          statut?: string | null
+          titre: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          critere?: number
+          description?: string
+          id?: string
+          numero?: string
+          preuves_attendues?: string[] | null
+          statut?: string | null
+          titre?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      qualiopi_preuves: {
+        Row: {
+          created_at: string | null
+          date_creation: string
+          date_validite: string | null
+          description: string | null
+          fichier_url: string | null
+          id: string
+          indicateur_id: string | null
+          titre: string
+          type_preuve: string
+          valide: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_creation?: string
+          date_validite?: string | null
+          description?: string | null
+          fichier_url?: string | null
+          id?: string
+          indicateur_id?: string | null
+          titre: string
+          type_preuve: string
+          valide?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          date_creation?: string
+          date_validite?: string | null
+          description?: string | null
+          fichier_url?: string | null
+          id?: string
+          indicateur_id?: string | null
+          titre?: string
+          type_preuve?: string
+          valide?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualiopi_preuves_indicateur_id_fkey"
+            columns: ["indicateur_id"]
+            isOneToOne: false
+            referencedRelation: "qualiopi_indicateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seances_conduite: {
         Row: {
           competences_travaillees: string[] | null
