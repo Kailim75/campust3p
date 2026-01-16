@@ -67,25 +67,59 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const removeInscription = useRemoveInscription();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Contacts disponibles (non inscrits)
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
+  
+  // Filtrer par recherche
+  const filteredContacts = availableContacts.filter(c => 
+    `${c.prenom} ${c.nom}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
   const [typeDocumentEnvoi, setTypeDocumentEnvoi] = useState('');
   const [contactDetail, setContactDetail] = useState<any>(null);
 
-  // Ajouter un stagiaire
-  const handleAddInscription = async (contact: any) => {
-    try {
-      await addInscription.mutateAsync({ sessionId, contactId: contact.id });
-      toast.success(`${contact.prenom} ${contact.nom} inscrit avec succès`);
-      setAddDialogOpen(false);
-    } catch {
-      toast.error("Erreur lors de l'inscription");
+  // Toggle sélection pour ajout
+  const toggleContactToAdd = (contactId: string) => {
+    setContactsToAdd(prev => 
+      prev.includes(contactId) 
+        ? prev.filter(id => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
+  // Ajouter plusieurs stagiaires
+  const handleAddMultipleInscriptions = async () => {
+    if (contactsToAdd.length === 0) return;
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const contactId of contactsToAdd) {
+      try {
+        await addInscription.mutateAsync({ sessionId, contactId });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
     }
+    
+    if (successCount > 0) {
+      toast.success(`${successCount} stagiaire(s) inscrit(s) avec succès`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} inscription(s) en erreur`);
+    }
+    
+    setContactsToAdd([]);
+    setSearchQuery('');
+    setAddDialogOpen(false);
   };
 
   // Supprimer une inscription
@@ -349,43 +383,74 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </DialogContent>
       </Dialog>
 
-      {/* Dialog ajout stagiaire */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+      {/* Dialog ajout stagiaires multiples */}
+      <Dialog open={addDialogOpen} onOpenChange={(open) => {
+        setAddDialogOpen(open);
+        if (!open) {
+          setContactsToAdd([]);
+          setSearchQuery('');
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Inscrire un stagiaire</DialogTitle>
+            <DialogTitle>Inscrire des stagiaires</DialogTitle>
           </DialogHeader>
-          <Command className="rounded-lg border">
-            <CommandInput placeholder="Rechercher un contact..." />
-            <CommandList className="max-h-64">
-              <CommandEmpty>Aucun contact trouvé</CommandEmpty>
-              <CommandGroup>
-                {availableContacts.map((contact) => (
-                  <CommandItem
-                    key={contact.id}
-                    onSelect={() => handleAddInscription(contact)}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {`${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {contact.prenom} {contact.nom}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {contact.email || contact.telephone || "Pas de contact"}
-                        </p>
+          <div className="space-y-4">
+            <Command className="rounded-lg border">
+              <CommandInput 
+                placeholder="Rechercher un contact..." 
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+              />
+              <CommandList className="max-h-64">
+                <CommandEmpty>Aucun contact trouvé</CommandEmpty>
+                <CommandGroup>
+                  {filteredContacts.map((contact) => (
+                    <CommandItem
+                      key={contact.id}
+                      onSelect={() => toggleContactToAdd(contact.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <Checkbox
+                          checked={contactsToAdd.includes(contact.id)}
+                          onCheckedChange={() => toggleContactToAdd(contact.id)}
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            {`${contact.prenom?.[0] ?? ""}${contact.nom?.[0] ?? ""}`.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {contact.prenom} {contact.nom}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {contact.email || contact.telephone || "Pas de contact"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+            
+            {contactsToAdd.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                {contactsToAdd.length} contact(s) sélectionné(s)
+              </div>
+            )}
+            
+            <Button 
+              className="w-full" 
+              onClick={handleAddMultipleInscriptions}
+              disabled={contactsToAdd.length === 0 || addInscription.isPending}
+            >
+              {addInscription.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Inscrire {contactsToAdd.length > 0 ? `(${contactsToAdd.length})` : ''}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
