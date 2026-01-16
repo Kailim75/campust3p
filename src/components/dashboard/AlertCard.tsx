@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, FileWarning, Clock, CreditCard, IdCard, Loader2, ChevronRight } from "lucide-react";
+import { AlertTriangle, FileWarning, Clock, CreditCard, IdCard, Loader2, ChevronRight, Award, Car } from "lucide-react";
 import { useAllAlerts, Alert } from "@/hooks/useAlerts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ const alertIcons: Record<Alert["type"], React.ElementType> = {
   session: Clock,
   carte_pro: IdCard,
   permis: IdCard,
+  exam_t3p: Award,
+  exam_pratique: Car,
 };
 
 const alertStyles: Record<Alert["type"], string> = {
@@ -18,6 +20,8 @@ const alertStyles: Record<Alert["type"], string> = {
   session: "border-l-info bg-info/5",
   carte_pro: "border-l-warning bg-warning/5",
   permis: "border-l-warning bg-warning/5",
+  exam_t3p: "border-l-success bg-success/5",
+  exam_pratique: "border-l-info bg-info/5",
 };
 
 const priorityBadge: Record<Alert["priority"], { label: string; class: string }> = {
@@ -58,8 +62,14 @@ export function AlertCard({ onClick }: AlertCardProps) {
       </div>
 
       {/* Quick stats */}
-      {counts && (counts.payments > 0 || counts.documents > 0) && (
-        <div className="flex gap-2 mb-4">
+      {counts && (counts.payments > 0 || counts.documents > 0 || counts.exams > 0) && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {counts.exams > 0 && (
+            <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+              <Award className="h-3 w-3 mr-1" />
+              {counts.exams} examen{counts.exams > 1 ? "s" : ""}
+            </Badge>
+          )}
           {counts.payments > 0 && (
             <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
               <CreditCard className="h-3 w-3 mr-1" />
