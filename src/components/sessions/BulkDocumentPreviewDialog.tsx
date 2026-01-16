@@ -11,6 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   FileText,
   FileDown,
@@ -20,6 +28,8 @@ import {
   Loader2,
   Eye,
   AlertCircle,
+  FileCode,
+  Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -31,6 +41,9 @@ import {
   type SessionInfo,
 } from '@/lib/pdf-generator';
 import type { DocumentType } from '@/hooks/useDocumentGenerator';
+import { useDocumentTemplates, replaceVariables, DocumentTemplate } from '@/hooks/useDocumentTemplates';
+import { jsPDF } from 'jspdf';
+import DOMPurify from 'dompurify';
 
 interface Inscrit {
   id: string;
@@ -56,13 +69,20 @@ interface BulkDocumentPreviewDialogProps {
   documentType: DocumentType;
   inscrits: Inscrit[];
   sessionInfo: SessionInfo;
-  onConfirm: () => void;
+  onConfirm: (templateId?: string) => void;
 }
 
 const documentTypeLabels: Record<string, string> = {
   convocation: 'Convocation',
   convention: 'Convention',
   attestation: 'Attestation',
+};
+
+// Map document types to template types
+const documentTypeToTemplateType: Record<string, string> = {
+  convocation: 'convocation',
+  convention: 'convention',
+  attestation: 'attestation',
 };
 
 export function BulkDocumentPreviewDialog({
@@ -76,6 +96,20 @@ export function BulkDocumentPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('default');
+
+  const { data: templates = [] } = useDocumentTemplates();
+
+  // Filter templates by document type
+  const availableTemplates = useMemo(() => {
+    const templateType = documentTypeToTemplateType[documentType];
+    return templates.filter(t => t.type_document === templateType && t.actif);
+  }, [templates, documentType]);
+
+  const selectedTemplate = useMemo(() => {
+    if (selectedTemplateId === 'default') return null;
+    return availableTemplates.find(t => t.id === selectedTemplateId) || null;
+  }, [selectedTemplateId, availableTemplates]);
 
   const currentInscrit = inscrits[currentIndex];
   
@@ -97,6 +131,55 @@ export function BulkDocumentPreviewDialog({
     };
   }, [currentInscrit]);
 
+  // Generate PDF from template
+  const generatePDFFromTemplate = (template: DocumentTemplate, contact: ContactInfo, session: SessionInfo): jsPDF => {
+    const doc = new jsPDF();
+    
+    // Replace variables in template content
+    const content = replaceVariables(template.contenu, contact, session);
+    
+    // Sanitize content
+    const cleanContent = DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(template.nom, 20, 25);
+    
+    // Add content with word wrapping
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    
+    const lines = doc.splitTextToSize(cleanContent, 170);
+    let y = 45;
+    const lineHeight = 7;
+    
+    lines.forEach((line: string) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(line, 20, y);
+      y += lineHeight;
+    });
+    
+    // Add footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
+        20,
+        285
+      );
+      doc.text(`Page ${i}/${pageCount}`, 180, 285, { align: 'right' });
+    }
+    
+    return doc;
+  };
+
   // Generate PDF preview when current inscrit or document type changes
   useEffect(() => {
     if (!open || !contactInfo || !sessionInfo) {
@@ -106,22 +189,28 @@ export function BulkDocumentPreviewDialog({
 
     setIsGenerating(true);
     
-    // Use setTimeout to allow UI to update before heavy PDF generation
     const timeout = setTimeout(() => {
       try {
         let doc;
-        switch (documentType) {
-          case 'attestation':
-            doc = generateAttestationPDF(contactInfo, sessionInfo);
-            break;
-          case 'convention':
-            doc = generateConventionPDF(contactInfo, sessionInfo);
-            break;
-          case 'convocation':
-            doc = generateConvocationPDF(contactInfo, sessionInfo);
-            break;
-          default:
-            doc = null;
+        
+        if (selectedTemplate) {
+          // Use custom template
+          doc = generatePDFFromTemplate(selectedTemplate, contactInfo, sessionInfo);
+        } else {
+          // Use default generation
+          switch (documentType) {
+            case 'attestation':
+              doc = generateAttestationPDF(contactInfo, sessionInfo);
+              break;
+            case 'convention':
+              doc = generateConventionPDF(contactInfo, sessionInfo);
+              break;
+            case 'convocation':
+              doc = generateConvocationPDF(contactInfo, sessionInfo);
+              break;
+            default:
+              doc = null;
+          }
         }
 
         if (doc) {
@@ -137,12 +226,13 @@ export function BulkDocumentPreviewDialog({
     }, 100);
 
     return () => clearTimeout(timeout);
-  }, [open, contactInfo, sessionInfo, documentType, currentIndex]);
+  }, [open, contactInfo, sessionInfo, documentType, currentIndex, selectedTemplate]);
 
   // Reset index when dialog opens
   useEffect(() => {
     if (open) {
       setCurrentIndex(0);
+      setSelectedTemplateId('default');
     }
   }, [open]);
 
@@ -155,7 +245,7 @@ export function BulkDocumentPreviewDialog({
   };
 
   const handleConfirmGeneration = () => {
-    onConfirm();
+    onConfirm(selectedTemplateId !== 'default' ? selectedTemplateId : undefined);
     onOpenChange(false);
   };
 
@@ -168,11 +258,55 @@ export function BulkDocumentPreviewDialog({
             Prévisualisation - {documentTypeLabels[documentType] || documentType}
           </DialogTitle>
           <DialogDescription>
-            Vérifiez l'aperçu du document avant de générer pour tous les stagiaires
+            Choisissez un modèle et vérifiez l'aperçu avant de générer pour tous les stagiaires
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0 gap-4">
+          {/* Template selector */}
+          <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileCode className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium">Modèle :</Label>
+            </div>
+            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Choisir un modèle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span>Modèle par défaut</span>
+                  </div>
+                </SelectItem>
+                {availableTemplates.length > 0 && (
+                  <>
+                    <Separator className="my-1" />
+                    {availableTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span>{template.nom}</span>
+                          {template.variables && template.variables.length > 0 && (
+                            <Badge variant="secondary" className="text-xs ml-1">
+                              {template.variables.length} var.
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+            {availableTemplates.length === 0 && (
+              <span className="text-xs text-muted-foreground">
+                Aucun modèle personnalisé disponible pour ce type
+              </span>
+            )}
+          </div>
+
           {/* Navigation between trainees */}
           <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
             <Button
@@ -242,8 +376,9 @@ export function BulkDocumentPreviewDialog({
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Session :</span>
-                <span className="font-medium">{sessionInfo.nom}</span>
+                <span className="text-muted-foreground">
+                  {selectedTemplate ? `Modèle : ${selectedTemplate.nom}` : 'Modèle par défaut'}
+                </span>
               </div>
             </div>
           </div>
