@@ -3,24 +3,50 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Bot, User, Send, Sparkles } from 'lucide-react';
+import { Loader2, Bot, User, Send, Sparkles, CheckCircle2, XCircle, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 
+interface ToolResult {
+  tool: string;
+  result: {
+    success: boolean;
+    message?: string;
+    [key: string]: any;
+  };
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  toolResults?: ToolResult[];
 }
+
+const TOOL_LABELS: Record<string, string> = {
+  create_contact: 'Création contact',
+  search_contacts: 'Recherche contacts',
+  update_contact: 'Mise à jour contact',
+  list_sessions: 'Liste sessions',
+  create_session: 'Création session',
+  enroll_contact_to_session: 'Inscription session',
+  list_factures: 'Liste factures',
+  create_facture: 'Création facture',
+  register_payment: 'Enregistrement paiement',
+  send_email: 'Envoi email',
+  create_notification: 'Création notification',
+  get_dashboard_stats: 'Statistiques',
+  add_contact_historique: 'Ajout historique'
+};
 
 export function AIAssistant() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Bonjour ! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui ?\n\nJe peux :\n• Analyser vos performances et taux de réussite\n• Générer des emails professionnels\n• Répondre à vos questions sur la réglementation T3P\n• Vous donner des conseils pour améliorer vos résultats",
+      content: "Bonjour ! Je suis votre assistant IA et je peux maintenant **exécuter des actions** dans votre CRM.\n\n🎯 **Ce que je peux faire :**\n• Créer et rechercher des contacts\n• Planifier des sessions et inscrire des stagiaires\n• Créer des factures et enregistrer des paiements\n• Envoyer des emails\n• Créer des rappels et notifications\n\nDites-moi ce que vous souhaitez faire !",
       timestamp: new Date()
     }
   ]);
@@ -29,14 +55,14 @@ export function AIAssistant() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const quickActions = [
-    { label: 'Analyser performances', action: 'analyze_performance', prompt: 'Analyse les performances de mes formations sur les 3 derniers mois et donne-moi des recommandations.' },
-    { label: 'Taux de réussite', action: 'analyze_performance', prompt: 'Quel est le taux de réussite de mes stagiaires aux examens T3P ? Détaille par type de formation.' },
-    { label: 'Email de relance', action: 'generate_email', prompt: 'Génère un email de relance professionnelle pour un stagiaire qui n\'a pas payé sa formation.' },
-    { label: 'Conseils amélioration', action: 'advice', prompt: 'Quels conseils pratiques peux-tu me donner pour améliorer le taux de réussite de mes stagiaires aux examens ?' },
+    { label: '📊 Voir les stats', prompt: 'Montre-moi les statistiques du mois en cours' },
+    { label: '➕ Créer un contact', prompt: 'Je veux créer un nouveau contact' },
+    { label: '📅 Sessions à venir', prompt: 'Liste les prochaines sessions de formation planifiées' },
+    { label: '💳 Factures en attente', prompt: 'Quelles sont les factures en attente de paiement ?' },
+    { label: '📧 Envoyer un email', prompt: 'Je veux envoyer un email à un contact' },
   ];
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
@@ -45,7 +71,7 @@ export function AIAssistant() {
     }
   }, [messages]);
 
-  const sendMessage = async (messageText: string, action?: string) => {
+  const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -59,11 +85,18 @@ export function AIAssistant() {
     setIsLoading(true);
 
     try {
+      // Build conversation history for context
+      const conversationHistory = messages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           message: messageText,
-          action: action || 'general',
-          userId: user?.id
+          action: 'agent',
+          userId: user?.id,
+          conversationHistory
         }
       });
 
@@ -76,15 +109,23 @@ export function AIAssistant() {
       const assistantMessage: Message = {
         role: 'assistant',
         content: data.response,
-        timestamp: new Date()
+        timestamp: new Date(),
+        toolResults: data.toolResults
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Show toast for executed actions
+      if (data.toolResults && data.toolResults.length > 0) {
+        const successCount = data.toolResults.filter((r: ToolResult) => r.result.success).length;
+        if (successCount > 0) {
+          toast.success(`${successCount} action(s) exécutée(s) avec succès`);
+        }
+      }
     } catch (error: any) {
       console.error('AI Assistant error:', error);
       toast.error(error.message || 'Erreur de communication avec l\'assistant');
       
-      // Add error message to chat
       const errorMessage: Message = {
         role: 'assistant',
         content: "Désolé, une erreur s'est produite. Veuillez réessayer dans quelques instants.",
@@ -103,6 +144,33 @@ export function AIAssistant() {
     }
   };
 
+  const renderToolResults = (toolResults: ToolResult[]) => {
+    return (
+      <div className="mt-2 space-y-1">
+        {toolResults.map((tr, idx) => (
+          <div
+            key={idx}
+            className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${
+              tr.result.success 
+                ? 'bg-green-500/10 text-green-700 dark:text-green-400' 
+                : 'bg-red-500/10 text-red-700 dark:text-red-400'
+            }`}
+          >
+            {tr.result.success ? (
+              <CheckCircle2 className="h-3 w-3" />
+            ) : (
+              <XCircle className="h-3 w-3" />
+            )}
+            <span className="font-medium">{TOOL_LABELS[tr.tool] || tr.tool}</span>
+            {tr.result.message && (
+              <span className="text-muted-foreground">- {tr.result.message}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Card className="flex flex-col h-full border-0 shadow-none">
       <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-primary/10">
@@ -112,14 +180,14 @@ export function AIAssistant() {
           </div>
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
-              Assistant IA
+              Assistant IA Agent
               <Badge variant="secondary" className="text-xs">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Lovable AI
+                <Zap className="h-3 w-3 mr-1" />
+                Actions CRM
               </Badge>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Posez-moi des questions sur votre CRM
+              Exécute des tâches dans votre CRM
             </p>
           </div>
         </div>
@@ -136,7 +204,7 @@ export function AIAssistant() {
                 variant="outline"
                 size="sm"
                 className="text-xs h-7"
-                onClick={() => sendMessage(qa.prompt, qa.action)}
+                onClick={() => sendMessage(qa.prompt)}
                 disabled={isLoading}
               >
                 {qa.label}
@@ -160,13 +228,16 @@ export function AIAssistant() {
                 )}
                 
                 <div
-                  className={`rounded-lg px-4 py-3 max-w-[80%] ${
+                  className={`rounded-lg px-4 py-3 max-w-[85%] ${
                     msg.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  
+                  {msg.toolResults && msg.toolResults.length > 0 && renderToolResults(msg.toolResults)}
+                  
                   <span className="text-xs opacity-70 mt-1 block">
                     {msg.timestamp.toLocaleTimeString('fr-FR', { 
                       hour: '2-digit', 
@@ -188,8 +259,9 @@ export function AIAssistant() {
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <Bot className="h-4 w-4 text-primary" />
                 </div>
-                <div className="rounded-lg px-4 py-3 bg-muted">
+                <div className="rounded-lg px-4 py-3 bg-muted flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Exécution en cours...</span>
                 </div>
               </div>
             )}
@@ -209,7 +281,7 @@ export function AIAssistant() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Posez votre question..."
+              placeholder="Ex: Crée un contact Jean Dupont avec l'email jean@example.com"
               disabled={isLoading}
               className="flex-1"
             />
