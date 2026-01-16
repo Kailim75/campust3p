@@ -38,6 +38,7 @@ import {
   Bell,
   BellOff,
   FileSignature,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -73,6 +74,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { ContactPratiqueTab } from "./pratique/ContactPratiqueTab";
 import { ContactLocationTab } from "./location/ContactLocationTab";
+import { ExamensTab } from "./examens/ExamensTab";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -320,7 +322,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
 
             {/* Onglets */}
             <Tabs defaultValue="infos" className="w-full">
-              <TabsList className="grid w-full grid-cols-7 mb-4">
+              <TabsList className="grid w-full grid-cols-8 mb-4">
                 <TabsTrigger value="infos" className="text-xs px-1">
                   <User className="h-3 w-3 sm:mr-1" />
                   <span className="hidden sm:inline">Infos</span>
@@ -328,6 +330,10 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                 <TabsTrigger value="sessions" className="text-xs px-1">
                   <ClipboardList className="h-3 w-3 sm:mr-1" />
                   <span className="hidden sm:inline">Sessions</span>
+                </TabsTrigger>
+                <TabsTrigger value="examens" className="text-xs px-1">
+                  <Award className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Examens</span>
                 </TabsTrigger>
                 <TabsTrigger value="pratique" className="text-xs px-1">
                   <Car className="h-3 w-3 sm:mr-1" />
@@ -461,6 +467,11 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                     </div>
                   ))
                 )}
+              </TabsContent>
+
+              {/* Onglet Examens */}
+              <TabsContent value="examens">
+                <ExamensTab contactId={contact.id} formationType={contact.formation || undefined} />
               </TabsContent>
 
               {/* Onglet Pratique */}
