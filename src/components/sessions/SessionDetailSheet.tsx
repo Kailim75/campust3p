@@ -35,6 +35,7 @@ import {
   User,
   Award,
   Send,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -59,6 +60,7 @@ import {
 } from "@/components/ui/command";
 import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
+import { CloseSessionDialog } from "./CloseSessionDialog";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -95,6 +97,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const removeInscription = useRemoveInscription();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
@@ -386,6 +389,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       <Edit className="h-4 w-4 mr-2" />
                       Modifier
                     </Button>
+                    {session.statut !== "terminee" && session.statut !== "annulee" && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 border-success text-success hover:bg-success/10"
+                        onClick={() => setCloseDialogOpen(true)}
+                        disabled={inscriptionCount === 0}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Clôturer
+                      </Button>
+                    )}
                   </div>
                 </TabsContent>
 
@@ -504,6 +518,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           </Command>
         </DialogContent>
       </Dialog>
+
+      {/* Close Session Dialog */}
+      {session && (
+        <CloseSessionDialog
+          session={session}
+          inscriptions={inscriptions || []}
+          open={closeDialogOpen}
+          onOpenChange={setCloseDialogOpen}
+          onSuccess={() => onOpenChange(false)}
+        />
+      )}
     </>
   );
 }

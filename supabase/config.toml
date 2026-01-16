@@ -3,6 +3,9 @@ project_id = "zhgbbujqapcigmduuqiy"
 [functions.send-automated-emails]
 verify_jwt = false
 
+[functions.send-exam-reminders]
+verify_jwt = false
+
 [functions.create-user]
 verify_jwt = false
 
@@ -10,4 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.list-users]
+verify_jwt = false
+
+[functions.generate-notifications]
 verify_jwt = false
