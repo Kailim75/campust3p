@@ -39,7 +39,9 @@ import { QuickEnrollDialog } from "./QuickEnrollDialog";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { BulkEnrollDialog } from "./BulkEnrollDialog";
 import { BulkSendDocumentsDialog } from "./BulkSendDocumentsDialog";
+import { ContactMobileCard } from "./ContactMobileCard";
 import { useExportData } from "@/hooks/useExportData";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -78,6 +80,7 @@ export function ContactsTable() {
   const [bulkSendDocsOpen, setBulkSendDocsOpen] = useState(false);
   
   const { exportFilteredContacts, exportContacts } = useExportData();
+  const isMobile = useIsMobile();
 
   // Handle URL parameter to open contact detail
   useEffect(() => {
@@ -243,181 +246,216 @@ export function ContactsTable() {
           onBulkSendDocuments={() => setBulkSendDocsOpen(true)}
         />
 
-        {/* Table */}
-        <div className="card-elevated overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Sélectionner tout"
-                    className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                  />
-                </TableHead>
-                <TableHead className="font-semibold">ID</TableHead>
-                <TableHead className="font-semibold">Contact</TableHead>
-                <TableHead className="font-semibold">Téléphone</TableHead>
-                <TableHead className="font-semibold">Ville</TableHead>
-                <TableHead className="font-semibold">Formation</TableHead>
-                <TableHead className="font-semibold">Source</TableHead>
-                <TableHead className="font-semibold">Statut</TableHead>
-                <TableHead className="font-semibold">Date</TableHead>
-                <TableHead className="text-right font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-9 w-9 rounded-full" />
-                        <div className="space-y-1">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-40" />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                filteredContacts.map((contact) => {
-                  const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
-                  const status = contact.statut ?? "En attente de validation";
-                  const isSelected = selectedIds.has(contact.id);
-                  
-                  return (
-                    <TableRow key={contact.id} className={cn("table-row-hover cursor-pointer", isSelected && "bg-primary/5")}>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) => handleSelectOne(contact.id, checked as boolean)}
-                          aria-label={`Sélectionner ${contact.prenom} ${contact.nom}`}
-                        />
-                      </TableCell>
-                      <TableCell 
-                        className="text-muted-foreground font-mono text-xs"
-                        onClick={() => handleContactClick(contact)}
-                      >
-                        {contact.custom_id || '-'}
-                      </TableCell>
-                      <TableCell onClick={() => handleContactClick(contact)}>
+        {/* Table / Cards */}
+        {isMobile ? (
+          // Mobile: Card view
+          <div className="space-y-3">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="card-elevated p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ))
+            ) : filteredContacts.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                Aucun contact trouvé
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
+                <ContactMobileCard
+                  key={contact.id}
+                  contact={contact}
+                  onClick={() => handleContactClick(contact)}
+                  onEnroll={() => handleEnrollClick(contact)}
+                  isSelected={selectedIds.has(contact.id)}
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          // Desktop: Table view
+          <div className="card-elevated overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Sélectionner tout"
+                      className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                    />
+                  </TableHead>
+                  <TableHead className="font-semibold">ID</TableHead>
+                  <TableHead className="font-semibold">Contact</TableHead>
+                  <TableHead className="font-semibold">Téléphone</TableHead>
+                  <TableHead className="font-semibold">Ville</TableHead>
+                  <TableHead className="font-semibold">Formation</TableHead>
+                  <TableHead className="font-semibold">Source</TableHead>
+                  <TableHead className="font-semibold">Statut</TableHead>
+                  <TableHead className="font-semibold">Date</TableHead>
+                  <TableHead className="text-right font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-                              {initials || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-foreground hover:text-primary transition-colors">
-                              {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {contact.email || 'Pas d\'email'}
-                            </p>
+                          <Skeleton className="h-9 w-9 rounded-full" />
+                          <div className="space-y-1">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-40" />
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
-                        {contact.telephone || '-'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
-                        {contact.ville || '-'}
-                      </TableCell>
-                      <TableCell onClick={() => handleContactClick(contact)}>
-                        {contact.formation ? (
-                          <Badge variant="outline" className="text-xs">
-                            {formationLabels[contact.formation] || contact.formation}
-                          </Badge>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
-                        {contact.source || '-'}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <QuickStatusDropdown contact={contact} />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
-                        {format(new Date(contact.created_at), 'dd/MM/yyyy', { locale: fr })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Inscrire à une session"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEnrollClick(contact);
-                            }}
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                          {contact.telephone && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(`tel:${contact.telephone}`, '_blank');
-                              }}
-                            >
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {contact.email && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(`mailto:${contact.email}`, '_blank');
-                              }}
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {contact.telephone && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(`https://wa.me/${contact.telephone?.replace(/\s/g, '')}`, '_blank');
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                  ))
+                ) : (
+                  filteredContacts.map((contact) => {
+                    const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
+                    const status = contact.statut ?? "En attente de validation";
+                    const isSelected = selectedIds.has(contact.id);
+                    
+                    return (
+                      <TableRow key={contact.id} className={cn("table-row-hover cursor-pointer", isSelected && "bg-primary/5")}>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => handleSelectOne(contact.id, checked as boolean)}
+                            aria-label={`Sélectionner ${contact.prenom} ${contact.nom}`}
+                          />
+                        </TableCell>
+                        <TableCell 
+                          className="text-muted-foreground font-mono text-xs"
+                          onClick={() => handleContactClick(contact)}
+                        >
+                          {contact.custom_id || '-'}
+                        </TableCell>
+                        <TableCell onClick={() => handleContactClick(contact)}>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                                {initials || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-foreground hover:text-primary transition-colors">
+                                {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {contact.email || 'Pas d\'email'}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
+                          {contact.telephone || '-'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
+                          {contact.ville || '-'}
+                        </TableCell>
+                        <TableCell onClick={() => handleContactClick(contact)}>
+                          {contact.formation ? (
+                            <Badge variant="outline" className="text-xs">
+                              {formationLabels[contact.formation] || contact.formation}
+                            </Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
+                          {contact.source || '-'}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <QuickStatusDropdown contact={contact} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground" onClick={() => handleContactClick(contact)}>
+                          {format(new Date(contact.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Inscrire à une session"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEnrollClick(contact);
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </Button>
+                            {contact.telephone && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`tel:${contact.telephone}`, '_blank');
+                                }}
+                              >
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {contact.email && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`mailto:${contact.email}`, '_blank');
+                                }}
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {contact.telephone && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`https://wa.me/${contact.telephone?.replace(/\s/g, '')}`, '_blank');
+                                }}
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
 
-          {!isLoading && filteredContacts.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">
-              Aucun contact trouvé
-            </div>
-          )}
-        </div>
+            {!isLoading && filteredContacts.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                Aucun contact trouvé
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Detail Sheet */}
