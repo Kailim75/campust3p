@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_assistant_logs: {
+        Row: {
+          action: string | null
+          assistant_response: string
+          created_at: string
+          id: string
+          user_id: string | null
+          user_message: string
+        }
+        Insert: {
+          action?: string | null
+          assistant_response: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_message: string
+        }
+        Update: {
+          action?: string | null
+          assistant_response?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_message?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
