@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
 import { useContacts } from '@/hooks/useContacts';
+import { useSession } from '@/hooks/useSessions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,7 +14,11 @@ import {
   Eye,
   Send,
   Loader2,
-  Trash2
+  Trash2,
+  FileDown,
+  FileText,
+  Mail,
+  Award
 } from 'lucide-react';
 import {
   Table,
@@ -44,8 +49,21 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useAddInscription, useRemoveInscription } from '@/hooks/useSessions';
+import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
+import { useBulkCreateDocumentEnvois } from '@/hooks/useDocumentEnvois';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -62,13 +80,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     isEnvoi
   } = useSessionInscrits(sessionId);
   
+  const { data: session } = useSession(sessionId);
   const { data: allContacts } = useContacts();
   const addInscription = useAddInscription();
   const removeInscription = useRemoveInscription();
+  const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
+  const bulkCreateEnvois = useBulkCreateDocumentEnvois();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Bulk send email dialog
+  const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
+  const [bulkEmailType, setBulkEmailType] = useState('');
+  const [bulkEmailMessage, setBulkEmailMessage] = useState('');
+  const [isSendingBulkEmails, setIsSendingBulkEmails] = useState(false);
+  const [generateAndSend, setGenerateAndSend] = useState(true);
   
   // Contacts disponibles (non inscrits)
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
@@ -84,6 +112,122 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
   const [typeDocumentEnvoi, setTypeDocumentEnvoi] = useState('');
   const [contactDetail, setContactDetail] = useState<any>(null);
+  
+  // Session info pour la génération de documents
+  const sessionInfo = session ? {
+    nom: session.nom,
+    formation_type: session.formation_type,
+    date_debut: session.date_debut,
+    date_fin: session.date_fin,
+    lieu: session.lieu || undefined,
+    duree_heures: session.duree_heures || 35,
+    prix: session.prix ? Number(session.prix) : undefined,
+  } : null;
+
+  // Générer les documents en masse
+  const handleGenerateBulkDocuments = (type: DocumentType) => {
+    if (!sessionInfo || !inscrits?.length) {
+      toast.error("Aucun stagiaire inscrit");
+      return;
+    }
+    
+    const contactsInfo = inscrits.map((inscrit) => {
+      const contact = inscrit.contact;
+      return {
+        civilite: contact?.civilite || undefined,
+        nom: contact?.nom || '',
+        prenom: contact?.prenom || '',
+        email: contact?.email || undefined,
+        telephone: contact?.telephone || undefined,
+        rue: contact?.rue || undefined,
+        code_postal: contact?.code_postal || undefined,
+        ville: contact?.ville || undefined,
+        date_naissance: contact?.date_naissance || undefined,
+        ville_naissance: contact?.ville_naissance || undefined,
+      };
+    });
+    
+    generateBulkDocuments(type, contactsInfo, sessionInfo);
+  };
+
+  // Envoyer documents par email à tous
+  const handleBulkSendEmails = async () => {
+    if (!bulkEmailType || !inscrits?.length) return;
+    
+    setIsSendingBulkEmails(true);
+    
+    try {
+      // Filtrer les inscrits avec email
+      const inscribedWithEmail = inscrits.filter(i => i.contact?.email);
+      
+      if (inscribedWithEmail.length === 0) {
+        toast.error("Aucun stagiaire n'a d'adresse email");
+        return;
+      }
+      
+      // Si génération demandée, générer d'abord les documents
+      if (generateAndSend && sessionInfo) {
+        const contactsInfo = inscribedWithEmail.map((inscrit) => {
+          const contact = inscrit.contact;
+          return {
+            civilite: contact?.civilite || undefined,
+            nom: contact?.nom || '',
+            prenom: contact?.prenom || '',
+            email: contact?.email || undefined,
+            telephone: contact?.telephone || undefined,
+            rue: contact?.rue || undefined,
+            code_postal: contact?.code_postal || undefined,
+            ville: contact?.ville || undefined,
+            date_naissance: contact?.date_naissance || undefined,
+            ville_naissance: contact?.ville_naissance || undefined,
+          };
+        });
+        
+        generateBulkDocuments(bulkEmailType as DocumentType, contactsInfo, sessionInfo);
+      }
+      
+      // Créer les entrées document_envois
+      const envoisData = inscribedWithEmail.map(inscrit => ({
+        contact_id: inscrit.contact_id,
+        session_id: sessionId,
+        document_type: bulkEmailType,
+        document_name: `${bulkEmailType} - ${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+        statut: 'envoyé',
+      }));
+      
+      await bulkCreateEnvois.mutateAsync(envoisData);
+      
+      // Appeler l'edge function pour envoyer les emails
+      const { error } = await supabase.functions.invoke('send-automated-emails', {
+        body: {
+          type: 'bulk_document',
+          recipients: inscribedWithEmail.map(i => ({
+            email: i.contact?.email,
+            name: `${i.contact?.prenom} ${i.contact?.nom}`,
+            contactId: i.contact_id,
+          })),
+          documentType: bulkEmailType,
+          sessionName: session?.nom,
+          customMessage: bulkEmailMessage || undefined,
+        },
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`Documents envoyés à ${inscribedWithEmail.length} stagiaire(s)`);
+      setBulkEmailDialogOpen(false);
+      setBulkEmailType('');
+      setBulkEmailMessage('');
+    } catch (error: any) {
+      console.error('Erreur envoi emails:', error);
+      toast.error("Erreur lors de l'envoi des emails");
+    } finally {
+      setIsSendingBulkEmails(false);
+    }
+  };
+
+  // Compter les emails disponibles
+  const emailsCount = inscrits?.filter(i => i.contact?.email).length || 0;
 
   // Toggle sélection pour ajout
   const toggleContactToAdd = (contactId: string) => {
@@ -214,7 +358,45 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </Card>
       </div>
 
-      {/* Actions groupées */}
+      {/* Actions en masse pour tous les stagiaires */}
+      {inscrits && inscrits.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <FileDown className="h-4 w-4 mr-2" />
+                Générer documents
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convocation")}>
+                <Send className="h-4 w-4 mr-2" />
+                Convocations ({inscrits.length})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convention")}>
+                <FileText className="h-4 w-4 mr-2" />
+                Conventions ({inscrits.length})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
+                <Award className="h-4 w-4 mr-2" />
+                Attestations ({inscrits.length})
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setBulkEmailDialogOpen(true)}
+            disabled={emailsCount === 0}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Envoyer par email ({emailsCount})
+          </Button>
+        </div>
+      )}
+
+      {/* Actions groupées pour sélection */}
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
           <span className="text-sm text-muted-foreground">
@@ -227,7 +409,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           </Button>
           <Button size="sm" variant="outline" onClick={() => setDialogEnvoi(true)} disabled={isEnvoi}>
             <Send className="h-3 w-3 mr-1" />
-            Envoyer document
+            Tracer envoi
           </Button>
         </div>
       )}
@@ -449,6 +631,70 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             >
               {addInscription.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Inscrire {contactsToAdd.length > 0 ? `(${contactsToAdd.length})` : ''}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog envoi email en masse */}
+      <Dialog open={bulkEmailDialogOpen} onOpenChange={setBulkEmailDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Envoyer documents par email
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>{emailsCount}</strong> stagiaire(s) avec email sur <strong>{inscrits?.length || 0}</strong> inscrit(s)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type de document</Label>
+              <Select value={bulkEmailType} onValueChange={setBulkEmailType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un type de document" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="convocation">Convocation</SelectItem>
+                  <SelectItem value="convention">Convention</SelectItem>
+                  <SelectItem value="attestation">Attestation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="generate-and-send" className="text-sm">
+                Générer les documents avant envoi
+              </Label>
+              <Switch
+                id="generate-and-send"
+                checked={generateAndSend}
+                onCheckedChange={setGenerateAndSend}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Message personnalisé (optionnel)</Label>
+              <Textarea
+                placeholder="Ajoutez un message personnalisé à l'email..."
+                value={bulkEmailMessage}
+                onChange={(e) => setBulkEmailMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handleBulkSendEmails}
+              disabled={!bulkEmailType || emailsCount === 0 || isSendingBulkEmails}
+            >
+              {isSendingBulkEmails && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Mail className="h-4 w-4 mr-2" />
+              Envoyer à {emailsCount} stagiaire(s)
             </Button>
           </div>
         </DialogContent>
