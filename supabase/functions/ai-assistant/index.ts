@@ -96,7 +96,7 @@ const TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          statut: { type: "string", enum: ["planifiee", "en_cours", "terminee", "annulee"], description: "Filtrer par statut" },
+          statut: { type: "string", enum: ["a_venir", "en_cours", "terminee", "annulee", "complet"], description: "Filtrer par statut" },
           formation_type: { type: "string", description: "Filtrer par type de formation" },
           date_debut_min: { type: "string", description: "Date de début minimum (YYYY-MM-DD)" },
           date_debut_max: { type: "string", description: "Date de début maximum (YYYY-MM-DD)" },
@@ -342,7 +342,8 @@ async function executeCreateSession(supabase: any, params: any) {
       places_totales: params.places_totales || 10,
       lieu: params.lieu || null,
       formateur_id: params.formateur_id || null,
-      statut: 'planifiee'
+      // NOTE: 'statut' is a session_status enum. Valid values: a_venir, en_cours, terminee, annulee, complet
+      statut: 'a_venir'
     })
     .select()
     .single();
