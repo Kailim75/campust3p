@@ -2,13 +2,16 @@ import { useSearchParams } from 'react-router-dom';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useQualiopiAudits } from '@/hooks/useQualiopiAudits';
+import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, ChevronRight, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { generateQualiopiSynthesisPDF } from '@/lib/qualiopi-pdf-generator';
+import { toast } from 'sonner';
 
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public',
@@ -25,12 +28,30 @@ export default function QualiopiDashboard() {
   const { indicateurs, isLoading: loadingIndicateurs } = useQualiopiIndicateurs();
   const { actions } = useQualiopiActions();
   const { audits } = useQualiopiAudits();
+  const { centreFormation } = useCentreFormation();
 
   const openCritere = (critere: number) => {
     const next = new URLSearchParams(searchParams);
     next.set('qtab', 'criteres');
     next.set('qcrit', String(critere));
     setSearchParams(next, { replace: true });
+  };
+
+  const handleExportPDF = () => {
+    if (!indicateurs || indicateurs.length === 0) {
+      toast.error('Aucun indicateur à exporter');
+      return;
+    }
+    try {
+      generateQualiopiSynthesisPDF({
+        indicateurs,
+        centreName: centreFormation?.nom_legal || centreFormation?.nom_commercial || undefined
+      });
+      toast.success('PDF généré avec succès');
+    } catch (error) {
+      console.error('Erreur génération PDF:', error);
+      toast.error('Erreur lors de la génération du PDF');
+    }
   };
 
   if (loadingIndicateurs) {
@@ -55,8 +76,17 @@ export default function QualiopiDashboard() {
   const actionsEnCours = actions?.filter(a => a.statut === 'en_cours' || a.statut === 'a_faire').length || 0;
   const prochainAudit = audits?.find(a => a.statut === 'planifie');
 
+
   return (
     <div className="space-y-6">
+      {/* Export button */}
+      <div className="flex justify-end">
+        <Button onClick={handleExportPDF} variant="outline" className="gap-2">
+          <FileDown className="h-4 w-4" />
+          Exporter PDF
+        </Button>
+      </div>
+
       {/* KPIs principaux */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
