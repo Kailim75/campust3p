@@ -1,10 +1,11 @@
+import { forwardRef } from 'react';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useQualiopiAudits } from '@/hooks/useQualiopiAudits';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertCircle, Clock, Target, Calendar, AlertTriangle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -18,7 +19,7 @@ const CRITERES_LABELS: Record<number, string> = {
   7: 'Recueil des appréciations'
 };
 
-export default function QualiopiDashboard() {
+const QualiopiDashboard = forwardRef<HTMLDivElement, object>(function QualiopiDashboard(_props, ref) {
   const { indicateurs, isLoading: loadingIndicateurs } = useQualiopiIndicateurs();
   const { actions } = useQualiopiActions();
   const { audits } = useQualiopiAudits();
@@ -46,7 +47,7 @@ export default function QualiopiDashboard() {
   const prochainAudit = audits?.find(a => a.statut === 'planifie');
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       {/* KPIs principaux */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -195,4 +196,6 @@ export default function QualiopiDashboard() {
       )}
     </div>
   );
-}
+});
+
+export default QualiopiDashboard;
