@@ -1,5 +1,5 @@
+import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertCircle, CheckCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,14 +49,11 @@ const prioriteConfig: Record<string, { label: string; color: string }> = {
   urgente: { label: "Urgente", color: "bg-destructive/10 text-destructive" },
 };
 
-export function ReclamationsListSection({
-  reclamations,
-  onUpdateStatus,
-  isUpdating = false,
-}: ReclamationsListSectionProps) {
-  if (reclamations.length === 0) {
-    return (
-      <Card>
+export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsListSectionProps>(
+  function ReclamationsListSection({ reclamations, onUpdateStatus, isUpdating = false }, ref) {
+    if (reclamations.length === 0) {
+      return (
+        <Card ref={ref}>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <CheckCircle className="h-12 w-12 text-success mb-4" />
           <h3 className="text-lg font-medium">Aucune réclamation</h3>
@@ -69,7 +66,7 @@ export function ReclamationsListSection({
   }
 
   return (
-    <Card>
+    <Card ref={ref}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
@@ -171,4 +168,4 @@ export function ReclamationsListSection({
       </CardContent>
     </Card>
   );
-}
+});
