@@ -40,6 +40,7 @@ import { BulkActionsBar } from "./BulkActionsBar";
 import { BulkEnrollDialog } from "./BulkEnrollDialog";
 import { BulkSendDocumentsDialog } from "./BulkSendDocumentsDialog";
 import { ContactMobileCard } from "./ContactMobileCard";
+import { CallLogDialog } from "./CallLogDialog";
 import { useExportData } from "@/hooks/useExportData";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -79,8 +80,22 @@ export function ContactsTable() {
   const [bulkEnrollOpen, setBulkEnrollOpen] = useState(false);
   const [bulkSendDocsOpen, setBulkSendDocsOpen] = useState(false);
   
+  // Call log state
+  const [callLogOpen, setCallLogOpen] = useState(false);
+  const [callLogContact, setCallLogContact] = useState<Contact | null>(null);
+  
   const { exportFilteredContacts, exportContacts } = useExportData();
   const isMobile = useIsMobile();
+
+  const handleCallClick = (contact: Contact) => {
+    if (contact.telephone) {
+      // Open the phone dialer
+      window.open(`tel:${contact.telephone}`, '_blank');
+      // Then open the call log dialog
+      setCallLogContact(contact);
+      setCallLogOpen(true);
+    }
+  };
 
   // Handle URL parameter to open contact detail
   useEffect(() => {
@@ -274,6 +289,7 @@ export function ContactsTable() {
                   contact={contact}
                   onClick={() => handleContactClick(contact)}
                   onEnroll={() => handleEnrollClick(contact)}
+                  onCall={() => handleCallClick(contact)}
                   isSelected={selectedIds.has(contact.id)}
                 />
               ))
@@ -408,7 +424,7 @@ export function ContactsTable() {
                                 className="h-8 w-8"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`tel:${contact.telephone}`, '_blank');
+                                  handleCallClick(contact);
                                 }}
                               >
                                 <Phone className="h-4 w-4" />
@@ -495,6 +511,17 @@ export function ContactsTable() {
         selectedContacts={selectedContacts}
         onSuccess={handleClearSelection}
       />
+
+      {/* Call Log Dialog */}
+      {callLogContact && (
+        <CallLogDialog
+          contactId={callLogContact.id}
+          contactName={`${callLogContact.prenom} ${callLogContact.nom}`}
+          phoneNumber={callLogContact.telephone || ""}
+          open={callLogOpen}
+          onOpenChange={setCallLogOpen}
+        />
+      )}
     </>
   );
 }
