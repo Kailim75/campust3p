@@ -1,4 +1,4 @@
-import { useState, forwardRef } from 'react';
+import { useState } from 'react';
 import { useQualiopiIndicateurs, QualiopiIndicateur } from '@/hooks/useQualiopiIndicateurs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ const CRITERES_LABELS: Record<number, string> = {
   7: 'Recueil et prise en compte des appréciations et des réclamations'
 };
 
-const QualiopiCriteres = forwardRef<HTMLDivElement, object>(function QualiopiCriteres(_props, ref) {
+export default function QualiopiCriteres() {
   const { indicateurs, isLoading, updateStatut, isUpdating } = useQualiopiIndicateurs();
   const [expandedCritere, setExpandedCritere] = useState<string | undefined>(undefined);
 
@@ -58,7 +58,7 @@ const QualiopiCriteres = forwardRef<HTMLDivElement, object>(function QualiopiCri
   }, {} as Record<number, QualiopiIndicateur[]>) || {};
 
   return (
-    <div ref={ref} className="space-y-4">
+    <div className="space-y-4">
       <Accordion 
         type="single" 
         collapsible 
@@ -168,6 +168,4 @@ const QualiopiCriteres = forwardRef<HTMLDivElement, object>(function QualiopiCri
     </Accordion>
     </div>
   );
-});
-
-export default QualiopiCriteres;
+}
