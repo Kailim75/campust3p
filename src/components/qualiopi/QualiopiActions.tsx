@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { useQualiopiActions, QualiopiAction } from '@/hooks/useQualiopiActions';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Plus, Loader2, CheckCircle2, Clock, AlertTriangle, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
-export default function QualiopiActions() {
+const QualiopiActions = forwardRef<HTMLDivElement, object>(function QualiopiActions(_props, ref) {
   const { actions, isLoading, createAction, updateAction, deleteAction, isCreating } = useQualiopiActions();
   const { indicateurs } = useQualiopiIndicateurs();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -77,7 +76,7 @@ export default function QualiopiActions() {
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex gap-2">
           <Select value={filterStatut} onValueChange={setFilterStatut}>
@@ -263,4 +262,6 @@ export default function QualiopiActions() {
       )}
     </div>
   );
-}
+});
+
+export default QualiopiActions;
