@@ -1,4 +1,4 @@
-import { useState, forwardRef } from 'react';
+import { useState } from 'react';
 import { useQualiopiActions, QualiopiAction } from '@/hooks/useQualiopiActions';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Loader2, CheckCircle2, Clock, AlertTriangle, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
-const QualiopiActions = forwardRef<HTMLDivElement, object>(function QualiopiActions(_props, ref) {
+export default function QualiopiActions() {
   const { actions, isLoading, createAction, updateAction, deleteAction, isCreating } = useQualiopiActions();
   const { indicateurs } = useQualiopiIndicateurs();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -76,7 +76,7 @@ const QualiopiActions = forwardRef<HTMLDivElement, object>(function QualiopiActi
   }
 
   return (
-    <div ref={ref} className="space-y-4">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex gap-2">
           <Select value={filterStatut} onValueChange={setFilterStatut}>
@@ -262,6 +262,4 @@ const QualiopiActions = forwardRef<HTMLDivElement, object>(function QualiopiActi
       )}
     </div>
   );
-});
-
-export default QualiopiActions;
+}

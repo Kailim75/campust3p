@@ -1,4 +1,3 @@
-import { forwardRef } from 'react';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useQualiopiAudits } from '@/hooks/useQualiopiAudits';
@@ -19,7 +18,7 @@ const CRITERES_LABELS: Record<number, string> = {
   7: 'Recueil des appréciations'
 };
 
-const QualiopiDashboard = forwardRef<HTMLDivElement, object>(function QualiopiDashboard(_props, ref) {
+export default function QualiopiDashboard() {
   const { indicateurs, isLoading: loadingIndicateurs } = useQualiopiIndicateurs();
   const { actions } = useQualiopiActions();
   const { audits } = useQualiopiAudits();
@@ -47,7 +46,7 @@ const QualiopiDashboard = forwardRef<HTMLDivElement, object>(function QualiopiDa
   const prochainAudit = audits?.find(a => a.statut === 'planifie');
 
   return (
-    <div ref={ref} className="space-y-6">
+    <div className="space-y-6">
       {/* KPIs principaux */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -196,6 +195,4 @@ const QualiopiDashboard = forwardRef<HTMLDivElement, object>(function QualiopiDa
       )}
     </div>
   );
-});
-
-export default QualiopiDashboard;
+}
