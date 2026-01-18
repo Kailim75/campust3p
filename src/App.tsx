@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { InstallPWA } from "./components/pwa/InstallPWA";
 import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingButton";
+import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -24,44 +25,46 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/enquete/:token" element={<Enquete />} />
-          <Route path="/install" element={<Install />} />
+      <AppErrorBoundary>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/enquete/:token" element={<Enquete />} />
+            <Route path="/install" element={<Install />} />
 
-          {/* Legacy deep-links */}
-          <Route
-            path="/contacts"
-            element={
-              <ProtectedRoute>
-                <SectionRedirect section="contacts" />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/sessions"
-            element={
-              <ProtectedRoute>
-                <SectionRedirect section="sessions" />
-              </ProtectedRoute>
-            }
-          />
+            {/* Legacy deep-links */}
+            <Route
+              path="/contacts"
+              element={
+                <ProtectedRoute>
+                  <SectionRedirect section="contacts" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sessions"
+              element={
+                <ProtectedRoute>
+                  <SectionRedirect section="sessions" />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <InstallPWA />
-        <AIAssistantFloatingButton />
-      </BrowserRouter>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <InstallPWA />
+          <AIAssistantFloatingButton />
+        </BrowserRouter>
+      </AppErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );
