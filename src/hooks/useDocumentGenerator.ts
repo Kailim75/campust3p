@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
 import {
   generateFacturePDF,
   generateAttestationPDF,
@@ -9,11 +10,28 @@ import {
   type ContactInfo,
   type SessionInfo,
   type FactureInfo,
+  type CompanyInfo,
 } from "@/lib/pdf-generator";
 
 export type DocumentType = "facture" | "attestation" | "convention" | "convocation";
 
 export function useDocumentGenerator() {
+  const { centreFormation } = useCentreFormation();
+
+  // Build CompanyInfo from centre_formation data
+  const getCompanyInfo = useCallback((): CompanyInfo | undefined => {
+    if (!centreFormation) return undefined;
+    
+    return {
+      name: centreFormation.nom_commercial || centreFormation.nom_legal,
+      address: centreFormation.adresse_complete,
+      phone: centreFormation.telephone,
+      email: centreFormation.email,
+      siret: centreFormation.siret,
+      nda: centreFormation.nda,
+    };
+  }, [centreFormation]);
+
   const generateDocument = useCallback(
     (
       type: DocumentType,
@@ -22,6 +40,13 @@ export function useDocumentGenerator() {
       facture?: FactureInfo
     ) => {
       try {
+        const company = getCompanyInfo();
+        
+        if (!company) {
+          toast.error("Configuration du centre de formation manquante. Allez dans Paramètres pour la configurer.");
+          return null;
+        }
+
         let doc;
         let filename: string;
 
@@ -31,7 +56,7 @@ export function useDocumentGenerator() {
               toast.error("Données de facture manquantes");
               return null;
             }
-            doc = generateFacturePDF(facture, contact, session);
+            doc = generateFacturePDF(facture, contact, session, company);
             filename = `facture-${facture.numero_facture}.pdf`;
             break;
 
@@ -40,7 +65,7 @@ export function useDocumentGenerator() {
               toast.error("Données de session manquantes");
               return null;
             }
-            doc = generateAttestationPDF(contact, session);
+            doc = generateAttestationPDF(contact, session, company);
             filename = `attestation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
@@ -49,7 +74,7 @@ export function useDocumentGenerator() {
               toast.error("Données de session manquantes");
               return null;
             }
-            doc = generateConventionPDF(contact, session);
+            doc = generateConventionPDF(contact, session, company);
             filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
@@ -58,7 +83,7 @@ export function useDocumentGenerator() {
               toast.error("Données de session manquantes");
               return null;
             }
-            doc = generateConvocationPDF(contact, session);
+            doc = generateConvocationPDF(contact, session, company);
             filename = `convocation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
@@ -76,7 +101,7 @@ export function useDocumentGenerator() {
         return null;
       }
     },
-    []
+    [getCompanyInfo]
   );
 
   const generateBulkDocuments = useCallback(
@@ -102,6 +127,7 @@ export function useDocumentGenerator() {
   return {
     generateDocument,
     generateBulkDocuments,
+    hasCentreFormation: !!centreFormation,
   };
 }
 

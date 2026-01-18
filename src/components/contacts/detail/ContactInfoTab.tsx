@@ -1,0 +1,139 @@
+import { Mail, Phone, MapPin, Calendar, User, Car, CreditCard, GraduationCap, FileText } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+interface Contact {
+  email?: string | null;
+  telephone?: string | null;
+  rue?: string | null;
+  code_postal?: string | null;
+  ville?: string | null;
+  date_naissance?: string | null;
+  ville_naissance?: string | null;
+  pays_naissance?: string | null;
+  custom_id?: string | null;
+  numero_permis?: string | null;
+  prefecture_permis?: string | null;
+  date_delivrance_permis?: string | null;
+  numero_carte_professionnelle?: string | null;
+  prefecture_carte?: string | null;
+  date_expiration_carte?: string | null;
+  formation?: string | null;
+  source?: string | null;
+  commentaires?: string | null;
+}
+
+interface ContactInfoTabProps {
+  contact: Contact;
+}
+
+const formationLabels: Record<string, string> = {
+  TAXI: "Formation Taxi",
+  VTC: "Formation VTC",
+  VMDTR: "Formation VMDTR",
+  "ACC VTC": "Accompagnement VTC",
+  "ACC VTC 75": "Accompagnement VTC 75",
+  "Formation continue Taxi": "Formation continue Taxi",
+  "Formation continue VTC": "Formation continue VTC",
+  "Mobilité Taxi": "Mobilité Taxi",
+};
+
+function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 py-2">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+export function ContactInfoTab({ contact }: ContactInfoTabProps) {
+  const fullAddress = [contact.rue, contact.code_postal, contact.ville]
+    .filter(Boolean)
+    .join(", ");
+
+  const birthInfo = [
+    contact.date_naissance ? format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr }) : null,
+    contact.ville_naissance,
+    contact.pays_naissance,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const permisInfo = contact.numero_permis
+    ? `${contact.numero_permis}${contact.prefecture_permis ? ` (${contact.prefecture_permis})` : ""}${
+        contact.date_delivrance_permis
+          ? ` - Délivré le ${format(new Date(contact.date_delivrance_permis), "dd/MM/yyyy", { locale: fr })}`
+          : ""
+      }`
+    : null;
+
+  const carteProInfo = contact.numero_carte_professionnelle
+    ? `${contact.numero_carte_professionnelle}${contact.prefecture_carte ? ` (${contact.prefecture_carte})` : ""}${
+        contact.date_expiration_carte
+          ? ` - Expire le ${format(new Date(contact.date_expiration_carte), "dd/MM/yyyy", { locale: fr })}`
+          : ""
+      }`
+    : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Contact
+        </h3>
+        <InfoRow icon={Mail} label="Email" value={contact.email} />
+        <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
+        <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Informations personnelles
+        </h3>
+        <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
+        <InfoRow icon={User} label="ID personnalisé" value={contact.custom_id} />
+      </div>
+
+      {permisInfo && (
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Permis de conduire
+          </h3>
+          <InfoRow icon={Car} label="Permis" value={permisInfo} />
+        </div>
+      )}
+
+      {carteProInfo && (
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Carte professionnelle
+          </h3>
+          <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
+        </div>
+      )}
+
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Formation
+        </h3>
+        <InfoRow
+          icon={GraduationCap}
+          label="Type de formation"
+          value={contact.formation ? formationLabels[contact.formation] || contact.formation : null}
+        />
+        <InfoRow icon={FileText} label="Source" value={contact.source} />
+        {contact.commentaires && (
+          <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground mb-1">Commentaires</p>
+            <p className="text-sm">{contact.commentaires}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
