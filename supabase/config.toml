@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.execute-workflow]
 verify_jwt = false
+
+[functions.send-enquete-email]
+verify_jwt = false
