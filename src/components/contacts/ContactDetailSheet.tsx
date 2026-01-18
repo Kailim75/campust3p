@@ -75,6 +75,7 @@ import { Switch } from "@/components/ui/switch";
 import { ContactPratiqueTab } from "./pratique/ContactPratiqueTab";
 import { ContactLocationTab } from "./location/ContactLocationTab";
 import { ExamensTab } from "./examens/ExamensTab";
+import { CallLogDialog } from "./CallLogDialog";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -170,6 +171,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [historiqueDialogOpen, setHistoriqueDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [callLogOpen, setCallLogOpen] = useState(false);
   const { data: contact, isLoading } = useContact(contactId);
   const { data: inscriptions = [], isLoading: inscriptionsLoading } = useContactInscriptions(contactId);
   const { data: documents = [], isLoading: documentsLoading } = useContactDocuments(contactId);
@@ -280,7 +282,10 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`tel:${contact.telephone}`, "_blank")}
+                    onClick={() => {
+                      window.open(`tel:${contact.telephone}`, "_blank");
+                      setCallLogOpen(true);
+                    }}
                   >
                     <Phone className="h-4 w-4 mr-2" />
                     Appeler
@@ -887,6 +892,17 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
             open={generateDialogOpen}
             onOpenChange={setGenerateDialogOpen}
             contact={contact}
+          />
+        )}
+        
+        {/* Call Log Dialog */}
+        {contact && contact.telephone && (
+          <CallLogDialog
+            open={callLogOpen}
+            onOpenChange={setCallLogOpen}
+            contactId={contact.id}
+            contactName={`${contact.prenom} ${contact.nom}`}
+            phoneNumber={contact.telephone}
           />
         )}
       </SheetContent>
