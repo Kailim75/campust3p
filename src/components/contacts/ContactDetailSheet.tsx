@@ -39,6 +39,7 @@ import {
   BellOff,
   FileSignature,
   Award,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -76,6 +77,7 @@ import { ContactPratiqueTab } from "./pratique/ContactPratiqueTab";
 import { ContactLocationTab } from "./location/ContactLocationTab";
 import { ExamensTab } from "./examens/ExamensTab";
 import { CallLogDialog } from "./CallLogDialog";
+import { SendEnqueteDialog } from "./SendEnqueteDialog";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -172,6 +174,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
   const [historiqueDialogOpen, setHistoriqueDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
+  const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
   const { data: contact, isLoading } = useContact(contactId);
   const { data: inscriptions = [], isLoading: inscriptionsLoading } = useContactInscriptions(contactId);
   const { data: documents = [], isLoading: documentsLoading } = useContactDocuments(contactId);
@@ -322,6 +325,14 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Générer doc
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEnqueteDialogOpen(true)}
+              >
+                <Star className="h-4 w-4 mr-2" />
+                Enquête
               </Button>
             </div>
 
@@ -903,6 +914,20 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
             contactId={contact.id}
             contactName={`${contact.prenom} ${contact.nom}`}
             phoneNumber={contact.telephone}
+          />
+        )}
+
+        {/* Send Enquete Dialog */}
+        {contact && (
+          <SendEnqueteDialog
+            open={enqueteDialogOpen}
+            onOpenChange={setEnqueteDialogOpen}
+            contact={{
+              id: contact.id,
+              nom: contact.nom,
+              prenom: contact.prenom,
+              email: contact.email,
+            }}
           />
         )}
       </SheetContent>

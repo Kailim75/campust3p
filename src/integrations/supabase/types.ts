@@ -1139,6 +1139,54 @@ export type Database = {
           },
         ]
       }
+      enquete_tokens: {
+        Row: {
+          contact_id: string
+          created_at: string
+          expire_at: string
+          id: string
+          session_id: string | null
+          token: string
+          type: string
+          used_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          expire_at?: string
+          id?: string
+          session_id?: string | null
+          token?: string
+          type?: string
+          used_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          expire_at?: string
+          id?: string
+          session_id?: string | null
+          token?: string
+          type?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enquete_tokens_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquete_tokens_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       envois_groupes: {
         Row: {
           created_at: string | null
