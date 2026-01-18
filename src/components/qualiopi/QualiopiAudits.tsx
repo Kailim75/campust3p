@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { useQualiopiAudits, QualiopiAudit } from '@/hooks/useQualiopiAudits';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Plus, Loader2, Calendar, Building2, Award, AlertTriangle, Trash2 } from
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-export default function QualiopiAudits() {
+const QualiopiAudits = forwardRef<HTMLDivElement, object>(function QualiopiAudits(_props, ref) {
   const { audits, isLoading, createAudit, updateAudit, deleteAudit, isCreating } = useQualiopiAudits();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -78,7 +78,7 @@ export default function QualiopiAudits() {
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -254,4 +254,6 @@ export default function QualiopiAudits() {
       )}
     </div>
   );
-}
+});
+
+export default QualiopiAudits;
