@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { generateQualiopiSynthesisPDF } from '@/lib/qualiopi-pdf-generator';
 import { toast } from 'sonner';
+import QualiopiTrendChart from './QualiopiTrendChart';
 
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public',
@@ -148,6 +149,9 @@ export default function QualiopiDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Graphique de tendance */}
+      <QualiopiTrendChart audits={audits} currentConformityRate={tauxConformite} />
 
       {/* Conformité par critère */}
       <Card>
