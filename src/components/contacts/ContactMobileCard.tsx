@@ -12,6 +12,7 @@ interface ContactMobileCardProps {
   contact: Contact;
   onClick: () => void;
   onEnroll: () => void;
+  onCall: () => void;
   isSelected?: boolean;
   onSelect?: (checked: boolean) => void;
 }
@@ -33,7 +34,7 @@ const formationLabels: Record<string, string> = {
   "Mobilité Taxi": "Mobilité Taxi",
 };
 
-export function ContactMobileCard({ contact, onClick, onEnroll, isSelected, onSelect }: ContactMobileCardProps) {
+export function ContactMobileCard({ contact, onClick, onEnroll, onCall, isSelected, onSelect }: ContactMobileCardProps) {
   const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
   const status = contact.statut ?? "En attente de validation";
   const statusStyle = statusConfig[status] || statusConfig["En attente de validation"];
@@ -121,7 +122,7 @@ export function ContactMobileCard({ contact, onClick, onEnroll, isSelected, onSe
               className="h-9 w-9"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`tel:${contact.telephone}`, '_blank');
+                onCall();
               }}
             >
               <Phone className="h-4 w-4" />
