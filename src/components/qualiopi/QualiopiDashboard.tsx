@@ -45,6 +45,7 @@ export default function QualiopiDashboard() {
     try {
       generateQualiopiSynthesisPDF({
         indicateurs,
+        audits: audits || undefined,
         centreName: centreFormation?.nom_legal || centreFormation?.nom_commercial || undefined
       });
       toast.success('PDF généré avec succès');

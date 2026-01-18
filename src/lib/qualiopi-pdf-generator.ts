@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { QualiopiIndicateur } from '@/hooks/useQualiopiIndicateurs';
+import { QualiopiAudit } from '@/hooks/useQualiopiAudits';
 
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public sur les prestations',
@@ -15,10 +16,11 @@ const CRITERES_LABELS: Record<number, string> = {
 
 interface QualiopiPDFOptions {
   indicateurs: QualiopiIndicateur[];
+  audits?: QualiopiAudit[];
   centreName?: string;
 }
 
-export function generateQualiopiSynthesisPDF({ indicateurs, centreName }: QualiopiPDFOptions): void {
+export function generateQualiopiSynthesisPDF({ indicateurs, audits, centreName }: QualiopiPDFOptions): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -219,6 +221,99 @@ export function generateQualiopiSynthesisPDF({ indicateurs, centreName }: Qualio
       if (sortedPreuves.length > 15) {
         addText(`... et ${sortedPreuves.length - 15} autres preuves`, margin + 5, yPosition, { fontSize: 8, color: [107, 114, 128] });
       }
+    }
+  }
+
+  // ========== HISTORIQUE DES AUDITS ==========
+  if (audits && audits.length > 0) {
+    checkNewPage(50);
+    yPosition += 10;
+    
+    addText('HISTORIQUE DES AUDITS', margin, yPosition, { fontSize: 12, fontStyle: 'bold' });
+    yPosition += 10;
+
+    const getTypeLabel = (type: string) => {
+      const labels: Record<string, string> = {
+        'initial': 'Audit Initial',
+        'surveillance': 'Audit de Surveillance',
+        'renouvellement': 'Audit de Renouvellement',
+        'interne': 'Audit Interne'
+      };
+      return labels[type] || type;
+    };
+
+    const getStatutLabel = (statut: string) => {
+      const labels: Record<string, string> = {
+        'planifie': 'Planifié',
+        'en_cours': 'En cours',
+        'termine': 'Terminé',
+        'certifie': 'Certifié'
+      };
+      return labels[statut] || statut;
+    };
+
+    const getStatutColor = (statut: string): [number, number, number] => {
+      switch (statut) {
+        case 'certifie': return [34, 197, 94];
+        case 'termine': return [59, 130, 246];
+        case 'en_cours': return [249, 115, 22];
+        default: return [107, 114, 128];
+      }
+    };
+
+    for (const audit of audits) {
+      checkNewPage(30);
+      
+      // Audit type and date
+      addText(getTypeLabel(audit.type_audit), margin, yPosition, { fontSize: 10, fontStyle: 'bold' });
+      addText(format(new Date(audit.date_audit), 'dd/MM/yyyy', { locale: fr }), margin + 60, yPosition, { fontSize: 9, color: [107, 114, 128] });
+      
+      // Status
+      addText(getStatutLabel(audit.statut), pageWidth - margin - 30, yPosition, { fontSize: 9, color: getStatutColor(audit.statut) });
+      yPosition += 5;
+      
+      // Organisme
+      if (audit.organisme_certificateur) {
+        addText(`Organisme: ${audit.organisme_certificateur}`, margin + 5, yPosition, { fontSize: 8, color: [107, 114, 128] });
+        yPosition += 4;
+      }
+      
+      // Score and non-conformities
+      const scoreInfo: string[] = [];
+      if (audit.score_global !== null) {
+        scoreInfo.push(`Score: ${audit.score_global}%`);
+      }
+      if (audit.non_conformites_majeures > 0) {
+        scoreInfo.push(`${audit.non_conformites_majeures} NC majeure${audit.non_conformites_majeures > 1 ? 's' : ''}`);
+      }
+      if (audit.non_conformites_mineures > 0) {
+        scoreInfo.push(`${audit.non_conformites_mineures} NC mineure${audit.non_conformites_mineures > 1 ? 's' : ''}`);
+      }
+      
+      if (scoreInfo.length > 0) {
+        const scoreColor: [number, number, number] = audit.score_global !== null && audit.score_global >= 80 
+          ? [34, 197, 94] 
+          : audit.score_global !== null && audit.score_global >= 50 
+            ? [59, 130, 246] 
+            : [239, 68, 68];
+        addText(scoreInfo.join(' • '), margin + 5, yPosition, { fontSize: 9, color: scoreColor });
+        yPosition += 4;
+      }
+      
+      // Next deadline
+      if (audit.date_prochaine_echeance) {
+        addText(`Prochaine échéance: ${format(new Date(audit.date_prochaine_echeance), 'dd/MM/yyyy', { locale: fr })}`, margin + 5, yPosition, { fontSize: 8, color: [107, 114, 128] });
+        yPosition += 4;
+      }
+      
+      // Observations (truncated)
+      if (audit.observations) {
+        const shortObs = audit.observations.length > 80 ? audit.observations.substring(0, 80) + '...' : audit.observations;
+        addText(shortObs, margin + 5, yPosition, { fontSize: 8, color: [107, 114, 128], maxWidth: pageWidth - margin * 2 - 10 });
+        yPosition += 4;
+      }
+      
+      yPosition += 6;
     }
   }
 
