@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Award, BarChart3, ClipboardList, CheckSquare, Calendar } from 'lucide-react';
 import QualiopiDashboard from './QualiopiDashboard';
@@ -5,7 +7,25 @@ import QualiopiCriteres from './QualiopiCriteres';
 import QualiopiActions from './QualiopiActions';
 import QualiopiAudits from './QualiopiAudits';
 
+const QUALIOPI_TABS = ['dashboard', 'criteres', 'actions', 'audits'] as const;
+
+type QualiopiTab = (typeof QUALIOPI_TABS)[number];
+
 export default function QualiopiPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tab = useMemo<QualiopiTab>(() => {
+    const t = searchParams.get('qtab') as QualiopiTab | null;
+    return t && QUALIOPI_TABS.includes(t) ? t : 'dashboard';
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('qtab', value);
+    if (value !== 'criteres') next.delete('qcrit');
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -22,7 +42,7 @@ export default function QualiopiPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />

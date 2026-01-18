@@ -1,10 +1,12 @@
+import { useSearchParams } from 'react-router-dom';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useQualiopiAudits } from '@/hooks/useQualiopiAudits';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -19,9 +21,17 @@ const CRITERES_LABELS: Record<number, string> = {
 };
 
 export default function QualiopiDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { indicateurs, isLoading: loadingIndicateurs } = useQualiopiIndicateurs();
   const { actions } = useQualiopiActions();
   const { audits } = useQualiopiAudits();
+
+  const openCritere = (critere: number) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('qtab', 'criteres');
+    next.set('qcrit', String(critere));
+    setSearchParams(next, { replace: true });
+  };
 
   if (loadingIndicateurs) {
     return (
@@ -114,7 +124,7 @@ export default function QualiopiDashboard() {
           <CardTitle>Conformité par critère</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {[1, 2, 3, 4, 5, 6, 7].map(critere => {
               const indicateursCritere = indicateurs?.filter(i => i.critere === critere) || [];
               const conformesCritere = indicateursCritere.filter(i => i.statut === 'conforme').length;
@@ -124,33 +134,44 @@ export default function QualiopiDashboard() {
                 : 0;
 
               return (
-                <div key={critere} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Critère {critere}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {CRITERES_LABELS[critere]}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={tauxCritere === 100 ? 'default' : tauxCritere >= 50 ? 'secondary' : 'destructive'}>
-                        {conformesCritere}/{indicateursCritere.length}
-                      </Badge>
-                      {partielsCritere > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          ({partielsCritere} partiel{partielsCritere > 1 ? 's' : ''})
+                <Button
+                  key={critere}
+                  variant="ghost"
+                  onClick={() => openCritere(critere)}
+                  className="w-full h-auto p-0 justify-start hover:bg-muted/50"
+                >
+                  <div className="w-full space-y-2 p-3 text-left">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium shrink-0">Critère {critere}</span>
+                        <span className="text-sm text-muted-foreground truncate">
+                          {CRITERES_LABELS[critere]}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={tauxCritere === 100 ? 'default' : tauxCritere >= 50 ? 'secondary' : 'destructive'}>
+                          {conformesCritere}/{indicateursCritere.length}
+                        </Badge>
+                        {partielsCritere > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            ({partielsCritere} partiel{partielsCritere > 1 ? 's' : ''})
+                          </span>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     </div>
+                    <Progress 
+                      value={tauxCritere} 
+                      className={tauxCritere === 100 ? '[&>div]:bg-green-500' : tauxCritere >= 50 ? '' : '[&>div]:bg-red-500'}
+                    />
                   </div>
-                  <Progress 
-                    value={tauxCritere} 
-                    className={tauxCritere === 100 ? '[&>div]:bg-green-500' : tauxCritere >= 50 ? '' : '[&>div]:bg-red-500'}
-                  />
-                </div>
+                </Button>
               );
             })}
           </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Astuce : cliquez sur un critère pour ouvrir le détail dans l’onglet “Critères & Indicateurs”.
+          </p>
         </CardContent>
       </Card>
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQualiopiIndicateurs, QualiopiIndicateur } from '@/hooks/useQualiopiIndicateurs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,15 +19,35 @@ const CRITERES_LABELS: Record<number, string> = {
 };
 
 export default function QualiopiCriteres() {
+  const [searchParams] = useSearchParams();
   const { indicateurs, isLoading, updateStatut, isUpdating } = useQualiopiIndicateurs();
   const [openCriteres, setOpenCriteres] = useState<number[]>([]);
 
-  const toggleCritere = (critere: number) => {
-    setOpenCriteres(prev => 
-      prev.includes(critere) 
-        ? prev.filter(c => c !== critere)
-        : [...prev, critere]
-    );
+  const critereParam = searchParams.get('qcrit');
+  const critereFromUrl = useMemo(() => {
+    const n = critereParam ? Number(critereParam) : null;
+    return n && Number.isFinite(n) ? n : null;
+  }, [critereParam]);
+
+  useEffect(() => {
+    if (!critereFromUrl) return;
+
+    setOpenCriteres(prev => (prev.includes(critereFromUrl) ? prev : [critereFromUrl, ...prev]));
+
+    // Scroll to the requested criterion if present
+    window.setTimeout(() => {
+      const el = document.getElementById(`qualiopi-critere-${critereFromUrl}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, [critereFromUrl]);
+
+  const setCritereOpen = (critere: number, open: boolean) => {
+    setOpenCriteres(prev => {
+      const has = prev.includes(critere);
+      if (open && !has) return [...prev, critere];
+      if (!open && has) return prev.filter(c => c !== critere);
+      return prev;
+    });
   };
 
   const getStatusIcon = (statut: string) => {
@@ -57,6 +78,133 @@ export default function QualiopiCriteres() {
       </div>
     );
   }
+
+  // Grouper par critère
+  const groupedByCritere = indicateurs?.reduce((acc, ind) => {
+    if (!acc[ind.critere]) acc[ind.critere] = [];
+    acc[ind.critere].push(ind);
+    return acc;
+  }, {} as Record<number, QualiopiIndicateur[]>) || {};
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(groupedByCritere).map(([critere, inds]) => {
+        const critereNum = parseInt(critere);
+        const conformes = inds.filter(i => i.statut === 'conforme').length;
+        const total = inds.length;
+        const tauxCritere = Math.round((conformes / total) * 100);
+        const isOpen = openCriteres.includes(critereNum);
+
+        return (
+          <Collapsible 
+            key={critere} 
+            open={isOpen}
+            onOpenChange={(open) => setCritereOpen(critereNum, open)}
+          >
+            <Card id={`qualiopi-critere-${critereNum}`} className="overflow-hidden">
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full px-4 py-4 h-auto justify-between hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {isOpen ? (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <Badge 
+                      variant={tauxCritere === 100 ? 'default' : tauxCritere >= 50 ? 'secondary' : 'destructive'}
+                      className="min-w-[60px] justify-center"
+                    >
+                      {conformes}/{total}
+                    </Badge>
+                    <div className="text-left min-w-0">
+                      <span className="font-semibold">Critère {critereNum}</span>
+                      <span className="text-muted-foreground ml-2 text-sm hidden md:inline truncate">
+                        {CRITERES_LABELS[critereNum]}
+                      </span>
+                    </div>
+                  </div>
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <div className="px-4 pb-4">
+                  <p className="text-sm text-muted-foreground mb-4 md:hidden">
+                    {CRITERES_LABELS[critereNum]}
+                  </p>
+                  <div className="space-y-3">
+                    {inds.map(ind => (
+                      <Card key={ind.id} className="border-l-4" style={{
+                        borderLeftColor: ind.statut === 'conforme' ? '#22c55e' : 
+                                         ind.statut === 'partiellement_conforme' ? '#f97316' : '#ef4444'
+                      }}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              {getStatusIcon(ind.statut)}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Badge variant="outline" className="text-xs">
+                                    Indicateur {ind.numero}
+                                  </Badge>
+                                  <h4 className="font-medium">{ind.titre}</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-3">
+                                  {ind.description}
+                                </p>
+                                
+                                {ind.preuves_attendues && ind.preuves_attendues.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                      <FileText className="h-3 w-3" />
+                                      Preuves attendues :
+                                    </p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {ind.preuves_attendues.map((preuve, idx) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {preuve}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {getStatusBadge(ind.statut)}
+                              <Select
+                                value={ind.statut}
+                                onValueChange={(value) => updateStatut({ id: ind.id, statut: value })}
+                                disabled={isUpdating}
+                              >
+                                <SelectTrigger className="w-[140px]">
+                                  <SelectValue placeholder="Changer..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="conforme">✅ Conforme</SelectItem>
+                                  <SelectItem value="partiellement_conforme">⚠️ Partiel</SelectItem>
+                                  <SelectItem value="non_conforme">❌ Non conforme</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
+}
 
   // Grouper par critère
   const groupedByCritere = indicateurs?.reduce((acc, ind) => {
