@@ -738,28 +738,12 @@ Informations du centre de formation :
 - Adresse : ${centre?.adresse_complete || 'N/A'}
 `;
 
-    // Build messages array
+    // Build messages array - OPTIMIZED: shorter prompt for faster responses
     const messages: any[] = [
       {
         role: 'system',
-        content: `Tu es un assistant IA expert en gestion de centres de formation Taxi/VTC en France.
-
-Tu as accès à des outils pour exécuter des actions concrètes dans le CRM :
-- Gestion des contacts (créer, rechercher, modifier)
-- Planification des sessions de formation
-- Facturation et enregistrement des paiements
-- Envoi d'emails aux contacts
-- Création de notifications et rappels
-- Consultation des statistiques
-
-${systemContext}
-
-Instructions importantes :
-- Utilise les outils disponibles pour exécuter les actions demandées
-- Confirme toujours les actions effectuées avec un résumé clair
-- Si tu as besoin de plus d'informations pour une action, demande-les
-- Pour les recherches, commence par chercher le contact/session avant d'agir
-- Réponds en français de manière professionnelle et concise`
+        content: `Assistant CRM formation Taxi/VTC. ${systemContext}
+Exécute les actions via les outils. Réponds en français, sois concis. Confirme les actions réalisées.`
       }
     ];
 
@@ -773,7 +757,7 @@ Instructions importantes :
     // Add current user message
     messages.push({ role: 'user', content: message });
 
-    // Call AI with tools
+    // Call AI with tools - Using fastest model for better latency
     let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -781,10 +765,11 @@ Instructions importantes :
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'google/gemini-2.5-flash-lite',
         messages,
         tools: TOOLS,
-        tool_choice: 'auto'
+        tool_choice: 'auto',
+        max_tokens: 1024
       }),
     });
 
@@ -881,7 +866,7 @@ Instructions importantes :
         break;
       }
 
-      // Get AI response after tool execution
+      // Get AI response after tool execution - Using fastest model
       response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -889,10 +874,11 @@ Instructions importantes :
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
+          model: 'google/gemini-2.5-flash-lite',
           messages,
           tools: TOOLS,
-          tool_choice: 'auto'
+          tool_choice: 'auto',
+          max_tokens: 1024
         }),
       });
 

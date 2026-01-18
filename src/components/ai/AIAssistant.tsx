@@ -1,13 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Bot, User, Send, Sparkles, CheckCircle2, XCircle, Zap, AlertTriangle, History } from 'lucide-react';
+import { Bot, User, Send, Zap, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { AIProgressIndicator, ProgressStep } from './AIProgressIndicator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,12 +73,13 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Bonjour ! Je suis votre assistant IA et je peux maintenant **exécuter des actions** dans votre CRM.\n\n🎯 **Ce que je peux faire :**\n• Créer et rechercher des contacts\n• Planifier des sessions et inscrire des stagiaires\n• Créer des factures et enregistrer des paiements\n• Envoyer des emails\n• Créer des rappels et notifications\n\n⚠️ **Sécurité** : Les actions sensibles (facturation, modifications, emails) nécessitent votre confirmation.\n\nDites-moi ce que vous souhaitez faire !",
+      content: "Bonjour ! Je suis votre assistant IA. Je peux créer des contacts, planifier des sessions, gérer la facturation et envoyer des emails. Que puis-je faire pour vous ?",
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [progressStep, setProgressStep] = useState<ProgressStep>('idle');
+  const [currentTool, setCurrentTool] = useState<string | undefined>();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     pending: PendingConfirmation[];
@@ -86,26 +88,28 @@ export function AIAssistant() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const quickActions = [
-    { label: '📊 Voir les stats', prompt: 'Montre-moi les statistiques du mois en cours' },
-    { label: '➕ Créer un contact', prompt: 'Je veux créer un nouveau contact' },
-    { label: '📅 Sessions à venir', prompt: 'Liste les prochaines sessions de formation planifiées' },
-    { label: '💳 Factures en attente', prompt: 'Quelles sont les factures en attente de paiement ?' },
-    { label: '📧 Envoyer un email', prompt: 'Je veux envoyer un email à un contact' },
+    { label: '📊 Stats', prompt: 'Statistiques du mois' },
+    { label: '➕ Contact', prompt: 'Créer un contact' },
+    { label: '📅 Sessions', prompt: 'Prochaines sessions' },
+    { label: '💳 Factures', prompt: 'Factures en attente' },
   ];
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const sendMessage = async (messageText: string, confirmedActions?: string[]) => {
-    if (!messageText.trim() || isLoading) return;
+    if (!messageText.trim() || progressStep !== 'idle') return;
 
-    // Only add user message if not a confirmation
     if (!confirmedActions) {
       const userMessage: Message = {
         role: 'user',
@@ -116,11 +120,14 @@ export function AIAssistant() {
     }
     
     setInput('');
-    setIsLoading(true);
+    setProgressStep('sending');
+    setCurrentTool(undefined);
 
     try {
-      // Build conversation history for context
-      const conversationHistory = messages.slice(-10).map(m => ({
+      // Simulate progress steps for better UX
+      setTimeout(() => setProgressStep('analyzing'), 200);
+      
+      const conversationHistory = messages.slice(-6).map(m => ({
         role: m.role,
         content: m.content
       }));
@@ -141,7 +148,15 @@ export function AIAssistant() {
         throw new Error(data.error || 'Erreur inconnue');
       }
 
-      // Check for pending confirmations
+      // Show executing step if there are tool results
+      if (data.toolResults && data.toolResults.length > 0) {
+        setProgressStep('executing');
+        setCurrentTool(data.toolResults[0]?.tool);
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      setProgressStep('responding');
+
       if (data.pendingConfirmations && data.pendingConfirmations.length > 0) {
         setConfirmDialog({
           open: true,
@@ -149,7 +164,6 @@ export function AIAssistant() {
           originalMessage: messageText
         });
         
-        // Add assistant message indicating pending actions
         const assistantMessage: Message = {
           role: 'assistant',
           content: data.response + "\n\n⚠️ **Actions en attente de confirmation...**",
@@ -167,26 +181,28 @@ export function AIAssistant() {
         };
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Show toast for executed actions
         if (data.toolResults && data.toolResults.length > 0) {
           const successCount = data.toolResults.filter((r: ToolResult) => r.result.success).length;
           if (successCount > 0) {
-            toast.success(`${successCount} action(s) exécutée(s) avec succès`);
+            toast.success(`${successCount} action(s) exécutée(s)`);
           }
         }
       }
+
+      setProgressStep('done');
+      setTimeout(() => setProgressStep('idle'), 500);
+      
     } catch (error: any) {
       console.error('AI Assistant error:', error);
-      toast.error(error.message || 'Erreur de communication avec l\'assistant');
+      toast.error(error.message || 'Erreur de communication');
       
       const errorMessage: Message = {
         role: 'assistant',
-        content: "Désolé, une erreur s'est produite. Veuillez réessayer dans quelques instants.",
+        content: "Désolé, une erreur s'est produite. Réessayez.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+      setProgressStep('idle');
     }
   };
 
@@ -194,32 +210,29 @@ export function AIAssistant() {
     const confirmedTools = confirmDialog.pending.map(p => p.tool);
     setConfirmDialog({ open: false, pending: [], originalMessage: '' });
     
-    // Remove the "pending" message and add confirmation
     setMessages(prev => {
       const newMessages = [...prev];
       if (newMessages.length > 0) {
         const lastMsg = newMessages[newMessages.length - 1];
         if (lastMsg.content.includes('Actions en attente de confirmation')) {
-          lastMsg.content = lastMsg.content.replace("\n\n⚠️ **Actions en attente de confirmation...**", "\n\n✅ **Actions confirmées, exécution en cours...**");
+          lastMsg.content = lastMsg.content.replace("\n\n⚠️ **Actions en attente de confirmation...**", "\n\n✅ **Exécution en cours...**");
         }
       }
       return newMessages;
     });
     
-    // Re-send with confirmed actions
     await sendMessage(confirmDialog.originalMessage, confirmedTools);
   };
 
   const handleCancelActions = () => {
     setConfirmDialog({ open: false, pending: [], originalMessage: '' });
     
-    // Update the last message to show cancellation
     setMessages(prev => {
       const newMessages = [...prev];
       if (newMessages.length > 0) {
         const lastMsg = newMessages[newMessages.length - 1];
         if (lastMsg.content.includes('Actions en attente de confirmation')) {
-          lastMsg.content = lastMsg.content.replace("\n\n⚠️ **Actions en attente de confirmation...**", "\n\n❌ **Actions annulées par l'utilisateur.**");
+          lastMsg.content = lastMsg.content.replace("\n\n⚠️ **Actions en attente de confirmation...**", "\n\n❌ **Annulé**");
         }
       }
       return newMessages;
@@ -235,84 +248,69 @@ export function AIAssistant() {
     }
   };
 
-  const renderToolResults = (toolResults: ToolResult[]) => {
-    return (
-      <div className="mt-2 space-y-1">
-        {toolResults.map((tr, idx) => (
-          <div
-            key={idx}
-            className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${
-              tr.result.success 
-                ? 'bg-green-500/10 text-green-700 dark:text-green-400' 
-                : 'bg-red-500/10 text-red-700 dark:text-red-400'
-            }`}
-          >
-            {tr.result.success ? (
-              <CheckCircle2 className="h-3 w-3" />
-            ) : (
-              <XCircle className="h-3 w-3" />
-            )}
-            <span className="font-medium">{TOOL_LABELS[tr.tool] || tr.tool}</span>
-            {tr.result.message && (
-              <span className="text-muted-foreground">- {tr.result.message}</span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const renderToolResults = (toolResults: ToolResult[]) => (
+    <div className="mt-2 space-y-1">
+      {toolResults.map((tr, idx) => (
+        <div
+          key={idx}
+          className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${
+            tr.result.success 
+              ? 'bg-green-500/10 text-green-700 dark:text-green-400' 
+              : 'bg-red-500/10 text-red-700 dark:text-red-400'
+          }`}
+        >
+          {tr.result.success ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+          <span className="font-medium">{TOOL_LABELS[tr.tool] || tr.tool}</span>
+          {tr.result.message && <span className="text-muted-foreground truncate">- {tr.result.message}</span>}
+        </div>
+      ))}
+    </div>
+  );
 
-  const renderPendingConfirmations = (pending: PendingConfirmation[]) => {
-    return (
-      <div className="mt-2 space-y-1">
-        {pending.map((p, idx) => (
-          <div
-            key={idx}
-            className="flex items-center gap-2 text-xs px-2 py-1 rounded bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
-          >
-            <AlertTriangle className="h-3 w-3" />
-            <span className="font-medium">{TOOL_LABELS[p.tool] || p.tool}</span>
-            <span className="text-muted-foreground">- En attente de confirmation</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const renderPendingConfirmations = (pending: PendingConfirmation[]) => (
+    <div className="mt-2 space-y-1">
+      {pending.map((p, idx) => (
+        <div key={idx} className="flex items-center gap-2 text-xs px-2 py-1 rounded bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
+          <AlertTriangle className="h-3 w-3" />
+          <span className="font-medium">{TOOL_LABELS[p.tool] || p.tool}</span>
+          <span className="text-muted-foreground">- En attente</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const isLoading = progressStep !== 'idle';
 
   return (
     <>
       <Card className="flex flex-col h-full border-0 shadow-none">
-        <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Bot className="h-5 w-5" />
+        <CardHeader className="pb-2 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Bot className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <CardTitle className="flex items-center gap-2">
-                Assistant IA Agent
-                <Badge variant="secondary" className="text-xs">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Actions CRM
+              <CardTitle className="text-base flex items-center gap-2">
+                Assistant IA
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Zap className="h-2.5 w-2.5 mr-0.5" />
+                  Rapide
                 </Badge>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Exécute des tâches dans votre CRM avec confirmation
-              </p>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
           {/* Quick actions */}
-          <div className="p-3 border-b bg-muted/30">
-            <p className="text-xs text-muted-foreground mb-2">Actions rapides :</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="p-2 border-b bg-muted/30">
+            <div className="flex flex-wrap gap-1.5">
               {quickActions.map((qa, idx) => (
                 <Button
                   key={idx}
                   variant="outline"
                   size="sm"
-                  className="text-xs h-7"
+                  className="text-xs h-6 px-2"
                   onClick={() => sendMessage(qa.prompt)}
                   disabled={isLoading}
                 >
@@ -323,91 +321,60 @@ export function AIAssistant() {
           </div>
 
           {/* Messages */}
-          <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea ref={scrollAreaRef} className="flex-1 p-3">
+            <div className="space-y-3">
               {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-                >
+                <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   {msg.role === 'assistant' && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Bot className="h-4 w-4 text-primary" />
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Bot className="h-3 w-3 text-primary" />
                     </div>
                   )}
                   
-                  <div
-                    className={`rounded-lg px-4 py-3 max-w-[85%] ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
+                  <div className={`rounded-lg px-3 py-2 max-w-[85%] ${
+                    msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  }`}>
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    
                     {msg.toolResults && msg.toolResults.length > 0 && renderToolResults(msg.toolResults)}
                     {msg.pendingConfirmations && msg.pendingConfirmations.length > 0 && renderPendingConfirmations(msg.pendingConfirmations)}
-                    
-                    <span className="text-xs opacity-70 mt-1 block">
-                      {msg.timestamp.toLocaleTimeString('fr-FR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+                    <span className="text-[10px] opacity-60 mt-1 block">
+                      {msg.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
                   {msg.role === 'user' && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
-                      <User className="h-4 w-4 text-primary-foreground" />
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
+                      <User className="h-3 w-3 text-primary-foreground" />
                     </div>
                   )}
                 </div>
               ))}
 
               {isLoading && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Bot className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="rounded-lg px-4 py-3 bg-muted flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Exécution en cours...</span>
-                  </div>
-                </div>
+                <AIProgressIndicator step={progressStep} currentTool={currentTool} />
               )}
             </div>
           </ScrollArea>
 
           {/* Input */}
-          <div className="p-4 border-t">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage(input);
-              }}
-              className="flex gap-2"
-            >
+          <div className="p-3 border-t">
+            <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ex: Crée un contact Jean Dupont avec l'email jean@example.com"
+                placeholder="Ex: Créer un contact Jean Dupont"
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 h-9 text-sm"
               />
-              <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+              <Button type="submit" disabled={isLoading || !input.trim()} size="sm" className="h-9 w-9 p-0">
+                <Send className="h-4 w-4" />
               </Button>
             </form>
           </div>
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelActions()}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -417,32 +384,23 @@ export function AIAssistant() {
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>Les actions suivantes nécessitent votre confirmation :</p>
+                <p>Actions en attente :</p>
                 <div className="space-y-2">
                   {confirmDialog.pending.map((p, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-2 bg-muted rounded-lg">
-                      <Badge variant="outline" className="shrink-0">
-                        {TOOL_LABELS[p.tool] || p.tool}
-                      </Badge>
-                      <span className="text-sm">
-                        {TOOL_DESCRIPTIONS[p.tool]?.(p.params) || JSON.stringify(p.params)}
-                      </span>
+                      <Badge variant="outline" className="shrink-0">{TOOL_LABELS[p.tool] || p.tool}</Badge>
+                      <span className="text-sm">{TOOL_DESCRIPTIONS[p.tool]?.(p.params) || JSON.stringify(p.params)}</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Voulez-vous exécuter ces actions ?
-                </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelActions}>
-              Annuler
-            </AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCancelActions}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmActions}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Confirmer et exécuter
+              Confirmer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
