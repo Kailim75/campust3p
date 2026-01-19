@@ -149,32 +149,32 @@ function buildAccreditationsLine(company: CompanyInfo): string[] {
 }
 
 // Helper functions avec nouvelle charte graphique
-function addHeader(doc: jsPDF, company: CompanyInfo) {
+function addHeader(doc: jsPDF, company: CompanyInfo): number {
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Build accreditations lines
   const accreditationsLines = buildAccreditationsLine(company);
-  const headerHeight = accreditationsLines.length > 1 ? 42 : 35;
+  const headerHeight = accreditationsLines.length > 1 ? 45 : 38;
   
   // Bandeau header Forest Green
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
   
   // Nom de l'entreprise en blanc
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text(company.name, 20, 16);
+  doc.text(company.name, 20, 14);
   
   // Coordonnées en cream clair
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.text(`${company.address} | Tél: ${company.phone}`, 20, 24);
+  doc.text(`${company.address} | Tél: ${company.phone} | ${company.email}`, 20, 21);
   
   // Agréments et certifications
-  let yAccred = 30;
-  doc.setFontSize(7);
+  let yAccred = 28;
+  doc.setFontSize(6.5);
   accreditationsLines.forEach(line => {
     doc.text(line, 20, yAccred);
     yAccred += 5;
@@ -182,10 +182,13 @@ function addHeader(doc: jsPDF, company: CompanyInfo) {
   
   // Ligne accent Gold sous le header
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.rect(0, headerHeight, pageWidth, 3, "F");
+  doc.rect(0, headerHeight, pageWidth, 2, "F");
   
   // Reset text color
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  
+  // Retourne la position Y après le header
+  return headerHeight + 5;
 }
 
 function addFooter(doc: jsPDF, pageNum: number = 1) {
@@ -256,17 +259,17 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
 }
 
 // Fonction pour dessiner un titre de document avec style
-function addDocumentTitle(doc: jsPDF, title: string, subtitle?: string, reference?: string) {
+function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: string, reference?: string) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yPos = 50;
+  let yPos = startY + 8;
   
   // Badge titre avec fond Gold
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
   const titleWidth = doc.getTextWidth(title) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 14, 3, 3, "F");
   
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
   doc.text(title, pageWidth / 2, yPos, { align: "center" });
   
@@ -329,10 +332,10 @@ export function generateFacturePDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  addHeader(doc, company);
+  const headerEndY = addHeader(doc, company);
   
   // Title avec style
-  let yPos = addDocumentTitle(doc, "FACTURE", undefined, facture.numero_facture);
+  let yPos = addDocumentTitle(doc, "FACTURE", headerEndY, undefined, facture.numero_facture);
   
   // Contact info avec box
   yPos += 5;
@@ -462,10 +465,10 @@ export function generateAttestationPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  addHeader(doc, company);
+  const headerEndY = addHeader(doc, company);
   
   // Title avec style
-  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION");
+  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION", headerEndY);
   
   // Corps
   yPos += 10;
@@ -590,10 +593,10 @@ export function generateConventionPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  addHeader(doc, company);
+  const headerEndY = addHeader(doc, company);
   
   // Title
-  let yPos = 55;
+  let yPos = headerEndY + 8;
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text("CONVENTION DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
@@ -737,8 +740,8 @@ export function generateConventionPDF(
   
   // Page 2
   doc.addPage();
-  addHeader(doc, company);
-  yPos = 55;
+  const page2HeaderEndY = addHeader(doc, company);
+  yPos = page2HeaderEndY + 5;
   
   // Article 8 - Prix (Obligatoire DREETS)
   doc.setFont("helvetica", "bold");
@@ -834,10 +837,10 @@ export function generateContratFormationPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  addHeader(doc, company);
+  const headerEndY = addHeader(doc, company);
   
   // Title
-  let yPos = 55;
+  let yPos = headerEndY + 8;
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text("CONTRAT DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
@@ -956,8 +959,8 @@ export function generateContratFormationPDF(
   
   // Page 2
   doc.addPage();
-  addHeader(doc, company);
-  yPos = 55;
+  const page2HeaderEndY = addHeader(doc, company);
+  yPos = page2HeaderEndY + 5;
   
   // Article 4 - Prix (Obligatoire L.6353-4)
   doc.setFont("helvetica", "bold");
@@ -1078,10 +1081,10 @@ export function generateConvocationPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  addHeader(doc, company);
+  const headerEndY = addHeader(doc, company);
   
   // Title with session reference
-  let yPos = 55;
+  let yPos = headerEndY + 8;
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("CONVOCATION A LA FORMATION", pageWidth / 2, yPos, { align: "center" });
