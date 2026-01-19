@@ -682,6 +682,19 @@ export function generateConventionPDF(
 ): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 25;
+  
+  // Helper to check if we need a new page
+  const checkPageBreak = (neededSpace: number = 30): number => {
+    if (yPos + neededSpace > pageHeight - bottomMargin) {
+      doc.addPage();
+      addFooter(doc, doc.getNumberOfPages());
+      const newHeaderY = addHeader(doc, company);
+      return newHeaderY + 5;
+    }
+    return yPos;
+  };
   
   const headerEndY = addHeader(doc, company);
   
@@ -709,60 +722,67 @@ export function generateConventionPDF(
   doc.setFont("helvetica", "bold");
   doc.text("ENTRE LES SOUSSIGNÉS :", 20, yPos);
   
-  yPos += 8;
+  yPos += 10;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   
-  // Organisme
+  // Organisme - avec plus d'espace
   doc.setFont("helvetica", "bold");
   doc.text("L'organisme de formation :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
+  yPos += 8;
+  doc.text(`${company.name}`, 25, yPos);
+  yPos += 6;
+  doc.text(`SIRET : ${company.siret}`, 25, yPos);
   yPos += 6;
   const orgAddressLines = doc.splitTextToSize(company.address, pageWidth - 50);
   doc.text(orgAddressLines, 25, yPos);
-  yPos += orgAddressLines.length * 6;
-  doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
+  yPos += orgAddressLines.length * 6 + 2;
+  const ndaText = `Déclaration d'activité N° ${company.nda}`;
+  doc.text(ndaText, 25, yPos);
+  yPos += 6;
+  doc.text(`(ne vaut pas agrément de l'État)`, 25, yPos);
   yPos += 6;
   doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
   
   // Client/Stagiaire
-  yPos += 10;
+  yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.text("Et :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 5;
+  yPos += 7;
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.text(fullName, 25, yPos);
   if (contact.rue) {
-    yPos += 4;
+    yPos += 6;
     doc.text(contact.rue, 25, yPos);
   }
   if (contact.code_postal || contact.ville) {
-    yPos += 4;
+    yPos += 6;
     doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos);
   }
-  yPos += 4;
+  yPos += 6;
   doc.text(`Ci-après dénommé "le Bénéficiaire"`, 25, yPos);
   
   // Article 1 - Objet
-  yPos += 10;
+  yPos += 14;
+  yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.text("Article 1 - Objet", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 6;
+  yPos += 7;
   const art1 = `En exécution de la présente convention, l'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}".`;
   const splitArt1 = doc.splitTextToSize(art1, pageWidth - 40);
   doc.text(splitArt1, 20, yPos);
   
   // Article 2 - Nature et caractéristiques (Obligatoire DREETS)
-  yPos += splitArt1.length * 6 + 10;
+  yPos += splitArt1.length * 6 + 12;
+  yPos = checkPageBreak(55);
   doc.setFont("helvetica", "bold");
   doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 7;
+  yPos += 8;
   doc.text(`• Intitulé : ${session.nom}`, 22, yPos);
   yPos += 6;
   doc.text(`• Type d'action : Action de formation au sens de l'article L.6313-1 du Code du travail`, 22, yPos);
@@ -773,12 +793,15 @@ export function generateConventionPDF(
   yPos += 6;
   doc.text(`• Horaires : ${formatSessionHours(session)}`, 22, yPos);
   yPos += 6;
-  doc.text(`• Lieu : ${formatFullAddress(session)}`, 22, yPos);
-  yPos += 6;
+  const lieuConvention = `• Lieu : ${formatFullAddress(session)}`;
+  const splitLieuConv = doc.splitTextToSize(lieuConvention, pageWidth - 45);
+  doc.text(splitLieuConv, 22, yPos);
+  yPos += splitLieuConv.length * 6;
   doc.text(`• Modalités : Formation en présentiel`, 22, yPos);
   
   // Article 3 - Objectifs (Obligatoire Qualiopi)
-  yPos += 10;
+  yPos += 12;
+  yPos = checkPageBreak(30);
   doc.setFont("helvetica", "bold");
   doc.text("Article 3 - Objectifs pédagogiques", 20, yPos);
   doc.setFont("helvetica", "normal");
@@ -788,15 +811,17 @@ export function generateConventionPDF(
   doc.text(splitObj, 20, yPos);
   
   // Article 4 - Programme
-  yPos += splitObj.length * 6 + 10;
+  yPos += splitObj.length * 6 + 12;
+  yPos = checkPageBreak(25);
   doc.setFont("helvetica", "bold");
   doc.text("Article 4 - Programme", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 6;
+  yPos += 7;
   doc.text("Le programme détaillé de la formation est annexé à la présente convention.", 20, yPos);
   
   // Article 5 - Prérequis (Obligatoire Qualiopi)
-  yPos += 10;
+  yPos += 12;
+  yPos = checkPageBreak(30);
   doc.setFont("helvetica", "bold");
   doc.text("Article 5 - Prérequis et public visé", 20, yPos);
   doc.setFont("helvetica", "normal");
@@ -806,7 +831,8 @@ export function generateConventionPDF(
   doc.text(splitPre, 20, yPos);
   
   // Article 6 - Moyens pédagogiques (Obligatoire Qualiopi)
-  yPos += splitPre.length * 6 + 10;
+  yPos += splitPre.length * 6 + 12;
+  yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
   doc.text("Article 6 - Moyens pédagogiques et techniques", 20, yPos);
   doc.setFont("helvetica", "normal");
@@ -818,7 +844,8 @@ export function generateConventionPDF(
   doc.text("• Mise en situation pratique et exercices", 22, yPos);
   
   // Article 7 - Évaluation (Obligatoire Qualiopi)
-  yPos += 10;
+  yPos += 12;
+  yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
   doc.text("Article 7 - Modalités d'évaluation", 20, yPos);
   doc.setFont("helvetica", "normal");
@@ -829,7 +856,7 @@ export function generateConventionPDF(
   yPos += 6;
   doc.text("• Attestation de fin de formation remise au stagiaire", 22, yPos);
   
-  // Page 2
+  // Page 2 - Articles financiers et signatures
   doc.addPage();
   const page2HeaderEndY = addHeader(doc, company);
   yPos = page2HeaderEndY + 5;
