@@ -12,6 +12,7 @@ import {
   type SessionInfo,
   type FactureInfo,
   type CompanyInfo,
+  type AgrementsAutre,
 } from "@/lib/pdf-generator";
 
 export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation";
@@ -23,6 +24,15 @@ export function useDocumentGenerator() {
   const getCompanyInfo = useCallback((): CompanyInfo | undefined => {
     if (!centreFormation) return undefined;
     
+    // Parse agrements_autres from JSON
+    let agrements_autres: AgrementsAutre[] = [];
+    if (centreFormation.agrements_autres && typeof centreFormation.agrements_autres === 'object') {
+      const raw = centreFormation.agrements_autres as { agrements?: AgrementsAutre[] };
+      if (raw.agrements && Array.isArray(raw.agrements)) {
+        agrements_autres = raw.agrements;
+      }
+    }
+    
     return {
       name: centreFormation.nom_commercial || centreFormation.nom_legal,
       address: centreFormation.adresse_complete,
@@ -30,6 +40,15 @@ export function useDocumentGenerator() {
       email: centreFormation.email,
       siret: centreFormation.siret,
       nda: centreFormation.nda,
+      // Agréments et certifications
+      qualiopi_numero: centreFormation.qualiopi_numero || undefined,
+      qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || undefined,
+      qualiopi_date_expiration: centreFormation.qualiopi_date_expiration || undefined,
+      agrement_prefecture: centreFormation.agrement_prefecture || undefined,
+      agrement_prefecture_date: centreFormation.agrement_prefecture_date || undefined,
+      code_rncp: centreFormation.code_rncp || undefined,
+      code_rs: centreFormation.code_rs || undefined,
+      agrements_autres: agrements_autres.length > 0 ? agrements_autres : undefined,
     };
   }, [centreFormation]);
 
