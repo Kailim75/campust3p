@@ -124,10 +124,11 @@ export function AIAssistant() {
     setCurrentTool(undefined);
 
     try {
-      // Simulate progress steps for better UX
-      setTimeout(() => setProgressStep('analyzing'), 200);
+      // Immediate progression - no artificial delays
+      setProgressStep('analyzing');
       
-      const conversationHistory = messages.slice(-6).map(m => ({
+      // Only keep last 4 messages for faster context
+      const conversationHistory = messages.slice(-4).map(m => ({
         role: m.role,
         content: m.content
       }));
@@ -148,14 +149,12 @@ export function AIAssistant() {
         throw new Error(data.error || 'Erreur inconnue');
       }
 
-      // Show executing step if there are tool results
+      // Show executing step if there are tool results - no delays
       if (data.toolResults && data.toolResults.length > 0) {
-        setProgressStep('executing');
         setCurrentTool(data.toolResults[0]?.tool);
-        await new Promise(r => setTimeout(r, 300));
       }
 
-      setProgressStep('responding');
+      setProgressStep('done');
 
       if (data.pendingConfirmations && data.pendingConfirmations.length > 0) {
         setConfirmDialog({
@@ -189,8 +188,8 @@ export function AIAssistant() {
         }
       }
 
-      setProgressStep('done');
-      setTimeout(() => setProgressStep('idle'), 500);
+      // Reset immediately
+      setTimeout(() => setProgressStep('idle'), 200);
       
     } catch (error: any) {
       console.error('AI Assistant error:', error);

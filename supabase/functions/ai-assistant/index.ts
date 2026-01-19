@@ -738,12 +738,11 @@ Informations du centre de formation :
 - Adresse : ${centre?.adresse_complete || 'N/A'}
 `;
 
-    // Build messages array - OPTIMIZED: shorter prompt for faster responses
+    // Build messages array - ULTRA OPTIMIZED: minimal prompt for fastest responses
     const messages: any[] = [
       {
         role: 'system',
-        content: `Assistant CRM formation Taxi/VTC. ${systemContext}
-Exécute les actions via les outils. Réponds en français, sois concis. Confirme les actions réalisées.`
+        content: `CRM T3P. ${systemContext} Utilise les outils. Français. Bref.`
       }
     ];
 
@@ -769,7 +768,8 @@ Exécute les actions via les outils. Réponds en français, sois concis. Confirm
         messages,
         tools: TOOLS,
         tool_choice: 'auto',
-        max_tokens: 1024
+        max_tokens: 512,
+        temperature: 0.3
       }),
     });
 
@@ -878,7 +878,8 @@ Exécute les actions via les outils. Réponds en français, sois concis. Confirm
           messages,
           tools: TOOLS,
           tool_choice: 'auto',
-          max_tokens: 1024
+          max_tokens: 512,
+          temperature: 0.3
         }),
       });
 
