@@ -79,7 +79,7 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "T3P Formation <noreply@resend.dev>",
+            from: "Drop Academy Montrouge <dropacademymontrouge@gmail.com>",
             to: [contact.email],
             subject: emailSubject,
             html: `
@@ -190,7 +190,7 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "T3P Formation <noreply@resend.dev>",
+            from: "Drop Academy Montrouge <dropacademymontrouge@gmail.com>",
             to: [contact.email],
             subject: emailSubject,
             html: `
