@@ -5,6 +5,7 @@ import {
   generateFacturePDF,
   generateAttestationPDF,
   generateConventionPDF,
+  generateContratFormationPDF,
   generateConvocationPDF,
   downloadPDF,
   type ContactInfo,
@@ -13,7 +14,7 @@ import {
   type CompanyInfo,
 } from "@/lib/pdf-generator";
 
-export type DocumentType = "facture" | "attestation" | "convention" | "convocation";
+export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation";
 
 export function useDocumentGenerator() {
   const { centreFormation } = useCentreFormation();
@@ -78,6 +79,15 @@ export function useDocumentGenerator() {
             filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
+          case "contrat":
+            if (!session) {
+              toast.error("Données de session manquantes");
+              return null;
+            }
+            doc = generateContratFormationPDF(contact, session, company);
+            filename = `contrat-formation-${contact.nom}-${contact.prenom}.pdf`;
+            break;
+
           case "convocation":
             if (!session) {
               toast.error("Données de session manquantes");
@@ -135,7 +145,8 @@ function getDocumentLabel(type: DocumentType): string {
   const labels: Record<DocumentType, string> = {
     facture: "Facture",
     attestation: "Attestation",
-    convention: "Convention",
+    convention: "Convention de formation",
+    contrat: "Contrat de formation",
     convocation: "Convocation",
   };
   return labels[type];
