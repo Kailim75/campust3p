@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import {
@@ -8,6 +8,7 @@ import {
   generateContratFormationPDF,
   generateConvocationPDF,
   downloadPDF,
+  preloadCompanyImages,
   type ContactInfo,
   type SessionInfo,
   type FactureInfo,
@@ -40,6 +41,9 @@ export function useDocumentGenerator() {
       email: centreFormation.email,
       siret: centreFormation.siret,
       nda: centreFormation.nda,
+      // Visuels
+      logo_url: centreFormation.logo_url || undefined,
+      signature_cachet_url: centreFormation.signature_cachet_url || undefined,
       // Agréments et certifications
       qualiopi_numero: centreFormation.qualiopi_numero || undefined,
       qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || undefined,
@@ -51,6 +55,14 @@ export function useDocumentGenerator() {
       agrements_autres: agrements_autres.length > 0 ? agrements_autres : undefined,
     };
   }, [centreFormation]);
+
+  // Preload company images on mount
+  useEffect(() => {
+    const company = getCompanyInfo();
+    if (company) {
+      preloadCompanyImages(company);
+    }
+  }, [getCompanyInfo]);
 
   const generateDocument = useCallback(
     (
