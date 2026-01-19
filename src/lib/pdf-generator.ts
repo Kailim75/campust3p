@@ -1731,95 +1731,113 @@ export function generateConvocationPDF(
     doc.setTextColor(0);
   }
   
-  // Destinataire
-  yPos += 15;
-  yPos = addContactBlock(doc, contact, pageWidth - 80, yPos, "");
+  // Destinataire - positionnement à droite
+  yPos += 12;
+  const contactBlockStartY = yPos;
+  addContactBlock(doc, contact, pageWidth - 80, yPos, "");
   
-  // Corps
-  yPos = Math.max(yPos, 105);
+  // Corps - commence après le bloc contact avec marge suffisante
+  yPos = contactBlockStartY + 45;
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.text(`${fullName},`, 20, yPos);
   
-  yPos += 10;
+  yPos += 8;
   const intro = `Nous avons le plaisir de vous confirmer votre inscription à la formation suivante :`;
   doc.text(intro, 20, yPos);
   
-  // Formation box - enrichi
-  yPos += 15;
-  doc.setFillColor(245, 245, 245);
-  const boxHeight = session.formateur ? 75 : 65;
-  doc.roundedRect(20, yPos, pageWidth - 40, boxHeight, 3, 3, "F");
-  
+  // Formation box - hauteur dynamique
   yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text(session.nom, pageWidth / 2, yPos, { align: "center" });
+  const boxStartY = yPos;
+  let boxContentY = yPos + 10;
   
-  yPos += 12;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 30, yPos);
-  
-  yPos += 9;
-  doc.text(`Horaires : ${formatSessionHours(session)}`, 30, yPos);
-  
-  yPos += 9;
-  doc.text(`Lieu : ${formatFullAddress(session)}`, 30, yPos);
-  
-  yPos += 9;
-  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 30, yPos);
-  
-  if (session.formateur) {
-    yPos += 9;
-    doc.text(`Formateur : ${session.formateur}`, 30, yPos);
-  }
-  
-  // Documents à apporter
-  yPos += 20;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Documents à apporter le jour de la formation :", 20, yPos);
+  doc.text(session.nom, pageWidth / 2, boxContentY, { align: "center" });
   
-  yPos += 10;
+  boxContentY += 10;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text("• Pièce d'identité en cours de validité", 25, yPos);
-  yPos += 7;
-  doc.text("• Permis de conduire", 25, yPos);
-  yPos += 7;
-  doc.text("• Attestation d'inscription (cette convocation)", 25, yPos);
+  doc.setFontSize(10);
+  doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 28, boxContentY);
   
-  // Prérequis si présents
-  if (session.prerequis) {
-    yPos += 14;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Prérequis :", 20, yPos);
-    doc.setFont("helvetica", "normal");
-    yPos += 7;
-    const prerequisText = doc.splitTextToSize(session.prerequis, pageWidth - 50);
-    doc.text(prerequisText, 25, yPos);
-    yPos += prerequisText.length * 6;
+  boxContentY += 7;
+  doc.text(`Horaires : ${formatSessionHours(session)}`, 28, boxContentY);
+  
+  boxContentY += 7;
+  doc.text(`Lieu : ${formatFullAddress(session)}`, 28, boxContentY);
+  
+  boxContentY += 7;
+  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 28, boxContentY);
+  
+  if (session.formateur) {
+    boxContentY += 7;
+    doc.text(`Formateur : ${session.formateur}`, 28, boxContentY);
   }
   
-  // Contact
-  yPos = Math.min(yPos + 15, 225);
+  // Dessiner le box après avoir calculé la hauteur
+  const boxHeight = boxContentY - boxStartY + 8;
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(20, boxStartY, pageWidth - 40, boxHeight, 3, 3, "F");
+  
+  // Redessiner le contenu par-dessus le fond
+  boxContentY = boxStartY + 10;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text(session.nom, pageWidth / 2, boxContentY, { align: "center" });
+  
+  boxContentY += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 28, boxContentY);
+  
+  boxContentY += 7;
+  doc.text(`Horaires : ${formatSessionHours(session)}`, 28, boxContentY);
+  
+  boxContentY += 7;
+  doc.text(`Lieu : ${formatFullAddress(session)}`, 28, boxContentY);
+  
+  boxContentY += 7;
+  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 28, boxContentY);
+  
+  if (session.formateur) {
+    boxContentY += 7;
+    doc.text(`Formateur : ${session.formateur}`, 28, boxContentY);
+  }
+  
+  yPos = boxStartY + boxHeight + 12;
+  
+  // Documents à apporter
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
+  doc.text("Documents à apporter le jour de la formation :", 20, yPos);
+  
+  yPos += 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("• Pièce d'identité en cours de validité", 25, yPos);
+  yPos += 6;
+  doc.text("• Permis de conduire", 25, yPos);
+  yPos += 6;
+  doc.text("• Attestation d'inscription (cette convocation)", 25, yPos);
+  
+  // Contact
+  yPos += 14;
+  doc.setFontSize(10);
   doc.text(`Pour toute question, contactez-nous au ${company.phone} ou par email à ${company.email}`, 20, yPos);
   
   // Signature
-  yPos += 20;
+  yPos += 12;
   doc.text("Cordialement,", 20, yPos);
-  yPos += 10;
+  yPos += 8;
   
   // Add stamp image if available
-  const stampAdded = addStampImage(doc, company, 20, yPos, 35, 22);
-  yPos += stampAdded ? 25 : 5;
+  const stampAdded = addStampImage(doc, company, 20, yPos, 30, 18);
+  yPos += stampAdded ? 22 : 5;
   
-  doc.text("L'equipe Formation", 20, yPos);
+  doc.setFontSize(10);
+  doc.text("L'équipe Formation", 20, yPos);
   
   addFooter(doc);
   
