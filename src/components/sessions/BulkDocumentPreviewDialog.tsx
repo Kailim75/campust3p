@@ -216,6 +216,15 @@ export function BulkDocumentPreviewDialog({
 
   // Generate PDF preview when current inscrit or document type changes
   useEffect(() => {
+    // Revoke previous blob URL to prevent memory leaks
+    return () => {
+      if (pdfDataUrl && pdfDataUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfDataUrl);
+      }
+    };
+  }, [pdfDataUrl]);
+
+  useEffect(() => {
     if (!open || !contactInfo || !sessionInfo) {
       setPdfDataUrl(null);
       return;
@@ -225,15 +234,17 @@ export function BulkDocumentPreviewDialog({
     
     const generatePreview = async () => {
       try {
-        let dataUrl: string | null = null;
+        let blobUrl: string | null = null;
         
         if (templateTab === 'file' && selectedFileTemplate) {
           // Use file template - show original file for preview
-          dataUrl = await generatePreviewFromFileTemplate(selectedFileTemplate);
+          blobUrl = await generatePreviewFromFileTemplate(selectedFileTemplate);
         } else if (templateTab === 'text' && selectedTextTemplate) {
           // Use text template
           const doc = generatePDFFromTextTemplate(selectedTextTemplate, contactInfo, sessionInfo);
-          dataUrl = doc.output('datauristring');
+          // Use blob URL instead of data URI for better browser compatibility
+          const pdfBlob = doc.output('blob');
+          blobUrl = URL.createObjectURL(pdfBlob);
         } else {
           // Use default generation
           let doc;
@@ -251,11 +262,13 @@ export function BulkDocumentPreviewDialog({
               doc = null;
           }
           if (doc) {
-            dataUrl = doc.output('datauristring');
+            // Use blob URL instead of data URI for better browser compatibility
+            const pdfBlob = doc.output('blob');
+            blobUrl = URL.createObjectURL(pdfBlob);
           }
         }
 
-        setPdfDataUrl(dataUrl);
+        setPdfDataUrl(blobUrl);
       } catch (error) {
         console.error('Error generating preview:', error);
         setPdfDataUrl(null);
