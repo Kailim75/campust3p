@@ -490,6 +490,96 @@ export const OBJECTIFS_VMDTR = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════
+// ÉPREUVES SPÉCIFIQUES PAR TYPE DE FORMATION
+// ═══════════════════════════════════════════════════════════════════
+
+export interface EpreuveSpecifique {
+  code: string;
+  intitule: string;
+  qcm: number;
+  qrc: number;
+  duree: string;
+  noteMinimale: string;
+  pointsEliminatoires: number;
+}
+
+export const EPREUVES_SPECIFIQUES_TAXI: EpreuveSpecifique[] = [
+  {
+    code: "F(T)",
+    intitule: "Connaissance du territoire et réglementation locale",
+    qcm: 6,
+    qrc: 2,
+    duree: "0h20",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  },
+  {
+    code: "G(T)",
+    intitule: "Réglementation nationale spécifique aux taxis",
+    qcm: 12,
+    qrc: 4,
+    duree: "0h30",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  }
+];
+
+export const EPREUVES_SPECIFIQUES_VTC: EpreuveSpecifique[] = [
+  {
+    code: "F(V)",
+    intitule: "Développement commercial",
+    qcm: 12,
+    qrc: 4,
+    duree: "0h30",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  },
+  {
+    code: "G(V)",
+    intitule: "Réglementation nationale spécifique de l'activité de VTC",
+    qcm: 6,
+    qrc: 2,
+    duree: "0h20",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  }
+];
+
+export const EPREUVES_SPECIFIQUES_VMDTR: EpreuveSpecifique[] = [
+  {
+    code: "F(M)",
+    intitule: "Sécurité routière spécifique à l'usage et à la conduite de motocyclettes",
+    qcm: 12,
+    qrc: 4,
+    duree: "0h30",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  },
+  {
+    code: "G(M)",
+    intitule: "Prise en charge du passager",
+    qcm: 6,
+    qrc: 2,
+    duree: "0h20",
+    noteMinimale: "6/20",
+    pointsEliminatoires: 3
+  }
+];
+
+export const getEpreuvesSpecifiques = (type: TypeFormation): EpreuveSpecifique[] => {
+  switch (type) {
+    case "VTC":
+      return EPREUVES_SPECIFIQUES_VTC;
+    case "TAXI":
+      return EPREUVES_SPECIFIQUES_TAXI;
+    case "VMDTR":
+      return EPREUVES_SPECIFIQUES_VMDTR;
+    default:
+      return [];
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // TARIFS
 // ═══════════════════════════════════════════════════════════════════
 
@@ -750,11 +840,15 @@ export default {
   OBJECTIFS_VTC,
   OBJECTIFS_TAXI,
   OBJECTIFS_VMDTR,
+  EPREUVES_SPECIFIQUES_VTC,
+  EPREUVES_SPECIFIQUES_TAXI,
+  EPREUVES_SPECIFIQUES_VMDTR,
   TARIFS,
   HORAIRES,
   getProgramme,
   getPrerequis,
   getObjectifs,
+  getEpreuvesSpecifiques,
   getTarif,
   getHoraires,
   validateBeneficiaire,
