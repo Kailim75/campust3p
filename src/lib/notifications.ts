@@ -1,6 +1,6 @@
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {
-    console.log('Notifications non supportées par ce navigateur');
+    // Browser doesn't support notifications
     return false;
   }
 
