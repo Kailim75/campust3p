@@ -6,6 +6,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Simple in-memory cache for dashboard stats (5 minute TTL)
+const statsCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCached(key: string): any | null {
+  const entry = statsCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    statsCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache(key: string, data: any): void {
+  statsCache.set(key, { data, timestamp: Date.now() });
+}
+
 // Actions that require confirmation before execution
 const SENSITIVE_ACTIONS = [
   'create_facture',
@@ -521,6 +539,15 @@ async function executeCreateNotification(supabase: any, params: any) {
 
 async function executeGetDashboardStats(supabase: any, params: any) {
   const period = params.period || 'month';
+  const cacheKey = `dashboard-stats-${period}`;
+  
+  // Check cache first
+  const cached = getCached(cacheKey);
+  if (cached) {
+    console.log('Returning cached dashboard stats');
+    return { ...cached, fromCache: true };
+  }
+  
   const now = new Date();
   let startDate: Date;
   
@@ -574,7 +601,7 @@ async function executeGetDashboardStats(supabase: any, params: any) {
     ? Math.round((examens.filter((e: any) => e.resultat === 'reussi').length / examens.length) * 100)
     : 0;
   
-  return {
+  const result = {
     success: true,
     stats: {
       periode: period,
@@ -585,6 +612,11 @@ async function executeGetDashboardStats(supabase: any, params: any) {
       examens: examens?.length || 0
     }
   };
+  
+  // Cache the result
+  setCache(cacheKey, result);
+  
+  return result;
 }
 
 async function executeAddContactHistorique(supabase: any, params: any) {

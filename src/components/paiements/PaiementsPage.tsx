@@ -10,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Loader2, Filter, X, CalendarIcon, Download } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -383,8 +384,19 @@ export function PaiementsPage() {
         {/* Table */}
         <div className="card-elevated overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="space-y-4 p-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-8 ml-auto rounded" />
+                </div>
+              ))}
             </div>
           ) : filteredFactures.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
