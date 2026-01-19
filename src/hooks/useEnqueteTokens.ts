@@ -127,34 +127,75 @@ export function useEnqueteTokens() {
       });
 
       // Ensuite envoyer l'email via edge function
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke('send-enquete-email', {
-        body: {
-          to: params.contact_email,
-          name: params.contact_name,
-          enqueteUrl: tokenResult.url,
-          type: params.type,
-          sessionName: params.session_name,
-        },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('send-enquete-email', {
+          body: {
+            to: params.contact_email,
+            name: params.contact_name,
+            enqueteUrl: tokenResult.url,
+            type: params.type,
+            sessionName: params.session_name,
+          },
+        });
 
-      if (response.error) throw response.error;
+        if (error) {
+          await supabase.from('email_logs').insert({
+            type: params.type === 'satisfaction' ? 'enquete_satisfaction' : 'enquete_reclamation',
+            recipient_email: params.contact_email,
+            recipient_name: params.contact_name,
+            contact_id: params.contact_id,
+            session_id: params.session_id,
+            subject:
+              params.type === 'satisfaction'
+                ? 'Donnez-nous votre avis sur votre formation'
+                : 'Formulaire de réclamation',
+            status: 'failed',
+            error_message: error.message,
+          });
+          throw error;
+        }
 
-      // Logger l'envoi
-      await supabase.from('email_logs').insert({
-        type: params.type === 'satisfaction' ? 'enquete_satisfaction' : 'enquete_reclamation',
-        recipient_email: params.contact_email,
-        recipient_name: params.contact_name,
-        contact_id: params.contact_id,
-        session_id: params.session_id,
-        subject: params.type === 'satisfaction' 
-          ? 'Donnez-nous votre avis sur votre formation' 
-          : 'Formulaire de réclamation',
-        status: 'sent',
-      });
+        // Si jamais la fonction renvoie un payload d'erreur malgré un 2xx
+        if ((data as any)?.error) {
+          const message = (data as any)?.error?.message ?? 'Erreur Resend';
+          await supabase.from('email_logs').insert({
+            type: params.type === 'satisfaction' ? 'enquete_satisfaction' : 'enquete_reclamation',
+            recipient_email: params.contact_email,
+            recipient_name: params.contact_name,
+            contact_id: params.contact_id,
+            session_id: params.session_id,
+            subject:
+              params.type === 'satisfaction'
+                ? 'Donnez-nous votre avis sur votre formation'
+                : 'Formulaire de réclamation',
+            status: 'failed',
+            error_message: message,
+          });
+          throw new Error(message);
+        }
 
-      return tokenResult;
+        const resendId = (data as any)?.data?.id ?? null;
+
+        // Logger l'envoi
+        await supabase.from('email_logs').insert({
+          type: params.type === 'satisfaction' ? 'enquete_satisfaction' : 'enquete_reclamation',
+          recipient_email: params.contact_email,
+          recipient_name: params.contact_name,
+          contact_id: params.contact_id,
+          session_id: params.session_id,
+          subject:
+            params.type === 'satisfaction'
+              ? 'Donnez-nous votre avis sur votre formation'
+              : 'Formulaire de réclamation',
+          status: 'sent',
+          resend_id: resendId,
+        });
+
+        return tokenResult;
+      } catch (e) {
+        // Remonter l'erreur pour afficher le toast
+        throw e as Error;
+      }
     },
     onSuccess: () => {
       toast.success('Email envoyé avec succès');
