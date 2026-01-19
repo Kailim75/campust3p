@@ -26,6 +26,7 @@ export interface CentreFormation {
   agrement_prefecture: string | null;
   agrement_prefecture_date: string | null;
   code_rncp: string | null;
+  code_rs: string | null;
   agrements_autres: { nom?: string; numero?: string; date_obtention?: string; date_expiration?: string }[] | null;
   created_at: string;
   updated_at: string;

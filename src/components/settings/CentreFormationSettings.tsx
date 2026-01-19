@@ -6,10 +6,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
-import { Loader2, Building2, Upload, X, Image, Award, Shield } from 'lucide-react';
+import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useFieldArray } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -36,12 +37,13 @@ const formSchema = z.object({
   agrement_prefecture: z.string().nullable().optional(),
   agrement_prefecture_date: z.string().nullable().optional(),
   code_rncp: z.string().nullable().optional(),
+  code_rs: z.string().nullable().optional(),
   agrements_autres: z.array(z.object({
-    nom: z.string().default(''),
-    numero: z.string().default(''),
-    date_obtention: z.string().default(''),
+    nom: z.string().min(1, 'Nom requis'),
+    numero: z.string().min(1, 'Numéro requis'),
+    date_obtention: z.string().min(1, 'Date requise'),
     date_expiration: z.string().optional(),
-  })).nullable().optional(),
+  })).optional().default([]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -77,8 +79,14 @@ export function CentreFormationSettings() {
       agrement_prefecture: '',
       agrement_prefecture_date: '',
       code_rncp: '',
+      code_rs: '',
       agrements_autres: [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'agrements_autres',
   });
 
   // Reset form when data loads
@@ -106,7 +114,13 @@ export function CentreFormationSettings() {
         agrement_prefecture: centreFormation.agrement_prefecture || '',
         agrement_prefecture_date: centreFormation.agrement_prefecture_date || '',
         code_rncp: centreFormation.code_rncp || '',
-        agrements_autres: centreFormation.agrements_autres || [],
+        code_rs: centreFormation.code_rs || '',
+        agrements_autres: (centreFormation.agrements_autres || []).map(a => ({
+          nom: a.nom || '',
+          numero: a.numero || '',
+          date_obtention: a.date_obtention || '',
+          date_expiration: a.date_expiration || '',
+        })),
       });
     }
   }, [centreFormation, form]);
@@ -197,7 +211,10 @@ export function CentreFormationSettings() {
       agrement_prefecture: values.agrement_prefecture || null,
       agrement_prefecture_date: values.agrement_prefecture_date || null,
       code_rncp: values.code_rncp || null,
-      agrements_autres: values.agrements_autres || null,
+      code_rs: values.code_rs || null,
+      agrements_autres: values.agrements_autres && values.agrements_autres.length > 0 
+        ? values.agrements_autres 
+        : null,
     });
   }
 
@@ -660,7 +677,7 @@ export function CentreFormationSettings() {
                 </div>
               </div>
 
-              {/* Code RNCP */}
+              {/* Codes RNCP / RS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -675,6 +692,115 @@ export function CentreFormationSettings() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="code_rs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code RS (si applicable)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RS XXXXX" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Autres agréments */}
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Autres agréments</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => append({ nom: '', numero: '', date_obtention: '', date_expiration: '' })}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter
+                  </Button>
+                </div>
+
+                {fields.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Aucun agrément supplémentaire. Cliquez sur "Ajouter" pour en créer un.
+                  </p>
+                )}
+
+                {fields.map((field, index) => (
+                  <div key={field.id} className="p-3 border rounded-md bg-background space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Agrément #{index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name={`agrements_autres.${index}.nom`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nom de l'agrément *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ex: ISO 9001, OPQF..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`agrements_autres.${index}.numero`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Numéro *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Numéro de certification" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`agrements_autres.${index}.date_obtention`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date d'obtention *</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`agrements_autres.${index}.date_expiration`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date d'expiration</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
