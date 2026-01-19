@@ -184,7 +184,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl lg:max-w-3xl overflow-y-auto">
           {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
