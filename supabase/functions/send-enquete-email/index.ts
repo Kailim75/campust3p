@@ -25,11 +25,31 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const keyLen = RESEND_API_KEY.length;
+    const keyPrefix = RESEND_API_KEY.slice(0, 4);
+    console.log(`[send-enquete-email] RESEND_API_KEY len=${keyLen} prefix=${keyPrefix}`);
+
     if (!RESEND_API_KEY) {
       return new Response(
         JSON.stringify({
           error: {
             message: "RESEND_API_KEY manquante (configuration email)",
+          },
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Resend keys normally start with "re_". If not, it's almost certainly the wrong secret.
+    if (!RESEND_API_KEY.startsWith("re_")) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "RESEND_API_KEY invalide (format inattendu). Générez une nouvelle clé API Resend et remplacez le secret.",
           },
         }),
         {
