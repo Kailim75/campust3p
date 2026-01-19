@@ -2,9 +2,14 @@
 // Fichier de configuration complet pour le générateur de conventions T3P CAMPUS
 
 // ═══════════════════════════════════════════════════════════════════
-// INFORMATIONS ORGANISME (Constantes)
+// INFORMATIONS ORGANISME - Données par défaut (fallback)
+// NOTE: Utiliser useCentreFormation() pour obtenir les données dynamiques de la DB
 // ═══════════════════════════════════════════════════════════════════
 
+/**
+ * @deprecated Utiliser useCentreFormation() à la place pour les données dynamiques.
+ * Cette constante est conservée uniquement pour la rétrocompatibilité.
+ */
 export const ORGANISME = {
   nom: "T3P CAMPUS",
   raisonSociale: "DROP ACADEMY",
@@ -14,7 +19,7 @@ export const ORGANISME = {
   telephone: "01 88 75 05 55",
   email: "dropacademymontrouge@gmail.com",
   siret: "94856480200023",
-  nda: "11924375592", // Mettre "en cours" si pas encore obtenu
+  nda: "11924375592",
   numeroRS: "RS5637",
   agreementVTCTAXI: "23/005",
   agreementVMDTR: "23/006",
