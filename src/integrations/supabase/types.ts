@@ -241,7 +241,11 @@ export type Database = {
       centre_formation: {
         Row: {
           adresse_complete: string
+          agrement_prefecture: string | null
+          agrement_prefecture_date: string | null
+          agrements_autres: Json | null
           bic: string
+          code_rncp: string | null
           created_at: string | null
           email: string
           forme_juridique: string
@@ -251,6 +255,9 @@ export type Database = {
           nda: string
           nom_commercial: string
           nom_legal: string
+          qualiopi_date_expiration: string | null
+          qualiopi_date_obtention: string | null
+          qualiopi_numero: string | null
           region_declaration: string
           responsable_legal_fonction: string
           responsable_legal_nom: string
@@ -261,7 +268,11 @@ export type Database = {
         }
         Insert: {
           adresse_complete: string
+          agrement_prefecture?: string | null
+          agrement_prefecture_date?: string | null
+          agrements_autres?: Json | null
           bic: string
+          code_rncp?: string | null
           created_at?: string | null
           email: string
           forme_juridique: string
@@ -271,6 +282,9 @@ export type Database = {
           nda: string
           nom_commercial: string
           nom_legal: string
+          qualiopi_date_expiration?: string | null
+          qualiopi_date_obtention?: string | null
+          qualiopi_numero?: string | null
           region_declaration: string
           responsable_legal_fonction: string
           responsable_legal_nom: string
@@ -281,7 +295,11 @@ export type Database = {
         }
         Update: {
           adresse_complete?: string
+          agrement_prefecture?: string | null
+          agrement_prefecture_date?: string | null
+          agrements_autres?: Json | null
           bic?: string
+          code_rncp?: string | null
           created_at?: string | null
           email?: string
           forme_juridique?: string
@@ -291,6 +309,9 @@ export type Database = {
           nda?: string
           nom_commercial?: string
           nom_legal?: string
+          qualiopi_date_expiration?: string | null
+          qualiopi_date_obtention?: string | null
+          qualiopi_numero?: string | null
           region_declaration?: string
           responsable_legal_fonction?: string
           responsable_legal_nom?: string
