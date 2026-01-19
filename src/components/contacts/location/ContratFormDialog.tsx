@@ -49,6 +49,7 @@ import {
   useUpdateContratLocation,
   useDeleteContratLocation,
   useContratHistorique,
+  useSendContratForSignature,
   contratTypeLabels,
   contratStatutConfig,
   modalitePaiementOptions,
@@ -82,6 +83,7 @@ export function ContratFormDialog({
   const createContrat = useCreateContratLocation();
   const updateContrat = useUpdateContratLocation();
   const deleteContrat = useDeleteContratLocation();
+  const sendForSignature = useSendContratForSignature();
 
   const [formData, setFormData] = useState({
     type_contrat: contrat?.type_contrat || ("vehicule" as ContratLocationType),
@@ -453,14 +455,15 @@ export function ContratFormDialog({
                         Signer le contrat
                       </Button>
                     )}
-                    {contrat.statut === "brouillon" && (
+                    {(contrat.statut === "brouillon" || contrat.statut === "envoye") && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleStatusChange("envoye")}
+                        onClick={() => sendForSignature.mutate({ contratId: contrat.id })}
+                        disabled={sendForSignature.isPending}
                       >
                         <Send className="h-4 w-4 mr-1" />
-                        Marquer envoyé
+                        {sendForSignature.isPending ? "Envoi..." : contrat.statut === "envoye" ? "Renvoyer par email" : "Envoyer par email"}
                       </Button>
                     )}
                     {contrat.statut === "envoye" && (

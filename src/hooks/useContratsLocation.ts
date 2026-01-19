@@ -306,3 +306,32 @@ export function useSignContratLocation() {
     },
   });
 }
+
+export function useSendContratForSignature() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contratId }: { contratId: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non authentifié");
+
+      const response = await supabase.functions.invoke("send-signature-email", {
+        body: {
+          type: "contrat_location",
+          contrat_id: contratId,
+        },
+      });
+
+      if (response.error) throw response.error;
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contrats-location"] });
+      toast.success("Email de signature envoyé avec succès");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erreur lors de l'envoi de l'email");
+      console.error(error);
+    },
+  });
+}
