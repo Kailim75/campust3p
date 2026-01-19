@@ -375,7 +375,8 @@ function calculateTTC(session: SessionInfo): number {
   return prixHT * (1 + tva / 100);
 }
 
-// ==================== CONVENTION PDF ====================
+// ==================== CONVENTION DE FORMATION PDF (Conforme DREETS/Qualiopi) ====================
+// Pour les formations financées par un tiers (entreprise, OPCO, etc.)
 export function generateConventionPDF(
   contact: ContactInfo,
   session: SessionInfo,
@@ -386,164 +387,475 @@ export function generateConventionPDF(
   
   addHeader(doc, company);
   
-  // Title with session number
+  // Title
   let yPos = 55;
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text("CONVENTION DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
   
-  yPos += 8;
-  doc.setFontSize(10);
+  yPos += 6;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("(Article L.6353-1 et suivants du Code du travail)", pageWidth / 2, yPos, { align: "center" });
+  doc.text("(Articles L.6353-1 à L.6353-2 du Code du travail)", pageWidth / 2, yPos, { align: "center" });
   
-  // Session number badge
   if (session.numero_session) {
-    yPos += 8;
-    doc.setFontSize(9);
+    yPos += 5;
     doc.setTextColor(100);
-    doc.text(`Réf. Session : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+    doc.text(`Référence : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
     doc.setTextColor(0);
   }
   
   // Parties
-  yPos += 15;
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("ENTRE LES SOUSSIGNES :", 20, yPos);
-  
-  yPos += 10;
-  doc.setFont("helvetica", "normal");
+  yPos += 12;
   doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("ENTRE LES SOUSSIGNÉS :", 20, yPos);
+  
+  yPos += 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
   
   // Organisme
   doc.setFont("helvetica", "bold");
   doc.text("L'organisme de formation :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 6;
-  doc.text(`${company.name}`, 25, yPos);
   yPos += 5;
+  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
+  yPos += 4;
   doc.text(`${company.address}`, 25, yPos);
-  yPos += 5;
-  doc.text(`SIRET : ${company.siret} - NDA : ${company.nda}`, 25, yPos);
-  yPos += 5;
-  doc.text("Ci-apres denomme \"l'Organisme\"", 25, yPos);
+  yPos += 4;
+  doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
+  yPos += 4;
+  doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
   
-  // Stagiaire
-  yPos += 12;
+  // Client/Stagiaire
+  yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text("Et le stagiaire :", 20, yPos);
+  doc.text("Et :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 6;
+  yPos += 5;
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.text(fullName, 25, yPos);
   if (contact.rue) {
-    yPos += 5;
+    yPos += 4;
     doc.text(contact.rue, 25, yPos);
   }
   if (contact.code_postal || contact.ville) {
-    yPos += 5;
+    yPos += 4;
     doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos);
   }
-  yPos += 5;
-  doc.text("Ci-apres denomme \"le Stagiaire\"", 25, yPos);
+  yPos += 4;
+  doc.text(`Ci-après dénommé "le Bénéficiaire"`, 25, yPos);
   
-  // Article 1
-  yPos += 15;
-  doc.setFont("helvetica", "bold");
-  doc.text("Article 1 - Objet de la convention", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const article1 = `Le Stagiaire suivra la formation "${session.nom}" organisee par l'Organisme.`;
-  const splitArticle1 = doc.splitTextToSize(article1, pageWidth - 40);
-  doc.text(splitArticle1, 20, yPos);
-  
-  // Article 2 - Enrichi
-  yPos += splitArticle1.length * 5 + 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Article 2 - Nature et caracteristiques de l'action", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text(`- Intitule : ${session.nom}`, 25, yPos);
-  if (session.numero_session) {
-    yPos += 5;
-    doc.text(`- Numero de session : ${session.numero_session}`, 25, yPos);
-  }
-  yPos += 5;
-  doc.text(`- Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 25, yPos);
-  yPos += 5;
-  doc.text(`- Horaires : ${formatSessionHours(session)}`, 25, yPos);
-  yPos += 5;
-  doc.text(`- Duree : ${session.duree_heures || "-"} heures`, 25, yPos);
-  yPos += 5;
-  doc.text(`- Lieu : ${formatFullAddress(session)}`, 25, yPos);
-  if (session.formateur) {
-    yPos += 5;
-    doc.text(`- Formateur : ${session.formateur}`, 25, yPos);
-  }
-  
-  // Objectifs et prérequis
-  if (session.objectifs) {
-    yPos += 8;
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
-    const objectifsText = doc.splitTextToSize(`Objectifs : ${session.objectifs}`, pageWidth - 50);
-    doc.text(objectifsText, 25, yPos);
-    yPos += objectifsText.length * 4;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-  }
-  
-  // Article 3 - Prix enrichi
+  // Article 1 - Objet
   yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text("Article 3 - Prix de la formation", 20, yPos);
+  doc.setFontSize(9);
+  doc.text("Article 1 - Objet", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 7;
+  yPos += 5;
+  const art1 = `En exécution de la présente convention, l'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}".`;
+  const splitArt1 = doc.splitTextToSize(art1, pageWidth - 40);
+  doc.text(splitArt1, 20, yPos);
+  
+  // Article 2 - Nature et caractéristiques (Obligatoire DREETS)
+  yPos += splitArt1.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text(`• Intitulé : ${session.nom}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Type d'action : Action de formation au sens de l'article L.6313-1 du Code du travail`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Durée : ${session.duree_heures || "-"} heures`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Horaires : ${formatSessionHours(session)}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Lieu : ${formatFullAddress(session)}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Modalités : Formation en présentiel`, 22, yPos);
+  
+  // Article 3 - Objectifs (Obligatoire Qualiopi)
+  yPos += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 3 - Objectifs pédagogiques", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const objectifs = session.objectifs || "À l'issue de la formation, le stagiaire sera capable de maîtriser les compétences nécessaires à l'exercice de l'activité professionnelle visée.";
+  const splitObj = doc.splitTextToSize(objectifs, pageWidth - 40);
+  doc.text(splitObj, 20, yPos);
+  
+  // Article 4 - Programme
+  yPos += splitObj.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 4 - Programme", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("Le programme détaillé de la formation est annexé à la présente convention.", 20, yPos);
+  
+  // Article 5 - Prérequis (Obligatoire Qualiopi)
+  yPos += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 5 - Prérequis et public visé", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const prerequis = session.prerequis || "Aucun prérequis spécifique. Public : Tout public souhaitant acquérir les compétences visées.";
+  const splitPre = doc.splitTextToSize(prerequis, pageWidth - 40);
+  doc.text(splitPre, 20, yPos);
+  
+  // Article 6 - Moyens pédagogiques (Obligatoire Qualiopi)
+  yPos += splitPre.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 6 - Moyens pédagogiques et techniques", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("• Supports de cours remis aux stagiaires", 22, yPos);
+  yPos += 4;
+  doc.text("• Vidéoprojecteur et tableau interactif", 22, yPos);
+  yPos += 4;
+  doc.text("• Mise en situation pratique et exercices", 22, yPos);
+  
+  // Article 7 - Évaluation (Obligatoire Qualiopi)
+  yPos += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 7 - Modalités d'évaluation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("• Évaluation des acquis en cours et fin de formation", 22, yPos);
+  yPos += 4;
+  doc.text("• Questionnaire de satisfaction à chaud", 22, yPos);
+  yPos += 4;
+  doc.text("• Attestation de fin de formation remise au stagiaire", 22, yPos);
+  
+  // Page 2
+  doc.addPage();
+  addHeader(doc, company);
+  yPos = 55;
+  
+  // Article 8 - Prix (Obligatoire DREETS)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Article 8 - Dispositions financières", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
   
   const prixHT = session.prix_ht || session.prix || 0;
   const tvaPercent = session.tva_percent || 0;
   const prixTTC = calculateTTC(session);
   
-  doc.text(`Le prix de la formation est fixe a :`, 25, yPos);
-  yPos += 5;
-  doc.text(`- Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
-  yPos += 5;
+  doc.text(`Le coût de la formation s'élève à :`, 20, yPos);
+  yPos += 4;
+  doc.text(`• Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+  yPos += 4;
   if (tvaPercent > 0) {
-    doc.text(`- TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
-    yPos += 5;
-    doc.text(`- Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, 30, yPos);
+    doc.text(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+    yPos += 4;
+    doc.text(`• Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
   } else {
-    doc.text("TVA non applicable - Article 261.4.4 a du CGI", 30, yPos);
+    doc.text("• TVA non applicable - Article 261.4.4°a du CGI", 25, yPos);
   }
+  yPos += 6;
+  doc.text("Le règlement s'effectue selon les modalités convenues entre les parties.", 20, yPos);
   
-  // Article 4
-  yPos += 12;
+  // Article 9 - Délai de rétractation (Obligatoire)
+  yPos += 8;
   doc.setFont("helvetica", "bold");
-  doc.text("Article 4 - Delai de retractation", 20, yPos);
+  doc.text("Article 9 - Délai de rétractation", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const article4 = "Le Stagiaire dispose d'un delai de 14 jours calendaires a compter de la signature de la presente convention pour exercer son droit de retractation sans frais.";
-  const splitArticle4 = doc.splitTextToSize(article4, pageWidth - 40);
-  doc.text(splitArticle4, 20, yPos);
+  yPos += 5;
+  const art9 = "Conformément à l'article L.6353-5 du Code du travail, le stagiaire dispose d'un délai de 10 jours à compter de la signature de la présente convention pour se rétracter par lettre recommandée avec accusé de réception.";
+  const splitArt9 = doc.splitTextToSize(art9, pageWidth - 40);
+  doc.text(splitArt9, 20, yPos);
+  
+  // Article 10 - Interruption
+  yPos += splitArt9.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 10 - Cas de cessation anticipée", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const art10 = "En cas de cessation anticipée de la formation pour fait du stagiaire, seules les heures réellement effectuées seront facturées au prorata.";
+  const splitArt10 = doc.splitTextToSize(art10, pageWidth - 40);
+  doc.text(splitArt10, 20, yPos);
+  
+  // Article 11 - Litige
+  yPos += splitArt10.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 11 - Différends", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("Les parties s'engagent à rechercher une solution amiable. À défaut, le tribunal compétent sera saisi.", 20, yPos);
+  
+  // Règlement intérieur
+  yPos += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 12 - Règlement intérieur", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("Le stagiaire déclare avoir pris connaissance du règlement intérieur de l'organisme de formation.", 20, yPos);
   
   // Signatures
-  yPos = 240;
+  yPos += 20;
   doc.setFont("helvetica", "bold");
-  doc.text(`Fait a Paris, le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
+  doc.text(`Fait en double exemplaire à _____________, le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
   
   yPos += 15;
   doc.setFont("helvetica", "normal");
-  doc.text("Pour l'Organisme", 40, yPos);
-  doc.text("Le Stagiaire", pageWidth - 60, yPos);
+  doc.text("Pour l'Organisme de formation", 30, yPos);
+  doc.text("Le Bénéficiaire", pageWidth - 50, yPos);
   
   yPos += 5;
   doc.setFontSize(8);
-  doc.text("(Signature et cachet)", 40, yPos);
-  doc.text("(Signature precedee de", pageWidth - 60, yPos);
-  doc.text("\"Lu et approuve\")", pageWidth - 60, yPos + 4);
+  doc.text("(Cachet et signature)", 30, yPos);
+  doc.text("(Signature précédée de", pageWidth - 50, yPos);
+  doc.text("\"Lu et approuvé\")", pageWidth - 50, yPos + 4);
   
-  addFooter(doc);
+  addFooter(doc, 2);
+  doc.setPage(1);
+  addFooter(doc, 1);
+  
+  return doc;
+}
+
+// ==================== CONTRAT DE FORMATION PROFESSIONNELLE (Conforme DREETS/Qualiopi) ====================
+// Pour les formations financées directement par le stagiaire (personne physique)
+export function generateContratFormationPDF(
+  contact: ContactInfo,
+  session: SessionInfo,
+  company: CompanyInfo = DEFAULT_COMPANY
+): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  addHeader(doc, company);
+  
+  // Title
+  let yPos = 55;
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("CONTRAT DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
+  
+  yPos += 6;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("(Articles L.6353-3 à L.6353-7 du Code du travail)", pageWidth / 2, yPos, { align: "center" });
+  
+  if (session.numero_session) {
+    yPos += 5;
+    doc.setTextColor(100);
+    doc.text(`Référence : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+    doc.setTextColor(0);
+  }
+  
+  // Parties
+  yPos += 12;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("ENTRE LES SOUSSIGNÉS :", 20, yPos);
+  
+  yPos += 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  
+  // Organisme
+  doc.setFont("helvetica", "bold");
+  doc.text("L'organisme de formation :", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
+  yPos += 4;
+  doc.text(`${company.address}`, 25, yPos);
+  yPos += 4;
+  doc.text(`Déclaration d'activité N° ${company.nda} enregistrée auprès du préfet de région`, 25, yPos);
+  yPos += 4;
+  doc.text(`(Cette déclaration ne vaut pas agrément de l'État)`, 25, yPos);
+  yPos += 4;
+  doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
+  
+  // Stagiaire
+  yPos += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Et le stagiaire :", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  doc.text(fullName, 25, yPos);
+  if (contact.date_naissance) {
+    yPos += 4;
+    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd/MM/yyyy")}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, 25, yPos);
+  }
+  if (contact.rue) {
+    yPos += 4;
+    doc.text(contact.rue, 25, yPos);
+  }
+  if (contact.code_postal || contact.ville) {
+    yPos += 4;
+    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos);
+  }
+  if (contact.email) {
+    yPos += 4;
+    doc.text(`Email : ${contact.email}`, 25, yPos);
+  }
+  if (contact.telephone) {
+    yPos += 4;
+    doc.text(`Tél : ${contact.telephone}`, 25, yPos);
+  }
+  yPos += 4;
+  doc.text(`Ci-après dénommé "le Stagiaire"`, 25, yPos);
+  
+  // Article 1 - Objet
+  yPos += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 1 - Objet du contrat", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const art1 = `Le présent contrat a pour objet la réalisation par l'Organisme, au bénéfice du Stagiaire, de l'action de formation définie ci-après.`;
+  const splitArt1 = doc.splitTextToSize(art1, pageWidth - 40);
+  doc.text(splitArt1, 20, yPos);
+  
+  // Article 2 - Nature et caractéristiques (Obligatoire L.6353-4)
+  yPos += splitArt1.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text(`• Intitulé de la formation : ${session.nom}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Objectif : ${session.objectifs || "Acquisition des compétences professionnelles visées"}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Durée totale : ${session.duree_heures || "-"} heures`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Horaires : ${formatSessionHours(session)}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Lieu de formation : ${formatFullAddress(session)}`, 22, yPos);
+  yPos += 4;
+  doc.text(`• Modalités de déroulement : En présentiel`, 22, yPos);
+  
+  // Article 3 - Niveau et prérequis
+  yPos += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 3 - Niveau requis et public concerné", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const prerequis = session.prerequis || "Aucun prérequis spécifique n'est demandé pour cette formation.";
+  const splitPre = doc.splitTextToSize(prerequis, pageWidth - 40);
+  doc.text(splitPre, 20, yPos);
+  
+  // Page 2
+  doc.addPage();
+  addHeader(doc, company);
+  yPos = 55;
+  
+  // Article 4 - Prix (Obligatoire L.6353-4)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Article 4 - Prix de la formation et modalités de paiement", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  
+  const prixHT = session.prix_ht || session.prix || 0;
+  const tvaPercent = session.tva_percent || 0;
+  const prixTTC = calculateTTC(session);
+  
+  doc.text(`Le prix de la formation est fixé à :`, 20, yPos);
+  yPos += 4;
+  doc.text(`• Prix HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+  yPos += 4;
+  if (tvaPercent > 0) {
+    doc.text(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+    yPos += 4;
+    doc.text(`• Prix TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+  } else {
+    doc.text("• TVA non applicable - Article 261.4.4°a du CGI", 25, yPos);
+    yPos += 4;
+    doc.text(`• Prix net à payer : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+  }
+  yPos += 6;
+  doc.text("Modalités de règlement : Le paiement s'effectue à la signature du présent contrat,", 20, yPos);
+  yPos += 4;
+  doc.text("ou selon l'échéancier convenu entre les parties.", 20, yPos);
+  
+  // Article 5 - Délai de rétractation (Obligatoire L.6353-5)
+  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 5 - Délai de rétractation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const art5 = "Conformément à l'article L.6353-5 du Code du travail, le Stagiaire dispose d'un délai de DIX JOURS à compter de la signature du présent contrat pour se rétracter. Cette rétractation doit être notifiée par lettre recommandée avec accusé de réception adressée à l'Organisme. Dans ce cas, aucune somme ne peut être exigée du Stagiaire.";
+  const splitArt5 = doc.splitTextToSize(art5, pageWidth - 40);
+  doc.text(splitArt5, 20, yPos);
+  
+  // Article 6 - Paiement anticipé (Obligatoire L.6353-6)
+  yPos += splitArt5.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 6 - Paiement anticipé", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const art6 = "Conformément à l'article L.6353-6 du Code du travail, aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte maximum de 30% du prix convenu peut être versé.";
+  const splitArt6 = doc.splitTextToSize(art6, pageWidth - 40);
+  doc.text(splitArt6, 20, yPos);
+  
+  // Article 7 - Interruption
+  yPos += splitArt6.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 7 - Interruption de la formation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const art7 = "En cas d'interruption de la formation pour force majeure dûment reconnue (maladie, accident...), le contrat est résilié. Seules les prestations effectivement réalisées sont dues au prorata de leur valeur prévue au contrat.";
+  const splitArt7 = doc.splitTextToSize(art7, pageWidth - 40);
+  doc.text(splitArt7, 20, yPos);
+  
+  // Article 8 - Litige
+  yPos += splitArt7.length * 4 + 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 8 - Règlement des litiges", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("En cas de litige, les parties s'engagent à rechercher une solution amiable.", 20, yPos);
+  yPos += 4;
+  doc.text("À défaut, le litige sera porté devant les juridictions compétentes.", 20, yPos);
+  
+  // Article 9 - Règlement intérieur
+  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.text("Article 9 - Règlement intérieur", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text("Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme de formation", 20, yPos);
+  yPos += 4;
+  doc.text("qui lui a été remis préalablement à la signature du présent contrat.", 20, yPos);
+  
+  // Signatures
+  yPos += 18;
+  doc.setFont("helvetica", "bold");
+  doc.text(`Fait en double exemplaire, à _____________, le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
+  
+  yPos += 15;
+  doc.setFont("helvetica", "normal");
+  doc.text("Pour l'Organisme de formation", 30, yPos);
+  doc.text("Le Stagiaire", pageWidth - 50, yPos);
+  
+  yPos += 5;
+  doc.setFontSize(8);
+  doc.text("(Cachet et signature)", 30, yPos);
+  doc.text("(Signature précédée de", pageWidth - 50, yPos);
+  doc.text("\"Lu et approuvé\")", pageWidth - 50, yPos + 4);
+  
+  // Mention légale
+  yPos += 25;
+  doc.setFontSize(7);
+  doc.setTextColor(100);
+  const mention = "Le présent contrat est conclu conformément aux dispositions des articles L.6353-3 à L.6353-7 du Code du travail.";
+  doc.text(mention, 20, yPos);
+  doc.setTextColor(0);
+  
+  addFooter(doc, 2);
+  doc.setPage(1);
+  addFooter(doc, 1);
   
   return doc;
 }

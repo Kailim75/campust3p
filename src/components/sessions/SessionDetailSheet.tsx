@@ -26,6 +26,7 @@ import {
   UserPlus,
   Trash2,
   ClipboardList,
+  FileSignature,
   Info,
   FileDown,
   FileText,
@@ -367,14 +368,18 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                           Générer les documents
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-64">
                         <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convocation")}>
                           <Send className="h-4 w-4 mr-2" />
                           Toutes les convocations
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convention")}>
                           <FileText className="h-4 w-4 mr-2" />
-                          Toutes les conventions
+                          Toutes les conventions (tiers payeur)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("contrat")}>
+                          <FileSignature className="h-4 w-4 mr-2" />
+                          Tous les contrats (paiement direct)
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
                           <Award className="h-4 w-4 mr-2" />
