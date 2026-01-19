@@ -49,27 +49,36 @@ export function SendEnqueteDialog({
       return;
     }
 
-    await sendEnqueteEmail.mutateAsync({
-      contact_id: contact.id,
-      contact_email: contact.email,
-      contact_name: `${contact.prenom} ${contact.nom}`,
-      session_id: sessionId,
-      session_name: sessionName,
-      type,
-    });
+    try {
+      await sendEnqueteEmail.mutateAsync({
+        contact_id: contact.id,
+        contact_email: contact.email,
+        contact_name: `${contact.prenom} ${contact.nom}`,
+        session_id: sessionId,
+        session_name: sessionName,
+        type,
+      });
 
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (e: any) {
+      // Le hook affiche déjà un toast, mais on évite l'unhandled promise rejection.
+      console.error("Erreur d'envoi d'enquête:", e);
+    }
   };
 
   const handleCopyLink = async () => {
-    const link = await copyEnqueteLink({
-      contact_id: contact.id,
-      session_id: sessionId,
-      type,
-    });
-    setGeneratedLink(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const link = await copyEnqueteLink({
+        contact_id: contact.id,
+        session_id: sessionId,
+        type,
+      });
+      setGeneratedLink(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Erreur génération lien enquête:", e);
+    }
   };
 
   const handleCopyAgain = async () => {
