@@ -246,6 +246,7 @@ export type Database = {
           agrements_autres: Json | null
           bic: string
           code_rncp: string | null
+          code_rs: string | null
           created_at: string | null
           email: string
           forme_juridique: string
@@ -273,6 +274,7 @@ export type Database = {
           agrements_autres?: Json | null
           bic: string
           code_rncp?: string | null
+          code_rs?: string | null
           created_at?: string | null
           email: string
           forme_juridique: string
@@ -300,6 +302,7 @@ export type Database = {
           agrements_autres?: Json | null
           bic?: string
           code_rncp?: string | null
+          code_rs?: string | null
           created_at?: string | null
           email?: string
           forme_juridique?: string
