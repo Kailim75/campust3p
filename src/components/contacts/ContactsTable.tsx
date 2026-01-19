@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText } from "lucide-react";
+import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
@@ -43,6 +43,9 @@ import { ContactMobileCard } from "./ContactMobileCard";
 import { CallLogDialog } from "./CallLogDialog";
 import { useExportData } from "@/hooks/useExportData";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -120,20 +123,27 @@ export function ContactsTable() {
     return matchesSearch && matchesStatus && matchesFormation;
   });
 
+  // Pagination
+  const pagination = usePagination({
+    items: filteredContacts,
+    defaultPageSize: 25,
+  });
+
   const formations = [...new Set(contacts?.map((c) => c.formation).filter(Boolean) ?? [])];
 
-  // Get selected contacts for bulk operations
+  // Get selected contacts for bulk operations (from paginated items for better UX)
   const selectedContacts = useMemo(() => {
     return filteredContacts.filter((c) => selectedIds.has(c.id));
   }, [filteredContacts, selectedIds]);
 
-  // Check if all visible contacts are selected
-  const allSelected = filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.has(c.id));
+  // Check if all visible (paginated) contacts are selected
+  const allSelected = pagination.paginatedItems.length > 0 && pagination.paginatedItems.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(filteredContacts.map((c) => c.id)));
+      // Select all paginated items
+      setSelectedIds(new Set(pagination.paginatedItems.map((c) => c.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -279,20 +289,38 @@ export function ContactsTable() {
                 </div>
               ))
             ) : filteredContacts.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground">
-                Aucun contact trouvé
-              </div>
+              <EmptyState
+                icon={Users}
+                title="Aucun contact trouvé"
+                description="Modifiez vos filtres ou ajoutez un nouveau contact"
+              />
             ) : (
-              filteredContacts.map((contact) => (
-                <ContactMobileCard
-                  key={contact.id}
-                  contact={contact}
-                  onClick={() => handleContactClick(contact)}
-                  onEnroll={() => handleEnrollClick(contact)}
-                  onCall={() => handleCallClick(contact)}
-                  isSelected={selectedIds.has(contact.id)}
+              <>
+                {pagination.paginatedItems.map((contact) => (
+                  <ContactMobileCard
+                    key={contact.id}
+                    contact={contact}
+                    onClick={() => handleContactClick(contact)}
+                    onEnroll={() => handleEnrollClick(contact)}
+                    onCall={() => handleCallClick(contact)}
+                    isSelected={selectedIds.has(contact.id)}
+                  />
+                ))}
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.totalItems}
+                  startIndex={pagination.startIndex}
+                  endIndex={pagination.endIndex}
+                  pageSize={pagination.pageSize}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPreviousPage={pagination.hasPreviousPage}
+                  onNextPage={pagination.nextPage}
+                  onPreviousPage={pagination.previousPage}
+                  onGoToPage={pagination.goToPage}
+                  onPageSizeChange={pagination.setPageSize}
                 />
-              ))
+              </>
             )}
           </div>
         ) : (
@@ -344,7 +372,7 @@ export function ContactsTable() {
                     </TableRow>
                   ))
                 ) : (
-                  filteredContacts.map((contact) => {
+                  pagination.paginatedItems.map((contact) => {
                     const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
                     const status = contact.statut ?? "En attente de validation";
                     const isSelected = selectedIds.has(contact.id);
@@ -465,10 +493,29 @@ export function ContactsTable() {
               </TableBody>
             </Table>
 
-            {!isLoading && filteredContacts.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground">
-                Aucun contact trouvé
-              </div>
+            {!isLoading && filteredContacts.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="Aucun contact trouvé"
+                description="Modifiez vos filtres ou ajoutez un nouveau contact"
+                className="py-12"
+              />
+            ) : !isLoading && (
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                pageSize={pagination.pageSize}
+                hasNextPage={pagination.hasNextPage}
+                hasPreviousPage={pagination.hasPreviousPage}
+                onNextPage={pagination.nextPage}
+                onPreviousPage={pagination.previousPage}
+                onGoToPage={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                className="px-4 border-t"
+              />
             )}
           </div>
         )}
