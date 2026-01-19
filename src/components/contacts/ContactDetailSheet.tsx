@@ -78,6 +78,8 @@ import { ContactLocationTab } from "./location/ContactLocationTab";
 import { ExamensTab } from "./examens/ExamensTab";
 import { CallLogDialog } from "./CallLogDialog";
 import { SendEnqueteDialog } from "./SendEnqueteDialog";
+import { useSheetSize } from "@/hooks/useSheetSize";
+import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -175,6 +177,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
   const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
+  const { size, setSize, sizeClass } = useSheetSize("contact");
   const { data: contact, isLoading } = useContact(contactId);
   const { data: inscriptions = [], isLoading: inscriptionsLoading } = useContactInscriptions(contactId);
   const { data: documents = [], isLoading: documentsLoading } = useContactDocuments(contactId);
@@ -239,7 +242,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
         {isLoading ? (
           <div className="space-y-6 pt-6">
             <div className="flex items-center gap-4">
@@ -275,6 +278,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                     </Badge>
                   </div>
                 </div>
+                <SheetSizeSelector size={size} onSizeChange={setSize} />
               </div>
             </SheetHeader>
 

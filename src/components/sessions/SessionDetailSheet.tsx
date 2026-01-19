@@ -63,6 +63,8 @@ import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import SessionInscritsTable from "./SessionInscritsTable";
+import { useSheetSize } from "@/hooks/useSheetSize";
+import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -91,6 +93,7 @@ interface SessionDetailSheetProps {
 }
 
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
+  const { size, setSize, sizeClass } = useSheetSize("session");
   const { data: session, isLoading } = useSession(sessionId);
   const { data: inscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
@@ -185,7 +188,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-2xl lg:max-w-3xl overflow-y-auto">
+        <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
           {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
@@ -233,6 +236,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     )}
                   </div>
+                  <SheetSizeSelector size={size} onSizeChange={setSize} />
                 </div>
               </SheetHeader>
 
