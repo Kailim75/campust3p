@@ -738,11 +738,12 @@ Informations du centre de formation :
 - Adresse : ${centre?.adresse_complete || 'N/A'}
 `;
 
-    // Build messages array - ULTRA OPTIMIZED: minimal prompt for fastest responses
+    // Build messages array - Enhanced prompt for better comprehension
     const messages: any[] = [
       {
         role: 'system',
-        content: `CRM T3P. ${systemContext} Utilise les outils. Français. Bref.`
+        content: `Assistant CRM T3P Campus (formations TAXI/VTC/VMDTR). ${systemContext}
+Tu gères contacts, sessions, factures, paiements et emails. Utilise les outils disponibles pour exécuter les actions. Réponds en français, sois précis et concis.`
       }
     ];
 
@@ -756,7 +757,7 @@ Informations du centre de formation :
     // Add current user message
     messages.push({ role: 'user', content: message });
 
-    // Call AI with tools - Using fastest model for better latency
+    // Call AI with tools - Using balanced model for better comprehension + speed
     let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -764,12 +765,12 @@ Informations du centre de formation :
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'google/gemini-3-flash-preview',
         messages,
         tools: TOOLS,
         tool_choice: 'auto',
-        max_tokens: 512,
-        temperature: 0.3
+        max_tokens: 768,
+        temperature: 0.2
       }),
     });
 
@@ -866,7 +867,7 @@ Informations du centre de formation :
         break;
       }
 
-      // Get AI response after tool execution - Using fastest model
+      // Get AI response after tool execution - Using balanced model
       response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -874,12 +875,12 @@ Informations du centre de formation :
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-lite',
+          model: 'google/gemini-3-flash-preview',
           messages,
           tools: TOOLS,
           tool_choice: 'auto',
-          max_tokens: 512,
-          temperature: 0.3
+          max_tokens: 768,
+          temperature: 0.2
         }),
       });
 
