@@ -28,6 +28,13 @@ const COLORS = {
   white: { r: 255, g: 255, b: 255 },
 };
 
+export interface AgrementsAutre {
+  nom: string;
+  numero: string;
+  date_obtention?: string;
+  date_expiration?: string;
+}
+
 export interface CompanyInfo {
   name: string;
   address: string;
@@ -35,6 +42,15 @@ export interface CompanyInfo {
   email: string;
   siret: string;
   nda: string; // Numéro déclaration activité
+  // Agréments et certifications
+  qualiopi_numero?: string;
+  qualiopi_date_obtention?: string;
+  qualiopi_date_expiration?: string;
+  agrement_prefecture?: string;
+  agrement_prefecture_date?: string;
+  code_rncp?: string;
+  code_rs?: string;
+  agrements_autres?: AgrementsAutre[];
 }
 
 // Configuration par défaut de l'organisme de formation
@@ -93,30 +109,80 @@ export interface FactureInfo {
   commentaires?: string;
 }
 
+// Helper function to build accreditations line
+function buildAccreditationsLine(company: CompanyInfo): string[] {
+  const lines: string[] = [];
+  const parts1: string[] = [];
+  const parts2: string[] = [];
+  
+  // Première ligne : SIRET + NDA + Qualiopi
+  parts1.push(`SIRET: ${company.siret}`);
+  parts1.push(`NDA: ${company.nda}`);
+  if (company.qualiopi_numero) {
+    parts1.push(`Qualiopi: ${company.qualiopi_numero}`);
+  }
+  lines.push(parts1.join(" | "));
+  
+  // Deuxième ligne : RNCP, RS, Préfecture, autres agréments
+  if (company.code_rncp) {
+    parts2.push(`RNCP: ${company.code_rncp}`);
+  }
+  if (company.code_rs) {
+    parts2.push(`RS: ${company.code_rs}`);
+  }
+  if (company.agrement_prefecture) {
+    parts2.push(`Agrément Préf.: ${company.agrement_prefecture}`);
+  }
+  if (company.agrements_autres && company.agrements_autres.length > 0) {
+    company.agrements_autres.forEach(a => {
+      if (a.nom && a.numero) {
+        parts2.push(`${a.nom}: ${a.numero}`);
+      }
+    });
+  }
+  
+  if (parts2.length > 0) {
+    lines.push(parts2.join(" | "));
+  }
+  
+  return lines;
+}
+
 // Helper functions avec nouvelle charte graphique
 function addHeader(doc: jsPDF, company: CompanyInfo) {
   const pageWidth = doc.internal.pageSize.getWidth();
   
+  // Build accreditations lines
+  const accreditationsLines = buildAccreditationsLine(company);
+  const headerHeight = accreditationsLines.length > 1 ? 42 : 35;
+  
   // Bandeau header Forest Green
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.rect(0, 0, pageWidth, 35, "F");
+  doc.rect(0, 0, pageWidth, headerHeight, "F");
   
   // Nom de l'entreprise en blanc
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text(company.name, 20, 18);
+  doc.text(company.name, 20, 16);
   
   // Coordonnées en cream clair
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.text(`${company.address} | Tél: ${company.phone}`, 20, 26);
-  doc.text(`SIRET: ${company.siret} | NDA: ${company.nda}`, 20, 32);
+  doc.text(`${company.address} | Tél: ${company.phone}`, 20, 24);
+  
+  // Agréments et certifications
+  let yAccred = 30;
+  doc.setFontSize(7);
+  accreditationsLines.forEach(line => {
+    doc.text(line, 20, yAccred);
+    yAccred += 5;
+  });
   
   // Ligne accent Gold sous le header
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.rect(0, 35, pageWidth, 3, "F");
+  doc.rect(0, headerHeight, pageWidth, 3, "F");
   
   // Reset text color
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
