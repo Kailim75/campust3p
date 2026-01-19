@@ -34,8 +34,6 @@ export function useCloseSession() {
       sendCompletionEmails = true,
       sendSatisfactionSurveys = true,
     }: CloseSessionParams): Promise<CloseSessionResult> => {
-      console.log("Starting session close process for:", session.id);
-
       // 1. Vérifier les émargements
       const { data: emargements, error: emargementsError } = await supabase
         .from("emargements")

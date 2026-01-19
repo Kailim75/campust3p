@@ -695,12 +695,40 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // ========== SECURITY: Verify JWT authentication ==========
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const { message, action, userId, conversationHistory, confirmedActions, pendingAction } = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Verify the user's JWT token
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use verified user ID instead of client-provided userId
+    const verifiedUserId = user.id;
+
+    // Use service role for database operations (needed for full access)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { message, action, conversationHistory, confirmedActions, pendingAction } = await req.json();
 
     if (!message && !pendingAction) {
       throw new Error("Message is required");
@@ -709,7 +737,7 @@ serve(async (req) => {
     // Handle confirmed pending action
     if (pendingAction && confirmedActions?.includes(pendingAction.tool)) {
       console.log('Executing confirmed pending action:', pendingAction);
-      const result = await executeTool(supabase, pendingAction.tool, pendingAction.params, userId);
+      const result = await executeTool(supabase, pendingAction.tool, pendingAction.params, verifiedUserId);
       
       return new Response(
         JSON.stringify({
@@ -839,7 +867,7 @@ Tu gères contacts, sessions, factures, paiements et emails. Utilise les outils 
         } else {
           // Execute the tool
           try {
-            const result = await executeTool(supabase, toolName, toolParams, userId);
+            const result = await executeTool(supabase, toolName, toolParams, verifiedUserId);
             toolResults.push({ tool: toolName, result });
             
             // Add tool result to messages
@@ -895,14 +923,13 @@ Tu gères contacts, sessions, factures, paiements et emails. Utilise les outils 
     const finalResponse = assistantMessage?.content || "Je n'ai pas pu générer de réponse.";
 
     // Log the interaction
-    if (userId) {
-      await supabase.from('ai_assistant_logs').insert({
-        user_id: userId,
-        user_message: message,
-        assistant_response: finalResponse,
-        action: action || 'agent'
-      });
-    }
+    // Log the interaction using verified user ID
+    await supabase.from('ai_assistant_logs').insert({
+      user_id: verifiedUserId,
+      user_message: message,
+      assistant_response: finalResponse,
+      action: action || 'agent'
+    });
 
     return new Response(
       JSON.stringify({ 
