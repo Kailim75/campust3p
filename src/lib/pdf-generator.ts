@@ -673,23 +673,144 @@ function calculateTTC(session: SessionInfo): number {
   return prixHT * (1 + tva / 100);
 }
 
+// ==================== PROGRAMMES DETAILLES T3P ====================
+const PROGRAMMES_T3P: Record<string, { modules: { titre: string; duree: string; contenu: string[] }[]; sanctionFormation: string }> = {
+  VTC: {
+    modules: [
+      { titre: "Module A - Réglementation du transport", duree: "7h", contenu: [
+        "Réglementation nationale des transports publics particuliers de personnes",
+        "Réglementation locale et spécificités régionales",
+        "Les obligations du conducteur VTC",
+        "Le registre des VTC et les procédures d'inscription"
+      ]},
+      { titre: "Module B - Sécurité routière", duree: "7h", contenu: [
+        "Principes de conduite sécuritaire et éco-conduite",
+        "Gestion des situations d'urgence",
+        "Premiers secours et réactions en cas d'accident",
+        "Fatigue et vigilance au volant"
+      ]},
+      { titre: "Module C - Gestion d'entreprise", duree: "7h", contenu: [
+        "Création et gestion d'une entreprise de VTC",
+        "Régime fiscal et social du conducteur VTC",
+        "Comptabilité et obligations déclaratives",
+        "Assurances professionnelles obligatoires"
+      ]},
+      { titre: "Module D - Relation client", duree: "7h", contenu: [
+        "Accueil et prise en charge des clients",
+        "Communication professionnelle et gestion des conflits",
+        "Qualité de service et fidélisation",
+        "Accessibilité et prise en charge des PMR"
+      ]},
+      { titre: "Module E - Applications et plateformes", duree: "7h", contenu: [
+        "Utilisation des applications de réservation",
+        "GPS et optimisation des trajets",
+        "Outils de gestion et facturation",
+        "RGPD et protection des données clients"
+      ]}
+    ],
+    sanctionFormation: "Attestation de formation initiale VTC permettant de se présenter à l'examen T3P"
+  },
+  TAXI: {
+    modules: [
+      { titre: "Module A - Réglementation taxi", duree: "7h", contenu: [
+        "Réglementation nationale du transport public de personnes",
+        "Statut juridique de la licence taxi (ADS)",
+        "Tarification réglementée et compteur horokilométrique",
+        "Obligations spécifiques du chauffeur de taxi"
+      ]},
+      { titre: "Module B - Sécurité routière", duree: "7h", contenu: [
+        "Conduite préventive en milieu urbain",
+        "Gestion des risques et situations d'urgence",
+        "Éco-conduite et économies de carburant",
+        "Premiers secours (PSC1 recommandé)"
+      ]},
+      { titre: "Module C - Gestion d'entreprise", duree: "7h", contenu: [
+        "Exploitation d'un taxi : artisan ou salarié",
+        "Régimes fiscal et social applicables",
+        "Location-gérance et cession de licence",
+        "Assurances obligatoires"
+      ]},
+      { titre: "Module D - Relation client", duree: "7h", contenu: [
+        "Accueil professionnel de la clientèle",
+        "Gestion des situations conflictuelles",
+        "Transport de personnes à mobilité réduite",
+        "Qualité de service et image de la profession"
+      ]},
+      { titre: "Module E - Connaissance du territoire", duree: "7h", contenu: [
+        "Topographie et orientation locale",
+        "Points d'intérêt et lieux stratégiques",
+        "Utilisation des outils de navigation",
+        "Gestion des courses et optimisation"
+      ]}
+    ],
+    sanctionFormation: "Attestation de formation initiale TAXI permettant de se présenter à l'examen T3P"
+  },
+  VMDTR: {
+    modules: [
+      { titre: "Module A - Réglementation VMDTR", duree: "7h", contenu: [
+        "Cadre légal du transport à deux ou trois roues",
+        "Spécificités réglementaires VMDTR",
+        "Obligations du conducteur et de l'exploitant",
+        "Procédures d'inscription et carte professionnelle"
+      ]},
+      { titre: "Module B - Sécurité routière spécifique", duree: "7h", contenu: [
+        "Conduite défensive en deux-roues",
+        "Équipements de sécurité obligatoires",
+        "Gestion des conditions météorologiques",
+        "Premiers secours adaptés"
+      ]},
+      { titre: "Module C - Gestion d'entreprise", duree: "7h", contenu: [
+        "Création d'une activité VMDTR",
+        "Régime fiscal et social",
+        "Comptabilité simplifiée",
+        "Assurances spécifiques moto/scooter"
+      ]},
+      { titre: "Module D - Relation client", duree: "7h", contenu: [
+        "Service client premium",
+        "Confort et sécurité du passager",
+        "Communication non-verbale",
+        "Gestion des réclamations"
+      ]},
+      { titre: "Module E - Navigation et technologie", duree: "7h", contenu: [
+        "Applications de géolocalisation",
+        "Optimisation des trajets urbains",
+        "Outils de réservation et facturation",
+        "Maintenance du véhicule"
+      ]}
+    ],
+    sanctionFormation: "Attestation de formation initiale VMDTR permettant de se présenter à l'examen T3P"
+  }
+};
+
+// Get formation type from session name
+function getFormationType(sessionName: string): string {
+  const name = sessionName.toUpperCase();
+  if (name.includes("VMDTR")) return "VMDTR";
+  if (name.includes("VTC")) return "VTC";
+  if (name.includes("TAXI")) return "TAXI";
+  return "VTC"; // Default
+}
+
 // ==================== CONVENTION DE FORMATION PDF (Conforme DREETS/Qualiopi) ====================
 // Pour les formations financées par un tiers (entreprise, OPCO, etc.)
 export function generateConventionPDF(
   contact: ContactInfo,
   session: SessionInfo,
-  company: CompanyInfo = DEFAULT_COMPANY
+  company: CompanyInfo = DEFAULT_COMPANY,
+  options?: { includeAnnexes?: boolean }
 ): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const bottomMargin = 25;
+  const bottomMargin = 30;
+  let pageNumber = 1;
   
   // Helper to check if we need a new page
   const checkPageBreak = (neededSpace: number = 30): number => {
     if (yPos + neededSpace > pageHeight - bottomMargin) {
+      addFooter(doc, pageNumber);
       doc.addPage();
-      addFooter(doc, doc.getNumberOfPages());
+      pageNumber++;
       const newHeaderY = addHeader(doc, company);
       return newHeaderY + 5;
     }
@@ -698,263 +819,480 @@ export function generateConventionPDF(
   
   const headerEndY = addHeader(doc, company);
   
-  // Title
-  let yPos = headerEndY + 8;
-  doc.setFontSize(14);
+  // Title with style
+  let yPos = addDocumentTitle(
+    doc, 
+    "CONVENTION DE FORMATION PROFESSIONNELLE", 
+    headerEndY,
+    "Articles L.6353-1 à L.6353-2 du Code du travail",
+    session.numero_session
+  );
+  
+  // Parties - L'organisme de formation
+  yPos += 5;
+  yPos = addSectionTitle(doc, "ENTRE LES SOUSSIGNÉS", yPos);
+  
+  yPos += 3;
   doc.setFont("helvetica", "bold");
-  doc.text("CONVENTION DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("L'organisme de formation :", 20, yPos);
   
   yPos += 6;
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("(Articles L.6353-1 à L.6353-2 du Code du travail)", pageWidth / 2, yPos, { align: "center" });
-  
-  if (session.numero_session) {
-    yPos += 5;
-    doc.setTextColor(100);
-    doc.text(`Référence : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
-    doc.setTextColor(0);
-  }
-  
-  // Parties
-  yPos += 12;
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("ENTRE LES SOUSSIGNÉS :", 20, yPos);
-  
-  yPos += 10;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  
-  // Organisme - avec plus d'espace
-  doc.setFont("helvetica", "bold");
-  doc.text("L'organisme de formation :", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 8;
-  doc.text(`${company.name}`, 25, yPos);
-  yPos += 6;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(company.name, 25, yPos);
+  yPos += 5;
   doc.text(`SIRET : ${company.siret}`, 25, yPos);
-  yPos += 6;
+  yPos += 5;
   const orgAddressLines = doc.splitTextToSize(company.address, pageWidth - 50);
   doc.text(orgAddressLines, 25, yPos);
-  yPos += orgAddressLines.length * 6 + 2;
-  const ndaText = `Déclaration d'activité N° ${company.nda}`;
-  doc.text(ndaText, 25, yPos);
-  yPos += 6;
-  doc.text(`(ne vaut pas agrément de l'État)`, 25, yPos);
-  yPos += 6;
+  yPos += orgAddressLines.length * 5 + 2;
+  doc.text(`Déclaration d'activité N° ${company.nda}`, 25, yPos);
+  yPos += 4;
+  doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text(`(Cette déclaration ne vaut pas agrément de l'État)`, 25, yPos);
+  
+  // Agréments si présents
+  if (company.qualiopi_numero || company.agrement_prefecture) {
+    yPos += 5;
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    if (company.qualiopi_numero) {
+      doc.text(`✓ Certifié QUALIOPI N° ${company.qualiopi_numero}`, 25, yPos);
+      yPos += 4;
+    }
+    if (company.agrement_prefecture) {
+      doc.text(`✓ Agrément Préfecture : ${company.agrement_prefecture}`, 25, yPos);
+      yPos += 4;
+    }
+  }
+  
+  yPos += 3;
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
   
-  // Client/Stagiaire
-  yPos += 12;
+  // Le Bénéficiaire
+  yPos += 10;
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text("Et :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 7;
+  yPos += 6;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  doc.setFont("helvetica", "bold");
   doc.text(fullName, 25, yPos);
+  doc.setFont("helvetica", "normal");
+  if (contact.date_naissance) {
+    yPos += 5;
+    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd/MM/yyyy")}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, 25, yPos);
+  }
   if (contact.rue) {
-    yPos += 6;
+    yPos += 5;
     doc.text(contact.rue, 25, yPos);
   }
   if (contact.code_postal || contact.ville) {
-    yPos += 6;
+    yPos += 5;
     doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos);
   }
-  yPos += 6;
+  if (contact.email) {
+    yPos += 5;
+    doc.text(`Email : ${contact.email}`, 25, yPos);
+  }
+  if (contact.telephone) {
+    yPos += 5;
+    doc.text(`Tél : ${contact.telephone}`, 25, yPos);
+  }
+  yPos += 5;
   doc.text(`Ci-après dénommé "le Bénéficiaire"`, 25, yPos);
   
   // Article 1 - Objet
-  yPos += 14;
+  yPos += 12;
   yPos = checkPageBreak(35);
-  doc.setFont("helvetica", "bold");
+  yPos = addSectionTitle(doc, "Article 1 - Objet de la convention", yPos);
+  yPos += 2;
   doc.setFontSize(10);
-  doc.text("Article 1 - Objet", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const art1 = `En exécution de la présente convention, l'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}".`;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  const art1 = `En exécution de la présente convention, l'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}" conformément aux dispositions du Code du travail relatives à la formation professionnelle continue.`;
   const splitArt1 = doc.splitTextToSize(art1, pageWidth - 40);
   doc.text(splitArt1, 20, yPos);
   
   // Article 2 - Nature et caractéristiques (Obligatoire DREETS)
-  yPos += splitArt1.length * 6 + 12;
-  yPos = checkPageBreak(55);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
-  doc.setFont("helvetica", "normal");
+  yPos += splitArt1.length * 5 + 10;
+  yPos = checkPageBreak(60);
+  yPos = addSectionTitle(doc, "Article 2 - Nature et caractéristiques de l'action", yPos);
+  
+  // Box d'information
+  yPos += 2;
+  const art2BoxHeight = 55;
+  addInfoBox(doc, yPos, art2BoxHeight);
+  
   yPos += 8;
-  doc.text(`• Intitulé : ${session.nom}`, 22, yPos);
-  yPos += 6;
-  doc.text(`• Type d'action : Action de formation au sens de l'article L.6313-1 du Code du travail`, 22, yPos);
-  yPos += 6;
-  doc.text(`• Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 22, yPos);
-  yPos += 6;
-  doc.text(`• Durée : ${session.duree_heures || "-"} heures`, 22, yPos);
-  yPos += 6;
-  doc.text(`• Horaires : ${formatSessionHours(session)}`, 22, yPos);
-  yPos += 6;
-  const lieuConvention = `• Lieu : ${formatFullAddress(session)}`;
-  const splitLieuConv = doc.splitTextToSize(lieuConvention, pageWidth - 45);
-  doc.text(splitLieuConv, 22, yPos);
-  yPos += splitLieuConv.length * 6;
-  doc.text(`• Modalités : Formation en présentiel`, 22, yPos);
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(`Intitulé : `, 30, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text(session.nom, 50, yPos);
+  doc.setFont("helvetica", "normal");
+  
+  yPos += 7;
+  doc.text(`Type d'action : Action de formation (Art. L.6313-1 du Code du travail)`, 30, yPos);
+  
+  yPos += 7;
+  doc.text(`Dates : Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`, 30, yPos);
+  
+  yPos += 7;
+  doc.text(`Durée : ${session.duree_heures || 35} heures`, 30, yPos);
+  
+  yPos += 7;
+  doc.text(`Horaires : ${formatSessionHours(session)}`, 30, yPos);
+  
+  yPos += 7;
+  const lieuText = `Lieu : ${formatFullAddress(session)}`;
+  const splitLieu = doc.splitTextToSize(lieuText, pageWidth - 60);
+  doc.text(splitLieu, 30, yPos);
+  
+  yPos += splitLieu.length * 5 + 5;
+  doc.text(`Modalités : Formation en présentiel`, 30, yPos);
   
   // Article 3 - Objectifs (Obligatoire Qualiopi)
-  yPos += 12;
-  yPos = checkPageBreak(30);
-  doc.setFont("helvetica", "bold");
+  yPos += 15;
+  yPos = checkPageBreak(35);
+  yPos = addSectionTitle(doc, "Article 3 - Objectifs pédagogiques", yPos);
+  yPos += 2;
   doc.setFontSize(10);
-  doc.text("Article 3 - Objectifs pédagogiques", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const objectifs = session.objectifs || "À l'issue de la formation, le stagiaire sera capable de maîtriser les compétences nécessaires à l'exercice de l'activité professionnelle visée.";
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  const formationType = getFormationType(session.nom);
+  const objectifs = session.objectifs || `À l'issue de cette formation, le stagiaire sera capable de :
+• Maîtriser la réglementation applicable aux ${formationType}
+• Adopter une conduite sécuritaire et éco-responsable  
+• Gérer les aspects administratifs et fiscaux de l'activité
+• Assurer un service client de qualité
+• Se présenter à l'examen T3P avec les compétences requises`;
   const splitObj = doc.splitTextToSize(objectifs, pageWidth - 40);
   doc.text(splitObj, 20, yPos);
   
   // Article 4 - Programme
-  yPos += splitObj.length * 6 + 12;
+  yPos += splitObj.length * 5 + 10;
   yPos = checkPageBreak(25);
-  doc.setFont("helvetica", "bold");
+  yPos = addSectionTitle(doc, "Article 4 - Programme", yPos);
+  yPos += 2;
   doc.setFontSize(10);
-  doc.text("Article 4 - Programme", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text("Le programme détaillé de la formation est annexé à la présente convention.", 20, yPos);
+  doc.text("Le programme détaillé de la formation figure en Annexe 1 de la présente convention.", 20, yPos);
   
   // Article 5 - Prérequis (Obligatoire Qualiopi)
   yPos += 12;
   yPos = checkPageBreak(30);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 5 - Prérequis et public visé", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const prerequis = session.prerequis || "Aucun prérequis spécifique. Public : Tout public souhaitant acquérir les compétences visées.";
+  yPos = addSectionTitle(doc, "Article 5 - Prérequis et public visé", yPos);
+  yPos += 2;
+  const prerequis = session.prerequis || `• Être titulaire du permis de conduire B depuis au moins 3 ans (ou 1 an avec AAC)
+• Être apte à exercer la profession (visite médicale)
+• Aucune condamnation inscrite au bulletin n°2 du casier judiciaire`;
   const splitPre = doc.splitTextToSize(prerequis, pageWidth - 40);
   doc.text(splitPre, 20, yPos);
   
   // Article 6 - Moyens pédagogiques (Obligatoire Qualiopi)
-  yPos += splitPre.length * 6 + 12;
-  yPos = checkPageBreak(35);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 6 - Moyens pédagogiques et techniques", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text("• Supports de cours remis aux stagiaires", 22, yPos);
-  yPos += 6;
-  doc.text("• Vidéoprojecteur et tableau interactif", 22, yPos);
-  yPos += 6;
-  doc.text("• Mise en situation pratique et exercices", 22, yPos);
+  yPos += splitPre.length * 5 + 10;
+  yPos = checkPageBreak(40);
+  yPos = addSectionTitle(doc, "Article 6 - Moyens pédagogiques et techniques", yPos);
+  yPos += 2;
+  doc.text("• Supports de cours et documentation remis aux stagiaires", 22, yPos);
+  yPos += 5;
+  doc.text("• Salle de formation équipée (vidéoprojecteur, écran, Wi-Fi)", 22, yPos);
+  yPos += 5;
+  doc.text("• Mise en situation et exercices pratiques", 22, yPos);
+  yPos += 5;
+  doc.text("• QCM d'entraînement type examen T3P", 22, yPos);
+  yPos += 5;
+  doc.text("• Accès à une plateforme e-learning complémentaire", 22, yPos);
   
   // Article 7 - Évaluation (Obligatoire Qualiopi)
   yPos += 12;
   yPos = checkPageBreak(35);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 7 - Modalités d'évaluation", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text("• Évaluation des acquis en cours et fin de formation", 22, yPos);
-  yPos += 6;
+  yPos = addSectionTitle(doc, "Article 7 - Modalités d'évaluation", yPos);
+  yPos += 2;
+  doc.text("• Évaluation diagnostique en début de formation", 22, yPos);
+  yPos += 5;
+  doc.text("• Évaluations formatives en cours de formation (QCM, mises en situation)", 22, yPos);
+  yPos += 5;
+  doc.text("• Évaluation sommative en fin de formation (examen blanc)", 22, yPos);
+  yPos += 5;
   doc.text("• Questionnaire de satisfaction à chaud", 22, yPos);
-  yPos += 6;
-  doc.text("• Attestation de fin de formation remise au stagiaire", 22, yPos);
+  yPos += 5;
+  doc.text("• Attestation de fin de formation mentionnant les compétences acquises", 22, yPos);
   
   // Page 2 - Articles financiers et signatures
+  addFooter(doc, pageNumber);
   doc.addPage();
+  pageNumber++;
   const page2HeaderEndY = addHeader(doc, company);
   yPos = page2HeaderEndY + 5;
   
   // Article 8 - Prix (Obligatoire DREETS)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 8 - Dispositions financières", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
+  yPos = addSectionTitle(doc, "Article 8 - Dispositions financières", yPos);
+  yPos += 2;
   
   const prixHT = session.prix_ht || session.prix || 0;
   const tvaPercent = session.tva_percent || 0;
   const prixTTC = calculateTTC(session);
   
-  doc.text(`Le coût de la formation s'élève à :`, 20, yPos);
-  yPos += 6;
-  doc.text(`• Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+  // Box financier
+  const financeBoxHeight = tvaPercent > 0 ? 40 : 35;
+  addInfoBox(doc, yPos, financeBoxHeight);
+  
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.text(`Coût pédagogique de la formation :`, 30, yPos);
+  yPos += 7;
+  doc.setFont("helvetica", "bold");
+  doc.text(`• Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
+  doc.setFont("helvetica", "normal");
   yPos += 6;
   if (tvaPercent > 0) {
-    doc.text(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+    doc.text(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
     yPos += 6;
-    doc.text(`• Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 25, yPos);
+    doc.setFont("helvetica", "bold");
+    doc.text(`• Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
+    doc.setFont("helvetica", "normal");
   } else {
-    doc.text("• TVA non applicable - Article 261.4.4°a du CGI", 25, yPos);
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    doc.text("• TVA non applicable - Article 261.4.4°a du CGI", 35, yPos);
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   }
-  yPos += 10;
+  
+  yPos += financeBoxHeight - 15;
+  doc.setFontSize(10);
   doc.text("Le règlement s'effectue selon les modalités convenues entre les parties.", 20, yPos);
   
-  // Article 9 - Délai de rétractation (Obligatoire)
+  // Article 9 - Délai de rétractation
   yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 9 - Délai de rétractation", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const art9 = "Conformément à l'article L.6353-5 du Code du travail, le stagiaire dispose d'un délai de 10 jours à compter de la signature de la présente convention pour se rétracter par lettre recommandée avec accusé de réception.";
+  yPos = addSectionTitle(doc, "Article 9 - Délai de rétractation", yPos);
+  yPos += 2;
+  const art9 = "Conformément à l'article L.6353-5 du Code du travail, le Bénéficiaire dispose d'un délai de DIX (10) JOURS à compter de la signature de la présente convention pour se rétracter par lettre recommandée avec accusé de réception.";
   const splitArt9 = doc.splitTextToSize(art9, pageWidth - 40);
   doc.text(splitArt9, 20, yPos);
   
-  // Article 10 - Interruption
-  yPos += splitArt9.length * 6 + 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 10 - Cas de cessation anticipée", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  const art10 = "En cas de cessation anticipée de la formation pour fait du stagiaire, seules les heures réellement effectuées seront facturées au prorata.";
+  // Article 10 - Cessation anticipée
+  yPos += splitArt9.length * 5 + 10;
+  yPos = checkPageBreak(25);
+  yPos = addSectionTitle(doc, "Article 10 - Cessation anticipée", yPos);
+  yPos += 2;
+  const art10 = "En cas de cessation anticipée de la formation pour fait du stagiaire, seules les heures de formation réellement effectuées seront facturées au prorata temporis.";
   const splitArt10 = doc.splitTextToSize(art10, pageWidth - 40);
   doc.text(splitArt10, 20, yPos);
   
-  // Article 11 - Litige
-  yPos += splitArt10.length * 6 + 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 11 - Différends", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text("Les parties s'engagent à rechercher une solution amiable. À défaut, le tribunal compétent sera saisi.", 20, yPos);
+  // Article 11 - Différends
+  yPos += splitArt10.length * 5 + 10;
+  yPos = checkPageBreak(20);
+  yPos = addSectionTitle(doc, "Article 11 - Différends", yPos);
+  yPos += 2;
+  doc.text("Les parties s'engagent à rechercher une solution amiable à tout différend.", 20, yPos);
+  yPos += 5;
+  doc.text("À défaut, le litige sera porté devant les tribunaux compétents.", 20, yPos);
   
-  // Règlement intérieur
+  // Article 12 - Règlement intérieur
   yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Article 12 - Règlement intérieur", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 7;
-  doc.text("Le stagiaire déclare avoir pris connaissance du règlement intérieur de l'organisme de formation.", 20, yPos);
+  yPos = checkPageBreak(25);
+  yPos = addSectionTitle(doc, "Article 12 - Règlement intérieur", yPos);
+  yPos += 2;
+  doc.text("Le stagiaire déclare avoir pris connaissance du règlement intérieur de l'organisme", 20, yPos);
+  yPos += 5;
+  doc.text("de formation joint en Annexe 2 de la présente convention.", 20, yPos);
+  
+  // Article 13 - Documents annexés
+  yPos += 12;
+  yPos = checkPageBreak(25);
+  yPos = addSectionTitle(doc, "Article 13 - Documents annexés", yPos);
+  yPos += 2;
+  doc.text("Les documents suivants font partie intégrante de la présente convention :", 20, yPos);
+  yPos += 6;
+  doc.text("• Annexe 1 : Programme détaillé de la formation", 25, yPos);
+  yPos += 5;
+  doc.text("• Annexe 2 : Règlement intérieur de l'organisme de formation", 25, yPos);
   
   // Signatures
-  yPos += 20;
+  yPos += 18;
+  yPos = checkPageBreak(60);
+  
+  // Ligne séparatrice
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(20, yPos, pageWidth - 40, 1, "F");
+  
+  yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(`Fait en double exemplaire à _____________, le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  doc.text(`Fait en double exemplaire, à _____________, le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
   
   yPos += 15;
   doc.setFont("helvetica", "normal");
-  doc.text("Pour l'Organisme de formation", 30, yPos);
-  doc.text("Le Bénéficiaire", pageWidth - 50, yPos);
   
-  yPos += 5;
+  // Deux colonnes pour signatures
+  const col1X = 30;
+  const col2X = pageWidth - 70;
+  
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Pour l'Organisme de formation", col1X, yPos);
+  doc.text("Le Bénéficiaire", col2X, yPos);
+  
+  yPos += 6;
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   
   // Add stamp image if available
-  const stampAdded = addStampImage(doc, company, 25, yPos + 2, 40, 25);
+  const stampAdded = addStampImage(doc, company, col1X - 5, yPos + 2, 40, 25);
   
   if (!stampAdded) {
-    doc.text("(Cachet et signature)", 30, yPos);
+    doc.text("(Cachet et signature)", col1X, yPos);
   }
-  doc.text("(Signature précédée de", pageWidth - 50, yPos);
-  doc.text("\"Lu et approuvé\")", pageWidth - 50, yPos + 4);
   
-  addFooter(doc, 2);
+  doc.text("(Signature précédée de", col2X, yPos);
+  doc.text("\"Lu et approuvé\")", col2X, yPos + 4);
+  
+  // Add footers
+  addFooter(doc, pageNumber);
+  
+  // Génération des annexes si demandé
+  if (options?.includeAnnexes !== false) {
+    // ANNEXE 1 - Programme détaillé
+    doc.addPage();
+    pageNumber++;
+    const annexe1HeaderY = addHeader(doc, company);
+    yPos = annexe1HeaderY + 5;
+    
+    // Titre Annexe 1
+    doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+    const annexeTitle = "ANNEXE 1 - PROGRAMME DÉTAILLÉ";
+    const annexeTitleWidth = doc.getTextWidth(annexeTitle) + 30;
+    doc.roundedRect((pageWidth - annexeTitleWidth) / 2, yPos - 5, annexeTitleWidth, 12, 3, 3, "F");
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+    doc.text(annexeTitle, pageWidth / 2, yPos + 3, { align: "center" });
+    
+    yPos += 12;
+    doc.setFontSize(11);
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text(`Formation : ${session.nom}`, pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    doc.text(`Durée totale : ${session.duree_heures || 35} heures`, pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 12;
+    
+    // Programme selon le type de formation
+    const programme = PROGRAMMES_T3P[formationType] || PROGRAMMES_T3P.VTC;
+    
+    programme.modules.forEach((module, index) => {
+      yPos = checkPageBreak(50);
+      
+      // Module header
+      doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+      doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+      doc.text(`${module.titre}`, 25, yPos + 2);
+      doc.text(`${module.duree}`, pageWidth - 30, yPos + 2, { align: "right" });
+      
+      yPos += 12;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+      
+      module.contenu.forEach(item => {
+        yPos = checkPageBreak(8);
+        doc.text(`• ${item}`, 25, yPos);
+        yPos += 5;
+      });
+      
+      yPos += 5;
+    });
+    
+    // Sanction de la formation
+    yPos += 5;
+    yPos = checkPageBreak(25);
+    doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+    doc.roundedRect(20, yPos, pageWidth - 40, 20, 3, 3, "F");
+    doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+    doc.roundedRect(20, yPos, 4, 20, 2, 2, "F");
+    
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("Sanction de la formation :", 30, yPos);
+    yPos += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    doc.text(programme.sanctionFormation, 30, yPos);
+    
+    addFooter(doc, pageNumber);
+    
+    // ANNEXE 2 - Règlement intérieur
+    doc.addPage();
+    pageNumber++;
+    const annexe2HeaderY = addHeader(doc, company);
+    yPos = annexe2HeaderY + 5;
+    
+    // Titre Annexe 2
+    doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+    const annexe2Title = "ANNEXE 2 - RÈGLEMENT INTÉRIEUR";
+    const annexe2TitleWidth = doc.getTextWidth(annexe2Title) + 30;
+    doc.roundedRect((pageWidth - annexe2TitleWidth) / 2, yPos - 5, annexe2TitleWidth, 12, 3, 3, "F");
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+    doc.text(annexe2Title, pageWidth / 2, yPos + 3, { align: "center" });
+    
+    yPos += 15;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    
+    // Articles du règlement intérieur
+    const reglementArticles = [
+      { titre: "Article 1 - Objet et champ d'application", contenu: "Le présent règlement est établi conformément aux articles L.6352-3 et R.6352-1 à R.6352-15 du Code du travail. Il s'applique à tous les stagiaires pour la durée de leur formation." },
+      { titre: "Article 2 - Discipline générale", contenu: "Il est demandé à chaque stagiaire de respecter les horaires de formation, les règles de bonne conduite, et de ne pas perturber le déroulement des cours." },
+      { titre: "Article 3 - Hygiène et sécurité", contenu: "Les consignes d'hygiène et de sécurité doivent être respectées. Il est interdit de fumer dans les locaux. Les issues de secours doivent rester libres." },
+      { titre: "Article 4 - Absences et retards", contenu: "En cas d'absence ou de retard, le stagiaire doit prévenir l'organisme. Les absences non justifiées peuvent entraîner l'exclusion de la formation." },
+      { titre: "Article 5 - Sanctions disciplinaires", contenu: "Tout manquement au règlement peut faire l'objet d'une sanction, allant de l'avertissement à l'exclusion définitive, selon la procédure prévue aux articles R.6352-4 à R.6352-8 du Code du travail." },
+      { titre: "Article 6 - Représentation des stagiaires", contenu: "Pour les formations de plus de 500 heures, un délégué des stagiaires est élu selon les modalités définies aux articles R.6352-9 à R.6352-15 du Code du travail." },
+    ];
+    
+    reglementArticles.forEach(article => {
+      yPos = checkPageBreak(25);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+      doc.text(article.titre, 20, yPos);
+      yPos += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+      const splitContenu = doc.splitTextToSize(article.contenu, pageWidth - 40);
+      doc.text(splitContenu, 20, yPos);
+      yPos += splitContenu.length * 4 + 8;
+    });
+    
+    // Signature du règlement
+    yPos += 10;
+    yPos = checkPageBreak(30);
+    doc.setFontSize(9);
+    doc.text(`Le ${format(new Date(), "dd/MM/yyyy")}`, 20, yPos);
+    yPos += 8;
+    doc.text("Le stagiaire (mention \"Lu et approuvé\") :", 20, yPos);
+    
+    addFooter(doc, pageNumber);
+  }
+  
+  // Reset to page 1 and add footer
   doc.setPage(1);
   addFooter(doc, 1);
   
