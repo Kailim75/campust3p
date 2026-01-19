@@ -339,14 +339,51 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
     yPos = addParagraph(doc, `${i + 1}. ${obj}`, yPos, 5);
   });
 
-  // --- ARTICLE 4 : PROGRAMME ---
+  // --- ARTICLE 4 : PROGRAMME DE FORMATION DÉTAILLÉ ---
   yPos = addArticleTitle(doc, 4, "PROGRAMME DE FORMATION", yPos);
-  yPos = addParagraph(doc, "Le programme détaillé figure en Annexe 1 de la présente convention. Il comprend les modules suivants :", yPos);
+  
+  // Introduction avec type de formation
+  const typeFormationLabel = formation.type === "VTC" 
+    ? "Conducteur de Voiture de Transport avec Chauffeur (VTC)" 
+    : formation.type === "TAXI" 
+      ? "Conducteur de Taxi" 
+      : "Conducteur de Véhicule Motorisé à Deux ou Trois Roues (VMDTR)";
+  
+  yPos = addParagraph(doc, `Cette formation ${typeFormationLabel} d'une durée totale de ${formation.dureeHeures} heures comprend les modules réglementaires suivants :`, yPos);
+  yPos += 4;
 
   const programme = getProgramme(formation.type);
+  
+  // Afficher chaque module avec son contenu détaillé
   programme.forEach((module: ModuleFormation) => {
-    yPos = addParagraph(doc, `• Module ${module.numero}: ${module.titre} (${module.dureeHeures}h)`, yPos, 5);
+    // Titre du module
+    yPos = checkPageBreak(doc, yPos, 25);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text(`MODULE ${module.numero} : ${module.titre.toUpperCase()} (${module.dureeHeures}h)`, MARGIN_LEFT + 3, yPos);
+    yPos += 5;
+    
+    // Contenu du module (sous-thèmes)
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    
+    module.contenu.forEach((item: string) => {
+      yPos = checkPageBreak(doc, yPos, 4);
+      const bulletText = `  • ${item}`;
+      const lines = doc.splitTextToSize(bulletText, CONTENT_WIDTH - 10);
+      lines.forEach((line: string) => {
+        yPos = checkPageBreak(doc, yPos, 4);
+        doc.text(line, MARGIN_LEFT + 5, yPos);
+        yPos += 3.5;
+      });
+    });
+    
+    yPos += 3;
   });
+  
+  yPos += 2;
 
   // --- ARTICLE 5 : PRÉREQUIS ---
   yPos = addArticleTitle(doc, 5, "PRÉREQUIS RÉGLEMENTAIRES", yPos);
