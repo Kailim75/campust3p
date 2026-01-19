@@ -154,47 +154,63 @@ function buildAccreditationsLine(company: CompanyInfo): string[] {
 // Helper functions avec nouvelle charte graphique
 function addHeader(doc: jsPDF, company: CompanyInfo): number {
   const pageWidth = doc.internal.pageSize.getWidth();
-  
-  // Build accreditations lines
+
+  // Build + wrap accreditations lines to avoid overflow (which looked like "missing" text)
   const accreditationsLines = buildAccreditationsLine(company);
-  const headerHeight = accreditationsLines.length > 1 ? 45 : 38;
-  
+  const maxAccredWidth = pageWidth - 40;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+
+  const wrappedAccreditations: string[] = [];
+  accreditationsLines.forEach((line) => {
+    const wrapped = doc.splitTextToSize(line, maxAccredWidth) as string[];
+    wrapped.forEach((l) => wrappedAccreditations.push(l));
+  });
+
+  // Compute header height BEFORE drawing the background
+  const minHeaderHeight = 38;
+  const accreditStartY = 30;
+  const lineStep = 6;
+  const accreditBottomY =
+    wrappedAccreditations.length > 0
+      ? accreditStartY + wrappedAccreditations.length * lineStep
+      : accreditStartY;
+  const headerHeight = Math.max(minHeaderHeight, accreditBottomY + 4);
+
   // Bandeau header Forest Green
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
-  
+
   // Nom de l'entreprise en blanc
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
   doc.text(company.name, 20, 14);
-  
+
   // Coordonnées en cream clair
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.text(`${company.address} | Tél: ${company.phone} | ${company.email}`, 20, 22);
-  
-  // Agréments et certifications
-  let yAccred = 30;
+
+  // Agréments et certifications (wrappés)
+  let yAccred = accreditStartY;
   doc.setFontSize(6.5);
-  accreditationsLines.forEach(line => {
-    doc.text(line, 20, yAccred);
-    yAccred += 6;
+  wrappedAccreditations.forEach((l) => {
+    doc.text(l, 20, yAccred);
+    yAccred += lineStep;
   });
-  
-  // Calcul dynamique de la hauteur du header basé sur le contenu
-  const actualHeaderHeight = Math.max(yAccred + 2, headerHeight);
-  
+
   // Ligne accent Gold sous le header
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.rect(0, actualHeaderHeight, pageWidth, 2, "F");
-  
+  doc.rect(0, headerHeight, pageWidth, 2, "F");
+
   // Reset text color
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  
+
   // Retourne la position Y après le header (avec marge)
-  return actualHeaderHeight + 8;
+  return headerHeight + 8;
 }
 
 function addFooter(doc: jsPDF, pageNum: number = 1) {
