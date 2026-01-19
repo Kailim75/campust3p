@@ -717,13 +717,14 @@ export function generateConventionPDF(
   doc.setFont("helvetica", "bold");
   doc.text("L'organisme de formation :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 5;
+  yPos += 7;
   doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
-  yPos += 4;
-  doc.text(`${company.address}`, 25, yPos);
-  yPos += 4;
+  yPos += 6;
+  const orgAddressLines = doc.splitTextToSize(company.address, pageWidth - 50);
+  doc.text(orgAddressLines, 25, yPos);
+  yPos += orgAddressLines.length * 6;
   doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
-  yPos += 4;
+  yPos += 6;
   doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
   
   // Client/Stagiaire
@@ -967,15 +968,16 @@ export function generateContratFormationPDF(
   doc.setFont("helvetica", "bold");
   doc.text("L'organisme de formation :", 20, yPos);
   doc.setFont("helvetica", "normal");
-  yPos += 5;
+  yPos += 7;
   doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
-  yPos += 4;
-  doc.text(`${company.address}`, 25, yPos);
-  yPos += 4;
+  yPos += 6;
+  const contratOrgAddressLines = doc.splitTextToSize(company.address, pageWidth - 50);
+  doc.text(contratOrgAddressLines, 25, yPos);
+  yPos += contratOrgAddressLines.length * 6;
   doc.text(`Déclaration d'activité N° ${company.nda} enregistrée auprès du préfet de région`, 25, yPos);
-  yPos += 4;
+  yPos += 6;
   doc.text(`(Cette déclaration ne vaut pas agrément de l'État)`, 25, yPos);
-  yPos += 4;
+  yPos += 6;
   doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
   
   // Stagiaire
