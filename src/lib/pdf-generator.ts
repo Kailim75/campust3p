@@ -238,15 +238,15 @@ function addFooter(doc: jsPDF, pageNum: number = 1) {
 
 function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number, title: string = "Participant"): number {
   if (title) {
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
     doc.text(title, x, y);
-    y += 5;
+    y += 6;
   }
   
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
@@ -319,16 +319,16 @@ function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: 
 // Section avec titre coloré
 function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos - 4, 3, 12, 1, 1, "F");
+  doc.roundedRect(20, yPos - 4, 3, 14, 1, 1, "F");
   
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text(title, 27, yPos + 4);
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.setFont("helvetica", "normal");
-  return yPos + 12;
+  return yPos + 14;
 }
 
 // Box d'information avec fond cream
@@ -557,7 +557,7 @@ export function generateAttestationPDF(
   
   // Corps
   yPos += 10;
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
@@ -579,7 +579,7 @@ export function generateAttestationPDF(
   
   yPos += 15;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   if (contact.date_naissance) {
     doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, pageWidth / 2, yPos, { align: "center" });
@@ -608,7 +608,7 @@ export function generateAttestationPDF(
   
   yPos += 12;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(`Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`, pageWidth / 2, yPos, { align: "center" });
   
@@ -622,7 +622,7 @@ export function generateAttestationPDF(
   
   // Date and signature
   yPos += 45;
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(`Fait à Paris, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, pageWidth - 30, yPos, { align: "right" });
   
@@ -718,13 +718,13 @@ export function generateConventionPDF(
   
   // Parties
   yPos += 12;
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("ENTRE LES SOUSSIGNÉS :", 20, yPos);
   
   yPos += 10;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   
   // Organisme - avec plus d'espace
   doc.setFont("helvetica", "bold");
@@ -768,7 +768,7 @@ export function generateConventionPDF(
   yPos += 14;
   yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text("Article 1 - Objet", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -780,6 +780,7 @@ export function generateConventionPDF(
   yPos += splitArt1.length * 6 + 12;
   yPos = checkPageBreak(55);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 8;
@@ -803,6 +804,7 @@ export function generateConventionPDF(
   yPos += 12;
   yPos = checkPageBreak(30);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 3 - Objectifs pédagogiques", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -814,6 +816,7 @@ export function generateConventionPDF(
   yPos += splitObj.length * 6 + 12;
   yPos = checkPageBreak(25);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 4 - Programme", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -823,6 +826,7 @@ export function generateConventionPDF(
   yPos += 12;
   yPos = checkPageBreak(30);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 5 - Prérequis et public visé", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -834,6 +838,7 @@ export function generateConventionPDF(
   yPos += splitPre.length * 6 + 12;
   yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 6 - Moyens pédagogiques et techniques", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -847,6 +852,7 @@ export function generateConventionPDF(
   yPos += 12;
   yPos = checkPageBreak(35);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 7 - Modalités d'évaluation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -863,7 +869,7 @@ export function generateConventionPDF(
   
   // Article 8 - Prix (Obligatoire DREETS)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text("Article 8 - Dispositions financières", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -889,6 +895,7 @@ export function generateConventionPDF(
   // Article 9 - Délai de rétractation (Obligatoire)
   yPos += 12;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 9 - Délai de rétractation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -899,6 +906,7 @@ export function generateConventionPDF(
   // Article 10 - Interruption
   yPos += splitArt9.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 10 - Cas de cessation anticipée", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -909,6 +917,7 @@ export function generateConventionPDF(
   // Article 11 - Litige
   yPos += splitArt10.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 11 - Différends", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -917,6 +926,7 @@ export function generateConventionPDF(
   // Règlement intérieur
   yPos += 12;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 12 - Règlement intérieur", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1041,6 +1051,7 @@ export function generateContratFormationPDF(
   // Article 1 - Objet
   yPos += 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 1 - Objet du contrat", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 6;
@@ -1051,6 +1062,7 @@ export function generateContratFormationPDF(
   // Article 2 - Nature et caractéristiques (Obligatoire L.6353-4)
   yPos += splitArt1.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1075,6 +1087,7 @@ export function generateContratFormationPDF(
   // Article 3 - Niveau et prérequis
   yPos += 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 3 - Niveau requis et public concerné", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1089,7 +1102,7 @@ export function generateContratFormationPDF(
   
   // Article 4 - Prix (Obligatoire L.6353-4)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text("Article 4 - Prix de la formation et modalités de paiement", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1119,6 +1132,7 @@ export function generateContratFormationPDF(
   // Article 5 - Délai de rétractation (Obligatoire L.6353-5)
   yPos += 12;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 5 - Délai de rétractation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1129,6 +1143,7 @@ export function generateContratFormationPDF(
   // Article 6 - Paiement anticipé (Obligatoire L.6353-6)
   yPos += splitArt5.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 6 - Paiement anticipé", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1139,6 +1154,7 @@ export function generateContratFormationPDF(
   // Article 7 - Interruption
   yPos += splitArt6.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 7 - Interruption de la formation", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1149,6 +1165,7 @@ export function generateContratFormationPDF(
   // Article 8 - Litige
   yPos += splitArt7.length * 6 + 10;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 8 - Règlement des litiges", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1159,6 +1176,7 @@ export function generateContratFormationPDF(
   // Article 9 - Règlement intérieur
   yPos += 12;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.text("Article 9 - Règlement intérieur", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 7;
@@ -1236,14 +1254,14 @@ export function generateConvocationPDF(
   
   // Corps
   yPos = Math.max(yPos, 105);
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.text(`${fullName},`, 20, yPos);
   
   yPos += 10;
-  const intro = `Nous avons le plaisir de vous confirmer votre inscription a la formation suivante :`;
+  const intro = `Nous avons le plaisir de vous confirmer votre inscription à la formation suivante :`;
   doc.text(intro, 20, yPos);
   
   // Formation box - enrichi
@@ -1259,53 +1277,55 @@ export function generateConvocationPDF(
   
   yPos += 12;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 30, yPos);
   
-  yPos += 8;
+  yPos += 9;
   doc.text(`Horaires : ${formatSessionHours(session)}`, 30, yPos);
   
-  yPos += 8;
+  yPos += 9;
   doc.text(`Lieu : ${formatFullAddress(session)}`, 30, yPos);
   
-  yPos += 8;
-  doc.text(`Duree totale : ${session.duree_heures || "-"} heures`, 30, yPos);
+  yPos += 9;
+  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 30, yPos);
   
   if (session.formateur) {
-    yPos += 8;
+    yPos += 9;
     doc.text(`Formateur : ${session.formateur}`, 30, yPos);
   }
   
-  // Documents a apporter
+  // Documents à apporter
   yPos += 20;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("Documents a apporter le jour de la formation :", 20, yPos);
+  doc.setFontSize(12);
+  doc.text("Documents à apporter le jour de la formation :", 20, yPos);
   
-  yPos += 8;
+  yPos += 10;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("- Piece d'identite en cours de validite", 25, yPos);
-  yPos += 6;
-  doc.text("- Permis de conduire", 25, yPos);
-  yPos += 6;
-  doc.text("- Attestation d'inscription (cette convocation)", 25, yPos);
+  doc.setFontSize(11);
+  doc.text("• Pièce d'identité en cours de validité", 25, yPos);
+  yPos += 7;
+  doc.text("• Permis de conduire", 25, yPos);
+  yPos += 7;
+  doc.text("• Attestation d'inscription (cette convocation)", 25, yPos);
   
   // Prérequis si présents
   if (session.prerequis) {
-    yPos += 12;
+    yPos += 14;
     doc.setFont("helvetica", "bold");
-    doc.text("Prerequis :", 20, yPos);
+    doc.setFontSize(11);
+    doc.text("Prérequis :", 20, yPos);
     doc.setFont("helvetica", "normal");
-    yPos += 6;
+    yPos += 7;
     const prerequisText = doc.splitTextToSize(session.prerequis, pageWidth - 50);
     doc.text(prerequisText, 25, yPos);
-    yPos += prerequisText.length * 5;
+    yPos += prerequisText.length * 6;
   }
   
   // Contact
-  yPos = Math.min(yPos + 15, 230);
-  doc.text(`Pour toute question, contactez-nous au ${company.phone} ou par email a ${company.email}`, 20, yPos);
+  yPos = Math.min(yPos + 15, 225);
+  doc.setFontSize(11);
+  doc.text(`Pour toute question, contactez-nous au ${company.phone} ou par email à ${company.email}`, 20, yPos);
   
   // Signature
   yPos += 20;
