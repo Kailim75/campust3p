@@ -13,11 +13,13 @@ import {
   Package,
   FileText,
   PenLine,
-  CheckCircle2
+  CheckCircle2,
+  Send
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   useContactContrats, 
+  useSendContratForSignature,
   contratStatutConfig, 
   contratTypeLabels,
   type ContratLocation 
@@ -36,6 +38,11 @@ export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
   const [editingContrat, setEditingContrat] = useState<ContratLocation | null>(null);
   const [signingContrat, setSigningContrat] = useState<ContratLocation | null>(null);
   const { data: contrats = [], isLoading } = useContactContrats(contactId);
+  const sendForSignature = useSendContratForSignature();
+
+  const handleResend = (contratId: string) => {
+    sendForSignature.mutate({ contratId });
+  };
 
   return (
     <div className="space-y-4">
@@ -69,6 +76,8 @@ export function ContactLocationTab({ contactId }: ContactLocationTabProps) {
                 contrat={contrat} 
                 onClick={() => setEditingContrat(contrat)}
                 onSign={() => setSigningContrat(contrat)}
+                onResend={() => handleResend(contrat.id)}
+                isResending={sendForSignature.isPending}
               />
             ))}
           </div>
@@ -109,6 +118,8 @@ interface ContratCardProps {
   contrat: ContratLocation;
   onClick: () => void;
   onSign: () => void;
+  onResend: () => void;
+  isResending: boolean;
 }
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -117,14 +128,20 @@ const typeIcons: Record<string, React.ElementType> = {
   autre: FileText,
 };
 
-function ContratCard({ contrat, onClick, onSign }: ContratCardProps) {
+function ContratCard({ contrat, onClick, onSign, onResend, isResending }: ContratCardProps) {
   const statusConfig = contratStatutConfig[contrat.statut];
   const TypeIcon = typeIcons[contrat.type_contrat] || FileText;
   const canSign = contrat.statut === "envoye" || contrat.statut === "brouillon";
+  const canResend = contrat.statut === "envoye" || contrat.statut === "brouillon";
 
   const handleSignClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSign();
+  };
+
+  const handleResendClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onResend();
   };
 
   return (
@@ -177,17 +194,31 @@ function ContratCard({ contrat, onClick, onSign }: ContratCardProps) {
           </span>
         </div>
         
-        {canSign && (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-7 gap-1"
-            onClick={handleSignClick}
-          >
-            <PenLine className="h-3 w-3" />
-            Signer
-          </Button>
-        )}
+        <div className="flex gap-1">
+          {canResend && (
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 gap-1"
+              onClick={handleResendClick}
+              disabled={isResending}
+            >
+              <Send className="h-3 w-3" />
+              {isResending ? "..." : contrat.statut === "envoye" ? "Renvoyer" : "Envoyer"}
+            </Button>
+          )}
+          {canSign && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-7 gap-1"
+              onClick={handleSignClick}
+            >
+              <PenLine className="h-3 w-3" />
+              Signer
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Signature info */}
