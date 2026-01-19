@@ -42,6 +42,9 @@ export interface CompanyInfo {
   email: string;
   siret: string;
   nda: string; // Numéro déclaration activité
+  // Visuels
+  logo_url?: string;
+  signature_cachet_url?: string;
   // Agréments et certifications
   qualiopi_numero?: string;
   qualiopi_date_obtention?: string;
@@ -322,6 +325,69 @@ function addInfoBox(doc: jsPDF, yPos: number, height: number): number {
   return yPos;
 }
 
+// Cache for loaded images (base64)
+const imageCache: Map<string, string> = new Map();
+
+// Helper function to load image and convert to base64
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  if (!url) return null;
+  
+  // Check cache first
+  if (imageCache.has(url)) {
+    return imageCache.get(url) || null;
+  }
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        imageCache.set(url, base64);
+        resolve(base64);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// Synchronous helper to add stamp image if already cached
+function addStampImage(doc: jsPDF, company: CompanyInfo, x: number, y: number, maxWidth: number = 40, maxHeight: number = 25): boolean {
+  if (!company.signature_cachet_url) return false;
+  
+  const cachedImage = imageCache.get(company.signature_cachet_url);
+  if (!cachedImage) return false;
+  
+  try {
+    // Add the image to the PDF
+    doc.addImage(cachedImage, 'PNG', x, y, maxWidth, maxHeight);
+    return true;
+  } catch {
+    console.error('Error adding stamp image to PDF');
+    return false;
+  }
+}
+
+// Preload stamp image for a company (call this before generating PDF)
+export async function preloadCompanyImages(company: CompanyInfo): Promise<void> {
+  const promises: Promise<string | null>[] = [];
+  
+  if (company.signature_cachet_url) {
+    promises.push(loadImageAsBase64(company.signature_cachet_url));
+  }
+  if (company.logo_url) {
+    promises.push(loadImageAsBase64(company.logo_url));
+  }
+  
+  await Promise.all(promises);
+}
+
 // ==================== FACTURE PDF ====================
 export function generateFacturePDF(
   facture: FactureInfo,
@@ -546,11 +612,16 @@ export function generateAttestationPDF(
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text("Le Directeur de l'organisme", pageWidth - 30, yPos, { align: "right" });
   
-  yPos += 25;
+  // Add stamp image if available
+  const stampAdded = addStampImage(doc, company, pageWidth - 70, yPos + 5, 40, 25);
+  
+  yPos += stampAdded ? 35 : 25;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("Signature et cachet", pageWidth - 30, yPos, { align: "right" });
+  if (!stampAdded) {
+    doc.text("Signature et cachet", pageWidth - 30, yPos, { align: "right" });
+  }
   
   addFooter(doc);
   
@@ -816,7 +887,13 @@ export function generateConventionPDF(
   
   yPos += 5;
   doc.setFontSize(8);
-  doc.text("(Cachet et signature)", 30, yPos);
+  
+  // Add stamp image if available
+  const stampAdded = addStampImage(doc, company, 25, yPos + 2, 40, 25);
+  
+  if (!stampAdded) {
+    doc.text("(Cachet et signature)", 30, yPos);
+  }
   doc.text("(Signature précédée de", pageWidth - 50, yPos);
   doc.text("\"Lu et approuvé\")", pageWidth - 50, yPos + 4);
   
@@ -1053,7 +1130,13 @@ export function generateContratFormationPDF(
   
   yPos += 5;
   doc.setFontSize(8);
-  doc.text("(Cachet et signature)", 30, yPos);
+  
+  // Add stamp image if available
+  const stampAdded = addStampImage(doc, company, 25, yPos + 2, 40, 25);
+  
+  if (!stampAdded) {
+    doc.text("(Cachet et signature)", 30, yPos);
+  }
   doc.text("(Signature précédée de", pageWidth - 50, yPos);
   doc.text("\"Lu et approuvé\")", pageWidth - 50, yPos + 4);
   
@@ -1179,7 +1262,12 @@ export function generateConvocationPDF(
   // Signature
   yPos += 20;
   doc.text("Cordialement,", 20, yPos);
-  yPos += 15;
+  yPos += 10;
+  
+  // Add stamp image if available
+  const stampAdded = addStampImage(doc, company, 20, yPos, 35, 22);
+  yPos += stampAdded ? 25 : 5;
+  
   doc.text("L'equipe Formation", 20, yPos);
   
   addFooter(doc);
