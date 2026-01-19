@@ -2,6 +2,32 @@ import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// ==================== CHARTE GRAPHIQUE ====================
+const COLORS = {
+  // Forest Green - Couleur principale
+  forestGreen: { r: 27, g: 77, b: 62 },
+  forestGreenLight: { r: 42, g: 107, b: 84 },
+  forestGreenDark: { r: 20, g: 61, b: 49 },
+  // Cream - Fond
+  cream: { r: 245, g: 235, b: 215 },
+  creamLight: { r: 251, g: 247, b: 239 },
+  creamDark: { r: 232, g: 220, b: 196 },
+  // Gold - Accent
+  gold: { r: 212, g: 168, b: 83 },
+  goldLight: { r: 228, g: 190, b: 115 },
+  goldDark: { r: 196, g: 152, b: 67 },
+  // Warm Gray
+  warmGray500: { r: 137, g: 129, b: 114 },
+  warmGray600: { r: 107, g: 107, b: 107 },
+  warmGray700: { r: 75, g: 70, b: 60 },
+  warmGray800: { r: 44, g: 41, b: 34 },
+  // Fonctionnelles
+  success: { r: 34, g: 197, b: 94 },
+  warning: { r: 245, g: 158, b: 11 },
+  error: { r: 239, g: 68, b: 68 },
+  white: { r: 255, g: 255, b: 255 },
+};
+
 export interface CompanyInfo {
   name: string;
   address: string;
@@ -67,50 +93,77 @@ export interface FactureInfo {
   commentaires?: string;
 }
 
-// Helper functions
+// Helper functions avec nouvelle charte graphique
 function addHeader(doc: jsPDF, company: CompanyInfo) {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  doc.setFontSize(16);
+  // Bandeau header Forest Green
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.rect(0, 0, pageWidth, 35, "F");
+  
+  // Nom de l'entreprise en blanc
+  doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text(company.name, 20, 20);
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.text(company.name, 20, 18);
   
-  doc.setFontSize(9);
+  // Coordonnées en cream clair
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100);
-  doc.text(company.address, 20, 27);
-  doc.text(`Tel: ${company.phone} | Email: ${company.email}`, 20, 33);
-  doc.text(`SIRET: ${company.siret} | NDA: ${company.nda}`, 20, 39);
-  doc.setTextColor(0);
+  doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.text(`${company.address} | Tél: ${company.phone}`, 20, 26);
+  doc.text(`SIRET: ${company.siret} | NDA: ${company.nda}`, 20, 32);
   
-  // Line separator
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(200);
-  doc.line(20, 45, pageWidth - 20, 45);
+  // Ligne accent Gold sous le header
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(0, 35, pageWidth, 3, "F");
+  
+  // Reset text color
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 }
 
 function addFooter(doc: jsPDF, pageNum: number = 1) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  doc.setFontSize(8);
-  doc.setTextColor(128);
-  doc.text(`Document genere le ${format(new Date(), "dd/MM/yyyy 'a' HH:mm")}`, 20, pageHeight - 15);
-  doc.text(`Page ${pageNum}`, pageWidth - 20, pageHeight - 15, { align: "right" });
-  doc.setTextColor(0);
+  // Ligne séparatrice Gold
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(20, pageHeight - 25, pageWidth - 40, 1, "F");
+  
+  // Texte footer
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, 20, pageHeight - 18);
+  
+  // Numéro de page avec fond Forest Green
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(pageWidth - 35, pageHeight - 22, 20, 12, 2, 2, "F");
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.setFontSize(9);
+  doc.text(`${pageNum}`, pageWidth - 25, pageHeight - 14, { align: "center" });
+  
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 }
 
 function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number, title: string = "Participant"): number {
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text(title, x, y);
+  if (title) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text(title, x, y);
+    y += 5;
+  }
   
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  y += 6;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.text(fullName, x, y);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   
   if (contact.rue) {
     y += 5;
@@ -132,7 +185,72 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
     doc.text(contact.telephone, x, y);
   }
   
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   return y + 10;
+}
+
+// Fonction pour dessiner un titre de document avec style
+function addDocumentTitle(doc: jsPDF, title: string, subtitle?: string, reference?: string) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let yPos = 50;
+  
+  // Badge titre avec fond Gold
+  const titleWidth = doc.getTextWidth(title) + 30;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 14, 3, 3, "F");
+  
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text(title, pageWidth / 2, yPos, { align: "center" });
+  
+  yPos += 10;
+  
+  if (subtitle) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    doc.text(subtitle, pageWidth / 2, yPos, { align: "center" });
+    yPos += 5;
+  }
+  
+  if (reference) {
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.forestGreenLight.r, COLORS.forestGreenLight.g, COLORS.forestGreenLight.b);
+    doc.text(`Réf: ${reference}`, pageWidth / 2, yPos, { align: "center" });
+    yPos += 5;
+  }
+  
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  return yPos + 5;
+}
+
+// Section avec titre coloré
+function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(20, yPos - 4, 3, 12, 1, 1, "F");
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text(title, 27, yPos + 4);
+  
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  doc.setFont("helvetica", "normal");
+  return yPos + 12;
+}
+
+// Box d'information avec fond cream
+function addInfoBox(doc: jsPDF, yPos: number, height: number): number {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(20, yPos, pageWidth - 40, height, 4, 4, "F");
+  
+  // Bordure gauche accent
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(20, yPos, 4, height, 2, 2, "F");
+  
+  return yPos;
 }
 
 // ==================== FACTURE PDF ====================
@@ -147,46 +265,46 @@ export function generateFacturePDF(
   
   addHeader(doc, company);
   
-  // Title
-  let yPos = 55;
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("FACTURE", pageWidth / 2, yPos, { align: "center" });
+  // Title avec style
+  let yPos = addDocumentTitle(doc, "FACTURE", undefined, facture.numero_facture);
   
-  yPos += 8;
-  doc.setFontSize(12);
-  doc.text(facture.numero_facture, pageWidth / 2, yPos, { align: "center" });
-  
-  // Contact info
-  yPos += 15;
-  yPos = addContactBlock(doc, contact, 20, yPos, "Facturer a");
+  // Contact info avec box
+  yPos += 5;
+  addInfoBox(doc, yPos, 35);
+  yPos = addContactBlock(doc, contact, 30, yPos + 8, "Facturer à");
   
   // Dates on the right
   doc.setFontSize(9);
-  doc.text(`Date d'emission: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy")}`, pageWidth - 20, 70, { align: "right" });
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  doc.text(`Date d'émission: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy")}`, pageWidth - 25, 80, { align: "right" });
   if (facture.date_echeance) {
-    doc.text(`Date d'echeance: ${format(new Date(facture.date_echeance), "dd/MM/yyyy")}`, pageWidth - 20, 76, { align: "right" });
+    doc.text(`Date d'échéance: ${format(new Date(facture.date_echeance), "dd/MM/yyyy")}`, pageWidth - 25, 86, { align: "right" });
   }
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   
   // Table
-  yPos = Math.max(yPos, 95);
-  doc.setLineWidth(0.3);
-  doc.setDrawColor(200);
+  yPos = Math.max(yPos + 15, 110);
   
-  // Table header
-  doc.setFillColor(245, 245, 245);
-  doc.rect(20, yPos, pageWidth - 40, 10, "F");
-  doc.setFontSize(9);
+  // Table header avec Forest Green
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(20, yPos, pageWidth - 40, 12, 2, 2, "F");
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Description", 25, yPos + 7);
-  doc.text("Montant HT", pageWidth - 25, yPos + 7, { align: "right" });
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.text("Description", 25, yPos + 8);
+  doc.text("Montant HT", pageWidth - 25, yPos + 8, { align: "right" });
   
-  // Table content
-  yPos += 15;
+  // Table content avec fond cream
+  yPos += 12;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.rect(20, yPos, pageWidth - 40, 25, "F");
+  
+  yPos += 8;
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
   const description = session 
-    ? `Formation: ${session.nom}\nDu ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}\nDuree: ${session.duree_heures || "-"} heures`
+    ? `Formation: ${session.nom}\nDu ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}\nDurée: ${session.duree_heures || "-"} heures`
     : "Formation professionnelle";
   
   const lines = description.split("\n");
@@ -194,73 +312,75 @@ export function generateFacturePDF(
     doc.text(line, 25, yPos + (i * 5));
   });
   
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos, { align: "right" });
   
   // Financement info
-  yPos += lines.length * 5 + 5;
-  doc.setTextColor(100);
+  yPos += lines.length * 5 + 12;
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
   doc.text(`Mode de financement: ${getFinancementLabel(facture.type_financement)}`, 25, yPos);
-  doc.setTextColor(0);
   
-  // Totals
-  yPos += 20;
-  doc.setLineWidth(0.3);
-  doc.line(pageWidth - 80, yPos - 5, pageWidth - 20, yPos - 5);
+  // Totals box
+  yPos += 15;
+  doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+  doc.roundedRect(pageWidth - 90, yPos, 70, 45, 3, 3, "F");
   
-  doc.setFontSize(10);
-  doc.text("Total HT:", pageWidth - 75, yPos);
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+  yPos += 10;
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text("Total HT:", pageWidth - 85, yPos);
+  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos, { align: "right" });
   
-  yPos += 7;
-  doc.text("TVA (0%):", pageWidth - 75, yPos);
-  doc.text("0,00 EUR", pageWidth - 25, yPos, { align: "right" });
+  yPos += 8;
+  doc.text("TVA (0%):", pageWidth - 85, yPos);
+  doc.text("0,00 €", pageWidth - 25, yPos, { align: "right" });
   
-  yPos += 7;
+  yPos += 10;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(pageWidth - 90, yPos - 5, 70, 12, 2, 2, "F");
   doc.setFont("helvetica", "bold");
-  doc.text("Total TTC:", pageWidth - 75, yPos);
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 25, yPos, { align: "right" });
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text("Total TTC:", pageWidth - 85, yPos + 3);
+  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos + 3, { align: "right" });
   
   // Payment status
-  yPos += 15;
+  yPos += 20;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   
   const montantRestant = Number(facture.montant_total) - facture.total_paye;
   
   if (facture.total_paye > 0) {
-    doc.setTextColor(34, 139, 34);
-    doc.text(`Montant deja paye: ${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 75, yPos);
-    doc.setTextColor(0);
+    doc.setTextColor(COLORS.success.r, COLORS.success.g, COLORS.success.b);
+    doc.text(`✓ Montant déjà payé: ${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 85, yPos);
     yPos += 6;
   }
   
   if (montantRestant > 0) {
-    doc.setTextColor(220, 53, 69);
+    doc.setTextColor(COLORS.error.r, COLORS.error.g, COLORS.error.b);
     doc.setFont("helvetica", "bold");
-    doc.text(`Reste a payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`, pageWidth - 75, yPos);
-    doc.setTextColor(0);
-    doc.setFont("helvetica", "normal");
+    doc.text(`Reste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 85, yPos);
   }
   
   // Comments
   if (facture.commentaires) {
-    yPos += 20;
+    yPos += 25;
+    yPos = addSectionTitle(doc, "Observations", yPos);
     doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text("Observations:", 20, yPos);
-    doc.setFont("helvetica", "normal");
-    yPos += 6;
-    const splitComments = doc.splitTextToSize(facture.commentaires, pageWidth - 40);
-    doc.text(splitComments, 20, yPos);
+    const splitComments = doc.splitTextToSize(facture.commentaires, pageWidth - 50);
+    doc.text(splitComments, 27, yPos);
   }
   
   // Legal mentions
   yPos = 250;
   doc.setFontSize(7);
-  doc.setTextColor(100);
-  doc.text("TVA non applicable - Article 261.4.4 a du CGI", 20, yPos);
-  doc.text("En cas de retard de paiement, une penalite de 3 fois le taux d'interet legal sera appliquee.", 20, yPos + 4);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("TVA non applicable - Article 261.4.4°a du CGI", 20, yPos);
+  doc.text("En cas de retard de paiement, une pénalité de 3 fois le taux d'intérêt légal sera appliquée.", 20, yPos + 4);
   
   addFooter(doc);
   
@@ -278,70 +398,89 @@ export function generateAttestationPDF(
   
   addHeader(doc, company);
   
-  // Title
-  let yPos = 60;
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("ATTESTATION DE FORMATION", pageWidth / 2, yPos, { align: "center" });
+  // Title avec style
+  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION");
   
-  // Body
-  yPos += 25;
-  doc.setFontSize(11);
+  // Corps
+  yPos += 10;
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
-  const text1 = `Je soussigne, representant de ${company.name}, organisme de formation declare sous le numero ${company.nda}, atteste que :`;
+  const text1 = `Je soussigné, représentant de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}, atteste que :`;
   const splitText1 = doc.splitTextToSize(text1, pageWidth - 40);
   doc.text(splitText1, 20, yPos);
-  yPos += splitText1.length * 6 + 10;
+  yPos += splitText1.length * 6 + 12;
   
-  // Participant info
-  doc.setFont("helvetica", "bold");
+  // Participant avec box gold
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
-  doc.text(fullName, pageWidth / 2, yPos, { align: "center" });
+  const nameWidth = doc.getTextWidth(fullName) + 40;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 14, 3, 3, "F");
   
-  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text(fullName, pageWidth / 2, yPos + 3, { align: "center" });
+  
+  yPos += 15;
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   if (contact.date_naissance) {
-    doc.text(`Ne(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` a ${contact.ville_naissance}` : ""}`, pageWidth / 2, yPos, { align: "center" });
+    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, pageWidth / 2, yPos, { align: "center" });
     yPos += 8;
   }
   
-  yPos += 10;
-  doc.text("a suivi avec succes la formation suivante :", pageWidth / 2, yPos, { align: "center" });
+  yPos += 8;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text("a suivi avec succès la formation suivante :", pageWidth / 2, yPos, { align: "center" });
   
-  // Formation details box
-  yPos += 15;
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(30, yPos, pageWidth - 60, 50, 3, 3, "F");
-  
+  // Formation details box avec style
   yPos += 12;
+  const boxHeight = session.lieu ? 60 : 50;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(30, yPos, pageWidth - 60, boxHeight, 4, 4, "F");
+  
+  // Bordure accent Forest Green
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(30, yPos, 4, boxHeight, 2, 2, "F");
+  
+  yPos += 15;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(13);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text(session.nom, pageWidth / 2, yPos, { align: "center" });
   
   yPos += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(`Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`, pageWidth / 2, yPos, { align: "center" });
   
-  yPos += 8;
-  doc.text(`Duree : ${session.duree_heures || "-"} heures`, pageWidth / 2, yPos, { align: "center" });
+  yPos += 10;
+  doc.text(`Durée : ${session.duree_heures || "-"} heures`, pageWidth / 2, yPos, { align: "center" });
   
   if (session.lieu) {
-    yPos += 8;
+    yPos += 10;
     doc.text(`Lieu : ${session.lieu}`, pageWidth / 2, yPos, { align: "center" });
   }
   
   // Date and signature
-  yPos += 40;
+  yPos += 45;
   doc.setFontSize(10);
-  doc.text(`Fait a Paris, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, pageWidth - 30, yPos, { align: "right" });
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(`Fait à Paris, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, pageWidth - 30, yPos, { align: "right" });
   
   yPos += 15;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text("Le Directeur de l'organisme", pageWidth - 30, yPos, { align: "right" });
   
   yPos += 25;
   doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   doc.text("Signature et cachet", pageWidth - 30, yPos, { align: "right" });
   
   addFooter(doc);
