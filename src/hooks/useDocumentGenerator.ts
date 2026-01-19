@@ -25,12 +25,25 @@ export function useDocumentGenerator() {
   const getCompanyInfo = useCallback((): CompanyInfo | undefined => {
     if (!centreFormation) return undefined;
     
-    // Parse agrements_autres from JSON
+    // Parse agrements_autres from DB (JSON array)
     let agrements_autres: AgrementsAutre[] = [];
-    if (centreFormation.agrements_autres && typeof centreFormation.agrements_autres === 'object') {
-      const raw = centreFormation.agrements_autres as { agrements?: AgrementsAutre[] };
-      if (raw.agrements && Array.isArray(raw.agrements)) {
-        agrements_autres = raw.agrements;
+
+    const rawAgrements = centreFormation.agrements_autres as unknown;
+    if (Array.isArray(rawAgrements)) {
+      agrements_autres = rawAgrements
+        .filter((a): a is AgrementsAutre => !!a && typeof a === "object")
+        .map((a: any) => ({
+          nom: String(a.nom ?? ""),
+          numero: String(a.numero ?? ""),
+          date_obtention: a.date_obtention ?? undefined,
+          date_expiration: a.date_expiration ?? undefined,
+        }))
+        .filter((a) => a.nom.trim() !== "" && a.numero.trim() !== "");
+    } else if (rawAgrements && typeof rawAgrements === "object") {
+      // compat: ancien format { agrements: [...] }
+      const maybe = rawAgrements as any;
+      if (Array.isArray(maybe.agrements)) {
+        agrements_autres = maybe.agrements as AgrementsAutre[];
       }
     }
     
