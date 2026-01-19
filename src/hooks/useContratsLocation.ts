@@ -315,10 +315,13 @@ export function useSendContratForSignature() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non authentifié");
 
+      const baseUrl = window.location.origin;
+      
       const response = await supabase.functions.invoke("send-signature-email", {
         body: {
           type: "contrat_location",
-          contrat_id: contratId,
+          contratLocationId: contratId,
+          baseUrl,
         },
       });
 
