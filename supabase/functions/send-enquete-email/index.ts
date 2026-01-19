@@ -113,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
     const emailResponse = await resend.emails.send({
-      from: "Drop Academy Montrouge <dropacademymontrouge@gmail.com>",
+      from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
       to: [to],
       subject: subject,
       html: htmlContent,
