@@ -19,6 +19,14 @@ export interface CentreFormation {
   signature_cachet_url: string | null;
   iban: string;
   bic: string;
+  // Agréments
+  qualiopi_numero: string | null;
+  qualiopi_date_obtention: string | null;
+  qualiopi_date_expiration: string | null;
+  agrement_prefecture: string | null;
+  agrement_prefecture_date: string | null;
+  code_rncp: string | null;
+  agrements_autres: { nom?: string; numero?: string; date_obtention?: string; date_expiration?: string }[] | null;
   created_at: string;
   updated_at: string;
 }

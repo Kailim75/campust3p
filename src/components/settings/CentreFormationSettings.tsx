@@ -6,9 +6,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
-import { Loader2, Building2, Upload, X, Image } from 'lucide-react';
+import { Loader2, Building2, Upload, X, Image, Award, Shield } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,6 +29,19 @@ const formSchema = z.object({
   signature_cachet_url: z.string().nullable().optional(),
   iban: z.string().min(14, 'Format IBAN invalide'),
   bic: z.string().min(8, 'Minimum 8 caractères'),
+  // Agréments
+  qualiopi_numero: z.string().nullable().optional(),
+  qualiopi_date_obtention: z.string().nullable().optional(),
+  qualiopi_date_expiration: z.string().nullable().optional(),
+  agrement_prefecture: z.string().nullable().optional(),
+  agrement_prefecture_date: z.string().nullable().optional(),
+  code_rncp: z.string().nullable().optional(),
+  agrements_autres: z.array(z.object({
+    nom: z.string().default(''),
+    numero: z.string().default(''),
+    date_obtention: z.string().default(''),
+    date_expiration: z.string().optional(),
+  })).nullable().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,6 +71,13 @@ export function CentreFormationSettings() {
       signature_cachet_url: '',
       iban: '',
       bic: '',
+      qualiopi_numero: '',
+      qualiopi_date_obtention: '',
+      qualiopi_date_expiration: '',
+      agrement_prefecture: '',
+      agrement_prefecture_date: '',
+      code_rncp: '',
+      agrements_autres: [],
     },
   });
 
@@ -79,6 +100,13 @@ export function CentreFormationSettings() {
         signature_cachet_url: centreFormation.signature_cachet_url || '',
         iban: centreFormation.iban || '',
         bic: centreFormation.bic || '',
+        qualiopi_numero: centreFormation.qualiopi_numero || '',
+        qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || '',
+        qualiopi_date_expiration: centreFormation.qualiopi_date_expiration || '',
+        agrement_prefecture: centreFormation.agrement_prefecture || '',
+        agrement_prefecture_date: centreFormation.agrement_prefecture_date || '',
+        code_rncp: centreFormation.code_rncp || '',
+        agrements_autres: centreFormation.agrements_autres || [],
       });
     }
   }, [centreFormation, form]);
@@ -163,6 +191,13 @@ export function CentreFormationSettings() {
       signature_cachet_url: values.signature_cachet_url || null,
       iban: values.iban,
       bic: values.bic,
+      qualiopi_numero: values.qualiopi_numero || null,
+      qualiopi_date_obtention: values.qualiopi_date_obtention || null,
+      qualiopi_date_expiration: values.qualiopi_date_expiration || null,
+      agrement_prefecture: values.agrement_prefecture || null,
+      agrement_prefecture_date: values.agrement_prefecture_date || null,
+      code_rncp: values.code_rncp || null,
+      agrements_autres: values.agrements_autres || null,
     });
   }
 
@@ -523,6 +558,119 @@ export function CentreFormationSettings() {
                           {field.value ? 'Changer le cachet' : 'Uploader un cachet'}
                         </Button>
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Agréments et Certifications */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Award className="h-4 w-4" />
+                Agréments et Certifications
+              </h3>
+              
+              {/* Qualiopi */}
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Certification QUALIOPI</span>
+                  {form.watch('qualiopi_numero') && (
+                    <Badge variant="secondary" className="ml-auto">Certifié</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="qualiopi_numero"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>N° de certification</FormLabel>
+                        <FormControl>
+                          <Input placeholder="FR XXXXX" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="qualiopi_date_obtention"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date d'obtention</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="qualiopi_date_expiration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date d'expiration</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Agrément Préfecture T3P */}
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Agrément Préfecture (T3P)</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="agrement_prefecture"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>N° d'agrément</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Numéro d'agrément préfecture" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="agrement_prefecture_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date d'obtention</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Code RNCP */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="code_rncp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code RNCP (si applicable)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RNCP XXXXX" {...field} value={field.value || ''} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
