@@ -173,6 +173,14 @@ export function useDeleteSession() {
   });
 }
 
+interface AddInscriptionParams {
+  sessionId: string;
+  contactId: string;
+  sessionPrix?: number;
+  sessionNom?: string;
+  autoCreateFacture?: boolean;
+}
+
 export function useAddInscription() {
   const queryClient = useQueryClient();
 
@@ -180,22 +188,52 @@ export function useAddInscription() {
     mutationFn: async ({
       sessionId,
       contactId,
-    }: {
-      sessionId: string;
-      contactId: string;
-    }) => {
-      const { data, error } = await supabase
+      sessionPrix = 0,
+      sessionNom = '',
+      autoCreateFacture = true,
+    }: AddInscriptionParams) => {
+      // Insert inscription
+      const { data: inscription, error } = await supabase
         .from("session_inscriptions")
         .insert({ session_id: sessionId, contact_id: contactId })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+
+      let factureCreated = false;
+
+      // Auto-create invoice if requested
+      if (autoCreateFacture && inscription) {
+        // Generate unique invoice number
+        const { data: numeroFacture, error: numeroError } = await supabase.rpc("generate_numero_facture");
+        
+        if (!numeroError && numeroFacture) {
+          const { error: factureError } = await supabase
+            .from("factures")
+            .insert({
+              contact_id: contactId,
+              session_inscription_id: inscription.id,
+              numero_facture: numeroFacture,
+              montant_total: sessionPrix,
+              type_financement: "personnel",
+              statut: "brouillon",
+              date_emission: new Date().toISOString().split("T")[0],
+              commentaires: sessionNom ? `Facture auto-générée pour la session: ${sessionNom}` : 'Facture auto-générée',
+            });
+
+          if (!factureError) {
+            factureCreated = true;
+          }
+        }
+      }
+
+      return { inscription, factureCreated };
     },
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
   });
 }

@@ -165,10 +165,21 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   };
 
   const handleAddInscription = async (contact: Contact) => {
-    if (!sessionId) return;
+    if (!sessionId || !session) return;
     try {
-      await addInscription.mutateAsync({ sessionId, contactId: contact.id });
-      toast.success(`${contact.prenom} ${contact.nom} inscrit avec succès`);
+      const result = await addInscription.mutateAsync({ 
+        sessionId, 
+        contactId: contact.id,
+        sessionPrix: session.prix ? Number(session.prix) : 0,
+        sessionNom: session.nom,
+        autoCreateFacture: true,
+      });
+      
+      if (result.factureCreated) {
+        toast.success(`${contact.prenom} ${contact.nom} inscrit avec facture générée`);
+      } else {
+        toast.success(`${contact.prenom} ${contact.nom} inscrit avec succès`);
+      }
       setAddDialogOpen(false);
     } catch {
       toast.error("Erreur lors de l'inscription");
