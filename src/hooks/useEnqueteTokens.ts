@@ -70,31 +70,45 @@ export function useEnqueteTokens() {
     },
   });
 
-  // Valider un token (pour la page publique)
+  // Valider un token (pour la page publique) - uses secure RPC function
   const validateToken = async (token: string) => {
     const { data, error } = await supabase
-      .from('enquete_tokens')
-      .select(`
-        *,
-        contact:contacts(id, nom, prenom, email),
-        session:sessions(id, nom, formation_type)
-      `)
-      .eq('token', token)
-      .single();
+      .rpc('validate_enquete_token', { p_token: token });
 
     if (error) throw error;
     
+    // La fonction renvoie un tableau, on prend le premier élément
+    const tokenData = Array.isArray(data) ? data[0] : data;
+    
+    if (!tokenData) {
+      throw new Error('Token invalide');
+    }
+    
     // Vérifier expiration
-    if (new Date(data.expire_at) < new Date()) {
+    if (new Date(tokenData.expire_at) < new Date()) {
       throw new Error('Ce lien a expiré');
     }
 
     // Vérifier si déjà utilisé
-    if (data.used_at) {
+    if (tokenData.used_at) {
       throw new Error('Ce formulaire a déjà été rempli');
     }
 
-    return data;
+    // Transformer pour correspondre à l'ancien format attendu
+    return {
+      ...tokenData,
+      contact: {
+        id: tokenData.contact_id,
+        nom: tokenData.contact_nom,
+        prenom: tokenData.contact_prenom,
+        email: tokenData.contact_email,
+      },
+      session: tokenData.session_id ? {
+        id: tokenData.session_id,
+        nom: tokenData.session_nom,
+        formation_type: tokenData.session_formation_type,
+      } : null,
+    };
   };
 
   // Marquer un token comme utilisé
