@@ -2846,6 +2846,29 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_reclamation_with_token: {
+        Args: {
+          p_categorie?: string
+          p_description: string
+          p_priorite?: string
+          p_titre: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      submit_satisfaction_with_token: {
+        Args: {
+          p_commentaire?: string
+          p_note_formateur: number
+          p_note_globale: number
+          p_note_locaux: number
+          p_note_supports: number
+          p_nps_score: number
+          p_objectifs_atteints: string
+          p_token: string
+        }
+        Returns: Json
+      }
       validate_enquete_token: {
         Args: { p_token: string }
         Returns: {

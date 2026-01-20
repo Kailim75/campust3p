@@ -58,29 +58,49 @@ export default function EnquetePage() {
     }
 
     try {
+      // Use secure RPC function to validate token
       const { data, error } = await supabase
-        .from("enquete_tokens")
-        .select(`
-          *,
-          contact:contacts(id, nom, prenom, email),
-          session:sessions(id, nom, formation_type)
-        `)
-        .eq("token", token)
-        .single();
+        .rpc('validate_enquete_token', { p_token: token });
 
       if (error) throw new Error("Lien invalide ou expiré");
 
+      // The function returns an array, take the first element
+      const tokenRecord = Array.isArray(data) ? data[0] : data;
+      
+      if (!tokenRecord) {
+        throw new Error("Lien invalide ou expiré");
+      }
+
       // Check expiration
-      if (new Date(data.expire_at) < new Date()) {
+      if (new Date(tokenRecord.expire_at) < new Date()) {
         throw new Error("Ce lien a expiré. Veuillez contacter le centre de formation.");
       }
 
       // Check if already used
-      if (data.used_at) {
+      if (tokenRecord.used_at) {
         throw new Error("Ce formulaire a déjà été rempli. Merci pour votre participation !");
       }
 
-      setTokenData(data as TokenData);
+      // Transform to expected format
+      const transformedData: TokenData = {
+        id: tokenRecord.id,
+        contact_id: tokenRecord.contact_id,
+        session_id: tokenRecord.session_id,
+        type: tokenRecord.type as "satisfaction" | "reclamation",
+        contact: {
+          id: tokenRecord.contact_id,
+          nom: tokenRecord.contact_nom,
+          prenom: tokenRecord.contact_prenom,
+          email: tokenRecord.contact_email,
+        },
+        session: tokenRecord.session_id ? {
+          id: tokenRecord.session_id,
+          nom: tokenRecord.session_nom,
+          formation_type: tokenRecord.session_formation_type,
+        } : null,
+      };
+
+      setTokenData(transformedData);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -89,33 +109,36 @@ export default function EnquetePage() {
   };
 
   const handleSubmitSatisfaction = async () => {
-    if (!tokenData) return;
+    if (!tokenData || !token) return;
+    
+    // Client-side validation
+    if (commentaire && commentaire.length > 2000) {
+      toast.error("Le commentaire est trop long (max 2000 caractères)");
+      return;
+    }
     
     setSubmitting(true);
     try {
-      // Insert response
-      const { error: insertError } = await supabase
-        .from("satisfaction_reponses")
-        .insert({
-          contact_id: tokenData.contact_id,
-          session_id: tokenData.session_id,
-          type_questionnaire: "fin_formation",
-          note_globale: noteGlobale,
-          note_formateur: noteFormateur,
-          note_supports: noteSupports,
-          note_locaux: noteLocaux,
-          nps_score: npsScore,
-          objectifs_atteints: objectifsAtteints,
-          commentaire: commentaire || null,
+      // Use secure RPC function that validates token and inserts in one atomic operation
+      const { data, error } = await supabase
+        .rpc('submit_satisfaction_with_token', {
+          p_token: token,
+          p_note_globale: noteGlobale,
+          p_note_formateur: noteFormateur,
+          p_note_supports: noteSupports,
+          p_note_locaux: noteLocaux,
+          p_nps_score: npsScore,
+          p_objectifs_atteints: objectifsAtteints,
+          p_commentaire: commentaire || null,
         });
 
-      if (insertError) throw insertError;
-
-      // Mark token as used
-      await supabase
-        .from("enquete_tokens")
-        .update({ used_at: new Date().toISOString() })
-        .eq("token", token);
+      if (error) throw error;
+      
+      const result = data as { success: boolean; error?: string; id?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || "Erreur lors de l'envoi");
+      }
 
       setSubmitted(true);
       toast.success("Merci pour votre retour !");
@@ -127,8 +150,9 @@ export default function EnquetePage() {
   };
 
   const handleSubmitReclamation = async () => {
-    if (!tokenData) return;
+    if (!tokenData || !token) return;
     
+    // Client-side validation
     if (!titre.trim()) {
       toast.error("Veuillez saisir un sujet");
       return;
@@ -137,28 +161,34 @@ export default function EnquetePage() {
       toast.error("Veuillez décrire votre réclamation");
       return;
     }
+    if (titre.length > 200) {
+      toast.error("Le sujet est trop long (max 200 caractères)");
+      return;
+    }
+    if (description.length > 5000) {
+      toast.error("La description est trop longue (max 5000 caractères)");
+      return;
+    }
 
     setSubmitting(true);
     try {
-      // Insert reclamation
-      const { error: insertError } = await supabase
-        .from("reclamations")
-        .insert({
-          contact_id: tokenData.contact_id,
-          session_id: tokenData.session_id,
-          titre,
-          description,
-          categorie,
-          priorite,
+      // Use secure RPC function that validates token and inserts in one atomic operation
+      const { data, error } = await supabase
+        .rpc('submit_reclamation_with_token', {
+          p_token: token,
+          p_titre: titre.trim(),
+          p_description: description.trim(),
+          p_categorie: categorie,
+          p_priorite: priorite,
         });
 
-      if (insertError) throw insertError;
-
-      // Mark token as used
-      await supabase
-        .from("enquete_tokens")
-        .update({ used_at: new Date().toISOString() })
-        .eq("token", token);
+      if (error) throw error;
+      
+      const result = data as { success: boolean; error?: string; id?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || "Erreur lors de l'envoi");
+      }
 
       setSubmitted(true);
       toast.success("Réclamation enregistrée avec succès");
