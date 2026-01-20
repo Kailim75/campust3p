@@ -2846,6 +2846,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_enquete_token: {
+        Args: { p_token: string }
+        Returns: {
+          contact_email: string
+          contact_id: string
+          contact_nom: string
+          contact_prenom: string
+          created_at: string
+          expire_at: string
+          id: string
+          session_formation_type: string
+          session_id: string
+          session_nom: string
+          token: string
+          type: string
+          used_at: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "staff"
