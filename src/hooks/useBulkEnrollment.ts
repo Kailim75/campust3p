@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "./useSessions";
-import type { Contact } from "./useContacts";
 
 interface BulkEnrollmentResult {
   success: string[];
   duplicates: string[];
   errors: string[];
+  facturesCreated: number;
 }
 
 export function useBulkEnrollment() {
@@ -17,10 +17,12 @@ export function useBulkEnrollment() {
       sessionId,
       contactIds,
       session,
+      autoCreateFacture = true,
     }: {
       sessionId: string;
       contactIds: string[];
       session: Session;
+      autoCreateFacture?: boolean;
     }): Promise<BulkEnrollmentResult> => {
       // Get current inscriptions count
       const { count: currentCount, error: countError } = await supabase
@@ -63,6 +65,7 @@ export function useBulkEnrollment() {
       // Perform bulk insert
       const success: string[] = [];
       const errors: string[] = [...rejected];
+      let facturesCreated = 0;
 
       if (contactsToEnroll.length > 0) {
         const inscriptions = contactsToEnroll.map((contactId) => ({
@@ -70,7 +73,7 @@ export function useBulkEnrollment() {
           contact_id: contactId,
         }));
 
-        const { data, error } = await supabase
+        const { data: insertedInscriptions, error } = await supabase
           .from("session_inscriptions")
           .insert(inscriptions)
           .select();
@@ -79,16 +82,56 @@ export function useBulkEnrollment() {
           errors.push(...contactsToEnroll);
         } else {
           success.push(...contactsToEnroll);
+
+          // Auto-create invoices for each inscription
+          if (autoCreateFacture && insertedInscriptions && insertedInscriptions.length > 0) {
+            // Generate invoice numbers for all inscriptions
+            const facturesToCreate = [];
+            
+            for (const inscription of insertedInscriptions) {
+              // Generate unique invoice number
+              const { data: numeroFacture, error: numeroError } = await supabase.rpc("generate_numero_facture");
+              
+              if (numeroError) {
+                console.error("Erreur génération numéro facture:", numeroError);
+                continue;
+              }
+
+              facturesToCreate.push({
+                contact_id: inscription.contact_id,
+                session_inscription_id: inscription.id,
+                numero_facture: numeroFacture,
+                montant_total: session.prix || 0,
+                type_financement: "personnel" as const,
+                statut: "brouillon" as const,
+                date_emission: new Date().toISOString().split("T")[0],
+                commentaires: `Facture auto-générée pour la session: ${session.nom}`,
+              });
+            }
+
+            if (facturesToCreate.length > 0) {
+              const { error: factureError } = await supabase
+                .from("factures")
+                .insert(facturesToCreate);
+
+              if (factureError) {
+                console.error("Erreur création factures:", factureError);
+              } else {
+                facturesCreated = facturesToCreate.length;
+              }
+            }
+          }
         }
       }
 
-      return { success, duplicates, errors };
+      return { success, duplicates, errors, facturesCreated };
     },
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "all_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
   });
 }
