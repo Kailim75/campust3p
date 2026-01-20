@@ -63,6 +63,7 @@ import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import SessionInscritsTable from "./SessionInscritsTable";
+import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 
@@ -402,6 +403,16 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </div>
+
+                  {/* Récapitulatif financier */}
+                  <Separator />
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Euro className="h-4 w-4" />
+                      Récapitulatif financier
+                    </h3>
+                    <SessionFinancialSummary sessionId={session.id} />
                   </div>
 
                   <Separator />
