@@ -18,7 +18,10 @@ import {
   FileDown,
   FileText,
   Mail,
-  Award
+  Award,
+  Receipt,
+  Plus,
+  Edit
 } from 'lucide-react';
 import {
   Table,
@@ -56,15 +59,23 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAddInscription, useRemoveInscription } from '@/hooks/useSessions';
 import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
 import { useBulkCreateDocumentEnvois } from '@/hooks/useDocumentEnvois';
+import { useFactures, type FactureWithDetails } from '@/hooks/useFactures';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { BulkDocumentPreviewDialog } from './BulkDocumentPreviewDialog';
+import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
+import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -83,6 +94,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   
   const { data: session } = useSession(sessionId);
   const { data: allContacts } = useContacts();
+  const { data: allFactures = [] } = useFactures();
   const addInscription = useAddInscription();
   const removeInscription = useRemoveInscription();
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
@@ -103,6 +115,12 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewDocumentType, setPreviewDocumentType] = useState<DocumentType | null>(null);
   
+  // Facture dialogs
+  const [factureFormOpen, setFactureFormOpen] = useState(false);
+  const [factureDetailOpen, setFactureDetailOpen] = useState(false);
+  const [selectedContactIdForFacture, setSelectedContactIdForFacture] = useState<string | null>(null);
+  const [selectedFactureId, setSelectedFactureId] = useState<string | null>(null);
+  const [editingFacture, setEditingFacture] = useState<FactureWithDetails | null>(null);
   // Contacts disponibles (non inscrits)
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
@@ -118,6 +136,30 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [typeDocumentEnvoi, setTypeDocumentEnvoi] = useState('');
   const [contactDetail, setContactDetail] = useState<any>(null);
   
+  // Helper to get facture for a contact
+  const getFactureForContact = (contactId: string): FactureWithDetails | undefined => {
+    return allFactures.find(f => f.contact_id === contactId);
+  };
+
+  // Open facture creation for a contact
+  const handleCreateFacture = (contactId: string) => {
+    setSelectedContactIdForFacture(contactId);
+    setEditingFacture(null);
+    setFactureFormOpen(true);
+  };
+
+  // Open facture editing
+  const handleEditFacture = (facture: FactureWithDetails) => {
+    setEditingFacture(facture);
+    setSelectedContactIdForFacture(facture.contact_id);
+    setFactureFormOpen(true);
+  };
+
+  // View facture details
+  const handleViewFacture = (factureId: string) => {
+    setSelectedFactureId(factureId);
+    setFactureDetailOpen(true);
+  };
   // Session info pour la génération de documents
   const sessionInfo = session ? {
     nom: session.nom,
@@ -452,53 +494,133 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead>Nom</TableHead>
                 <TableHead className="hidden sm:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">Statut</TableHead>
-                <TableHead className="w-10">Actions</TableHead>
+                <TableHead className="hidden md:table-cell">Facture</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {inscrits && inscrits.length > 0 ? (
-                inscrits.map(inscrit => (
-                  <TableRow key={inscrit.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.includes(inscrit.contact_id)}
-                        onCheckedChange={() => toggleSelect(inscrit.contact_id)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {inscrit.contact?.email}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {getStatutBadge(inscrit.statut)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setContactDetail(inscrit.contact)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveInscription(inscrit.contact_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                inscrits.map(inscrit => {
+                  const facture = getFactureForContact(inscrit.contact_id);
+                  const paidPercent = facture ? (facture.total_paye / Number(facture.montant_total)) * 100 : 0;
+                  
+                  return (
+                    <TableRow key={inscrit.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(inscrit.contact_id)}
+                          onCheckedChange={() => toggleSelect(inscrit.contact_id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">
+                        {inscrit.contact?.email}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {getStatutBadge(inscrit.statut)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {facture ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleViewFacture(facture.id)}
+                                className="flex flex-col gap-1 text-left hover:opacity-80 transition-opacity"
+                              >
+                                <span className="font-mono text-xs">{facture.numero_facture}</span>
+                                <div className="flex items-center gap-1">
+                                  <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        paidPercent >= 100 ? 'bg-success' : paidPercent > 0 ? 'bg-warning' : 'bg-destructive'
+                                      }`}
+                                      style={{ width: `${Math.min(paidPercent, 100)}%` }}
+                                    />
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] px-1 py-0 ${
+                                      facture.statut === 'payee' ? 'border-success text-success' :
+                                      facture.statut === 'partiel' ? 'border-warning text-warning' :
+                                      facture.statut === 'impayee' ? 'border-destructive text-destructive' :
+                                      ''
+                                    }`}
+                                  >
+                                    {facture.statut}
+                                  </Badge>
+                                </div>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{facture.total_paye.toFixed(2)}€ / {Number(facture.montant_total).toFixed(2)}€</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {/* Facture actions */}
+                          {facture ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleEditFacture(facture)}
+                                  aria-label="Modifier la facture"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Modifier la facture</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-primary"
+                                  onClick={() => handleCreateFacture(inscrit.contact_id)}
+                                  aria-label="Créer une facture"
+                                >
+                                  <Receipt className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Créer une facture</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setContactDetail(inscrit.contact)}
+                            aria-label="Voir le contact"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleRemoveInscription(inscrit.contact_id)}
+                            aria-label="Supprimer l'inscription"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Aucun stagiaire inscrit
                   </TableCell>
                 </TableRow>
@@ -724,6 +846,35 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           onConfirm={handleConfirmBulkGeneration}
         />
       )}
+
+      {/* Facture form dialog */}
+      <FactureFormDialog
+        open={factureFormOpen}
+        onOpenChange={(open) => {
+          setFactureFormOpen(open);
+          if (!open) {
+            setSelectedContactIdForFacture(null);
+            setEditingFacture(null);
+          }
+        }}
+        facture={editingFacture}
+        defaultContactId={selectedContactIdForFacture || undefined}
+      />
+
+      {/* Facture detail sheet */}
+      <FactureDetailSheet
+        factureId={selectedFactureId}
+        open={factureDetailOpen}
+        onOpenChange={setFactureDetailOpen}
+        onEdit={() => {
+          // Close detail and open edit with the current facture
+          const factureToEdit = allFactures.find(f => f.id === selectedFactureId);
+          if (factureToEdit) {
+            setFactureDetailOpen(false);
+            handleEditFacture(factureToEdit);
+          }
+        }}
+      />
     </div>
   );
 }
