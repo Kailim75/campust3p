@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,9 +23,14 @@ import {
   Clock,
   XCircle,
   CheckCircle,
+  LayoutList,
+  Kanban,
+  BarChart3,
 } from "lucide-react";
 import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
 import { ProspectFormDialog } from "./ProspectFormDialog";
+import { ProspectsDashboard } from "./ProspectsDashboard";
+import { ProspectsKanban } from "./ProspectsKanban";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -67,6 +73,7 @@ export function ProspectsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard">("list");
   const isMobile = useIsMobile();
 
   const filteredProspects = prospects.filter((prospect) => {
@@ -122,60 +129,91 @@ export function ProspectsPage() {
         subtitle="Gérez vos prospects et convertissez-les en contacts"
       />
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="p-4">
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-sm text-muted-foreground">Total</div>
-          </Card>
-          <Card className="p-4 border-blue-200 bg-blue-50">
-            <div className="text-2xl font-bold text-blue-700">{stats.nouveau}</div>
-            <div className="text-sm text-blue-600">Nouveaux</div>
-          </Card>
-          <Card className="p-4 border-orange-200 bg-orange-50">
-            <div className="text-2xl font-bold text-orange-700">{stats.relance}</div>
-            <div className="text-sm text-orange-600">À relancer</div>
-          </Card>
-          <Card className="p-4 border-green-200 bg-green-50">
-            <div className="text-2xl font-bold text-green-700">{stats.converti}</div>
-            <div className="text-sm text-green-600">Convertis</div>
-          </Card>
-          <Card className="p-4 border-gray-200">
-            <div className="text-2xl font-bold text-gray-700">{stats.perdu}</div>
-            <div className="text-sm text-gray-600">Perdus</div>
-          </Card>
+      {/* View Tabs */}
+      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as typeof activeView)}>
+        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+          <TabsList>
+            <TabsTrigger value="list" className="gap-2">
+              <LayoutList className="h-4 w-4" />
+              Liste
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="gap-2">
+              <Kanban className="h-4 w-4" />
+              Kanban
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau prospect
+          </Button>
         </div>
-      )}
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un prospect..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Statut" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les statuts</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau prospect
-        </Button>
-      </div>
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="mt-6">
+          <ProspectsDashboard />
+        </TabsContent>
+
+        {/* Kanban Tab */}
+        <TabsContent value="kanban" className="mt-6">
+          <ProspectsKanban />
+        </TabsContent>
+
+        {/* List Tab */}
+        <TabsContent value="list" className="mt-6 space-y-4">
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="p-4">
+                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-sm text-muted-foreground">Total</div>
+              </Card>
+              <Card className="p-4 border-blue-200 bg-blue-50">
+                <div className="text-2xl font-bold text-blue-700">{stats.nouveau}</div>
+                <div className="text-sm text-blue-600">Nouveaux</div>
+              </Card>
+              <Card className="p-4 border-orange-200 bg-orange-50">
+                <div className="text-2xl font-bold text-orange-700">{stats.relance}</div>
+                <div className="text-sm text-orange-600">À relancer</div>
+              </Card>
+              <Card className="p-4 border-green-200 bg-green-50">
+                <div className="text-2xl font-bold text-green-700">{stats.converti}</div>
+                <div className="text-sm text-green-600">Convertis</div>
+              </Card>
+              <Card className="p-4 border-gray-200">
+                <div className="text-2xl font-bold text-gray-700">{stats.perdu}</div>
+                <div className="text-sm text-gray-600">Perdus</div>
+              </Card>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un prospect..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
       {isLoading ? (
         <Card>
@@ -368,6 +406,8 @@ export function ProspectsPage() {
           </Table>
         </Card>
       )}
+        </TabsContent>
+      </Tabs>
 
       <ProspectFormDialog
         open={formOpen}

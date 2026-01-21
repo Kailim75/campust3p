@@ -63,6 +63,7 @@ import {
 import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 import { useGenerateBatchChevalets } from "@/hooks/useChevalets";
+import { useBatchPedagogicalDocuments } from "@/hooks/useBatchPedagogicalDocuments";
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import SessionInscritsTable from "./SessionInscritsTable";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
@@ -108,6 +109,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
+  const batchPedagogicalDocs = useBatchPedagogicalDocuments();
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -184,6 +186,39 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     });
 
     generateBatchChevalets.mutate(contactsData);
+  };
+
+  const handleGenerateBatchPedagogicalDocs = (docType: "entree_sortie" | "test_positionnement") => {
+    if (!inscriptions?.length || !session) {
+      toast.error("Aucun stagiaire inscrit");
+      return;
+    }
+
+    const contactsData = inscriptions.map((inscription) => {
+      const contact = inscription.contacts as unknown as Contact;
+      return {
+        id: contact.id,
+        nom: contact.nom,
+        prenom: contact.prenom,
+        email: contact.email,
+        telephone: contact.telephone,
+        date_naissance: contact.date_naissance,
+        ville_naissance: contact.ville_naissance,
+      };
+    });
+
+    batchPedagogicalDocs.mutate({
+      contacts: contactsData,
+      session: {
+        id: session.id,
+        nom: session.nom,
+        formation_type: session.formation_type,
+        date_debut: session.date_debut,
+        date_fin: session.date_fin,
+        lieu: session.lieu,
+      },
+      documentType: docType,
+    });
   };
 
   const handleAddInscription = async (contact: Contact) => {
@@ -428,6 +463,20 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         >
                           <CreditCard className="h-4 w-4 mr-2" />
                           Tous les chevalets
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleGenerateBatchPedagogicalDocs("entree_sortie")}
+                          disabled={batchPedagogicalDocs.isPending}
+                        >
+                          <ClipboardList className="h-4 w-4 mr-2" />
+                          Fiches entrée/sortie
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleGenerateBatchPedagogicalDocs("test_positionnement")}
+                          disabled={batchPedagogicalDocs.isPending}
+                        >
+                          <ClipboardList className="h-4 w-4 mr-2" />
+                          Tests de positionnement
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
