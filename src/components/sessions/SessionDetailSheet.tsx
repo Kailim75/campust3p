@@ -37,6 +37,7 @@ import {
   Award,
   Send,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -61,6 +62,7 @@ import {
 } from "@/components/ui/command";
 import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
+import { useGenerateBatchChevalets } from "@/hooks/useChevalets";
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import SessionInscritsTable from "./SessionInscritsTable";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
@@ -105,6 +107,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
+  const generateBatchChevalets = useGenerateBatchChevalets();
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -163,6 +166,24 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     });
     
     generateBulkDocuments(type, contactsInfo, sessionInfo);
+  };
+
+  const handleGenerateBatchChevalets = () => {
+    if (!inscriptions?.length || !session) {
+      toast.error("Aucun stagiaire inscrit");
+      return;
+    }
+
+    const contactsData = inscriptions.map((inscription) => {
+      const contact = inscription.contacts as unknown as Contact;
+      return {
+        id: contact.id,
+        prenom: contact.prenom,
+        formation: session.formation_type,
+      };
+    });
+
+    generateBatchChevalets.mutate(contactsData);
   };
 
   const handleAddInscription = async (contact: Contact) => {
@@ -400,6 +421,13 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
                           <Award className="h-4 w-4 mr-2" />
                           Toutes les attestations
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleGenerateBatchChevalets}
+                          disabled={generateBatchChevalets.isPending}
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Tous les chevalets
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
