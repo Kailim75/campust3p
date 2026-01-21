@@ -159,29 +159,37 @@ export function useGenerateBatchChevalets() {
 
   return useMutation({
     mutationFn: async (contacts: { id: string; prenom: string; formation: string }[]) => {
-      const results = [];
-      
-      for (const contact of contacts) {
-        // Generate PDF A6 portrait
-        const doc = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: [105, 148],
-        });
+      if (contacts.length === 0) throw new Error("Aucun contact");
 
-        // Same styling as single chevalet
+      // Create single PDF with multiple A6 pages
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [105, 148],
+      });
+
+      contacts.forEach((contact, index) => {
+        if (index > 0) {
+          doc.addPage([105, 148], "portrait");
+        }
+
+        // Background
         doc.setFillColor(255, 255, 255);
         doc.rect(0, 0, 105, 148, "F");
+
+        // Border
         doc.setDrawColor(59, 130, 246);
         doc.setLineWidth(2);
         doc.rect(5, 5, 95, 138, "S");
 
+        // Logo placeholder
         doc.setFillColor(240, 240, 240);
         doc.rect(27.5, 15, 50, 25, "F");
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text("LOGO", 52.5, 30, { align: "center" });
 
+        // Formation type badge
         doc.setFillColor(59, 130, 246);
         doc.roundedRect(17.5, 50, 70, 15, 3, 3, "F");
         doc.setTextColor(255, 255, 255);
@@ -189,48 +197,40 @@ export function useGenerateBatchChevalets() {
         doc.setFont("helvetica", "bold");
         doc.text(`Formation ${contact.formation}`, 52.5, 60, { align: "center" });
 
+        // Prénom
         doc.setTextColor(30, 30, 30);
         doc.setFontSize(24);
         doc.setFont("helvetica", "bold");
         doc.text(contact.prenom.toUpperCase(), 52.5, 95, { align: "center" });
 
+        // Decorative line
         doc.setDrawColor(59, 130, 246);
         doc.setLineWidth(0.5);
         doc.line(25, 105, 80, 105);
 
+        // "STAGIAIRE" label
         doc.setTextColor(100, 100, 100);
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.text("STAGIAIRE", 52.5, 115, { align: "center" });
+      });
 
-        const pdfBlob = doc.output("blob");
-        const fileName = `chevalet_${contact.id}_${Date.now()}.pdf`;
-        const filePath = `chevalets/${contact.id}/${fileName}`;
+      // Download the combined PDF
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Chevalets_Session_${contacts.length}_stagiaires.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-        const { error: uploadError } = await supabase.storage
-          .from("pedagogie")
-          .upload(filePath, pdfBlob, { contentType: "application/pdf" });
-
-        if (!uploadError) {
-          const { data } = await supabase
-            .from("chevalets")
-            .insert({
-              contact_id: contact.id,
-              formation_type: contact.formation,
-              pdf_path: filePath,
-            })
-            .select()
-            .single();
-
-          if (data) results.push(data);
-        }
-      }
-
-      return results;
+      return contacts.length;
     },
-    onSuccess: (results) => {
+    onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["chevalets"] });
-      toast.success(`${results.length} chevalet(s) généré(s)`);
+      toast.success(`${count} chevalet(s) généré(s) dans un seul PDF`);
     },
     onError: (error) => {
       toast.error("Erreur lors de la génération des chevalets");
