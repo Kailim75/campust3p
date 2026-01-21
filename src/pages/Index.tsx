@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
+import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
+import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
+import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsPage } from "@/components/contacts/ContactsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
@@ -24,6 +27,7 @@ import { cn } from "@/lib/utils";
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Support deep-links like /?section=contacts&id=...
@@ -37,6 +41,25 @@ const Index = () => {
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Listen for navigate-to-alerts event from ProactiveAlertsToast
+  useEffect(() => {
+    const handleNavigateToAlerts = () => setActiveSection("alertes");
+    window.addEventListener('navigate-to-alerts', handleNavigateToAlerts);
+    return () => window.removeEventListener('navigate-to-alerts', handleNavigateToAlerts);
+  }, []);
+
+  // Global keyboard shortcuts
+  useGlobalShortcuts({
+    onNewContact: () => setActiveSection("contacts"),
+    onNewSession: () => setActiveSection("sessions"),
+    onNewPayment: () => setActiveSection("paiements"),
+    onSearch: () => {
+      // Focus global search - we can trigger this via event
+      document.querySelector<HTMLButtonElement>('[data-global-search]')?.click();
+    },
+    onHelp: () => setShortcutsDialogOpen(true),
+  });
 
   // Handle quick action - navigate to appropriate section
   const handleQuickAction = (action: QuickAction) => {
@@ -117,6 +140,15 @@ const Index = () => {
 
       {/* Quick Actions FAB */}
       <QuickActionsMenu onAction={handleQuickAction} />
+      
+      {/* Proactive alerts toast on login */}
+      <ProactiveAlertsToast />
+      
+      {/* Keyboard shortcuts help dialog */}
+      <KeyboardShortcutsDialog 
+        open={shortcutsDialogOpen} 
+        onOpenChange={setShortcutsDialogOpen} 
+      />
     </div>
   );
 };
