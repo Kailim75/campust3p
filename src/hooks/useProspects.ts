@@ -1,0 +1,220 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export type ProspectStatus = "nouveau" | "contacte" | "relance" | "converti" | "perdu";
+
+export interface Prospect {
+  id: string;
+  nom: string;
+  prenom: string;
+  telephone: string | null;
+  email: string | null;
+  formation_souhaitee: string | null;
+  source: string | null;
+  statut: ProspectStatus;
+  notes: string | null;
+  converted_contact_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface ProspectInsert {
+  nom: string;
+  prenom: string;
+  telephone?: string | null;
+  email?: string | null;
+  formation_souhaitee?: string | null;
+  source?: string | null;
+  statut?: ProspectStatus;
+  notes?: string | null;
+}
+
+export interface ProspectUpdate {
+  nom?: string;
+  prenom?: string;
+  telephone?: string | null;
+  email?: string | null;
+  formation_souhaitee?: string | null;
+  source?: string | null;
+  statut?: ProspectStatus;
+  notes?: string | null;
+  is_active?: boolean;
+  converted_contact_id?: string | null;
+}
+
+export function useProspects() {
+  return useQuery({
+    queryKey: ["prospects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Prospect[];
+    },
+  });
+}
+
+export function useProspectsStats() {
+  return useQuery({
+    queryKey: ["prospects", "stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .select("statut, formation_souhaitee")
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      const stats = {
+        total: data.length,
+        nouveau: data.filter((p) => p.statut === "nouveau").length,
+        contacte: data.filter((p) => p.statut === "contacte").length,
+        relance: data.filter((p) => p.statut === "relance").length,
+        converti: data.filter((p) => p.statut === "converti").length,
+        perdu: data.filter((p) => p.statut === "perdu").length,
+      };
+
+      return stats;
+    },
+  });
+}
+
+export function useCreateProspect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (prospect: ProspectInsert) => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .insert(prospect)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      toast.success("Prospect créé avec succès");
+    },
+    onError: (error: any) => {
+      if (error.code === "23505") {
+        toast.error("Un prospect avec cet email existe déjà");
+      } else {
+        toast.error("Erreur lors de la création du prospect");
+      }
+      console.error(error);
+    },
+  });
+}
+
+export function useUpdateProspect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: ProspectUpdate }) => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      toast.success("Prospect mis à jour");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la mise à jour");
+      console.error(error);
+    },
+  });
+}
+
+export function useDeleteProspect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("prospects")
+        .update({ is_active: false })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      toast.success("Prospect supprimé");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la suppression");
+      console.error(error);
+    },
+  });
+}
+
+export function useConvertProspect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (prospect: Prospect) => {
+      // Build contact data - only include formation if it's valid
+      const contactData: Record<string, unknown> = {
+        nom: prospect.nom,
+        prenom: prospect.prenom,
+        telephone: prospect.telephone,
+        email: prospect.email,
+        statut: "En attente de validation",
+        source: prospect.source || "Prospect converti",
+      };
+
+      // Only add formation if it matches a valid enum value
+      const validFormations = ["ACC VTC", "ACC VTC 75", "Formation continue Taxi", "Formation continue VTC", "Mobilité Taxi", "TAXI", "VMDTR", "VTC"];
+      if (prospect.formation_souhaitee && validFormations.includes(prospect.formation_souhaitee)) {
+        contactData.formation = prospect.formation_souhaitee;
+      }
+
+      // Create contact from prospect
+      const { data: contact, error: contactError } = await supabase
+        .from("contacts")
+        .insert([contactData] as any)
+        .select()
+        .single();
+
+      if (contactError) throw contactError;
+
+      // Update prospect status
+      const { error: prospectError } = await supabase
+        .from("prospects")
+        .update({
+          statut: "converti" as ProspectStatus,
+          converted_contact_id: contact.id,
+        })
+        .eq("id", prospect.id);
+
+      if (prospectError) throw prospectError;
+
+      return contact;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Prospect converti en contact avec succès !");
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la conversion");
+      console.error(error);
+    },
+  });
+}

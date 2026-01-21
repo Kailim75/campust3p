@@ -325,6 +325,41 @@ export type Database = {
         }
         Relationships: []
       }
+      chevalets: {
+        Row: {
+          contact_id: string
+          created_by: string | null
+          formation_type: string
+          generated_at: string
+          id: string
+          pdf_path: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_by?: string | null
+          formation_type: string
+          generated_at?: string
+          id?: string
+          pdf_path?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_by?: string | null
+          formation_type?: string
+          generated_at?: string
+          id?: string
+          pdf_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chevalets_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_documents: {
         Row: {
           commentaires: string | null
@@ -424,6 +459,45 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_partners: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          partner_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          partner_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_partners_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_partners_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
@@ -1985,6 +2059,111 @@ export type Database = {
           },
         ]
       }
+      partners: {
+        Row: {
+          address: string | null
+          category: Database["public"]["Enums"]["partner_category"]
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          category?: Database["public"]["Enums"]["partner_category"]
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          category?: Database["public"]["Enums"]["partner_category"]
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pedagogical_documents: {
+        Row: {
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          document_type: Database["public"]["Enums"]["pedagogical_document_type"]
+          file_name: string
+          file_path: string
+          id: string
+          notes: string | null
+          session_id: string | null
+          status: Database["public"]["Enums"]["document_status"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          document_type: Database["public"]["Enums"]["pedagogical_document_type"]
+          file_name: string
+          file_path: string
+          id?: string
+          notes?: string | null
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_type?: Database["public"]["Enums"]["pedagogical_document_type"]
+          file_name?: string
+          file_path?: string
+          id?: string
+          notes?: string | null
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedagogical_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedagogical_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       progression_pedagogique: {
         Row: {
           commentaire: string | null
@@ -2042,6 +2221,65 @@ export type Database = {
             columns: ["formateur_id"]
             isOneToOne: false
             referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          converted_contact_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          formation_souhaitee: string | null
+          id: string
+          is_active: boolean
+          nom: string
+          notes: string | null
+          prenom: string
+          source: string | null
+          statut: Database["public"]["Enums"]["prospect_status"]
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          converted_contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          formation_souhaitee?: string | null
+          id?: string
+          is_active?: boolean
+          nom: string
+          notes?: string | null
+          prenom: string
+          source?: string | null
+          statut?: Database["public"]["Enums"]["prospect_status"]
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          converted_contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          formation_souhaitee?: string | null
+          id?: string
+          is_active?: boolean
+          nom?: string
+          notes?: string | null
+          prenom?: string
+          source?: string | null
+          statut?: Database["public"]["Enums"]["prospect_status"]
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_converted_contact_id_fkey"
+            columns: ["converted_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -2916,6 +3154,7 @@ export type Database = {
         | "refuse"
         | "expire"
         | "converti"
+      document_status: "actif" | "archive"
       facture_statut:
         | "brouillon"
         | "emise"
@@ -2934,6 +3173,20 @@ export type Database = {
         | "Formation continue VTC"
         | "Mobilité Taxi"
       mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf"
+      partner_category:
+        | "assurance"
+        | "comptable"
+        | "medecin"
+        | "banque"
+        | "vehicule"
+        | "autre"
+      pedagogical_document_type:
+        | "inscription"
+        | "entree_sortie"
+        | "test_positionnement"
+        | "attestation"
+        | "autre"
+      prospect_status: "nouveau" | "contacte" | "relance" | "converti" | "perdu"
       session_status:
         | "a_venir"
         | "en_cours"
@@ -3097,6 +3350,7 @@ export const Constants = {
         "expire",
         "converti",
       ],
+      document_status: ["actif", "archive"],
       facture_statut: [
         "brouillon",
         "emise",
@@ -3117,6 +3371,22 @@ export const Constants = {
         "Mobilité Taxi",
       ],
       mode_paiement: ["cb", "virement", "cheque", "especes", "cpf"],
+      partner_category: [
+        "assurance",
+        "comptable",
+        "medecin",
+        "banque",
+        "vehicule",
+        "autre",
+      ],
+      pedagogical_document_type: [
+        "inscription",
+        "entree_sortie",
+        "test_positionnement",
+        "attestation",
+        "autre",
+      ],
+      prospect_status: ["nouveau", "contacte", "relance", "converti", "perdu"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
     },
   },
