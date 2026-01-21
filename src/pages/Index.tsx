@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsPage } from "@/components/contacts/ContactsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
@@ -36,6 +37,30 @@ const Index = () => {
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Handle quick action - navigate to appropriate section
+  const handleQuickAction = (action: QuickAction) => {
+    switch (action) {
+      case "contact":
+        setActiveSection("contacts");
+        break;
+      case "session":
+        setActiveSection("sessions");
+        break;
+      case "inscription":
+        setActiveSection("sessions");
+        break;
+      case "paiement":
+        setActiveSection("paiements");
+        break;
+      case "document":
+        setActiveSection("documents");
+        break;
+      case "communication":
+        setActiveSection("communications");
+        break;
+    }
+  };
 
   const renderContent = () => {
     switch (activeSection) {
@@ -89,6 +114,9 @@ const Index = () => {
       )}>
         {renderContent()}
       </main>
+
+      {/* Quick Actions FAB */}
+      <QuickActionsMenu onAction={handleQuickAction} />
     </div>
   );
 };

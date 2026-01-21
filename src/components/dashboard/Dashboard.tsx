@@ -17,7 +17,9 @@ import { MonthlyProjectionsChart, ProjectionDetailsTable } from "./MonthlyProjec
 import { CAByFormationChart } from "./CAByFormationChart";
 import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
 import { ObjectifProgressCard } from "./ObjectifProgressCard";
-import { Users, GraduationCap, TrendingUp, Euro, CalendarDays } from "lucide-react";
+import { PriorityActionCard } from "./PriorityActionCard";
+import { TodayTasksCard } from "./TodayTasksCard";
+import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +39,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const formatEuro = (value: number) => 
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+
+  const handleNavigate = (section: string) => {
+    if (onNavigate) onNavigate(section);
+  };
 
   const stats = [
     { 
@@ -85,13 +91,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
+        {/* Priority Action Section - Most important */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <PriorityActionCard onNavigate={handleNavigate} />
+          </div>
+          <div>
+            <TodayTasksCard onNavigate={handleNavigate} />
+          </div>
+        </div>
+
         {/* Period Selector */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Aperçu</h2>
+          <h2 className="text-lg font-semibold text-foreground">Indicateurs clés</h2>
           <PeriodSelector />
         </div>
         
-        {/* Stats Grid */}
+        {/* Stats Grid - Clickable KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
             <StatCard 
@@ -102,7 +118,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               changeLabel={stat.changeLabel}
               icon={stat.icon}
               variant={stat.variant}
-              onClick={onNavigate ? () => onNavigate(stat.section) : undefined}
+              onClick={() => handleNavigate(stat.section)}
             />
           ))}
         </div>
@@ -121,30 +137,30 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <TabsContent value="overview" className="space-y-6">
             {/* KPIs avancés */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ConversionKPICard onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
-              <FillRateCard onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
-              <ForecastCACard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+              <ConversionKPICard onClick={() => handleNavigate("contacts")} />
+              <FillRateCard onClick={() => handleNavigate("sessions")} />
+              <ForecastCACard onClick={() => handleNavigate("paiements")} />
               <CAParSourceChart />
             </div>
 
             {/* Sessions and Alerts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <SessionsOverview onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+                <SessionsOverview onClick={() => handleNavigate("sessions")} />
               </div>
               <div>
-                <AlertCard onClick={onNavigate ? () => onNavigate("alertes") : undefined} />
+                <AlertCard onClick={() => handleNavigate("alertes")} />
               </div>
             </div>
 
             {/* Formations and Inscriptions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FormationPieChart onClick={onNavigate ? () => onNavigate("formations") : undefined} />
-              <InscriptionTrendChart onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              <FormationPieChart onClick={() => handleNavigate("formations")} />
+              <InscriptionTrendChart onClick={() => handleNavigate("sessions")} />
             </div>
 
             {/* Recent Contacts */}
-            <RecentContacts onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+            <RecentContacts onClick={() => handleNavigate("contacts")} />
           </TabsContent>
 
           {/* Objectifs Tab */}
@@ -162,19 +178,19 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             {/* CA Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <MonthlyCAChart />
-              <FinancialSummaryCard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+              <FinancialSummaryCard onClick={() => handleNavigate("paiements")} />
             </div>
 
             {/* Projections */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <MonthlyProjectionsChart onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
+              <MonthlyProjectionsChart onClick={() => handleNavigate("sessions")} />
               <ProjectionDetailsTable />
             </div>
 
             {/* CA by Formation */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CAByFormationChart onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
-              <ForecastCACard onClick={onNavigate ? () => onNavigate("paiements") : undefined} />
+              <CAByFormationChart onClick={() => handleNavigate("paiements")} />
+              <ForecastCACard onClick={() => handleNavigate("paiements")} />
             </div>
           </TabsContent>
 
@@ -182,14 +198,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <TabsContent value="examens" className="space-y-6">
             {/* Exam Success Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <ExamSuccessChart onClick={onNavigate ? () => onNavigate("contacts") : undefined} />
+              <ExamSuccessChart onClick={() => handleNavigate("contacts")} />
               <ExamSuccessByFormation />
             </div>
 
             {/* Sessions Overview for exams context */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SessionsOverview onClick={onNavigate ? () => onNavigate("sessions") : undefined} />
-              <AlertCard onClick={onNavigate ? () => onNavigate("alertes") : undefined} />
+              <SessionsOverview onClick={() => handleNavigate("sessions")} />
+              <AlertCard onClick={() => handleNavigate("alertes")} />
             </div>
           </TabsContent>
         </Tabs>
