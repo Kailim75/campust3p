@@ -140,6 +140,7 @@ export function GlobalSearch() {
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         ref={inputRef}
+        data-global-search
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -147,7 +148,7 @@ export function GlobalSearch() {
         }}
         onFocus={() => query.length >= 2 && setIsOpen(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Rechercher contacts, sessions..."
+        placeholder="Rechercher... (Ctrl+K)"
         className="w-72 pl-9 pr-8 input-focus"
       />
       {query && (
