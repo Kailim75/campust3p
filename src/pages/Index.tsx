@@ -22,6 +22,8 @@ import { CommunicationsPage } from "@/components/communications/CommunicationsPa
 import { SignaturesPage } from "@/components/signatures/SignaturesPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
+import { PartnersPage } from "@/components/partners/PartnersPage";
+import { ProspectsPage } from "@/components/prospects/ProspectsPage";
 import QualiopiPage from "@/components/qualiopi/QualiopiPage";
 import QualiteClientPage from "@/components/qualite/QualiteClientPage";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -114,6 +116,8 @@ const Index = () => {
         return <Dashboard onNavigate={setActiveSection} />;
       case "pipeline":
         return <PipelinePage />;
+      case "prospects":
+        return <ProspectsPage />;
       case "contacts":
         return <ContactsPage />;
       case "formations":
@@ -122,6 +126,8 @@ const Index = () => {
         return <SessionsPage />;
       case "formateurs":
         return <FormateursPage />;
+      case "partners":
+        return <PartnersPage />;
       case "documents":
         return <DocumentsPage />;
       case "signatures":
