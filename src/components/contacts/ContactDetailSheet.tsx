@@ -81,6 +81,9 @@ import { SendEnqueteDialog } from "./SendEnqueteDialog";
 import { ContactProgressBar } from "./ContactProgressBar";
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
+import { ContactPartnersTab } from "./detail/ContactPartnersTab";
+import { ContactPedagogyTab } from "./detail/ContactPedagogyTab";
+import { Building2, BookOpen } from "lucide-react";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -353,7 +356,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
 
             {/* Onglets */}
             <Tabs defaultValue="infos" className="w-full">
-              <TabsList className="grid w-full grid-cols-8 mb-4">
+              <TabsList className="grid w-full grid-cols-10 mb-4">
                 <TabsTrigger value="infos" className="text-xs px-1">
                   <User className="h-3 w-3 sm:mr-1" />
                   <span className="hidden sm:inline">Infos</span>
@@ -369,6 +372,14 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                 <TabsTrigger value="pratique" className="text-xs px-1">
                   <Car className="h-3 w-3 sm:mr-1" />
                   <span className="hidden sm:inline">Pratique</span>
+                </TabsTrigger>
+                <TabsTrigger value="pedagogie" className="text-xs px-1">
+                  <BookOpen className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Péda.</span>
+                </TabsTrigger>
+                <TabsTrigger value="partners" className="text-xs px-1">
+                  <Building2 className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Partn.</span>
                 </TabsTrigger>
                 <TabsTrigger value="location" className="text-xs px-1">
                   <FileSignature className="h-3 w-3 sm:mr-1" />
@@ -508,6 +519,20 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
               {/* Onglet Pratique */}
               <TabsContent value="pratique">
                 <ContactPratiqueTab contactId={contact.id} />
+              </TabsContent>
+
+              {/* Onglet Pédagogie */}
+              <TabsContent value="pedagogie">
+                <ContactPedagogyTab 
+                  contactId={contact.id} 
+                  contactPrenom={contact.prenom} 
+                  contactFormation={contact.formation || "VTC"} 
+                />
+              </TabsContent>
+
+              {/* Onglet Partenaires */}
+              <TabsContent value="partners">
+                <ContactPartnersTab contactId={contact.id} />
               </TabsContent>
 
               {/* Onglet Location */}
