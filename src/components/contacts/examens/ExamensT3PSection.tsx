@@ -6,8 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -32,6 +30,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, differenceInMonths } from "date-fns";
@@ -44,6 +43,7 @@ import {
   type ExamenT3P,
 } from "@/hooks/useExamensT3P";
 import { ExamenT3PFormDialog } from "./ExamenT3PFormDialog";
+import { getDepartementLabel } from "@/constants/departements";
 
 interface ExamensT3PSectionProps {
   contactId: string;
@@ -283,6 +283,12 @@ function ExamenT3PCard({ examen, onEdit, onDelete }: ExamenT3PCardProps) {
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               <span>{examen.heure_examen.slice(0, 5)}</span>
+            </div>
+          )}
+          {examen.departement && (
+            <div className="flex items-center gap-1.5 text-foreground font-medium">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <span>Dép. {getDepartementLabel(examen.departement)}</span>
             </div>
           )}
           {examen.centre_examen && (
