@@ -18,6 +18,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
   useCreateExamenT3P,
   useUpdateExamenT3P,
   examenT3PStatutConfig,
@@ -27,6 +42,7 @@ import {
   type ExamenT3PStatut,
   type ExamenT3PResultat,
 } from "@/hooks/useExamensT3P";
+import { departementsExamenT3P, departementsPopulaires } from "@/constants/departements";
 
 interface ExamenT3PFormDialogProps {
   contactId: string;
@@ -249,14 +265,10 @@ export function ExamenT3PFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="departement">Département</Label>
-              <Input
-                id="departement"
+              <Label>Département d'inscription *</Label>
+              <DepartementCombobox
                 value={formData.departement}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, departement: e.target.value }))
-                }
-                placeholder="Ex: 75"
+                onChange={(value) => setFormData((prev) => ({ ...prev, departement: value }))}
               />
             </div>
             <div className="space-y-2">
@@ -362,5 +374,102 @@ export function ExamenT3PFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Combobox for department selection with search
+function DepartementCombobox({ 
+  value, 
+  onChange 
+}: { 
+  value: string; 
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // Sort: popular departments first, then alphabetically
+  const sortedDepartements = [...departementsExamenT3P].sort((a, b) => {
+    const aPopular = departementsPopulaires.includes(a.code);
+    const bPopular = departementsPopulaires.includes(b.code);
+    if (aPopular && !bPopular) return -1;
+    if (!aPopular && bPopular) return 1;
+    return a.code.localeCompare(b.code);
+  });
+
+  const selectedDept = departementsExamenT3P.find(d => d.code === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          {selectedDept ? (
+            <span className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              {selectedDept.label}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Sélectionner un département...</span>
+          )}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Rechercher un département..." />
+          <CommandList>
+            <CommandEmpty>Aucun département trouvé.</CommandEmpty>
+            <CommandGroup heading="Départements fréquents">
+              {sortedDepartements
+                .filter(d => departementsPopulaires.includes(d.code))
+                .map((dept) => (
+                  <CommandItem
+                    key={dept.code}
+                    value={dept.label}
+                    onSelect={() => {
+                      onChange(dept.code);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === dept.code ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {dept.label}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+            <CommandGroup heading="Tous les départements">
+              {sortedDepartements
+                .filter(d => !departementsPopulaires.includes(d.code))
+                .map((dept) => (
+                  <CommandItem
+                    key={dept.code}
+                    value={dept.label}
+                    onSelect={() => {
+                      onChange(dept.code);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === dept.code ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {dept.label}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
