@@ -76,6 +76,7 @@ import { Switch } from '@/components/ui/switch';
 import { BulkDocumentPreviewDialog } from './BulkDocumentPreviewDialog';
 import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
 import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
+import { SendDocumentsToContactDialog } from './SendDocumentsToContactDialog';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -121,6 +122,10 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [selectedContactIdForFacture, setSelectedContactIdForFacture] = useState<string | null>(null);
   const [selectedFactureId, setSelectedFactureId] = useState<string | null>(null);
   const [editingFacture, setEditingFacture] = useState<FactureWithDetails | null>(null);
+  
+  // Send documents to single contact dialog
+  const [sendDocsDialogOpen, setSendDocsDialogOpen] = useState(false);
+  const [selectedContactForDocs, setSelectedContactForDocs] = useState<any>(null);
   // Contacts disponibles (non inscrits)
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
@@ -563,6 +568,25 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          {/* Send documents to this contact */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-primary"
+                                onClick={() => {
+                                  setSelectedContactForDocs(inscrit.contact);
+                                  setSendDocsDialogOpen(true);
+                                }}
+                                aria-label="Envoyer des documents"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Envoyer des documents</TooltipContent>
+                          </Tooltip>
+                          
                           {/* Facture actions */}
                           {facture ? (
                             <Tooltip>
@@ -585,7 +609,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-primary"
+                                  className="h-7 w-7"
                                   onClick={() => handleCreateFacture(inscrit.contact_id)}
                                   aria-label="Créer une facture"
                                 >
@@ -875,6 +899,28 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           }
         }}
       />
+
+      {/* Send documents to single contact dialog */}
+      {selectedContactForDocs && session && (
+        <SendDocumentsToContactDialog
+          open={sendDocsDialogOpen}
+          onOpenChange={(open) => {
+            setSendDocsDialogOpen(open);
+            if (!open) setSelectedContactForDocs(null);
+          }}
+          contact={selectedContactForDocs}
+          sessionInfo={{
+            id: session.id,
+            nom: session.nom,
+            formation_type: session.formation_type,
+            date_debut: session.date_debut,
+            date_fin: session.date_fin,
+            lieu: session.lieu,
+            duree_heures: session.duree_heures || 35,
+            prix: session.prix ? Number(session.prix) : undefined,
+          }}
+        />
+      )}
     </div>
   );
 }
