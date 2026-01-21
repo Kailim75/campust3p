@@ -20,13 +20,15 @@ import {
   Kanban,
   Workflow,
   Award,
-  Star
+  Star,
+  HelpCircle
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAllAlerts } from "@/hooks/useAlerts";
+import { RecentItemsMenu } from "./RecentItemsMenu";
 
 interface SidebarProps {
   activeSection: string;
@@ -64,6 +66,19 @@ function SidebarContent({
 }) {
   const { data: alerts } = useAllAlerts();
   const highPriorityAlerts = alerts.filter(a => a.priority === "high").length;
+
+  const handleRecentItemClick = (type: string, id: string) => {
+    // Navigate to appropriate section with the item
+    if (type === "contact") {
+      onSectionChange("contacts");
+      // Optionally could emit event to open contact detail
+    } else if (type === "session") {
+      onSectionChange("sessions");
+    } else if (type === "facture") {
+      onSectionChange("paiements");
+    }
+    onItemClick?.();
+  };
 
   return (
     <>
@@ -118,6 +133,12 @@ function SidebarContent({
 
       {/* Settings & Collapse */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
+        {/* Recent Items Menu */}
+        <RecentItemsMenu 
+          onItemClick={handleRecentItemClick}
+          collapsed={collapsed}
+        />
+        
         <button
           onClick={() => {
             onSectionChange("settings");
@@ -130,6 +151,18 @@ function SidebarContent({
         >
           <Settings className="h-5 w-5 flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Paramètres</span>}
+        </button>
+        
+        {/* Help button to restart tour */}
+        <button
+          onClick={() => {
+            localStorage.removeItem("crm-onboarding-completed");
+            window.location.reload();
+          }}
+          className="sidebar-item w-full text-muted-foreground hover:text-foreground"
+        >
+          <HelpCircle className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span className="animate-fade-in">Aide</span>}
         </button>
         
         {setCollapsed && (

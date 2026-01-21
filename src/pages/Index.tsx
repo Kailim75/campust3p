@@ -4,7 +4,10 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
+import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useTrackRecentItem } from "@/hooks/useRecentItems";
+import { useUndoStore } from "@/hooks/useUndoAction";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsPage } from "@/components/contacts/ContactsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
@@ -29,6 +32,26 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { showTour, completeTour } = useOnboarding();
+  const undoAction = useUndoStore((state) => state.undo);
+
+  // Global undo with Ctrl+Z
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        // Don't trigger if user is typing in an input
+        if (document.activeElement?.tagName === "INPUT" || 
+            document.activeElement?.tagName === "TEXTAREA") {
+          return;
+        }
+        e.preventDefault();
+        undoAction();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoAction]);
 
   // Support deep-links like /?section=contacts&id=...
   useEffect(() => {
@@ -149,6 +172,9 @@ const Index = () => {
         open={shortcutsDialogOpen} 
         onOpenChange={setShortcutsDialogOpen} 
       />
+      
+      {/* Onboarding tour for new users */}
+      <OnboardingTour isOpen={showTour} onComplete={completeTour} />
     </div>
   );
 };

@@ -19,6 +19,7 @@ import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
 import { ObjectifProgressCard } from "./ObjectifProgressCard";
 import { PriorityActionCard } from "./PriorityActionCard";
 import { TodayTasksCard } from "./TodayTasksCard";
+import { SmartSuggestionsCard } from "./SmartSuggestionsCard";
 import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
@@ -93,12 +94,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <main className="p-6 space-y-6 animate-fade-in">
         {/* Priority Action Section - Most important */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <PriorityActionCard onNavigate={handleNavigate} />
-          </div>
-          <div>
-            <TodayTasksCard onNavigate={handleNavigate} />
-          </div>
+          <PriorityActionCard onNavigate={handleNavigate} />
+          <TodayTasksCard onNavigate={handleNavigate} />
+          <SmartSuggestionsCard onNavigate={handleNavigate} />
         </div>
 
         {/* Period Selector */}
