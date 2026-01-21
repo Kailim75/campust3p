@@ -78,6 +78,7 @@ import { ContactLocationTab } from "./location/ContactLocationTab";
 import { ExamensTab } from "./examens/ExamensTab";
 import { CallLogDialog } from "./CallLogDialog";
 import { SendEnqueteDialog } from "./SendEnqueteDialog";
+import { ContactProgressBar } from "./ContactProgressBar";
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 
@@ -338,6 +339,16 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                 <Star className="h-4 w-4 mr-2" />
                 Enquête
               </Button>
+            </div>
+
+            {/* Progress Bar - Parcours stagiaire */}
+            <div className="mb-4 p-4 rounded-lg border border-border bg-muted/30">
+              <ContactProgressBar 
+                contact={contact}
+                inscriptions={inscriptions}
+                documents={documents}
+                factures={factures}
+              />
             </div>
 
             {/* Onglets */}
