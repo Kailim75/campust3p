@@ -14,6 +14,7 @@ import { Search, Plus, List, CalendarDays, Download, Kanban } from "lucide-react
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
+import { useSessionsViewPreferences } from "@/hooks/useSessionsViewPreferences";
 import { useSessionsExport } from "@/hooks/useSessionsExport";
 import { parseISO, isAfter, isBefore } from "date-fns";
 import { SessionFormDialog } from "./SessionFormDialog";
@@ -34,7 +35,7 @@ export function SessionsPage() {
   const createSession = useCreateSession();
   const { updateSessionStatuses } = useAutoUpdateSessionStatus();
   const { exportSessions } = useSessionsExport();
-  
+  const { viewMode, groupBy, setViewMode, setGroupBy } = useSessionsViewPreferences();
   const [filters, setFilters] = useState<SessionFilters>({
     search: "",
     status: "all",
@@ -44,7 +45,6 @@ export function SessionsPage() {
     dateStart: "",
     dateEnd: "",
   });
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "kanban">("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
@@ -288,6 +288,8 @@ export function SessionsPage() {
                 sessions={filteredSessions}
                 inscriptionsCounts={inscriptionsCounts}
                 isLoading={isLoading}
+                groupBy={groupBy}
+                onGroupByChange={setGroupBy}
                 onViewDetail={handleViewDetail}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
