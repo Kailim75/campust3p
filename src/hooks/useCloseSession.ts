@@ -72,6 +72,8 @@ export function useCloseSession() {
           date_debut: session.date_debut,
           date_fin: session.date_fin,
           lieu: session.lieu || undefined,
+          heure_debut: session.heure_debut || undefined,
+          heure_fin: session.heure_fin || undefined,
           duree_heures: session.duree_heures || 35,
           prix: session.prix ? Number(session.prix) : undefined,
         };
