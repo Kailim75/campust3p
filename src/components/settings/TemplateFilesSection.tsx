@@ -45,6 +45,7 @@ import { fr } from "date-fns/locale";
 import {
   useDocumentTemplateFiles,
   useDeleteTemplateFile,
+  useSetDefaultTemplate,
   downloadTemplateFile,
   DocumentTemplateFile,
   formationTypes,
@@ -53,6 +54,7 @@ import {
 import { documentCategories } from "@/hooks/useDocumentTemplates";
 import { TemplateFileUploadDialog } from "./TemplateFileUploadDialog";
 import { toast } from "sonner";
+import { Star } from "lucide-react";
 
 export function TemplateFilesSection() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,6 +67,7 @@ export function TemplateFilesSection() {
 
   const { data: templates = [], isLoading } = useDocumentTemplateFiles();
   const deleteTemplate = useDeleteTemplateFile();
+  const setDefaultTemplate = useSetDefaultTemplate();
 
   const filteredTemplates = useMemo(() => {
     return templates.filter((t) => {
@@ -100,6 +103,11 @@ export function TemplateFilesSection() {
     } catch {
       toast.error("Erreur lors du téléchargement");
     }
+  };
+
+  const handleToggleDefault = async (template: DocumentTemplateFile) => {
+    const newIsDefault = !template.is_default;
+    await setDefaultTemplate.mutateAsync({ templateId: template.id, isDefault: newIsDefault });
   };
 
   const getCategoryLabel = (value: string) =>
@@ -237,6 +245,12 @@ export function TemplateFilesSection() {
                               {getFormationLabel(template.formation_type)}
                             </Badge>
                           )}
+                          {template.is_default && (
+                            <Badge variant="secondary" className="text-xs bg-warning/10 text-warning border-warning/20">
+                              <Star className="h-3 w-3 mr-1 fill-current" />
+                              Par défaut
+                            </Badge>
+                          )}
                         </div>
                         {template.description && (
                           <p className="text-xs text-muted-foreground truncate">
@@ -270,6 +284,10 @@ export function TemplateFilesSection() {
                         <DropdownMenuItem onClick={() => handleDownload(template)}>
                           <Download className="h-4 w-4 mr-2" />
                           Télécharger
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleDefault(template)}>
+                          <Star className={`h-4 w-4 mr-2 ${template.is_default ? "fill-current text-warning" : ""}`} />
+                          {template.is_default ? "Retirer par défaut" : "Définir par défaut"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

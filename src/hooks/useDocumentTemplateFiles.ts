@@ -15,6 +15,7 @@ export interface DocumentTemplateFile {
   type_document: string | null;
   formation_type: string | null;
   actif: boolean;
+  is_default: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -180,6 +181,89 @@ export function useDeleteTemplateFile() {
     onError: (error) => {
       console.error("Delete error:", error);
       toast.error("Erreur lors de la suppression");
+    },
+  });
+}
+
+// Set a template as default for its document type
+export function useSetDefaultTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ templateId, isDefault }: { templateId: string; isDefault: boolean }) => {
+      // Use type assertion since the types haven't regenerated yet
+      const { error } = await supabase
+        .from("document_template_files")
+        .update({ is_default: isDefault } as Record<string, unknown>)
+        .eq("id", templateId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["document-template-files"] });
+      toast.success("Modèle par défaut mis à jour");
+    },
+    onError: (error) => {
+      console.error("Set default error:", error);
+      toast.error("Erreur lors de la mise à jour");
+    },
+  });
+}
+
+// Get the default template for a specific document type and optionally formation type
+// Priority: 1) Specific formation_type match 2) Global default (formation_type = null)
+export async function getDefaultTemplate(typeDocument: string, formationType?: string): Promise<DocumentTemplateFile | null> {
+  // First try to find a specific default for this formation type
+  if (formationType) {
+    const { data: specificDefault } = await supabase
+      .from("document_template_files")
+      .select("*")
+      .eq("type_document", typeDocument)
+      .eq("formation_type", formationType)
+      .eq("actif", true);
+
+    const filtered = (specificDefault || []).filter((t: Record<string, unknown>) => t.is_default === true);
+    if (filtered.length > 0) {
+      return filtered[0] as unknown as DocumentTemplateFile;
+    }
+  }
+
+  // Fall back to global default (no formation_type)
+  const { data: globalDefaults } = await supabase
+    .from("document_template_files")
+    .select("*")
+    .eq("type_document", typeDocument)
+    .is("formation_type", null)
+    .eq("actif", true);
+
+  const filtered = (globalDefaults || []).filter((t: Record<string, unknown>) => t.is_default === true);
+  return filtered.length > 0 ? (filtered[0] as unknown as DocumentTemplateFile) : null;
+}
+
+// Hook version of getDefaultTemplate
+export function useDefaultTemplate(typeDocument: string, formationType?: string) {
+  return useQuery({
+    queryKey: ["document-template-files", "default", typeDocument, formationType],
+    queryFn: () => getDefaultTemplate(typeDocument, formationType),
+    enabled: !!typeDocument,
+  });
+}
+
+// Get all defaults for display purposes
+export function useDefaultTemplates() {
+  return useQuery({
+    queryKey: ["document-template-files", "defaults"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document_template_files")
+        .select("*")
+        .eq("actif", true)
+        .order("type_document")
+        .order("formation_type");
+
+      if (error) throw error;
+      // Filter is_default in JS since it's a new column
+      return (data || []).filter((t: Record<string, unknown>) => t.is_default === true) as unknown as DocumentTemplateFile[];
     },
   });
 }
