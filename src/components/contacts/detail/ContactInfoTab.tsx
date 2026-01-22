@@ -14,9 +14,9 @@ interface Contact {
   custom_id?: string | null;
   numero_permis?: string | null;
   prefecture_permis?: string | null;
-  date_delivrance_permis?: string | null;
-  numero_carte_professionnelle?: string | null;
-  prefecture_carte?: string | null;
+  date_delivrance_permis?: string | withFallback;
+  numero_carte_professionnelle?: string | withFallback;
+  prefecture_carte?: string | withFallback;
   date_expiration_carte?: string | null;
   formation?: string | null;
   source?: string | null;
@@ -38,7 +38,15 @@ const formationLabels: Record<string, string> = {
   "Mobilité Taxi": "Mobilité Taxi",
 };
 
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | null | undefined;
+}) {
   if (!value) return null;
   return (
     <div className="flex items-start gap-3 py-2">
@@ -52,9 +60,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 }
 
 export function ContactInfoTab({ contact }: ContactInfoTabProps) {
-  const fullAddress = [contact.rue, contact.code_postal, contact.ville]
-    .filter(Boolean)
-    .join(", ");
+  const fullAddress = [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", ");
 
   const birthInfo = [
     contact.date_naissance ? format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr }) : null,
@@ -83,9 +89,7 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Contact
-        </h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact</h3>
         <InfoRow icon={Mail} label="Email" value={contact.email} />
         <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
         <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
@@ -101,26 +105,20 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
 
       {permisInfo && (
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Permis de conduire
-          </h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Permis de conduire</h3>
           <InfoRow icon={Car} label="Permis" value={permisInfo} />
         </div>
       )}
 
       {carteProInfo && (
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Carte professionnelle
-          </h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Carte professionnelle</h3>
           <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
         </div>
       )}
 
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Formation
-        </h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Formation</h3>
         <InfoRow
           icon={GraduationCap}
           label="Type de formation"
