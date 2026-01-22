@@ -78,7 +78,12 @@ export async function processDocxWithVariables(
 
       try {
         const text = f.asText();
+        const beforeCount = (text.match(/\{\{/g) ?? []).length;
         const normalized = normalizeDoubleBracesToDocxtemplater(text);
+        const afterCount = (normalized.match(/\{\{/g) ?? []).length;
+        if (beforeCount > 0 || afterCount > 0) {
+          console.log(`[DOCX Processor] Template ${name}: '{{' occurrences before=${beforeCount} after=${afterCount}`);
+        }
         if (normalized !== text) zip.file(name, normalized);
       } catch {
         // Ignore normalization errors and proceed.
@@ -139,6 +144,18 @@ export async function processDocxWithVariables(
     // Avoid the literal string "undefined" when a tag is missing
     nullGetter: () => "",
   });
+
+  // Debug: log detected tags (helps diagnose templates where placeholders are inside textboxes/shapes)
+  try {
+    const tags = (doc as any).getTags?.();
+    const allTags: string[] = [];
+    if (tags?.document?.tags) allTags.push(...flattenTagTree(tags.document.tags));
+    for (const h of tags?.headers || []) allTags.push(...flattenTagTree(h.tags));
+    for (const f of tags?.footers || []) allTags.push(...flattenTagTree(f.tags));
+    console.log(`[DOCX Processor] Detected ${allTags.length} tag(s):`, allTags.slice(0, 80));
+  } catch (e) {
+    console.warn("[DOCX Processor] Unable to inspect DOCX tags:", e);
+  }
   
   // Prepare data with fallbacks for missing values
   const data: Record<string, string> = {};
