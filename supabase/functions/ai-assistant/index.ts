@@ -945,6 +945,31 @@ Tu gères contacts, sessions, factures, paiements et emails. Utilise les outils 
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI gateway error after tool:', response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ 
+            error: "Limite de requêtes atteinte. Veuillez réessayer dans quelques instants.",
+            toolResults,
+            success: false 
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ 
+            error: "Crédits IA épuisés. Veuillez ajouter des crédits à votre workspace.",
+            toolResults,
+            success: false 
+          }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
         throw new Error(`AI gateway error after tool execution: ${response.status}`);
       }
 
