@@ -110,7 +110,7 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col min-h-0">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 min-h-0 h-full pr-4">
             <div className="space-y-4 pb-6">
               {/* Zone de dépôt de fichier */}
               <div
@@ -301,7 +301,7 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
             </div>
           </ScrollArea>
 
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="flex-shrink-0 pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
