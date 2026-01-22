@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
+import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -532,6 +533,7 @@ export function SettingsPage() {
 
           {/* Tab: Documents */}
           <TabsContent value="documents" className="space-y-6">
+            <DefaultTemplatesSection />
             <DocumentTemplatesSection />
             <TemplateFilesSection />
           </TabsContent>
