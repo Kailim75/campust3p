@@ -190,6 +190,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       return;
     }
     
+    // Mapping complet incluant carte pro, permis, naissance
     const contactInfo = {
       civilite: contact.civilite || undefined,
       nom: contact.nom || '',
@@ -201,6 +202,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       ville: contact.ville || undefined,
       date_naissance: contact.date_naissance || undefined,
       ville_naissance: contact.ville_naissance || undefined,
+      pays_naissance: contact.pays_naissance || undefined,
+      numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
+      prefecture_carte: contact.prefecture_carte || undefined,
+      date_expiration_carte: contact.date_expiration_carte || undefined,
+      numero_permis: contact.numero_permis || undefined,
+      prefecture_permis: contact.prefecture_permis || undefined,
+      date_delivrance_permis: contact.date_delivrance_permis || undefined,
+      formation: contact.formation || undefined,
     };
     
     generateDocument(type, contactInfo, sessionInfo);
@@ -244,7 +253,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             const contact = inscrit.contact;
             if (!contact) continue;
             
-            // Build variable data for this contact
+            // Build variable data for this contact - mapping complet
             const variableData = buildVariableData(
               {
                 civilite: contact.civilite || undefined,
@@ -257,13 +266,22 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 ville: contact.ville || undefined,
                 date_naissance: contact.date_naissance || undefined,
                 ville_naissance: contact.ville_naissance || undefined,
-                  pays_naissance: (contact as any).pays_naissance || undefined,
+                pays_naissance: contact.pays_naissance || undefined,
+                numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
+                prefecture_carte: contact.prefecture_carte || undefined,
+                date_expiration_carte: contact.date_expiration_carte || undefined,
+                numero_permis: contact.numero_permis || undefined,
+                prefecture_permis: contact.prefecture_permis || undefined,
+                date_delivrance_permis: contact.date_delivrance_permis || undefined,
+                formation: contact.formation || undefined,
               },
               {
                 nom: sessionInfo.nom,
                 date_debut: sessionInfo.date_debut,
                 date_fin: sessionInfo.date_fin,
                 lieu: sessionInfo.lieu,
+                heure_debut: sessionInfo.heure_debut,
+                heure_fin: sessionInfo.heure_fin,
                 formation_type: sessionInfo.formation_type,
                 duree_heures: sessionInfo.duree_heures,
               },
@@ -308,7 +326,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       }
     }
     
-    // Default: use the built-in PDF generation
+    // Default: use the built-in PDF generation - mapping complet
     const contactsInfo = inscrits.map((inscrit) => {
       const contact = inscrit.contact;
       return {
@@ -322,6 +340,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         ville: contact?.ville || undefined,
         date_naissance: contact?.date_naissance || undefined,
         ville_naissance: contact?.ville_naissance || undefined,
+        pays_naissance: contact?.pays_naissance || undefined,
+        numero_carte_professionnelle: contact?.numero_carte_professionnelle || undefined,
+        prefecture_carte: contact?.prefecture_carte || undefined,
+        date_expiration_carte: contact?.date_expiration_carte || undefined,
+        numero_permis: contact?.numero_permis || undefined,
+        prefecture_permis: contact?.prefecture_permis || undefined,
+        date_delivrance_permis: contact?.date_delivrance_permis || undefined,
+        formation: contact?.formation || undefined,
       };
     });
     
@@ -344,7 +370,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         return;
       }
       
-      // Si génération demandée, générer d'abord les documents
+      // Si génération demandée, générer d'abord les documents - mapping complet
       if (generateAndSend && sessionInfo) {
         const contactsInfo = inscribedWithEmail.map((inscrit) => {
           const contact = inscrit.contact;
@@ -359,6 +385,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             ville: contact?.ville || undefined,
             date_naissance: contact?.date_naissance || undefined,
             ville_naissance: contact?.ville_naissance || undefined,
+            pays_naissance: contact?.pays_naissance || undefined,
+            numero_carte_professionnelle: contact?.numero_carte_professionnelle || undefined,
+            prefecture_carte: contact?.prefecture_carte || undefined,
+            date_expiration_carte: contact?.date_expiration_carte || undefined,
+            numero_permis: contact?.numero_permis || undefined,
+            prefecture_permis: contact?.prefecture_permis || undefined,
+            date_delivrance_permis: contact?.date_delivrance_permis || undefined,
+            formation: contact?.formation || undefined,
           };
         });
         
