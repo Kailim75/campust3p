@@ -73,10 +73,13 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { BulkDocumentPreviewDialog } from './BulkDocumentPreviewDialog';
+import { BulkDocumentPreviewDialog, TemplateSelection } from './BulkDocumentPreviewDialog';
 import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
 import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
 import { SendDocumentsToContactDialog } from './SendDocumentsToContactDialog';
+import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
+import { useCentreFormation } from '@/hooks/useCentreFormation';
+import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processor';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -100,6 +103,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const removeInscription = useRemoveInscription();
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const bulkCreateEnvois = useBulkCreateDocumentEnvois();
+  const { data: fileTemplates = [] } = useDocumentTemplateFiles();
+  const { centreFormation } = useCentreFormation();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
@@ -187,9 +192,97 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   };
 
   // Générer les documents en masse (appelé après confirmation de la prévisualisation)
-  const handleConfirmBulkGeneration = () => {
+  const handleConfirmBulkGeneration = async (selection?: TemplateSelection) => {
     if (!previewDocumentType || !sessionInfo || !inscrits?.length) return;
     
+    // Check if using a file template (DOCX)
+    if (selection?.type === 'file' && selection.templateId) {
+      const template = fileTemplates.find(t => t.id === selection.templateId);
+      
+      if (template && template.type_fichier === 'docx') {
+        // Generate DOCX files with variable replacement for each trainee
+        toast.info(`Génération de ${inscrits.length} document(s)...`);
+        
+        try {
+          // Download the template file
+          const { data: templateBlob, error: downloadError } = await supabase.storage
+            .from('document-templates')
+            .download(template.file_path);
+          
+          if (downloadError || !templateBlob) {
+            throw new Error('Impossible de télécharger le modèle');
+          }
+          
+          let successCount = 0;
+          
+          for (const inscrit of inscrits) {
+            const contact = inscrit.contact;
+            if (!contact) continue;
+            
+            // Build variable data for this contact
+            const variableData = buildVariableData(
+              {
+                civilite: contact.civilite || undefined,
+                nom: contact.nom || '',
+                prenom: contact.prenom || '',
+                email: contact.email || undefined,
+                telephone: contact.telephone || undefined,
+                rue: contact.rue || undefined,
+                code_postal: contact.code_postal || undefined,
+                ville: contact.ville || undefined,
+                date_naissance: contact.date_naissance || undefined,
+                ville_naissance: contact.ville_naissance || undefined,
+              },
+              {
+                nom: sessionInfo.nom,
+                date_debut: sessionInfo.date_debut,
+                date_fin: sessionInfo.date_fin,
+                lieu: sessionInfo.lieu,
+                formation_type: sessionInfo.formation_type,
+                duree_heures: sessionInfo.duree_heures,
+              },
+              centreFormation ? {
+                nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+                adresse: centreFormation.adresse_complete,
+                telephone: centreFormation.telephone,
+                email: centreFormation.email,
+                siret: centreFormation.siret,
+                nda: centreFormation.nda,
+              } : undefined
+            );
+            
+            try {
+              // Process the DOCX with variable replacement
+              const processedBlob = await processDocxWithVariables(templateBlob, variableData);
+              
+              // Create download link
+              const url = URL.createObjectURL(processedBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${template.nom}_${contact.nom}_${contact.prenom}.docx`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              
+              successCount++;
+            } catch (docError) {
+              console.error(`Error processing document for ${contact.nom}:`, docError);
+            }
+          }
+          
+          toast.success(`${successCount} document(s) généré(s) avec succès`);
+        } catch (error) {
+          console.error('Error in bulk DOCX generation:', error);
+          toast.error('Erreur lors de la génération des documents');
+        }
+        
+        setPreviewDocumentType(null);
+        return;
+      }
+    }
+    
+    // Default: use the built-in PDF generation
     const contactsInfo = inscrits.map((inscrit) => {
       const contact = inscrit.contact;
       return {

@@ -33,6 +33,7 @@ import {
   Sparkles,
   Upload,
   File,
+  FileWarning,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -46,9 +47,11 @@ import {
 import type { DocumentType } from '@/hooks/useDocumentGenerator';
 import { useDocumentTemplates, replaceVariables, DocumentTemplate } from '@/hooks/useDocumentTemplates';
 import { useDocumentTemplateFiles, useDefaultTemplate, DocumentTemplateFile } from '@/hooks/useDocumentTemplateFiles';
+import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
 import DOMPurify from 'dompurify';
+import { buildVariableData, createDocxPreviewPDF } from '@/lib/docx-processor';
 
 interface Inscrit {
   id: string;
@@ -112,6 +115,7 @@ export function BulkDocumentPreviewDialog({
 
   const { data: textTemplates = [] } = useDocumentTemplates();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
+  const { centreFormation } = useCentreFormation();
   
   // Get the default template for this document type and formation
   const templateType = documentTypeToTemplateType[documentType];
@@ -208,9 +212,56 @@ export function BulkDocumentPreviewDialog({
     return doc;
   };
 
-  // Generate preview from file template (shows the original file for preview)
-  const generatePreviewFromFileTemplate = async (template: DocumentTemplateFile): Promise<string | null> => {
+  // Generate preview from file template with variable replacement visualization
+  const generatePreviewFromFileTemplate = async (
+    template: DocumentTemplateFile,
+    contact: ContactInfo,
+    session: SessionInfo
+  ): Promise<string | null> => {
     try {
+      // Build variable data for preview
+      const variableData = buildVariableData(
+        {
+          civilite: contact.civilite,
+          nom: contact.nom,
+          prenom: contact.prenom,
+          email: contact.email,
+          telephone: contact.telephone,
+          rue: contact.rue,
+          code_postal: contact.code_postal,
+          ville: contact.ville,
+          date_naissance: contact.date_naissance,
+          ville_naissance: contact.ville_naissance,
+        },
+        {
+          nom: session.nom,
+          date_debut: session.date_debut,
+          date_fin: session.date_fin,
+          lieu: session.lieu,
+          horaires: session.heure_debut && session.heure_fin 
+            ? `${session.heure_debut} - ${session.heure_fin}` 
+            : undefined,
+          formation_type: session.formation_type,
+          duree_heures: session.duree_heures,
+        },
+        centreFormation ? {
+          nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+          adresse: centreFormation.adresse_complete,
+          telephone: centreFormation.telephone,
+          email: centreFormation.email,
+          siret: centreFormation.siret,
+          nda: centreFormation.nda,
+        } : undefined
+      );
+
+      // For DOCX files, generate a PDF preview showing the variables that will be replaced
+      if (template.type_fichier === 'docx') {
+        const previewDoc = createDocxPreviewPDF(template.nom, variableData);
+        const pdfBlob = previewDoc.output('blob');
+        return URL.createObjectURL(pdfBlob);
+      }
+      
+      // For PDF files, download and show directly
       const { data, error } = await supabase.storage
         .from('document-templates')
         .download(template.file_path);
@@ -254,10 +305,10 @@ export function BulkDocumentPreviewDialog({
       try {
         let blobUrl: string | null = null;
         
-        if (templateTab === 'file' && selectedFileTemplate) {
-          // Use file template - show original file for preview
-          blobUrl = await generatePreviewFromFileTemplate(selectedFileTemplate);
-        } else if (templateTab === 'text' && selectedTextTemplate) {
+        if (templateTab === 'file' && selectedFileTemplate && contactInfo) {
+          // Use file template - generate preview with variable replacement visualization
+          blobUrl = await generatePreviewFromFileTemplate(selectedFileTemplate, contactInfo, sessionInfo);
+        } else if (templateTab === 'text' && selectedTextTemplate && contactInfo) {
           // Use text template
           const doc = generatePDFFromTextTemplate(selectedTextTemplate, contactInfo, sessionInfo);
           // Use blob URL instead of data URI for better browser compatibility
