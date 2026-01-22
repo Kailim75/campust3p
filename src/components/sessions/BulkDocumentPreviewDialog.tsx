@@ -45,7 +45,7 @@ import {
 } from '@/lib/pdf-generator';
 import type { DocumentType } from '@/hooks/useDocumentGenerator';
 import { useDocumentTemplates, replaceVariables, DocumentTemplate } from '@/hooks/useDocumentTemplates';
-import { useDocumentTemplateFiles, DocumentTemplateFile } from '@/hooks/useDocumentTemplateFiles';
+import { useDocumentTemplateFiles, useDefaultTemplate, DocumentTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
 import DOMPurify from 'dompurify';
@@ -112,17 +112,28 @@ export function BulkDocumentPreviewDialog({
 
   const { data: textTemplates = [] } = useDocumentTemplates();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
+  
+  // Get the default template for this document type and formation
+  const templateType = documentTypeToTemplateType[documentType];
+  const { data: defaultFileTemplate } = useDefaultTemplate(templateType, sessionInfo?.formation_type);
 
   // Filter templates by document type
   const availableTextTemplates = useMemo(() => {
-    const templateType = documentTypeToTemplateType[documentType];
     return textTemplates.filter(t => t.type_document === templateType && t.actif);
-  }, [textTemplates, documentType]);
+  }, [textTemplates, templateType]);
 
   const availableFileTemplates = useMemo(() => {
     // File templates with matching category (formation includes convocation, convention, attestation)
     return fileTemplates.filter(t => t.actif && t.categorie === 'formation');
   }, [fileTemplates]);
+
+  // Auto-select default file template when dialog opens
+  useEffect(() => {
+    if (open && defaultFileTemplate && templateTab === 'default') {
+      setTemplateTab('file');
+      setSelectedFileTemplateId(defaultFileTemplate.id);
+    }
+  }, [open, defaultFileTemplate]);
 
   const selectedTextTemplate = useMemo(() => {
     if (!selectedTextTemplateId) return null;
@@ -288,15 +299,18 @@ export function BulkDocumentPreviewDialog({
     return () => clearTimeout(timeout);
   }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate, currentInscrit]);
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens (but don't reset template selection - let auto-select handle it)
   useEffect(() => {
     if (open) {
       setCurrentIndex(0);
-      setTemplateTab('default');
-      setSelectedTextTemplateId('');
-      setSelectedFileTemplateId('');
+      // Only reset if no default template will be auto-selected
+      if (!defaultFileTemplate) {
+        setTemplateTab('default');
+        setSelectedTextTemplateId('');
+        setSelectedFileTemplateId('');
+      }
     }
-  }, [open]);
+  }, [open, defaultFileTemplate]);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
@@ -345,6 +359,21 @@ export function BulkDocumentPreviewDialog({
         </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0 gap-4">
+          {/* Default template indicator */}
+          {defaultFileTemplate && (
+            <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm">
+                Modèle par défaut détecté : <strong>{defaultFileTemplate.nom}</strong>
+                {defaultFileTemplate.formation_type && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {defaultFileTemplate.formation_type}
+                  </Badge>
+                )}
+              </span>
+            </div>
+          )}
+
           {/* Template selector with tabs */}
           <div className="p-4 bg-muted/50 rounded-lg space-y-3">
             <div className="flex items-center gap-2 mb-2">
@@ -356,15 +385,18 @@ export function BulkDocumentPreviewDialog({
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="default" className="text-xs">
                   <Sparkles className="h-3 w-3 mr-1" />
-                  Par défaut
+                  Intégré
                 </TabsTrigger>
                 <TabsTrigger value="text" className="text-xs">
                   <FileText className="h-3 w-3 mr-1" />
                   Modèle texte
                 </TabsTrigger>
-                <TabsTrigger value="file" className="text-xs">
+                <TabsTrigger value="file" className="text-xs relative">
                   <Upload className="h-3 w-3 mr-1" />
                   Fichier importé
+                  {defaultFileTemplate && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                  )}
                 </TabsTrigger>
               </TabsList>
 
