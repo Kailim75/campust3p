@@ -225,7 +225,14 @@ export function BulkDocumentPreviewDialog({
   }, [pdfDataUrl]);
 
   useEffect(() => {
-    if (!open || !contactInfo || !sessionInfo) {
+    if (!open || !sessionInfo) {
+      setPdfDataUrl(null);
+      return;
+    }
+
+    // Check if we have valid contact info
+    if (!contactInfo) {
+      console.warn('BulkDocumentPreviewDialog: No contact info available for current inscrit', currentInscrit);
       setPdfDataUrl(null);
       return;
     }
@@ -279,7 +286,7 @@ export function BulkDocumentPreviewDialog({
 
     const timeout = setTimeout(generatePreview, 100);
     return () => clearTimeout(timeout);
-  }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate]);
+  }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate, currentInscrit]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -491,10 +498,12 @@ export function BulkDocumentPreviewDialog({
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <AlertCircle className="h-8 w-8" />
-                  <span className="text-sm">
-                    {templateTab !== 'default' && !selectedTextTemplateId && !selectedFileTemplateId
-                      ? 'Sélectionnez un modèle pour voir l\'aperçu'
-                      : 'Impossible de générer l\'aperçu'}
+                  <span className="text-sm text-center max-w-xs">
+                    {!contactInfo
+                      ? 'Données du contact non disponibles pour cet inscrit'
+                      : templateTab !== 'default' && !selectedTextTemplateId && !selectedFileTemplateId
+                        ? 'Sélectionnez un modèle pour voir l\'aperçu'
+                        : 'Impossible de générer l\'aperçu'}
                   </span>
                 </div>
               </div>
