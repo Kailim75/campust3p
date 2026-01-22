@@ -1,6 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
+import { supabase } from "@/integrations/supabase/client";
+import { getDefaultTemplate } from "@/hooks/useDocumentTemplateFiles";
+import { buildVariableData, processDocxWithVariables } from "@/lib/docx-processor";
 import {
   generateFacturePDF,
   generateAttestationPDF,
@@ -17,6 +20,17 @@ import {
 } from "@/lib/pdf-generator";
 
 export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation";
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 export function useDocumentGenerator() {
   const { centreFormation } = useCentreFormation();
@@ -110,9 +124,78 @@ export function useDocumentGenerator() {
               toast.error("Données de session manquantes");
               return null;
             }
-            doc = generateAttestationPDF(contact, session, company);
-            filename = `attestation-${contact.nom}-${contact.prenom}.pdf`;
-            break;
+
+            // If a default imported template exists for this formation, use it
+            // (ex: Mobilité Taxi -> ATTESTATION MOB 75 MONTROUGE)
+            void (async () => {
+              try {
+                const defaultTemplate = await getDefaultTemplate("attestation", session.formation_type);
+
+                if (defaultTemplate?.actif && defaultTemplate.type_fichier === "docx") {
+                  const { data: templateBlob, error: downloadError } = await supabase.storage
+                    .from("document-templates")
+                    .download(defaultTemplate.file_path);
+
+                  if (downloadError || !templateBlob) {
+                    throw downloadError ?? new Error("Impossible de télécharger le modèle");
+                  }
+
+                  const variableData = buildVariableData(
+                    {
+                      civilite: contact.civilite,
+                      nom: contact.nom,
+                      prenom: contact.prenom,
+                      email: contact.email,
+                      telephone: contact.telephone,
+                      rue: contact.rue,
+                      code_postal: contact.code_postal,
+                      ville: contact.ville,
+                      date_naissance: contact.date_naissance,
+                      ville_naissance: contact.ville_naissance,
+                      // Champs optionnels (si présents dans le contact)
+                      pays_naissance: (contact as any)?.pays_naissance,
+                      numero_carte_professionnelle: (contact as any)?.numero_carte_professionnelle,
+                      prefecture_carte: (contact as any)?.prefecture_carte,
+                      date_expiration_carte: (contact as any)?.date_expiration_carte,
+                    },
+                    {
+                      nom: session.nom,
+                      date_debut: session.date_debut,
+                      date_fin: session.date_fin,
+                      lieu: session.lieu,
+                      formation_type: session.formation_type,
+                      duree_heures: session.duree_heures,
+                    },
+                    centreFormation
+                      ? {
+                          nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+                          adresse: centreFormation.adresse_complete,
+                          telephone: centreFormation.telephone,
+                          email: centreFormation.email,
+                          siret: centreFormation.siret,
+                          nda: centreFormation.nda,
+                        }
+                      : undefined
+                  );
+
+                  const processedBlob = await processDocxWithVariables(templateBlob, variableData);
+                  downloadBlob(processedBlob, `attestation-${contact.nom}-${contact.prenom}.docx`);
+                  toast.success("Attestation téléchargée");
+                  return;
+                }
+
+                // Fallback: standard PDF generation
+                const pdf = generateAttestationPDF(contact, session, company);
+                downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
+                toast.success("Attestation téléchargée");
+              } catch (err) {
+                console.error("Erreur génération attestation (modèle importé):", err);
+                toast.error("Erreur lors de la génération de l'attestation");
+              }
+            })();
+
+            // Note: async generation above triggers the download
+            return null;
 
           case "convention":
             if (!session) {
@@ -155,7 +238,7 @@ export function useDocumentGenerator() {
         return null;
       }
     },
-    [getCompanyInfo]
+    [getCompanyInfo, centreFormation]
   );
 
   const generateBulkDocuments = useCallback(
@@ -164,6 +247,94 @@ export function useDocumentGenerator() {
       contacts: ContactInfo[],
       session: SessionInfo
     ) => {
+      if (type === "attestation") {
+        // Handle async template download/processing once for all contacts
+        void (async () => {
+          const company = getCompanyInfo();
+          if (!company) {
+            toast.error(
+              "Configuration du centre de formation manquante. Allez dans Paramètres pour la configurer."
+            );
+            return;
+          }
+
+          let successCount = 0;
+
+          try {
+            const defaultTemplate = await getDefaultTemplate("attestation", session.formation_type);
+
+            if (defaultTemplate?.actif && defaultTemplate.type_fichier === "docx") {
+              const { data: templateBlob, error: downloadError } = await supabase.storage
+                .from("document-templates")
+                .download(defaultTemplate.file_path);
+
+              if (downloadError || !templateBlob) {
+                throw downloadError ?? new Error("Impossible de télécharger le modèle");
+              }
+
+              for (const contact of contacts) {
+                const variableData = buildVariableData(
+                  {
+                    civilite: contact.civilite,
+                    nom: contact.nom,
+                    prenom: contact.prenom,
+                    email: contact.email,
+                    telephone: contact.telephone,
+                    rue: contact.rue,
+                    code_postal: contact.code_postal,
+                    ville: contact.ville,
+                    date_naissance: contact.date_naissance,
+                    ville_naissance: contact.ville_naissance,
+                    pays_naissance: (contact as any)?.pays_naissance,
+                    numero_carte_professionnelle: (contact as any)?.numero_carte_professionnelle,
+                    prefecture_carte: (contact as any)?.prefecture_carte,
+                    date_expiration_carte: (contact as any)?.date_expiration_carte,
+                  },
+                  {
+                    nom: session.nom,
+                    date_debut: session.date_debut,
+                    date_fin: session.date_fin,
+                    lieu: session.lieu,
+                    formation_type: session.formation_type,
+                    duree_heures: session.duree_heures,
+                  },
+                  centreFormation
+                    ? {
+                        nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+                        adresse: centreFormation.adresse_complete,
+                        telephone: centreFormation.telephone,
+                        email: centreFormation.email,
+                        siret: centreFormation.siret,
+                        nda: centreFormation.nda,
+                      }
+                    : undefined
+                );
+
+                const processedBlob = await processDocxWithVariables(templateBlob, variableData);
+                downloadBlob(processedBlob, `attestation-${contact.nom}-${contact.prenom}.docx`);
+                successCount++;
+              }
+
+              toast.success(`${successCount} attestation(s) générée(s)`);
+              return;
+            }
+
+            // Fallback: standard PDF generation
+            for (const contact of contacts) {
+              const pdf = generateAttestationPDF(contact, session, company);
+              downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
+              successCount++;
+            }
+            toast.success(`${successCount} attestation(s) générée(s)`);
+          } catch (err) {
+            console.error("Erreur génération attestations (bulk):", err);
+            toast.error("Erreur lors de la génération des attestations");
+          }
+        })();
+
+        return;
+      }
+
       let successCount = 0;
       
       contacts.forEach((contact) => {
@@ -175,7 +346,7 @@ export function useDocumentGenerator() {
         toast.success(`${successCount} document(s) généré(s)`);
       }
     },
-    [generateDocument]
+    [generateDocument, getCompanyInfo, centreFormation]
   );
 
   return {
