@@ -370,6 +370,32 @@ export function buildVariableData(
       return dateStr;
     }
   };
+
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return "";
+    // Accept "HH:mm" or "HH:mm:ss" and normalize to "HH:mm"
+    const m = String(timeStr).trim().match(/^\d{1,2}:\d{2}/);
+    return m?.[0] ?? String(timeStr).trim();
+  };
+
+  const contactAdresse = [contact.rue, contact.code_postal, contact.ville]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const sessionDateDebut = formatDate(session?.date_debut);
+  const sessionDateFin = formatDate(session?.date_fin);
+  const sessionDateRange = sessionDateDebut && sessionDateFin
+    ? `${sessionDateDebut} au ${sessionDateFin}`
+    : sessionDateDebut || sessionDateFin || "";
+
+  const sessionHeureDebut = formatTime(session?.heure_debut);
+  const sessionHeureFin = formatTime(session?.heure_fin);
+  const sessionTimeRange = session?.horaires
+    ? String(session.horaires)
+    : sessionHeureDebut && sessionHeureFin
+      ? `${sessionHeureDebut} - ${sessionHeureFin}`
+      : sessionHeureDebut || sessionHeureFin || "";
   
   console.log("[DOCX buildVariableData] Input contact:", JSON.stringify(contact, null, 2));
   console.log("[DOCX buildVariableData] Input session:", JSON.stringify(session, null, 2));
@@ -385,6 +411,9 @@ export function buildVariableData(
     rue: contact.rue || "",
     code_postal: contact.code_postal || "",
     ville: contact.ville || "",
+    // Champs dérivés souvent utilisés dans les modèles (1 champ au lieu de 3)
+    adresse: contactAdresse,
+    adresse_complete: contactAdresse,
     date_naissance: formatDate(contact.date_naissance),
     ville_naissance: contact.ville_naissance || "",
     pays_naissance: contact.pays_naissance || "",
@@ -395,6 +424,12 @@ export function buildVariableData(
     prefecture_carte: contact.prefecture_carte || "",
     date_expiration_carte: formatDate(contact.date_expiration_carte),
     formation: contact.formation || "",
+
+    // Aliases carte pro (variantes fréquentes)
+    numero_carte: contact.numero_carte_professionnelle || "",
+    carte_professionnelle_numero: contact.numero_carte_professionnelle || "",
+    carte_professionnelle_prefecture: contact.prefecture_carte || "",
+    carte_professionnelle_date_expiration: formatDate(contact.date_expiration_carte),
 
     // English aliases (for templates using English variable names)
     student_last_name: contact.nom || "",
@@ -407,6 +442,7 @@ export function buildVariableData(
     student_address_street: contact.rue || "",
     student_address_zip: contact.code_postal || "",
     student_address_city: contact.ville || "",
+    student_full_address: contactAdresse,
     taxi_card_number: contact.numero_carte_professionnelle || "",
     taxi_card_expiry_date: formatDate(contact.date_expiration_carte),
     taxi_card_prefecture: contact.prefecture_carte || "",
@@ -427,18 +463,26 @@ export function buildVariableData(
     session_date_debut: formatDate(session?.date_debut),
     session_date_fin: formatDate(session?.date_fin),
     session_lieu: session?.lieu || "",
-    session_horaires: session?.horaires || "",
-    session_heure_debut: session?.heure_debut || "",
-    session_heure_fin: session?.heure_fin || "",
+    session_horaires: sessionTimeRange,
+    session_heure_debut: sessionHeureDebut,
+    session_heure_fin: sessionHeureFin,
     session_formateur: session?.formateur || "",
     formation_type: session?.formation_type || "",
     duree_heures: session?.duree_heures?.toString() || "",
 
+    // Champs dérivés (pour éviter les placeholders collés dans le modèle)
+    session_date_formation: sessionDateRange,
+    date_formation: sessionDateRange,
+    session_horaires_formation: sessionTimeRange,
+    horaires_formation: sessionTimeRange,
+
     // English aliases for session fields
-    training_start_date: formatDate(session?.date_debut),
-    training_end_date: formatDate(session?.date_fin),
-    training_start_time: session?.heure_debut || "",
-    training_end_time: session?.heure_fin || "",
+    training_start_date: sessionDateDebut,
+    training_end_date: sessionDateFin,
+    training_start_time: sessionHeureDebut,
+    training_end_time: sessionHeureFin,
+    training_date_range: sessionDateRange,
+    training_time_range: sessionTimeRange,
     
     // Centre formation fields
     centre_nom: centreFormation?.nom || "",
