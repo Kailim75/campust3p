@@ -37,6 +37,7 @@ import {
   Loader2,
   FileText,
   File,
+  FileSpreadsheet,
   FolderOpen,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -46,6 +47,8 @@ import {
   useDeleteTemplateFile,
   downloadTemplateFile,
   DocumentTemplateFile,
+  formationTypes,
+  templateDocumentTypes,
 } from "@/hooks/useDocumentTemplateFiles";
 import { documentCategories } from "@/hooks/useDocumentTemplates";
 import { TemplateFileUploadDialog } from "./TemplateFileUploadDialog";
@@ -54,6 +57,8 @@ import { toast } from "sonner";
 export function TemplateFilesSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterDocType, setFilterDocType] = useState<string>("all");
+  const [filterFormation, setFilterFormation] = useState<string>("all");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplateFile | null>(null);
@@ -65,11 +70,14 @@ export function TemplateFilesSection() {
     return templates.filter((t) => {
       const matchSearch =
         t.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.categorie.toLowerCase().includes(searchQuery.toLowerCase());
+        t.categorie.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.formation_type || "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchCategory = filterCategory === "all" || t.categorie === filterCategory;
-      return matchSearch && matchCategory;
+      const matchDocType = filterDocType === "all" || t.type_document === filterDocType;
+      const matchFormation = filterFormation === "all" || t.formation_type === filterFormation;
+      return matchSearch && matchCategory && matchDocType && matchFormation;
     });
-  }, [templates, searchQuery, filterCategory]);
+  }, [templates, searchQuery, filterCategory, filterDocType, filterFormation]);
 
   const handleDelete = (template: DocumentTemplateFile) => {
     setTemplateToDelete(template);
@@ -97,6 +105,12 @@ export function TemplateFilesSection() {
   const getCategoryLabel = (value: string) =>
     documentCategories.find((c) => c.value === value)?.label || value;
 
+  const getDocTypeLabel = (value: string | null) =>
+    templateDocumentTypes.find((t) => t.value === value)?.label || value || "Autre";
+
+  const getFormationLabel = (value: string | null) =>
+    formationTypes.find((f) => f.value === value)?.label || value || "";
+
   const statsByCategory = useMemo(() => {
     const stats: Record<string, number> = {};
     templates.forEach((t) => {
@@ -113,10 +127,10 @@ export function TemplateFilesSection() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <FolderOpen className="h-5 w-5" />
-                Modèles de fichiers (PDF/DOCX)
+                Modèles de fichiers (PDF/DOCX/Excel)
               </CardTitle>
               <CardDescription>
-                Importez vos modèles PDF ou Word avec des champs dynamiques {"{{variable}}"}
+                Importez vos modèles PDF, Word ou Excel avec des champs dynamiques {"{{variable}}"}
               </CardDescription>
             </div>
             <Button onClick={() => setUploadDialogOpen(true)}>
@@ -127,29 +141,59 @@ export function TemplateFilesSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filtres */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un modèle..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un modèle..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={filterDocType} onValueChange={setFilterDocType}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Type de document" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les types</SelectItem>
+                  {templateDocumentTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes catégories</SelectItem>
-                {documentCategories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label} ({statsByCategory[cat.value] || 0})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={filterFormation} onValueChange={setFilterFormation}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Formation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes formations</SelectItem>
+                  {formationTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes catégories</SelectItem>
+                  {documentCategories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label} ({statsByCategory[cat.value] || 0})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Liste des modèles */}
@@ -176,25 +220,32 @@ export function TemplateFilesSection() {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {template.type_fichier === "pdf" ? (
-                        <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                        <FileText className="h-8 w-8 text-destructive shrink-0" />
+                      ) : template.type_fichier === "xlsx" ? (
+                        <FileSpreadsheet className="h-8 w-8 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       ) : (
-                        <File className="h-8 w-8 text-blue-500 shrink-0" />
+                        <File className="h-8 w-8 text-primary shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium truncate">{template.nom}</span>
                           <Badge variant="outline" className="text-xs uppercase">
                             {template.type_fichier}
                           </Badge>
+                          {template.formation_type && (
+                            <Badge variant="default" className="text-xs">
+                              {getFormationLabel(template.formation_type)}
+                            </Badge>
+                          )}
                         </div>
                         {template.description && (
                           <p className="text-xs text-muted-foreground truncate">
                             {template.description}
                           </p>
                         )}
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge variant="secondary" className="text-xs">
-                            {getCategoryLabel(template.categorie)}
+                            {getDocTypeLabel(template.type_document)}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
                             {template.variables?.length || 0} variables

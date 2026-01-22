@@ -978,9 +978,11 @@ export type Database = {
           description: string | null
           file_path: string
           file_size: number | null
+          formation_type: string | null
           id: string
           mime_type: string | null
           nom: string
+          type_document: string | null
           type_fichier: string
           updated_at: string
           variables: string[] | null
@@ -993,9 +995,11 @@ export type Database = {
           description?: string | null
           file_path: string
           file_size?: number | null
+          formation_type?: string | null
           id?: string
           mime_type?: string | null
           nom: string
+          type_document?: string | null
           type_fichier: string
           updated_at?: string
           variables?: string[] | null
@@ -1008,9 +1012,11 @@ export type Database = {
           description?: string | null
           file_path?: string
           file_size?: number | null
+          formation_type?: string | null
           id?: string
           mime_type?: string | null
           nom?: string
+          type_document?: string | null
           type_fichier?: string
           updated_at?: string
           variables?: string[] | null
