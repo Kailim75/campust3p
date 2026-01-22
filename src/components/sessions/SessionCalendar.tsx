@@ -8,6 +8,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { fr } from "date-fns/locale";
 import { Session, useUpdateSession, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { toast } from "sonner";
+import { getFormationColor } from "@/constants/formationColors";
 
 interface SessionCalendarProps {
   sessions: Session[];
@@ -23,16 +24,6 @@ const statusColors: Record<string, string> = {
   complet: "bg-success text-success-foreground",
 };
 
-const formationColors: Record<string, string> = {
-  TAXI: "border-l-amber-500",
-  VTC: "border-l-blue-500",
-  VMDTR: "border-l-green-500",
-  "ACC VTC": "border-l-purple-500",
-  "ACC VTC 75": "border-l-pink-500",
-  "Formation continue Taxi": "border-l-orange-500",
-  "Formation continue VTC": "border-l-cyan-500",
-  "Mobilité Taxi": "border-l-red-500",
-};
 
 interface DragState {
   session: Session;
@@ -240,7 +231,7 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
                           className={cn(
                             "h-6 rounded-r text-xs flex items-center px-1 cursor-pointer opacity-60",
                             statusColors[session.statut],
-                            formationColors[session.formation_type] || "border-l-gray-500",
+                            getFormationColor(session.formation_type).border,
                             "border-l-4"
                           )}
                           onClick={() => onSessionClick(session)}
@@ -260,7 +251,7 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
                         className={cn(
                           "group relative rounded text-xs p-1 cursor-grab active:cursor-grabbing transition-all hover:shadow-md",
                           statusColors[session.statut],
-                          formationColors[session.formation_type] || "border-l-gray-500",
+                          getFormationColor(session.formation_type).border,
                           "border-l-4",
                           dragState?.session.id === session.id && "opacity-50"
                         )}
@@ -292,10 +283,16 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
         {/* Legend */}
         <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-4 text-xs">
           <span className="text-muted-foreground font-medium">Légende:</span>
-          {Object.entries(formationColors).slice(0, 5).map(([type, color]) => (
+          {Object.entries({
+            TAXI: "Taxi",
+            VTC: "VTC",
+            VMDTR: "VMDTR",
+            "ACC VTC": "ACC VTC",
+            "Formation continue Taxi": "Continue Taxi"
+          }).map(([type, label]) => (
             <div key={type} className="flex items-center gap-1.5">
-              <div className={cn("w-3 h-3 rounded border-l-4", color)} />
-              <span className="text-muted-foreground">{type}</span>
+              <div className={cn("w-3 h-3 rounded", getFormationColor(type).dot)} />
+              <span className="text-muted-foreground">{label}</span>
             </div>
           ))}
           <span className="text-muted-foreground ml-auto">

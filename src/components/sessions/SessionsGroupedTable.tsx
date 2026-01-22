@@ -52,6 +52,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
 import type { Session } from "@/hooks/useSessions";
+import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
 import type { GroupByMode } from "@/hooks/useSessionsViewPreferences";
 export type { GroupByMode };
@@ -64,17 +65,6 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   terminee: { label: "Terminée", class: "bg-muted text-muted-foreground border-muted" },
   annulee: { label: "Annulée", class: "bg-destructive/10 text-destructive border-destructive/20" },
   complet: { label: "Complet", class: "bg-success/10 text-success border-success/20" },
-};
-
-const formationLabels: Record<string, string> = {
-  TAXI: "Taxi",
-  VTC: "VTC",
-  VMDTR: "VMDTR",
-  "ACC VTC": "ACC VTC",
-  "ACC VTC 75": "ACC VTC 75",
-  "Formation continue Taxi": "Continue Taxi",
-  "Formation continue VTC": "Continue VTC",
-  "Mobilité Taxi": "Mobilité Taxi",
 };
 
 const groupByOptions = [
@@ -193,7 +183,8 @@ export function SessionsGroupedTable({
 
         switch (groupBy) {
           case "formation":
-            label = formationLabels[key] || key;
+            label = getFormationLabel(key);
+            badgeClass = getFormationColor(key).badge;
             break;
           case "status":
             label = statusConfig[key]?.label || key;
@@ -582,8 +573,8 @@ function SessionRow({
       
       {!hideFormation && (
         <TableCell>
-          <Badge variant="outline" className="text-xs">
-            {formationLabels[session.formation_type] || session.formation_type}
+          <Badge variant="outline" className={cn("text-xs", getFormationColor(session.formation_type).badge)}>
+            {getFormationLabel(session.formation_type)}
           </Badge>
         </TableCell>
       )}
