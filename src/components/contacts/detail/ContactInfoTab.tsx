@@ -1,8 +1,10 @@
 import { Mail, Phone, MapPin, Calendar, User, Car, CreditCard, GraduationCap, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { ContactCertificatesSection } from "./ContactCertificatesSection";
 
 interface Contact {
+  id?: string;
   email?: string | null;
   telephone?: string | null;
   rue?: string | null;
@@ -132,6 +134,9 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
           </div>
         )}
       </div>
+
+      {/* Certificats d'attestation */}
+      {contact.id && <ContactCertificatesSection contactId={contact.id} />}
     </div>
   );
 }

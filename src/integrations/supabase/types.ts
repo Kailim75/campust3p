@@ -80,6 +80,57 @@ export type Database = {
         }
         Relationships: []
       }
+      attestation_certificates: {
+        Row: {
+          contact_id: string
+          created_at: string
+          date_emission: string
+          emis_par: string | null
+          id: string
+          metadata: Json | null
+          numero_certificat: string
+          session_id: string | null
+          type_attestation: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          date_emission?: string
+          emis_par?: string | null
+          id?: string
+          metadata?: Json | null
+          numero_certificat: string
+          session_id?: string | null
+          type_attestation?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          date_emission?: string
+          emis_par?: string | null
+          id?: string
+          metadata?: Json | null
+          numero_certificat?: string
+          session_id?: string | null
+          type_attestation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attestation_certificates_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attestation_certificates_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -3083,6 +3134,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_attestation_certificate: {
+        Args: {
+          p_contact_id: string
+          p_metadata?: Json
+          p_session_id?: string
+          p_type_attestation?: string
+        }
+        Returns: {
+          date_emission: string
+          id: string
+          numero_certificat: string
+        }[]
+      }
+      generate_numero_certificat: {
+        Args: { p_type_attestation?: string }
+        Returns: string
+      }
       generate_numero_contrat: { Args: never; Returns: string }
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }

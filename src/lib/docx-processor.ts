@@ -503,6 +503,10 @@ export function buildVariableData(
     email?: string;
     siret?: string;
     nda?: string;
+  },
+  certificateInfo?: {
+    numero_certificat?: string;
+    date_emission?: string;
   }
 ): DocxVariableData {
   const formatDate = (dateStr?: string) => {
@@ -696,6 +700,17 @@ export function buildVariableData(
     document_issue_date: format(new Date(), "dd/MM/yyyy", { locale: fr }),
     fait_le: format(new Date(), "dd MMMM yyyy", { locale: fr }),
     date_attestation: format(new Date(), "dd/MM/yyyy", { locale: fr }),
+    
+    // Numéro de certificat (attestation unique)
+    numero_certificat: certificateInfo?.numero_certificat || "",
+    certificate_number: certificateInfo?.numero_certificat || "",
+    certificat_numero: certificateInfo?.numero_certificat || "",
+    reference_certificat: certificateInfo?.numero_certificat || "",
+    ref_certificat: certificateInfo?.numero_certificat || "",
+    attestation_numero: certificateInfo?.numero_certificat || "",
+    date_emission_certificat: certificateInfo?.date_emission 
+      ? format(new Date(certificateInfo.date_emission), "dd/MM/yyyy", { locale: fr })
+      : format(new Date(), "dd/MM/yyyy", { locale: fr }),
   };
 }
 
