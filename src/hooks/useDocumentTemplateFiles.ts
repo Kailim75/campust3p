@@ -23,14 +23,14 @@ export interface DocumentTemplateFile {
 
 // Types de formations disponibles
 export const formationTypes = [
-  { value: "VTC", label: "VTC Initial" },
-  { value: "TAXI", label: "TAXI Initial" },
-  { value: "VMDTR", label: "VMDTR Initial" },
-  { value: "FCO_VTC", label: "FCO VTC" },
-  { value: "FCO_TAXI", label: "FCO TAXI" },
-  { value: "FCO_VMDTR", label: "FCO VMDTR" },
-  { value: "MOB_75", label: "Mobilité 75" },
-  { value: "MOB", label: "Mobilité" },
+  { value: "TAXI", label: "TAXI" },
+  { value: "VTC", label: "VTC" },
+  { value: "VMDTR", label: "VMDTR" },
+  { value: "ACC VTC", label: "ACC VTC" },
+  { value: "ACC VTC 75", label: "ACC VTC 75" },
+  { value: "Formation continue Taxi", label: "Formation continue Taxi" },
+  { value: "Formation continue VTC", label: "Formation continue VTC" },
+  { value: "Mobilité Taxi", label: "Mobilité Taxi" },
 ] as const;
 
 // Types de documents
