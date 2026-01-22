@@ -980,6 +980,7 @@ export type Database = {
           file_size: number | null
           formation_type: string | null
           id: string
+          is_default: boolean
           mime_type: string | null
           nom: string
           type_document: string | null
@@ -997,6 +998,7 @@ export type Database = {
           file_size?: number | null
           formation_type?: string | null
           id?: string
+          is_default?: boolean
           mime_type?: string | null
           nom: string
           type_document?: string | null
@@ -1014,6 +1016,7 @@ export type Database = {
           file_size?: number | null
           formation_type?: string | null
           id?: string
+          is_default?: boolean
           mime_type?: string | null
           nom?: string
           type_document?: string | null
