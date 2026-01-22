@@ -110,8 +110,8 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
             Importer un modèle de document
@@ -121,8 +121,8 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1 max-h-[calc(85vh-180px)] pr-4">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+          <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4 pb-6">
               {/* Zone de dépôt de fichier */}
               <div

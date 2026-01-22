@@ -153,15 +153,15 @@ const Index = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
+    return (
+    <div className="h-screen bg-background overflow-hidden">
       <Sidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection} 
       />
       
       <main className={cn(
-        "transition-all duration-300",
+        "transition-all duration-300 h-full overflow-auto",
         isMobile ? "ml-0" : "ml-64"
       )}>
         {renderContent()}
