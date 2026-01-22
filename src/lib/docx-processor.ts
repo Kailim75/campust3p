@@ -376,7 +376,7 @@ export function buildVariableData(
   console.log("[DOCX buildVariableData] Input centreFormation:", JSON.stringify(centreFormation, null, 2));
 
   return {
-    // Contact fields
+    // Contact fields (French)
     civilite: contact.civilite || "",
     nom: contact.nom || "",
     prenom: contact.prenom || "",
@@ -396,6 +396,21 @@ export function buildVariableData(
     date_expiration_carte: formatDate(contact.date_expiration_carte),
     formation: contact.formation || "",
 
+    // English aliases (for templates using English variable names)
+    student_last_name: contact.nom || "",
+    student_first_name: contact.prenom || "",
+    student_birth_date: formatDate(contact.date_naissance),
+    student_birth_city: contact.ville_naissance || "",
+    student_birth_country: contact.pays_naissance || "",
+    student_phone: contact.telephone || "",
+    student_email: contact.email || "",
+    student_address_street: contact.rue || "",
+    student_address_zip: contact.code_postal || "",
+    student_address_city: contact.ville || "",
+    taxi_card_number: contact.numero_carte_professionnelle || "",
+    taxi_card_expiry_date: formatDate(contact.date_expiration_carte),
+    taxi_card_prefecture: contact.prefecture_carte || "",
+
     // Aliases often used in older templates / exports (avoid "undefined" in DOCX)
     contact_civilite: contact.civilite || "",
     contact_nom: contact.nom || "",
@@ -407,7 +422,7 @@ export function buildVariableData(
     contact_ville: contact.ville || "",
     contact_date_naissance: formatDate(contact.date_naissance),
     
-    // Session fields
+    // Session fields (French)
     session_nom: session?.nom || "",
     session_date_debut: formatDate(session?.date_debut),
     session_date_fin: formatDate(session?.date_fin),
@@ -418,6 +433,12 @@ export function buildVariableData(
     session_formateur: session?.formateur || "",
     formation_type: session?.formation_type || "",
     duree_heures: session?.duree_heures?.toString() || "",
+
+    // English aliases for session fields
+    training_start_date: formatDate(session?.date_debut),
+    training_end_date: formatDate(session?.date_fin),
+    training_start_time: session?.heure_debut || "",
+    training_end_time: session?.heure_fin || "",
     
     // Centre formation fields
     centre_nom: centreFormation?.nom || "",
@@ -430,6 +451,7 @@ export function buildVariableData(
     // Auto-generated date fields
     date_generation: format(new Date(), "dd/MM/yyyy", { locale: fr }),
     date_jour: format(new Date(), "dd MMMM yyyy", { locale: fr }),
+    document_issue_date: format(new Date(), "dd/MM/yyyy", { locale: fr }),
   };
 }
 
