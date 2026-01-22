@@ -27,8 +27,10 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useUpdateSession, type Session } from "@/hooks/useSessions";
 import { toast } from "sonner";
+import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
 type SessionStatus = "a_venir" | "en_cours" | "terminee" | "annulee" | "complet";
 
@@ -221,8 +223,8 @@ export function SessionsKanban({
                             </div>
 
                             {/* Formation type badge */}
-                            <Badge variant="outline" className="text-xs">
-                              {session.formation_type}
+                            <Badge variant="outline" className={cn("text-xs", getFormationColor(session.formation_type).badge)}>
+                              {getFormationLabel(session.formation_type)}
                             </Badge>
 
                             {/* Meta info */}

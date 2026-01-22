@@ -46,6 +46,7 @@ import { useFormateur } from "@/hooks/useFormateurs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 import {
   Dialog,
   DialogContent,
@@ -78,16 +79,6 @@ const statusConfig = {
   complet: { label: "Complet", class: "bg-success/10 text-success border-success/20" },
 };
 
-const formationLabels: Record<string, string> = {
-  TAXI: "Formation Taxi",
-  VTC: "Formation VTC",
-  VMDTR: "Formation VMDTR",
-  "ACC VTC": "Accompagnement VTC",
-  "ACC VTC 75": "Accompagnement VTC 75",
-  "Formation continue Taxi": "Formation continue Taxi",
-  "Formation continue VTC": "Formation continue VTC",
-  "Mobilité Taxi": "Mobilité Taxi",
-};
 
 interface SessionDetailSheetProps {
   sessionId: string | null;
@@ -277,8 +268,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     )}
                     <SheetTitle className="text-xl">{session.nom}</SheetTitle>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {formationLabels[session.formation_type] || session.formation_type}
+                      <Badge variant="outline" className={cn("text-xs", getFormationColor(session.formation_type).badge)}>
+                        {getFormationLabel(session.formation_type)}
                       </Badge>
                       <Badge
                         variant="outline"

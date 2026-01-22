@@ -5,17 +5,7 @@ import { cn } from "@/lib/utils";
 import { useUpcomingSessions, type Session } from "@/hooks/useSessions";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-const formationLabels: Record<string, string> = {
-  TAXI: "Taxi",
-  VTC: "VTC",
-  VMDTR: "VMDTR",
-  "ACC VTC": "ACC VTC",
-  "ACC VTC 75": "ACC VTC 75",
-  "Formation continue Taxi": "Continue Taxi",
-  "Formation continue VTC": "Continue VTC",
-  "Mobilité Taxi": "Mobilité Taxi",
-};
+import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
 const statusLabels = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info" },
@@ -73,14 +63,20 @@ export function SessionsOverview({ onClick }: SessionsOverviewProps) {
 }
 
 function SessionCard({ session }: { session: Session }) {
+  const formationColor = getFormationColor(session.formation_type);
+  
   return (
-    <div className="p-4 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors">
+    <div className={cn(
+      "p-4 rounded-lg border border-l-4 hover:shadow-md transition-all",
+      formationColor.bg,
+      formationColor.border
+    )}>
       <div className="flex items-start justify-between mb-2">
         <div>
           <h4 className="font-medium text-foreground">{session.nom}</h4>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="text-xs">
-              {formationLabels[session.formation_type] || session.formation_type}
+            <Badge variant="outline" className={cn("text-xs", formationColor.badge)}>
+              {getFormationLabel(session.formation_type)}
             </Badge>
             <Badge
               variant="secondary"
