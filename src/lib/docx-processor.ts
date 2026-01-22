@@ -63,6 +63,29 @@ export async function processDocxWithVariables(
   docxBlob: Blob,
   variables: DocxVariableData
 ): Promise<Blob> {
+  const normalizeDoubleBracesToDocxtemplater = (xml: string) =>
+    // Support templates written with {{nom}} by converting to docxtemplater's native {nom}
+    // (more robust in Word where double braces can be split across runs).
+    xml.replace(/\{\{/g, "{").replace(/\}\}/g, "}");
+
+  const normalizeTemplateXmlInZip = (zip: PizZip) => {
+    const files: string[] = Object.keys((zip as any).files ?? {});
+    for (const name of files) {
+      // Normalize main doc + headers/footers
+      if (!/^word\/(document|header\d+|footer\d+)\.xml$/.test(name)) continue;
+      const f = zip.file(name);
+      if (!f) continue;
+
+      try {
+        const text = f.asText();
+        const normalized = normalizeDoubleBracesToDocxtemplater(text);
+        if (normalized !== text) zip.file(name, normalized);
+      } catch {
+        // Ignore normalization errors and proceed.
+      }
+    }
+  };
+
   const getByPath = (obj: unknown, path: string) => {
     if (!path) return undefined;
     const parts = path.split(".").map((p) => p.trim()).filter(Boolean);
@@ -94,17 +117,17 @@ export async function processDocxWithVariables(
   
   // Create a zip object from the DOCX file
   const zip = new PizZip(arrayBuffer);
+
+  // Make templates authored with {{...}} compatible with docxtemplater { ... }
+  normalizeTemplateXmlInZip(zip);
   
   // Create docxtemplater instance with configuration
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
     stripInvalidXMLChars: true,
-    // Use custom delimiters to match {{variable}} syntax
-    delimiters: {
-      start: "{{",
-      end: "}}",
-    },
+    // Use docxtemplater's native delimiter (we normalize {{...}} -> {...} above)
+    delimiters: { start: "{", end: "}" },
     // Important: users often type "{{ nom }}" (with spaces) in Word.
     // This parser trims whitespace and also supports dot-path variables like "contact.nom".
     parser: (tag) => ({
@@ -382,7 +405,7 @@ export function createDocxPreviewPDF(
   
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  const infoText = "Les variables {{...}} dans le document DOCX seront remplacées par les valeurs du stagiaire lors de la génération.";
+  const infoText = "Les variables { ... } (ou {{ ... }}) dans le document DOCX seront remplacées par les valeurs du stagiaire lors de la génération.";
   const infoLines = doc.splitTextToSize(infoText, pageWidth - margin * 2 - 10);
   doc.text(infoLines, margin + 5, y + 20);
   

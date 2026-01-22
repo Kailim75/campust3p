@@ -232,6 +232,7 @@ export function BulkDocumentPreviewDialog({
           ville: contact.ville,
           date_naissance: contact.date_naissance,
           ville_naissance: contact.ville_naissance,
+          pays_naissance: (contact as any).pays_naissance,
         },
         {
           nom: session.nom,
