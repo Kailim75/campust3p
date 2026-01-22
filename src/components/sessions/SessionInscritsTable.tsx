@@ -183,6 +183,29 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     prix: session.prix ? Number(session.prix) : undefined,
   } : null;
 
+  // Générer un document pour un seul stagiaire
+  const handleGenerateSingleDocument = (type: DocumentType, contact: any) => {
+    if (!sessionInfo || !contact) {
+      toast.error("Données manquantes pour la génération");
+      return;
+    }
+    
+    const contactInfo = {
+      civilite: contact.civilite || undefined,
+      nom: contact.nom || '',
+      prenom: contact.prenom || '',
+      email: contact.email || undefined,
+      telephone: contact.telephone || undefined,
+      rue: contact.rue || undefined,
+      code_postal: contact.code_postal || undefined,
+      ville: contact.ville || undefined,
+      date_naissance: contact.date_naissance || undefined,
+      ville_naissance: contact.ville_naissance || undefined,
+    };
+    
+    generateDocument(type, contactInfo, sessionInfo);
+  };
+
   // Ouvrir la prévisualisation avant génération
   const handlePreviewBulkDocuments = (type: DocumentType) => {
     if (!sessionInfo || !inscrits?.length) {
@@ -664,6 +687,39 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          {/* Generate document for this contact */}
+                          <DropdownMenu>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    aria-label="Générer un document"
+                                  >
+                                    <FileDown className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>Générer un document</TooltipContent>
+                            </Tooltip>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleGenerateSingleDocument('attestation', inscrit.contact)}>
+                                <Award className="h-4 w-4 mr-2" />
+                                Attestation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateSingleDocument('convention', inscrit.contact)}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Convention
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateSingleDocument('convocation', inscrit.contact)}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Convocation
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
                           {/* Send documents to this contact */}
                           <Tooltip>
                             <TooltipTrigger asChild>
