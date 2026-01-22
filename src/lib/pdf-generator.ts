@@ -554,15 +554,16 @@ export function generateFacturePDF(
 export function generateAttestationPDF(
   contact: ContactInfo,
   session: SessionInfo,
-  company: CompanyInfo = DEFAULT_COMPANY
+  company: CompanyInfo = DEFAULT_COMPANY,
+  numeroCertificat?: string
 ): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
   const headerEndY = addHeader(doc, company);
   
-  // Title avec style
-  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION", headerEndY);
+  // Title avec style et numéro de certificat
+  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION", headerEndY, numeroCertificat);
   
   // Corps
   yPos += 10;

@@ -19,6 +19,38 @@ import {
   type AgrementsAutre,
 } from "@/lib/pdf-generator";
 
+// Fonction utilitaire pour créer ou récupérer un numéro de certificat
+async function getOrCreateCertificateNumber(
+  contactId: string,
+  sessionId?: string,
+  typeAttestation: string = 'formation'
+): Promise<{ numero_certificat: string; date_emission: string } | null> {
+  try {
+    const { data, error } = await supabase.rpc('create_attestation_certificate', {
+      p_contact_id: contactId,
+      p_session_id: sessionId || null,
+      p_type_attestation: typeAttestation,
+      p_metadata: {},
+    });
+
+    if (error) {
+      console.error('Erreur création certificat:', error);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      return {
+        numero_certificat: data[0].numero_certificat,
+        date_emission: data[0].date_emission,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('Erreur getOrCreateCertificateNumber:', err);
+    return null;
+  }
+}
+
 export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -129,6 +161,25 @@ export function useDocumentGenerator() {
             // (ex: Mobilité Taxi -> ATTESTATION MOB 75 MONTROUGE)
             void (async () => {
               try {
+                // Générer ou récupérer le numéro de certificat unique
+                const contactId = (contact as any)?.id;
+                const sessionId = (session as any)?.id;
+                let certificateInfo: { numero_certificat: string; date_emission: string } | null = null;
+                
+                if (contactId) {
+                  // Déterminer le type d'attestation selon la formation
+                  let typeAttestation = 'formation';
+                  if (session.formation_type?.toLowerCase().includes('mobilite') || 
+                      session.formation_type?.toLowerCase().includes('mobilité')) {
+                    typeAttestation = 'mobilite';
+                  }
+                  
+                  certificateInfo = await getOrCreateCertificateNumber(contactId, sessionId, typeAttestation);
+                  if (certificateInfo) {
+                    console.log(`[Certificat] Numéro généré: ${certificateInfo.numero_certificat}`);
+                  }
+                }
+                
                 const defaultTemplate = await getDefaultTemplate("attestation", session.formation_type);
 
                 if (defaultTemplate?.actif && defaultTemplate.type_fichier === "docx") {
@@ -177,19 +228,20 @@ export function useDocumentGenerator() {
                           siret: centreFormation.siret,
                           nda: centreFormation.nda,
                         }
-                      : undefined
+                      : undefined,
+                    certificateInfo || undefined
                   );
 
                   const processedBlob = await processDocxWithVariables(templateBlob, variableData);
                   downloadBlob(processedBlob, `attestation-${contact.nom}-${contact.prenom}.docx`);
-                  toast.success("Attestation téléchargée");
+                  toast.success(`Attestation téléchargée${certificateInfo ? ` (${certificateInfo.numero_certificat})` : ''}`);
                   return;
                 }
 
-                // Fallback: standard PDF generation
-                const pdf = generateAttestationPDF(contact, session, company);
+                // Fallback: standard PDF generation avec numéro de certificat
+                const pdf = generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
                 downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
-                toast.success("Attestation téléchargée");
+                toast.success(`Attestation téléchargée${certificateInfo ? ` (${certificateInfo.numero_certificat})` : ''}`);
               } catch (err) {
                 console.error("Erreur génération attestation (modèle importé):", err);
                 toast.error("Erreur lors de la génération de l'attestation");
@@ -263,6 +315,13 @@ export function useDocumentGenerator() {
           let successCount = 0;
 
           try {
+            // Déterminer le type d'attestation selon la formation
+            let typeAttestation = 'formation';
+            if (session.formation_type?.toLowerCase().includes('mobilite') || 
+                session.formation_type?.toLowerCase().includes('mobilité')) {
+              typeAttestation = 'mobilite';
+            }
+            
             const defaultTemplate = await getDefaultTemplate("attestation", session.formation_type);
 
             if (defaultTemplate?.actif && defaultTemplate.type_fichier === "docx") {
@@ -275,6 +334,15 @@ export function useDocumentGenerator() {
               }
 
               for (const contact of contacts) {
+                // Générer le numéro de certificat pour chaque contact
+                const contactId = (contact as any)?.id;
+                const sessionId = (session as any)?.id;
+                let certificateInfo: { numero_certificat: string; date_emission: string } | null = null;
+                
+                if (contactId) {
+                  certificateInfo = await getOrCreateCertificateNumber(contactId, sessionId, typeAttestation);
+                }
+                
                 const variableData = buildVariableData(
                   {
                     civilite: contact.civilite,
@@ -311,7 +379,8 @@ export function useDocumentGenerator() {
                         siret: centreFormation.siret,
                         nda: centreFormation.nda,
                       }
-                    : undefined
+                    : undefined,
+                  certificateInfo || undefined
                 );
 
                 const processedBlob = await processDocxWithVariables(templateBlob, variableData);
@@ -319,17 +388,25 @@ export function useDocumentGenerator() {
                 successCount++;
               }
 
-              toast.success(`${successCount} attestation(s) générée(s)`);
+              toast.success(`${successCount} attestation(s) générée(s) avec numéros de certificat`);
               return;
             }
 
-            // Fallback: standard PDF generation
+            // Fallback: standard PDF generation avec numéros de certificat
             for (const contact of contacts) {
-              const pdf = generateAttestationPDF(contact, session, company);
+              const contactId = (contact as any)?.id;
+              const sessionId = (session as any)?.id;
+              let certificateInfo: { numero_certificat: string; date_emission: string } | null = null;
+              
+              if (contactId) {
+                certificateInfo = await getOrCreateCertificateNumber(contactId, sessionId, typeAttestation);
+              }
+              
+              const pdf = generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
               downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
               successCount++;
             }
-            toast.success(`${successCount} attestation(s) générée(s)`);
+            toast.success(`${successCount} attestation(s) générée(s) avec numéros de certificat`);
           } catch (err) {
             console.error("Erreur génération attestations (bulk):", err);
             toast.error("Erreur lors de la génération des attestations");
