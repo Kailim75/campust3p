@@ -234,6 +234,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 ville: contact.ville || undefined,
                 date_naissance: contact.date_naissance || undefined,
                 ville_naissance: contact.ville_naissance || undefined,
+                  pays_naissance: (contact as any).pays_naissance || undefined,
               },
               {
                 nom: sessionInfo.nom,
