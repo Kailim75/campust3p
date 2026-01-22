@@ -53,16 +53,36 @@ export interface DocxVariableData {
   [key: string]: string | undefined;
 }
 
+export interface ProcessDocxOptions {
+  /** If true, throws an error when placeholders remain unreplaced in the final document */
+  strictMode?: boolean;
+  /** If true, logs detailed diagnostics to the console */
+  verbose?: boolean;
+}
+
+export interface ProcessDocxResult {
+  blob: Blob;
+  /** Placeholders that were found but remained empty (value was "") */
+  emptyPlaceholders: string[];
+  /** Placeholders that couldn't be resolved (not found in data) */
+  unresolvedPlaceholders: string[];
+  /** All placeholders detected in the template */
+  allPlaceholders: string[];
+}
+
 /**
  * Process a DOCX file with variable replacement using docxtemplater
  * @param docxBlob The original DOCX file as a Blob
  * @param variables Object containing variable values to replace
- * @returns Processed DOCX as Blob
+ * @param options Processing options (strictMode, verbose)
+ * @returns Processed DOCX as Blob (or ProcessDocxResult if you need diagnostics)
  */
 export async function processDocxWithVariables(
   docxBlob: Blob,
-  variables: DocxVariableData
+  variables: DocxVariableData,
+  options: ProcessDocxOptions = {}
 ): Promise<Blob> {
+  const { strictMode = false, verbose = true } = options;
   const normalizeDoubleBracesToDocxtemplater = (xml: string) =>
     // Support templates written with {{nom}} by converting to docxtemplater's native {nom}
     // (more robust in Word where double braces can be split across runs).
@@ -296,13 +316,20 @@ export async function processDocxWithVariables(
   
   // Set the data
   // Log détaillé pour diagnostic des champs manquants
-  console.log("[DOCX Processor] Setting data keys:", Object.keys(structuredData).sort());
+  if (verbose) {
+    console.log("[DOCX Processor] Setting data keys:", Object.keys(structuredData).sort());
+  }
+  
+  // Collect diagnostic info
+  let allPlaceholders: string[] = [];
+  let emptyPlaceholders: string[] = [];
+  let unresolvedPlaceholders: string[] = [];
   
   // Log des valeurs vides pour diagnostic
   const emptyKeys = Object.entries(data)
     .filter(([_, v]) => !v || v === "")
     .map(([k]) => k);
-  if (emptyKeys.length > 0) {
+  if (emptyKeys.length > 0 && verbose) {
     console.warn("[DOCX Processor] Variables vides (seront remplacées par ''):", emptyKeys);
   }
   
@@ -312,27 +339,44 @@ export async function processDocxWithVariables(
     // Render the document
     doc.render();
     
-    // Log des tags non utilisés (tags du template sans correspondance dans les données)
+    // Analyze tags for diagnostics
     try {
       const tags = (doc as any).getTags?.();
-      const allTags: string[] = [];
-      if (tags?.document?.tags) allTags.push(...flattenTagTree(tags.document.tags));
-      for (const h of tags?.headers || []) allTags.push(...flattenTagTree(h.tags));
-      for (const f of tags?.footers || []) allTags.push(...flattenTagTree(f.tags));
+      if (tags?.document?.tags) allPlaceholders.push(...flattenTagTree(tags.document.tags));
+      for (const h of tags?.headers || []) allPlaceholders.push(...flattenTagTree(h.tags));
+      for (const f of tags?.footers || []) allPlaceholders.push(...flattenTagTree(f.tags));
       
-      const unmatchedTags = allTags.filter(tag => {
+      // Deduplicate
+      allPlaceholders = [...new Set(allPlaceholders)];
+      
+      // Categorize unmatched tags
+      for (const tag of allPlaceholders) {
         const resolved = getByPath(structuredData, tag.trim());
-        return resolved === undefined || resolved === null || resolved === "";
-      });
+        if (resolved === undefined || resolved === null) {
+          unresolvedPlaceholders.push(tag);
+        } else if (resolved === "") {
+          emptyPlaceholders.push(tag);
+        }
+      }
       
-      if (unmatchedTags.length > 0) {
-        console.warn("[DOCX Processor] Tags non remplacés ou vides:", unmatchedTags);
+      if (verbose) {
+        if (unresolvedPlaceholders.length > 0) {
+          console.error("[DOCX Processor] ❌ Placeholders NON RÉSOLUS (variable inexistante):", unresolvedPlaceholders);
+        }
+        if (emptyPlaceholders.length > 0) {
+          console.warn("[DOCX Processor] ⚠️ Placeholders vides (variable existe mais valeur vide):", emptyPlaceholders);
+        }
+        if (unresolvedPlaceholders.length === 0 && emptyPlaceholders.length === 0) {
+          console.log("[DOCX Processor] ✅ Tous les placeholders ont été remplacés avec succès");
+        }
       }
     } catch {
       // Ignore tag inspection errors
     }
     
-    console.log("[DOCX Processor] Document rendered successfully");
+    if (verbose) {
+      console.log("[DOCX Processor] Document rendered successfully");
+    }
   } catch (error) {
     console.error("Error rendering DOCX template:", error);
     throw new Error("Erreur lors du traitement du modèle DOCX. Vérifiez que les variables sont correctement formatées.");
@@ -344,7 +388,76 @@ export async function processDocxWithVariables(
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
   
+  // POST-RENDER VALIDATION: Scan the final XML for remaining placeholders
+  const finalZip = new PizZip(await output.arrayBuffer());
+  const remainingPlaceholders = scanForRemainingPlaceholders(finalZip);
+  
+  if (remainingPlaceholders.length > 0) {
+    console.error("[DOCX Processor] ❌ PLACEHOLDERS RESTANTS DANS LE DOCUMENT FINAL:", remainingPlaceholders);
+    
+    if (strictMode) {
+      throw new DocxValidationError(
+        `${remainingPlaceholders.length} placeholder(s) non remplacé(s) dans le document final`,
+        remainingPlaceholders,
+        emptyPlaceholders,
+        allPlaceholders
+      );
+    }
+  }
+  
   return output;
+}
+
+/**
+ * Custom error class for DOCX validation failures
+ */
+export class DocxValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly unresolvedPlaceholders: string[],
+    public readonly emptyPlaceholders: string[],
+    public readonly allPlaceholders: string[]
+  ) {
+    super(message);
+    this.name = "DocxValidationError";
+  }
+}
+
+/**
+ * Scan a DOCX zip for remaining {placeholder} patterns in the final output
+ */
+function scanForRemainingPlaceholders(zip: PizZip): string[] {
+  const placeholders: Set<string> = new Set();
+  const files = Object.keys((zip as any).files ?? {});
+  
+  // Pattern to match {variable} or {{variable}} that weren't replaced
+  // Excludes XML tags and common Word formatting
+  const placeholderRegex = /\{+\s*([a-zA-Z_][a-zA-Z0-9_.\s]*?)\s*\}+/g;
+  
+  for (const name of files) {
+    if (!/^word\/(document|header\d+|footer\d+)\.xml$/.test(name)) continue;
+    const f = zip.file(name);
+    if (!f) continue;
+    
+    try {
+      const text = f.asText();
+      // Extract text content from XML (between > and <)
+      const textContent = text.replace(/<[^>]+>/g, " ");
+      
+      let match;
+      while ((match = placeholderRegex.exec(textContent)) !== null) {
+        const placeholder = match[1].trim();
+        // Filter out false positives (XML artifacts, very short strings)
+        if (placeholder.length >= 2 && !placeholder.includes("<") && !placeholder.includes(">")) {
+          placeholders.add(placeholder);
+        }
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+  
+  return Array.from(placeholders);
 }
 
 /**
@@ -717,4 +830,161 @@ export function createDocxPreviewPDF(
   );
   
   return doc;
+}
+
+/**
+ * Validate a DOCX template by processing it with test data and checking for remaining placeholders.
+ * Useful for automated testing and template validation before deployment.
+ * 
+ * @param docxBlob The DOCX template to validate
+ * @param testData Optional test data to use (defaults to sample data)
+ * @returns Validation result with details about any issues found
+ */
+export async function validateDocxTemplate(
+  docxBlob: Blob,
+  testData?: Partial<DocxVariableData>
+): Promise<{
+  isValid: boolean;
+  remainingPlaceholders: string[];
+  emptyPlaceholders: string[];
+  allPlaceholders: string[];
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  
+  // Default test data with all common fields populated
+  const defaultTestData: DocxVariableData = {
+    civilite: "M.",
+    nom: "DUPONT",
+    prenom: "Jean",
+    email: "jean.dupont@test.fr",
+    telephone: "06 12 34 56 78",
+    rue: "123 Rue de Test",
+    code_postal: "75001",
+    ville: "Paris",
+    adresse: "123 Rue de Test 75001 Paris",
+    adresse_complete: "123 Rue de Test 75001 Paris",
+    date_naissance: "01/01/1990",
+    ville_naissance: "Lyon",
+    pays_naissance: "France",
+    lieu_naissance: "Lyon, France",
+    nom_complet: "Jean DUPONT",
+    numero_carte_professionnelle: "CARTE-2024-001",
+    prefecture_carte: "Préfecture de Paris",
+    date_expiration_carte: "31/12/2029",
+    numero_permis: "PERMIS-123456",
+    prefecture_permis: "Préfecture de Lyon",
+    date_delivrance_permis: "15/06/2015",
+    formation: "Mobilité",
+    session_nom: "Session Test 2024",
+    session_date_debut: "01/06/2024",
+    session_date_fin: "05/06/2024",
+    session_date_formation: "01/06/2024 au 05/06/2024",
+    date_formation: "01/06/2024 au 05/06/2024",
+    session_lieu: "Paris - Centre de Formation",
+    session_horaires: "09:00 - 17:00",
+    session_heure_debut: "09:00",
+    session_heure_fin: "17:00",
+    horaires_formation: "09:00 - 17:00",
+    formation_type: "Mobilité",
+    duree_heures: "35",
+    centre_nom: "Centre de Formation Test",
+    centre_adresse: "456 Avenue de la Formation, 75002 Paris",
+    centre_telephone: "01 23 45 67 89",
+    centre_email: "contact@centre-test.fr",
+    centre_siret: "123 456 789 00012",
+    centre_nda: "11 75 12345 75",
+    date_generation: "01/06/2024",
+    date_jour: "01 juin 2024",
+    fait_le: "01 juin 2024",
+    ...testData,
+  };
+
+  try {
+    // Process with strict mode to catch remaining placeholders
+    await processDocxWithVariables(docxBlob, defaultTestData, { strictMode: true, verbose: false });
+    
+    return {
+      isValid: true,
+      remainingPlaceholders: [],
+      emptyPlaceholders: [],
+      allPlaceholders: [],
+      errors: [],
+    };
+  } catch (error) {
+    if (error instanceof DocxValidationError) {
+      return {
+        isValid: false,
+        remainingPlaceholders: error.unresolvedPlaceholders,
+        emptyPlaceholders: error.emptyPlaceholders,
+        allPlaceholders: error.allPlaceholders,
+        errors: [error.message],
+      };
+    }
+    
+    errors.push(error instanceof Error ? error.message : String(error));
+    return {
+      isValid: false,
+      remainingPlaceholders: [],
+      emptyPlaceholders: [],
+      allPlaceholders: [],
+      errors,
+    };
+  }
+}
+
+/**
+ * Process DOCX with validation - same as processDocxWithVariables but returns detailed result
+ */
+export async function processDocxWithValidation(
+  docxBlob: Blob,
+  variables: DocxVariableData
+): Promise<ProcessDocxResult> {
+  // Process without strict mode first to get the blob
+  const blob = await processDocxWithVariables(docxBlob, variables, { strictMode: false, verbose: true });
+  
+  // Re-scan the output for diagnostics
+  const finalZip = new PizZip(await blob.arrayBuffer());
+  const remainingPlaceholders = scanForRemainingPlaceholdersPublic(finalZip);
+  
+  // This is a simplified version - in production you'd want more detailed tracking
+  return {
+    blob,
+    emptyPlaceholders: [],
+    unresolvedPlaceholders: remainingPlaceholders,
+    allPlaceholders: [],
+  };
+}
+
+/**
+ * Public wrapper for scanning placeholders (for testing/validation)
+ */
+function scanForRemainingPlaceholdersPublic(zip: PizZip): string[] {
+  const placeholders: Set<string> = new Set();
+  const files = Object.keys((zip as any).files ?? {});
+  
+  const placeholderRegex = /\{+\s*([a-zA-Z_][a-zA-Z0-9_.\s]*?)\s*\}+/g;
+  
+  for (const name of files) {
+    if (!/^word\/(document|header\d+|footer\d+)\.xml$/.test(name)) continue;
+    const f = zip.file(name);
+    if (!f) continue;
+    
+    try {
+      const text = f.asText();
+      const textContent = text.replace(/<[^>]+>/g, " ");
+      
+      let match;
+      while ((match = placeholderRegex.exec(textContent)) !== null) {
+        const placeholder = match[1].trim();
+        if (placeholder.length >= 2 && !placeholder.includes("<") && !placeholder.includes(">")) {
+          placeholders.add(placeholder);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+  
+  return Array.from(placeholders);
 }
