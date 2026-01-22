@@ -63,6 +63,32 @@ export async function processDocxWithVariables(
   docxBlob: Blob,
   variables: DocxVariableData
 ): Promise<Blob> {
+  const getByPath = (obj: unknown, path: string) => {
+    if (!path) return undefined;
+    const parts = path.split(".").map((p) => p.trim()).filter(Boolean);
+    let cur: any = obj;
+    for (const p of parts) {
+      if (cur == null) return undefined;
+      cur = cur[p];
+    }
+    return cur;
+  };
+
+  const flattenTagTree = (node: unknown, prefix = ""): string[] => {
+    if (!node || typeof node !== "object") return [];
+    const out: string[] = [];
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      const nextPrefix = prefix ? `${prefix}.${k}` : k;
+      // Docxtemplater uses {} as leaf marker
+      if (v && typeof v === "object" && Object.keys(v as object).length > 0) {
+        out.push(...flattenTagTree(v, nextPrefix));
+      } else {
+        out.push(nextPrefix);
+      }
+    }
+    return out;
+  };
+
   // Read the blob as ArrayBuffer
   const arrayBuffer = await docxBlob.arrayBuffer();
   
@@ -73,11 +99,22 @@ export async function processDocxWithVariables(
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
+    stripInvalidXMLChars: true,
     // Use custom delimiters to match {{variable}} syntax
     delimiters: {
       start: "{{",
       end: "}}",
     },
+    // Important: users often type "{{ nom }}" (with spaces) in Word.
+    // This parser trims whitespace and also supports dot-path variables like "contact.nom".
+    parser: (tag) => ({
+      get: (scope) => {
+        const cleaned = String(tag ?? "").trim();
+        return getByPath(scope, cleaned);
+      },
+    }),
+    // Avoid the literal string "undefined" when a tag is missing
+    nullGetter: () => "",
   });
   
   // Prepare data with fallbacks for missing values
@@ -85,17 +122,89 @@ export async function processDocxWithVariables(
   for (const [key, value] of Object.entries(variables)) {
     data[key] = value || "";
   }
+
+  // Provide nested scopes for templates that use dot notation (ex: {{contact.nom}})
+  const structuredData: Record<string, unknown> = {
+    ...data,
+    contact: {
+      civilite: data.civilite,
+      nom: data.nom,
+      prenom: data.prenom,
+      email: data.email,
+      telephone: data.telephone,
+      rue: data.rue,
+      code_postal: data.code_postal,
+      ville: data.ville,
+      date_naissance: data.date_naissance,
+      ville_naissance: data.ville_naissance,
+      pays_naissance: data.pays_naissance,
+      numero_permis: data.numero_permis,
+      prefecture_permis: data.prefecture_permis,
+      date_delivrance_permis: data.date_delivrance_permis,
+      numero_carte_professionnelle: data.numero_carte_professionnelle,
+      prefecture_carte: data.prefecture_carte,
+      date_expiration_carte: data.date_expiration_carte,
+      formation: data.formation,
+    },
+    session: {
+      nom: data.session_nom,
+      date_debut: data.session_date_debut,
+      date_fin: data.session_date_fin,
+      lieu: data.session_lieu,
+      horaires: data.session_horaires,
+      heure_debut: data.session_heure_debut,
+      heure_fin: data.session_heure_fin,
+      formateur: data.session_formateur,
+      formation_type: data.formation_type,
+      duree_heures: data.duree_heures,
+    },
+    centre: {
+      nom: data.centre_nom,
+      adresse: data.centre_adresse,
+      telephone: data.centre_telephone,
+      email: data.centre_email,
+      siret: data.centre_siret,
+      nda: data.centre_nda,
+    },
+  };
+
+  // Auto-handle tags with whitespace (ex: {{ nom }}) by copying values to the exact tag key
+  // This avoids blanks/"undefined" when the template includes extra spaces.
+  try {
+    const tags = (doc as any).getTags?.();
+    const allTags: string[] = [];
+
+    if (tags?.document?.tags) allTags.push(...flattenTagTree(tags.document.tags));
+    for (const h of tags?.headers || []) allTags.push(...flattenTagTree(h.tags));
+    for (const f of tags?.footers || []) allTags.push(...flattenTagTree(f.tags));
+
+    for (const original of allTags) {
+      const trimmed = original.trim();
+      if (!trimmed || trimmed === original) continue;
+
+      const existing = getByPath(structuredData, original);
+      if (existing != null && String(existing) !== "") continue;
+
+      const resolved = getByPath(structuredData, trimmed);
+      if (resolved != null && String(resolved) !== "") {
+        // Only safe to set flat keys (docxtemplater resolves tags from root scope)
+        (structuredData as any)[original] = String(resolved);
+      }
+    }
+  } catch {
+    // If inspection fails, we still proceed with rendering.
+  }
   
   // Add generated date if not provided
-  if (!data.date_generation) {
-    data.date_generation = format(new Date(), "dd/MM/yyyy", { locale: fr });
+  if (!(structuredData as any).date_generation) {
+    (structuredData as any).date_generation = format(new Date(), "dd/MM/yyyy", { locale: fr });
   }
-  if (!data.date_jour) {
-    data.date_jour = format(new Date(), "dd MMMM yyyy", { locale: fr });
+  if (!(structuredData as any).date_jour) {
+    (structuredData as any).date_jour = format(new Date(), "dd MMMM yyyy", { locale: fr });
   }
   
   // Set the data
-  doc.setData(data);
+  doc.setData(structuredData);
   
   try {
     // Render the document
@@ -188,6 +297,17 @@ export function buildVariableData(
     prefecture_carte: contact.prefecture_carte || "",
     date_expiration_carte: formatDate(contact.date_expiration_carte),
     formation: contact.formation || "",
+
+    // Aliases often used in older templates / exports (avoid "undefined" in DOCX)
+    contact_civilite: contact.civilite || "",
+    contact_nom: contact.nom || "",
+    contact_prenom: contact.prenom || "",
+    contact_email: contact.email || "",
+    contact_telephone: contact.telephone || "",
+    contact_rue: contact.rue || "",
+    contact_code_postal: contact.code_postal || "",
+    contact_ville: contact.ville || "",
+    contact_date_naissance: formatDate(contact.date_naissance),
     
     // Session fields
     session_nom: session?.nom || "",
