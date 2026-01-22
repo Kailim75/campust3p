@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, List, CalendarDays, Download } from "lucide-react";
+import { Search, Plus, List, CalendarDays, Download, Kanban } from "lucide-react";
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
@@ -22,6 +22,7 @@ import { SessionCalendar } from "./SessionCalendar";
 import { SessionsKPICards } from "./SessionsKPICards";
 import { SessionsAdvancedFilters, type SessionFilters } from "./SessionsAdvancedFilters";
 import { SessionsGroupedTable } from "./SessionsGroupedTable";
+import { SessionsKanban } from "./SessionsKanban";
 import { toast } from "sonner";
 
 export function SessionsPage() {
@@ -43,7 +44,7 @@ export function SessionsPage() {
     dateStart: "",
     dateEnd: "",
   });
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "kanban">("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
@@ -189,11 +190,15 @@ export function SessionsPage() {
         {/* View Toggle + Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* View mode toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar" | "kanban")}>
             <TabsList>
               <TabsTrigger value="list" className="gap-2">
                 <List className="h-4 w-4" />
                 Liste
+              </TabsTrigger>
+              <TabsTrigger value="kanban" className="gap-2">
+                <Kanban className="h-4 w-4" />
+                Kanban
               </TabsTrigger>
               <TabsTrigger value="calendar" className="gap-2">
                 <CalendarDays className="h-4 w-4" />
@@ -255,6 +260,19 @@ export function SessionsPage() {
             sessions={filteredSessions}
             onSessionClick={handleViewDetail}
             onSessionEdit={handleEdit}
+          />
+        )}
+
+        {/* Kanban View */}
+        {viewMode === "kanban" && (
+          <SessionsKanban
+            sessions={filteredSessions}
+            inscriptionsCounts={inscriptionsCounts}
+            isLoading={isLoading}
+            onViewDetail={handleViewDetail}
+            onEdit={handleEdit}
+            onDuplicate={handleDuplicate}
+            onDelete={handleDelete}
           />
         )}
 
