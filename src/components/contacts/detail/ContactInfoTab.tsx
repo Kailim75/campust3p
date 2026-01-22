@@ -14,9 +14,9 @@ interface Contact {
   custom_id?: string | null;
   numero_permis?: string | null;
   prefecture_permis?: string | null;
-  date_delivrance_permis?: string | withFallback;
-  numero_carte_professionnelle?: string | withFallback;
-  prefecture_carte?: string | withFallback;
+  date_delivrance_permis?: string | null;
+  numero_carte_professionnelle?: string | null;
+  prefecture_carte?: string | null;
   date_expiration_carte?: string | null;
   formation?: string | null;
   source?: string | null;
