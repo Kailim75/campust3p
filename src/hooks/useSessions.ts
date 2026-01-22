@@ -69,7 +69,25 @@ export function useSessionInscriptions(sessionId: string | null) {
         .select(`
           *,
           contacts:contact_id (
-            id, nom, prenom, email, telephone, formation
+            id,
+            civilite,
+            nom,
+            prenom,
+            email,
+            telephone,
+            rue,
+            code_postal,
+            ville,
+            date_naissance,
+            ville_naissance,
+            pays_naissance,
+            numero_carte_professionnelle,
+            prefecture_carte,
+            date_expiration_carte,
+            numero_permis,
+            prefecture_permis,
+            date_delivrance_permis,
+            formation
           )
         `)
         .eq("session_id", sessionId)
