@@ -238,6 +238,8 @@ export function BulkDocumentPreviewDialog({
           date_debut: session.date_debut,
           date_fin: session.date_fin,
           lieu: session.lieu,
+          heure_debut: session.heure_debut,
+          heure_fin: session.heure_fin,
           horaires: session.heure_debut && session.heure_fin 
             ? `${session.heure_debut} - ${session.heure_fin}` 
             : undefined,

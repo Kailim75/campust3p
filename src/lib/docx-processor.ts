@@ -31,6 +31,8 @@ export interface DocxVariableData {
   session_date_fin?: string;
   session_lieu?: string;
   session_horaires?: string;
+  session_heure_debut?: string;
+  session_heure_fin?: string;
   session_formateur?: string;
   formation_type?: string;
   duree_heures?: string;
@@ -142,6 +144,8 @@ export function buildVariableData(
     date_fin?: string;
     lieu?: string;
     horaires?: string;
+    heure_debut?: string;
+    heure_fin?: string;
     formateur?: string;
     formation_type?: string;
     duree_heures?: number;
@@ -191,6 +195,8 @@ export function buildVariableData(
     session_date_fin: formatDate(session?.date_fin),
     session_lieu: session?.lieu || "",
     session_horaires: session?.horaires || "",
+    session_heure_debut: session?.heure_debut || "",
+    session_heure_fin: session?.heure_fin || "",
     session_formateur: session?.formateur || "",
     formation_type: session?.formation_type || "",
     duree_heures: session?.duree_heures?.toString() || "",
