@@ -110,7 +110,7 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col min-h-0">
+      <DialogContent className="max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
