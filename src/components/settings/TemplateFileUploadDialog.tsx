@@ -212,12 +212,12 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
 
                   <div className="space-y-2">
                     <Label htmlFor="formationType">Formation associée</Label>
-                    <Select value={formationType} onValueChange={setFormationType}>
+                    <Select value={formationType || "all"} onValueChange={(val) => setFormationType(val === "all" ? "" : val)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Toutes formations" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Toutes formations</SelectItem>
+                        <SelectItem value="all">Toutes formations</SelectItem>
                         {formationTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
