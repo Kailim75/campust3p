@@ -53,7 +53,8 @@ import { fr } from "date-fns/locale";
 import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
 import type { Session } from "@/hooks/useSessions";
 
-export type GroupByMode = "none" | "formation" | "status" | "month" | "lieu";
+import type { GroupByMode } from "@/hooks/useSessionsViewPreferences";
+export type { GroupByMode };
 type SortField = 'nom' | 'formation_type' | 'date_debut' | 'lieu' | 'inscrits' | 'statut';
 type SortOrder = 'asc' | 'desc';
 
@@ -88,6 +89,8 @@ interface SessionsGroupedTableProps {
   sessions: Session[];
   inscriptionsCounts: Record<string, number>;
   isLoading: boolean;
+  groupBy: GroupByMode;
+  onGroupByChange: (groupBy: GroupByMode) => void;
   onViewDetail: (session: Session) => void;
   onEdit: (session: Session) => void;
   onDuplicate: (session: Session) => void;
@@ -105,12 +108,13 @@ export function SessionsGroupedTable({
   sessions,
   inscriptionsCounts,
   isLoading,
+  groupBy,
+  onGroupByChange,
   onViewDetail,
   onEdit,
   onDuplicate,
   onDelete,
 }: SessionsGroupedTableProps) {
-  const [groupBy, setGroupBy] = useState<GroupByMode>("formation");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('date_debut');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -302,7 +306,7 @@ export function SessionsGroupedTable({
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Regrouper par :</span>
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByMode)}>
+          <Select value={groupBy} onValueChange={(v) => onGroupByChange(v as GroupByMode)}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
