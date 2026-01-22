@@ -295,13 +295,43 @@ export async function processDocxWithVariables(
   }
   
   // Set the data
-   // Avoid dumping PII in logs; keep it actionable for debugging
-   console.log("[DOCX Processor] Setting data keys:", Object.keys(structuredData).sort());
+  // Log détaillé pour diagnostic des champs manquants
+  console.log("[DOCX Processor] Setting data keys:", Object.keys(structuredData).sort());
+  
+  // Log des valeurs vides pour diagnostic
+  const emptyKeys = Object.entries(data)
+    .filter(([_, v]) => !v || v === "")
+    .map(([k]) => k);
+  if (emptyKeys.length > 0) {
+    console.warn("[DOCX Processor] Variables vides (seront remplacées par ''):", emptyKeys);
+  }
+  
   doc.setData(structuredData);
   
   try {
     // Render the document
     doc.render();
+    
+    // Log des tags non utilisés (tags du template sans correspondance dans les données)
+    try {
+      const tags = (doc as any).getTags?.();
+      const allTags: string[] = [];
+      if (tags?.document?.tags) allTags.push(...flattenTagTree(tags.document.tags));
+      for (const h of tags?.headers || []) allTags.push(...flattenTagTree(h.tags));
+      for (const f of tags?.footers || []) allTags.push(...flattenTagTree(f.tags));
+      
+      const unmatchedTags = allTags.filter(tag => {
+        const resolved = getByPath(structuredData, tag.trim());
+        return resolved === undefined || resolved === null || resolved === "";
+      });
+      
+      if (unmatchedTags.length > 0) {
+        console.warn("[DOCX Processor] Tags non remplacés ou vides:", unmatchedTags);
+      }
+    } catch {
+      // Ignore tag inspection errors
+    }
+    
     console.log("[DOCX Processor] Document rendered successfully");
   } catch (error) {
     console.error("Error rendering DOCX template:", error);
@@ -401,6 +431,15 @@ export function buildVariableData(
   console.log("[DOCX buildVariableData] Input session:", JSON.stringify(session, null, 2));
   console.log("[DOCX buildVariableData] Input centreFormation:", JSON.stringify(centreFormation, null, 2));
 
+  // Nom complet composé
+  const nomComplet = [contact.prenom, contact.nom].filter(Boolean).join(" ");
+  const nomCompletInverse = [contact.nom, contact.prenom].filter(Boolean).join(" ");
+  
+  // Lieu de naissance complet
+  const lieuNaissance = [contact.ville_naissance, contact.pays_naissance]
+    .filter(Boolean)
+    .join(", ");
+
   return {
     // Contact fields (French)
     civilite: contact.civilite || "",
@@ -411,15 +450,38 @@ export function buildVariableData(
     rue: contact.rue || "",
     code_postal: contact.code_postal || "",
     ville: contact.ville || "",
+    
+    // Nom complet (variantes)
+    nom_complet: nomComplet,
+    nom_prenom: nomComplet,
+    prenom_nom: nomComplet,
+    stagiaire: nomComplet,
+    participant: nomComplet,
+    nom_stagiaire: contact.nom || "",
+    prenom_stagiaire: contact.prenom || "",
+    
     // Champs dérivés souvent utilisés dans les modèles (1 champ au lieu de 3)
     adresse: contactAdresse,
     adresse_complete: contactAdresse,
+    adresse_stagiaire: contactAdresse,
+    
+    // Date et lieu de naissance
     date_naissance: formatDate(contact.date_naissance),
     ville_naissance: contact.ville_naissance || "",
     pays_naissance: contact.pays_naissance || "",
+    lieu_naissance: lieuNaissance,
+    ne_le: formatDate(contact.date_naissance),
+    ne_a: contact.ville_naissance || "",
+    
+    // Permis de conduire
     numero_permis: contact.numero_permis || "",
     prefecture_permis: contact.prefecture_permis || "",
     date_delivrance_permis: formatDate(contact.date_delivrance_permis),
+    permis_numero: contact.numero_permis || "",
+    permis_prefecture: contact.prefecture_permis || "",
+    permis_date: formatDate(contact.date_delivrance_permis),
+    
+    // Carte professionnelle (toutes variantes)
     numero_carte_professionnelle: contact.numero_carte_professionnelle || "",
     prefecture_carte: contact.prefecture_carte || "",
     date_expiration_carte: formatDate(contact.date_expiration_carte),
@@ -427,16 +489,24 @@ export function buildVariableData(
 
     // Aliases carte pro (variantes fréquentes)
     numero_carte: contact.numero_carte_professionnelle || "",
+    carte_pro: contact.numero_carte_professionnelle || "",
+    carte_professionnelle: contact.numero_carte_professionnelle || "",
     carte_professionnelle_numero: contact.numero_carte_professionnelle || "",
     carte_professionnelle_prefecture: contact.prefecture_carte || "",
     carte_professionnelle_date_expiration: formatDate(contact.date_expiration_carte),
+    carte_numero: contact.numero_carte_professionnelle || "",
+    carte_prefecture: contact.prefecture_carte || "",
+    carte_expiration: formatDate(contact.date_expiration_carte),
 
     // English aliases (for templates using English variable names)
     student_last_name: contact.nom || "",
     student_first_name: contact.prenom || "",
+    student_full_name: nomComplet,
+    student_name: nomComplet,
     student_birth_date: formatDate(contact.date_naissance),
     student_birth_city: contact.ville_naissance || "",
     student_birth_country: contact.pays_naissance || "",
+    student_birth_place: lieuNaissance,
     student_phone: contact.telephone || "",
     student_email: contact.email || "",
     student_address_street: contact.rue || "",
@@ -446,6 +516,9 @@ export function buildVariableData(
     taxi_card_number: contact.numero_carte_professionnelle || "",
     taxi_card_expiry_date: formatDate(contact.date_expiration_carte),
     taxi_card_prefecture: contact.prefecture_carte || "",
+    license_number: contact.numero_permis || "",
+    license_prefecture: contact.prefecture_permis || "",
+    license_issue_date: formatDate(contact.date_delivrance_permis),
 
     // Aliases often used in older templates / exports (avoid "undefined" in DOCX)
     contact_civilite: contact.civilite || "",
@@ -457,6 +530,7 @@ export function buildVariableData(
     contact_code_postal: contact.code_postal || "",
     contact_ville: contact.ville || "",
     contact_date_naissance: formatDate(contact.date_naissance),
+    contact_lieu_naissance: lieuNaissance,
     
     // Session fields (French)
     session_nom: session?.nom || "",
@@ -469,12 +543,16 @@ export function buildVariableData(
     session_formateur: session?.formateur || "",
     formation_type: session?.formation_type || "",
     duree_heures: session?.duree_heures?.toString() || "",
+    duree: session?.duree_heures?.toString() || "",
 
     // Champs dérivés (pour éviter les placeholders collés dans le modèle)
     session_date_formation: sessionDateRange,
     date_formation: sessionDateRange,
+    dates_formation: sessionDateRange,
+    periode_formation: sessionDateRange,
     session_horaires_formation: sessionTimeRange,
     horaires_formation: sessionTimeRange,
+    horaires: sessionTimeRange,
 
     // English aliases for session fields
     training_start_date: sessionDateDebut,
@@ -483,6 +561,10 @@ export function buildVariableData(
     training_end_time: sessionHeureFin,
     training_date_range: sessionDateRange,
     training_time_range: sessionTimeRange,
+    training_location: session?.lieu || "",
+    training_name: session?.nom || "",
+    training_type: session?.formation_type || "",
+    training_duration: session?.duree_heures?.toString() || "",
     
     // Centre formation fields
     centre_nom: centreFormation?.nom || "",
@@ -491,11 +573,16 @@ export function buildVariableData(
     centre_email: centreFormation?.email || "",
     centre_siret: centreFormation?.siret || "",
     centre_nda: centreFormation?.nda || "",
+    organisme: centreFormation?.nom || "",
+    organisme_nom: centreFormation?.nom || "",
+    organisme_adresse: centreFormation?.adresse || "",
     
     // Auto-generated date fields
     date_generation: format(new Date(), "dd/MM/yyyy", { locale: fr }),
     date_jour: format(new Date(), "dd MMMM yyyy", { locale: fr }),
     document_issue_date: format(new Date(), "dd/MM/yyyy", { locale: fr }),
+    fait_le: format(new Date(), "dd MMMM yyyy", { locale: fr }),
+    date_attestation: format(new Date(), "dd/MM/yyyy", { locale: fr }),
   };
 }
 
