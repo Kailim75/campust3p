@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileText, File, X, Loader2, Info } from "lucide-react";
-import { useUploadTemplateFile, extractVariablesFromText } from "@/hooks/useDocumentTemplateFiles";
+import { Upload, FileText, File, FileSpreadsheet, X, Loader2, Info } from "lucide-react";
+import { useUploadTemplateFile, formationTypes, templateDocumentTypes } from "@/hooks/useDocumentTemplateFiles";
 import { availableVariables, documentCategories } from "@/hooks/useDocumentTemplates";
 
 interface TemplateFileUploadDialogProps {
@@ -34,6 +34,8 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
   const [categorie, setCategorie] = useState("formation");
+  const [typeDocument, setTypeDocument] = useState("attestation");
+  const [formationType, setFormationType] = useState("");
   const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,12 +45,12 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       const extension = selectedFile.name.split(".").pop()?.toLowerCase();
-      if (!extension || !["pdf", "docx"].includes(extension)) {
+      if (!extension || !["pdf", "docx", "xlsx"].includes(extension)) {
         return;
       }
       setFile(selectedFile);
       if (!nom) {
-        setNom(selectedFile.name.replace(/\.(pdf|docx)$/i, ""));
+        setNom(selectedFile.name.replace(/\.(pdf|docx|xlsx)$/i, ""));
       }
     }
   };
@@ -58,10 +60,10 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) {
       const extension = droppedFile.name.split(".").pop()?.toLowerCase();
-      if (extension && ["pdf", "docx"].includes(extension)) {
+      if (extension && ["pdf", "docx", "xlsx"].includes(extension)) {
         setFile(droppedFile);
         if (!nom) {
-          setNom(droppedFile.name.replace(/\.(pdf|docx)$/i, ""));
+          setNom(droppedFile.name.replace(/\.(pdf|docx|xlsx)$/i, ""));
         }
       }
     }
@@ -84,6 +86,8 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
       nom: nom.trim(),
       description: description.trim() || undefined,
       categorie,
+      type_document: typeDocument,
+      formation_type: formationType || undefined,
       variables: selectedVariables,
     });
 
@@ -92,6 +96,8 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
     setNom("");
     setDescription("");
     setCategorie("formation");
+    setTypeDocument("attestation");
+    setFormationType("");
     setSelectedVariables([]);
     onOpenChange(false);
   };
@@ -111,7 +117,7 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
             Importer un modèle de document
           </DialogTitle>
           <DialogDescription>
-            Uploadez un fichier PDF ou DOCX contenant des variables dynamiques {"{{variable}}"}
+            Uploadez un fichier PDF, DOCX ou Excel contenant des variables dynamiques {"{{variable}}"}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,16 +136,18 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.docx"
+                  accept=".pdf,.docx,.xlsx"
                   onChange={handleFileChange}
                   className="hidden"
                 />
                 {file ? (
                   <div className="flex items-center justify-center gap-3">
                     {file.name.endsWith(".pdf") ? (
-                      <FileText className="h-10 w-10 text-red-500" />
+                      <FileText className="h-10 w-10 text-destructive" />
+                    ) : file.name.endsWith(".xlsx") ? (
+                      <FileSpreadsheet className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <File className="h-10 w-10 text-blue-500" />
+                      <File className="h-10 w-10 text-primary" />
                     )}
                     <div className="text-left">
                       <p className="font-medium">{file.name}</p>
@@ -163,10 +171,10 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
                   <>
                     <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      Glissez-déposez un fichier PDF ou DOCX, ou cliquez pour sélectionner
+                      Glissez-déposez un fichier, ou cliquez pour sélectionner
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Formats acceptés : PDF, DOCX
+                      Formats acceptés : PDF, DOCX, XLSX
                     </p>
                   </>
                 )}
@@ -183,6 +191,41 @@ export function TemplateFileUploadDialog({ open, onOpenChange }: TemplateFileUpl
                     placeholder="Ex: Convention de formation VTC"
                     required
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="typeDocument">Type de document *</Label>
+                    <Select value={typeDocument} onValueChange={setTypeDocument}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateDocumentTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="formationType">Formation associée</Label>
+                    <Select value={formationType} onValueChange={setFormationType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Toutes formations" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Toutes formations</SelectItem>
+                        {formationTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

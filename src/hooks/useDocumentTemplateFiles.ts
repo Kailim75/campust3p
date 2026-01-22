@@ -6,17 +6,40 @@ export interface DocumentTemplateFile {
   id: string;
   nom: string;
   description: string | null;
-  type_fichier: "pdf" | "docx";
+  type_fichier: "pdf" | "docx" | "xlsx";
   file_path: string;
   file_size: number | null;
   mime_type: string | null;
   variables: string[];
   categorie: string;
+  type_document: string | null;
+  formation_type: string | null;
   actif: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
 }
+
+// Types de formations disponibles
+export const formationTypes = [
+  { value: "VTC", label: "VTC Initial" },
+  { value: "TAXI", label: "TAXI Initial" },
+  { value: "VMDTR", label: "VMDTR Initial" },
+  { value: "FCO_VTC", label: "FCO VTC" },
+  { value: "FCO_TAXI", label: "FCO TAXI" },
+  { value: "FCO_VMDTR", label: "FCO VMDTR" },
+  { value: "MOB_75", label: "Mobilité 75" },
+  { value: "MOB", label: "Mobilité" },
+] as const;
+
+// Types de documents
+export const templateDocumentTypes = [
+  { value: "attestation", label: "Attestation de formation" },
+  { value: "emargement", label: "Feuille d'émargement" },
+  { value: "convention", label: "Convention" },
+  { value: "convocation", label: "Convocation" },
+  { value: "autre", label: "Autre" },
+] as const;
 
 export interface GeneratedDocument {
   id: string;
@@ -59,21 +82,25 @@ export function useUploadTemplateFile() {
       nom,
       description,
       categorie,
+      type_document,
+      formation_type,
       variables,
     }: {
       file: File;
       nom: string;
       description?: string;
       categorie: string;
+      type_document?: string;
+      formation_type?: string;
       variables: string[];
     }) => {
       // Déterminer le type de fichier
       const extension = file.name.split(".").pop()?.toLowerCase();
-      if (!extension || !["pdf", "docx"].includes(extension)) {
-        throw new Error("Format de fichier non supporté. Utilisez PDF ou DOCX.");
+      if (!extension || !["pdf", "docx", "xlsx"].includes(extension)) {
+        throw new Error("Format de fichier non supporté. Utilisez PDF, DOCX ou XLSX.");
       }
 
-      const type_fichier = extension as "pdf" | "docx";
+      const type_fichier = extension as "pdf" | "docx" | "xlsx";
       const mimeType = file.type;
 
       // Upload du fichier vers Supabase Storage
@@ -98,6 +125,8 @@ export function useUploadTemplateFile() {
           mime_type: mimeType,
           variables,
           categorie,
+          type_document: type_document || "autre",
+          formation_type: formation_type || null,
           actif: true,
         })
         .select()
