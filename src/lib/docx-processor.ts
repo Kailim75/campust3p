@@ -204,11 +204,13 @@ export async function processDocxWithVariables(
   }
   
   // Set the data
+  console.log("[DOCX Processor] Setting data:", JSON.stringify(structuredData, null, 2));
   doc.setData(structuredData);
   
   try {
     // Render the document
     doc.render();
+    console.log("[DOCX Processor] Document rendered successfully");
   } catch (error) {
     console.error("Error rendering DOCX template:", error);
     throw new Error("Erreur lors du traitement du modèle DOCX. Vérifiez que les variables sont correctement formatées.");
@@ -277,6 +279,10 @@ export function buildVariableData(
     }
   };
   
+  console.log("[DOCX buildVariableData] Input contact:", JSON.stringify(contact, null, 2));
+  console.log("[DOCX buildVariableData] Input session:", JSON.stringify(session, null, 2));
+  console.log("[DOCX buildVariableData] Input centreFormation:", JSON.stringify(centreFormation, null, 2));
+
   return {
     // Contact fields
     civilite: contact.civilite || "",
