@@ -91,13 +91,62 @@ export async function processDocxWithVariables(
     }
   };
 
+  const findKeyCaseInsensitive = (obj: Record<string, unknown>, wanted: string) => {
+    const w = wanted.toLowerCase();
+    for (const k of Object.keys(obj)) {
+      if (k.toLowerCase() === w) return k;
+    }
+    return undefined;
+  };
+
+  const normalizeSegment = (seg: string) => seg.trim().replace(/\s+/g, "_");
+
+  // More tolerant resolver for templates authored with different casing/spaces
+  // Examples that should work:
+  // - {NOM} / {Nom} / {nom}
+  // - {contact.Nom} / {CONTACT.nom}
+  // - {session_date_debut} (same key as data)
   const getByPath = (obj: unknown, path: string) => {
     if (!path) return undefined;
-    const parts = path.split(".").map((p) => p.trim()).filter(Boolean);
+    const parts = path
+      .split(".")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
     let cur: any = obj;
-    for (const p of parts) {
+    for (const raw of parts) {
       if (cur == null) return undefined;
-      cur = cur[p];
+      const seg = normalizeSegment(raw);
+
+      // Direct access first
+      if (typeof cur === "object" && cur !== null) {
+        const record = cur as Record<string, unknown>;
+        if (seg in record) {
+          cur = record[seg];
+          continue;
+        }
+
+        // Try original segment (without underscore normalization)
+        if (raw in record) {
+          cur = record[raw];
+          continue;
+        }
+
+        // Case-insensitive match
+        const k1 = findKeyCaseInsensitive(record, seg);
+        if (k1) {
+          cur = record[k1];
+          continue;
+        }
+        const k2 = findKeyCaseInsensitive(record, raw);
+        if (k2) {
+          cur = record[k2];
+          continue;
+        }
+      }
+
+      // Fallback for non-objects
+      cur = (cur as any)?.[seg];
     }
     return cur;
   };
@@ -135,12 +184,14 @@ export async function processDocxWithVariables(
     delimiters: { start: "{", end: "}" },
     // Important: users often type "{{ nom }}" (with spaces) in Word.
     // This parser trims whitespace and also supports dot-path variables like "contact.nom".
-    parser: (tag) => ({
-      get: (scope) => {
-        const cleaned = String(tag ?? "").trim();
-        return getByPath(scope, cleaned);
-      },
-    }),
+     parser: (tag) => ({
+       get: (scope) => {
+         const cleaned = String(tag ?? "").trim();
+         if (!cleaned) return "";
+         const value = getByPath(scope, cleaned);
+         return value;
+       },
+     }),
     // Avoid the literal string "undefined" when a tag is missing
     nullGetter: () => "",
   });
@@ -244,7 +295,8 @@ export async function processDocxWithVariables(
   }
   
   // Set the data
-  console.log("[DOCX Processor] Setting data:", JSON.stringify(structuredData, null, 2));
+   // Avoid dumping PII in logs; keep it actionable for debugging
+   console.log("[DOCX Processor] Setting data keys:", Object.keys(structuredData).sort());
   doc.setData(structuredData);
   
   try {
