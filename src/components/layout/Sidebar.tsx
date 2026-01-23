@@ -12,18 +12,10 @@ import {
   ChevronRight,
   Car,
   Menu,
-  X,
   Mail,
-  FileEdit,
   User,
-  FileSignature,
-  Kanban,
-  Workflow,
   Award,
-  Star,
   HelpCircle,
-  Building2,
-  UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,21 +31,14 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { id: "pipeline", label: "Pipeline", icon: Kanban },
-  { id: "prospects", label: "Prospects", icon: UserPlus },
   { id: "contacts", label: "Contacts", icon: Users },
   { id: "formations", label: "Formations", icon: GraduationCap },
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "formateurs", label: "Formateurs", icon: User },
-  { id: "partners", label: "Partenaires", icon: Building2 },
   { id: "documents", label: "Documents", icon: FileText },
-  { id: "signatures", label: "Signatures", icon: FileSignature },
-  { id: "devis", label: "Devis", icon: FileEdit },
-  { id: "paiements", label: "Paiements", icon: CreditCard },
+  { id: "facturation", label: "Facturation", icon: CreditCard },
   { id: "communications", label: "Communications", icon: Mail },
-  { id: "workflows", label: "Workflows", icon: Workflow },
-  { id: "qualiopi", label: "QUALIOPI", icon: Award },
-  { id: "qualite", label: "Qualité Client", icon: Star },
+  { id: "qualite", label: "Qualité", icon: Award },
   { id: "alertes", label: "Alertes", icon: Bell },
 ];
 
