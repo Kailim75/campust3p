@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDefaultTemplate } from "@/hooks/useDocumentTemplateFiles";
 import { buildVariableData, processDocxWithVariables } from "@/lib/docx-processor";
 import {
+  fetchContactDocumentData,
+  fetchContactsDocumentData,
+} from "@/lib/documents/fetchContactDocumentData";
+import {
   generateFacturePDF,
   generateAttestationPDF,
   generateConventionPDF,
@@ -191,23 +195,35 @@ export function useDocumentGenerator() {
                     throw downloadError ?? new Error("Impossible de télécharger le modèle");
                   }
 
+                  let fullContact: any = contact;
+                  if (contactId) {
+                    try {
+                      fullContact = { ...contact, ...(await fetchContactDocumentData(contactId)) };
+                    } catch (e) {
+                      console.warn("[DOCX] Contact partiel (fallback)", e);
+                    }
+                  }
+
                   const variableData = buildVariableData(
                     {
-                      civilite: contact.civilite,
-                      nom: contact.nom,
-                      prenom: contact.prenom,
-                      email: contact.email,
-                      telephone: contact.telephone,
-                      rue: contact.rue,
-                      code_postal: contact.code_postal,
-                      ville: contact.ville,
-                      date_naissance: contact.date_naissance,
-                      ville_naissance: contact.ville_naissance,
-                      // Champs optionnels (si présents dans le contact)
-                      pays_naissance: (contact as any)?.pays_naissance,
-                      numero_carte_professionnelle: (contact as any)?.numero_carte_professionnelle,
-                      prefecture_carte: (contact as any)?.prefecture_carte,
-                      date_expiration_carte: (contact as any)?.date_expiration_carte,
+                      civilite: fullContact.civilite,
+                      nom: fullContact.nom,
+                      prenom: fullContact.prenom,
+                      email: fullContact.email,
+                      telephone: fullContact.telephone,
+                      rue: fullContact.rue,
+                      code_postal: fullContact.code_postal,
+                      ville: fullContact.ville,
+                      date_naissance: fullContact.date_naissance,
+                      ville_naissance: fullContact.ville_naissance,
+                      pays_naissance: fullContact.pays_naissance,
+                      numero_carte_professionnelle: fullContact.numero_carte_professionnelle,
+                      prefecture_carte: fullContact.prefecture_carte,
+                      date_expiration_carte: fullContact.date_expiration_carte,
+                      numero_permis: fullContact.numero_permis,
+                      prefecture_permis: fullContact.prefecture_permis,
+                      date_delivrance_permis: fullContact.date_delivrance_permis,
+                      formation: fullContact.formation,
                     },
                     {
                       nom: session.nom,
@@ -337,6 +353,16 @@ export function useDocumentGenerator() {
                 throw downloadError ?? new Error("Impossible de télécharger le modèle");
               }
 
+              let contactsById: Record<string, any> = {};
+              try {
+                const ids = contacts
+                  .map((c) => (c as any)?.id)
+                  .filter(Boolean) as string[];
+                contactsById = await fetchContactsDocumentData(ids);
+              } catch (e) {
+                console.warn("[DOCX] Impossible de précharger les contacts (bulk)", e);
+              }
+
               for (const contact of contacts) {
                 // Générer le numéro de certificat pour chaque contact
                 const contactId = (contact as any)?.id;
@@ -347,22 +373,31 @@ export function useDocumentGenerator() {
                   certificateInfo = await getOrCreateCertificateNumber(contactId, sessionId, typeAttestation);
                 }
                 
+                const fullContact: any =
+                  contactId && contactsById[contactId]
+                    ? { ...contact, ...contactsById[contactId] }
+                    : contact;
+
                 const variableData = buildVariableData(
                   {
-                    civilite: contact.civilite,
-                    nom: contact.nom,
-                    prenom: contact.prenom,
-                    email: contact.email,
-                    telephone: contact.telephone,
-                    rue: contact.rue,
-                    code_postal: contact.code_postal,
-                    ville: contact.ville,
-                    date_naissance: contact.date_naissance,
-                    ville_naissance: contact.ville_naissance,
-                    pays_naissance: (contact as any)?.pays_naissance,
-                    numero_carte_professionnelle: (contact as any)?.numero_carte_professionnelle,
-                    prefecture_carte: (contact as any)?.prefecture_carte,
-                    date_expiration_carte: (contact as any)?.date_expiration_carte,
+                    civilite: fullContact.civilite,
+                    nom: fullContact.nom,
+                    prenom: fullContact.prenom,
+                    email: fullContact.email,
+                    telephone: fullContact.telephone,
+                    rue: fullContact.rue,
+                    code_postal: fullContact.code_postal,
+                    ville: fullContact.ville,
+                    date_naissance: fullContact.date_naissance,
+                    ville_naissance: fullContact.ville_naissance,
+                    pays_naissance: fullContact.pays_naissance,
+                    numero_carte_professionnelle: fullContact.numero_carte_professionnelle,
+                    prefecture_carte: fullContact.prefecture_carte,
+                    date_expiration_carte: fullContact.date_expiration_carte,
+                    numero_permis: fullContact.numero_permis,
+                    prefecture_permis: fullContact.prefecture_permis,
+                    date_delivrance_permis: fullContact.date_delivrance_permis,
+                    formation: fullContact.formation,
                   },
                   {
                     nom: session.nom,
