@@ -87,6 +87,7 @@ export function FactureFormDialog({
 }: FactureFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lignes, setLignes] = useState<LigneFacture[]>([]);
+  const [showAllCatalogue, setShowAllCatalogue] = useState(false);
   
   const { data: contacts = [] } = useContacts();
   const { data: catalogue = [] } = useCatalogueFormations(true);
@@ -314,7 +315,7 @@ export function FactureFormDialog({
 
                   {/* Catalogue rapide */}
                   <div className="flex flex-wrap gap-1">
-                    {catalogue.slice(0, 8).map((item) => (
+                    {(showAllCatalogue ? catalogue : catalogue.slice(0, 8)).map((item) => (
                       <Button
                         key={item.id}
                         type="button"
@@ -327,10 +328,27 @@ export function FactureFormDialog({
                         {item.code}
                       </Button>
                     ))}
-                    {catalogue.length > 8 && (
-                      <Badge variant="secondary" className="text-xs">
+                    {catalogue.length > 8 && !showAllCatalogue && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => setShowAllCatalogue(true)}
+                      >
                         +{catalogue.length - 8} articles
-                      </Badge>
+                      </Button>
+                    )}
+                    {showAllCatalogue && catalogue.length > 8 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => setShowAllCatalogue(false)}
+                      >
+                        Réduire
+                      </Button>
                     )}
                   </div>
 
