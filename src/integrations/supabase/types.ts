@@ -85,33 +85,48 @@ export type Database = {
           contact_id: string
           created_at: string
           date_emission: string
+          document_url: string | null
           emis_par: string | null
           id: string
           metadata: Json | null
           numero_certificat: string
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           session_id: string | null
+          status: string
           type_attestation: string
         }
         Insert: {
           contact_id: string
           created_at?: string
           date_emission?: string
+          document_url?: string | null
           emis_par?: string | null
           id?: string
           metadata?: Json | null
           numero_certificat: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           session_id?: string | null
+          status?: string
           type_attestation?: string
         }
         Update: {
           contact_id?: string
           created_at?: string
           date_emission?: string
+          document_url?: string | null
           emis_par?: string | null
           id?: string
           metadata?: Json | null
           numero_certificat?: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           session_id?: string | null
+          status?: string
           type_attestation?: string
         }
         Relationships: [
@@ -3134,6 +3149,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_certificate: {
+        Args: { p_certificate_id: string; p_reason?: string }
+        Returns: boolean
+      }
       create_attestation_certificate: {
         Args: {
           p_contact_id: string
@@ -3159,6 +3178,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      revoke_certificate: {
+        Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
       }
       submit_reclamation_with_token: {

@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type CertificateStatus = 'generated' | 'cancelled' | 'revoked';
+
 export interface AttestationCertificate {
   id: string;
   numero_certificat: string;
@@ -12,6 +14,11 @@ export interface AttestationCertificate {
   emis_par: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
+  status: CertificateStatus;
+  document_url: string | null;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  revocation_reason: string | null;
 }
 
 interface CreateCertificateParams {
@@ -30,7 +37,7 @@ interface CertificateResult {
 export function useAttestationCertificates() {
   const queryClient = useQueryClient();
 
-  // Récupérer tous les certificats
+  // Récupérer tous les certificats actifs
   const { data: certificates, isLoading } = useQuery({
     queryKey: ['attestation-certificates'],
     queryFn: async () => {
@@ -93,10 +100,73 @@ export function useAttestationCertificates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attestation-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-certificates'] });
     },
     onError: (error: Error) => {
       console.error('Erreur création certificat:', error);
       toast.error('Erreur lors de la création du certificat');
+    },
+  });
+
+  // Mettre à jour l'URL du document
+  const updateDocumentUrl = useMutation({
+    mutationFn: async ({ certificateId, documentUrl }: { certificateId: string; documentUrl: string }) => {
+      const { error } = await supabase
+        .from('attestation_certificates')
+        .update({ document_url: documentUrl })
+        .eq('id', certificateId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attestation-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-certificates'] });
+    },
+  });
+
+  // Révoquer un certificat
+  const revokeCertificate = useMutation({
+    mutationFn: async ({ certificateId, reason }: { certificateId: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc('revoke_certificate', {
+        p_certificate_id: certificateId,
+        p_reason: reason || null,
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error('Impossible de révoquer ce certificat');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attestation-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-certificates'] });
+      toast.success('Certificat révoqué');
+    },
+    onError: (error: Error) => {
+      console.error('Erreur révocation:', error);
+      toast.error('Erreur lors de la révocation du certificat');
+    },
+  });
+
+  // Annuler un certificat
+  const cancelCertificate = useMutation({
+    mutationFn: async ({ certificateId, reason }: { certificateId: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc('cancel_certificate', {
+        p_certificate_id: certificateId,
+        p_reason: reason || null,
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error('Impossible d\'annuler ce certificat');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attestation-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-certificates'] });
+      toast.success('Certificat annulé');
+    },
+    onError: (error: Error) => {
+      console.error('Erreur annulation:', error);
+      toast.error('Erreur lors de l\'annulation du certificat');
     },
   });
 
@@ -114,6 +184,13 @@ export function useAttestationCertificates() {
     createCertificateAsync: createCertificate.mutateAsync,
     getOrCreateCertificate,
     isCreating: createCertificate.isPending,
+    updateDocumentUrl: updateDocumentUrl.mutateAsync,
+    revokeCertificate: revokeCertificate.mutate,
+    revokeCertificateAsync: revokeCertificate.mutateAsync,
+    isRevoking: revokeCertificate.isPending,
+    cancelCertificate: cancelCertificate.mutate,
+    cancelCertificateAsync: cancelCertificate.mutateAsync,
+    isCancelling: cancelCertificate.isPending,
   };
 }
 
@@ -134,7 +211,7 @@ export function useContactCertificates(contactId: string | null) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as (AttestationCertificate & { session?: { nom: string; formation_type: string; date_debut: string; date_fin: string } })[];
     },
     enabled: !!contactId,
   });
@@ -158,7 +235,10 @@ export function useVerifyCertificate(numeroCertificat: string | null) {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as (AttestationCertificate & {
+        contact?: { nom: string; prenom: string; email: string };
+        session?: { nom: string; formation_type: string; date_debut: string; date_fin: string };
+      }) | null;
     },
     enabled: !!numeroCertificat,
   });
