@@ -30,9 +30,11 @@ import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGene
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
+import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import { buildVariableData, processDocxWithVariables } from '@/lib/docx-processor';
 
 interface Contact {
   id: string;
@@ -109,6 +111,7 @@ export function SendDocumentsToContactDialog({
 
   const { generateDocument } = useDocumentGenerator();
   const createEnvoi = useCreateDocumentEnvoi();
+  const { centreFormation } = useCentreFormation();
   
   // Fetch custom templates
   const { data: templateFiles = [] } = useDocumentTemplateFiles();
@@ -281,16 +284,73 @@ export function SendDocumentsToContactDialog({
         });
       }
 
-      // 3. Download file templates (PDFs will be downloaded directly)
+      // 3. Download file templates (with DOCX variable replacement)
       for (const templateId of selectedTemplateFiles) {
         const template = activeTemplateFiles.find(t => t.id === templateId);
         if (!template) continue;
 
-        // Download the template file
-        await downloadTemplateFile(
-          template.file_path, 
-          `${template.nom}-${contact.nom}-${contact.prenom}.${template.type_fichier}`
-        );
+        // For DOCX files, process with variable replacement
+        if (template.type_fichier === 'docx') {
+          try {
+            // Download the template file
+            const { data: templateBlob, error: downloadError } = await supabase.storage
+              .from('document-templates')
+              .download(template.file_path);
+
+            if (downloadError || !templateBlob) {
+              console.error('Erreur téléchargement template:', downloadError);
+              toast.error(`Erreur téléchargement ${template.nom}`);
+              continue;
+            }
+
+            // Build variable data for DOCX processing
+            const variableData = buildVariableData(
+              contactData,
+              {
+                nom: sessionInfo.nom,
+                date_debut: sessionInfo.date_debut,
+                date_fin: sessionInfo.date_fin,
+                lieu: sessionInfo.lieu || undefined,
+                heure_debut: sessionInfo.heure_debut || undefined,
+                heure_fin: sessionInfo.heure_fin || undefined,
+                formation_type: sessionInfo.formation_type,
+                duree_heures: sessionInfo.duree_heures,
+                formateur: sessionInfo.formateur || undefined,
+              },
+              centreFormation ? {
+                nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+                adresse: centreFormation.adresse_complete,
+                telephone: centreFormation.telephone,
+                email: centreFormation.email,
+                siret: centreFormation.siret,
+                nda: centreFormation.nda,
+              } : undefined
+            );
+
+            // Process the DOCX with variable replacement
+            const processedBlob = await processDocxWithVariables(templateBlob, variableData);
+            
+            // Download the processed file
+            const url = URL.createObjectURL(processedBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${template.nom}-${contact.nom}-${contact.prenom}.docx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Erreur traitement DOCX:', error);
+            toast.error(`Erreur traitement ${template.nom}`);
+            continue;
+          }
+        } else {
+          // For non-DOCX files (PDF), download directly
+          await downloadTemplateFile(
+            template.file_path, 
+            `${template.nom}-${contact.nom}-${contact.prenom}.${template.type_fichier}`
+          );
+        }
 
         await createEnvoi.mutateAsync({
           contact_id: contact.id,
