@@ -29,11 +29,13 @@ import {
   GraduationCap,
   FolderOpen,
   ScrollText,
+  Award,
 } from "lucide-react";
-import { useDocumentTemplates, replaceVariables, DocumentTemplate } from "@/hooks/useDocumentTemplates";
-import { useDocumentTemplateFiles, useSaveGeneratedDocument, DocumentTemplateFile } from "@/hooks/useDocumentTemplateFiles";
+import { useDocumentTemplates, replaceVariables } from "@/hooks/useDocumentTemplates";
+import { useDocumentTemplateFiles, useSaveGeneratedDocument } from "@/hooks/useDocumentTemplateFiles";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { useSessions } from "@/hooks/useSessions";
+import { useAttestationCertificates } from "@/hooks/useAttestationCertificates";
 import { Contact } from "@/hooks/useContacts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -54,6 +56,7 @@ export function GenerateDocumentDialog({
   const [selectedFileTemplate, setSelectedFileTemplate] = useState<string>("");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [saveToContact, setSaveToContact] = useState(true);
+  const [generateCertificate, setGenerateCertificate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: textTemplates = [] } = useDocumentTemplates();
@@ -61,6 +64,7 @@ export function GenerateDocumentDialog({
   const { data: sessions = [] } = useSessions();
   const saveDocument = useSaveGeneratedDocument();
   const { generateDocument } = useDocumentGenerator();
+  const { getOrCreateCertificate, updateDocumentUrl } = useAttestationCertificates();
 
   // Filtrer les sessions auxquelles le contact est inscrit
   const contactSessions = useMemo(() => {
@@ -84,6 +88,17 @@ export function GenerateDocumentDialog({
 
     setIsGenerating(true);
     try {
+      // Générer le certificat si demandé
+      let certificateData: { id: string; numero_certificat: string; date_emission: string } | null = null;
+      if (generateCertificate) {
+        certificateData = await getOrCreateCertificate({
+          contactId: contact.id,
+          sessionId: selectedSessionId || null,
+          typeAttestation: template.type_document === 'attestation_mobilite' ? 'mobilite' : 'formation',
+          metadata: { template_id: template.id, template_name: template.nom },
+        });
+      }
+
       // Préparer les données du contact
       const contactData: Record<string, string> = {
         civilite: contact.civilite || "",
@@ -104,6 +119,7 @@ export function GenerateDocumentDialog({
         prefecture_carte: contact.prefecture_carte || "",
         date_expiration_carte: contact.date_expiration_carte || "",
         formation: contact.formation || "",
+        numero_certificat: certificateData?.numero_certificat || "",
       };
 
       // Remplacer les variables
@@ -120,11 +136,18 @@ export function GenerateDocumentDialog({
       doc.setFont("helvetica", "bold");
       doc.text(template.nom, margin, 25);
       
+      // Numéro de certificat si présent
+      if (certificateData?.numero_certificat) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`N° Certificat: ${certificateData.numero_certificat}`, margin, 32);
+      }
+      
       // Contenu
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(content, maxWidth);
-      doc.text(lines, margin, 40);
+      doc.text(lines, margin, certificateData ? 45 : 40);
 
       // Télécharger
       const fileName = `${template.type_document}_${contact.nom}_${contact.prenom}.pdf`;
@@ -133,7 +156,7 @@ export function GenerateDocumentDialog({
       // Sauvegarder si demandé
       if (saveToContact) {
         const pdfBlob = doc.output("blob");
-        await saveDocument.mutateAsync({
+        const savedDoc = await saveDocument.mutateAsync({
           contactId: contact.id,
           templateTextId: template.id,
           nom: `${template.type_document} - ${contact.nom} ${contact.prenom}`,
@@ -142,11 +165,22 @@ export function GenerateDocumentDialog({
           metadata: {
             template_name: template.nom,
             generated_at: new Date().toISOString(),
+            certificate_number: certificateData?.numero_certificat,
           },
         });
+
+        // Associer l'URL du document au certificat
+        if (certificateData && savedDoc?.file_path) {
+          await updateDocumentUrl({
+            certificateId: certificateData.id,
+            documentUrl: savedDoc.file_path,
+          });
+        }
       }
 
-      toast.success("Document généré avec succès");
+      toast.success(certificateData 
+        ? `Document généré avec certificat ${certificateData.numero_certificat}` 
+        : "Document généré avec succès");
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur génération:", error);
@@ -165,8 +199,16 @@ export function GenerateDocumentDialog({
 
     setIsGenerating(true);
     try {
-      // Pour les fichiers PDF/DOCX, on génère un PDF simple avec les données
-      // Une implémentation complète nécessiterait une Edge Function avec pdf-lib ou docx-templater
+      // Générer le certificat si demandé
+      let certificateData: { id: string; numero_certificat: string; date_emission: string } | null = null;
+      if (generateCertificate) {
+        certificateData = await getOrCreateCertificate({
+          contactId: contact.id,
+          sessionId: selectedSessionId || null,
+          typeAttestation: template.type_document === 'attestation_mobilite' ? 'mobilite' : 'formation',
+          metadata: { template_id: template.id, template_name: template.nom },
+        });
+      }
 
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -176,9 +218,16 @@ export function GenerateDocumentDialog({
       doc.setFont("helvetica", "bold");
       doc.text(`Document basé sur: ${template.nom}`, margin, 25);
 
+      // Numéro de certificat si présent
+      if (certificateData?.numero_certificat) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`N° Certificat: ${certificateData.numero_certificat}`, margin, 32);
+      }
+
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      let y = 45;
+      let y = certificateData ? 50 : 45;
 
       // Afficher les données du contact
       const fields = [
@@ -219,7 +268,7 @@ export function GenerateDocumentDialog({
 
       if (saveToContact) {
         const pdfBlob = doc.output("blob");
-        await saveDocument.mutateAsync({
+        const savedDoc = await saveDocument.mutateAsync({
           contactId: contact.id,
           templateFileId: template.id,
           nom: `${template.nom} - ${contact.nom} ${contact.prenom}`,
@@ -229,11 +278,22 @@ export function GenerateDocumentDialog({
             template_name: template.nom,
             template_type: template.type_fichier,
             generated_at: new Date().toISOString(),
+            certificate_number: certificateData?.numero_certificat,
           },
         });
+
+        // Associer l'URL du document au certificat
+        if (certificateData && savedDoc?.file_path) {
+          await updateDocumentUrl({
+            certificateId: certificateData.id,
+            documentUrl: savedDoc.file_path,
+          });
+        }
       }
 
-      toast.success("Document généré avec succès");
+      toast.success(certificateData 
+        ? `Document généré avec certificat ${certificateData.numero_certificat}` 
+        : "Document généré avec succès");
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur génération:", error);
@@ -421,6 +481,20 @@ export function GenerateDocumentDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Option de certificat */}
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Générer un certificat unique</p>
+                  <p className="text-xs text-muted-foreground">
+                    Attribue un numéro de certificat unique et non modifiable (ex: T3P-2026-000123)
+                  </p>
+                </div>
+              </div>
+              <Switch checked={generateCertificate} onCheckedChange={setGenerateCertificate} />
             </div>
 
             {/* Option de sauvegarde */}
