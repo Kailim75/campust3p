@@ -52,6 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
 import DOMPurify from 'dompurify';
 import { buildVariableData, createDocxPreviewPDF } from '@/lib/docx-processor';
+import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentData';
 
 interface Inscrit {
   id: string;
@@ -219,20 +220,33 @@ export function BulkDocumentPreviewDialog({
     session: SessionInfo
   ): Promise<string | null> => {
     try {
+      let fullContact: any = contact;
+      const contactId = (contact as any)?.id;
+      if (contactId) {
+        try {
+          fullContact = { ...contact, ...(await fetchContactDocumentData(contactId)) };
+        } catch (e) {
+          console.warn('[DOCX preview] Contact partiel (fallback)', e);
+        }
+      }
+
       // Build variable data for preview
       const variableData = buildVariableData(
         {
-          civilite: contact.civilite,
-          nom: contact.nom,
-          prenom: contact.prenom,
-          email: contact.email,
-          telephone: contact.telephone,
-          rue: contact.rue,
-          code_postal: contact.code_postal,
-          ville: contact.ville,
-          date_naissance: contact.date_naissance,
-          ville_naissance: contact.ville_naissance,
-          pays_naissance: (contact as any).pays_naissance,
+          civilite: fullContact.civilite,
+          nom: fullContact.nom,
+          prenom: fullContact.prenom,
+          email: fullContact.email,
+          telephone: fullContact.telephone,
+          rue: fullContact.rue,
+          code_postal: fullContact.code_postal,
+          ville: fullContact.ville,
+          date_naissance: fullContact.date_naissance,
+          ville_naissance: fullContact.ville_naissance,
+          pays_naissance: fullContact.pays_naissance,
+          numero_carte_professionnelle: fullContact.numero_carte_professionnelle,
+          prefecture_carte: fullContact.prefecture_carte,
+          date_expiration_carte: fullContact.date_expiration_carte,
         },
         {
           nom: session.nom,

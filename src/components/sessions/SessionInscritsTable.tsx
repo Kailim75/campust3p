@@ -78,6 +78,7 @@ import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
 import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
 import { SendDocumentsToContactDialog } from './SendDocumentsToContactDialog';
 import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
+import { fetchContactsDocumentData } from '@/lib/documents/fetchContactDocumentData';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processor';
 
@@ -248,32 +249,46 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           }
           
           let successCount = 0;
+
+          let contactsById: Record<string, any> = {};
+          try {
+            const ids = inscrits
+              .map((i) => i.contact?.id)
+              .filter(Boolean) as string[];
+            contactsById = await fetchContactsDocumentData(ids);
+          } catch (e) {
+            console.warn('[DOCX] Impossible de précharger les contacts (bulk UI)', e);
+          }
           
           for (const inscrit of inscrits) {
             const contact = inscrit.contact;
             if (!contact) continue;
+
+            const fullContact: any = contactsById[contact.id]
+              ? { ...contact, ...contactsById[contact.id] }
+              : contact;
             
             // Build variable data for this contact - mapping complet
             const variableData = buildVariableData(
               {
-                civilite: contact.civilite || undefined,
-                nom: contact.nom || '',
-                prenom: contact.prenom || '',
-                email: contact.email || undefined,
-                telephone: contact.telephone || undefined,
-                rue: contact.rue || undefined,
-                code_postal: contact.code_postal || undefined,
-                ville: contact.ville || undefined,
-                date_naissance: contact.date_naissance || undefined,
-                ville_naissance: contact.ville_naissance || undefined,
-                pays_naissance: contact.pays_naissance || undefined,
-                numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
-                prefecture_carte: contact.prefecture_carte || undefined,
-                date_expiration_carte: contact.date_expiration_carte || undefined,
-                numero_permis: contact.numero_permis || undefined,
-                prefecture_permis: contact.prefecture_permis || undefined,
-                date_delivrance_permis: contact.date_delivrance_permis || undefined,
-                formation: contact.formation || undefined,
+                civilite: fullContact.civilite || undefined,
+                nom: fullContact.nom || '',
+                prenom: fullContact.prenom || '',
+                email: fullContact.email || undefined,
+                telephone: fullContact.telephone || undefined,
+                rue: fullContact.rue || undefined,
+                code_postal: fullContact.code_postal || undefined,
+                ville: fullContact.ville || undefined,
+                date_naissance: fullContact.date_naissance || undefined,
+                ville_naissance: fullContact.ville_naissance || undefined,
+                pays_naissance: fullContact.pays_naissance || undefined,
+                numero_carte_professionnelle: fullContact.numero_carte_professionnelle || undefined,
+                prefecture_carte: fullContact.prefecture_carte || undefined,
+                date_expiration_carte: fullContact.date_expiration_carte || undefined,
+                numero_permis: fullContact.numero_permis || undefined,
+                prefecture_permis: fullContact.prefecture_permis || undefined,
+                date_delivrance_permis: fullContact.date_delivrance_permis || undefined,
+                formation: fullContact.formation || undefined,
               },
               {
                 nom: sessionInfo.nom,

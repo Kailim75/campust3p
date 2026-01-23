@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { buildVariableData, processDocxWithVariables } from "@/lib/docx-processor";
+import { fetchContactDocumentData } from "@/lib/documents/fetchContactDocumentData";
 
 interface GenerateDocumentDialogProps {
   open: boolean;
@@ -216,6 +217,14 @@ export function GenerateDocumentDialog({
 
       // For DOCX files, process with variable replacement
       if (template.type_fichier === 'docx') {
+        // Recharge la fiche contact complète (certains écrans passent un contact partiel)
+        let fullContact: any = contact;
+        try {
+          fullContact = await fetchContactDocumentData(contact.id);
+        } catch (e) {
+          console.warn("[DOCX] Impossible de recharger le contact complet, fallback sur contact partiel", e);
+        }
+
         // Download the template file
         const { data: templateBlob, error: downloadError } = await supabase.storage
           .from('document-templates')
@@ -231,24 +240,24 @@ export function GenerateDocumentDialog({
         // Build variable data for DOCX processing
         const variableData = buildVariableData(
           {
-            civilite: contact.civilite || undefined,
-            nom: contact.nom,
-            prenom: contact.prenom,
-            email: contact.email || undefined,
-            telephone: contact.telephone || undefined,
-            rue: contact.rue || undefined,
-            code_postal: contact.code_postal || undefined,
-            ville: contact.ville || undefined,
-            date_naissance: contact.date_naissance || undefined,
-            ville_naissance: contact.ville_naissance || undefined,
-            pays_naissance: contact.pays_naissance || undefined,
-            numero_permis: contact.numero_permis || undefined,
-            prefecture_permis: contact.prefecture_permis || undefined,
-            date_delivrance_permis: contact.date_delivrance_permis || undefined,
-            numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
-            prefecture_carte: contact.prefecture_carte || undefined,
-            date_expiration_carte: contact.date_expiration_carte || undefined,
-            formation: contact.formation || undefined,
+            civilite: (fullContact as any).civilite || undefined,
+            nom: (fullContact as any).nom,
+            prenom: (fullContact as any).prenom,
+            email: (fullContact as any).email || undefined,
+            telephone: (fullContact as any).telephone || undefined,
+            rue: (fullContact as any).rue || undefined,
+            code_postal: (fullContact as any).code_postal || undefined,
+            ville: (fullContact as any).ville || undefined,
+            date_naissance: (fullContact as any).date_naissance || undefined,
+            ville_naissance: (fullContact as any).ville_naissance || undefined,
+            pays_naissance: (fullContact as any).pays_naissance || undefined,
+            numero_permis: (fullContact as any).numero_permis || undefined,
+            prefecture_permis: (fullContact as any).prefecture_permis || undefined,
+            date_delivrance_permis: (fullContact as any).date_delivrance_permis || undefined,
+            numero_carte_professionnelle: (fullContact as any).numero_carte_professionnelle || undefined,
+            prefecture_carte: (fullContact as any).prefecture_carte || undefined,
+            date_expiration_carte: (fullContact as any).date_expiration_carte || undefined,
+            formation: (fullContact as any).formation || undefined,
           },
           selectedSession ? {
             nom: selectedSession.nom,
