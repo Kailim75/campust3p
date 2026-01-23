@@ -670,6 +670,10 @@ export function buildVariableData(
     session_horaires_formation: sessionTimeRange,
     horaires_formation: sessionTimeRange,
     horaires: sessionTimeRange,
+    
+    // Alias simples pour date_debut / date_fin (très utilisés dans les modèles)
+    date_debut: sessionDateDebut,
+    date_fin: sessionDateFin,
 
     // English aliases for session fields
     training_start_date: sessionDateDebut,
