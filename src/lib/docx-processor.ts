@@ -88,25 +88,61 @@ export async function processDocxWithVariables(
     // (more robust in Word where double braces can be split across runs).
     xml.replace(/\{\{/g, "{").replace(/\}\}/g, "}");
 
+  // Fix XML run splits: Word often breaks {{variable}} across multiple XML runs like:
+  // <w:r><w:t>{</w:t></w:r><w:r><w:t>{nom</w:t></w:r><w:r><w:t>}}</w:t></w:r>
+  // This function merges adjacent text runs to reconstitute placeholders
+  const fixXmlRunSplits = (xml: string): string => {
+    // Pattern to find sequences of adjacent w:t elements within w:r elements
+    // We'll merge text content when it looks like it contains partial placeholders
+    
+    // First, normalize double braces split across runs
+    // Match pattern: </w:t></w:r><w:r...><w:t> and check if it's breaking a placeholder
+    let result = xml;
+    
+    // Simple approach: remove XML tags between { and } to merge them
+    // Look for patterns like: {</w:t></w:r>...<w:r><w:t>{ or }</w:t></w:r>...<w:r><w:t>}
+    const placeholderSplitPattern = /(\{+)(<\/w:t><\/w:r>(?:<w:r[^>]*>)?<w:t[^>]*>)(\{*)/g;
+    result = result.replace(placeholderSplitPattern, (_, open, middle, extra) => {
+      return open + (extra || '');
+    });
+    
+    // Fix closing braces split across runs
+    const closingSplitPattern = /(\}+)(<\/w:t><\/w:r>(?:<w:r[^>]*>)?<w:t[^>]*>)(\}+)/g;
+    result = result.replace(closingSplitPattern, (_, close1, middle, close2) => {
+      return close1 + close2;
+    });
+    
+    return result;
+  };
+
   const normalizeTemplateXmlInZip = (zip: PizZip) => {
     const files: string[] = Object.keys((zip as any).files ?? {});
     for (const name of files) {
-      // Normalize main doc + headers/footers
-      if (!/^word\/(document|header\d+|footer\d+)\.xml$/.test(name)) continue;
+      // Normalize main doc + headers/footers + also handle diagrams/drawings which may contain textboxes
+      if (!/^word\/(document|header\d+|footer\d+)\.xml$/.test(name) && 
+          !/^word\/diagrams\//.test(name) &&
+          !/^word\/drawings\//.test(name)) continue;
       const f = zip.file(name);
       if (!f) continue;
 
       try {
-        const text = f.asText();
+        let text = f.asText();
         const beforeCount = (text.match(/\{\{/g) ?? []).length;
+        
+        // Fix XML run splits first
+        text = fixXmlRunSplits(text);
+        
+        // Then normalize {{ to {
         const normalized = normalizeDoubleBracesToDocxtemplater(text);
         const afterCount = (normalized.match(/\{\{/g) ?? []).length;
-        if (beforeCount > 0 || afterCount > 0) {
+        
+        if (beforeCount > 0 || afterCount !== beforeCount) {
           console.log(`[DOCX Processor] Template ${name}: '{{' occurrences before=${beforeCount} after=${afterCount}`);
         }
         if (normalized !== text) zip.file(name, normalized);
-      } catch {
-        // Ignore normalization errors and proceed.
+      } catch (err) {
+        console.warn(`[DOCX Processor] Error normalizing ${name}:`, err);
+        // Continue with other files
       }
     }
   };
@@ -189,33 +225,50 @@ export async function processDocxWithVariables(
   // Read the blob as ArrayBuffer
   const arrayBuffer = await docxBlob.arrayBuffer();
   
+  console.log(`[DOCX Processor] Processing DOCX file (${(docxBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+  
   // Create a zip object from the DOCX file
-  const zip = new PizZip(arrayBuffer);
+  let zip: PizZip;
+  try {
+    zip = new PizZip(arrayBuffer);
+  } catch (zipError) {
+    console.error("[DOCX Processor] Error reading DOCX as ZIP:", zipError);
+    throw new Error("Erreur de lecture du fichier DOCX. Le fichier est peut-être corrompu.");
+  }
+
+  // Log zip contents for debugging large files
+  const zipFiles = Object.keys((zip as any).files ?? {});
+  console.log(`[DOCX Processor] ZIP contains ${zipFiles.length} files:`, zipFiles.filter(f => f.startsWith('word/')).slice(0, 20));
 
   // Make templates authored with {{...}} compatible with docxtemplater { ... }
   normalizeTemplateXmlInZip(zip);
   
   // Create docxtemplater instance with configuration
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-    stripInvalidXMLChars: true,
-    // Use docxtemplater's native delimiter (we normalize {{...}} -> {...} above)
-    delimiters: { start: "{", end: "}" },
-    // Important: users often type "{{ nom }}" (with spaces) in Word.
-    // This parser trims whitespace and also supports dot-path variables like "contact.nom".
-     parser: (tag) => ({
-       get: (scope) => {
-         const cleaned = String(tag ?? "").trim();
-         if (!cleaned) return "";
-         const value = getByPath(scope, cleaned);
-         return value;
-       },
-     }),
-    // Avoid the literal string "undefined" when a tag is missing
-    nullGetter: () => "",
-  });
-
+  let doc: Docxtemplater;
+  try {
+    doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      stripInvalidXMLChars: true,
+      // Use docxtemplater's native delimiter (we normalize {{...}} -> {...} above)
+      delimiters: { start: "{", end: "}" },
+      // Important: users often type "{{ nom }}" (with spaces) in Word.
+      // This parser trims whitespace and also supports dot-path variables like "contact.nom".
+      parser: (tag) => ({
+        get: (scope) => {
+          const cleaned = String(tag ?? "").trim();
+          if (!cleaned) return "";
+          const value = getByPath(scope, cleaned);
+          return value;
+        },
+      }),
+      // Avoid the literal string "undefined" when a tag is missing
+      nullGetter: () => "",
+    });
+  } catch (docError) {
+    console.error("[DOCX Processor] Error initializing docxtemplater:", docError);
+    throw new Error("Erreur d'initialisation du processeur DOCX. Le template est peut-être mal formaté.");
+  }
   // Debug: log detected tags (helps diagnose templates where placeholders are inside textboxes/shapes)
   try {
     const tags = (doc as any).getTags?.();
