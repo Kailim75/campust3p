@@ -565,9 +565,9 @@ export function buildVariableData(
     ? `${horairesMatin} / ${horairesAprem}`
     : horairesMatin || horairesAprem || "";
 
-  const sessionTimeRange = session?.horaires
-    ? String(session.horaires)
-    : horairesComplets || (sessionHeureDebut && sessionHeureFin
+  // Priorité aux horaires détaillés, sinon fallback sur horaires simples
+  const sessionTimeRange = horairesComplets 
+    || (sessionHeureDebut && sessionHeureFin
       ? `${sessionHeureDebut} - ${sessionHeureFin}`
       : sessionHeureDebut || sessionHeureFin || "");
   
