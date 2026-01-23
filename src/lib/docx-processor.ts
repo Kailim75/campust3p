@@ -670,6 +670,17 @@ export function buildVariableData(
     ne_le: formatDate(contact.date_naissance),
     ne_a: contact.ville_naissance || "",
     
+    // Aliases naissance (variantes fréquentes dans les templates)
+    birth_date: formatDate(contact.date_naissance),
+    birth_city: contact.ville_naissance || "",
+    birth_country: contact.pays_naissance || "",
+    pays: contact.pays_naissance || "",
+    naissance_pays: contact.pays_naissance || "",
+    lieu_de_naissance: lieuNaissance,
+    ville_de_naissance: contact.ville_naissance || "",
+    pays_de_naissance: contact.pays_naissance || "",
+    date_de_naissance: formatDate(contact.date_naissance),
+    
     // Permis de conduire
     numero_permis: contact.numero_permis || "",
     prefecture_permis: contact.prefecture_permis || "",
@@ -694,6 +705,26 @@ export function buildVariableData(
     carte_numero: contact.numero_carte_professionnelle || "",
     carte_prefecture: contact.prefecture_carte || "",
     carte_expiration: formatDate(contact.date_expiration_carte),
+    
+    // Aliases carte pro additionnels (cas spéciaux templates)
+    n_carte: contact.numero_carte_professionnelle || "",
+    n_carte_pro: contact.numero_carte_professionnelle || "",
+    no_carte: contact.numero_carte_professionnelle || "",
+    no_carte_pro: contact.numero_carte_professionnelle || "",
+    num_carte: contact.numero_carte_professionnelle || "",
+    num_carte_pro: contact.numero_carte_professionnelle || "",
+    professional_card_number: contact.numero_carte_professionnelle || "",
+    professional_card: contact.numero_carte_professionnelle || "",
+    card_number: contact.numero_carte_professionnelle || "",
+    vtc_card: contact.numero_carte_professionnelle || "",
+    vtc_card_number: contact.numero_carte_professionnelle || "",
+    taxi_card: contact.numero_carte_professionnelle || "",
+    carte_vtc: contact.numero_carte_professionnelle || "",
+    carte_taxi: contact.numero_carte_professionnelle || "",
+    carte_vtc_numero: contact.numero_carte_professionnelle || "",
+    carte_taxi_numero: contact.numero_carte_professionnelle || "",
+    numero_vtc: contact.numero_carte_professionnelle || "",
+    numero_taxi: contact.numero_carte_professionnelle || "",
 
     // English aliases (for templates using English variable names)
     student_last_name: contact.nom || "",
