@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Header } from "@/components/layout/Header";
+import { useState, useEffect } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { FileEdit, CreditCard } from "lucide-react";
@@ -26,9 +27,16 @@ export function FacturationUnifiedPage() {
     .filter(f => f.statut === "payee")
     .reduce((sum, f) => sum + Number(f.montant_total || 0), 0);
 
+  const { setActiveTab } = useNavigation();
+  
+  // Update breadcrumb when tab changes
+  useEffect(() => {
+    setActiveTab(activeView);
+  }, [activeView, setActiveTab]);
+
   return (
     <div className="space-y-6">
-      <Header 
+      <PageHeader 
         title="Facturation" 
         subtitle={`${facturesImpayees} factures en attente • ${devisEnAttente} devis en cours`}
       />

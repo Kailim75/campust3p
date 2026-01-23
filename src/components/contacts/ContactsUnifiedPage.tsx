@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Header } from "@/components/layout/Header";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -255,9 +256,16 @@ export function ContactsUnifiedPage() {
     }
   };
 
+  const { setActiveTab } = useNavigation();
+  
+  // Update breadcrumb when tab changes
+  useEffect(() => {
+    setActiveTab(activeView);
+  }, [activeView, setActiveTab]);
+
   return (
     <div className="space-y-6">
-      <Header 
+      <PageHeader 
         title="Contacts & Prospects" 
         subtitle={`${totalContacts} stagiaires • ${prospectsToConvert} prospects en cours`}
         addLabel={activeView === "prospects" ? "Nouveau prospect" : "Nouveau contact"}
