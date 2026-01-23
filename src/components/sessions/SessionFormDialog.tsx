@@ -53,6 +53,10 @@ const sessionSchema = z.object({
   date_fin: z.string().min(1, "La date de fin est requise"),
   heure_debut: z.string().default("09:00"),
   heure_fin: z.string().default("17:00"),
+  heure_debut_matin: z.string().default("09:00"),
+  heure_fin_matin: z.string().default("12:30"),
+  heure_debut_aprem: z.string().default("13:30"),
+  heure_fin_aprem: z.string().default("17:00"),
   places_totales: z.coerce.number().min(1, "Au moins 1 place requise").max(100),
   formateur_id: z.string().optional(),
   adresse_rue: z.string().max(200).optional(),
@@ -92,6 +96,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
       date_fin: "",
       heure_debut: "09:00",
       heure_fin: "17:00",
+      heure_debut_matin: "09:00",
+      heure_fin_matin: "12:30",
+      heure_debut_aprem: "13:30",
+      heure_fin_aprem: "17:00",
       places_totales: 10,
       formateur_id: "",
       adresse_rue: "",
@@ -155,6 +163,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         date_fin: session.date_fin,
         heure_debut: (session as any).heure_debut?.slice(0, 5) || "09:00",
         heure_fin: (session as any).heure_fin?.slice(0, 5) || "17:00",
+        heure_debut_matin: (session as any).heure_debut_matin?.slice(0, 5) || "09:00",
+        heure_fin_matin: (session as any).heure_fin_matin?.slice(0, 5) || "12:30",
+        heure_debut_aprem: (session as any).heure_debut_aprem?.slice(0, 5) || "13:30",
+        heure_fin_aprem: (session as any).heure_fin_aprem?.slice(0, 5) || "17:00",
         places_totales: session.places_totales,
         formateur_id: (session as any).formateur_id || "",
         adresse_rue: (session as any).adresse_rue || "",
@@ -177,6 +189,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         date_fin: "",
         heure_debut: "09:00",
         heure_fin: "17:00",
+        heure_debut_matin: "09:00",
+        heure_fin_matin: "12:30",
+        heure_debut_aprem: "13:30",
+        heure_fin_aprem: "17:00",
         places_totales: 10,
         formateur_id: "",
         adresse_rue: "",
@@ -217,6 +233,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         formateur_id: values.formateur_id || null,
         heure_debut: values.heure_debut || "09:00",
         heure_fin: values.heure_fin || "17:00",
+        heure_debut_matin: values.heure_debut_matin || "09:00",
+        heure_fin_matin: values.heure_fin_matin || "12:30",
+        heure_debut_aprem: values.heure_debut_aprem || "13:30",
+        heure_fin_aprem: values.heure_fin_aprem || "17:00",
         adresse_rue: values.adresse_rue || null,
         adresse_code_postal: values.adresse_code_postal || null,
         adresse_ville: values.adresse_ville || null,
@@ -447,10 +467,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
                 <FormField
                   control={form.control}
-                  name="heure_debut"
+                  name="heure_debut_matin"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Heure de début</FormLabel>
+                      <FormLabel>Début matin</FormLabel>
                       <FormControl>
                         <Input {...field} type="time" />
                       </FormControl>
@@ -461,10 +481,38 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
                 <FormField
                   control={form.control}
-                  name="heure_fin"
+                  name="heure_fin_matin"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Heure de fin</FormLabel>
+                      <FormLabel>Fin matin</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="time" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="heure_debut_aprem"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Début après-midi</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="time" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="heure_fin_aprem"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fin après-midi</FormLabel>
                       <FormControl>
                         <Input {...field} type="time" />
                       </FormControl>

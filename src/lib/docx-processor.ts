@@ -492,6 +492,10 @@ export function buildVariableData(
     horaires?: string;
     heure_debut?: string;
     heure_fin?: string;
+    heure_debut_matin?: string;
+    heure_fin_matin?: string;
+    heure_debut_aprem?: string;
+    heure_fin_aprem?: string;
     formateur?: string;
     formation_type?: string;
     duree_heures?: number;
@@ -536,13 +540,36 @@ export function buildVariableData(
     ? `${sessionDateDebut} au ${sessionDateFin}`
     : sessionDateDebut || sessionDateFin || "";
 
-  const sessionHeureDebut = formatTime(session?.heure_debut);
-  const sessionHeureFin = formatTime(session?.heure_fin);
+  // Horaires matin/après-midi
+  const heureDebutMatin = formatTime(session?.heure_debut_matin);
+  const heureFinMatin = formatTime(session?.heure_fin_matin);
+  const heureDebutAprem = formatTime(session?.heure_debut_aprem);
+  const heureFinAprem = formatTime(session?.heure_fin_aprem);
+  
+  // Horaires simples (fallback sur anciens champs)
+  const sessionHeureDebut = heureDebutMatin || formatTime(session?.heure_debut);
+  const sessionHeureFin = heureFinAprem || formatTime(session?.heure_fin);
+  
+  // Plage horaire matin
+  const horairesMatin = heureDebutMatin && heureFinMatin
+    ? `${heureDebutMatin} - ${heureFinMatin}`
+    : "";
+  
+  // Plage horaire après-midi
+  const horairesAprem = heureDebutAprem && heureFinAprem
+    ? `${heureDebutAprem} - ${heureFinAprem}`
+    : "";
+  
+  // Horaires complets avec pause déjeuner
+  const horairesComplets = horairesMatin && horairesAprem
+    ? `${horairesMatin} / ${horairesAprem}`
+    : horairesMatin || horairesAprem || "";
+
   const sessionTimeRange = session?.horaires
     ? String(session.horaires)
-    : sessionHeureDebut && sessionHeureFin
+    : horairesComplets || (sessionHeureDebut && sessionHeureFin
       ? `${sessionHeureDebut} - ${sessionHeureFin}`
-      : sessionHeureDebut || sessionHeureFin || "";
+      : sessionHeureDebut || sessionHeureFin || "");
   
   console.log("[DOCX buildVariableData] Input contact:", JSON.stringify(contact, null, 2));
   console.log("[DOCX buildVariableData] Input session:", JSON.stringify(session, null, 2));
@@ -661,6 +688,16 @@ export function buildVariableData(
     formation_type: session?.formation_type || "",
     duree_heures: session?.duree_heures?.toString() || "",
     duree: session?.duree_heures?.toString() || "",
+    
+    // Horaires matin/après-midi détaillés
+    heure_debut_matin: heureDebutMatin,
+    heure_fin_matin: heureFinMatin,
+    heure_debut_aprem: heureDebutAprem,
+    heure_fin_aprem: heureFinAprem,
+    horaires_matin: horairesMatin,
+    horaires_aprem: horairesAprem,
+    horaires_apres_midi: horairesAprem,
+    pause_dejeuner: heureFinMatin && heureDebutAprem ? `${heureFinMatin} - ${heureDebutAprem}` : "",
 
     // Champs dérivés (pour éviter les placeholders collés dans le modèle)
     session_date_formation: sessionDateRange,

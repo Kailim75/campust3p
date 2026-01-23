@@ -2830,7 +2830,11 @@ export type Database = {
           formateur_id: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
           heure_debut: string | null
+          heure_debut_aprem: string | null
+          heure_debut_matin: string | null
           heure_fin: string | null
+          heure_fin_aprem: string | null
+          heure_fin_matin: string | null
           id: string
           lieu: string | null
           nom: string
@@ -2858,7 +2862,11 @@ export type Database = {
           formateur_id?: string | null
           formation_type: Database["public"]["Enums"]["formation_type"]
           heure_debut?: string | null
+          heure_debut_aprem?: string | null
+          heure_debut_matin?: string | null
           heure_fin?: string | null
+          heure_fin_aprem?: string | null
+          heure_fin_matin?: string | null
           id?: string
           lieu?: string | null
           nom: string
@@ -2886,7 +2894,11 @@ export type Database = {
           formateur_id?: string | null
           formation_type?: Database["public"]["Enums"]["formation_type"]
           heure_debut?: string | null
+          heure_debut_aprem?: string | null
+          heure_debut_matin?: string | null
           heure_fin?: string | null
+          heure_fin_aprem?: string | null
+          heure_fin_matin?: string | null
           id?: string
           lieu?: string | null
           nom?: string
