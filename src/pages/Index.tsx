@@ -6,26 +6,19 @@ import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDi
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { useTrackRecentItem } from "@/hooks/useRecentItems";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { Dashboard } from "@/components/dashboard/Dashboard";
-import { ContactsPage } from "@/components/contacts/ContactsPage";
+import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
-import { DocumentsPage } from "@/components/documents/DocumentsPage";
-import { PaiementsPage } from "@/components/paiements/PaiementsPage";
-import { DevisPage } from "@/components/devis/DevisPage";
+import { DocumentsUnifiedPage } from "@/components/documents/DocumentsUnifiedPage";
+import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
-import { SignaturesPage } from "@/components/signatures/SignaturesPage";
-import { PipelinePage } from "@/components/pipeline/PipelinePage";
+import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
-import { PartnersPage } from "@/components/partners/PartnersPage";
-import { ProspectsPage } from "@/components/prospects/ProspectsPage";
-import QualiopiPage from "@/components/qualiopi/QualiopiPage";
-import QualiteClientPage from "@/components/qualite/QualiteClientPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -114,28 +107,18 @@ const Index = () => {
     switch (activeSection) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveSection} />;
-      case "pipeline":
-        return <PipelinePage />;
-      case "prospects":
-        return <ProspectsPage />;
       case "contacts":
-        return <ContactsPage />;
+        return <ContactsUnifiedPage />;
       case "formations":
         return <FormationsPage />;
       case "sessions":
         return <SessionsPage />;
       case "formateurs":
         return <FormateursPage />;
-      case "partners":
-        return <PartnersPage />;
       case "documents":
-        return <DocumentsPage />;
-      case "signatures":
-        return <SignaturesPage />;
-      case "paiements":
-        return <PaiementsPage />;
-      case "devis":
-        return <DevisPage />;
+        return <DocumentsUnifiedPage />;
+      case "facturation":
+        return <FacturationUnifiedPage />;
       case "communications":
         return <CommunicationsPage />;
       case "alertes":
@@ -144,12 +127,10 @@ const Index = () => {
         return <SettingsPage />;
       case "workflows":
         return <WorkflowsPage />;
-      case "qualiopi":
-        return <QualiopiPage />;
       case "qualite":
-        return <QualiteClientPage />;
+        return <QualiteUnifiedPage />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveSection} />;
     }
   };
 
