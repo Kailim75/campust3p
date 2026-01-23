@@ -2039,6 +2039,733 @@ export type Database = {
           },
         ]
       }
+      lms_competencies: {
+        Row: {
+          categorie: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          libelle: string
+          updated_at: string
+        }
+        Insert: {
+          categorie: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          libelle: string
+          updated_at?: string
+        }
+        Update: {
+          categorie?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          libelle?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lms_enrollments: {
+        Row: {
+          contact_id: string
+          created_at: string
+          date_completion: string | null
+          date_debut: string
+          date_fin_prevue: string | null
+          formation_id: string
+          id: string
+          progression_pct: number
+          session_id: string | null
+          statut: string
+          temps_total_sec: number
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          date_completion?: string | null
+          date_debut?: string
+          date_fin_prevue?: string | null
+          formation_id: string
+          id?: string
+          progression_pct?: number
+          session_id?: string | null
+          statut?: string
+          temps_total_sec?: number
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          date_completion?: string | null
+          date_debut?: string
+          date_fin_prevue?: string | null
+          formation_id?: string
+          id?: string
+          progression_pct?: number
+          session_id?: string | null
+          statut?: string
+          temps_total_sec?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_enrollments_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "lms_formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_enrollments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_exam_attempts: {
+        Row: {
+          analyse_competences: Json | null
+          analyse_themes: Json | null
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          mock_exam_id: string
+          nb_correct: number
+          nb_total: number
+          reponses_detail: Json | null
+          reussi: boolean
+          score_pct: number
+          started_at: string
+          temps_passe_sec: number
+          tentative_numero: number
+        }
+        Insert: {
+          analyse_competences?: Json | null
+          analyse_themes?: Json | null
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          mock_exam_id: string
+          nb_correct?: number
+          nb_total?: number
+          reponses_detail?: Json | null
+          reussi?: boolean
+          score_pct?: number
+          started_at?: string
+          temps_passe_sec?: number
+          tentative_numero?: number
+        }
+        Update: {
+          analyse_competences?: Json | null
+          analyse_themes?: Json | null
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          mock_exam_id?: string
+          nb_correct?: number
+          nb_total?: number
+          reponses_detail?: Json | null
+          reussi?: boolean
+          score_pct?: number
+          started_at?: string
+          temps_passe_sec?: number
+          tentative_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_exam_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_exam_attempts_mock_exam_id_fkey"
+            columns: ["mock_exam_id"]
+            isOneToOne: false
+            referencedRelation: "lms_mock_exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_formations: {
+        Row: {
+          actif: boolean
+          catalogue_formation_id: string | null
+          categorie: string
+          code: string
+          created_at: string
+          description: string | null
+          duree_heures: number
+          id: string
+          image_url: string | null
+          nom: string
+          ordre: number
+          seuil_reussite_pct: number
+          type_formation: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          catalogue_formation_id?: string | null
+          categorie: string
+          code: string
+          created_at?: string
+          description?: string | null
+          duree_heures?: number
+          id?: string
+          image_url?: string | null
+          nom: string
+          ordre?: number
+          seuil_reussite_pct?: number
+          type_formation: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          catalogue_formation_id?: string | null
+          categorie?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          duree_heures?: number
+          id?: string
+          image_url?: string | null
+          nom?: string
+          ordre?: number
+          seuil_reussite_pct?: number
+          type_formation?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_formations_catalogue_formation_id_fkey"
+            columns: ["catalogue_formation_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_lesson_progress: {
+        Row: {
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          lesson_id: string
+          position_video_sec: number | null
+          statut: string
+          temps_passe_sec: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          lesson_id: string
+          position_video_sec?: number | null
+          statut?: string
+          temps_passe_sec?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          position_video_sec?: number | null
+          statut?: string
+          temps_passe_sec?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lesson_progress_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_lessons: {
+        Row: {
+          actif: boolean
+          contenu_html: string | null
+          created_at: string
+          description: string | null
+          duree_estimee_min: number
+          id: string
+          module_id: string
+          niveau: string
+          ordre: number
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          contenu_html?: string | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number
+          id?: string
+          module_id: string
+          niveau?: string
+          ordre?: number
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          contenu_html?: string | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number
+          id?: string
+          module_id?: string
+          niveau?: string
+          ordre?: number
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "lms_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_mock_exams: {
+        Row: {
+          actif: boolean
+          conditions_reelles: boolean
+          config_timer: Json | null
+          created_at: string
+          description: string | null
+          formation_id: string
+          id: string
+          nb_questions: number
+          ordre: number
+          seuil_reussite_pct: number
+          temps_limite_min: number
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          conditions_reelles?: boolean
+          config_timer?: Json | null
+          created_at?: string
+          description?: string | null
+          formation_id: string
+          id?: string
+          nb_questions?: number
+          ordre?: number
+          seuil_reussite_pct?: number
+          temps_limite_min?: number
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          conditions_reelles?: boolean
+          config_timer?: Json | null
+          created_at?: string
+          description?: string | null
+          formation_id?: string
+          id?: string
+          nb_questions?: number
+          ordre?: number
+          seuil_reussite_pct?: number
+          temps_limite_min?: number
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_mock_exams_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "lms_formations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_modules: {
+        Row: {
+          actif: boolean
+          conditions_deblocage: Json | null
+          created_at: string
+          description: string | null
+          duree_estimee_min: number
+          formation_id: string
+          icone: string | null
+          id: string
+          obligatoire: boolean
+          ordre: number
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          conditions_deblocage?: Json | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number
+          formation_id: string
+          icone?: string | null
+          id?: string
+          obligatoire?: boolean
+          ordre?: number
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          conditions_deblocage?: Json | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number
+          formation_id?: string
+          icone?: string | null
+          id?: string
+          obligatoire?: boolean
+          ordre?: number
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_modules_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "lms_formations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_questions: {
+        Row: {
+          actif: boolean
+          competency_id: string | null
+          created_at: string
+          enonce: string
+          exam_id: string | null
+          explication: string | null
+          id: string
+          niveau: string
+          points: number
+          quiz_id: string | null
+          reponses: Json
+          theme_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          competency_id?: string | null
+          created_at?: string
+          enonce: string
+          exam_id?: string | null
+          explication?: string | null
+          id?: string
+          niveau?: string
+          points?: number
+          quiz_id?: string | null
+          reponses: Json
+          theme_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          competency_id?: string | null
+          created_at?: string
+          enonce?: string
+          exam_id?: string | null
+          explication?: string | null
+          id?: string
+          niveau?: string
+          points?: number
+          quiz_id?: string | null
+          reponses?: Json
+          theme_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_questions_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "lms_competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "lms_mock_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "lms_quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_questions_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "lms_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_quiz_attempts: {
+        Row: {
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          nb_correct: number
+          nb_total: number
+          quiz_id: string
+          reponses_detail: Json | null
+          reussi: boolean
+          score_pct: number
+          started_at: string
+          temps_passe_sec: number
+          tentative_numero: number
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          nb_correct?: number
+          nb_total?: number
+          quiz_id: string
+          reponses_detail?: Json | null
+          reussi?: boolean
+          score_pct?: number
+          started_at?: string
+          temps_passe_sec?: number
+          tentative_numero?: number
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          nb_correct?: number
+          nb_total?: number
+          quiz_id?: string
+          reponses_detail?: Json | null
+          reussi?: boolean
+          score_pct?: number
+          started_at?: string
+          temps_passe_sec?: number
+          tentative_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_quiz_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "lms_quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_quizzes: {
+        Row: {
+          actif: boolean
+          afficher_correction: boolean
+          created_at: string
+          description: string | null
+          id: string
+          lesson_id: string | null
+          melanger_questions: boolean
+          module_id: string | null
+          nb_questions: number
+          seuil_reussite_pct: number
+          temps_limite_min: number | null
+          tentatives_max: number | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          afficher_correction?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          lesson_id?: string | null
+          melanger_questions?: boolean
+          module_id?: string | null
+          nb_questions?: number
+          seuil_reussite_pct?: number
+          temps_limite_min?: number | null
+          tentatives_max?: number | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          afficher_correction?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          lesson_id?: string | null
+          melanger_questions?: boolean
+          module_id?: string | null
+          nb_questions?: number
+          seuil_reussite_pct?: number
+          temps_limite_min?: number | null
+          tentatives_max?: number | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_quizzes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_quizzes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "lms_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_resources: {
+        Row: {
+          contenu: string | null
+          created_at: string
+          description: string | null
+          duree_secondes: number | null
+          file_path: string | null
+          id: string
+          lesson_id: string
+          obligatoire: boolean
+          ordre: number
+          titre: string
+          type: string
+          url_externe: string | null
+        }
+        Insert: {
+          contenu?: string | null
+          created_at?: string
+          description?: string | null
+          duree_secondes?: number | null
+          file_path?: string | null
+          id?: string
+          lesson_id: string
+          obligatoire?: boolean
+          ordre?: number
+          titre: string
+          type: string
+          url_externe?: string | null
+        }
+        Update: {
+          contenu?: string | null
+          created_at?: string
+          description?: string | null
+          duree_secondes?: number | null
+          file_path?: string | null
+          id?: string
+          lesson_id?: string
+          obligatoire?: boolean
+          ordre?: number
+          titre?: string
+          type?: string
+          url_externe?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_resources_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_themes: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          icone: string | null
+          id: string
+          libelle: string
+          ordre: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          icone?: string | null
+          id?: string
+          libelle: string
+          ordre?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          icone?: string | null
+          id?: string
+          libelle?: string
+          ordre?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
