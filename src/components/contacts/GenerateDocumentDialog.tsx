@@ -36,9 +36,12 @@ import { useDocumentTemplateFiles, useSaveGeneratedDocument } from "@/hooks/useD
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { useSessions } from "@/hooks/useSessions";
 import { useAttestationCertificates } from "@/hooks/useAttestationCertificates";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { Contact } from "@/hooks/useContacts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { supabase } from "@/integrations/supabase/client";
+import { buildVariableData, processDocxWithVariables } from "@/lib/docx-processor";
 
 interface GenerateDocumentDialogProps {
   open: boolean;
@@ -62,6 +65,7 @@ export function GenerateDocumentDialog({
   const { data: textTemplates = [] } = useDocumentTemplates();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
   const { data: sessions = [] } = useSessions();
+  const { centreFormation } = useCentreFormation();
   const saveDocument = useSaveGeneratedDocument();
   const { generateDocument } = useDocumentGenerator();
   const { getOrCreateCertificate, updateDocumentUrl } = useAttestationCertificates();
@@ -210,6 +214,95 @@ export function GenerateDocumentDialog({
         });
       }
 
+      // For DOCX files, process with variable replacement
+      if (template.type_fichier === 'docx') {
+        // Download the template file
+        const { data: templateBlob, error: downloadError } = await supabase.storage
+          .from('document-templates')
+          .download(template.file_path);
+
+        if (downloadError || !templateBlob) {
+          console.error('Erreur téléchargement template:', downloadError);
+          toast.error("Erreur lors du téléchargement du modèle");
+          setIsGenerating(false);
+          return;
+        }
+
+        // Build variable data for DOCX processing
+        const variableData = buildVariableData(
+          {
+            civilite: contact.civilite || undefined,
+            nom: contact.nom,
+            prenom: contact.prenom,
+            email: contact.email || undefined,
+            telephone: contact.telephone || undefined,
+            rue: contact.rue || undefined,
+            code_postal: contact.code_postal || undefined,
+            ville: contact.ville || undefined,
+            date_naissance: contact.date_naissance || undefined,
+            ville_naissance: contact.ville_naissance || undefined,
+            pays_naissance: contact.pays_naissance || undefined,
+            numero_permis: contact.numero_permis || undefined,
+            prefecture_permis: contact.prefecture_permis || undefined,
+            date_delivrance_permis: contact.date_delivrance_permis || undefined,
+            numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
+            prefecture_carte: contact.prefecture_carte || undefined,
+            date_expiration_carte: contact.date_expiration_carte || undefined,
+            formation: contact.formation || undefined,
+          },
+          selectedSession ? {
+            nom: selectedSession.nom,
+            date_debut: selectedSession.date_debut,
+            date_fin: selectedSession.date_fin,
+            lieu: selectedSession.lieu || undefined,
+            heure_debut: selectedSession.heure_debut || undefined,
+            heure_fin: selectedSession.heure_fin || undefined,
+            heure_debut_matin: (selectedSession as any).heure_debut_matin,
+            heure_fin_matin: (selectedSession as any).heure_fin_matin,
+            heure_debut_aprem: (selectedSession as any).heure_debut_aprem,
+            heure_fin_aprem: (selectedSession as any).heure_fin_aprem,
+            formation_type: selectedSession.formation_type,
+            duree_heures: selectedSession.duree_heures,
+            formateur: (() => {
+              const f = selectedSession.formateur as any;
+              if (f && typeof f === 'object' && f.nom) {
+                return `${f.prenom || ''} ${f.nom}`.trim();
+              }
+              return typeof f === 'string' ? f : undefined;
+            })(),
+          } : undefined,
+          centreFormation ? {
+            nom: centreFormation.nom_commercial || centreFormation.nom_legal,
+            adresse: centreFormation.adresse_complete,
+            telephone: centreFormation.telephone,
+            email: centreFormation.email,
+            siret: centreFormation.siret,
+            nda: centreFormation.nda,
+          } : undefined,
+          certificateData || undefined
+        );
+
+        // Process the DOCX with variable replacement
+        const processedBlob = await processDocxWithVariables(templateBlob, variableData);
+        
+        // Download the processed file
+        const url = URL.createObjectURL(processedBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${template.nom}_${contact.nom}_${contact.prenom}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast.success(certificateData 
+          ? `Document DOCX généré avec certificat ${certificateData.numero_certificat}` 
+          : "Document DOCX généré avec succès");
+        onOpenChange(false);
+        return;
+      }
+
+      // For non-DOCX files (PDF), generate a simple PDF
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
