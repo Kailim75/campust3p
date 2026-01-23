@@ -959,6 +959,30 @@ export type Database = {
           },
         ]
       }
+      dismissed_alerts: {
+        Row: {
+          alert_id: string
+          dismissed_at: string
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          dismissed_at?: string
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          dismissed_at?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_envois: {
         Row: {
           commentaires: string | null
@@ -3165,6 +3189,7 @@ export type Database = {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
       }
+      cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
       create_attestation_certificate: {
         Args: {
           p_contact_id: string

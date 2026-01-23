@@ -4,13 +4,15 @@ import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   AlertTriangle, 
   CreditCard,
   Clock, 
   Calendar,
   CheckCircle,
+  CheckCircle2,
   Bell,
   Car,
   User,
@@ -20,9 +22,12 @@ import {
   Send,
   Filter,
   ExternalLink,
+  ArchiveX,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAllAlerts, type Alert } from "@/hooks/useAlerts";
+import { useDismissAlert, useRestoreAlert, useDismissedAlerts } from "@/hooks/useDismissedAlerts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -32,6 +37,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const typeConfig: Record<string, { icon: any; label: string; color: string }> = {
   carte_pro: { icon: CreditCard, label: "Carte Pro", color: "text-warning" },
@@ -52,7 +62,11 @@ const priorityConfig = {
 export function AlertesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { data: alerts, isLoading, counts } = useAllAlerts();
+  const [showDismissed, setShowDismissed] = useState(false);
+  const { data: alerts, isLoading, counts, dismissedCount } = useAllAlerts({ includeDismissed: showDismissed });
+  const { data: dismissedAlertIds = [] } = useDismissedAlerts();
+  const dismissAlert = useDismissAlert();
+  const restoreAlert = useRestoreAlert();
   
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -156,6 +170,16 @@ export function AlertesPage() {
     }
   };
 
+  const handleDismiss = (alertId: string) => {
+    dismissAlert.mutate({ alertId });
+  };
+
+  const handleRestore = (alertId: string) => {
+    restoreAlert.mutate(alertId);
+  };
+
+  const isDismissed = (alertId: string) => dismissedAlertIds.includes(alertId);
+
   return (
     <div className="min-h-screen">
       <Header 
@@ -256,6 +280,18 @@ export function AlertesPage() {
               Réinitialiser
             </Button>
           )}
+          
+          {/* Toggle to show dismissed */}
+          <div className="flex items-center gap-2 ml-auto">
+            <Switch 
+              id="show-dismissed" 
+              checked={showDismissed}
+              onCheckedChange={setShowDismissed}
+            />
+            <Label htmlFor="show-dismissed" className="text-sm text-muted-foreground cursor-pointer">
+              Afficher traitées {dismissedCount > 0 && `(${dismissedCount})`}
+            </Label>
+          </div>
         </div>
 
         {/* Alerts List */}
@@ -296,27 +332,35 @@ export function AlertesPage() {
                   key={alert.id}
                   className={cn(
                     "card-elevated p-4 border-l-4 transition-all hover:shadow-lg",
-                    alert.priority === "high" && "border-l-destructive",
-                    alert.priority === "medium" && "border-l-warning",
-                    alert.priority === "low" && "border-l-info"
+                    isDismissed(alert.id) && "opacity-60 bg-muted/30",
+                    !isDismissed(alert.id) && alert.priority === "high" && "border-l-destructive",
+                    !isDismissed(alert.id) && alert.priority === "medium" && "border-l-warning",
+                    !isDismissed(alert.id) && alert.priority === "low" && "border-l-info",
+                    isDismissed(alert.id) && "border-l-success"
                   )}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={cn("mt-0.5", config.color)}>
-                      <TypeIcon className="h-5 w-5" />
+                    <div className={cn("mt-0.5", isDismissed(alert.id) ? "text-success" : config.color)}>
+                      {isDismissed(alert.id) ? <CheckCircle2 className="h-5 w-5" /> : <TypeIcon className="h-5 w-5" />}
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h4 className="font-medium text-foreground">
+                        <h4 className={cn("font-medium", isDismissed(alert.id) ? "text-muted-foreground line-through" : "text-foreground")}>
                           {alert.title}
                         </h4>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", priorityConfig[alert.priority].class)}
-                        >
-                          {priorityConfig[alert.priority].label}
-                        </Badge>
+                        {isDismissed(alert.id) ? (
+                          <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+                            Traitée
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", priorityConfig[alert.priority].class)}
+                          >
+                            {priorityConfig[alert.priority].label}
+                          </Badge>
+                        )}
                         <Badge variant="secondary" className="text-xs">
                           {config.label}
                         </Badge>
@@ -341,7 +385,38 @@ export function AlertesPage() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {getActionButton(alert)}
+                      {!isDismissed(alert.id) && getActionButton(alert)}
+                      
+                      {isDismissed(alert.id) ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleRestore(alert.id)}
+                              disabled={restoreAlert.isPending}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Restaurer l'alerte</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="text-success hover:text-success hover:bg-success/10"
+                              onClick={() => handleDismiss(alert.id)}
+                              disabled={dismissAlert.isPending}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Marquer comme traitée</TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   </div>
                 </div>

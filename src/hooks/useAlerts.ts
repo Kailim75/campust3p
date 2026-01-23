@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, isPast, parseISO } from "date-fns";
-
+import { useDismissedAlerts } from "./useDismissedAlerts";
 export interface Alert {
   id: string;
   type: "carte_pro" | "permis" | "session" | "document" | "payment" | "exam_t3p" | "exam_pratique";
@@ -459,23 +459,32 @@ export function useDocumentAlerts() {
   });
 }
 
-// Combined alerts
-export function useAllAlerts() {
+// Combined alerts - filters out dismissed alerts
+export function useAllAlerts(options?: { includeDismissed?: boolean }) {
   const { data: expirationAlerts = [], isLoading: loadingExpirations } = useExpirationAlerts();
   const { data: sessionAlerts = [], isLoading: loadingSessions } = useSessionAlerts();
   const { data: paymentAlerts = [], isLoading: loadingPayments } = usePaymentAlerts();
   const { data: documentAlerts = [], isLoading: loadingDocuments } = useDocumentAlerts();
   const { data: examT3PAlerts = [], isLoading: loadingExamT3P } = useExamT3PAlerts();
   const { data: examPratiqueAlerts = [], isLoading: loadingExamPratique } = useExamPratiqueAlerts();
+  const { data: dismissedAlertIds = [], isLoading: loadingDismissed } = useDismissedAlerts();
 
-  const allAlerts = [
+  const allRawAlerts = [
     ...expirationAlerts, 
     ...sessionAlerts, 
     ...paymentAlerts, 
     ...documentAlerts,
     ...examT3PAlerts,
     ...examPratiqueAlerts,
-  ].sort((a, b) => {
+  ];
+
+  // Filter out dismissed alerts unless explicitly requested
+  const allAlerts = options?.includeDismissed 
+    ? allRawAlerts 
+    : allRawAlerts.filter(alert => !dismissedAlertIds.includes(alert.id));
+
+  // Sort by priority then by days until expiry
+  const sortedAlerts = allAlerts.sort((a, b) => {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -483,16 +492,23 @@ export function useAllAlerts() {
     return a.daysUntilExpiry - b.daysUntilExpiry;
   });
 
+  // Count based on filtered alerts
+  const filteredPayments = paymentAlerts.filter(a => !dismissedAlertIds.includes(a.id));
+  const filteredDocuments = [...documentAlerts, ...expirationAlerts].filter(a => !dismissedAlertIds.includes(a.id));
+  const filteredSessions = sessionAlerts.filter(a => !dismissedAlertIds.includes(a.id));
+  const filteredExams = [...examT3PAlerts, ...examPratiqueAlerts].filter(a => !dismissedAlertIds.includes(a.id));
+
   return {
-    data: allAlerts,
-    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments || loadingExamT3P || loadingExamPratique,
+    data: sortedAlerts,
+    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments || loadingExamT3P || loadingExamPratique || loadingDismissed,
     counts: {
-      total: allAlerts.length,
-      high: allAlerts.filter(a => a.priority === "high").length,
-      payments: paymentAlerts.length,
-      documents: documentAlerts.length + expirationAlerts.length,
-      sessions: sessionAlerts.length,
-      exams: examT3PAlerts.length + examPratiqueAlerts.length,
-    }
+      total: sortedAlerts.length,
+      high: sortedAlerts.filter(a => a.priority === "high").length,
+      payments: filteredPayments.length,
+      documents: filteredDocuments.length,
+      sessions: filteredSessions.length,
+      exams: filteredExams.length,
+    },
+    dismissedCount: dismissedAlertIds.length,
   };
 }
