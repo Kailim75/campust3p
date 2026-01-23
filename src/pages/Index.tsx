@@ -7,6 +7,7 @@ import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
+import { NavigationProvider } from "@/contexts/NavigationContext";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
@@ -59,6 +61,11 @@ const Index = () => {
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Reset tab when section changes
+  useEffect(() => {
+    setActiveTab(undefined);
+  }, [activeSection]);
 
   // Listen for navigate-to-alerts event from ProactiveAlertsToast
   useEffect(() => {
@@ -145,7 +152,14 @@ const Index = () => {
         "transition-all duration-300 h-full overflow-auto",
         isMobile ? "ml-0" : "ml-64"
       )}>
-        {renderContent()}
+        <NavigationProvider
+          activeSection={activeSection}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onNavigate={setActiveSection}
+        >
+          {renderContent()}
+        </NavigationProvider>
       </main>
 
       {/* Quick Actions FAB */}

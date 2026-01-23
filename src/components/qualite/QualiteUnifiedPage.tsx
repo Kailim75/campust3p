@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Award, Star, BarChart3, ClipboardList, CheckSquare, Calendar } from "lucide-react";
@@ -38,9 +39,16 @@ export function QualiteUnifiedPage() {
   const conformiteRate = totalIndicateurs > 0 ? Math.round((conformeCount / totalIndicateurs) * 100) : 0;
   const actionsEnCours = actions.filter(a => a.statut !== 'terminee' && a.statut !== 'annulee').length;
 
+  const { setActiveTab } = useNavigation();
+  
+  // Update breadcrumb when tab changes
+  useEffect(() => {
+    setActiveTab(tab);
+  }, [tab, setActiveTab]);
+
   return (
     <div className="space-y-6">
-      <Header 
+      <PageHeader 
         title="Qualité & Conformité" 
         subtitle={`${conformiteRate}% de conformité QUALIOPI • ${actionsEnCours} actions en cours`}
       />

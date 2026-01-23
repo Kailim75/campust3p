@@ -13,27 +13,23 @@ import { toast } from "sonner";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
+import { useNavigation } from "@/contexts/NavigationContext";
 
-interface HeaderProps {
+interface PageHeaderProps {
   title: string;
   subtitle?: string;
   onAddClick?: () => void;
   addLabel?: string;
-  activeSection?: string;
-  activeTab?: string;
-  onNavigate?: (section: string) => void;
 }
 
-export function Header({ 
+export function PageHeader({ 
   title, 
   subtitle, 
   onAddClick, 
   addLabel,
-  activeSection,
-  activeTab,
-  onNavigate,
-}: HeaderProps) {
+}: PageHeaderProps) {
   const { user, signOut } = useAuth();
+  const { activeSection, activeTab, onNavigate } = useNavigation();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -53,13 +49,11 @@ export function Header({
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex-1">
           {/* Breadcrumb */}
-          {activeSection && onNavigate && (
-            <AppBreadcrumb 
-              activeSection={activeSection} 
-              activeTab={activeTab}
-              onNavigate={onNavigate} 
-            />
-          )}
+          <AppBreadcrumb 
+            activeSection={activeSection} 
+            activeTab={activeTab}
+            onNavigate={onNavigate} 
+          />
           
           <h1 className="text-2xl font-display font-bold text-foreground">{title}</h1>
           {subtitle && (
