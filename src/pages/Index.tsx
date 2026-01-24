@@ -20,6 +20,7 @@ import { SettingsPage } from "@/components/settings/SettingsPage";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
 import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
+import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -136,6 +137,8 @@ const Index = () => {
         return <WorkflowsPage />;
       case "qualite":
         return <QualiteUnifiedPage />;
+      case "elearning":
+        return <LmsAdminPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }
