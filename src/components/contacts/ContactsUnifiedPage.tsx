@@ -19,8 +19,13 @@ import {
   Kanban, 
   UserPlus, 
   Plus,
-  BarChart3 
+  BarChart3,
+  Trash2,
+  X
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
@@ -430,6 +435,8 @@ function ProspectsEmbedded() {
   const convertProspect = useConvertProspect();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const STATUS_LABELS: Record<string, string> = {
     nouveau: "Nouveau",
@@ -458,6 +465,38 @@ function ProspectsEmbedded() {
 
   const handleConvert = (prospect: Prospect) => {
     convertProspect.mutate(prospect);
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProspects.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProspects.map((p) => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      for (const id of ids) {
+        await deleteProspect.mutateAsync(id);
+      }
+      toast.success(`${ids.length} prospect(s) supprimé(s)`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    }
+    setShowDeleteDialog(false);
   };
 
   if (isLoading) {
@@ -505,23 +544,50 @@ function ProspectsEmbedded() {
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Select All Header */}
+          <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 rounded-lg">
+            <Checkbox
+              checked={filteredProspects.length > 0 && selectedIds.size === filteredProspects.length}
+              onCheckedChange={toggleSelectAll}
+              aria-label="Sélectionner tout"
+            />
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} sélectionné(s)`
+                : "Sélectionner tout"}
+            </span>
+          </div>
+
           {filteredProspects.map((prospect) => (
-            <Card key={prospect.id} className="p-4">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {prospect.prenom} {prospect.nom}
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Badge className={STATUS_COLORS[prospect.statut]}>
-                      {STATUS_LABELS[prospect.statut]}
-                    </Badge>
-                    {prospect.formation_souhaitee && (
-                      <Badge variant="outline">{prospect.formation_souhaitee}</Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {prospect.email} • {prospect.telephone}
+            <Card
+              key={prospect.id}
+              className={cn(
+                "p-4 transition-colors",
+                selectedIds.has(prospect.id) && "bg-muted/50 border-primary/50"
+              )}
+            >
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={selectedIds.has(prospect.id)}
+                    onCheckedChange={() => toggleSelect(prospect.id)}
+                    aria-label={`Sélectionner ${prospect.prenom} ${prospect.nom}`}
+                  />
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      {prospect.prenom} {prospect.nom}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <Badge className={STATUS_COLORS[prospect.statut]}>
+                        {STATUS_LABELS[prospect.statut]}
+                      </Badge>
+                      {prospect.formation_souhaitee && (
+                        <Badge variant="outline">{prospect.formation_souhaitee}</Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {prospect.email} • {prospect.telephone}
+                    </div>
                   </div>
                 </div>
                 {prospect.statut !== "converti" && (
@@ -539,6 +605,53 @@ function ProspectsEmbedded() {
           ))}
         </div>
       )}
+
+      {/* Floating Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in-0">
+          <div className="flex items-center gap-3 bg-background border shadow-lg rounded-lg px-4 py-3">
+            <span className="text-sm font-medium">
+              {selectedIds.size} prospect(s) sélectionné(s)
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer {selectedIds.size} prospect(s) ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
