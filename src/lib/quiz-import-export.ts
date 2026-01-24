@@ -280,6 +280,7 @@ export function generateQuizTemplate(): string {
 
 /**
  * Read and parse a CSV/Excel file
+ * Uses ArrayBuffer to properly handle UTF-8 encoding
  */
 export async function readQuizFile(file: File): Promise<ParsedQuizData> {
   return new Promise((resolve, reject) => {
@@ -288,7 +289,8 @@ export async function readQuizFile(file: File): Promise<ParsedQuizData> {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: "binary" });
+        // Use ArrayBuffer type for proper UTF-8 handling
+        const workbook = XLSX.read(data, { type: "array", codepage: 65001 });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
         resolve(parseQuizCSV(jsonData));
@@ -298,6 +300,7 @@ export async function readQuizFile(file: File): Promise<ParsedQuizData> {
     };
     
     reader.onerror = () => reject(new Error("Erreur de lecture du fichier"));
-    reader.readAsBinaryString(file);
+    // Use ArrayBuffer instead of binary string for proper UTF-8 support
+    reader.readAsArrayBuffer(file);
   });
 }

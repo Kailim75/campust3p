@@ -4027,6 +4027,17 @@ export type Database = {
           used_at: string
         }[]
       }
+      validate_learner_portal_token: {
+        Args: { p_token: string }
+        Returns: {
+          contact_formation: string
+          contact_id: string
+          contact_nom: string
+          contact_prenom: string
+          expire_at: string
+          used_at: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "staff"
