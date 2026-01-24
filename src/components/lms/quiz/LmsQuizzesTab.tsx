@@ -35,9 +35,13 @@ import {
   useLmsQuestionMutations,
   LmsQuiz,
   LmsQuestion,
+  QuestionAnswer,
 } from "@/hooks/useLmsQuizzes";
 import { QuizFormDialog } from "./QuizFormDialog";
 import { QuestionFormDialog } from "./QuestionFormDialog";
+import { QuizImportDialog } from "./QuizImportDialog";
+import { exportQuizzesToCSV, exportQuizzesToExcel } from "@/lib/quiz-import-export";
+import { toast } from "sonner";
 import { 
   Plus, 
   MoreHorizontal, 
@@ -47,13 +51,16 @@ import {
   FileQuestion,
   ClipboardList,
   Clock,
-  Target
+  Target,
+  Upload,
+  Download
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export function LmsQuizzesTab() {
   const [activeSubTab, setActiveSubTab] = useState("quizzes");
   const [searchTerm, setSearchTerm] = useState("");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   // Quiz state
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
@@ -109,6 +116,52 @@ export function LmsQuizzesTab() {
     setQuestionDialogOpen(true);
   };
 
+  const handleExport = (format: "csv" | "xlsx") => {
+    if (!quizzes || !questions) return;
+    
+    const quizzesWithQuestions = (quizzes as any[]).map((quiz) => {
+      const quizQuestions = (questions as any[])
+        .filter((q) => q.quiz_id === quiz.id)
+        .map((q) => ({
+          enonce: q.enonce,
+          type: q.type,
+          niveau: q.niveau,
+          points: q.points,
+          explication: q.explication,
+          reponses: (q.reponses as QuestionAnswer[]) || [],
+        }));
+      return {
+        titre: quiz.titre,
+        description: quiz.description,
+        nb_questions: quiz.nb_questions,
+        temps_limite_min: quiz.temps_limite_min,
+        seuil_reussite_pct: quiz.seuil_reussite_pct,
+        questions: quizQuestions,
+      };
+    });
+
+    if (format === "csv") {
+      const csv = exportQuizzesToCSV(quizzesWithQuestions);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export_quiz_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const blob = exportQuizzesToExcel(quizzesWithQuestions);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export_quiz_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    toast.success(`Export ${format.toUpperCase()} téléchargé`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -136,7 +189,27 @@ export function LmsQuizzesTab() {
         </TabsList>
 
         <TabsContent value="quizzes" className="mt-6">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end gap-2 mb-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover">
+                <DropdownMenuItem onClick={() => handleExport("csv")}>
+                  Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importer
+            </Button>
             <Button onClick={() => { setEditingQuiz(null); setQuizDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nouveau quiz
@@ -159,9 +232,9 @@ export function LmsQuizzesTab() {
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-base">{quiz.titre}</CardTitle>
-                        {quiz.lms_modules?.nom && (
+                        {quiz.lms_modules?.titre && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            {quiz.lms_modules.nom}
+                            {quiz.lms_modules.titre}
                           </p>
                         )}
                       </div>
@@ -171,7 +244,7 @@ export function LmsQuizzesTab() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="bg-popover">
                           <DropdownMenuItem onClick={() => handleAddQuestionToQuiz(quiz.id)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Ajouter question
@@ -284,7 +357,7 @@ export function LmsQuizzesTab() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="bg-popover">
                             <DropdownMenuItem onClick={() => handleEditQuestion(question)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Modifier
@@ -320,6 +393,11 @@ export function LmsQuizzesTab() {
         onOpenChange={setQuestionDialogOpen}
         question={editingQuestion}
         defaultQuizId={defaultQuizId}
+      />
+
+      <QuizImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
       />
 
       {/* Delete quiz confirmation */}
