@@ -30,6 +30,7 @@ import {
   Clock,
   Target,
   Eye,
+  FileText,
 } from "lucide-react";
 import {
   useBimProjets,
@@ -39,6 +40,7 @@ import {
 import { useBimScenes, useDeleteBimScene, BimScene } from "@/hooks/useBimScenes";
 import { BimProjetFormDialog } from "./BimProjetFormDialog";
 import { BimSceneFormDialog } from "./BimSceneFormDialog";
+import { BimQualiopiProofsDialog } from "./BimQualiopiProofsDialog";
 import { cn } from "@/lib/utils";
 
 const STATUT_COLORS: Record<string, string> = {
@@ -70,6 +72,8 @@ export function BimProjetsTab() {
   const [sceneProjetId, setSceneProjetId] = useState<string | null>(null);
   const [editingScene, setEditingScene] = useState<BimScene | null>(null);
   const [deletingScene, setDeletingScene] = useState<BimScene | null>(null);
+
+  const [showProofsDialog, setShowProofsDialog] = useState(false);
 
   const toggleProjet = (projetId: string) => {
     setExpandedProjets((prev) => {
@@ -142,6 +146,10 @@ export function BimProjetsTab() {
               Gérez les scénarios 3D pour contextualiser les formations T3P
             </p>
           </div>
+          <Button variant="outline" onClick={() => setShowProofsDialog(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Preuves Qualiopi
+          </Button>
           <Button onClick={handleAddProjet}>
             <Plus className="h-4 w-4 mr-2" />
             Nouveau projet
@@ -373,6 +381,11 @@ export function BimProjetsTab() {
           nextOrdre={getScenesForProjet(sceneProjetId).length + 1}
         />
       )}
+
+      <BimQualiopiProofsDialog
+        open={showProofsDialog}
+        onOpenChange={setShowProofsDialog}
+      />
 
       {/* Delete confirmations */}
       <AlertDialog
