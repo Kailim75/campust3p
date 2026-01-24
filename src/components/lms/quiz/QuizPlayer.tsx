@@ -130,7 +130,7 @@ export function QuizPlayer({
     questions.forEach((q) => {
       totalPoints += q.points;
       const userAnswer = userAnswers.find((a) => a.questionId === q.id);
-      const correctIds = (q.reponses as QuestionAnswer[])
+      const correctIds = (q.reponses as unknown as QuestionAnswer[])
         .filter((r) => r.is_correct)
         .map((r) => r.id);
       
@@ -228,7 +228,7 @@ export function QuizPlayer({
       <Card>
         <CardContent className="py-12 text-center space-y-6">
           {results.passed ? (
-            <Trophy className="h-16 w-16 mx-auto text-green-500" />
+            <Trophy className="h-16 w-16 mx-auto text-primary" />
           ) : (
             <XCircle className="h-16 w-16 mx-auto text-destructive" />
           )}
@@ -303,7 +303,7 @@ export function QuizPlayer({
               )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {(currentQuestion.reponses as QuestionAnswer[]).map((answer, idx) => {
+              {(currentQuestion.reponses as unknown as QuestionAnswer[]).map((answer, idx) => {
                 const isSelected = currentAnswer?.selectedIds.includes(answer.id);
                 return (
                   <button
@@ -404,10 +404,10 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
   return (
     <div className="space-y-6">
       {/* Score summary */}
-      <Card className={results.passed ? "border-green-500" : "border-destructive"}>
+      <Card className={results.passed ? "border-primary" : "border-destructive"}>
         <CardContent className="py-8 text-center space-y-4">
           {results.passed ? (
-            <Trophy className="h-16 w-16 mx-auto text-green-500" />
+            <Trophy className="h-16 w-16 mx-auto text-primary" />
           ) : (
             <XCircle className="h-16 w-16 mx-auto text-destructive" />
           )}
@@ -432,11 +432,11 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
           const isCorrect = detail?.is_correct;
 
           return (
-            <Card key={question.id} className={isCorrect ? "border-green-500/50" : "border-destructive/50"}>
+            <Card key={question.id} className={isCorrect ? "border-primary/50" : "border-destructive/50"}>
               <CardHeader className="pb-2">
                 <div className="flex items-start gap-3">
                   {isCorrect ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   ) : (
                     <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                   )}
@@ -454,12 +454,12 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
                       key={answer.id}
                       className={cn(
                         "flex items-center gap-2 p-2 rounded text-sm",
-                        answer.is_correct && "bg-green-100 dark:bg-green-900/30",
-                        wasSelected && !answer.is_correct && "bg-red-100 dark:bg-red-900/30"
+                        answer.is_correct && "bg-primary/10",
+                        wasSelected && !answer.is_correct && "bg-destructive/10"
                       )}
                     >
                       {answer.is_correct ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       ) : wasSelected ? (
                         <XCircle className="h-4 w-4 text-destructive" />
                       ) : (

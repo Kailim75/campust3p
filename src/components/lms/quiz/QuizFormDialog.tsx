@@ -193,7 +193,7 @@ export function QuizFormDialog({ open, onOpenChange, quiz }: QuizFormDialogProps
                         <SelectItem value="">Aucun</SelectItem>
                         {modules?.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            {m.nom}
+                            {m.titre}
                           </SelectItem>
                         ))}
                       </SelectContent>
