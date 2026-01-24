@@ -56,7 +56,13 @@ const TOOL_LABELS: Record<string, string> = {
   send_email: 'Envoi email',
   create_notification: 'Création notification',
   get_dashboard_stats: 'Statistiques',
-  add_contact_historique: 'Ajout historique'
+  add_contact_historique: 'Ajout historique',
+  // BIM tools
+  list_bim_projets: 'Liste projets BIM',
+  create_bim_projet: 'Création projet BIM',
+  get_bim_progression: 'Progression BIM',
+  list_bim_scenes: 'Liste scènes BIM',
+  get_bim_stats: 'Statistiques BIM'
 };
 
 const TOOL_DESCRIPTIONS: Record<string, (params: any) => string> = {
@@ -65,7 +71,8 @@ const TOOL_DESCRIPTIONS: Record<string, (params: any) => string> = {
   update_contact: (p) => `Modifier le contact: ${Object.keys(p.updates || {}).join(', ')}`,
   create_session: (p) => `Créer la session "${p.nom}" (${p.formation_type}) du ${p.date_debut} au ${p.date_fin}`,
   enroll_contact_to_session: () => `Inscrire le contact à la session`,
-  send_email: (p) => `Envoyer l'email "${p.subject}"`
+  send_email: (p) => `Envoyer l'email "${p.subject}"`,
+  create_bim_projet: (p) => `Créer le projet BIM "${p.titre}" (${p.type_formation || 'commun'})`
 };
 
 export function AIAssistant() {
@@ -92,6 +99,7 @@ export function AIAssistant() {
     { label: '➕ Contact', prompt: 'Créer un contact' },
     { label: '📅 Sessions', prompt: 'Prochaines sessions' },
     { label: '💳 Factures', prompt: 'Factures en attente' },
+    { label: '🏗️ BIM', prompt: 'Statistiques BIM' },
   ];
 
   const scrollToBottom = useCallback(() => {
