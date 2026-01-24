@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus,
   Search,
@@ -26,6 +27,7 @@ import {
   LayoutList,
   Kanban,
   BarChart3,
+  X,
 } from "lucide-react";
 import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
 import { ProspectFormDialog } from "./ProspectFormDialog";
@@ -36,6 +38,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 const STATUS_LABELS: Record<ProspectStatus, string> = {
   nouveau: "Nouveau",
@@ -74,6 +77,8 @@ export function ProspectsPage() {
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard">("list");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const filteredProspects = prospects.filter((prospect) => {
@@ -120,6 +125,52 @@ export function ProspectsPage() {
   const handleFormClose = () => {
     setFormOpen(false);
     setEditingProspect(null);
+  };
+
+  // Selection logic
+  const selectedProspects = useMemo(() => 
+    filteredProspects.filter(p => selectedIds.has(p.id)),
+    [filteredProspects, selectedIds]
+  );
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredProspects.map(p => p.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    let successCount = 0;
+    for (const id of ids) {
+      try {
+        await deleteProspect.mutateAsync(id);
+        successCount++;
+      } catch (e) {
+        console.error("Erreur suppression prospect", id, e);
+      }
+    }
+    toast.success(`${successCount} prospect(s) supprimé(s)`);
+    setSelectedIds(new Set());
+    setBulkDeleteDialogOpen(false);
   };
 
   return (
@@ -312,6 +363,12 @@ export function ProspectsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox 
+                    checked={filteredProspects.length > 0 && selectedIds.size === filteredProspects.length}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Formation</TableHead>
@@ -324,7 +381,13 @@ export function ProspectsPage() {
             </TableHeader>
             <TableBody>
               {filteredProspects.map((prospect) => (
-                <TableRow key={prospect.id}>
+                <TableRow key={prospect.id} className={selectedIds.has(prospect.id) ? "bg-muted/50" : ""}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedIds.has(prospect.id)}
+                      onCheckedChange={(checked) => handleSelectOne(prospect.id, !!checked)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     {prospect.prenom} {prospect.nom}
                   </TableCell>
@@ -439,19 +502,57 @@ export function ProspectsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Convertir en contact ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Le prospect "{selectedProspect?.prenom} {selectedProspect?.nom}" sera converti en contact.
-              Ses informations (nom, prénom, téléphone, email, formation) seront automatiquement reprises.
+              Le prospect "{selectedProspect?.prenom} {selectedProspect?.nom}" sera converti en contact
+              et pourra être inscrit à une session de formation.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={confirmConvert}>
-              <UserCheck className="h-4 w-4 mr-2" />
               Convertir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer {selectedIds.size} prospect(s) ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action masquera les prospects sélectionnés. Ils ne seront plus visibles dans la liste.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-lg shadow-lg p-4 flex items-center gap-4">
+          <span className="text-sm font-medium">
+            {selectedIds.size} prospect(s) sélectionné(s)
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setBulkDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Supprimer
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+            <X className="h-4 w-4 mr-2" />
+            Annuler
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
