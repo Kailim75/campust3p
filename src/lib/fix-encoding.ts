@@ -75,6 +75,6 @@ export function fixEncoding(text: string | null | undefined): string {
 export function hasEncodingIssues(text: string | null | undefined): boolean {
   if (!text) return false;
   
-  // Check for common double-encoded patterns
-  return /Ã[€-¿]/u.test(text) || /â€/u.test(text);
+  // Check for common double-encoded patterns (Ã followed by specific chars)
+  return /Ã[€¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿àáâãäåæçèéêëìíîï]/.test(text) || /â€/.test(text);
 }
