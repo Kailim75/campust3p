@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GraduationCap,
   ClipboardCheck,
@@ -18,6 +19,7 @@ import {
   BookOpen,
   ArrowLeft,
   User,
+  Box,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +29,7 @@ import {
   LmsQuiz,
 } from "@/hooks/useLmsQuizzes";
 import { QuizPlayer } from "@/components/lms/quiz/QuizPlayer";
+import { LearnerBimSection } from "@/components/lms/bim/LearnerBimSection";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -244,7 +247,20 @@ export default function LearnerPortal() {
           </CardContent>
         </Card>
 
-        {/* Quizzes */}
+        {/* Tabs for Quiz and BIM */}
+        <Tabs defaultValue="quizzes" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="quizzes" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Quiz & QCM
+            </TabsTrigger>
+            <TabsTrigger value="bim" className="flex items-center gap-2">
+              <Box className="h-4 w-4" />
+              Projets BIM 3D
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="quizzes" className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5" />
@@ -404,6 +420,12 @@ export default function LearnerPortal() {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="bim" className="space-y-6">
+            {contact && <LearnerBimSection contactId={contact.id} />}
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Quiz Player Dialog */}
