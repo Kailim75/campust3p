@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Enquete from "./pages/Enquete";
 import LearnerPortal from "./pages/LearnerPortal";
+import VerifyCertificate from "./pages/VerifyCertificate";
 import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/enquete/:token" element={<Enquete />} />
             <Route path="/apprenant" element={<LearnerPortal />} />
+            <Route path="/certificat" element={<VerifyCertificate />} />
             <Route path="/install" element={<Install />} />
 
             {/* Legacy deep-links */}
