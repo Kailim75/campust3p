@@ -271,6 +271,84 @@ const TOOLS = [
         required: ["contact_id", "type", "contenu"]
       }
     }
+  },
+  // BIM Tools
+  {
+    type: "function",
+    function: {
+      name: "list_bim_projets",
+      description: "Lister les projets BIM pédagogiques disponibles",
+      parameters: {
+        type: "object",
+        properties: {
+          statut: { type: "string", enum: ["brouillon", "actif", "archive"], description: "Filtrer par statut" },
+          type_formation: { type: "string", enum: ["taxi", "vtc", "commun"], description: "Filtrer par type de formation" },
+          limit: { type: "number", description: "Nombre maximum de résultats" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_bim_projet",
+      description: "Créer un nouveau projet BIM pédagogique",
+      parameters: {
+        type: "object",
+        properties: {
+          code: { type: "string", description: "Code unique du projet (ex: BIM-TAXI-001)" },
+          titre: { type: "string", description: "Titre du projet" },
+          description: { type: "string", description: "Description du projet" },
+          type_formation: { type: "string", enum: ["taxi", "vtc", "commun"], description: "Type de formation ciblée" },
+          competences_cibles: { type: "array", items: { type: "string" }, description: "Liste des compétences T3P ciblées (REGLEMENTATION, SECURITE_ROUTIERE, etc.)" },
+          seuil_validation_pct: { type: "number", description: "Seuil de validation en % (défaut: 70)" },
+          duree_estimee_min: { type: "number", description: "Durée estimée en minutes" }
+        },
+        required: ["code", "titre"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_bim_progression",
+      description: "Obtenir la progression BIM d'un apprenant sur un projet",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "string", description: "ID du contact/apprenant" },
+          projet_id: { type: "string", description: "ID du projet BIM (optionnel - si omis, retourne toutes les progressions)" }
+        },
+        required: ["contact_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_bim_scenes",
+      description: "Lister les scènes 3D d'un projet BIM",
+      parameters: {
+        type: "object",
+        properties: {
+          projet_id: { type: "string", description: "ID du projet BIM" }
+        },
+        required: ["projet_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_bim_stats",
+      description: "Obtenir les statistiques globales BIM (projets, apprenants, taux de réussite)",
+      parameters: {
+        type: "object",
+        properties: {
+          periode: { type: "string", enum: ["week", "month", "quarter", "year"], description: "Période d'analyse" }
+        }
+      }
+    }
   }
 ];
 
@@ -636,6 +714,172 @@ async function executeAddContactHistorique(supabase: any, params: any) {
   return { success: true, historique: data, message: "Note ajoutée à l'historique du contact" };
 }
 
+// BIM Tool execution functions
+async function executeListBimProjets(supabase: any, params: any) {
+  let query = supabase
+    .from('bim_projets')
+    .select('id, code, titre, description, type_formation, statut, duree_estimee_min, seuil_validation_pct, competences_cibles, created_at');
+  
+  if (params.statut) {
+    query = query.eq('statut', params.statut);
+  }
+  if (params.type_formation) {
+    query = query.eq('type_formation', params.type_formation);
+  }
+  
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(params.limit || 20);
+  if (error) throw error;
+  return { success: true, projets: data, count: data.length };
+}
+
+async function executeCreateBimProjet(supabase: any, params: any) {
+  const { data, error } = await supabase
+    .from('bim_projets')
+    .insert({
+      code: params.code,
+      titre: params.titre,
+      description: params.description || null,
+      type_formation: params.type_formation || 'commun',
+      competences_cibles: params.competences_cibles || [],
+      seuil_validation_pct: params.seuil_validation_pct || 70,
+      duree_estimee_min: params.duree_estimee_min || 30,
+      statut: 'brouillon'
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return { success: true, projet: data, message: `Projet BIM "${params.titre}" créé avec succès` };
+}
+
+async function executeGetBimProgression(supabase: any, params: any) {
+  let query = supabase
+    .from('bim_progressions')
+    .select(`
+      id, statut, progression_pct, scenes_completees, scenes_total, 
+      temps_total_sec, score_moyen_pct, meilleur_score_pct, started_at, completed_at,
+      bim_projets:projet_id (code, titre, type_formation)
+    `)
+    .eq('contact_id', params.contact_id);
+  
+  if (params.projet_id) {
+    query = query.eq('projet_id', params.projet_id);
+  }
+  
+  const { data, error } = await query;
+  if (error) throw error;
+  
+  if (!data || data.length === 0) {
+    return { success: true, message: "Aucune progression BIM trouvée pour cet apprenant", progressions: [] };
+  }
+  
+  return { 
+    success: true, 
+    progressions: data,
+    summary: {
+      total_projets: data.length,
+      valides: data.filter((p: any) => p.statut === 'valide').length,
+      en_cours: data.filter((p: any) => p.statut === 'en_cours').length,
+      score_moyen: data.length > 0 
+        ? Math.round(data.reduce((sum: number, p: any) => sum + (p.score_moyen_pct || 0), 0) / data.length)
+        : 0
+    }
+  };
+}
+
+async function executeListBimScenes(supabase: any, params: any) {
+  const { data, error } = await supabase
+    .from('bim_scenes')
+    .select('id, titre, description, ordre, fichier_3d_format, duree_estimee_min, actif')
+    .eq('projet_id', params.projet_id)
+    .order('ordre', { ascending: true });
+  
+  if (error) throw error;
+  return { success: true, scenes: data, count: data.length };
+}
+
+async function executeGetBimStats(supabase: any, params: any) {
+  const period = params.periode || 'month';
+  const cacheKey = `bim-stats-${period}`;
+  
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return { ...cached, fromCache: true };
+  }
+  
+  const now = new Date();
+  let startDate: Date;
+  
+  switch (period) {
+    case 'week':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case 'quarter':
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    case 'year':
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  }
+  
+  // Get BIM projects count
+  const { count: totalProjets } = await supabase
+    .from('bim_projets')
+    .select('*', { count: 'exact', head: true });
+  
+  const { count: projetsActifs } = await supabase
+    .from('bim_projets')
+    .select('*', { count: 'exact', head: true })
+    .eq('statut', 'actif');
+  
+  // Get scenes count
+  const { count: totalScenes } = await supabase
+    .from('bim_scenes')
+    .select('*', { count: 'exact', head: true });
+  
+  // Get evaluations in period
+  const { data: evaluations } = await supabase
+    .from('bim_evaluations')
+    .select('score_pct, reussi')
+    .gte('completed_at', startDate.toISOString());
+  
+  const tauxReussite = evaluations && evaluations.length > 0
+    ? Math.round((evaluations.filter((e: any) => e.reussi).length / evaluations.length) * 100)
+    : 0;
+  
+  const scoreMoyen = evaluations && evaluations.length > 0
+    ? Math.round(evaluations.reduce((sum: number, e: any) => sum + (e.score_pct || 0), 0) / evaluations.length)
+    : 0;
+  
+  // Get unique learners
+  const { data: progressions } = await supabase
+    .from('bim_progressions')
+    .select('contact_id')
+    .gte('created_at', startDate.toISOString());
+  
+  const uniqueLearners = new Set(progressions?.map((p: any) => p.contact_id) || []);
+  
+  const result = {
+    success: true,
+    stats: {
+      periode: period,
+      projets: { total: totalProjets, actifs: projetsActifs },
+      scenes: { total: totalScenes },
+      evaluations: { 
+        total: evaluations?.length || 0, 
+        tauxReussite: `${tauxReussite}%`,
+        scoreMoyen: `${scoreMoyen}%`
+      },
+      apprenants: { actifs: uniqueLearners.size }
+    }
+  };
+  
+  setCache(cacheKey, result);
+  return result;
+}
+
 // Log action to audit table
 async function logActionToAudit(supabase: any, userId: string | null, actionType: string, actionName: string, params: any, result: any, success: boolean) {
   try {
@@ -699,12 +943,28 @@ async function executeTool(supabase: any, toolName: string, params: any, userId:
       case 'add_contact_historique':
         result = await executeAddContactHistorique(supabase, params);
         break;
+      // BIM tools
+      case 'list_bim_projets':
+        result = await executeListBimProjets(supabase, params);
+        break;
+      case 'create_bim_projet':
+        result = await executeCreateBimProjet(supabase, params);
+        break;
+      case 'get_bim_progression':
+        result = await executeGetBimProgression(supabase, params);
+        break;
+      case 'list_bim_scenes':
+        result = await executeListBimScenes(supabase, params);
+        break;
+      case 'get_bim_stats':
+        result = await executeGetBimStats(supabase, params);
+        break;
       default:
         result = { success: false, error: `Unknown tool: ${toolName}` };
     }
     
     // Log to audit for non-read operations
-    const readOnlyActions = ['search_contacts', 'list_sessions', 'list_factures', 'get_dashboard_stats'];
+    const readOnlyActions = ['search_contacts', 'list_sessions', 'list_factures', 'get_dashboard_stats', 'list_bim_projets', 'get_bim_progression', 'list_bim_scenes', 'get_bim_stats'];
     if (!readOnlyActions.includes(toolName)) {
       await logActionToAudit(supabase, userId, 'execute', toolName, params, result, result.success);
     }
