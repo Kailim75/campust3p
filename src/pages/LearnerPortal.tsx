@@ -44,15 +44,14 @@ function useContactByToken(token: string | null) {
     queryFn: async () => {
       if (!token) return null;
       
-      // Check enquete_tokens table for valid token
-      const { data: tokenData, error: tokenError } = await supabase
-        .from("enquete_tokens")
-        .select("contact_id, expire_at, used_at")
-        .eq("token", token)
-        .eq("type", "learner_portal")
-        .maybeSingle();
+      // Use secure RPC function to validate token (bypasses RLS for anonymous access)
+      const { data, error } = await supabase
+        .rpc("validate_learner_portal_token", { p_token: token });
 
-      if (tokenError) throw tokenError;
+      if (error) throw error;
+      
+      // The function returns an array, get first element
+      const tokenData = Array.isArray(data) ? data[0] : data;
       
       if (!tokenData) {
         throw new Error("Lien invalide ou expiré");
@@ -62,15 +61,13 @@ function useContactByToken(token: string | null) {
         throw new Error("Ce lien a expiré");
       }
 
-      // Get contact info
-      const { data: contact, error: contactError } = await supabase
-        .from("contacts")
-        .select("id, prenom, nom, formation")
-        .eq("id", tokenData.contact_id)
-        .single();
-
-      if (contactError) throw contactError;
-      return contact;
+      // Return contact info from RPC result
+      return {
+        id: tokenData.contact_id,
+        prenom: tokenData.contact_prenom,
+        nom: tokenData.contact_nom,
+        formation: tokenData.contact_formation,
+      };
     },
     enabled: !!token,
     retry: false,
