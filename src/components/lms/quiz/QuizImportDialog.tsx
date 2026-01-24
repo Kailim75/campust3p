@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLmsQuizMutations, useLmsQuestionMutations } from "@/hooks/useLmsQuizzes";
 import { readQuizFile, generateQuizTemplate, ParsedQuizData } from "@/lib/quiz-import-export";
+import { QuizImportParentSelector, QuizParentSelection } from "./QuizImportParentSelector";
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -35,6 +36,7 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedQuizData | null>(null);
+  const [parentSelection, setParentSelection] = useState<QuizParentSelection | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,12 +82,22 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
   const handleImport = async () => {
     if (!parsedData || parsedData.quizzes.size === 0) return;
 
+    if (!parentSelection) {
+      setError("Veuillez sélectionner un module ou une leçon pour rattacher les quiz.");
+      return;
+    }
+
     setIsImporting(true);
     let successCount = 0;
     let errorCount = 0;
 
     try {
       for (const [, quizData] of parsedData.quizzes) {
+        const parentPayload =
+          parentSelection.type === "module"
+            ? { module_id: parentSelection.moduleId, lesson_id: null }
+            : { module_id: null, lesson_id: parentSelection.lessonId };
+
         // Create quiz
         const quizResult = await createQuiz.mutateAsync({
           titre: quizData.titre,
@@ -96,8 +108,7 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
           afficher_correction: true,
           melanger_questions: true,
           actif: true,
-          module_id: null,
-          lesson_id: null,
+          ...parentPayload,
         });
 
         if (quizResult?.id) {
@@ -142,6 +153,7 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
   const handleClose = () => {
     setFile(null);
     setParsedData(null);
+    setParentSelection(null);
     setError(null);
     onOpenChange(false);
   };
@@ -196,6 +208,15 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
             <p className="text-xs text-muted-foreground">
               Formats acceptés : CSV, Excel (.xlsx, .xls)
             </p>
+          </div>
+
+          {/* Parent selection */}
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <QuizImportParentSelector
+              value={parentSelection}
+              onChange={setParentSelection}
+              disabled={isLoading || isImporting}
+            />
           </div>
 
           {/* Loading state */}
@@ -275,7 +296,7 @@ export function QuizImportDialog({ open, onOpenChange, onSuccess }: QuizImportDi
             </Button>
             <Button 
               onClick={handleImport}
-              disabled={!parsedData || parsedData.quizzes.size === 0 || isImporting}
+              disabled={!parsedData || parsedData.quizzes.size === 0 || isImporting || !parentSelection}
             >
               {isImporting ? (
                 <>
