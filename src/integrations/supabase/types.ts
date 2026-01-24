@@ -2039,6 +2039,44 @@ export type Database = {
           },
         ]
       }
+      lms_answers: {
+        Row: {
+          created_at: string | null
+          explication: string | null
+          id: string
+          is_correct: boolean | null
+          ordre: number | null
+          question_id: string
+          texte: string
+        }
+        Insert: {
+          created_at?: string | null
+          explication?: string | null
+          id?: string
+          is_correct?: boolean | null
+          ordre?: number | null
+          question_id: string
+          texte: string
+        }
+        Update: {
+          created_at?: string | null
+          explication?: string | null
+          id?: string
+          is_correct?: boolean | null
+          ordre?: number | null
+          question_id?: string
+          texte?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "lms_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_competencies: {
         Row: {
           categorie: string
