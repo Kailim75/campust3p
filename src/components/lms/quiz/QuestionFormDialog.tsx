@@ -231,7 +231,7 @@ export function QuestionFormDialog({
                   className={cn(
                     "p-3 rounded-lg border space-y-2",
                     form.watch(`reponses.${index}.is_correct`)
-                      ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                      ? "border-primary bg-primary/10"
                       : "border-border"
                   )}
                 >

@@ -26,6 +26,23 @@ export interface QuestionAnswer {
   explication?: string;
 }
 
+export interface LmsQuestion {
+  id: string;
+  quiz_id: string | null;
+  exam_id: string | null;
+  competency_id: string | null;
+  theme_id: string | null;
+  type: string;
+  enonce: string;
+  reponses: QuestionAnswer[];
+  explication: string | null;
+  niveau: string;
+  points: number;
+  actif: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AttemptAnswer {
   question_id: string;
   selected_ids: string[];
@@ -82,7 +99,11 @@ export function useLmsQuizQuestions(quizId: string | undefined) {
         .eq("actif", true)
         .order("created_at");
       if (error) throw error;
-      return data;
+      // Parse reponses from JSON
+      return (data || []).map((q) => ({
+        ...q,
+        reponses: (q.reponses as unknown) as QuestionAnswer[],
+      })) as LmsQuestion[];
     },
     enabled: !!quizId,
   });
@@ -94,7 +115,7 @@ export function useAllLmsQuizzes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_quizzes")
-        .select(`*, lms_modules(nom), lms_lessons(titre)`)
+        .select(`*, lms_modules(titre), lms_lessons(titre)`)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -121,7 +142,7 @@ export function useLmsQuizMutations() {
 
   const createQuiz = useMutation({
     mutationFn: async (quiz: Record<string, unknown>) => {
-      const { data, error } = await supabase.from("lms_quizzes").insert(quiz as any).select().single();
+      const { data, error } = await supabase.from("lms_quizzes").insert(quiz as never).select().single();
       if (error) throw error;
       return data;
     },
@@ -134,7 +155,7 @@ export function useLmsQuizMutations() {
 
   const updateQuiz = useMutation({
     mutationFn: async ({ id, ...quiz }: Record<string, unknown> & { id: string }) => {
-      const { data, error } = await supabase.from("lms_quizzes").update(quiz as any).eq("id", id).select().single();
+      const { data, error } = await supabase.from("lms_quizzes").update(quiz as never).eq("id", id).select().single();
       if (error) throw error;
       return data;
     },
@@ -165,7 +186,7 @@ export function useLmsQuestionMutations() {
 
   const createQuestion = useMutation({
     mutationFn: async (question: Record<string, unknown>) => {
-      const { data, error } = await supabase.from("lms_questions").insert(question as any).select().single();
+      const { data, error } = await supabase.from("lms_questions").insert(question as never).select().single();
       if (error) throw error;
       return data;
     },
@@ -179,7 +200,7 @@ export function useLmsQuestionMutations() {
 
   const updateQuestion = useMutation({
     mutationFn: async ({ id, ...question }: Record<string, unknown> & { id: string }) => {
-      const { data, error } = await supabase.from("lms_questions").update(question as any).eq("id", id).select().single();
+      const { data, error } = await supabase.from("lms_questions").update(question as never).eq("id", id).select().single();
       if (error) throw error;
       return data;
     },
@@ -227,7 +248,7 @@ export function useSubmitQuizAttempt() {
 
   return useMutation({
     mutationFn: async (attempt: Record<string, unknown>) => {
-      const { data, error } = await supabase.from("lms_quiz_attempts").insert(attempt as any).select().single();
+      const { data, error } = await supabase.from("lms_quiz_attempts").insert(attempt as never).select().single();
       if (error) throw error;
       return data;
     },
