@@ -191,6 +191,397 @@ export type Database = {
         }
         Relationships: []
       }
+      bim_evaluations: {
+        Row: {
+          annotations: Json | null
+          completed_at: string
+          contact_id: string
+          created_at: string
+          id: string
+          interaction_id: string
+          nb_correct: number | null
+          nb_total: number | null
+          points_max: number | null
+          points_obtenus: number | null
+          projet_id: string
+          reponses_detail: Json | null
+          reussi: boolean
+          scene_id: string
+          score_pct: number
+          seuil_applique: number
+          started_at: string | null
+          temps_passe_sec: number | null
+          tentative_numero: number
+          type_evaluation: Database["public"]["Enums"]["bim_evaluation_type"]
+        }
+        Insert: {
+          annotations?: Json | null
+          completed_at?: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          interaction_id: string
+          nb_correct?: number | null
+          nb_total?: number | null
+          points_max?: number | null
+          points_obtenus?: number | null
+          projet_id: string
+          reponses_detail?: Json | null
+          reussi?: boolean
+          scene_id: string
+          score_pct?: number
+          seuil_applique: number
+          started_at?: string | null
+          temps_passe_sec?: number | null
+          tentative_numero?: number
+          type_evaluation: Database["public"]["Enums"]["bim_evaluation_type"]
+        }
+        Update: {
+          annotations?: Json | null
+          completed_at?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          interaction_id?: string
+          nb_correct?: number | null
+          nb_total?: number | null
+          points_max?: number | null
+          points_obtenus?: number | null
+          projet_id?: string
+          reponses_detail?: Json | null
+          reussi?: boolean
+          scene_id?: string
+          score_pct?: number
+          seuil_applique?: number
+          started_at?: string | null
+          temps_passe_sec?: number | null
+          tentative_numero?: number
+          type_evaluation?: Database["public"]["Enums"]["bim_evaluation_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_evaluations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_evaluations_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "bim_interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_evaluations_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "bim_projets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_evaluations_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "bim_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_interactions: {
+        Row: {
+          actions_log: Json | null
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          poi_consultes: string[] | null
+          projet_id: string
+          scene_id: string
+          session_id: string | null
+          started_at: string | null
+          statut: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_passe_sec: number | null
+          updated_at: string
+        }
+        Insert: {
+          actions_log?: Json | null
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          poi_consultes?: string[] | null
+          projet_id: string
+          scene_id: string
+          session_id?: string | null
+          started_at?: string | null
+          statut?: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_passe_sec?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actions_log?: Json | null
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          poi_consultes?: string[] | null
+          projet_id?: string
+          scene_id?: string
+          session_id?: string | null
+          started_at?: string | null
+          statut?: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_passe_sec?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_interactions_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "bim_projets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_interactions_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "bim_scenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_interactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_progressions: {
+        Row: {
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          meilleur_score_pct: number | null
+          progression_pct: number | null
+          projet_id: string
+          scenes_completees: number | null
+          scenes_total: number | null
+          score_moyen_pct: number | null
+          session_id: string | null
+          started_at: string | null
+          statut: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_total_sec: number | null
+          updated_at: string
+          validated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          meilleur_score_pct?: number | null
+          progression_pct?: number | null
+          projet_id: string
+          scenes_completees?: number | null
+          scenes_total?: number | null
+          score_moyen_pct?: number | null
+          session_id?: string | null
+          started_at?: string | null
+          statut?: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_total_sec?: number | null
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          meilleur_score_pct?: number | null
+          progression_pct?: number | null
+          projet_id?: string
+          scenes_completees?: number | null
+          scenes_total?: number | null
+          score_moyen_pct?: number | null
+          session_id?: string | null
+          started_at?: string | null
+          statut?: Database["public"]["Enums"]["bim_progression_statut"]
+          temps_total_sec?: number | null
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_progressions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_progressions_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "bim_projets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_progressions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_projets: {
+        Row: {
+          code: string
+          competences_cibles: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duree_estimee_min: number | null
+          id: string
+          lesson_id: string | null
+          module_id: string | null
+          objectifs_pedagogiques: string | null
+          seuil_validation_pct: number | null
+          statut: Database["public"]["Enums"]["bim_projet_statut"]
+          titre: string
+          type_formation: Database["public"]["Enums"]["bim_formation_type"]
+          updated_at: string
+          viewer_config: Json | null
+        }
+        Insert: {
+          code: string
+          competences_cibles?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duree_estimee_min?: number | null
+          id?: string
+          lesson_id?: string | null
+          module_id?: string | null
+          objectifs_pedagogiques?: string | null
+          seuil_validation_pct?: number | null
+          statut?: Database["public"]["Enums"]["bim_projet_statut"]
+          titre: string
+          type_formation?: Database["public"]["Enums"]["bim_formation_type"]
+          updated_at?: string
+          viewer_config?: Json | null
+        }
+        Update: {
+          code?: string
+          competences_cibles?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duree_estimee_min?: number | null
+          id?: string
+          lesson_id?: string | null
+          module_id?: string | null
+          objectifs_pedagogiques?: string | null
+          seuil_validation_pct?: number | null
+          statut?: Database["public"]["Enums"]["bim_projet_statut"]
+          titre?: string
+          type_formation?: Database["public"]["Enums"]["bim_formation_type"]
+          updated_at?: string
+          viewer_config?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_projets_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_projets_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "lms_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_scenes: {
+        Row: {
+          actif: boolean
+          camera_config: Json | null
+          consignes: string | null
+          created_at: string
+          description: string | null
+          duree_estimee_min: number | null
+          fichier_3d_format: string | null
+          fichier_3d_url: string | null
+          id: string
+          ordre: number
+          points_interet: Json | null
+          projet_id: string
+          questions_contextuelles: Json | null
+          thumbnail_url: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          camera_config?: Json | null
+          consignes?: string | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number | null
+          fichier_3d_format?: string | null
+          fichier_3d_url?: string | null
+          id?: string
+          ordre?: number
+          points_interet?: Json | null
+          projet_id: string
+          questions_contextuelles?: Json | null
+          thumbnail_url?: string | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          camera_config?: Json | null
+          consignes?: string | null
+          created_at?: string
+          description?: string | null
+          duree_estimee_min?: number | null
+          fichier_3d_format?: string | null
+          fichier_3d_url?: string | null
+          id?: string
+          ordre?: number
+          points_interet?: Json | null
+          projet_id?: string
+          questions_contextuelles?: Json | null
+          thumbnail_url?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_scenes_projet_id_fkey"
+            columns: ["projet_id"]
+            isOneToOne: false
+            referencedRelation: "bim_projets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartes_professionnelles: {
         Row: {
           contact_id: string
@@ -4041,6 +4432,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff"
+      bim_evaluation_type:
+        | "qcm_contextuel"
+        | "identification_poi"
+        | "sequencage"
+        | "annotation"
+      bim_formation_type: "commun" | "taxi" | "vtc"
+      bim_progression_statut:
+        | "non_commence"
+        | "en_cours"
+        | "evalue"
+        | "valide"
+        | "a_reprendre"
+      bim_projet_statut: "brouillon" | "actif" | "archive"
       civilite: "Monsieur" | "Madame"
       contact_statut:
         | "En attente de validation"
@@ -4234,6 +4638,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff"],
+      bim_evaluation_type: [
+        "qcm_contextuel",
+        "identification_poi",
+        "sequencage",
+        "annotation",
+      ],
+      bim_formation_type: ["commun", "taxi", "vtc"],
+      bim_progression_statut: [
+        "non_commence",
+        "en_cours",
+        "evalue",
+        "valide",
+        "a_reprendre",
+      ],
+      bim_projet_statut: ["brouillon", "actif", "archive"],
       civilite: ["Monsieur", "Madame"],
       contact_statut: [
         "En attente de validation",
