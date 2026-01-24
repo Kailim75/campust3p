@@ -177,10 +177,11 @@ export function QuizFormDialog({ open, onOpenChange, quiz }: QuizFormDialogProps
                   <FormItem>
                     <FormLabel>Module</FormLabel>
                     <Select
-                      value={field.value}
+                      value={field.value || "__none__"}
                       onValueChange={(val) => {
-                        field.onChange(val);
-                        setSelectedModuleId(val);
+                        const actualVal = val === "__none__" ? "" : val;
+                        field.onChange(actualVal);
+                        setSelectedModuleId(actualVal || undefined);
                         form.setValue("lesson_id", "");
                       }}
                     >
@@ -190,7 +191,7 @@ export function QuizFormDialog({ open, onOpenChange, quiz }: QuizFormDialogProps
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Aucun</SelectItem>
+                        <SelectItem value="__none__">Aucun</SelectItem>
                         {modules?.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
                             {m.titre}
@@ -210,8 +211,8 @@ export function QuizFormDialog({ open, onOpenChange, quiz }: QuizFormDialogProps
                   <FormItem>
                     <FormLabel>Leçon</FormLabel>
                     <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
+                      value={field.value || "__none__"}
+                      onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
                       disabled={!selectedModuleId}
                     >
                       <FormControl>
@@ -220,7 +221,7 @@ export function QuizFormDialog({ open, onOpenChange, quiz }: QuizFormDialogProps
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Aucune</SelectItem>
+                        <SelectItem value="__none__">Aucune</SelectItem>
                         {lessons?.map((l) => (
                           <SelectItem key={l.id} value={l.id}>
                             {l.titre}
