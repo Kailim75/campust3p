@@ -16,6 +16,7 @@ import {
   User,
   Award,
   HelpCircle,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -34,6 +35,7 @@ const menuItems = [
   { id: "contacts", label: "Contacts", icon: Users },
   { id: "formations", label: "Formations", icon: GraduationCap },
   { id: "sessions", label: "Sessions", icon: Calendar },
+  { id: "elearning", label: "E-Learning", icon: BookOpen },
   { id: "formateurs", label: "Formateurs", icon: User },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "facturation", label: "Facturation", icon: CreditCard },
