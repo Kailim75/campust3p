@@ -12,6 +12,7 @@ import {
   AttemptAnswer
 } from "@/hooks/useLmsQuizzes";
 import { cn } from "@/lib/utils";
+import { fixEncoding } from "@/lib/fix-encoding";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -290,7 +291,7 @@ export function QuizPlayer({
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <CardTitle className="text-lg font-medium leading-relaxed">
-                  {currentQuestion.enonce}
+                  {fixEncoding(currentQuestion.enonce)}
                 </CardTitle>
                 <Badge variant="outline" className="shrink-0">
                   {currentQuestion.points} pt{currentQuestion.points > 1 ? "s" : ""}
@@ -329,7 +330,7 @@ export function QuizPlayer({
                       >
                         {String.fromCharCode(65 + idx)}
                       </span>
-                      <span className="pt-0.5">{answer.texte}</span>
+                      <span className="pt-0.5">{fixEncoding(answer.texte)}</span>
                     </div>
                   </button>
                 );
@@ -442,7 +443,7 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
                   )}
                   <div>
                     <p className="font-medium">Question {idx + 1}</p>
-                    <p className="text-muted-foreground">{question.enonce}</p>
+                    <p className="text-muted-foreground">{fixEncoding(question.enonce)}</p>
                   </div>
                 </div>
               </CardHeader>
@@ -465,7 +466,7 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
                       ) : (
                         <div className="w-4 h-4" />
                       )}
-                      <span>{answer.texte}</span>
+                      <span>{fixEncoding(answer.texte)}</span>
                       {wasSelected && <Badge variant="outline" className="ml-auto text-xs">Votre réponse</Badge>}
                     </div>
                   );
@@ -473,7 +474,7 @@ function QuizResults({ quiz, questions, results, userAnswers, onRetry }: QuizRes
                 {question.explication && (
                   <div className="mt-3 p-3 bg-muted rounded-lg">
                     <p className="text-sm font-medium mb-1">Explication :</p>
-                    <p className="text-sm text-muted-foreground">{question.explication}</p>
+                    <p className="text-sm text-muted-foreground">{fixEncoding(question.explication)}</p>
                   </div>
                 )}
               </CardContent>

@@ -36,6 +36,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { fixEncoding } from "@/lib/fix-encoding";
 
 // Hook to get contact by token
 function useContactByToken(token: string | null) {
@@ -45,10 +46,14 @@ function useContactByToken(token: string | null) {
       if (!token) return null;
       
       // Use secure RPC function to validate token (bypasses RLS for anonymous access)
+      // Token must be passed as TEXT (string)
       const { data, error } = await supabase
-        .rpc("validate_learner_portal_token", { p_token: token });
+        .rpc("validate_learner_portal_token", { p_token: String(token) });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Token validation error:", error);
+        throw new Error("Lien invalide ou expiré");
+      }
       
       // The function returns an array, get first element
       const tokenData = Array.isArray(data) ? data[0] : data;
@@ -273,10 +278,10 @@ export default function LearnerPortal() {
                       </div>
                     )}
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{quiz.titre}</CardTitle>
+                      <CardTitle className="text-lg">{fixEncoding(quiz.titre)}</CardTitle>
                       {quiz.description && (
                         <CardDescription className="line-clamp-2">
-                          {quiz.description}
+                          {fixEncoding(quiz.description)}
                         </CardDescription>
                       )}
                     </CardHeader>
@@ -381,7 +386,7 @@ export default function LearnerPortal() {
                         <XCircle className="h-6 w-6 text-destructive" />
                       )}
                       <div>
-                        <p className="font-medium">{quiz?.titre || "Quiz"}</p>
+                        <p className="font-medium">{fixEncoding(quiz?.titre) || "Quiz"}</p>
                         <p className="text-sm text-muted-foreground">
                           {format(new Date(attempt.completed_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
                         </p>

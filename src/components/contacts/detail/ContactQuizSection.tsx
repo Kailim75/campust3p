@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { fixEncoding } from "@/lib/fix-encoding";
 
 interface ContactQuizSectionProps {
   contactId: string;
@@ -119,14 +120,14 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
                   )}
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-base">{quiz.titre}</CardTitle>
+                      <CardTitle className="text-base">{fixEncoding(quiz.titre)}</CardTitle>
                       <Badge variant="outline">
                         {quiz.nb_questions} Q
                       </Badge>
                     </div>
                     {quiz.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {quiz.description}
+                        {fixEncoding(quiz.description)}
                       </p>
                     )}
                   </CardHeader>
@@ -226,7 +227,7 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
                       <XCircle className="h-5 w-5 text-destructive" />
                     )}
                     <div>
-                      <p className="font-medium text-sm">{quiz?.titre || "Quiz supprimé"}</p>
+                      <p className="font-medium text-sm">{fixEncoding(quiz?.titre) || "Quiz supprimé"}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(attempt.completed_at), "dd MMM yyyy à HH:mm", { locale: fr })}
                       </p>
