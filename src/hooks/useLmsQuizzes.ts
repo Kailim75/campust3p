@@ -129,7 +129,7 @@ export function useAllLmsQuestions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_questions")
-        .select(`*, lms_quizzes(titre), lms_themes(nom), lms_competencies(nom)`)
+        .select(`*, lms_quizzes(titre), lms_themes(libelle), lms_competencies(libelle)`)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
