@@ -246,14 +246,47 @@ export function BimQualiopiProofsDialog({
           return;
         }
 
+        // Générer ou récupérer le numéro de certificat unique via RPC
+        let numeroCertificat: string | undefined;
+        try {
+          const { data: certData, error: certError } = await supabase.rpc(
+            "create_attestation_certificate",
+            {
+              p_contact_id: selectedContactId,
+              p_session_id: null,
+              p_type_attestation: "competences",
+              p_metadata: {
+                source: "bim",
+                projet_id: selectedProjetId,
+                projet_code: selectedProjet.code,
+                projet_titre: selectedProjet.titre,
+              },
+            }
+          );
+
+          if (certError) {
+            console.error("Erreur génération certificat:", certError);
+            toast.warning("Attestation générée sans numéro de certificat unique");
+          } else if (certData && certData.length > 0) {
+            numeroCertificat = certData[0].numero_certificat;
+          }
+        } catch (certErr) {
+          console.error("Erreur certificat:", certErr);
+        }
+
         generateAttestationBimPDF({
           projet: selectedProjet,
           progression: progressions[0],
           evaluations,
           centre: centreData,
+          numeroCertificat,
         });
 
-        toast.success("Attestation générée avec succès");
+        toast.success(
+          numeroCertificat
+            ? `Attestation générée - N° ${numeroCertificat}`
+            : "Attestation générée avec succès"
+        );
       } else if (selectedTab === "presence") {
         const interactions = await fetchInteractionData(
           selectedProjetId,
