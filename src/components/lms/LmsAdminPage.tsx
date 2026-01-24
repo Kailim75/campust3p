@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LmsFormationsTab } from "./LmsFormationsTab";
 import { LmsContentTab } from "./LmsContentTab";
 import { LmsQuizzesTab } from "./quiz/LmsQuizzesTab";
-import { BookOpen, Layers, ClipboardCheck } from "lucide-react";
+import { BimProjetsTab } from "./bim/BimProjetsTab";
+import { BookOpen, Layers, ClipboardCheck, Box } from "lucide-react";
 
 export function LmsAdminPage() {
   const [activeTab, setActiveTab] = useState("formations");
@@ -18,7 +19,7 @@ export function LmsAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="formations" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Formations
@@ -30,6 +31,10 @@ export function LmsAdminPage() {
           <TabsTrigger value="quizzes" className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4" />
             Quiz & QCM
+          </TabsTrigger>
+          <TabsTrigger value="bim" className="flex items-center gap-2">
+            <Box className="h-4 w-4" />
+            BIM 3D
           </TabsTrigger>
         </TabsList>
 
@@ -43,6 +48,10 @@ export function LmsAdminPage() {
 
         <TabsContent value="quizzes" className="mt-6">
           <LmsQuizzesTab />
+        </TabsContent>
+
+        <TabsContent value="bim" className="mt-6">
+          <BimProjetsTab />
         </TabsContent>
       </Tabs>
     </div>
