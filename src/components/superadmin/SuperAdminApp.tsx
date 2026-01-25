@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { SuperAdminLayout } from "./SuperAdminLayout";
 import { SuperAdminHeader } from "./SuperAdminHeader";
 import { SuperAdminOverview } from "./pages/SuperAdminOverview";
@@ -9,6 +9,9 @@ import { SuperAdminUsers } from "./pages/SuperAdminUsers";
 import { SuperAdminAlerts } from "./pages/SuperAdminAlerts";
 import { SuperAdminActivity } from "./pages/SuperAdminActivity";
 import { SuperAdminSettings } from "./pages/SuperAdminSettings";
+import { Loader2 } from "lucide-react";
+
+const SuperAdminGDPR = lazy(() => import("./pages/SuperAdminGDPR"));
 
 const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   overview: { title: "Vue d'ensemble", subtitle: "Pilotage global de la plateforme CampusT3P" },
@@ -19,6 +22,7 @@ const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   alerts: { title: "Alertes & Risques", subtitle: "Centres à surveiller et interventions" },
   activity: { title: "Activité", subtitle: "Logs et événements récents" },
   settings: { title: "Configuration", subtitle: "Paramètres de la plateforme" },
+  gdpr: { title: "Conformité RGPD", subtitle: "Gestion des droits des personnes concernées" },
 };
 
 export function SuperAdminApp() {
@@ -44,6 +48,12 @@ export function SuperAdminApp() {
         return <SuperAdminActivity />;
       case "settings":
         return <SuperAdminSettings />;
+      case "gdpr":
+        return (
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <SuperAdminGDPR />
+          </Suspense>
+        );
       default:
         return <SuperAdminOverview />;
     }
