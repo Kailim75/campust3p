@@ -32,6 +32,9 @@ export interface CentreStats {
   plan_type: string;
   actif: boolean;
   created_at: string;
+  onboarding_completed_at: string | null;
+  last_activity_at: string | null;
+  health_score: number | null;
   nb_users: number;
   nb_contacts: number;
   nb_sessions: number;
