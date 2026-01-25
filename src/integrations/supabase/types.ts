@@ -4836,6 +4836,7 @@ export type Database = {
       }
     }
     Functions: {
+      anonymize_contact: { Args: { p_contact_id: string }; Returns: boolean }
       cancel_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -4854,6 +4855,7 @@ export type Database = {
           numero_certificat: string
         }[]
       }
+      export_contact_data: { Args: { p_contact_id: string }; Returns: Json }
       generate_numero_certificat: {
         Args: { p_type_attestation?: string }
         Returns: string
