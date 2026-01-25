@@ -42,14 +42,14 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Check caller has admin role
+  // Check caller has admin or super_admin role
   const { data: callerRole } = await supabaseAdmin
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
     .single();
   
-  if (!callerRole || callerRole.role !== 'admin') {
+  if (!callerRole || (callerRole.role !== 'admin' && callerRole.role !== 'super_admin')) {
     return new Response(
       JSON.stringify({ error: 'Interdit - Réservé aux administrateurs' }), 
       { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
