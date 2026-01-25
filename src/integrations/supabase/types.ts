@@ -895,6 +895,44 @@ export type Database = {
         }
         Relationships: []
       }
+      charter_acceptances: {
+        Row: {
+          accepted_at: string
+          charter_id: string
+          id: string
+          ip_address: string | null
+          role_at_acceptance: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          charter_id: string
+          id?: string
+          ip_address?: string | null
+          role_at_acceptance: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          charter_id?: string
+          id?: string
+          ip_address?: string | null
+          role_at_acceptance?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_acceptances_charter_id_fkey"
+            columns: ["charter_id"]
+            isOneToOne: false
+            referencedRelation: "security_charters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chevalets: {
         Row: {
           contact_id: string
@@ -4300,6 +4338,45 @@ export type Database = {
           },
         ]
       }
+      security_charters: {
+        Row: {
+          activated_at: string | null
+          archived_at: string | null
+          contenu: string
+          created_at: string
+          created_by: string | null
+          id: string
+          roles_requis: string[]
+          status: Database["public"]["Enums"]["charter_status"]
+          titre: string
+          version: number
+        }
+        Insert: {
+          activated_at?: string | null
+          archived_at?: string | null
+          contenu: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          roles_requis?: string[]
+          status?: Database["public"]["Enums"]["charter_status"]
+          titre?: string
+          version?: number
+        }
+        Update: {
+          activated_at?: string | null
+          archived_at?: string | null
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          roles_requis?: string[]
+          status?: Database["public"]["Enums"]["charter_status"]
+          titre?: string
+          version?: number
+        }
+        Relationships: []
+      }
       session_inscriptions: {
         Row: {
           commentaires: string | null
@@ -4836,6 +4913,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
       anonymize_contact: { Args: { p_contact_id: string }; Returns: boolean }
       cancel_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
@@ -4863,7 +4941,20 @@ export type Database = {
       generate_numero_contrat: { Args: never; Returns: string }
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
+      get_active_charter: {
+        Args: never
+        Returns: {
+          activated_at: string
+          contenu: string
+          id: string
+          roles_requis: string[]
+          titre: string
+          version: number
+        }[]
+      }
       get_user_centre_id: { Args: never; Returns: string }
+      get_user_role_for_charter: { Args: never; Returns: string }
+      has_accepted_current_charter: { Args: never; Returns: boolean }
       has_centre_access: { Args: { p_centre_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -4945,6 +5036,7 @@ export type Database = {
         | "valide"
         | "a_reprendre"
       bim_projet_statut: "brouillon" | "actif" | "archive"
+      charter_status: "draft" | "active" | "archived"
       civilite: "Monsieur" | "Madame"
       contact_statut:
         | "En attente de validation"
@@ -5153,6 +5245,7 @@ export const Constants = {
         "a_reprendre",
       ],
       bim_projet_statut: ["brouillon", "actif", "archive"],
+      charter_status: ["draft", "active", "archived"],
       civilite: ["Monsieur", "Madame"],
       contact_statut: [
         "En attente de validation",
