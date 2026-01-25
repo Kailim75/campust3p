@@ -512,6 +512,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bim_projets_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bim_projets_lesson_id_fkey"
             columns: ["lesson_id"]
             isOneToOne: false
@@ -712,6 +719,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_formations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -1163,6 +1177,13 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contrats_location: {
@@ -1373,6 +1394,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
           {
@@ -1627,6 +1655,13 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "document_template_files_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       document_templates: {
@@ -1784,6 +1819,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -2224,6 +2266,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "factures_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "factures_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
@@ -2465,6 +2514,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formateurs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -2853,6 +2909,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_formations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -3446,6 +3509,13 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "objectifs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       paiements: {
@@ -3541,6 +3611,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partners_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -3727,6 +3804,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "prospects_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "prospects_converted_contact_id_fkey"
             columns: ["converted_contact_id"]
             isOneToOne: false
@@ -3839,6 +3923,13 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "qualiopi_audits_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       qualiopi_indicateurs: {
@@ -3884,6 +3975,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualiopi_indicateurs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -3993,6 +4091,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reclamations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reclamations_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
@@ -4063,6 +4168,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satisfaction_reponses_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
           {
@@ -4349,6 +4461,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sessions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sessions_formateur_id_fkey"
             columns: ["formateur_id"]
             isOneToOne: false
@@ -4465,6 +4584,13 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_centres_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -4546,6 +4672,13 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicules_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -4636,11 +4769,53 @@ export type Database = {
             referencedRelation: "centres"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflows_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      centres_stats: {
+        Row: {
+          actif: boolean | null
+          ca_total: number | null
+          created_at: string | null
+          id: string | null
+          nb_contacts: number | null
+          nb_sessions: number | null
+          nb_users: number | null
+          nom: string | null
+          plan_type: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          ca_total?: never
+          created_at?: string | null
+          id?: string | null
+          nb_contacts?: never
+          nb_sessions?: never
+          nb_users?: never
+          nom?: string | null
+          plan_type?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          ca_total?: never
+          created_at?: string | null
+          id?: string | null
+          nb_contacts?: never
+          nb_sessions?: never
+          nb_users?: never
+          nom?: string | null
+          plan_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cancel_certificate: {
@@ -4668,6 +4843,8 @@ export type Database = {
       generate_numero_contrat: { Args: never; Returns: string }
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
+      get_user_centre_id: { Args: never; Returns: string }
+      has_centre_access: { Args: { p_centre_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4675,6 +4852,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
