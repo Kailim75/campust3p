@@ -3,15 +3,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useCentresStats, type CentreStats } from "@/hooks/useCentres";
+import { Label } from "@/components/ui/label";
+import { useCentresStats, useCreateCentre } from "@/hooks/useCentres";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Search, Plus, ExternalLink, Users, BookOpen, TrendingUp } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Building2, Search, Plus, ExternalLink, Users, BookOpen, TrendingUp, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 export function SuperAdminCentres() {
   const { data: centres, isLoading } = useCentresStats();
+  const { mutate: createCentre, isPending: isCreating } = useCreateCentre();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    nom: "",
+    email: "",
+    telephone: "",
+    adresse_complete: "",
+    siret: "",
+  });
 
   const filteredCentres = centres?.filter(centre => 
     centre.nom.toLowerCase().includes(searchQuery.toLowerCase())
@@ -31,6 +50,27 @@ export function SuperAdminCentres() {
       essentiel: "bg-muted text-muted-foreground",
     };
     return <Badge variant="outline" className={colors[plan] || colors.essentiel}>{plan}</Badge>;
+  };
+
+  const handleCreateCentre = () => {
+    if (!formData.nom.trim() || !formData.email.trim()) {
+      toast.error("Le nom et l'email sont obligatoires");
+      return;
+    }
+
+    createCentre({
+      nom: formData.nom,
+      email: formData.email,
+      telephone: formData.telephone || null,
+      adresse_complete: formData.adresse_complete || null,
+      siret: formData.siret || null,
+    }, {
+      onSuccess: () => {
+        setShowCreateDialog(false);
+        setFormData({ nom: "", email: "", telephone: "", adresse_complete: "", siret: "" });
+        toast.success("Centre créé avec succès");
+      },
+    });
   };
 
   if (isLoading) {
@@ -57,7 +97,7 @@ export function SuperAdminCentres() {
             className="pl-10"
           />
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           Nouveau centre
         </Button>
@@ -116,10 +156,83 @@ export function SuperAdminCentres() {
               <p className="text-superadmin-muted">
                 {searchQuery ? "Aucun centre ne correspond à votre recherche" : "Aucun centre enregistré"}
               </p>
+              <Button className="mt-4 gap-2" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Créer le premier centre
+              </Button>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Create Centre Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouveau centre de formation</DialogTitle>
+            <DialogDescription>
+              Créez un nouveau centre. Vous pourrez compléter les informations plus tard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nom">Nom du centre *</Label>
+              <Input
+                id="nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                placeholder="Ex: Formation Pro Paris"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="contact@centre.fr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telephone">Téléphone</Label>
+              <Input
+                id="telephone"
+                value={formData.telephone}
+                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                placeholder="01 23 45 67 89"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="siret">SIRET</Label>
+              <Input
+                id="siret"
+                value={formData.siret}
+                onChange={(e) => setFormData({ ...formData, siret: e.target.value })}
+                placeholder="123 456 789 00012"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adresse">Adresse</Label>
+              <Input
+                id="adresse"
+                value={formData.adresse_complete}
+                onChange={(e) => setFormData({ ...formData, adresse_complete: e.target.value })}
+                placeholder="123 rue Example, 75001 Paris"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreateCentre} disabled={isCreating}>
+              {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Créer le centre
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
