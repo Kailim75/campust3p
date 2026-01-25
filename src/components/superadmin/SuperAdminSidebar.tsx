@@ -43,6 +43,7 @@ const menuItems = [
   { id: "users", label: "Utilisateurs", icon: Users },
   { id: "alerts", label: "Alertes & Risques", icon: AlertTriangle },
   { id: "activity", label: "Activité", icon: Activity },
+  { id: "gdpr", label: "RGPD", icon: Shield },
 ];
 
 function SidebarContent({ 
