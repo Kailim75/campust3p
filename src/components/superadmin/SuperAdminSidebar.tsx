@@ -49,6 +49,7 @@ const menuItems = [
   { id: "gdpr-register", label: "Registre Traitements", icon: Database },
   { id: "charter", label: "Charte Sécurité", icon: Shield },
   { id: "privacy", label: "Politique Confidentialité", icon: FileText },
+  { id: "legal-mentions", label: "Mentions Légales", icon: FileText },
 ];
 
 function SidebarContent({ 

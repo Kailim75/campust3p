@@ -10,6 +10,8 @@ import LearnerPortal from "./pages/LearnerPortal";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import LandingPage from "./pages/LandingPage";
 import Onboarding from "./pages/Onboarding";
+import MentionsLegales from "./pages/MentionsLegales";
+import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/mentions-legales" element={<MentionsLegales />} />
+            <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
 
             {/* Legacy deep-links */}
             <Route
