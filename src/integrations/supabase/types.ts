@@ -2572,6 +2572,125 @@ export type Database = {
           },
         ]
       }
+      gdpr_processing_history: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_fields: string[] | null
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          processing_id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          processing_id: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          processing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gdpr_processing_history_processing_id_fkey"
+            columns: ["processing_id"]
+            isOneToOne: false
+            referencedRelation: "gdpr_processing_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gdpr_processing_register: {
+        Row: {
+          analyse_impact_requise: boolean | null
+          base_legale: string
+          categories_donnees: string[]
+          categories_personnes: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          date_mise_en_oeuvre: string | null
+          decisions_automatisees: boolean | null
+          delais_conservation: string | null
+          description: string | null
+          destinataires: string[] | null
+          finalites: string
+          id: string
+          mesures_securite: string[] | null
+          nom_traitement: string
+          responsable_traitement: string | null
+          source_donnees: string | null
+          sous_traitants: Json | null
+          statut: string
+          transferts_hors_ue: Json | null
+          updated_at: string
+        }
+        Insert: {
+          analyse_impact_requise?: boolean | null
+          base_legale: string
+          categories_donnees?: string[]
+          categories_personnes?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          date_mise_en_oeuvre?: string | null
+          decisions_automatisees?: boolean | null
+          delais_conservation?: string | null
+          description?: string | null
+          destinataires?: string[] | null
+          finalites: string
+          id?: string
+          mesures_securite?: string[] | null
+          nom_traitement: string
+          responsable_traitement?: string | null
+          source_donnees?: string | null
+          sous_traitants?: Json | null
+          statut?: string
+          transferts_hors_ue?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          analyse_impact_requise?: boolean | null
+          base_legale?: string
+          categories_donnees?: string[]
+          categories_personnes?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          date_mise_en_oeuvre?: string | null
+          decisions_automatisees?: boolean | null
+          delais_conservation?: string | null
+          description?: string | null
+          destinataires?: string[] | null
+          finalites?: string
+          id?: string
+          mesures_securite?: string[] | null
+          nom_traitement?: string
+          responsable_traitement?: string | null
+          source_donnees?: string | null
+          sous_traitants?: Json | null
+          statut?: string
+          transferts_hors_ue?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       generated_documents: {
         Row: {
           contact_id: string

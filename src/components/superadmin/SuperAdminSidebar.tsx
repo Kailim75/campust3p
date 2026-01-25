@@ -14,6 +14,7 @@ import {
   Activity,
   ArrowLeftRight,
   FileText,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +46,7 @@ const menuItems = [
   { id: "alerts", label: "Alertes & Risques", icon: AlertTriangle },
   { id: "activity", label: "Activité", icon: Activity },
   { id: "gdpr", label: "RGPD", icon: Shield },
+  { id: "gdpr-register", label: "Registre Traitements", icon: Database },
   { id: "charter", label: "Charte Sécurité", icon: Shield },
   { id: "privacy", label: "Politique Confidentialité", icon: FileText },
 ];
