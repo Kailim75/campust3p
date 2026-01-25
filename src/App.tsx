@@ -10,6 +10,7 @@ import LearnerPortal from "./pages/LearnerPortal";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import LandingPage from "./pages/LandingPage";
 import Onboarding from "./pages/Onboarding";
+import SuperAdmin from "./pages/SuperAdmin";
 import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -40,6 +41,16 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route 
+              path="/super-admin" 
+              element={
+                <ProtectedRoute>
+                  <CentreProvider>
+                    <SuperAdmin />
+                  </CentreProvider>
+                </ProtectedRoute>
+              } 
+            />
 
             {/* Legacy deep-links */}
             <Route

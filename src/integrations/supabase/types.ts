@@ -4794,33 +4794,42 @@ export type Database = {
           actif: boolean | null
           ca_total: number | null
           created_at: string | null
+          health_score: number | null
           id: string | null
+          last_activity_at: string | null
           nb_contacts: number | null
           nb_sessions: number | null
           nb_users: number | null
           nom: string | null
+          onboarding_completed_at: string | null
           plan_type: string | null
         }
         Insert: {
           actif?: boolean | null
           ca_total?: never
           created_at?: string | null
+          health_score?: number | null
           id?: string | null
+          last_activity_at?: string | null
           nb_contacts?: never
           nb_sessions?: never
           nb_users?: never
           nom?: string | null
+          onboarding_completed_at?: string | null
           plan_type?: string | null
         }
         Update: {
           actif?: boolean | null
           ca_total?: never
           created_at?: string | null
+          health_score?: number | null
           id?: string | null
+          last_activity_at?: string | null
           nb_contacts?: never
           nb_sessions?: never
           nb_users?: never
           nom?: string | null
+          onboarding_completed_at?: string | null
           plan_type?: string | null
         }
         Relationships: []
