@@ -2,15 +2,15 @@ import { useAdminMode } from "@/contexts/AdminModeContext";
 import { SuperAdminApp } from "@/components/superadmin/SuperAdminApp";
 import Index from "@/pages/Index";
 import { Loader2 } from "lucide-react";
-import { CharterAcceptanceModal } from "@/components/charter/CharterAcceptanceModal";
-import { useSecurityCharter } from "@/hooks/useSecurityCharter";
+import { LegalDocumentAcceptanceModal } from "@/components/legal/LegalDocumentAcceptanceModal";
+import { useLegalDocuments } from "@/hooks/useLegalDocuments";
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
-  const { hasAccepted, activeCharter, isLoading: charterLoading } = useSecurityCharter();
+  const { hasPendingDocuments, isLoading: docsLoading } = useLegalDocuments();
 
   // Loading state
-  if (isLoading || charterLoading) {
+  if (isLoading || docsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -18,19 +18,19 @@ export function MainApp() {
     );
   }
 
-  // Show charter acceptance modal if not accepted and there's an active charter
-  const showCharterModal = activeCharter && !hasAccepted;
+  // Show legal document acceptance modal if there are pending documents
+  const showLegalModal = hasPendingDocuments;
 
   // Super Admin Mode
   if (mode === "superadmin" && isSuperAdmin) {
     return (
       <>
-        <CharterAcceptanceModal open={showCharterModal} />
-        {!showCharterModal && <SuperAdminApp />}
-        {showCharterModal && (
+        <LegalDocumentAcceptanceModal open={showLegalModal} />
+        {!showLegalModal && <SuperAdminApp />}
+        {showLegalModal && (
           <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="text-center text-muted-foreground">
-              <p>Veuillez accepter la charte de sécurité pour continuer.</p>
+              <p>Veuillez accepter les documents légaux pour continuer.</p>
             </div>
           </div>
         )}
@@ -41,12 +41,12 @@ export function MainApp() {
   // Centre Mode (default)
   return (
     <>
-      <CharterAcceptanceModal open={showCharterModal} />
-      {!showCharterModal && <Index />}
-      {showCharterModal && (
+      <LegalDocumentAcceptanceModal open={showLegalModal} />
+      {!showLegalModal && <Index />}
+      {showLegalModal && (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center text-muted-foreground">
-            <p>Veuillez accepter la charte de sécurité pour continuer.</p>
+            <p>Veuillez accepter les documents légaux pour continuer.</p>
           </div>
         </div>
       )}

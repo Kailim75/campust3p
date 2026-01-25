@@ -4345,6 +4345,7 @@ export type Database = {
           contenu: string
           created_at: string
           created_by: string | null
+          document_type: string
           id: string
           roles_requis: string[]
           status: Database["public"]["Enums"]["charter_status"]
@@ -4357,6 +4358,7 @@ export type Database = {
           contenu: string
           created_at?: string
           created_by?: string | null
+          document_type?: string
           id?: string
           roles_requis?: string[]
           status?: Database["public"]["Enums"]["charter_status"]
@@ -4369,6 +4371,7 @@ export type Database = {
           contenu?: string
           created_at?: string
           created_by?: string | null
+          document_type?: string
           id?: string
           roles_requis?: string[]
           status?: Database["public"]["Enums"]["charter_status"]
@@ -4952,9 +4955,35 @@ export type Database = {
           version: number
         }[]
       }
+      get_active_document: {
+        Args: { p_document_type?: string }
+        Returns: {
+          activated_at: string
+          contenu: string
+          document_type: string
+          id: string
+          roles_requis: string[]
+          titre: string
+          version: number
+        }[]
+      }
+      get_pending_documents: {
+        Args: never
+        Returns: {
+          contenu: string
+          document_type: string
+          id: string
+          titre: string
+          version: number
+        }[]
+      }
       get_user_centre_id: { Args: never; Returns: string }
       get_user_role_for_charter: { Args: never; Returns: string }
       has_accepted_current_charter: { Args: never; Returns: boolean }
+      has_accepted_current_document: {
+        Args: { p_document_type?: string }
+        Returns: boolean
+      }
       has_centre_access: { Args: { p_centre_id: string }; Returns: boolean }
       has_role: {
         Args: {

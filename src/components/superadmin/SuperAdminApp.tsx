@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 
 const SuperAdminGDPR = lazy(() => import("./pages/SuperAdminGDPR"));
 const SuperAdminCharter = lazy(() => import("./pages/SuperAdminCharter").then(m => ({ default: m.SuperAdminCharter })));
+const SuperAdminPrivacyPolicy = lazy(() => import("./pages/SuperAdminPrivacyPolicy"));
 
 const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   overview: { title: "Vue d'ensemble", subtitle: "Pilotage global de la plateforme CampusT3P" },
@@ -25,6 +26,7 @@ const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   settings: { title: "Configuration", subtitle: "Paramètres de la plateforme" },
   gdpr: { title: "Conformité RGPD", subtitle: "Gestion des droits des personnes concernées" },
   charter: { title: "Charte de Sécurité", subtitle: "Gestion de la charte et suivi des acceptations" },
+  privacy: { title: "Politique de Confidentialité", subtitle: "Gestion de la politique RGPD et suivi des acceptations" },
 };
 
 export function SuperAdminApp() {
@@ -60,6 +62,12 @@ export function SuperAdminApp() {
         return (
           <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
             <SuperAdminCharter />
+          </Suspense>
+        );
+      case "privacy":
+        return (
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <SuperAdminPrivacyPolicy />
           </Suspense>
         );
       default:
