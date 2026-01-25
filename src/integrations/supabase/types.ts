@@ -1386,6 +1386,146 @@ export type Database = {
           },
         ]
       }
+      data_breach_history: {
+        Row: {
+          action: string
+          breach_id: string
+          changed_at: string
+          changed_by: string | null
+          changed_fields: string[] | null
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+        }
+        Insert: {
+          action: string
+          breach_id: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+        }
+        Update: {
+          action?: string
+          breach_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_breach_history_breach_id_fkey"
+            columns: ["breach_id"]
+            isOneToOne: false
+            referencedRelation: "data_breaches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_breaches: {
+        Row: {
+          categories_donnees: string[]
+          categories_personnes: string[]
+          closed_at: string | null
+          closed_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          date_detection: string
+          date_notification_cnil: string | null
+          date_notification_personnes: string | null
+          description: string
+          detecte_par: string | null
+          documents_associes: string[] | null
+          id: string
+          justification_non_notification: string | null
+          mesures_correctives: string | null
+          mesures_immediates: string | null
+          mesures_preventives: string | null
+          nombre_personnes_affectees: number | null
+          notification_cnil_requise: boolean | null
+          notification_personnes_requise: boolean | null
+          origine: string | null
+          responsable_traitement: string | null
+          risque_pour_personnes: string | null
+          severite: string
+          statut: string
+          titre: string
+          type_violation: string
+          updated_at: string
+        }
+        Insert: {
+          categories_donnees?: string[]
+          categories_personnes?: string[]
+          closed_at?: string | null
+          closed_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          date_detection?: string
+          date_notification_cnil?: string | null
+          date_notification_personnes?: string | null
+          description: string
+          detecte_par?: string | null
+          documents_associes?: string[] | null
+          id?: string
+          justification_non_notification?: string | null
+          mesures_correctives?: string | null
+          mesures_immediates?: string | null
+          mesures_preventives?: string | null
+          nombre_personnes_affectees?: number | null
+          notification_cnil_requise?: boolean | null
+          notification_personnes_requise?: boolean | null
+          origine?: string | null
+          responsable_traitement?: string | null
+          risque_pour_personnes?: string | null
+          severite: string
+          statut?: string
+          titre: string
+          type_violation: string
+          updated_at?: string
+        }
+        Update: {
+          categories_donnees?: string[]
+          categories_personnes?: string[]
+          closed_at?: string | null
+          closed_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          date_detection?: string
+          date_notification_cnil?: string | null
+          date_notification_personnes?: string | null
+          description?: string
+          detecte_par?: string | null
+          documents_associes?: string[] | null
+          id?: string
+          justification_non_notification?: string | null
+          mesures_correctives?: string | null
+          mesures_immediates?: string | null
+          mesures_preventives?: string | null
+          nombre_personnes_affectees?: number | null
+          notification_cnil_requise?: boolean | null
+          notification_personnes_requise?: boolean | null
+          origine?: string | null
+          responsable_traitement?: string | null
+          risque_pour_personnes?: string | null
+          severite?: string
+          statut?: string
+          titre?: string
+          type_violation?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devis: {
         Row: {
           centre_id: string | null
@@ -5169,6 +5309,7 @@ export type Database = {
         }[]
       }
       export_contact_data: { Args: { p_contact_id: string }; Returns: Json }
+      generate_breach_code: { Args: never; Returns: string }
       generate_numero_certificat: {
         Args: { p_type_attestation?: string }
         Returns: string

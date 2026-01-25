@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 
 const SuperAdminGDPR = lazy(() => import("./pages/SuperAdminGDPR"));
 const SuperAdminGdprRegister = lazy(() => import("./pages/SuperAdminGdprRegister"));
+const SuperAdminDataBreaches = lazy(() => import("./pages/SuperAdminDataBreaches"));
 const SuperAdminCharter = lazy(() => import("./pages/SuperAdminCharter").then(m => ({ default: m.SuperAdminCharter })));
 const SuperAdminPrivacyPolicy = lazy(() => import("./pages/SuperAdminPrivacyPolicy"));
 const SuperAdminLegalMentions = lazy(() => import("./pages/SuperAdminLegalMentions"));
@@ -28,6 +29,7 @@ const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   settings: { title: "Configuration", subtitle: "Paramètres de la plateforme" },
   gdpr: { title: "Conformité RGPD", subtitle: "Gestion des droits des personnes concernées" },
   "gdpr-register": { title: "Registre des Traitements", subtitle: "Article 30 RGPD - Audit CNIL / Qualiopi" },
+  "data-breaches": { title: "Violations de Données", subtitle: "Gestion des incidents - Articles 33 & 34 RGPD" },
   charter: { title: "Charte de Sécurité", subtitle: "Gestion de la charte et suivi des acceptations" },
   privacy: { title: "Politique de Confidentialité", subtitle: "Gestion de la politique RGPD et suivi des acceptations" },
   "legal-mentions": { title: "Mentions Légales", subtitle: "Gestion des mentions légales obligatoires (Article 6 LCEN)" },
@@ -66,6 +68,12 @@ export function SuperAdminApp() {
         return (
           <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
             <SuperAdminGdprRegister />
+          </Suspense>
+        );
+      case "data-breaches":
+        return (
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <SuperAdminDataBreaches />
           </Suspense>
         );
       case "charter":

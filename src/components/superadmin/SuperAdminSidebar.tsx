@@ -47,6 +47,7 @@ const menuItems = [
   { id: "activity", label: "Activité", icon: Activity },
   { id: "gdpr", label: "RGPD", icon: Shield },
   { id: "gdpr-register", label: "Registre Traitements", icon: Database },
+  { id: "data-breaches", label: "Violations Données", icon: AlertTriangle },
   { id: "charter", label: "Charte Sécurité", icon: Shield },
   { id: "privacy", label: "Politique Confidentialité", icon: FileText },
   { id: "legal-mentions", label: "Mentions Légales", icon: FileText },
