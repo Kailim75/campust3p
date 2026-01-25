@@ -4929,7 +4929,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff"
+      app_role: "admin" | "staff" | "super_admin"
       bim_evaluation_type:
         | "qcm_contextuel"
         | "identification_poi"
@@ -5135,7 +5135,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff"],
+      app_role: ["admin", "staff", "super_admin"],
       bim_evaluation_type: [
         "qcm_contextuel",
         "identification_poi",
