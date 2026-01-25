@@ -13,6 +13,7 @@ import {
   BarChart3,
   Activity,
   ArrowLeftRight,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +46,7 @@ const menuItems = [
   { id: "activity", label: "Activité", icon: Activity },
   { id: "gdpr", label: "RGPD", icon: Shield },
   { id: "charter", label: "Charte Sécurité", icon: Shield },
+  { id: "privacy", label: "Politique Confidentialité", icon: FileText },
 ];
 
 function SidebarContent({ 
