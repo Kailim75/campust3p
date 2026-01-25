@@ -2806,6 +2806,119 @@ export type Database = {
           },
         ]
       }
+      legal_mentions: {
+        Row: {
+          activated_at: string | null
+          archived_at: string | null
+          capital_social: string | null
+          contenu: string
+          created_at: string
+          created_by: string | null
+          directeur_publication: string | null
+          email_contact: string | null
+          forme_juridique: string | null
+          hebergeur_adresse: string | null
+          hebergeur_contact: string | null
+          hebergeur_nom: string | null
+          id: string
+          nda: string | null
+          raison_sociale: string | null
+          rcs: string | null
+          siege_social: string | null
+          siret: string | null
+          status: string
+          telephone_contact: string | null
+          version: number
+        }
+        Insert: {
+          activated_at?: string | null
+          archived_at?: string | null
+          capital_social?: string | null
+          contenu: string
+          created_at?: string
+          created_by?: string | null
+          directeur_publication?: string | null
+          email_contact?: string | null
+          forme_juridique?: string | null
+          hebergeur_adresse?: string | null
+          hebergeur_contact?: string | null
+          hebergeur_nom?: string | null
+          id?: string
+          nda?: string | null
+          raison_sociale?: string | null
+          rcs?: string | null
+          siege_social?: string | null
+          siret?: string | null
+          status?: string
+          telephone_contact?: string | null
+          version?: number
+        }
+        Update: {
+          activated_at?: string | null
+          archived_at?: string | null
+          capital_social?: string | null
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          directeur_publication?: string | null
+          email_contact?: string | null
+          forme_juridique?: string | null
+          hebergeur_adresse?: string | null
+          hebergeur_contact?: string | null
+          hebergeur_nom?: string | null
+          id?: string
+          nda?: string | null
+          raison_sociale?: string | null
+          rcs?: string | null
+          siege_social?: string | null
+          siret?: string | null
+          status?: string
+          telephone_contact?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      legal_mentions_history: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_fields: string[] | null
+          id: string
+          mention_id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          mention_id: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          id?: string
+          mention_id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_mentions_history_mention_id_fkey"
+            columns: ["mention_id"]
+            isOneToOne: false
+            referencedRelation: "legal_mentions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_answers: {
         Row: {
           created_at: string | null
@@ -5083,6 +5196,28 @@ export type Database = {
           id: string
           roles_requis: string[]
           titre: string
+          version: number
+        }[]
+      }
+      get_active_legal_mentions: {
+        Args: never
+        Returns: {
+          activated_at: string
+          capital_social: string
+          contenu: string
+          directeur_publication: string
+          email_contact: string
+          forme_juridique: string
+          hebergeur_adresse: string
+          hebergeur_contact: string
+          hebergeur_nom: string
+          id: string
+          nda: string
+          raison_sociale: string
+          rcs: string
+          siege_social: string
+          siret: string
+          telephone_contact: string
           version: number
         }[]
       }
