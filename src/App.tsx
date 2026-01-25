@@ -15,6 +15,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { InstallPWA } from "./components/pwa/InstallPWA";
 import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingButton";
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
+import { CentreProvider } from "@/contexts/CentreContext";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +61,9 @@ const App = () => (
               path="/"
               element={
                 <ProtectedRoute>
-                  <Index />
+                  <CentreProvider>
+                    <Index />
+                  </CentreProvider>
                 </ProtectedRoute>
               }
             />

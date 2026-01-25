@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
+import { CentreSwitcher } from "./CentreSwitcher";
 
 interface HeaderProps {
   title: string;
@@ -68,6 +69,9 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Centre Switcher */}
+          <CentreSwitcher />
+
           {/* Global Search */}
           <GlobalSearch />
 
