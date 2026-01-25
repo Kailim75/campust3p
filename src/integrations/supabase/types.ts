@@ -823,13 +823,16 @@ export type Database = {
           adresse_complete: string | null
           created_at: string | null
           email: string
+          health_score: number | null
           id: string
+          last_activity_at: string | null
           logo_url: string | null
           max_contacts: number | null
           max_users: number | null
           nda: string | null
           nom: string
           nom_commercial: string | null
+          onboarding_completed_at: string | null
           plan_end_date: string | null
           plan_start_date: string | null
           plan_type: string | null
@@ -845,13 +848,16 @@ export type Database = {
           adresse_complete?: string | null
           created_at?: string | null
           email: string
+          health_score?: number | null
           id?: string
+          last_activity_at?: string | null
           logo_url?: string | null
           max_contacts?: number | null
           max_users?: number | null
           nda?: string | null
           nom: string
           nom_commercial?: string | null
+          onboarding_completed_at?: string | null
           plan_end_date?: string | null
           plan_start_date?: string | null
           plan_type?: string | null
@@ -867,13 +873,16 @@ export type Database = {
           adresse_complete?: string | null
           created_at?: string | null
           email?: string
+          health_score?: number | null
           id?: string
+          last_activity_at?: string | null
           logo_url?: string | null
           max_contacts?: number | null
           max_users?: number | null
           nda?: string | null
           nom?: string
           nom_commercial?: string | null
+          onboarding_completed_at?: string | null
           plan_end_date?: string | null
           plan_start_date?: string | null
           plan_type?: string | null
