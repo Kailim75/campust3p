@@ -5,7 +5,7 @@ import { toast } from "sonner";
 export interface User {
   id: string;
   email: string;
-  role: "admin" | "staff" | null;
+  role: "admin" | "staff" | "super_admin" | null;
   created_at: string;
   last_sign_in_at: string | null;
 }
@@ -126,7 +126,7 @@ export function useCurrentUserRole() {
         return null;
       }
 
-      return data?.role as "admin" | "staff" | null;
+      return data?.role as "admin" | "staff" | "super_admin" | null;
     },
   });
 }

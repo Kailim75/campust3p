@@ -56,7 +56,7 @@ export function UserManagementSection() {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "staff">("staff");
 
-  const isAdmin = currentUserRole === "admin";
+  const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin";
 
   const handleCreateUser = async () => {
     if (!newUserEmail || !newUserPassword) return;
