@@ -447,6 +447,7 @@ export type Database = {
       }
       bim_projets: {
         Row: {
+          centre_id: string | null
           code: string
           competences_cibles: string[]
           created_at: string
@@ -465,6 +466,7 @@ export type Database = {
           viewer_config: Json | null
         }
         Insert: {
+          centre_id?: string | null
           code: string
           competences_cibles?: string[]
           created_at?: string
@@ -483,6 +485,7 @@ export type Database = {
           viewer_config?: Json | null
         }
         Update: {
+          centre_id?: string | null
           code?: string
           competences_cibles?: string[]
           created_at?: string
@@ -501,6 +504,13 @@ export type Database = {
           viewer_config?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bim_projets_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bim_projets_lesson_id_fkey"
             columns: ["lesson_id"]
@@ -645,6 +655,7 @@ export type Database = {
         Row: {
           actif: boolean
           categorie: string
+          centre_id: string | null
           code: string
           created_at: string
           description: string | null
@@ -662,6 +673,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           code: string
           created_at?: string
           description?: string | null
@@ -679,6 +691,7 @@ export type Database = {
         Update: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           code?: string
           created_at?: string
           description?: string | null
@@ -693,7 +706,15 @@ export type Database = {
           type_formation?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_formations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       centre_formation: {
         Row: {
@@ -778,6 +799,75 @@ export type Database = {
           signature_cachet_url?: string | null
           siret?: string
           telephone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      centres: {
+        Row: {
+          actif: boolean | null
+          adresse_complete: string | null
+          created_at: string | null
+          email: string
+          id: string
+          logo_url: string | null
+          max_contacts: number | null
+          max_users: number | null
+          nda: string | null
+          nom: string
+          nom_commercial: string | null
+          plan_end_date: string | null
+          plan_start_date: string | null
+          plan_type: string | null
+          settings: Json | null
+          siret: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          telephone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          adresse_complete?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          logo_url?: string | null
+          max_contacts?: number | null
+          max_users?: number | null
+          nda?: string | null
+          nom: string
+          nom_commercial?: string | null
+          plan_end_date?: string | null
+          plan_start_date?: string | null
+          plan_type?: string | null
+          settings?: Json | null
+          siret?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          adresse_complete?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          logo_url?: string | null
+          max_contacts?: number | null
+          max_users?: number | null
+          nda?: string | null
+          nom?: string
+          nom_commercial?: string | null
+          plan_end_date?: string | null
+          plan_start_date?: string | null
+          plan_type?: string | null
+          settings?: Json | null
+          siret?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          telephone?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -962,6 +1052,7 @@ export type Database = {
       contacts: {
         Row: {
           archived: boolean
+          centre_id: string | null
           civilite: Database["public"]["Enums"]["civilite"] | null
           code_postal: string | null
           commentaires: string | null
@@ -996,6 +1087,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          centre_id?: string | null
           civilite?: Database["public"]["Enums"]["civilite"] | null
           code_postal?: string | null
           commentaires?: string | null
@@ -1030,6 +1122,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          centre_id?: string | null
           civilite?: Database["public"]["Enums"]["civilite"] | null
           code_postal?: string | null
           commentaires?: string | null
@@ -1062,7 +1155,15 @@ export type Database = {
           ville?: string | null
           ville_naissance?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contrats_location: {
         Row: {
@@ -1219,6 +1320,7 @@ export type Database = {
       }
       devis: {
         Row: {
+          centre_id: string | null
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -1234,6 +1336,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centre_id?: string | null
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -1249,6 +1352,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centre_id?: string | null
           commentaires?: string | null
           contact_id?: string
           created_at?: string
@@ -1264,6 +1368,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "devis_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "devis_contact_id_fkey"
             columns: ["contact_id"]
@@ -1454,6 +1565,7 @@ export type Database = {
         Row: {
           actif: boolean | null
           categorie: string | null
+          centre_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1472,6 +1584,7 @@ export type Database = {
         Insert: {
           actif?: boolean | null
           categorie?: string | null
+          centre_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1490,6 +1603,7 @@ export type Database = {
         Update: {
           actif?: boolean | null
           categorie?: string | null
+          centre_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1505,7 +1619,15 @@ export type Database = {
           updated_at?: string
           variables?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "document_template_files_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_templates: {
         Row: {
@@ -1623,6 +1745,7 @@ export type Database = {
         Row: {
           actif: boolean
           categorie: string
+          centre_id: string | null
           contenu: string
           created_at: string
           id: string
@@ -1634,6 +1757,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           contenu: string
           created_at?: string
           id?: string
@@ -1645,6 +1769,7 @@ export type Database = {
         Update: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           contenu?: string
           created_at?: string
           id?: string
@@ -1653,7 +1778,15 @@ export type Database = {
           updated_at?: string
           variables?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       emargements: {
         Row: {
@@ -2038,6 +2171,7 @@ export type Database = {
       }
       factures: {
         Row: {
+          centre_id: string | null
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -2052,6 +2186,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centre_id?: string | null
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -2066,6 +2201,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centre_id?: string | null
           commentaires?: string | null
           contact_id?: string
           created_at?: string
@@ -2080,6 +2216,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "factures_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "factures_contact_id_fkey"
             columns: ["contact_id"]
@@ -2253,6 +2396,7 @@ export type Database = {
         Row: {
           actif: boolean
           adresse: string | null
+          centre_id: string | null
           code_postal: string | null
           created_at: string
           date_agrement: string | null
@@ -2274,6 +2418,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           adresse?: string | null
+          centre_id?: string | null
           code_postal?: string | null
           created_at?: string
           date_agrement?: string | null
@@ -2295,6 +2440,7 @@ export type Database = {
         Update: {
           actif?: boolean
           adresse?: string | null
+          centre_id?: string | null
           code_postal?: string | null
           created_at?: string
           date_agrement?: string | null
@@ -2313,7 +2459,15 @@ export type Database = {
           updated_at?: string
           ville?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formateurs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_documents: {
         Row: {
@@ -2639,6 +2793,7 @@ export type Database = {
           actif: boolean
           catalogue_formation_id: string | null
           categorie: string
+          centre_id: string | null
           code: string
           created_at: string
           description: string | null
@@ -2655,6 +2810,7 @@ export type Database = {
           actif?: boolean
           catalogue_formation_id?: string | null
           categorie: string
+          centre_id?: string | null
           code: string
           created_at?: string
           description?: string | null
@@ -2671,6 +2827,7 @@ export type Database = {
           actif?: boolean
           catalogue_formation_id?: string | null
           categorie?: string
+          centre_id?: string | null
           code?: string
           created_at?: string
           description?: string | null
@@ -2689,6 +2846,13 @@ export type Database = {
             columns: ["catalogue_formation_id"]
             isOneToOne: false
             referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_formations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
             referencedColumns: ["id"]
           },
         ]
@@ -3235,6 +3399,7 @@ export type Database = {
         Row: {
           actif: boolean | null
           annee: number
+          centre_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -3248,6 +3413,7 @@ export type Database = {
         Insert: {
           actif?: boolean | null
           annee: number
+          centre_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -3261,6 +3427,7 @@ export type Database = {
         Update: {
           actif?: boolean | null
           annee?: number
+          centre_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -3271,7 +3438,15 @@ export type Database = {
           updated_at?: string
           valeur_cible?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "objectifs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       paiements: {
         Row: {
@@ -3318,6 +3493,7 @@ export type Database = {
         Row: {
           address: string | null
           category: Database["public"]["Enums"]["partner_category"]
+          centre_id: string | null
           company_name: string
           contact_name: string | null
           created_at: string
@@ -3332,6 +3508,7 @@ export type Database = {
         Insert: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
+          centre_id?: string | null
           company_name: string
           contact_name?: string | null
           created_at?: string
@@ -3346,6 +3523,7 @@ export type Database = {
         Update: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
+          centre_id?: string | null
           company_name?: string
           contact_name?: string | null
           created_at?: string
@@ -3357,7 +3535,15 @@ export type Database = {
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "partners_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedagogical_documents: {
         Row: {
@@ -3482,6 +3668,7 @@ export type Database = {
       }
       prospects: {
         Row: {
+          centre_id: string | null
           converted_contact_id: string | null
           created_at: string
           created_by: string | null
@@ -3498,6 +3685,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centre_id?: string | null
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3514,6 +3702,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centre_id?: string | null
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3530,6 +3719,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_converted_contact_id_fkey"
             columns: ["converted_contact_id"]
@@ -3591,6 +3787,7 @@ export type Database = {
       }
       qualiopi_audits: {
         Row: {
+          centre_id: string | null
           created_at: string | null
           date_audit: string
           date_prochaine_echeance: string | null
@@ -3605,6 +3802,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          centre_id?: string | null
           created_at?: string | null
           date_audit: string
           date_prochaine_echeance?: string | null
@@ -3619,6 +3817,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          centre_id?: string | null
           created_at?: string | null
           date_audit?: string
           date_prochaine_echeance?: string | null
@@ -3632,10 +3831,19 @@ export type Database = {
           type_audit?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qualiopi_audits_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qualiopi_indicateurs: {
         Row: {
+          centre_id: string | null
           created_at: string | null
           critere: number
           description: string
@@ -3647,6 +3855,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          centre_id?: string | null
           created_at?: string | null
           critere: number
           description: string
@@ -3658,6 +3867,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          centre_id?: string | null
           created_at?: string | null
           critere?: number
           description?: string
@@ -3668,7 +3878,15 @@ export type Database = {
           titre?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qualiopi_indicateurs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qualiopi_preuves: {
         Row: {
@@ -3720,6 +3938,7 @@ export type Database = {
       reclamations: {
         Row: {
           categorie: string | null
+          centre_id: string | null
           contact_id: string | null
           created_at: string | null
           date_resolution: string | null
@@ -3735,6 +3954,7 @@ export type Database = {
         }
         Insert: {
           categorie?: string | null
+          centre_id?: string | null
           contact_id?: string | null
           created_at?: string | null
           date_resolution?: string | null
@@ -3750,6 +3970,7 @@ export type Database = {
         }
         Update: {
           categorie?: string | null
+          centre_id?: string | null
           contact_id?: string | null
           created_at?: string | null
           date_resolution?: string | null
@@ -3764,6 +3985,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reclamations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reclamations_contact_id_fkey"
             columns: ["contact_id"]
@@ -3782,6 +4010,7 @@ export type Database = {
       }
       satisfaction_reponses: {
         Row: {
+          centre_id: string | null
           commentaire: string | null
           contact_id: string | null
           created_at: string | null
@@ -3797,6 +4026,7 @@ export type Database = {
           type_questionnaire: string | null
         }
         Insert: {
+          centre_id?: string | null
           commentaire?: string | null
           contact_id?: string | null
           created_at?: string | null
@@ -3812,6 +4042,7 @@ export type Database = {
           type_questionnaire?: string | null
         }
         Update: {
+          centre_id?: string | null
           commentaire?: string | null
           contact_id?: string | null
           created_at?: string | null
@@ -3827,6 +4058,13 @@ export type Database = {
           type_questionnaire?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "satisfaction_reponses_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "satisfaction_reponses_contact_id_fkey"
             columns: ["contact_id"]
@@ -4001,6 +4239,7 @@ export type Database = {
           adresse_rue: string | null
           adresse_ville: string | null
           catalogue_formation_id: string | null
+          centre_id: string | null
           created_at: string
           date_debut: string
           date_fin: string
@@ -4033,6 +4272,7 @@ export type Database = {
           adresse_rue?: string | null
           adresse_ville?: string | null
           catalogue_formation_id?: string | null
+          centre_id?: string | null
           created_at?: string
           date_debut: string
           date_fin: string
@@ -4065,6 +4305,7 @@ export type Database = {
           adresse_rue?: string | null
           adresse_ville?: string | null
           catalogue_formation_id?: string | null
+          centre_id?: string | null
           created_at?: string
           date_debut?: string
           date_fin?: string
@@ -4098,6 +4339,13 @@ export type Database = {
             columns: ["catalogue_formation_id"]
             isOneToOne: false
             referencedRelation: "catalogue_formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
             referencedColumns: ["id"]
           },
           {
@@ -4187,6 +4435,38 @@ export type Database = {
           },
         ]
       }
+      user_centres: {
+        Row: {
+          centre_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          user_id: string
+        }
+        Insert: {
+          centre_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          user_id: string
+        }
+        Update: {
+          centre_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_centres_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4212,6 +4492,7 @@ export type Database = {
         Row: {
           actif: boolean
           categorie: string
+          centre_id: string | null
           created_at: string
           date_assurance: string | null
           date_controle_technique: string | null
@@ -4228,6 +4509,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           created_at?: string
           date_assurance?: string | null
           date_controle_technique?: string | null
@@ -4244,6 +4526,7 @@ export type Database = {
         Update: {
           actif?: boolean
           categorie?: string
+          centre_id?: string | null
           created_at?: string
           date_assurance?: string | null
           date_controle_technique?: string | null
@@ -4257,7 +4540,15 @@ export type Database = {
           type_vehicule?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicules_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workflow_executions: {
         Row: {
@@ -4304,6 +4595,7 @@ export type Database = {
         Row: {
           actif: boolean | null
           actions: Json
+          centre_id: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -4315,6 +4607,7 @@ export type Database = {
         Insert: {
           actif?: boolean | null
           actions?: Json
+          centre_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -4326,6 +4619,7 @@ export type Database = {
         Update: {
           actif?: boolean | null
           actions?: Json
+          centre_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -4334,7 +4628,15 @@ export type Database = {
           trigger_type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
