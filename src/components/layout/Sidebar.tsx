@@ -17,6 +17,7 @@ import {
   Award,
   HelpCircle,
   BookOpen,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,6 +25,17 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAllAlerts } from "@/hooks/useAlerts";
 import { RecentItemsMenu } from "./RecentItemsMenu";
+import { useAdminMode } from "@/contexts/AdminModeContext";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SidebarProps {
   activeSection: string;
@@ -57,6 +69,8 @@ function SidebarContent({
 }) {
   const { data: alerts } = useAllAlerts();
   const highPriorityAlerts = alerts.filter(a => a.priority === "high").length;
+  const { canSwitchMode, setMode } = useAdminMode();
+  const [showSwitchDialog, setShowSwitchDialog] = useState(false);
 
   const handleRecentItemClick = (type: string, id: string) => {
     // Navigate to appropriate section with the item
@@ -69,6 +83,15 @@ function SidebarContent({
       onSectionChange("paiements");
     }
     onItemClick?.();
+  };
+
+  const handleSwitchToSuperAdmin = () => {
+    setShowSwitchDialog(true);
+  };
+
+  const confirmSwitchToSuperAdmin = () => {
+    setMode("superadmin");
+    setShowSwitchDialog(false);
   };
 
   return (
@@ -156,6 +179,17 @@ function SidebarContent({
           {!collapsed && <span className="animate-fade-in">Aide</span>}
         </button>
         
+        {/* Super Admin Switch - Only visible for super admins */}
+        {canSwitchMode && (
+          <button
+            onClick={handleSwitchToSuperAdmin}
+            className="sidebar-item w-full text-sidebar-foreground/60 hover:text-sidebar-foreground border border-dashed border-sidebar-border/50 hover:border-sidebar-primary/50 hover:bg-sidebar-primary/10"
+          >
+            <Shield className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span className="animate-fade-in text-xs font-medium">Espace Super Admin</span>}
+          </button>
+        )}
+        
         {setCollapsed && (
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -172,6 +206,25 @@ function SidebarContent({
           </button>
         )}
       </div>
+
+      {/* Switch Confirmation Dialog */}
+      <AlertDialog open={showSwitchDialog} onOpenChange={setShowSwitchDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Basculer vers l'espace Super Admin ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous allez accéder à l'interface de pilotage global de la plateforme CampusT3P. 
+              Cette vue est réservée aux administrateurs de l'éditeur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSwitchToSuperAdmin} className="bg-primary">
+              Accéder au pilotage
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

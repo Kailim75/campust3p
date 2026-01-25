@@ -74,6 +74,22 @@
     --shadow-md: 0 4px 6px -1px hsl(220 30% 10% / 0.1), 0 2px 4px -2px hsl(220 30% 10% / 0.06);
     --shadow-lg: 0 10px 15px -3px hsl(220 30% 10% / 0.1), 0 4px 6px -4px hsl(220 30% 10% / 0.06);
     --shadow-xl: 0 20px 25px -5px hsl(220 30% 10% / 0.12), 0 8px 10px -6px hsl(220 30% 10% / 0.06);
+    /* ═══════════════════════════════════════════════════════════
+       SUPER ADMIN THEME - Distinct visual identity
+       Deep indigo/purple tones for clear separation from Centre space
+       ═══════════════════════════════════════════════════════════ */
+    --superadmin-background: 235 25% 12%;
+    --superadmin-foreground: 235 10% 95%;
+    --superadmin-sidebar: 235 30% 8%;
+    --superadmin-header: 235 25% 14%;
+    --superadmin-border: 235 25% 20%;
+    --superadmin-primary: 265 85% 60%;
+    --superadmin-primary-foreground: 0 0% 100%;
+    --superadmin-accent: 45 100% 55%;
+    --superadmin-accent-foreground: 45 100% 10%;
+    --superadmin-muted: 235 15% 50%;
+    --superadmin-card: 235 25% 16%;
+    --superadmin-card-foreground: 235 10% 95%;
   }
 
   .dark {
@@ -168,6 +184,77 @@
 
   .sidebar-item.active {
     @apply bg-sidebar-primary text-sidebar-primary-foreground;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SUPER ADMIN SIDEBAR - Purple/Indigo theme
+     ═══════════════════════════════════════════════════════════ */
+  .superadmin-sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200;
+    color: hsl(var(--superadmin-foreground) / 0.7);
+  }
+
+  .superadmin-sidebar-item:hover {
+    background: hsl(var(--superadmin-primary) / 0.15);
+    color: hsl(var(--superadmin-foreground));
+  }
+
+  .superadmin-sidebar-item.active {
+    background: hsl(var(--superadmin-primary));
+    color: hsl(var(--superadmin-primary-foreground));
+  }
+
+  /* Super Admin specific backgrounds */
+  .bg-superadmin-background {
+    background: hsl(var(--superadmin-background));
+  }
+
+  .bg-superadmin-sidebar {
+    background: hsl(var(--superadmin-sidebar));
+  }
+
+  .bg-superadmin-header {
+    background: hsl(var(--superadmin-header) / 0.95);
+  }
+
+  .bg-superadmin-card {
+    background: hsl(var(--superadmin-card));
+  }
+
+  .bg-superadmin-primary {
+    background: hsl(var(--superadmin-primary));
+  }
+
+  .bg-superadmin-accent {
+    background: hsl(var(--superadmin-accent));
+  }
+
+  .text-superadmin-foreground {
+    color: hsl(var(--superadmin-foreground));
+  }
+
+  .text-superadmin-muted {
+    color: hsl(var(--superadmin-muted));
+  }
+
+  .text-superadmin-primary {
+    color: hsl(var(--superadmin-primary));
+  }
+
+  .text-superadmin-primary-foreground {
+    color: hsl(var(--superadmin-primary-foreground));
+  }
+
+  .text-superadmin-accent {
+    color: hsl(var(--superadmin-accent));
+  }
+
+  .text-superadmin-accent-foreground {
+    color: hsl(var(--superadmin-accent-foreground));
+  }
+
+  .border-superadmin-border {
+    border-color: hsl(var(--superadmin-border));
   }
 
   .badge-status {
