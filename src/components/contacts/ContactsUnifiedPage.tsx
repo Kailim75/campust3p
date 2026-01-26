@@ -21,7 +21,8 @@ import {
   Plus,
   BarChart3,
   Trash2,
-  X
+  X,
+  Eye
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -35,6 +36,7 @@ import { ContactFormDialog } from "./ContactFormDialog";
 import { ContactDetailSheet } from "./ContactDetailSheet";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { ProspectsDashboard } from "@/components/prospects/ProspectsDashboard";
+import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 
 // Pipeline column configuration for contacts (stagiaires)
 const PIPELINE_COLUMNS = [
@@ -437,6 +439,13 @@ function ProspectsEmbedded() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
+
+  const handleViewDetail = (prospect: Prospect) => {
+    setViewingProspect(prospect);
+    setDetailSheetOpen(true);
+  };
 
   const STATUS_LABELS: Record<string, string> = {
     nouveau: "Nouveau",
@@ -590,16 +599,26 @@ function ProspectsEmbedded() {
                     </div>
                   </div>
                 </div>
-                {prospect.statut !== "converti" && (
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    onClick={() => handleConvert(prospect)}
-                    disabled={convertProspect.isPending}
+                    variant="outline"
+                    onClick={() => handleViewDetail(prospect)}
+                    title="Voir la fiche"
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Convertir
+                    <Eye className="h-4 w-4" />
                   </Button>
-                )}
+                  {prospect.statut !== "converti" && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleConvert(prospect)}
+                      disabled={convertProspect.isPending}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Convertir
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           ))}
@@ -652,6 +671,13 @@ function ProspectsEmbedded() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Prospect Detail Sheet */}
+      <ProspectDetailSheet
+        prospect={viewingProspect}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+      />
     </div>
   );
 }
