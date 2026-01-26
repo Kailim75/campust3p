@@ -2,56 +2,81 @@ import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Building2, Phone, Mail, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { usePartners, useDeletePartner, type PartnerCategory, type Partner } from "@/hooks/usePartners";
+import { Plus, Search, Building2, Phone, Mail, Users, Euro, TrendingUp, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { usePartners, usePartnerStats, useDeletePartner, type PartnerType, type PartnerStatus, type Partner } from "@/hooks/usePartners";
 import { PartnerFormDialog } from "./PartnerFormDialog";
+import { PartnerDetailSheet } from "./PartnerDetailSheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const CATEGORY_LABELS: Record<PartnerCategory, string> = {
-  assurance: "Assurance",
-  comptable: "Comptable",
-  medecin: "Médecin",
-  banque: "Banque",
-  vehicule: "Véhicule",
+const TYPE_LABELS: Record<PartnerType, string> = {
+  apporteur_affaires: "Apporteur d'affaires",
+  auto_ecole: "Auto-école",
+  entreprise: "Entreprise",
+  organisme_formation: "Org. formation",
+  prescripteur: "Prescripteur",
   autre: "Autre",
 };
 
-const CATEGORY_COLORS: Record<PartnerCategory, string> = {
-  assurance: "bg-blue-100 text-blue-800",
-  comptable: "bg-green-100 text-green-800",
-  medecin: "bg-red-100 text-red-800",
-  banque: "bg-purple-100 text-purple-800",
-  vehicule: "bg-orange-100 text-orange-800",
-  autre: "bg-gray-100 text-gray-800",
+const STATUS_LABELS: Record<PartnerStatus, string> = {
+  actif: "Actif",
+  inactif: "Inactif",
+  suspendu: "Suspendu",
+};
+
+const STATUS_COLORS: Record<PartnerStatus, string> = {
+  actif: "bg-green-100 text-green-800",
+  inactif: "bg-gray-100 text-gray-800",
+  suspendu: "bg-red-100 text-red-800",
 };
 
 export function PartnersPage() {
   const { data: partners = [], isLoading } = usePartners();
+  const { data: stats = [] } = usePartnerStats();
   const deletePartner = useDeletePartner();
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partnerToDelete, setPartnerToDelete] = useState<Partner | null>(null);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
-  const filteredPartners = partners.filter((partner) => {
+  // Merge partners with their stats
+  const partnersWithStats = partners.map((partner) => {
+    const partnerStats = stats.find((s) => s.partner_id === partner.id);
+    return {
+      ...partner,
+      nb_apprenants: partnerStats?.nb_apprenants || 0,
+      ca_genere: partnerStats?.ca_genere || 0,
+      commission_calculee: partnerStats?.commission_calculee || 0,
+      commission_restante: partnerStats?.commission_restante || 0,
+    };
+  });
+
+  const filteredPartners = partnersWithStats.filter((partner) => {
     const matchesSearch =
       partner.company_name.toLowerCase().includes(search.toLowerCase()) ||
       partner.contact_name?.toLowerCase().includes(search.toLowerCase()) ||
       partner.email?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || partner.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesType = typeFilter === "all" || partner.type_partenaire === typeFilter;
+    const matchesStatus = statusFilter === "all" || partner.statut_partenaire === statusFilter;
+    return matchesSearch && matchesType && matchesStatus;
   });
+
+  // Calculate totals
+  const totalApprenants = filteredPartners.reduce((sum, p) => sum + p.nb_apprenants, 0);
+  const totalCA = filteredPartners.reduce((sum, p) => sum + p.ca_genere, 0);
+  const totalCommissionsRestantes = filteredPartners.reduce((sum, p) => sum + p.commission_restante, 0);
 
   const handleEdit = (partner: Partner) => {
     setEditingPartner(partner);
@@ -76,13 +101,66 @@ export function PartnersPage() {
     setEditingPartner(null);
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   return (
     <div className="space-y-6">
       <Header
         title="Partenaires"
-        subtitle="Gérez vos partenaires : assurances, comptables, médecins, banques, véhicules"
+        subtitle="Gérez vos partenaires commerciaux et suivez leurs performances"
       />
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Apprenants apportés</p>
+                <p className="text-2xl font-bold">{totalApprenants}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">CA généré</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalCA)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-100">
+                <Euro className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Commissions à payer</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalCommissionsRestantes)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -93,13 +171,26 @@ export function PartnersPage() {
             className="pl-10"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Catégorie" />
+            <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Toutes catégories</SelectItem>
-            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+            <SelectItem value="all">Tous les types</SelectItem>
+            {Object.entries(TYPE_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous statuts</SelectItem>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>
@@ -124,7 +215,7 @@ export function PartnersPage() {
         <EmptyState
           icon={Building2}
           title="Aucun partenaire"
-          description="Ajoutez vos partenaires pour faciliter la mise en relation avec vos stagiaires."
+          description="Ajoutez vos partenaires commerciaux pour suivre les apports d'apprenants et les commissions."
           action={
             <Button onClick={() => setFormOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -135,44 +226,55 @@ export function PartnersPage() {
       ) : isMobile ? (
         <div className="space-y-3">
           {filteredPartners.map((partner) => (
-            <Card key={partner.id} className="p-4">
+            <Card 
+              key={partner.id} 
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setSelectedPartnerId(partner.id)}
+            >
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
                   <div className="font-semibold">{partner.company_name}</div>
-                  <Badge className={CATEGORY_COLORS[partner.category]}>
-                    {CATEGORY_LABELS[partner.category]}
-                  </Badge>
-                  {partner.contact_name && (
-                    <div className="text-sm text-muted-foreground">{partner.contact_name}</div>
-                  )}
-                  <div className="flex flex-col gap-1 text-sm">
-                    {partner.phone && (
-                      <a href={`tel:${partner.phone}`} className="flex items-center gap-1 text-primary">
-                        <Phone className="h-3 w-3" />
-                        {partner.phone}
-                      </a>
-                    )}
-                    {partner.email && (
-                      <a href={`mailto:${partner.email}`} className="flex items-center gap-1 text-primary">
-                        <Mail className="h-3 w-3" />
-                        {partner.email}
-                      </a>
-                    )}
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge className={STATUS_COLORS[partner.statut_partenaire || "actif"]}>
+                      {STATUS_LABELS[partner.statut_partenaire || "actif"]}
+                    </Badge>
+                    <Badge variant="outline">
+                      {TYPE_LABELS[partner.type_partenaire || "autre"]}
+                    </Badge>
                   </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                      <span>{partner.nb_apprenants} apprenants</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Euro className="h-3 w-3 text-muted-foreground" />
+                      <span>{formatCurrency(partner.ca_genere)}</span>
+                    </div>
+                  </div>
+                  {partner.commission_restante > 0 && (
+                    <div className="text-sm text-orange-600">
+                      Commission à payer: {formatCurrency(partner.commission_restante)}
+                    </div>
+                  )}
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEdit(partner)}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedPartnerId(partner.id); }}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Voir détails
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(partner); }}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Modifier
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleDelete(partner)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(partner); }}
                       className="text-destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -190,68 +292,79 @@ export function PartnersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Société</TableHead>
-                <TableHead>Catégorie</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Statut</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Adresse</TableHead>
+                <TableHead className="text-right">Apprenants</TableHead>
+                <TableHead className="text-right">CA généré</TableHead>
+                <TableHead className="text-right">Commission restante</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPartners.map((partner) => (
-                <TableRow key={partner.id}>
+                <TableRow 
+                  key={partner.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedPartnerId(partner.id)}
+                >
                   <TableCell className="font-medium">{partner.company_name}</TableCell>
                   <TableCell>
-                    <Badge className={CATEGORY_COLORS[partner.category]}>
-                      {CATEGORY_LABELS[partner.category]}
+                    <Badge variant="outline">
+                      {TYPE_LABELS[partner.type_partenaire || "autre"]}
                     </Badge>
                   </TableCell>
-                  <TableCell>{partner.contact_name || "-"}</TableCell>
                   <TableCell>
-                    {partner.phone ? (
-                      <a href={`tel:${partner.phone}`} className="flex items-center gap-1 text-primary hover:underline">
-                        <Phone className="h-3 w-3" />
-                        {partner.phone}
-                      </a>
-                    ) : (
-                      "-"
-                    )}
+                    <Badge className={STATUS_COLORS[partner.statut_partenaire || "actif"]}>
+                      {STATUS_LABELS[partner.statut_partenaire || "actif"]}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    {partner.email ? (
-                      <a href={`mailto:${partner.email}`} className="flex items-center gap-1 text-primary hover:underline">
-                        <Mail className="h-3 w-3" />
-                        {partner.email}
-                      </a>
-                    ) : (
-                      "-"
-                    )}
+                    <div className="space-y-1">
+                      {partner.contact_name && <div className="text-sm">{partner.contact_name}</div>}
+                      {partner.phone && (
+                        <a href={`tel:${partner.phone}`} className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                          <Phone className="h-3 w-3" />
+                          {partner.phone}
+                        </a>
+                      )}
+                      {partner.email && (
+                        <a href={`mailto:${partner.email}`} className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                          <Mail className="h-3 w-3" />
+                          {partner.email}
+                        </a>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell>
-                    {partner.address ? (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate max-w-[200px]">{partner.address}</span>
+                  <TableCell className="text-right font-medium">{partner.nb_apprenants}</TableCell>
+                  <TableCell className="text-right font-medium">{formatCurrency(partner.ca_genere)}</TableCell>
+                  <TableCell className="text-right">
+                    {partner.commission_restante > 0 ? (
+                      <span className="font-medium text-orange-600">
+                        {formatCurrency(partner.commission_restante)}
                       </span>
                     ) : (
-                      "-"
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(partner)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedPartnerId(partner.id); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir détails
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(partner); }}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Modifier
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(partner)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(partner); }}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -271,6 +384,16 @@ export function PartnersPage() {
         open={formOpen}
         onOpenChange={handleFormClose}
         partner={editingPartner}
+      />
+
+      <PartnerDetailSheet
+        partnerId={selectedPartnerId}
+        open={!!selectedPartnerId}
+        onOpenChange={(open) => !open && setSelectedPartnerId(null)}
+        onEdit={(partner) => {
+          setSelectedPartnerId(null);
+          handleEdit(partner);
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
