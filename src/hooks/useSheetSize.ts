@@ -14,12 +14,15 @@ export const sheetSizeConfig: Record<SheetSize, SheetSizeConfig> = {
   xl: { label: "Très grande", class: "w-full sm:max-w-4xl" },
 };
 
-const STORAGE_KEY_CONTACT = "contactSheetSize";
-const STORAGE_KEY_SESSION = "sessionSheetSize";
+const STORAGE_KEYS: Record<string, string> = {
+  contact: "contactSheetSize",
+  session: "sessionSheetSize",
+  prospect: "prospectSheetSize",
+};
 
-export function useSheetSize(type: "contact" | "session") {
-  const storageKey = type === "contact" ? STORAGE_KEY_CONTACT : STORAGE_KEY_SESSION;
-  const defaultSize: SheetSize = type === "contact" ? "md" : "lg";
+export function useSheetSize(type: "contact" | "session" | "prospect") {
+  const storageKey = STORAGE_KEYS[type] || `${type}SheetSize`;
+  const defaultSize: SheetSize = type === "contact" || type === "prospect" ? "md" : "lg";
 
   const [size, setSize] = useState<SheetSize>(() => {
     if (typeof window === "undefined") return defaultSize;
