@@ -1255,6 +1255,13 @@ export type Database = {
             foreignKeyName: "contact_partners_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
+            referencedRelation: "partner_stats"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "contact_partners_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
             referencedRelation: "partners"
             referencedColumns: ["id"]
           },
@@ -1269,6 +1276,7 @@ export type Database = {
           commentaires: string | null
           created_at: string
           custom_id: string | null
+          date_apport: string | null
           date_delivrance_permis: string | null
           date_expiration_carte: string | null
           date_naissance: string | null
@@ -1281,7 +1289,9 @@ export type Database = {
           nom_naissance: string | null
           numero_carte_professionnelle: string | null
           numero_permis: string | null
+          origine: Database["public"]["Enums"]["contact_origin"] | null
           parrain: string | null
+          partenaire_referent_id: string | null
           pays_naissance: string | null
           precisions: string | null
           prefecture_carte: string | null
@@ -1304,6 +1314,7 @@ export type Database = {
           commentaires?: string | null
           created_at?: string
           custom_id?: string | null
+          date_apport?: string | null
           date_delivrance_permis?: string | null
           date_expiration_carte?: string | null
           date_naissance?: string | null
@@ -1316,7 +1327,9 @@ export type Database = {
           nom_naissance?: string | null
           numero_carte_professionnelle?: string | null
           numero_permis?: string | null
+          origine?: Database["public"]["Enums"]["contact_origin"] | null
           parrain?: string | null
+          partenaire_referent_id?: string | null
           pays_naissance?: string | null
           precisions?: string | null
           prefecture_carte?: string | null
@@ -1339,6 +1352,7 @@ export type Database = {
           commentaires?: string | null
           created_at?: string
           custom_id?: string | null
+          date_apport?: string | null
           date_delivrance_permis?: string | null
           date_expiration_carte?: string | null
           date_naissance?: string | null
@@ -1351,7 +1365,9 @@ export type Database = {
           nom_naissance?: string | null
           numero_carte_professionnelle?: string | null
           numero_permis?: string | null
+          origine?: Database["public"]["Enums"]["contact_origin"] | null
           parrain?: string | null
+          partenaire_referent_id?: string | null
           pays_naissance?: string | null
           precisions?: string | null
           prefecture_carte?: string | null
@@ -1379,6 +1395,20 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_partenaire_referent_id_fkey"
+            columns: ["partenaire_referent_id"]
+            isOneToOne: false
+            referencedRelation: "partner_stats"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "contacts_partenaire_referent_id_fkey"
+            columns: ["partenaire_referent_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
@@ -4133,46 +4163,85 @@ export type Database = {
           address: string | null
           category: Database["public"]["Enums"]["partner_category"]
           centre_id: string | null
+          commission_payee: number | null
           company_name: string
           contact_name: string | null
           created_at: string
           created_by: string | null
+          date_debut_contrat: string | null
+          date_fin_contrat: string | null
           email: string | null
           id: string
           is_active: boolean
+          mode_remuneration:
+            | Database["public"]["Enums"]["partner_remuneration_mode"]
+            | null
+          montant_forfait: number | null
           notes: string | null
           phone: string | null
+          statut_partenaire:
+            | Database["public"]["Enums"]["partner_status"]
+            | null
+          taux_commission: number | null
+          type_partenaire: Database["public"]["Enums"]["partner_type"] | null
           updated_at: string
+          zone_geographique: string | null
         }
         Insert: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
           centre_id?: string | null
+          commission_payee?: number | null
           company_name: string
           contact_name?: string | null
           created_at?: string
           created_by?: string | null
+          date_debut_contrat?: string | null
+          date_fin_contrat?: string | null
           email?: string | null
           id?: string
           is_active?: boolean
+          mode_remuneration?:
+            | Database["public"]["Enums"]["partner_remuneration_mode"]
+            | null
+          montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          statut_partenaire?:
+            | Database["public"]["Enums"]["partner_status"]
+            | null
+          taux_commission?: number | null
+          type_partenaire?: Database["public"]["Enums"]["partner_type"] | null
           updated_at?: string
+          zone_geographique?: string | null
         }
         Update: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
           centre_id?: string | null
+          commission_payee?: number | null
           company_name?: string
           contact_name?: string | null
           created_at?: string
           created_by?: string | null
+          date_debut_contrat?: string | null
+          date_fin_contrat?: string | null
           email?: string | null
           id?: string
           is_active?: boolean
+          mode_remuneration?:
+            | Database["public"]["Enums"]["partner_remuneration_mode"]
+            | null
+          montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          statut_partenaire?:
+            | Database["public"]["Enums"]["partner_status"]
+            | null
+          taux_commission?: number | null
+          type_partenaire?: Database["public"]["Enums"]["partner_type"] | null
           updated_at?: string
+          zone_geographique?: string | null
         }
         Relationships: [
           {
@@ -5492,6 +5561,43 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_stats: {
+        Row: {
+          ca_genere: number | null
+          centre_id: string | null
+          commission_calculee: number | null
+          commission_payee: number | null
+          commission_restante: number | null
+          company_name: string | null
+          mode_remuneration:
+            | Database["public"]["Enums"]["partner_remuneration_mode"]
+            | null
+          montant_forfait: number | null
+          nb_apprenants: number | null
+          partner_id: string | null
+          statut_partenaire:
+            | Database["public"]["Enums"]["partner_status"]
+            | null
+          taux_commission: number | null
+          type_partenaire: Database["public"]["Enums"]["partner_type"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partners_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partners_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
@@ -5568,6 +5674,17 @@ export type Database = {
           version: number
         }[]
       }
+      get_partner_stats: {
+        Args: { p_partner_id: string }
+        Returns: {
+          ca_ce_mois: number
+          ca_genere: number
+          commission_calculee: number
+          commission_restante: number
+          nb_apprenants: number
+          nb_apprenants_ce_mois: number
+        }[]
+      }
       get_pending_documents: {
         Args: never
         Returns: {
@@ -5594,6 +5711,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      pay_partner_commission: {
+        Args: { p_amount: number; p_partner_id: string }
+        Returns: boolean
+      }
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -5668,6 +5789,14 @@ export type Database = {
       bim_projet_statut: "brouillon" | "actif" | "archive"
       charter_status: "draft" | "active" | "archived"
       civilite: "Monsieur" | "Madame"
+      contact_origin:
+        | "site_web"
+        | "bouche_a_oreille"
+        | "partenaire"
+        | "reseaux_sociaux"
+        | "publicite"
+        | "salon"
+        | "autre"
       contact_statut:
         | "En attente de validation"
         | "Client"
@@ -5718,6 +5847,15 @@ export type Database = {
         | "medecin"
         | "banque"
         | "vehicule"
+        | "autre"
+      partner_remuneration_mode: "commission" | "forfait" | "aucun"
+      partner_status: "actif" | "inactif" | "suspendu"
+      partner_type:
+        | "apporteur_affaires"
+        | "auto_ecole"
+        | "entreprise"
+        | "organisme_formation"
+        | "prescripteur"
         | "autre"
       pedagogical_document_type:
         | "inscription"
@@ -5877,6 +6015,15 @@ export const Constants = {
       bim_projet_statut: ["brouillon", "actif", "archive"],
       charter_status: ["draft", "active", "archived"],
       civilite: ["Monsieur", "Madame"],
+      contact_origin: [
+        "site_web",
+        "bouche_a_oreille",
+        "partenaire",
+        "reseaux_sociaux",
+        "publicite",
+        "salon",
+        "autre",
+      ],
       contact_statut: [
         "En attente de validation",
         "Client",
@@ -5932,6 +6079,16 @@ export const Constants = {
         "medecin",
         "banque",
         "vehicule",
+        "autre",
+      ],
+      partner_remuneration_mode: ["commission", "forfait", "aucun"],
+      partner_status: ["actif", "inactif", "suspendu"],
+      partner_type: [
+        "apporteur_affaires",
+        "auto_ecole",
+        "entreprise",
+        "organisme_formation",
+        "prescripteur",
         "autre",
       ],
       pedagogical_document_type: [
