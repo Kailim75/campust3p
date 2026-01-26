@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export type ProspectStatus = "nouveau" | "contacte" | "relance" | "converti" | "perdu";
+export type ProspectPriorite = "basse" | "normale" | "haute" | "urgente";
 
 export interface Prospect {
   id: string;
@@ -13,9 +14,11 @@ export interface Prospect {
   formation_souhaitee: string | null;
   source: string | null;
   statut: ProspectStatus;
+  priorite: ProspectPriorite | null;
   notes: string | null;
   converted_contact_id: string | null;
   is_active: boolean;
+  date_prochaine_relance: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -29,6 +32,8 @@ export interface ProspectInsert {
   formation_souhaitee?: string | null;
   source?: string | null;
   statut?: ProspectStatus;
+  priorite?: ProspectPriorite;
+  date_prochaine_relance?: string | null;
   notes?: string | null;
 }
 
@@ -40,6 +45,8 @@ export interface ProspectUpdate {
   formation_souhaitee?: string | null;
   source?: string | null;
   statut?: ProspectStatus;
+  priorite?: ProspectPriorite;
+  date_prochaine_relance?: string | null;
   notes?: string | null;
   is_active?: boolean;
   converted_contact_id?: string | null;
