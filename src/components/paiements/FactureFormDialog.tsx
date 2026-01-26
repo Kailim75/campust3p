@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
-import { useCreateFactureLignes, useDeleteFactureLignesByFacture } from "@/hooks/useFactureLignes";
+import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
 import { Loader2, Plus, Trash2, Package } from "lucide-react";
 
 interface LigneFacture {
@@ -92,6 +92,7 @@ export function FactureFormDialog({
   const { data: contacts = [] } = useContacts();
   const { data: catalogue = [] } = useCatalogueFormations(true);
   const { data: nextNumero } = useGenerateNumeroFacture();
+  const { data: existingLignes = [], isLoading: lignesLoading } = useFactureLignes(facture?.id || null);
   const createFacture = useCreateFacture();
   const updateFacture = useUpdateFacture();
   const createLignes = useCreateFactureLignes();
@@ -121,8 +122,6 @@ export function FactureFormDialog({
         date_echeance: facture.date_echeance || "",
         commentaires: facture.commentaires || "",
       });
-      // Pour l'édition, on garderait les lignes existantes - simplifié ici
-      setLignes([]);
     } else {
       form.reset({
         contact_id: defaultContactId || "",
@@ -135,6 +134,23 @@ export function FactureFormDialog({
       setLignes([]);
     }
   }, [facture, defaultContactId, form, open]);
+
+  // Charger les lignes existantes en mode édition
+  useEffect(() => {
+    if (isEditing && existingLignes.length > 0) {
+      setLignes(existingLignes.map(l => ({
+        id: l.id,
+        catalogue_formation_id: l.catalogue_formation_id,
+        description: l.description,
+        quantite: l.quantite,
+        prix_unitaire_ht: l.prix_unitaire_ht,
+        tva_percent: l.tva_percent,
+        remise_percent: 0,
+      })));
+    } else if (!isEditing) {
+      setLignes([]);
+    }
+  }, [isEditing, existingLignes]);
 
   const addLigne = (item?: CatalogueFormation) => {
     const prixApresRemiseCatalogue = item ? item.prix_ht * (1 - (item.remise_percent || 0) / 100) : 0;
