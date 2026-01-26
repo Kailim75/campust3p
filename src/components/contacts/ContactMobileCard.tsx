@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Contact } from "@/hooks/useContacts";
+import { openWhatsApp } from "@/lib/phone-utils";
 
 interface ContactMobileCardProps {
   contact: Contact;
@@ -150,7 +151,7 @@ export function ContactMobileCard({ contact, onClick, onEnroll, onCall, isSelect
               className="h-9 w-9"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`https://wa.me/${contact.telephone?.replace(/\s/g, '')}`, '_blank');
+                openWhatsApp(contact.telephone);
               }}
             >
               <MessageCircle className="h-4 w-4" />

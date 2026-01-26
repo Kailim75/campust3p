@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openWhatsApp } from "@/lib/phone-utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -478,7 +479,7 @@ export function ContactsTable() {
                                 className="h-8 w-8"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`https://wa.me/${contact.telephone?.replace(/\s/g, '')}`, '_blank');
+                                  openWhatsApp(contact.telephone);
                                 }}
                               >
                                 <MessageCircle className="h-4 w-4" />
