@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -28,8 +29,9 @@ import {
 } from "@/components/ui/select";
 import { useCreateContact, useUpdateContact, type Contact, type ContactInsert } from "@/hooks/useContacts";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formationTypes = Constants.public.Enums.formation_type;
 const statutTypes = Constants.public.Enums.contact_statut;
@@ -46,15 +48,12 @@ const contactSchema = z.object({
   date_naissance: z.string().optional(),
   ville_naissance: z.string().max(100).optional(),
   pays_naissance: z.string().max(100).optional(),
-  // Permis de conduire
   numero_permis: z.string().max(50).optional(),
   prefecture_permis: z.string().max(100).optional(),
   date_delivrance_permis: z.string().optional(),
-  // Carte professionnelle
   numero_carte_professionnelle: z.string().max(50).optional(),
   prefecture_carte: z.string().max(100).optional(),
   date_expiration_carte: z.string().optional(),
-  // Formation & autres
   formation: z.enum(formationTypes).nullable().optional(),
   statut: z.enum(statutTypes).nullable().optional(),
   source: z.string().max(100).optional(),
@@ -70,6 +69,7 @@ interface ContactFormDialogProps {
 }
 
 export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDialogProps) {
+  const [showCompleteForm, setShowCompleteForm] = useState(false);
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const isEditing = !!contact;
@@ -103,6 +103,8 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
   useEffect(() => {
     if (contact) {
+      // In edit mode, always show complete form
+      setShowCompleteForm(true);
       form.reset({
         civilite: contact.civilite,
         nom: contact.nom,
@@ -127,6 +129,8 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         commentaires: contact.commentaires || "",
       });
     } else {
+      // In create mode, start with express form
+      setShowCompleteForm(false);
       form.reset({
         civilite: null,
         nom: "",
@@ -151,7 +155,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         commentaires: "",
       });
     }
-  }, [contact, form]);
+  }, [contact, form, open]);
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
@@ -181,14 +185,22 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
       if (isEditing && contact) {
         await updateContact.mutateAsync({ id: contact.id, updates: contactData });
-        toast.success("Contact mis à jour avec succès");
+        toast.success("Contact mis à jour", {
+          description: `${values.prenom} ${values.nom} a été mis à jour avec succès.`,
+        });
       } else {
         await createContact.mutateAsync(contactData);
-        toast.success("Contact créé avec succès");
+        toast.success("Contact créé", {
+          description: `${values.prenom} ${values.nom} a été ajouté avec succès.`,
+        });
       }
       onOpenChange(false);
     } catch (error) {
-      toast.error(isEditing ? "Erreur lors de la mise à jour" : "Erreur lors de la création");
+      toast.error("Erreur", {
+        description: isEditing 
+          ? "Impossible de mettre à jour le contact. Veuillez réessayer."
+          : "Impossible de créer le contact. Veuillez réessayer.",
+      });
     }
   };
 
@@ -201,15 +213,22 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
           <DialogTitle>
             {isEditing ? "Modifier le contact" : "Ajouter un apprenant"}
           </DialogTitle>
+          {!isEditing && (
+            <DialogDescription>
+              Remplissez les informations essentielles. Les champs complémentaires sont optionnels.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Identité */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Identité
+            {/* === SECTION ESSENTIELLE (Mode Express) === */}
+            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">1</span>
+                Informations essentielles
               </h3>
+              
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -293,296 +312,615 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
               </div>
             </div>
 
-            {/* Adresse */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Adresse
-              </h3>
-              <FormField
-                control={form.control}
-                name="rue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rue</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Adresse" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="code_postal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code postal</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="75001" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ville"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ville</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Paris" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+            {/* === TOGGLE POUR FORMULAIRE COMPLET === */}
+            {!isEditing && (
+              <Collapsible open={showCompleteForm} onOpenChange={setShowCompleteForm}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span>
+                      {showCompleteForm ? "Masquer les champs complémentaires" : "Afficher les champs complémentaires"}
+                    </span>
+                    {showCompleteForm ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
 
-            {/* Naissance */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Naissance
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="date_naissance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date de naissance</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ville_naissance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ville de naissance</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Ville" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pays_naissance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pays de naissance</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="France" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+                <CollapsibleContent className="space-y-6 pt-4">
+                  {/* Adresse */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Adresse
+                    </h3>
+                    <FormField
+                      control={form.control}
+                      name="rue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Rue</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Adresse" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="code_postal"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Code postal</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="75001" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="ville"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Ville</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Paris" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-            {/* Permis de conduire */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Permis de conduire
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="numero_permis"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Numéro de permis</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="12AB34567" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="prefecture_permis"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Préfecture</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Paris" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="date_delivrance_permis"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date de délivrance</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+                  {/* Naissance */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Naissance
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="date_naissance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date de naissance</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="ville_naissance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Ville de naissance</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Ville" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="pays_naissance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pays de naissance</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="France" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-            {/* Carte professionnelle */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Carte professionnelle
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="numero_carte_professionnelle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Numéro de carte</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="T-75-2026-001234" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="prefecture_carte"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Préfecture</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Paris" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="date_expiration_carte"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date d'expiration</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+                  {/* Permis de conduire */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Permis de conduire
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="numero_permis"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Numéro de permis</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="12AB34567" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="prefecture_permis"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Préfecture</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Paris" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="date_delivrance_permis"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date de délivrance</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-            {/* Formation & Statut */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Formation
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="formation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type de formation</FormLabel>
-                      <Select
-                        value={field.value || ""}
-                        onValueChange={(value) => field.onChange(value || null)}
-                      >
+                  {/* Carte professionnelle */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Carte professionnelle
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="numero_carte_professionnelle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Numéro de carte</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="T-75-2026-001234" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="prefecture_carte"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Préfecture</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Paris" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="date_expiration_carte"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date d'expiration</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Formation & autres */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Formation & CRM
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="formation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Formation</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => field.onChange(value || null)}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {formationTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="statut"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Statut</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => field.onChange(value || null)}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {statutTypes.map((statut) => (
+                                  <SelectItem key={statut} value={statut}>
+                                    {statut}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="source"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Source</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="commentaires"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Commentaires</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              placeholder="Notes internes..."
+                              className="resize-none"
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* === FORMULAIRE COMPLET EN MODE ÉDITION === */}
+            {isEditing && (
+              <div className="space-y-6">
+                {/* Adresse */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Adresse
+                  </h3>
+                  <FormField
+                    control={form.control}
+                    name="rue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rue</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choisir" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="Adresse" />
                         </FormControl>
-                        <SelectContent>
-                          {formationTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="statut"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Statut</FormLabel>
-                      <Select
-                        value={field.value || ""}
-                        onValueChange={(value) => field.onChange(value || null)}
-                      >
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="code_postal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Code postal</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="75001" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ville"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ville</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Paris" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Naissance */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Naissance
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="date_naissance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date de naissance</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ville_naissance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ville de naissance</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Ville" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pays_naissance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pays de naissance</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="France" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Permis de conduire */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Permis de conduire
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="numero_permis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Numéro de permis</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="12AB34567" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="prefecture_permis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Préfecture</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Paris" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date_delivrance_permis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date de délivrance</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Carte professionnelle */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Carte professionnelle
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="numero_carte_professionnelle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Numéro de carte</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="T-75-2026-001234" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="prefecture_carte"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Préfecture</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Paris" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date_expiration_carte"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date d'expiration</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Formation & autres */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Formation & CRM
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="formation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Formation</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => field.onChange(value || null)}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {formationTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="statut"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Statut</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => field.onChange(value || null)}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {statutTypes.map((statut) => (
+                                <SelectItem key={statut} value={statut}>
+                                  {statut}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="source"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Source</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choisir" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
                         </FormControl>
-                        <SelectContent>
-                          {statutTypes.map((statut) => (
-                            <SelectItem key={statut} value={statut}>
-                              {statut}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="source"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Source</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Google, CPF, etc." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="commentaires"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Commentaires</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Notes internes..."
+                            className="resize-none"
+                            rows={3}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Commentaires */}
-            <FormField
-              control={form.control}
-              name="commentaires"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Commentaires</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} placeholder="Notes sur le contact..." rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
+            {/* Submit */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuler
               </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Mettre à jour" : "Créer le contact"}
+                {isEditing ? "Enregistrer" : "Créer l'apprenant"}
               </Button>
             </div>
           </form>
