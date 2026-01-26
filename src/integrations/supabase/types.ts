@@ -968,6 +968,156 @@ export type Database = {
           },
         ]
       }
+      compliance_checklist_items: {
+        Row: {
+          actif: boolean
+          categorie: string
+          code: string
+          created_at: string
+          criticite: string
+          description: string | null
+          id: string
+          ordre: number
+          reference_legale: string | null
+          sous_categorie: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          categorie: string
+          code: string
+          created_at?: string
+          criticite?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          reference_legale?: string | null
+          sous_categorie?: string | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          code?: string
+          created_at?: string
+          criticite?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          reference_legale?: string | null
+          sous_categorie?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      compliance_validation_history: {
+        Row: {
+          action: string
+          ancien_statut: string | null
+          changed_at: string
+          changed_by: string | null
+          commentaire: string | null
+          id: string
+          nouveau_statut: string | null
+          validation_id: string
+        }
+        Insert: {
+          action: string
+          ancien_statut?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          commentaire?: string | null
+          id?: string
+          nouveau_statut?: string | null
+          validation_id: string
+        }
+        Update: {
+          action?: string
+          ancien_statut?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          commentaire?: string | null
+          id?: string
+          nouveau_statut?: string | null
+          validation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_validation_history_validation_id_fkey"
+            columns: ["validation_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_validations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_validations: {
+        Row: {
+          centre_id: string | null
+          commentaire: string | null
+          created_at: string
+          date_prochaine_revue: string | null
+          id: string
+          item_id: string
+          preuves: string[] | null
+          statut: string
+          updated_at: string
+          valide_at: string | null
+          valide_par: string | null
+        }
+        Insert: {
+          centre_id?: string | null
+          commentaire?: string | null
+          created_at?: string
+          date_prochaine_revue?: string | null
+          id?: string
+          item_id: string
+          preuves?: string[] | null
+          statut?: string
+          updated_at?: string
+          valide_at?: string | null
+          valide_par?: string | null
+        }
+        Update: {
+          centre_id?: string | null
+          commentaire?: string | null
+          created_at?: string
+          date_prochaine_revue?: string | null
+          id?: string
+          item_id?: string
+          preuves?: string[] | null
+          statut?: string
+          updated_at?: string
+          valide_at?: string | null
+          valide_par?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_validations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_validations_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_validations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_checklist_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_documents: {
         Row: {
           commentaires: string | null

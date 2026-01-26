@@ -45,6 +45,7 @@ const menuItems = [
   { id: "users", label: "Utilisateurs", icon: Users },
   { id: "alerts", label: "Alertes & Risques", icon: AlertTriangle },
   { id: "activity", label: "Activité", icon: Activity },
+  { id: "compliance", label: "Checklist Conformité", icon: Shield },
   { id: "gdpr", label: "RGPD", icon: Shield },
   { id: "gdpr-register", label: "Registre Traitements", icon: Database },
   { id: "data-breaches", label: "Violations Données", icon: AlertTriangle },

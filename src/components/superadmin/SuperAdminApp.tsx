@@ -11,6 +11,7 @@ import { SuperAdminActivity } from "./pages/SuperAdminActivity";
 import { SuperAdminSettings } from "./pages/SuperAdminSettings";
 import { Loader2 } from "lucide-react";
 
+const SuperAdminComplianceChecklist = lazy(() => import("./pages/SuperAdminComplianceChecklist"));
 const SuperAdminGDPR = lazy(() => import("./pages/SuperAdminGDPR"));
 const SuperAdminGdprRegister = lazy(() => import("./pages/SuperAdminGdprRegister"));
 const SuperAdminDataBreaches = lazy(() => import("./pages/SuperAdminDataBreaches"));
@@ -27,6 +28,7 @@ const sectionConfig: Record<string, { title: string; subtitle: string }> = {
   alerts: { title: "Alertes & Risques", subtitle: "Centres à surveiller et interventions" },
   activity: { title: "Activité", subtitle: "Logs et événements récents" },
   settings: { title: "Configuration", subtitle: "Paramètres de la plateforme" },
+  compliance: { title: "Checklist de Conformité", subtitle: "Suivi CNIL/RGPD et Qualiopi pour audits" },
   gdpr: { title: "Conformité RGPD", subtitle: "Gestion des droits des personnes concernées" },
   "gdpr-register": { title: "Registre des Traitements", subtitle: "Article 30 RGPD - Audit CNIL / Qualiopi" },
   "data-breaches": { title: "Violations de Données", subtitle: "Gestion des incidents - Articles 33 & 34 RGPD" },
@@ -58,6 +60,12 @@ export function SuperAdminApp() {
         return <SuperAdminActivity />;
       case "settings":
         return <SuperAdminSettings />;
+      case "compliance":
+        return (
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <SuperAdminComplianceChecklist />
+          </Suspense>
+        );
       case "gdpr":
         return (
           <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
