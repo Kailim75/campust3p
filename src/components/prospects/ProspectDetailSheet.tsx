@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Phone,
   Mail,
@@ -24,12 +23,13 @@ import {
   AlertCircle,
   Building,
   GraduationCap,
-  MapPin,
   Send,
   Plus,
   FileText,
   RefreshCw,
   MessageSquare,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isToday, isPast } from "date-fns";
@@ -48,12 +48,13 @@ import {
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import { openWhatsApp } from "@/lib/phone-utils";
-import { useDeleteProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
+import { useDeleteProspect, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
 import { useProspectHistorique, type ProspectHistoriqueType } from "@/hooks/useProspectHistorique";
 import { ProspectHistoriqueDialog } from "./ProspectHistoriqueDialog";
 import { ProspectSendEmailDialog } from "./ProspectSendEmailDialog";
 import { ProspectConvertDialog } from "./ProspectConvertDialog";
 import { ProspectFormDialog } from "./ProspectFormDialog";
+import { ProspectRappelDialog } from "./ProspectRappelDialog";
 
 const STATUS_LABELS: Record<ProspectStatus, string> = {
   nouveau: "Nouveau",
@@ -100,9 +101,24 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [rappelDialogOpen, setRappelDialogOpen] = useState(false);
 
   const deleteProspect = useDeleteProspect();
+  const updateProspect = useUpdateProspect();
   const { data: historique = [], isLoading: historiqueLoading } = useProspectHistorique(prospect?.id || null);
+
+  const handleClearRappel = async () => {
+    if (!prospect) return;
+    try {
+      await updateProspect.mutateAsync({
+        id: prospect.id,
+        updates: { date_prochaine_relance: null },
+      });
+      toast.success("Rappel supprimé");
+    } catch {
+      toast.error("Erreur lors de la suppression du rappel");
+    }
+  };
 
   const handleDelete = async () => {
     if (!prospect) return;
@@ -253,17 +269,81 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
                       <span>Source: {prospect.source}</span>
                     </div>
                   )}
-                  {followUpDate && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        Prochaine relance: {format(followUpDate, "dd MMMM yyyy", { locale: fr })}
-                      </span>
-                    </div>
-                  )}
                   {prospect.notes && (
                     <div className="pt-2 border-t">
                       <p className="text-muted-foreground">{prospect.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Rappel Card */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Bell className="h-4 w-4" />
+                      Rappel
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRappelDialogOpen(true)}
+                    >
+                      {followUpDate ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4 mr-1" />}
+                      {followUpDate ? "" : "Ajouter"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {followUpDate ? (
+                    <div className={cn(
+                      "p-3 rounded-lg flex items-center justify-between",
+                      isFollowUpPast 
+                        ? "bg-destructive/10 text-destructive" 
+                        : isFollowUpToday 
+                          ? "bg-warning/10 text-warning"
+                          : "bg-muted"
+                    )}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <div>
+                          <p className="font-medium text-sm">
+                            {format(followUpDate, "EEEE dd MMMM yyyy", { locale: fr })}
+                          </p>
+                          <p className="text-xs opacity-80">
+                            {isFollowUpPast 
+                              ? `En retard de ${formatDistanceToNow(followUpDate, { locale: fr })}`
+                              : isFollowUpToday
+                                ? "Aujourd'hui"
+                                : `Dans ${formatDistanceToNow(followUpDate, { locale: fr })}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={handleClearRappel}
+                        title="Supprimer le rappel"
+                      >
+                        <BellOff className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Aucun rappel programmé</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => setRappelDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Programmer un rappel
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -404,6 +484,12 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
       <ProspectFormDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+        prospect={prospect}
+      />
+
+      <ProspectRappelDialog
+        open={rappelDialogOpen}
+        onOpenChange={setRappelDialogOpen}
         prospect={prospect}
       />
 
