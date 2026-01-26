@@ -54,6 +54,7 @@ import { useContactFactures } from "@/hooks/useFactures";
 import { GenerateDocumentDialog } from "./GenerateDocumentDialog";
 import { SendEnqueteDialog } from "./SendEnqueteDialog";
 import { CallLogDialog } from "./CallLogDialog";
+import { openWhatsApp } from "@/lib/phone-utils";
 
 // Status mapping with French labels
 const statusConfig: Record<string, { label: string; class: string; icon: React.ElementType }> = {
@@ -223,12 +224,7 @@ export function ContactQuickView({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        window.open(
-                          `https://wa.me/${contact.telephone?.replace(/\s/g, "")}`,
-                          "_blank"
-                        )
-                      }
+                      onClick={() => openWhatsApp(contact.telephone)}
                     >
                       <MessageCircle className="h-4 w-4 mr-1" />
                       WhatsApp

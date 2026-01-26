@@ -84,6 +84,7 @@ import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import { ContactPartnersTab } from "./detail/ContactPartnersTab";
 import { ContactPedagogyTab } from "./detail/ContactPedagogyTab";
 import { Building2, BookOpen } from "lucide-react";
+import { openWhatsApp } from "@/lib/phone-utils";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
@@ -305,12 +306,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      window.open(
-                        `https://wa.me/${contact.telephone?.replace(/\s/g, "")}`,
-                        "_blank"
-                      )
-                    }
+                    onClick={() => openWhatsApp(contact.telephone)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     WhatsApp
