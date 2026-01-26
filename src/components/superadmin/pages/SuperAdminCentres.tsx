@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCentresStats, useCreateCentre } from "@/hooks/useCentres";
+import { supabase } from "@/integrations/supabase/client";
 import { useCentreUsers, useAssignUserToCentre, useRemoveUserFromCentre } from "@/hooks/useCentreUsers";
 import { useUsers } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,12 +32,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Building2, Search, Plus, ExternalLink, Users, BookOpen, TrendingUp, Loader2, UserPlus, Trash2, Mail, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useCentreContext } from "@/contexts/CentreContext";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { CentreStats } from "@/hooks/useCentres";
 
 export function SuperAdminCentres() {
+  const navigate = useNavigate();
+  const { setCurrentCentre } = useCentreContext();
+  
   const { data: centres, isLoading } = useCentresStats();
   const { data: allUsers } = useUsers();
   const { mutate: createCentre, isPending: isCreating } = useCreateCentre();
@@ -122,6 +128,29 @@ export function SuperAdminCentres() {
   const handleRemoveUser = (userId: string) => {
     if (!selectedCentre) return;
     removeUser({ userId, centreId: selectedCentre.id });
+  };
+
+  const handleAccessCentre = async (centre: CentreStats) => {
+    // Récupérer les données complètes du centre
+    const { data: fullCentre, error } = await supabase
+      .from("centres")
+      .select("*")
+      .eq("id", centre.id)
+      .single();
+    
+    if (error || !fullCentre) {
+      toast.error("Erreur lors de l'accès au centre");
+      return;
+    }
+    
+    // Cast le plan_type correctement
+    const centreData = {
+      ...fullCentre,
+      plan_type: (fullCentre.plan_type || "essentiel") as "essentiel" | "pro" | "premium",
+    };
+    
+    setCurrentCentre(centreData);
+    navigate("/");
   };
 
   // Filtrer les utilisateurs non encore assignés à ce centre
@@ -215,7 +244,12 @@ export function SuperAdminCentres() {
                     <UserPlus className="h-4 w-4" />
                     Gérer les accès
                   </Button>
-                  <Button variant="ghost" size="sm" className="gap-2 text-superadmin-primary hover:text-superadmin-primary/80">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-2 text-superadmin-primary hover:text-superadmin-primary/80"
+                    onClick={() => handleAccessCentre(centre)}
+                  >
                     <ExternalLink className="h-4 w-4" />
                     Accéder
                   </Button>
