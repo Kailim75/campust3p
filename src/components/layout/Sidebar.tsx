@@ -18,6 +18,7 @@ import {
   HelpCircle,
   BookOpen,
   Shield,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,6 +71,7 @@ const menuGroups = [
     items: [
       { id: "documents", label: "Documents", icon: FileText },
       { id: "facturation", label: "Facturation", icon: CreditCard },
+      { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "communications", label: "Communications", icon: Mail },
     ],
   },

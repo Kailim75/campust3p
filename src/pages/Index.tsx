@@ -21,6 +21,7 @@ import { CommunicationsPage } from "@/components/communications/CommunicationsPa
 import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
 import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
+import { PartnersPage } from "@/components/partners/PartnersPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +140,8 @@ const Index = () => {
         return <QualiteUnifiedPage />;
       case "elearning":
         return <LmsAdminPage />;
+      case "partenaires":
+        return <PartnersPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }
