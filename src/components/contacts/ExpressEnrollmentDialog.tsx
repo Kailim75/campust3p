@@ -34,11 +34,66 @@ interface ExpressEnrollmentDialogProps {
   onSuccess?: (contactId: string) => void;
 }
 
-const FORMATION_TYPES = [
-  { value: "TAXI", label: "Formation Taxi", color: "bg-yellow-500" },
-  { value: "VTC", label: "Formation VTC", color: "bg-blue-500" },
-  { value: "VMDTR", label: "Formation VMDTR", color: "bg-purple-500" },
+// Catégories principales
+const CATEGORIES = [
+  { value: "TAXI", label: "Taxi", color: "bg-amber-500", icon: "🚕" },
+  { value: "VTC", label: "VTC", color: "bg-blue-500", icon: "🚗" },
+  { value: "VMDTR", label: "VMDTR", color: "bg-purple-500", icon: "🛵" },
 ];
+
+// Types de formation par catégorie
+const FORMATION_TYPES_BY_CATEGORY: Record<string, { value: string; label: string }[]> = {
+  TAXI: [
+    { value: "initiale", label: "Formation Initiale" },
+    { value: "continue", label: "Formation Continue" },
+    { value: "passerelle", label: "Passerelle / Mobilité" },
+  ],
+  VTC: [
+    { value: "initiale", label: "Formation Initiale" },
+    { value: "continue", label: "Formation Continue" },
+    { value: "passerelle", label: "Passerelle / Mobilité" },
+  ],
+  VMDTR: [
+    { value: "initiale", label: "Formation Initiale" },
+    { value: "passerelle", label: "Mobilité" },
+  ],
+};
+
+// Formations spécifiques selon catégorie + type
+const FORMATIONS_MAP: Record<string, Record<string, { value: string; label: string; description?: string }[]>> = {
+  TAXI: {
+    initiale: [
+      { value: "TAXI", label: "Formation Taxi Initiale", description: "Préparation à l'examen T3P Taxi" },
+    ],
+    continue: [
+      { value: "Formation continue Taxi", label: "Formation Continue Taxi", description: "Recyclage obligatoire tous les 5 ans" },
+    ],
+    passerelle: [
+      { value: "Passerelle VTC vers Taxi", label: "Passerelle VTC → Taxi", description: "Pour les titulaires de carte VTC" },
+      { value: "Mobilité Taxi", label: "Mobilité Taxi", description: "Changement de zone d'exploitation" },
+    ],
+  },
+  VTC: {
+    initiale: [
+      { value: "VTC", label: "Formation VTC Initiale", description: "Préparation à l'examen T3P VTC" },
+    ],
+    continue: [
+      { value: "Formation continue VTC", label: "Formation Continue VTC", description: "Recyclage obligatoire tous les 5 ans" },
+    ],
+    passerelle: [
+      { value: "Passerelle Taxi vers VTC", label: "Passerelle Taxi → VTC", description: "Pour les titulaires de carte Taxi" },
+      { value: "Mobilité VTC", label: "Mobilité VTC", description: "Changement de zone d'exploitation" },
+    ],
+  },
+  VMDTR: {
+    initiale: [
+      { value: "VMDTR", label: "Formation VMDTR Initiale", description: "Véhicules Motorisés à 2/3 Roues" },
+    ],
+    passerelle: [
+      { value: "Mobilité VMDTR", label: "Mobilité VMDTR", description: "Changement de zone d'exploitation" },
+    ],
+  },
+};
 
 const FINANCEMENT_TYPES = [
   { value: "personnel", label: "Personnel" },
@@ -59,6 +114,8 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
     email: "",
     telephone: "",
     // Step 2: Formation
+    categorie: "",
+    typeFormation: "",
     formation: "",
     sessionId: "",
     // Step 3: Billing
@@ -69,6 +126,18 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
   const { data: sessions = [] } = useSessions();
   const createContact = useCreateContact();
   const queryClient = useQueryClient();
+
+  // Get available formation types based on selected category
+  const availableFormationTypes = useMemo(() => {
+    if (!formData.categorie) return [];
+    return FORMATION_TYPES_BY_CATEGORY[formData.categorie] || [];
+  }, [formData.categorie]);
+
+  // Get available formations based on category + type
+  const availableFormations = useMemo(() => {
+    if (!formData.categorie || !formData.typeFormation) return [];
+    return FORMATIONS_MAP[formData.categorie]?.[formData.typeFormation] || [];
+  }, [formData.categorie, formData.typeFormation]);
 
   // Filter sessions by selected formation
   const availableSessions = useMemo(() => {
@@ -86,17 +155,27 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
   }, [sessions, formData.sessionId]);
 
   const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Reset session when formation changes
-    if (field === "formation") {
-      setFormData(prev => ({ ...prev, sessionId: "" }));
-    }
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Reset dependent fields when parent changes
+      if (field === "categorie") {
+        newData.typeFormation = "";
+        newData.formation = "";
+        newData.sessionId = "";
+      } else if (field === "typeFormation") {
+        newData.formation = "";
+        newData.sessionId = "";
+      } else if (field === "formation") {
+        newData.sessionId = "";
+      }
+      return newData;
+    });
   };
 
   const canProceed = () => {
     switch (step) {
       case 1: return formData.prenom.trim() && formData.nom.trim() && (formData.email.trim() || formData.telephone.trim());
-      case 2: return formData.formation && formData.sessionId;
+      case 2: return formData.categorie && formData.typeFormation && formData.formation && formData.sessionId;
       case 3: return formData.financement;
       default: return false;
     }
@@ -147,6 +226,8 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
         nom: "",
         email: "",
         telephone: "",
+        categorie: "",
+        typeFormation: "",
         formation: "",
         sessionId: "",
         financement: "personnel",
@@ -269,29 +350,85 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                   Formation et session
                 </div>
 
+                {/* Catégorie principale */}
                 <div className="space-y-2">
-                  <Label>Type de formation *</Label>
+                  <Label>Catégorie *</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    {FORMATION_TYPES.map((type) => (
+                    {CATEGORIES.map((cat) => (
                       <Card
-                        key={type.value}
+                        key={cat.value}
                         className={cn(
                           "cursor-pointer transition-all hover:shadow-md",
-                          formData.formation === type.value 
+                          formData.categorie === cat.value 
                             ? "ring-2 ring-primary bg-primary/5" 
                             : "hover:bg-muted/50"
                         )}
-                        onClick={() => updateField("formation", type.value)}
+                        onClick={() => updateField("categorie", cat.value)}
                       >
                         <CardContent className="p-3 text-center">
-                          <div className={cn("w-3 h-3 rounded-full mx-auto mb-2", type.color)} />
-                          <p className="text-sm font-medium">{type.label}</p>
+                          <span className="text-xl mb-1 block">{cat.icon}</span>
+                          <div className={cn("w-2 h-2 rounded-full mx-auto mb-1", cat.color)} />
+                          <p className="text-sm font-medium">{cat.label}</p>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 </div>
 
+                {/* Type de formation */}
+                {formData.categorie && (
+                  <div className="space-y-2">
+                    <Label>Type de formation *</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {availableFormationTypes.map((type) => (
+                        <Card
+                          key={type.value}
+                          className={cn(
+                            "cursor-pointer transition-all hover:shadow-md",
+                            formData.typeFormation === type.value 
+                              ? "ring-2 ring-primary bg-primary/5" 
+                              : "hover:bg-muted/50"
+                          )}
+                          onClick={() => updateField("typeFormation", type.value)}
+                        >
+                          <CardContent className="p-2 text-center">
+                            <p className="text-xs font-medium">{type.label}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Formations disponibles */}
+                {formData.typeFormation && (
+                  <div className="space-y-2">
+                    <Label>Formation *</Label>
+                    <div className="space-y-2">
+                      {availableFormations.map((formation) => (
+                        <Card
+                          key={formation.value}
+                          className={cn(
+                            "cursor-pointer transition-all hover:shadow-md",
+                            formData.formation === formation.value 
+                              ? "ring-2 ring-primary bg-primary/5" 
+                              : "hover:bg-muted/50"
+                          )}
+                          onClick={() => updateField("formation", formation.value)}
+                        >
+                          <CardContent className="p-3">
+                            <p className="text-sm font-medium">{formation.label}</p>
+                            {formation.description && (
+                              <p className="text-xs text-muted-foreground mt-1">{formation.description}</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sessions disponibles */}
                 {formData.formation && (
                   <div className="space-y-2">
                     <Label>Session disponible *</Label>
@@ -302,7 +439,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                         <p className="text-xs">pour cette formation</p>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      <div className="space-y-2 max-h-[150px] overflow-y-auto">
                         {availableSessions.map((session) => (
                           <Card
                             key={session.id}
@@ -381,10 +518,17 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                     </div>
                     
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Formation</span>
+                      <span className="text-muted-foreground">Catégorie</span>
                       <Badge variant="outline">
-                        {FORMATION_TYPES.find(t => t.value === formData.formation)?.label}
+                        {CATEGORIES.find(c => c.value === formData.categorie)?.label}
                       </Badge>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Formation</span>
+                      <span className="text-right text-sm font-medium">
+                        {availableFormations.find(f => f.value === formData.formation)?.label || formData.formation}
+                      </span>
                     </div>
                     
                     {selectedSession && (
