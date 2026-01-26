@@ -44,7 +44,7 @@ const PIPELINE_COLUMNS = [
   { id: "t3p_obtenu", label: "T3P Obtenu", statut: "T3P obtenu", color: "bg-purple-500" },
   { id: "formation_pratique", label: "Formation Pratique", statut: "En formation pratique", color: "bg-cyan-500" },
   { id: "examen_pratique", label: "Examen Pratique Programmé", statut: "Examen pratique programmé", color: "bg-teal-500" },
-  { id: "carte_pro", label: "Carte Pro Obtenue", statut: "Bravo", color: "bg-green-500" },
+  { id: "carte_pro", label: "Diplômé / Carte Pro", statut: "Bravo", color: "bg-green-500" },
   { id: "abandonne", label: "Abandonné", statut: "Abandonné", color: "bg-red-500" },
 ];
 
