@@ -14,6 +14,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
 import { CentreSwitcher } from "./CentreSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   title: string;
@@ -74,6 +75,9 @@ export function Header({
 
           {/* Global Search */}
           <GlobalSearch />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Notifications */}
           <NotificationBell />

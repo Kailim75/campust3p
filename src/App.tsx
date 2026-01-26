@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Enquete from "./pages/Enquete";
@@ -31,61 +32,63 @@ function SectionRedirect({ section }: { section: string }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppErrorBoundary>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/enquete/:token" element={<Enquete />} />
-            <Route path="/apprenant" element={<LearnerPortal />} />
-            <Route path="/certificat" element={<VerifyCertificate />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/mentions-legales" element={<MentionsLegales />} />
-            <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppErrorBoundary>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/enquete/:token" element={<Enquete />} />
+              <Route path="/apprenant" element={<LearnerPortal />} />
+              <Route path="/certificat" element={<VerifyCertificate />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/mentions-legales" element={<MentionsLegales />} />
+              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
 
-            {/* Legacy deep-links */}
-            <Route
-              path="/contacts"
-              element={
-                <ProtectedRoute>
-                  <SectionRedirect section="contacts" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sessions"
-              element={
-                <ProtectedRoute>
-                  <SectionRedirect section="sessions" />
-                </ProtectedRoute>
-              }
-            />
+              {/* Legacy deep-links */}
+              <Route
+                path="/contacts"
+                element={
+                  <ProtectedRoute>
+                    <SectionRedirect section="contacts" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sessions"
+                element={
+                  <ProtectedRoute>
+                    <SectionRedirect section="sessions" />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Main App with Mode Routing */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <CentreProvider>
-                    <AdminModeProvider>
-                      <MainApp />
-                    </AdminModeProvider>
-                  </CentreProvider>
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <InstallPWA />
-          <AIAssistantFloatingButton />
-        </BrowserRouter>
-      </AppErrorBoundary>
-    </TooltipProvider>
+              {/* Main App with Mode Routing */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <CentreProvider>
+                      <AdminModeProvider>
+                        <MainApp />
+                      </AdminModeProvider>
+                    </CentreProvider>
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <InstallPWA />
+            <AIAssistantFloatingButton />
+          </BrowserRouter>
+        </AppErrorBoundary>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
