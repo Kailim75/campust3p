@@ -4312,12 +4312,63 @@ export type Database = {
           },
         ]
       }
+      prospect_historique: {
+        Row: {
+          contenu: string | null
+          created_at: string
+          created_by: string | null
+          date_echange: string
+          date_rappel: string | null
+          duree_minutes: number | null
+          id: string
+          prospect_id: string
+          resultat: string | null
+          titre: string
+          type: string
+        }
+        Insert: {
+          contenu?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echange?: string
+          date_rappel?: string | null
+          duree_minutes?: number | null
+          id?: string
+          prospect_id: string
+          resultat?: string | null
+          titre: string
+          type: string
+        }
+        Update: {
+          contenu?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echange?: string
+          date_rappel?: string | null
+          duree_minutes?: number | null
+          id?: string
+          prospect_id?: string
+          resultat?: string | null
+          titre?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_historique_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           centre_id: string | null
           converted_contact_id: string | null
           created_at: string
           created_by: string | null
+          date_prochaine_relance: string | null
           email: string | null
           formation_souhaitee: string | null
           id: string
@@ -4325,6 +4376,7 @@ export type Database = {
           nom: string
           notes: string | null
           prenom: string
+          priorite: string | null
           source: string | null
           statut: Database["public"]["Enums"]["prospect_status"]
           telephone: string | null
@@ -4335,6 +4387,7 @@ export type Database = {
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_prochaine_relance?: string | null
           email?: string | null
           formation_souhaitee?: string | null
           id?: string
@@ -4342,6 +4395,7 @@ export type Database = {
           nom: string
           notes?: string | null
           prenom: string
+          priorite?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_status"]
           telephone?: string | null
@@ -4352,6 +4406,7 @@ export type Database = {
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_prochaine_relance?: string | null
           email?: string | null
           formation_souhaitee?: string | null
           id?: string
@@ -4359,6 +4414,7 @@ export type Database = {
           nom?: string
           notes?: string | null
           prenom?: string
+          priorite?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_status"]
           telephone?: string | null

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateProspect, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
+import { useCreateProspect, useUpdateProspect, type Prospect, type ProspectStatus, type ProspectPriorite } from "@/hooks/useProspects";
 
 const prospectSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
@@ -30,6 +30,8 @@ const prospectSchema = z.object({
   formation_souhaitee: z.string().optional(),
   source: z.string().optional(),
   statut: z.enum(["nouveau", "contacte", "relance", "converti", "perdu"]),
+  priorite: z.enum(["basse", "normale", "haute", "urgente"]),
+  date_prochaine_relance: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -47,6 +49,13 @@ const STATUS_OPTIONS: { value: ProspectStatus; label: string }[] = [
   { value: "relance", label: "À relancer" },
   { value: "converti", label: "Converti" },
   { value: "perdu", label: "Perdu" },
+];
+
+const PRIORITE_OPTIONS: { value: ProspectPriorite; label: string; color: string }[] = [
+  { value: "basse", label: "Basse", color: "text-gray-600" },
+  { value: "normale", label: "Normale", color: "text-blue-600" },
+  { value: "haute", label: "Haute", color: "text-orange-600" },
+  { value: "urgente", label: "Urgente", color: "text-destructive" },
 ];
 
 const FORMATION_OPTIONS = [
@@ -85,6 +94,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
       formation_souhaitee: "",
       source: "",
       statut: "nouveau",
+      priorite: "normale",
+      date_prochaine_relance: "",
       notes: "",
     },
   });
@@ -99,6 +110,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         formation_souhaitee: prospect.formation_souhaitee || "",
         source: prospect.source || "",
         statut: prospect.statut,
+        priorite: prospect.priorite || "normale",
+        date_prochaine_relance: prospect.date_prochaine_relance || "",
         notes: prospect.notes || "",
       });
     } else {
@@ -110,6 +123,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         formation_souhaitee: "",
         source: "",
         statut: "nouveau",
+        priorite: "normale",
+        date_prochaine_relance: "",
         notes: "",
       });
     }
@@ -124,10 +139,12 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
             nom: values.nom,
             prenom: values.prenom,
             statut: values.statut,
+            priorite: values.priorite,
             email: values.email || null,
             telephone: values.telephone || null,
             formation_souhaitee: values.formation_souhaitee || null,
             source: values.source || null,
+            date_prochaine_relance: values.date_prochaine_relance || null,
             notes: values.notes || null,
           },
         });
@@ -136,10 +153,12 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
           nom: values.nom,
           prenom: values.prenom,
           statut: values.statut,
+          priorite: values.priorite,
           email: values.email || null,
           telephone: values.telephone || null,
           formation_souhaitee: values.formation_souhaitee || null,
           source: values.source || null,
+          date_prochaine_relance: values.date_prochaine_relance || null,
           notes: values.notes || null,
         });
       }
@@ -272,26 +291,67 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="statut"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Statut</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="priorite"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priorité</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PRIORITE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <span className={option.color}>{option.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="statut"
+              name="date_prochaine_relance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Statut</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Date prochaine relance</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
