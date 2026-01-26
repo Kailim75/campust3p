@@ -3,6 +3,7 @@ import { StatCard } from "./StatCard";
 import { AlertCard } from "./AlertCard";
 import { SessionsOverview } from "./SessionsOverview";
 import { RecentContacts } from "./RecentContacts";
+import { RecentCallsCard } from "./RecentCallsCard";
 import { MonthlyCAChart } from "./MonthlyCAChart";
 import { FormationPieChart } from "./FormationPieChart";
 import { FinancialSummaryCard } from "./FinancialSummaryCard";
@@ -157,8 +158,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <InscriptionTrendChart onClick={() => handleNavigate("sessions")} />
             </div>
 
-            {/* Recent Contacts */}
-            <RecentContacts onClick={() => handleNavigate("contacts")} />
+            {/* Recent Contacts & Calls */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RecentContacts onClick={() => handleNavigate("contacts")} />
+              <RecentCallsCard onClick={() => handleNavigate("contacts")} />
+            </div>
           </TabsContent>
 
           {/* Objectifs Tab */}

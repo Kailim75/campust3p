@@ -2,15 +2,17 @@ import { useSearchParams } from 'react-router-dom';
 import { useQualiopiIndicateurs } from '@/hooks/useQualiopiIndicateurs';
 import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useQualiopiAudits } from '@/hooks/useQualiopiAudits';
+import { useQualiopiPreuves } from '@/hooks/useQualiopiPreuves';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, ChevronRight, FileDown } from 'lucide-react';
+import { CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, ChevronRight, FileDown, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { generateQualiopiSynthesisPDF } from '@/lib/qualiopi-pdf-generator';
+import { generateQualiopiAuditPDF } from '@/lib/qualiopi-audit-pdf-generator';
 import { toast } from 'sonner';
 import QualiopiTrendChart from './QualiopiTrendChart';
 
@@ -29,6 +31,7 @@ export default function QualiopiDashboard() {
   const { indicateurs, isLoading: loadingIndicateurs } = useQualiopiIndicateurs();
   const { actions } = useQualiopiActions();
   const { audits } = useQualiopiAudits();
+  const { preuves } = useQualiopiPreuves();
   const { centreFormation } = useCentreFormation();
 
   const openCritere = (critere: number) => {
@@ -53,6 +56,86 @@ export default function QualiopiDashboard() {
     } catch (error) {
       console.error('Erreur génération PDF:', error);
       toast.error('Erreur lors de la génération du PDF');
+    }
+  };
+
+  const handleExportAuditPDF = () => {
+    if (!indicateurs || indicateurs.length === 0 || !centreFormation) {
+      toast.error('Données insuffisantes pour générer le rapport');
+      return;
+    }
+    try {
+      // Calculate scores
+      const criteriaScores = [1, 2, 3, 4, 5, 6, 7].map(critere => {
+        const indicateursCritere = indicateurs.filter(i => i.critere === critere);
+        const conformes = indicateursCritere.filter(i => i.statut === 'conforme').length;
+        const score = indicateursCritere.length > 0 
+          ? Math.round((conformes / indicateursCritere.length) * 100)
+          : 0;
+        return { critere, score, label: CRITERES_LABELS[critere] };
+      });
+
+      const globalScore = indicateurs.length > 0
+        ? Math.round((indicateurs.filter(i => i.statut === 'conforme').length / indicateurs.length) * 100)
+        : 0;
+
+      const blob = generateQualiopiAuditPDF({
+        centre: {
+          nom_commercial: centreFormation.nom_commercial,
+          nom_legal: centreFormation.nom_legal,
+          siret: centreFormation.siret,
+          nda: centreFormation.nda,
+          adresse_complete: centreFormation.adresse_complete,
+          qualiopi_numero: centreFormation.qualiopi_numero,
+          qualiopi_date_obtention: centreFormation.qualiopi_date_obtention,
+          qualiopi_date_expiration: centreFormation.qualiopi_date_expiration,
+        },
+        indicateurs: indicateurs.map(i => ({
+          id: i.id,
+          numero: i.numero,
+          critere: i.critere,
+          titre: i.titre,
+          description: i.description,
+        })),
+        preuves: (preuves || []).map(p => ({
+          id: p.id,
+          indicateur_id: p.indicateur_id,
+          titre: p.titre,
+          description: p.description,
+          type_preuve: p.type_preuve,
+          fichier_url: p.fichier_url,
+          date_ajout: p.date_creation || p.created_at,
+          valide: p.valide,
+          commentaire: null,
+        })),
+        actions: (actions || []).map(a => ({
+          id: a.id,
+          indicateur_id: a.indicateur_id,
+          titre: a.titre,
+          description: a.description,
+          statut: a.statut,
+          priorite: a.priorite,
+          date_echeance: a.date_echeance,
+          responsable: a.responsable,
+        })),
+        globalScore,
+        criteriaScores,
+      });
+
+      // Download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Rapport_Audit_Qualiopi_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Rapport d\'audit généré avec succès');
+    } catch (error) {
+      console.error('Erreur génération rapport audit:', error);
+      toast.error('Erreur lors de la génération du rapport');
     }
   };
 
@@ -81,11 +164,15 @@ export default function QualiopiDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Export button */}
-      <div className="flex justify-end">
+      {/* Export buttons */}
+      <div className="flex justify-end gap-2">
         <Button onClick={handleExportPDF} variant="outline" className="gap-2">
           <FileDown className="h-4 w-4" />
-          Exporter PDF
+          Synthèse PDF
+        </Button>
+        <Button onClick={handleExportAuditPDF} variant="default" className="gap-2">
+          <FileText className="h-4 w-4" />
+          Rapport d'audit complet
         </Button>
       </div>
 
