@@ -15,12 +15,14 @@ import {
   Building2,
   FileText,
   Settings2,
+  Bell,
 } from "lucide-react";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
 import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
+import { NotificationSettings } from "./NotificationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -388,7 +390,7 @@ export function SettingsPage() {
 
       <main className="p-6 animate-fade-in">
         <Tabs defaultValue="centre" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="centre" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Centre</span>
@@ -400,6 +402,10 @@ export function SettingsPage() {
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
             <TabsTrigger value="utilisateurs" className="gap-2">
               <Settings2 className="h-4 w-4" />

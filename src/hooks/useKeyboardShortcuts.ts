@@ -58,8 +58,14 @@ export const globalShortcuts = [
   { keys: ["Ctrl", "S"], description: "Nouvelle session" },
   { keys: ["Ctrl", "P"], description: "Nouveau paiement" },
   { keys: ["Ctrl", "K"], description: "Recherche globale" },
+  { keys: ["Ctrl", "E"], description: "Export Excel" },
+  { keys: ["Ctrl", "D"], description: "Tableau de bord" },
+  { keys: ["Ctrl", "F"], description: "Filtres avancés" },
   { keys: ["?"], description: "Aide raccourcis" },
   { keys: ["Esc"], description: "Fermer le modal" },
+  { keys: ["G", "C"], description: "Aller aux contacts" },
+  { keys: ["G", "S"], description: "Aller aux sessions" },
+  { keys: ["G", "F"], description: "Aller à la facturation" },
 ];
 
 /**
@@ -71,6 +77,12 @@ export function useGlobalShortcuts(actions: {
   onNewPayment?: () => void;
   onSearch?: () => void;
   onHelp?: () => void;
+  onExport?: () => void;
+  onDashboard?: () => void;
+  onFilters?: () => void;
+  onGoContacts?: () => void;
+  onGoSessions?: () => void;
+  onGoFacturation?: () => void;
 }) {
   useKeyboardShortcut("n", actions.onNewContact || (() => {}), { 
     ctrl: true, 
@@ -90,6 +102,21 @@ export function useGlobalShortcuts(actions: {
   useKeyboardShortcut("k", actions.onSearch || (() => {}), { 
     ctrl: true, 
     description: "Recherche globale" 
+  });
+  
+  useKeyboardShortcut("e", actions.onExport || (() => {}), { 
+    ctrl: true, 
+    description: "Export Excel" 
+  });
+  
+  useKeyboardShortcut("d", actions.onDashboard || (() => {}), { 
+    ctrl: true, 
+    description: "Tableau de bord" 
+  });
+  
+  useKeyboardShortcut("f", actions.onFilters || (() => {}), { 
+    ctrl: true, 
+    description: "Filtres avancés" 
   });
   
   useKeyboardShortcut("?", actions.onHelp || (() => {}), { 
