@@ -21,10 +21,12 @@ import { ObjectifProgressCard } from "./ObjectifProgressCard";
 import { PriorityActionCard } from "./PriorityActionCard";
 import { TodayTasksCard } from "./TodayTasksCard";
 import { SmartSuggestionsCard } from "./SmartSuggestionsCard";
-import { Users, GraduationCap, TrendingUp, Euro } from "lucide-react";
+import { Users, GraduationCap, TrendingUp, Euro, Download } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
+import { useDashboardExport } from "@/hooks/useDashboardExport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -34,6 +36,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const { data: contactStats, isLoading: contactsLoading } = useDynamicContactStats();
   const { data: financeStats, isLoading: financeLoading } = useDynamicFinanceStats();
   const { selectedPeriod } = useDashboardPeriod();
+  const { exportDashboardToExcel } = useDashboardExport();
   
   const periodLabel = periodOptions.find(p => p.key === selectedPeriod)?.label.toLowerCase() || 'ce mois';
   
@@ -101,9 +104,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Period Selector */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-semibold text-foreground">Indicateurs clés</h2>
-          <PeriodSelector />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportDashboardToExcel}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+            <PeriodSelector />
+          </div>
         </div>
         
         {/* Stats Grid - Clickable KPIs */}
