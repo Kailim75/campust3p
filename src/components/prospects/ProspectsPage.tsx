@@ -28,11 +28,13 @@ import {
   Kanban,
   BarChart3,
   X,
+  Eye,
 } from "lucide-react";
 import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectsDashboard } from "./ProspectsDashboard";
 import { ProspectsKanban } from "./ProspectsKanban";
+import { ProspectDetailSheet } from "./ProspectDetailSheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -79,7 +81,14 @@ export function ProspectsPage() {
   const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
   const isMobile = useIsMobile();
+
+  const handleViewDetail = (prospect: Prospect) => {
+    setViewingProspect(prospect);
+    setDetailSheetOpen(true);
+  };
 
   const filteredProspects = prospects.filter((prospect) => {
     const matchesSearch =
@@ -323,6 +332,14 @@ export function ProspectsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewDetail(prospect)}
+                    title="Voir la fiche"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   {prospect.statut !== "converti" && (
                     <Button
                       size="sm"
@@ -339,6 +356,10 @@ export function ProspectsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewDetail(prospect)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir la fiche
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(prospect)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Modifier
@@ -430,6 +451,14 @@ export function ProspectsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDetail(prospect)}
+                        title="Voir la fiche"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       {prospect.statut !== "converti" && (
                         <Button
                           size="sm"
@@ -447,6 +476,10 @@ export function ProspectsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetail(prospect)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir la fiche
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(prospect)}>
                             <Pencil className="h-4 w-4 mr-2" />
                             Modifier
@@ -553,6 +586,13 @@ export function ProspectsPage() {
           </Button>
         </div>
       )}
+
+      {/* Prospect Detail Sheet */}
+      <ProspectDetailSheet
+        prospect={viewingProspect}
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+      />
     </div>
   );
 }
