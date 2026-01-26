@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCentresStats, useCreateCentre } from "@/hooks/useCentres";
+import { useCentreUsers, useAssignUserToCentre, useRemoveUserFromCentre } from "@/hooks/useCentreUsers";
+import { useUsers } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -14,16 +16,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Building2, Search, Plus, ExternalLink, Users, BookOpen, TrendingUp, Loader2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Building2, Search, Plus, ExternalLink, Users, BookOpen, TrendingUp, Loader2, UserPlus, Trash2, Mail, Shield } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { CentreStats } from "@/hooks/useCentres";
 
 export function SuperAdminCentres() {
   const { data: centres, isLoading } = useCentresStats();
+  const { data: allUsers } = useUsers();
   const { mutate: createCentre, isPending: isCreating } = useCreateCentre();
+  const { mutate: assignUser, isPending: isAssigning } = useAssignUserToCentre();
+  const { mutate: removeUser, isPending: isRemoving } = useRemoveUserFromCentre();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedCentre, setSelectedCentre] = useState<CentreStats | null>(null);
+  const [showUsersSheet, setShowUsersSheet] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  
   const [formData, setFormData] = useState({
     nom: "",
     email: "",
@@ -31,6 +56,8 @@ export function SuperAdminCentres() {
     adresse_complete: "",
     siret: "",
   });
+
+  const { data: centreUsers = [], isLoading: usersLoading } = useCentreUsers(selectedCentre?.id ?? null);
 
   const filteredCentres = centres?.filter(centre => 
     centre.nom.toLowerCase().includes(searchQuery.toLowerCase())
@@ -71,6 +98,44 @@ export function SuperAdminCentres() {
         toast.success("Centre créé avec succès");
       },
     });
+  };
+
+  const handleManageUsers = (centre: CentreStats) => {
+    setSelectedCentre(centre);
+    setShowUsersSheet(true);
+  };
+
+  const handleAssignUser = () => {
+    if (!selectedUserId || !selectedCentre) return;
+    
+    assignUser({
+      userId: selectedUserId,
+      centreId: selectedCentre.id,
+      isPrimary: centreUsers.length === 0, // Premier utilisateur = principal
+    }, {
+      onSuccess: () => {
+        setSelectedUserId("");
+      },
+    });
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    if (!selectedCentre) return;
+    removeUser({ userId, centreId: selectedCentre.id });
+  };
+
+  // Filtrer les utilisateurs non encore assignés à ce centre
+  const availableUsers = allUsers?.filter(
+    user => !centreUsers.some(cu => cu.user_id === user.id)
+  ) || [];
+
+  // Obtenir l'email d'un utilisateur par son ID
+  const getUserEmail = (userId: string) => {
+    return allUsers?.find(u => u.id === userId)?.email || "Email inconnu";
+  };
+
+  const getUserRole = (userId: string) => {
+    return allUsers?.find(u => u.id === userId)?.role || "user";
   };
 
   if (isLoading) {
@@ -140,10 +205,21 @@ export function SuperAdminCentres() {
                   <TrendingUp className="h-4 w-4" />
                   <span className="text-superadmin-foreground font-medium">{centre.ca_total.toLocaleString()}€</span> CA
                 </div>
-                <Button variant="ghost" size="sm" className="ml-auto gap-2 text-superadmin-primary hover:text-superadmin-primary/80">
-                  <ExternalLink className="h-4 w-4" />
-                  Accéder
-                </Button>
+                <div className="flex gap-2 ml-auto">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => handleManageUsers(centre)}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Gérer les accès
+                  </Button>
+                  <Button variant="ghost" size="sm" className="gap-2 text-superadmin-primary hover:text-superadmin-primary/80">
+                    <ExternalLink className="h-4 w-4" />
+                    Accéder
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -233,6 +309,123 @@ export function SuperAdminCentres() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manage Users Sheet */}
+      <Sheet open={showUsersSheet} onOpenChange={setShowUsersSheet}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Gérer les accès - {selectedCentre?.nom}
+            </SheetTitle>
+            <SheetDescription>
+              Ajoutez ou retirez des utilisateurs pour ce centre de formation.
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="mt-6 space-y-6">
+            {/* Add user section */}
+            <div className="space-y-3">
+              <Label>Ajouter un utilisateur</Label>
+              <div className="flex gap-2">
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Sélectionner un utilisateur..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUsers.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Aucun utilisateur disponible
+                      </div>
+                    ) : (
+                      availableUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{user.email}</span>
+                            {user.role && (
+                              <Badge variant="secondary" className="text-xs">
+                                {user.role}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={handleAssignUser} 
+                  disabled={!selectedUserId || isAssigning}
+                  size="icon"
+                >
+                  {isAssigning ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <UserPlus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Les utilisateurs doivent d'abord être créés dans l'onglet "Utilisateurs" avant de pouvoir être associés.
+              </p>
+            </div>
+
+            {/* Current users list */}
+            <div className="space-y-3">
+              <Label>Utilisateurs actuels ({centreUsers.length})</Label>
+              
+              {usersLoading ? (
+                <div className="space-y-2">
+                  {[1, 2].map(i => <Skeleton key={i} className="h-14" />)}
+                </div>
+              ) : centreUsers.length === 0 ? (
+                <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Aucun utilisateur associé à ce centre</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {centreUsers.map((cu) => (
+                    <div 
+                      key={cu.id} 
+                      className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Mail className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{getUserEmail(cu.user_id)}</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <Shield className="h-3 w-3 mr-1" />
+                              {getUserRole(cu.user_id)}
+                            </Badge>
+                            {cu.is_primary && (
+                              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                Principal
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRemoveUser(cu.user_id)}
+                        disabled={isRemoving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
