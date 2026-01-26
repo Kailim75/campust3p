@@ -42,19 +42,48 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-const menuItems = [
-  { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { id: "contacts", label: "Contacts", icon: Users },
-  { id: "formations", label: "Formations", icon: GraduationCap },
-  { id: "sessions", label: "Sessions", icon: Calendar },
-  { id: "elearning", label: "E-Learning", icon: BookOpen },
-  { id: "formateurs", label: "Formateurs", icon: User },
-  { id: "documents", label: "Documents", icon: FileText },
-  { id: "facturation", label: "Facturation", icon: CreditCard },
-  { id: "communications", label: "Communications", icon: Mail },
-  { id: "qualite", label: "Qualité", icon: Award },
-  { id: "alertes", label: "Alertes", icon: Bell },
+// Grouped menu structure for better UX
+const menuGroups = [
+  {
+    label: "Accueil",
+    items: [
+      { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Stagiaires",
+    items: [
+      { id: "contacts", label: "Contacts", icon: Users },
+      { id: "sessions", label: "Sessions", icon: Calendar },
+    ],
+  },
+  {
+    label: "Formations",
+    items: [
+      { id: "formations", label: "Catalogue", icon: GraduationCap },
+      { id: "elearning", label: "E-Learning", icon: BookOpen },
+      { id: "formateurs", label: "Formateurs", icon: User },
+    ],
+  },
+  {
+    label: "Gestion",
+    items: [
+      { id: "documents", label: "Documents", icon: FileText },
+      { id: "facturation", label: "Facturation", icon: CreditCard },
+      { id: "communications", label: "Communications", icon: Mail },
+    ],
+  },
+  {
+    label: "Qualité",
+    items: [
+      { id: "qualite", label: "Qualiopi", icon: Award },
+      { id: "alertes", label: "Alertes", icon: Bell },
+    ],
+  },
 ];
+
+// Flat list for backward compatibility
+const menuItems = menuGroups.flatMap(g => g.items);
 
 function SidebarContent({ 
   activeSection, 
@@ -109,40 +138,51 @@ function SidebarContent({
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          const showBadge = item.id === "alertes" && highPriorityAlerts > 0;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                onSectionChange(item.id);
-                onItemClick?.();
-              }}
-              className={cn(
-                "sidebar-item w-full relative",
-                isActive && "active"
-              )}
-            >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && (
-                <span className="animate-fade-in truncate">{item.label}</span>
-              )}
-              {showBadge && (
-                <span className={cn(
-                  "absolute flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold rounded-full",
-                  collapsed ? "top-0 right-0 h-4 w-4" : "ml-auto h-5 min-w-5 px-1"
-                )}>
-                  {highPriorityAlerts}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Navigation - Grouped */}
+      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+        {menuGroups.map((group) => (
+          <div key={group.label}>
+            {!collapsed && (
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                const showBadge = item.id === "alertes" && highPriorityAlerts > 0;
+                
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onSectionChange(item.id);
+                      onItemClick?.();
+                    }}
+                    className={cn(
+                      "sidebar-item w-full relative",
+                      isActive && "active"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    {!collapsed && (
+                      <span className="animate-fade-in truncate">{item.label}</span>
+                    )}
+                    {showBadge && (
+                      <span className={cn(
+                        "absolute flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold rounded-full",
+                        collapsed ? "top-0 right-0 h-4 w-4" : "ml-auto h-5 min-w-5 px-1"
+                      )}>
+                        {highPriorityAlerts}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Settings & Collapse */}

@@ -87,8 +87,9 @@ import { Building2, BookOpen } from "lucide-react";
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
-  Client: { label: "Client", class: "bg-success/10 text-success border-success/20" },
-  Bravo: { label: "Bravo", class: "bg-warning/10 text-warning border-warning/20" },
+  Client: { label: "En formation", class: "bg-success/10 text-success border-success/20" },
+  Bravo: { label: "Diplômé", class: "bg-warning/10 text-warning border-warning/20" },
+  "Abandonné": { label: "Abandonné", class: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const formationLabels: Record<string, string> = {

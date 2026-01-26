@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { StatCard } from "./StatCard";
 import { AlertCard } from "./AlertCard";
@@ -21,18 +22,20 @@ import { ObjectifProgressCard } from "./ObjectifProgressCard";
 import { PriorityActionCard } from "./PriorityActionCard";
 import { TodayTasksCard } from "./TodayTasksCard";
 import { SmartSuggestionsCard } from "./SmartSuggestionsCard";
-import { Users, GraduationCap, TrendingUp, Euro, Download } from "lucide-react";
+import { Users, GraduationCap, TrendingUp, Euro, Download, UserPlus } from "lucide-react";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
 import { useDashboardExport } from "@/hooks/useDashboardExport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const [expressEnrollOpen, setExpressEnrollOpen] = useState(false);
   const { data: contactStats, isLoading: contactsLoading } = useDynamicContactStats();
   const { data: financeStats, isLoading: financeLoading } = useDynamicFinanceStats();
   const { selectedPeriod } = useDashboardPeriod();
@@ -96,8 +99,21 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
-        {/* Priority Action Section - Most important */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Express Enrollment CTA + Priority Action Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Express Enrollment Button - Prominent CTA */}
+          <Button 
+            size="lg" 
+            onClick={() => setExpressEnrollOpen(true)}
+            className="h-auto py-4 px-6 flex flex-col items-center gap-2 bg-primary hover:bg-primary/90"
+          >
+            <UserPlus className="h-6 w-6" />
+            <div className="text-center">
+              <p className="font-semibold">Inscription Express</p>
+              <p className="text-xs opacity-80">Nouveau stagiaire en 30 sec</p>
+            </div>
+          </Button>
+          
           <PriorityActionCard onNavigate={handleNavigate} />
           <TodayTasksCard onNavigate={handleNavigate} />
           <SmartSuggestionsCard onNavigate={handleNavigate} />
@@ -225,6 +241,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Express Enrollment Dialog */}
+        <ExpressEnrollmentDialog 
+          open={expressEnrollOpen} 
+          onOpenChange={setExpressEnrollOpen}
+          onSuccess={() => handleNavigate("contacts")}
+        />
       </main>
     </div>
   );
