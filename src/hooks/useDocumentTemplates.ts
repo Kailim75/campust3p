@@ -20,6 +20,7 @@ export type DocumentTemplateInsert = Omit<DocumentTemplate, "id" | "created_at" 
 export const documentTypes = [
   { value: "convention", label: "Convention de formation" },
   { value: "contrat", label: "Contrat de formation" },
+  { value: "contrat_location", label: "Contrat de location de voiture" },
   { value: "attestation", label: "Attestation de formation" },
   { value: "convocation", label: "Convocation" },
   { value: "reglement", label: "Règlement intérieur" },
@@ -79,6 +80,18 @@ export const availableVariables = [
   // Dates
   { key: "date_jour", label: "Date du jour", category: "Dates" },
   { key: "annee", label: "Année en cours", category: "Dates" },
+  // Véhicule (pour contrats de location)
+  { key: "vehicule_immatriculation", label: "Plaque d'immatriculation", category: "Véhicule" },
+  { key: "vehicule_marque", label: "Marque du véhicule", category: "Véhicule" },
+  { key: "vehicule_modele", label: "Modèle du véhicule", category: "Véhicule" },
+  { key: "vehicule_type", label: "Type de véhicule", category: "Véhicule" },
+  // Contrat de location
+  { key: "contrat_numero", label: "Numéro de contrat", category: "Location" },
+  { key: "contrat_date_debut", label: "Date de début de location", category: "Location" },
+  { key: "contrat_date_fin", label: "Date de fin de location", category: "Location" },
+  { key: "contrat_montant_mensuel", label: "Montant mensuel (€)", category: "Location" },
+  { key: "contrat_montant_caution", label: "Montant caution (€)", category: "Location" },
+  { key: "contrat_objet", label: "Objet de la location", category: "Location" },
 ] as const;
 
 export function useDocumentTemplates() {
@@ -211,7 +224,9 @@ function escapeHtml(text: string): string {
 export function replaceVariables(
   template: string,
   contact: Record<string, any>,
-  session?: Record<string, any>
+  session?: Record<string, any>,
+  vehicule?: Record<string, any>,
+  contratLocation?: Record<string, any>
 ): string {
   let result = template;
   
@@ -258,6 +273,40 @@ export function replaceVariables(
     result = result.replace(/\{\{session_places\}\}/g, escapeHtml(session.places_totales?.toString() || ""));
     result = result.replace(/\{\{session_objectifs\}\}/g, escapeHtml(session.objectifs || ""));
     result = result.replace(/\{\{session_prerequis\}\}/g, escapeHtml(session.prerequis || ""));
+  }
+  
+  // Variables véhicule (pour contrats de location)
+  if (vehicule) {
+    result = result.replace(/\{\{vehicule_immatriculation\}\}/g, escapeHtml(vehicule.immatriculation || ""));
+    result = result.replace(/\{\{vehicule_marque\}\}/g, escapeHtml(vehicule.marque || ""));
+    result = result.replace(/\{\{vehicule_modele\}\}/g, escapeHtml(vehicule.modele || ""));
+    result = result.replace(/\{\{vehicule_type\}\}/g, escapeHtml(vehicule.type_vehicule || ""));
+    result = result.replace(/\{\{immatriculation\}\}/g, escapeHtml(vehicule.immatriculation || ""));
+    result = result.replace(/\{\{plaque\}\}/g, escapeHtml(vehicule.immatriculation || ""));
+    result = result.replace(/\{\{plaque_immatriculation\}\}/g, escapeHtml(vehicule.immatriculation || ""));
+    result = result.replace(/\{\{marque_vehicule\}\}/g, escapeHtml(vehicule.marque || ""));
+    result = result.replace(/\{\{modele_vehicule\}\}/g, escapeHtml(vehicule.modele || ""));
+    const voitureComplete = [vehicule.marque, vehicule.modele].filter(Boolean).join(" ");
+    result = result.replace(/\{\{voiture\}\}/g, escapeHtml(voitureComplete));
+    result = result.replace(/\{\{vehicule\}\}/g, escapeHtml(voitureComplete + (vehicule.immatriculation ? ` - ${vehicule.immatriculation}` : "")));
+  }
+  
+  // Variables contrat de location
+  if (contratLocation) {
+    result = result.replace(/\{\{contrat_numero\}\}/g, escapeHtml(contratLocation.numero_contrat || ""));
+    result = result.replace(/\{\{numero_contrat\}\}/g, escapeHtml(contratLocation.numero_contrat || ""));
+    result = result.replace(/\{\{contrat_date_debut\}\}/g, escapeHtml(contratLocation.date_debut || ""));
+    result = result.replace(/\{\{contrat_date_fin\}\}/g, escapeHtml(contratLocation.date_fin || ""));
+    result = result.replace(/\{\{location_date_debut\}\}/g, escapeHtml(contratLocation.date_debut || ""));
+    result = result.replace(/\{\{location_date_fin\}\}/g, escapeHtml(contratLocation.date_fin || ""));
+    result = result.replace(/\{\{contrat_montant_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
+    result = result.replace(/\{\{montant_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
+    result = result.replace(/\{\{loyer_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
+    result = result.replace(/\{\{contrat_montant_caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
+    result = result.replace(/\{\{montant_caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
+    result = result.replace(/\{\{caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
+    result = result.replace(/\{\{contrat_objet\}\}/g, escapeHtml(contratLocation.objet_location || ""));
+    result = result.replace(/\{\{objet_location\}\}/g, escapeHtml(contratLocation.objet_location || ""));
   }
   
   // Variables de date
