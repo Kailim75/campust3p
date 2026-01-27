@@ -37,33 +37,52 @@ export const documentCategories = [
 ] as const;
 
 // Variables disponibles pour la personnalisation
+// Table de mapping: {{placeholder}} → champ base de données
 export const availableVariables = [
-  // Contact
+  // Contact - Identité
   { key: "civilite", label: "Civilité", category: "Contact" },
   { key: "nom", label: "Nom", category: "Contact" },
   { key: "prenom", label: "Prénom", category: "Contact" },
+  { key: "nom_complet", label: "Nom complet (Prénom Nom)", category: "Contact" },
   { key: "email", label: "Email", category: "Contact" },
   { key: "telephone", label: "Téléphone", category: "Contact" },
+  
+  // Contact - Adresse (aliases: adresse_apprenant, ADRESSE, rue_apprenant)
   { key: "rue", label: "Adresse (rue)", category: "Contact" },
   { key: "code_postal", label: "Code postal", category: "Contact" },
   { key: "ville", label: "Ville", category: "Contact" },
+  { key: "adresse", label: "Adresse complète", category: "Contact" },
+  
+  // Contact - Naissance (aliases: DATE_NAISSANCE, LIEU_NAISSANCE, PAYS, etc.)
   { key: "date_naissance", label: "Date de naissance", category: "Contact" },
   { key: "ville_naissance", label: "Ville de naissance", category: "Contact" },
   { key: "pays_naissance", label: "Pays de naissance", category: "Contact" },
+  { key: "lieu_naissance", label: "Lieu de naissance (ville, pays)", category: "Contact" },
+  
+  // Contact - Permis
   { key: "numero_permis", label: "N° Permis", category: "Contact" },
   { key: "prefecture_permis", label: "Préfecture permis", category: "Contact" },
   { key: "date_delivrance_permis", label: "Date délivrance permis", category: "Contact" },
+  
+  // Contact - Carte professionnelle (aliases: NUMERO_CARTE, carte_pro, n_carte, carte_taxi, etc.)
   { key: "numero_carte_professionnelle", label: "N° Carte professionnelle", category: "Contact" },
   { key: "prefecture_carte", label: "Préfecture carte", category: "Contact" },
   { key: "date_expiration_carte", label: "Date expiration carte", category: "Contact" },
   { key: "formation", label: "Type de formation", category: "Contact" },
+  
+  // Certificat / Attestation
+  { key: "numero_certificat", label: "N° Certificat unique", category: "Certificat" },
+  { key: "date_emission_certificat", label: "Date émission certificat", category: "Certificat" },
+  
   // Session
   { key: "session_nom", label: "Nom de la session", category: "Session" },
   { key: "session_numero", label: "Numéro de session", category: "Session" },
   { key: "session_date_debut", label: "Date de début", category: "Session" },
   { key: "session_date_fin", label: "Date de fin", category: "Session" },
+  { key: "dates_formation", label: "Période (début au fin)", category: "Session" },
   { key: "session_heure_debut", label: "Heure de début", category: "Session" },
   { key: "session_heure_fin", label: "Heure de fin", category: "Session" },
+  { key: "horaires", label: "Horaires complets", category: "Session" },
   { key: "session_lieu", label: "Lieu (ancien)", category: "Session" },
   { key: "session_adresse_rue", label: "Adresse (rue)", category: "Session" },
   { key: "session_adresse_code_postal", label: "Code postal", category: "Session" },
@@ -73,18 +92,31 @@ export const availableVariables = [
   { key: "session_prix_ht", label: "Prix HT", category: "Session" },
   { key: "session_tva_percent", label: "TVA (%)", category: "Session" },
   { key: "session_prix_ttc", label: "Prix TTC", category: "Session" },
-  { key: "session_duree", label: "Durée (heures)", category: "Session" },
+  { key: "duree_heures", label: "Durée (heures)", category: "Session" },
   { key: "session_places", label: "Places totales", category: "Session" },
   { key: "session_objectifs", label: "Objectifs", category: "Session" },
   { key: "session_prerequis", label: "Prérequis", category: "Session" },
+  { key: "formation_type", label: "Type de formation session", category: "Session" },
+  
+  // Centre de formation
+  { key: "centre_nom", label: "Nom du centre", category: "Centre" },
+  { key: "centre_adresse", label: "Adresse du centre", category: "Centre" },
+  { key: "centre_telephone", label: "Téléphone du centre", category: "Centre" },
+  { key: "centre_email", label: "Email du centre", category: "Centre" },
+  { key: "centre_siret", label: "SIRET du centre", category: "Centre" },
+  { key: "centre_nda", label: "N° Déclaration Activité", category: "Centre" },
+  
   // Dates
   { key: "date_jour", label: "Date du jour", category: "Dates" },
-  { key: "annee", label: "Année en cours", category: "Dates" },
+  { key: "date_generation", label: "Date de génération", category: "Dates" },
+  { key: "fait_le", label: "Fait le (date longue)", category: "Dates" },
+  
   // Véhicule (pour contrats de location)
   { key: "vehicule_immatriculation", label: "Plaque d'immatriculation", category: "Véhicule" },
   { key: "vehicule_marque", label: "Marque du véhicule", category: "Véhicule" },
   { key: "vehicule_modele", label: "Modèle du véhicule", category: "Véhicule" },
   { key: "vehicule_type", label: "Type de véhicule", category: "Véhicule" },
+  
   // Contrat de location
   { key: "contrat_numero", label: "Numéro de contrat", category: "Location" },
   { key: "contrat_date_debut", label: "Date de début de location", category: "Location" },
@@ -93,6 +125,36 @@ export const availableVariables = [
   { key: "contrat_montant_caution", label: "Montant caution (€)", category: "Location" },
   { key: "contrat_objet", label: "Objet de la location", category: "Location" },
 ] as const;
+
+/**
+ * Table de correspondance des alias de placeholders
+ * Permet aux templates d'utiliser différentes variantes de nommage
+ */
+export const placeholderAliases: Record<string, string[]> = {
+  // Adresse
+  rue: ["ADRESSE", "adresse_rue", "rue_apprenant", "street"],
+  code_postal: ["CODE_POSTAL", "cp", "cp_apprenant", "code_postal_apprenant", "zip"],
+  ville: ["VILLE", "ville_apprenant", "city"],
+  adresse: ["adresse_complete", "adresse_apprenant", "adresse_stagiaire", "full_address"],
+  
+  // Naissance
+  date_naissance: ["DATE_NAISSANCE", "DATE_DE_NAISSANCE", "date_de_naissance", "birth_date", "ne_le"],
+  ville_naissance: ["VILLE_NAISSANCE", "ville_de_naissance", "birth_city", "ne_a"],
+  pays_naissance: ["PAYS_NAISSANCE", "PAYS", "pays", "pays_de_naissance", "birth_country"],
+  lieu_naissance: ["LIEU_NAISSANCE", "LIEU_DE_NAISSANCE", "lieu_de_naissance", "birth_place"],
+  
+  // Carte professionnelle
+  numero_carte_professionnelle: [
+    "NUMERO_CARTE_PROFESSIONNELLE", "NUMERO_CARTE", "numero_carte", "carte_pro", "CARTE_PRO",
+    "n_carte", "N_CARTE", "no_carte", "num_carte", "carte_taxi", "carte_vtc",
+    "numero_taxi", "numero_vtc", "professional_card_number", "card_number"
+  ],
+  prefecture_carte: ["PREFECTURE_CARTE", "carte_prefecture", "prefecture_delivrance_carte", "PREFECTURE_DELIVRANCE"],
+  date_expiration_carte: ["DATE_EXPIRATION_CARTE", "carte_expiration", "date_expiration_carte_pro"],
+  
+  // Certificat
+  numero_certificat: ["certificate_number", "certificat_numero", "reference_certificat", "ref_certificat", "attestation_numero"],
+};
 
 export function useDocumentTemplates() {
   return useQuery({
