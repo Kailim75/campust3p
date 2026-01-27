@@ -1072,19 +1072,21 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         />
       )}
 
-      {/* Facture form dialog */}
-      <FactureFormDialog
-        open={factureFormOpen}
-        onOpenChange={(open) => {
-          setFactureFormOpen(open);
-          if (!open) {
-            setSelectedContactIdForFacture(null);
-            setEditingFacture(null);
-          }
-        }}
-        facture={editingFacture}
-        defaultContactId={selectedContactIdForFacture || undefined}
-      />
+      {/* Facture form dialog - only mount when open to avoid useEffect loops */}
+      {factureFormOpen && (
+        <FactureFormDialog
+          open={factureFormOpen}
+          onOpenChange={(open) => {
+            setFactureFormOpen(open);
+            if (!open) {
+              setSelectedContactIdForFacture(null);
+              setEditingFacture(null);
+            }
+          }}
+          facture={editingFacture}
+          defaultContactId={selectedContactIdForFacture || undefined}
+        />
+      )}
 
       {/* Facture detail sheet */}
       <FactureDetailSheet
