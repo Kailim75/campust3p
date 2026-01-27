@@ -315,7 +315,9 @@ export async function processDocxWithVariables(
       code_postal: data.code_postal,
       ville: data.ville,
       adresse: data.adresse || data.adresse_complete,
-      adresse_complete: data.adresse_complete,
+      adresse_complete: data.adresse_complete || data.adresse,
+      adresse_apprenant: data.adresse_apprenant || data.adresse,
+      cp: data.code_postal,
       
       // Naissance - toutes variantes
       date_naissance: data.date_naissance,
@@ -329,6 +331,11 @@ export async function processDocxWithVariables(
       ville_de_naissance: data.ville_de_naissance || data.ville_naissance,
       pays_de_naissance: data.pays_de_naissance || data.pays_naissance,
       lieu_de_naissance: data.lieu_de_naissance || data.lieu_naissance,
+      DATE_NAISSANCE: data.date_naissance,
+      LIEU_NAISSANCE: data.lieu_naissance,
+      VILLE_NAISSANCE: data.ville_naissance,
+      PAYS_NAISSANCE: data.pays_naissance,
+      PAYS: data.pays_naissance,
       
       // Permis
       numero_permis: data.numero_permis,
@@ -355,6 +362,12 @@ export async function processDocxWithVariables(
       carte_vtc: data.carte_vtc || data.numero_carte_professionnelle,
       numero_taxi: data.numero_taxi || data.numero_carte_professionnelle,
       numero_vtc: data.numero_vtc || data.numero_carte_professionnelle,
+      NUMERO_CARTE_PROFESSIONNELLE: data.numero_carte_professionnelle,
+      NUMERO_CARTE: data.numero_carte_professionnelle,
+      CARTE_PRO: data.numero_carte_professionnelle,
+      DATE_EXPIRATION_CARTE: data.date_expiration_carte,
+      PREFECTURE_CARTE: data.prefecture_carte,
+      prefecture_delivrance_carte: data.prefecture_carte,
       
       formation: data.formation,
       
@@ -362,6 +375,40 @@ export async function processDocxWithVariables(
       nom_complet: data.nom_complet,
       nom_prenom: data.nom_prenom,
       prenom_nom: data.prenom_nom,
+    },
+    // Apprenant (alias pour contact - utilisé dans templates Mobilité)
+    apprenant: {
+      nom: data.nom,
+      prenom: data.prenom,
+      civilite: data.civilite,
+      adresse: data.adresse || data.adresse_complete,
+      rue: data.rue,
+      code_postal: data.code_postal,
+      ville: data.ville,
+      date_naissance: data.date_naissance,
+      lieu_naissance: data.lieu_naissance,
+      ville_naissance: data.ville_naissance,
+      pays_naissance: data.pays_naissance,
+      pays: data.pays_naissance,
+      numero_carte: data.numero_carte_professionnelle,
+      carte_pro: data.numero_carte_professionnelle,
+      prefecture_carte: data.prefecture_carte,
+      date_expiration_carte: data.date_expiration_carte,
+    },
+    // Stagiaire (autre alias pour contact)
+    stagiaire: {
+      nom: data.nom,
+      prenom: data.prenom,
+      civilite: data.civilite,
+      adresse: data.adresse || data.adresse_complete,
+      rue: data.rue,
+      code_postal: data.code_postal,
+      ville: data.ville,
+      date_naissance: data.date_naissance,
+      lieu_naissance: data.lieu_naissance,
+      ville_naissance: data.ville_naissance,
+      pays_naissance: data.pays_naissance,
+      pays: data.pays_naissance,
     },
     session: {
       nom: data.session_nom,
@@ -395,6 +442,16 @@ export async function processDocxWithVariables(
       email: data.centre_email,
       siret: data.centre_siret,
       nda: data.centre_nda,
+    },
+    // Certificat (pour attestations)
+    certificat: {
+      numero: data.numero_certificat,
+      date_emission: data.date_emission_certificat,
+      reference: data.numero_certificat,
+    },
+    attestation: {
+      numero: data.numero_certificat,
+      date: data.date_emission_certificat,
     },
     // Véhicule (pour contrats de location)
     vehicule: {
@@ -766,6 +823,19 @@ export function buildVariableData(
     adresse: contactAdresse,
     adresse_complete: contactAdresse,
     adresse_stagiaire: contactAdresse,
+    adresse_apprenant: contactAdresse,
+    adresse_participant: contactAdresse,
+    
+    // Champs adresse séparés avec variantes (templates Mobilité)
+    ADRESSE: contact.rue || "",
+    CODE_POSTAL: contact.code_postal || "",
+    VILLE: contact.ville || "",
+    adresse_rue: contact.rue || "",
+    rue_apprenant: contact.rue || "",
+    code_postal_apprenant: contact.code_postal || "",
+    ville_apprenant: contact.ville || "",
+    cp: contact.code_postal || "",
+    cp_apprenant: contact.code_postal || "",
     
     // Date et lieu de naissance
     date_naissance: formatDate(contact.date_naissance),
@@ -775,7 +845,7 @@ export function buildVariableData(
     ne_le: formatDate(contact.date_naissance),
     ne_a: contact.ville_naissance || "",
     
-    // Aliases naissance (variantes fréquentes dans les templates)
+    // Aliases naissance (variantes fréquentes dans les templates Mobilité)
     birth_date: formatDate(contact.date_naissance),
     birth_city: contact.ville_naissance || "",
     birth_country: contact.pays_naissance || "",
@@ -785,6 +855,17 @@ export function buildVariableData(
     ville_de_naissance: contact.ville_naissance || "",
     pays_de_naissance: contact.pays_naissance || "",
     date_de_naissance: formatDate(contact.date_naissance),
+    DATE_NAISSANCE: formatDate(contact.date_naissance),
+    DATE_DE_NAISSANCE: formatDate(contact.date_naissance),
+    LIEU_NAISSANCE: lieuNaissance,
+    LIEU_DE_NAISSANCE: lieuNaissance,
+    VILLE_NAISSANCE: contact.ville_naissance || "",
+    PAYS_NAISSANCE: contact.pays_naissance || "",
+    PAYS: contact.pays_naissance || "",
+    date_naissance_apprenant: formatDate(contact.date_naissance),
+    lieu_naissance_apprenant: lieuNaissance,
+    ville_naissance_apprenant: contact.ville_naissance || "",
+    pays_naissance_apprenant: contact.pays_naissance || "",
     
     // Permis de conduire
     numero_permis: contact.numero_permis || "",
@@ -811,7 +892,7 @@ export function buildVariableData(
     carte_prefecture: contact.prefecture_carte || "",
     carte_expiration: formatDate(contact.date_expiration_carte),
     
-    // Aliases carte pro additionnels (cas spéciaux templates)
+    // Aliases carte pro additionnels (cas spéciaux templates Mobilité Taxi)
     n_carte: contact.numero_carte_professionnelle || "",
     n_carte_pro: contact.numero_carte_professionnelle || "",
     no_carte: contact.numero_carte_professionnelle || "",
@@ -830,6 +911,16 @@ export function buildVariableData(
     carte_taxi_numero: contact.numero_carte_professionnelle || "",
     numero_vtc: contact.numero_carte_professionnelle || "",
     numero_taxi: contact.numero_carte_professionnelle || "",
+    NUMERO_CARTE_PROFESSIONNELLE: contact.numero_carte_professionnelle || "",
+    NUMERO_CARTE: contact.numero_carte_professionnelle || "",
+    CARTE_PRO: contact.numero_carte_professionnelle || "",
+    N_CARTE: contact.numero_carte_professionnelle || "",
+    DATE_EXPIRATION_CARTE: formatDate(contact.date_expiration_carte),
+    PREFECTURE_CARTE: contact.prefecture_carte || "",
+    date_expiration_carte_pro: formatDate(contact.date_expiration_carte),
+    prefecture_carte_pro: contact.prefecture_carte || "",
+    prefecture_delivrance_carte: contact.prefecture_carte || "",
+    PREFECTURE_DELIVRANCE: contact.prefecture_carte || "",
 
     // English aliases (for templates using English variable names)
     student_last_name: contact.nom || "",
@@ -864,6 +955,8 @@ export function buildVariableData(
     contact_ville: contact.ville || "",
     contact_date_naissance: formatDate(contact.date_naissance),
     contact_lieu_naissance: lieuNaissance,
+    contact_pays_naissance: contact.pays_naissance || "",
+    contact_adresse: contactAdresse,
     
     // Session fields (French)
     session_nom: session?.nom || "",
