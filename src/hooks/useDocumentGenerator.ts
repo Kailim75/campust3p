@@ -170,11 +170,14 @@ export function useDocumentGenerator() {
                 const sessionId = (session as any)?.id;
                 let certificateInfo: { numero_certificat: string; date_emission: string } | null = null;
                 
+                // Déterminer si c'est une formation Mobilité (nécessite plus de champs)
+                const isMobiliteFormation = session.formation_type?.toLowerCase().includes('mobilite') || 
+                    session.formation_type?.toLowerCase().includes('mobilité');
+                
                 if (contactId) {
                   // Déterminer le type d'attestation selon la formation
                   let typeAttestation = 'formation';
-                  if (session.formation_type?.toLowerCase().includes('mobilite') || 
-                      session.formation_type?.toLowerCase().includes('mobilité')) {
+                  if (isMobiliteFormation) {
                     typeAttestation = 'mobilite';
                   }
                   
@@ -201,6 +204,25 @@ export function useDocumentGenerator() {
                       fullContact = { ...contact, ...(await fetchContactDocumentData(contactId)) };
                     } catch (e) {
                       console.warn("[DOCX] Contact partiel (fallback)", e);
+                    }
+                  }
+                  
+                  // Pour les formations Mobilité, vérifier les champs obligatoires
+                  if (isMobiliteFormation) {
+                    const champsManquants: string[] = [];
+                    if (!fullContact.date_naissance) champsManquants.push("Date de naissance");
+                    if (!fullContact.ville_naissance) champsManquants.push("Ville de naissance");
+                    if (!fullContact.pays_naissance) champsManquants.push("Pays de naissance");
+                    if (!fullContact.rue) champsManquants.push("Adresse (rue)");
+                    if (!fullContact.code_postal) champsManquants.push("Code postal");
+                    if (!fullContact.ville) champsManquants.push("Ville");
+                    
+                    if (champsManquants.length > 0) {
+                      console.warn(`[Attestation Mobilité] Champs manquants pour ${fullContact.nom} ${fullContact.prenom}:`, champsManquants);
+                      toast.warning(
+                        `Attestation générée avec des champs vides. Complétez la fiche contact : ${champsManquants.slice(0, 3).join(", ")}${champsManquants.length > 3 ? ` (+${champsManquants.length - 3})` : ""}`,
+                        { duration: 6000 }
+                      );
                     }
                   }
 
