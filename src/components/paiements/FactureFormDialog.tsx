@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -135,9 +135,18 @@ export function FactureFormDialog({
     }
   }, [facture, defaultContactId, form, open]);
 
-  // Charger les lignes existantes en mode édition
+  // Charger les lignes existantes en mode édition - utiliser une ref pour éviter les boucles infinies
+  const existingLignesLoadedRef = useRef(false);
+  
   useEffect(() => {
-    if (isEditing && existingLignes.length > 0) {
+    // Reset le flag quand on ferme/ouvre ou change de facture
+    if (!open) {
+      existingLignesLoadedRef.current = false;
+      return;
+    }
+    
+    if (isEditing && existingLignes.length > 0 && !existingLignesLoadedRef.current) {
+      existingLignesLoadedRef.current = true;
       setLignes(existingLignes.map(l => ({
         id: l.id,
         catalogue_formation_id: l.catalogue_formation_id,
@@ -147,10 +156,11 @@ export function FactureFormDialog({
         tva_percent: l.tva_percent,
         remise_percent: 0,
       })));
-    } else if (!isEditing) {
+    } else if (!isEditing && !existingLignesLoadedRef.current) {
+      existingLignesLoadedRef.current = true;
       setLignes([]);
     }
-  }, [isEditing, existingLignes]);
+  }, [isEditing, existingLignes, open]);
 
   const addLigne = (item?: CatalogueFormation) => {
     const prixApresRemiseCatalogue = item ? item.prix_ht * (1 - (item.remise_percent || 0) / 100) : 0;
