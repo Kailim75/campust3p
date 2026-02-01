@@ -173,6 +173,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   };
   // Session info pour la génération de documents
   const sessionInfo = session ? {
+    id: session.id, // Nécessaire pour générer le numéro de certificat
     nom: session.nom,
     formation_type: session.formation_type,
     date_debut: session.date_debut,
@@ -193,6 +194,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     
     // Mapping complet incluant carte pro, permis, naissance
     const contactInfo = {
+      id: contact.id, // Nécessaire pour générer le numéro de certificat
       civilite: contact.civilite || undefined,
       nom: contact.nom || '',
       prenom: contact.prenom || '',

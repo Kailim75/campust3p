@@ -232,6 +232,7 @@ export function SendDocumentsToContactDialog({
       // 1. Generate standard documents
       for (const docType of selectedDocuments) {
         const contactInfo = {
+          id: contact.id, // Nécessaire pour générer le numéro de certificat
           civilite: contact.civilite || undefined,
           nom: contact.nom,
           prenom: contact.prenom,
@@ -242,9 +243,18 @@ export function SendDocumentsToContactDialog({
           ville: contact.ville || undefined,
           date_naissance: contact.date_naissance || undefined,
           ville_naissance: contact.ville_naissance || undefined,
+          pays_naissance: contact.pays_naissance || undefined,
+          numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
+          prefecture_carte: contact.prefecture_carte || undefined,
+          date_expiration_carte: contact.date_expiration_carte || undefined,
+          numero_permis: contact.numero_permis || undefined,
+          prefecture_permis: contact.prefecture_permis || undefined,
+          date_delivrance_permis: contact.date_delivrance_permis || undefined,
+          formation: contact.formation || undefined,
         };
 
         const sessionDataForDoc = {
+          id: sessionInfo.id, // Nécessaire pour générer le numéro de certificat
           nom: sessionInfo.nom,
           formation_type: sessionInfo.formation_type,
           date_debut: sessionInfo.date_debut,
