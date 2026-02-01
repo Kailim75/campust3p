@@ -108,6 +108,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const placesRestantes = session ? session.places_totales - inscriptionCount : 0;
 
   const sessionInfo = session ? {
+    id: session.id, // Nécessaire pour générer le numéro de certificat
     nom: session.nom,
     formation_type: session.formation_type,
     date_debut: session.date_debut,
@@ -123,6 +124,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     if (!sessionInfo) return;
     
     const contactInfo = {
+      id: contact.id, // Nécessaire pour générer le numéro de certificat
       civilite: contact.civilite || undefined,
       nom: contact.nom,
       prenom: contact.prenom,
@@ -133,6 +135,14 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
       ville: contact.ville || undefined,
       date_naissance: contact.date_naissance || undefined,
       ville_naissance: contact.ville_naissance || undefined,
+      pays_naissance: contact.pays_naissance || undefined,
+      numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
+      prefecture_carte: contact.prefecture_carte || undefined,
+      date_expiration_carte: contact.date_expiration_carte || undefined,
+      numero_permis: contact.numero_permis || undefined,
+      prefecture_permis: contact.prefecture_permis || undefined,
+      date_delivrance_permis: contact.date_delivrance_permis || undefined,
+      formation: contact.formation || undefined,
     };
     
     generateDocument(type, contactInfo, sessionInfo);
