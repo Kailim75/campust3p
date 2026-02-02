@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface TodayTasksCardProps {
   onNavigate: (section: string) => void;
+  onNavigateWithContact?: (section: string, contactId?: string) => void;
   maxItems?: number;
 }
 
@@ -30,11 +31,26 @@ const taskTypeConfig: Record<Alert["type"], { icon: React.ElementType; color: st
   exam_pratique: { icon: Award, color: "text-info" },
 };
 
-export function TodayTasksCard({ onNavigate, maxItems = 5 }: TodayTasksCardProps) {
+export function TodayTasksCard({ onNavigate, onNavigateWithContact, maxItems = 5 }: TodayTasksCardProps) {
   const { data: alerts, isLoading, counts } = useAllAlerts();
   
   // Filter to show only high and medium priority tasks
   const tasks = alerts.filter(a => a.priority === "high" || a.priority === "medium").slice(0, maxItems);
+
+  const handleTaskClick = (task: Alert) => {
+    // Navigate to contact detail if contactId exists
+    if (task.contactId && onNavigateWithContact) {
+      onNavigateWithContact("contacts", task.contactId);
+    } else if (task.actionType === "view_facture") {
+      onNavigate("paiements");
+    } else if (task.actionType === "view_session") {
+      onNavigate("sessions");
+    } else if (task.actionType === "view_contact" || task.actionType === "view_exam") {
+      onNavigate("contacts");
+    } else {
+      onNavigate("alertes");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,13 +120,7 @@ export function TodayTasksCard({ onNavigate, maxItems = 5 }: TodayTasksCardProps
                       ? "border-destructive/20 bg-destructive/5" 
                       : "border-border bg-card"
                   )}
-                  onClick={() => {
-                    // Navigate based on action type
-                    if (task.actionType === "view_facture") onNavigate("paiements");
-                    else if (task.actionType === "view_session") onNavigate("sessions");
-                    else if (task.actionType === "view_contact" || task.actionType === "view_exam") onNavigate("contacts");
-                    else onNavigate("alertes");
-                  }}
+                  onClick={() => handleTaskClick(task)}
                 >
                   <div className={cn(
                     "p-1.5 rounded-full shrink-0",
