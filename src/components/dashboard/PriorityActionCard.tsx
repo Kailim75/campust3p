@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface PriorityActionCardProps {
   onNavigate: (section: string, params?: Record<string, string>) => void;
+  onNavigateWithContact?: (section: string, contactId?: string) => void;
 }
 
 const actionConfig = {
@@ -70,7 +71,7 @@ const actionConfig = {
   },
 };
 
-export function PriorityActionCard({ onNavigate }: PriorityActionCardProps) {
+export function PriorityActionCard({ onNavigate, onNavigateWithContact }: PriorityActionCardProps) {
   const { data: alerts, isLoading, counts } = useAllAlerts();
   
   // Get the most urgent action (first high priority alert)
@@ -78,6 +79,16 @@ export function PriorityActionCard({ onNavigate }: PriorityActionCardProps) {
   
   const config = priorityAction ? actionConfig[priorityAction.type] : null;
   const Icon = config?.icon || Zap;
+
+  const handleClick = () => {
+    // Navigate to contact detail if contactId exists
+    if (priorityAction?.contactId && onNavigateWithContact) {
+      onNavigateWithContact("contacts", priorityAction.contactId);
+    } else {
+      const section = config?.section || "alertes";
+      onNavigate(section);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -124,10 +135,7 @@ export function PriorityActionCard({ onNavigate }: PriorityActionCardProps) {
         ? "border-destructive/30 bg-gradient-to-br from-destructive/10 via-card to-card" 
         : "border-warning/30 bg-gradient-to-br from-warning/10 via-card to-card"
     )}
-    onClick={() => {
-      const section = config?.section || "alertes";
-      onNavigate(section);
-    }}
+    onClick={handleClick}
     >
       {/* Decorative blob */}
       <div className={cn(
@@ -175,8 +183,7 @@ export function PriorityActionCard({ onNavigate }: PriorityActionCardProps) {
           className="btn-gradient gap-2 group-hover:shadow-md transition-all"
           onClick={(e) => {
             e.stopPropagation();
-            const section = config?.section || "alertes";
-            onNavigate(section);
+            handleClick();
           }}
         >
           Traiter maintenant

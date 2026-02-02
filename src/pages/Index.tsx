@@ -30,6 +30,7 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undo);
@@ -52,14 +53,23 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undoAction]);
 
-  // Support deep-links like /?section=contacts&id=...
+  // Support deep-links like /?section=contacts&contactId=...
   useEffect(() => {
     const section = searchParams.get("section");
+    const contactId = searchParams.get("contactId");
+    
     if (section) {
       setActiveSection(section);
-      // Remove section from URL but keep other params (ex: id)
+    }
+    if (contactId) {
+      setSelectedContactId(contactId);
+    }
+    
+    // Remove params from URL
+    if (section || contactId) {
       const next = new URLSearchParams(searchParams);
       next.delete("section");
+      next.delete("contactId");
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -112,12 +122,25 @@ const Index = () => {
     }
   };
 
+  // Navigate to a section with optional contactId
+  const handleNavigateWithContact = (section: string, contactId?: string) => {
+    setActiveSection(section);
+    if (contactId) {
+      setSelectedContactId(contactId);
+    }
+  };
+
+  // Clear selected contact when handled
+  const handleContactOpened = () => {
+    setSelectedContactId(null);
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} />;
+        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
       case "contacts":
-        return <ContactsUnifiedPage />;
+        return <ContactsUnifiedPage selectedContactId={selectedContactId} onContactOpened={handleContactOpened} />;
       case "formations":
         return <FormationsPage />;
       case "sessions":

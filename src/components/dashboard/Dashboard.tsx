@@ -32,9 +32,10 @@ import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollment
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
+  onNavigateWithContact?: (section: string, contactId?: string) => void;
 }
 
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
   const [expressEnrollOpen, setExpressEnrollOpen] = useState(false);
   const { data: contactStats, isLoading: contactsLoading } = useDynamicContactStats();
   const { data: financeStats, isLoading: financeLoading } = useDynamicFinanceStats();
@@ -50,6 +51,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const handleNavigate = (section: string) => {
     if (onNavigate) onNavigate(section);
+  };
+
+  const handleNavigateWithContact = (section: string, contactId?: string) => {
+    if (onNavigateWithContact) {
+      onNavigateWithContact(section, contactId);
+    } else if (onNavigate) {
+      onNavigate(section);
+    }
   };
 
   const stats = [
@@ -114,8 +123,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </Button>
           
-          <PriorityActionCard onNavigate={handleNavigate} />
-          <TodayTasksCard onNavigate={handleNavigate} />
+          <PriorityActionCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
+          <TodayTasksCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
           <SmartSuggestionsCard onNavigate={handleNavigate} />
         </div>
 

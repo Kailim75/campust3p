@@ -188,7 +188,12 @@ function PipelineColumn({ column, contacts, onCardClick }: PipelineColumnProps) 
 
 type ViewMode = "list" | "pipeline" | "prospects" | "analytics";
 
-export function ContactsUnifiedPage() {
+interface ContactsUnifiedPageProps {
+  selectedContactId?: string | null;
+  onContactOpened?: () => void;
+}
+
+export function ContactsUnifiedPage({ selectedContactId: propContactId, onContactOpened }: ContactsUnifiedPageProps) {
   const { data: contacts, isLoading: loadingContacts } = useContacts();
   const { data: prospects = [] } = useProspects();
   const { data: prospectsStats } = useProspectsStats();
@@ -202,6 +207,18 @@ export function ContactsUnifiedPage() {
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Open contact sheet when selectedContactId prop is passed
+  useEffect(() => {
+    if (propContactId && contacts) {
+      const contact = contacts.find(c => c.id === propContactId);
+      if (contact) {
+        setSelectedContact(contact);
+        setDetailOpen(true);
+        onContactOpened?.();
+      }
+    }
+  }, [propContactId, contacts, onContactOpened]);
 
   // Calculate stats
   const totalContacts = contacts?.length || 0;
