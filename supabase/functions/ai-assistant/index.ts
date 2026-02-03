@@ -555,6 +555,9 @@ async function executeSendEmail(supabase: any, params: any) {
     return { success: false, message: "Configuration email manquante" };
   }
   
+  // Configuration email centralisée - VERROUILLÉE sur montrouge@ecolet3p.fr
+  const FROM_ADDRESS = "Ecole T3P Montrouge <montrouge@ecolet3p.fr>";
+  
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -562,10 +565,11 @@ async function executeSendEmail(supabase: any, params: any) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: `${centre?.nom_commercial || 'CRM Formation'} <onboarding@resend.dev>`,
+      from: FROM_ADDRESS,
       to: [contact.email],
       subject: params.subject,
-      html: params.content
+      html: params.content,
+      reply_to: "montrouge@ecolet3p.fr"
     })
   });
   
