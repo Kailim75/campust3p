@@ -152,17 +152,30 @@ export function useSessionInscrits(sessionId: string) {
     }
   });
 
-  // Tracer envoi groupé ET envoyer les emails
+  // Tracer envoi groupé ET envoyer les emails avec PDF en pièce jointe
   const tracerEnvoiGroupe = useMutation({
     mutationFn: async ({ contactIds, typeDocument }: { contactIds: string[]; typeDocument: string }) => {
-      // 1. Récupérer les infos de la session
+      // 1. Récupérer les infos complètes de la session (pour génération PDF côté serveur)
       const { data: session, error: sessionError } = await supabase
         .from('sessions')
-        .select('nom, formation_type, date_debut, date_fin, lieu')
+        .select('nom, formation_type, date_debut, date_fin, lieu, heure_debut, heure_fin, duree_heures, formateur_id')
         .eq('id', sessionId)
         .single();
       
       if (sessionError) throw sessionError;
+      
+      // Récupérer le nom du formateur si ID fourni
+      let formateurNom: string | undefined;
+      if (session.formateur_id) {
+        const { data: formateur } = await supabase
+          .from('formateurs')
+          .select('nom, prenom')
+          .eq('id', session.formateur_id)
+          .single();
+        if (formateur) {
+          formateurNom = `${formateur.prenom} ${formateur.nom}`;
+        }
+      }
       
       // 2. Récupérer les contacts avec email
       const { data: contacts, error: contactsError } = await supabase
@@ -191,7 +204,7 @@ export function useSessionInscrits(sessionId: string) {
       
       if (traceError) throw traceError;
       
-      // 4. Envoyer les emails via l'edge function
+      // 4. Envoyer les emails via l'edge function (avec génération PDF côté serveur)
       const { error: emailError } = await supabase.functions.invoke('send-automated-emails', {
         body: {
           type: 'document_envoi',
@@ -202,11 +215,16 @@ export function useSessionInscrits(sessionId: string) {
           })),
           documentType: typeDocument,
           sessionName: session.nom,
+          generateAttachments: true, // Active la génération PDF côté serveur
           sessionInfo: {
             formation_type: session.formation_type,
             date_debut: session.date_debut,
             date_fin: session.date_fin,
             lieu: session.lieu,
+            heure_debut: session.heure_debut,
+            heure_fin: session.heure_fin,
+            duree_heures: session.duree_heures,
+            formateur: formateurNom,
           },
         },
       });

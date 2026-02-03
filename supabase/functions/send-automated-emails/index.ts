@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { 
+  generateDocumentPDF, 
+  getPdfAsBase64,
+  type ContactInfo,
+  type SessionInfo,
+  type CompanyInfo,
+  type DocumentType 
+} from "../_shared/pdf-generator.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -104,14 +112,133 @@ serve(async (req) => {
       const sessionName = body.sessionName || "";
       const sessionInfo = body.sessionInfo || {};
       const customMessage = body.customMessage || "";
+      const generatePdfAttachments = body.generateAttachments !== false; // Default true
+      
+      // Fetch centre formation data for PDF header
+      let centreData: CompanyInfo | null = null;
+      try {
+        const { data: centreFormation } = await supabase
+          .from("centre_formation")
+          .select("*")
+          .limit(1)
+          .single();
+        
+        if (centreFormation) {
+          centreData = {
+            name: centreFormation.nom_commercial || centreFormation.nom_legal || "Ecole T3P",
+            address: centreFormation.adresse_complete || "",
+            phone: centreFormation.telephone || "",
+            email: centreFormation.email || "",
+            siret: centreFormation.siret || "",
+            nda: centreFormation.nda || "",
+          };
+        }
+      } catch (e) {
+        console.log("Could not fetch centre formation:", e);
+      }
+      
+      // Default company info if no centre data
+      const company: CompanyInfo = centreData || {
+        name: "Ecole T3P Montrouge",
+        address: "Montrouge",
+        phone: "01 23 45 67 89",
+        email: "montrouge@ecolet3p.fr",
+        siret: "123 456 789 00012",
+        nda: "11 75 12345 75",
+      };
       
       const bulkResults: EmailResult[] = [];
+      
+      // Map document type string to PDF type
+      const pdfDocTypes: Record<string, DocumentType> = {
+        "Convocation": "convocation",
+        "convocation": "convocation",
+        "Attestation de formation": "attestation",
+        "attestation": "attestation",
+        "Attestation": "attestation",
+        "Programme de formation": "programme",
+        "programme": "programme",
+        "Programme": "programme",
+      };
       
       for (const recipient of body.recipients) {
         if (!recipient.email) continue;
         
         const recipientName = recipient.name || "";
         const subject = `${documentType} - ${sessionName || 'Ecole T3P Montrouge'}`;
+        
+        // Fetch full contact data if contactId provided
+        let contactData: ContactInfo | null = null;
+        if (recipient.contactId) {
+          try {
+            const { data: contact } = await supabase
+              .from("contacts")
+              .select("*")
+              .eq("id", recipient.contactId)
+              .single();
+            
+            if (contact) {
+              contactData = {
+                civilite: contact.civilite || undefined,
+                nom: contact.nom,
+                prenom: contact.prenom,
+                email: contact.email || undefined,
+                telephone: contact.telephone || undefined,
+                rue: contact.rue || undefined,
+                code_postal: contact.code_postal || undefined,
+                ville: contact.ville || undefined,
+                date_naissance: contact.date_naissance || undefined,
+                ville_naissance: contact.ville_naissance || undefined,
+              };
+            }
+          } catch (e) {
+            console.log("Could not fetch contact:", e);
+          }
+        }
+        
+        // Fallback contact info from recipient name
+        if (!contactData) {
+          const nameParts = recipientName.split(" ");
+          contactData = {
+            nom: nameParts.slice(1).join(" ") || "Participant",
+            prenom: nameParts[0] || "",
+            email: recipient.email,
+          };
+        }
+        
+        // Build session info for PDF
+        const sessionDataForPdf: SessionInfo = {
+          nom: sessionName || "Formation",
+          formation_type: sessionInfo.formation_type || "VTC",
+          date_debut: sessionInfo.date_debut || new Date().toISOString(),
+          date_fin: sessionInfo.date_fin || new Date().toISOString(),
+          lieu: sessionInfo.lieu || undefined,
+          duree_heures: sessionInfo.duree_heures || 35,
+          heure_debut: sessionInfo.heure_debut || undefined,
+          heure_fin: sessionInfo.heure_fin || undefined,
+          formateur: sessionInfo.formateur || undefined,
+        };
+        
+        // Generate PDF attachment if document type is supported
+        let attachments: Array<{ filename: string; content: string }> = [];
+        const pdfType = pdfDocTypes[documentType];
+        
+        if (generatePdfAttachments && pdfType && contactData) {
+          try {
+            console.log(`Generating PDF: ${pdfType} for ${recipientName}`);
+            const pdfDoc = generateDocumentPDF(pdfType, contactData, sessionDataForPdf, company);
+            const pdfBase64 = getPdfAsBase64(pdfDoc);
+            
+            attachments.push({
+              filename: `${documentType.replace(/\s+/g, "_")}-${contactData.nom}-${contactData.prenom}.pdf`,
+              content: pdfBase64,
+            });
+            console.log(`PDF generated successfully for ${recipientName}`);
+          } catch (pdfError: any) {
+            console.error(`Failed to generate PDF for ${recipientName}:`, pdfError);
+            // Continue without attachment
+          }
+        }
         
         const htmlContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -122,6 +249,7 @@ serve(async (req) => {
             ${sessionInfo.date_fin ? `<p><strong>Date de fin :</strong> ${new Date(sessionInfo.date_fin).toLocaleDateString("fr-FR")}</p>` : ""}
             ${sessionInfo.lieu ? `<p><strong>Lieu :</strong> ${sessionInfo.lieu}</p>` : ""}
             ${customMessage ? `<p>${customMessage}</p>` : ""}
+            ${attachments.length > 0 ? `<p><strong>📎 Pièce jointe :</strong> ${attachments.map(a => a.filename).join(", ")}</p>` : ""}
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
             <p style="color: #888; font-size: 12px;">
               Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
@@ -131,15 +259,22 @@ serve(async (req) => {
         `;
         
         try {
-          const emailResponse = await resend.emails.send({
+          const emailPayload: any = {
             from: EMAIL_CONFIG.FROM,
             to: [recipient.email],
             subject: subject,
             html: htmlContent,
             reply_to: EMAIL_CONFIG.REPLY_TO,
-          });
+          };
           
-          console.log(`Email sent to ${recipient.email}:`, emailResponse.data?.id);
+          // Add attachments if any
+          if (attachments.length > 0) {
+            emailPayload.attachments = attachments;
+          }
+          
+          const emailResponse = await resend.emails.send(emailPayload);
+          
+          console.log(`Email sent to ${recipient.email}:`, emailResponse.data?.id, `(${attachments.length} attachment(s))`);
           
           // Log success
           await supabase.from("email_logs").insert({
