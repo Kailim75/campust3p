@@ -93,7 +93,109 @@ serve(async (req) => {
     const body = await req.json().catch(() => null);
     
     // ========================================
-    // MANUAL EMAIL SENDING (prospect_email, document_envoi, direct_email)
+    // BULK EMAIL SENDING (with recipients array)
+    // ========================================
+    if (body && body.recipients && Array.isArray(body.recipients) && body.recipients.length > 0) {
+      console.log("Processing bulk email send request:", body.type, "recipients:", body.recipients.length);
+      
+      const documentType = body.documentType || "Document";
+      const sessionName = body.sessionName || "";
+      const sessionInfo = body.sessionInfo || {};
+      const customMessage = body.customMessage || "";
+      
+      const bulkResults: EmailResult[] = [];
+      
+      for (const recipient of body.recipients) {
+        if (!recipient.email) continue;
+        
+        const recipientName = recipient.name || "";
+        const subject = `${documentType} - ${sessionName || 'Ecole T3P Montrouge'}`;
+        
+        const htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">📄 ${documentType}</h2>
+            <p>Bonjour${recipientName ? ` ${recipientName}` : ""},</p>
+            <p>Nous vous adressons le document <strong>${documentType}</strong>${sessionName ? ` concernant votre formation <strong>${sessionName}</strong>` : ""}.</p>
+            ${sessionInfo.date_debut ? `<p><strong>Date de début :</strong> ${new Date(sessionInfo.date_debut).toLocaleDateString("fr-FR")}</p>` : ""}
+            ${sessionInfo.date_fin ? `<p><strong>Date de fin :</strong> ${new Date(sessionInfo.date_fin).toLocaleDateString("fr-FR")}</p>` : ""}
+            ${sessionInfo.lieu ? `<p><strong>Lieu :</strong> ${sessionInfo.lieu}</p>` : ""}
+            ${customMessage ? `<p>${customMessage}</p>` : ""}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #888; font-size: 12px;">
+              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
+              📧 montrouge@ecolet3p.fr
+            </p>
+          </div>
+        `;
+        
+        try {
+          const emailResponse = await resend.emails.send({
+            from: EMAIL_CONFIG.FROM,
+            to: [recipient.email],
+            subject: subject,
+            html: htmlContent,
+            reply_to: EMAIL_CONFIG.REPLY_TO,
+          });
+          
+          console.log(`Email sent to ${recipient.email}:`, emailResponse.data?.id);
+          
+          // Log success
+          await supabase.from("email_logs").insert({
+            type: "document_envoi",
+            recipient_email: recipient.email,
+            recipient_name: recipientName,
+            contact_id: recipient.contactId,
+            subject: subject,
+            status: "sent",
+            resend_id: emailResponse.data?.id,
+          });
+          
+          bulkResults.push({
+            type: "document_envoi",
+            recipient: recipient.email,
+            recipientName,
+            contactId: recipient.contactId,
+            subject,
+            success: true,
+            resendId: emailResponse.data?.id,
+          });
+          
+        } catch (emailError: any) {
+          console.error(`Failed to send email to ${recipient.email}:`, emailError);
+          
+          await supabase.from("email_logs").insert({
+            type: "document_envoi",
+            recipient_email: recipient.email,
+            recipient_name: recipientName,
+            contact_id: recipient.contactId,
+            subject: subject,
+            status: "failed",
+            error_message: emailError.message,
+          });
+          
+          bulkResults.push({
+            type: "document_envoi",
+            recipient: recipient.email,
+            recipientName,
+            contactId: recipient.contactId,
+            subject,
+            success: false,
+            error: emailError.message,
+          });
+        }
+      }
+      
+      const successCount = bulkResults.filter(r => r.success).length;
+      console.log(`Bulk email complete: ${successCount}/${bulkResults.length} sent`);
+      
+      return new Response(
+        JSON.stringify({ success: true, results: bulkResults, sent: successCount, total: bulkResults.length }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    
+    // ========================================
+    // SINGLE EMAIL SENDING (prospect_email, document_envoi, direct_email)
     // ========================================
     if (body && (body.type === "prospect_email" || body.type === "document_envoi" || body.type === "direct_email" || body.to)) {
       console.log("Processing manual email send request:", body.type || "direct");

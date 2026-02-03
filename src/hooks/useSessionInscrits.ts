@@ -152,26 +152,85 @@ export function useSessionInscrits(sessionId: string) {
     }
   });
 
-  // Tracer envoi groupé
+  // Tracer envoi groupé ET envoyer les emails
   const tracerEnvoiGroupe = useMutation({
     mutationFn: async ({ contactIds, typeDocument }: { contactIds: string[]; typeDocument: string }) => {
-      const { error } = await supabase
+      // 1. Récupérer les infos de la session
+      const { data: session, error: sessionError } = await supabase
+        .from('sessions')
+        .select('nom, formation_type, date_debut, date_fin, lieu')
+        .eq('id', sessionId)
+        .single();
+      
+      if (sessionError) throw sessionError;
+      
+      // 2. Récupérer les contacts avec email
+      const { data: contacts, error: contactsError } = await supabase
+        .from('contacts')
+        .select('id, email, prenom, nom')
+        .in('id', contactIds)
+        .not('email', 'is', null);
+      
+      if (contactsError) throw contactsError;
+      
+      const contactsWithEmail = contacts?.filter(c => c.email) || [];
+      
+      if (contactsWithEmail.length === 0) {
+        throw new Error('Aucun stagiaire sélectionné n\'a d\'adresse email');
+      }
+      
+      // 3. Tracer l'envoi dans la base
+      const { error: traceError } = await supabase
         .from('envois_groupes')
         .insert({
           session_id: sessionId,
           type_document: typeDocument,
-          nombre_destinataires: contactIds.length,
-          destinataires_ids: contactIds
+          nombre_destinataires: contactsWithEmail.length,
+          destinataires_ids: contactsWithEmail.map(c => c.id)
         });
       
-      if (error) throw error;
+      if (traceError) throw traceError;
+      
+      // 4. Envoyer les emails via l'edge function
+      const { error: emailError } = await supabase.functions.invoke('send-automated-emails', {
+        body: {
+          type: 'document_envoi',
+          recipients: contactsWithEmail.map(c => ({
+            email: c.email,
+            name: `${c.prenom} ${c.nom}`,
+            contactId: c.id,
+          })),
+          documentType: typeDocument,
+          sessionName: session.nom,
+          sessionInfo: {
+            formation_type: session.formation_type,
+            date_debut: session.date_debut,
+            date_fin: session.date_fin,
+            lieu: session.lieu,
+          },
+        },
+      });
+      
+      if (emailError) {
+        console.error('Erreur envoi emails:', emailError);
+        // On ne throw pas pour ne pas bloquer le traçage
+      }
+      
+      return { 
+        emailsSent: contactsWithEmail.length,
+        emailError: emailError?.message 
+      };
     },
-    onSuccess: (_, { contactIds, typeDocument }) => {
+    onSuccess: (result, { typeDocument }) => {
       queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
-      toast.success(`${typeDocument} tracé pour ${contactIds.length} stagiaire(s)`);
+      if (result.emailError) {
+        toast.warning(`${typeDocument} tracé pour ${result.emailsSent} stagiaire(s), mais erreur d'envoi email: ${result.emailError}`);
+      } else {
+        toast.success(`${typeDocument} envoyé à ${result.emailsSent} stagiaire(s)`);
+      }
     },
-    onError: () => {
-      toast.error('Erreur lors de l\'envoi');
+    onError: (error: any) => {
+      toast.error(error.message || 'Erreur lors de l\'envoi');
     }
   });
 
