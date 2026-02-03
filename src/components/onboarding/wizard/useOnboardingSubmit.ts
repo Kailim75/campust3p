@@ -3,19 +3,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OnboardingData } from "./OnboardingWizard";
 
-// Mapping formations vers catalogue
-const FORMATION_CATALOGUE: Record<string, { code: string; intitule: string; categorie: string; type: string }[]> = {
+/**
+ * Mapping formations vers catalogue avec nomenclature conforme
+ * Format : [TYPE]-[METIER]-[ZONE]-v[VERSION]
+ * 
+ * Types: INIT (initiale), FC (continue), MOB (mobilité - TAXI uniquement)
+ * Métiers: TAXI, VTC, VMDTR
+ * Zones: NAT (national), 75, 92, 93, 94
+ */
+const FORMATION_CATALOGUE: Record<string, { code: string; intitule: string; categorie: string; type: string; duree: number; prix: number }[]> = {
   taxi: [
-    { code: "TAXI-INIT", intitule: "Formation initiale Taxi", categorie: "Taxi", type: "Mobilité Taxi" },
-    { code: "TAXI-CONT", intitule: "Formation continue Taxi", categorie: "Taxi", type: "Formation continue Taxi" },
+    { code: "INIT-TAXI-NAT-v1", intitule: "Formation initiale - Conducteur de Taxi", categorie: "Taxi", type: "initiale", duree: 250, prix: 2990 },
+    { code: "FC-TAXI-NAT-v1", intitule: "Formation continue - Conducteur de Taxi", categorie: "Taxi", type: "continue", duree: 14, prix: 250 },
   ],
   vtc: [
-    { code: "VTC-INIT", intitule: "Formation initiale VTC", categorie: "VTC", type: "Mobilité VTC" },
-    { code: "VTC-CONT", intitule: "Formation continue VTC", categorie: "VTC", type: "Formation continue VTC" },
+    { code: "INIT-VTC-NAT-v1", intitule: "Formation initiale - Conducteur de VTC", categorie: "VTC", type: "initiale", duree: 250, prix: 2990 },
+    { code: "FC-VTC-NAT-v1", intitule: "Formation continue - Conducteur de VTC", categorie: "VTC", type: "continue", duree: 14, prix: 250 },
   ],
   vmdtr: [
-    { code: "VMDTR-INIT", intitule: "Formation initiale VMDTR", categorie: "VMDTR", type: "Mobilité VMDTR" },
-    { code: "VMDTR-CONT", intitule: "Formation continue VMDTR", categorie: "VMDTR", type: "Formation continue VMDTR" },
+    { code: "INIT-VMDTR-NAT-v1", intitule: "Formation initiale - Conducteur de VMDTR", categorie: "VMDTR", type: "initiale", duree: 33, prix: 990 },
+    { code: "FC-VMDTR-NAT-v1", intitule: "Formation continue - Conducteur de VMDTR", categorie: "VMDTR", type: "continue", duree: 14, prix: 250 },
   ],
 };
 
@@ -56,7 +63,7 @@ export function useOnboardingSubmit() {
         });
       }
 
-      // 3. Créer les formations au catalogue
+      // 3. Créer les formations au catalogue (nomenclature conforme)
       const catalogueItems: any[] = [];
       for (const formationId of data.formations) {
         const items = FORMATION_CATALOGUE[formationId];
@@ -68,8 +75,8 @@ export function useOnboardingSubmit() {
               categorie: item.categorie,
               type_formation: item.type,
               centre_id: centre.id,
-              duree_heures: formationId.includes("CONT") ? 14 : 140,
-              prix_ht: formationId.includes("CONT") ? 250 : 1500,
+              duree_heures: item.duree,
+              prix_ht: item.prix,
               actif: true,
             });
           }

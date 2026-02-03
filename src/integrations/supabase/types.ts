@@ -664,54 +664,75 @@ export type Database = {
           categorie: string
           centre_id: string | null
           code: string
+          competences_visees: string[] | null
           created_at: string
           description: string | null
           duree_heures: number
           id: string
           intitule: string
+          modalites_evaluation: string | null
+          modalites_pedagogiques: string | null
           objectifs: string | null
           prerequis: string | null
           prix_ht: number
+          public_concerne: string | null
+          references_reglementaires: string | null
           remise_percent: number
           tva_percent: number
           type_formation: string
           updated_at: string
+          version: number | null
+          zone_geographique: string | null
         }
         Insert: {
           actif?: boolean
           categorie?: string
           centre_id?: string | null
           code: string
+          competences_visees?: string[] | null
           created_at?: string
           description?: string | null
           duree_heures?: number
           id?: string
           intitule: string
+          modalites_evaluation?: string | null
+          modalites_pedagogiques?: string | null
           objectifs?: string | null
           prerequis?: string | null
           prix_ht?: number
+          public_concerne?: string | null
+          references_reglementaires?: string | null
           remise_percent?: number
           tva_percent?: number
           type_formation?: string
           updated_at?: string
+          version?: number | null
+          zone_geographique?: string | null
         }
         Update: {
           actif?: boolean
           categorie?: string
           centre_id?: string | null
           code?: string
+          competences_visees?: string[] | null
           created_at?: string
           description?: string | null
           duree_heures?: number
           id?: string
           intitule?: string
+          modalites_evaluation?: string | null
+          modalites_pedagogiques?: string | null
           objectifs?: string | null
           prerequis?: string | null
           prix_ht?: number
+          public_concerne?: string | null
+          references_reglementaires?: string | null
           remise_percent?: number
           tva_percent?: number
           type_formation?: string
           updated_at?: string
+          version?: number | null
+          zone_geographique?: string | null
         }
         Relationships: [
           {
@@ -3450,16 +3471,23 @@ export type Database = {
           categorie: string
           centre_id: string | null
           code: string
+          competences_visees: string[] | null
           created_at: string
           description: string | null
           duree_heures: number
           id: string
           image_url: string | null
+          modalites_evaluation: string | null
+          modalites_pedagogiques: string | null
           nom: string
           ordre: number
+          public_concerne: string | null
+          references_reglementaires: string | null
           seuil_reussite_pct: number
           type_formation: string
           updated_at: string
+          version: number | null
+          zone_geographique: string | null
         }
         Insert: {
           actif?: boolean
@@ -3467,16 +3495,23 @@ export type Database = {
           categorie: string
           centre_id?: string | null
           code: string
+          competences_visees?: string[] | null
           created_at?: string
           description?: string | null
           duree_heures?: number
           id?: string
           image_url?: string | null
+          modalites_evaluation?: string | null
+          modalites_pedagogiques?: string | null
           nom: string
           ordre?: number
+          public_concerne?: string | null
+          references_reglementaires?: string | null
           seuil_reussite_pct?: number
           type_formation: string
           updated_at?: string
+          version?: number | null
+          zone_geographique?: string | null
         }
         Update: {
           actif?: boolean
@@ -3484,16 +3519,23 @@ export type Database = {
           categorie?: string
           centre_id?: string | null
           code?: string
+          competences_visees?: string[] | null
           created_at?: string
           description?: string | null
           duree_heures?: number
           id?: string
           image_url?: string | null
+          modalites_evaluation?: string | null
+          modalites_pedagogiques?: string | null
           nom?: string
           ordre?: number
+          public_concerne?: string | null
+          references_reglementaires?: string | null
           seuil_reussite_pct?: number
           type_formation?: string
           updated_at?: string
+          version?: number | null
+          zone_geographique?: string | null
         }
         Relationships: [
           {
