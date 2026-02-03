@@ -57,6 +57,34 @@ export function DocumentVersionHistoryDialog({
   // Build version history from available data
   const versions: VersionEntry[] = [];
   
+  // Guard against undefined document
+  if (!document || !document.originalData) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Historique des versions
+            </DialogTitle>
+            <DialogDescription>
+              Aucun document sélectionné
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-8 text-muted-foreground">
+            <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>Sélectionnez un document pour voir son historique</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
   if (document.source === "certificate") {
     const cert = document.originalData;
     
