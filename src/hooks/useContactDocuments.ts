@@ -22,6 +22,17 @@ export const documentTypes = [
   { value: "casier", label: "Casier judiciaire" },
   { value: "certificat_medical", label: "Certificat médical" },
   { value: "attestation", label: "Attestation de formation" },
+  { value: "attestation_formation", label: "Attestation de formation continue" },
+  { value: "contrat", label: "Contrat de formation" },
+  { value: "contrat_formation", label: "Contrat de formation professionnelle" },
+  { value: "convention", label: "Convention" },
+  { value: "convention_stage", label: "Convention de stage" },
+  { value: "reglement_interieur", label: "Règlement intérieur signé" },
+  { value: "reglement", label: "Règlement intérieur" },
+  { value: "programme", label: "Programme de formation" },
+  { value: "convocation", label: "Convocation" },
+  { value: "feuille_emargement", label: "Feuille d'émargement" },
+  { value: "evaluation", label: "Évaluation" },
   { value: "autre", label: "Autre" },
 ] as const;
 
