@@ -15,7 +15,9 @@ const EMAIL_CONFIG = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  // IMPORTANT: doit inclure tous les headers envoyés par supabase-js (sinon le navigateur bloque en préflight)
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface EmailResult {
