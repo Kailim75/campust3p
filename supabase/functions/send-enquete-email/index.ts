@@ -149,7 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
        `;
 
     const emailResponse = await resend.emails.send({
-      from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+      from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
       to: [to],
       subject,
       html: htmlContent,

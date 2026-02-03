@@ -116,7 +116,7 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
             to: [contact.email],
             subject: emailSubject,
             html: `
@@ -230,7 +230,7 @@ serve(async (req) => {
 
           try {
             const emailResponse = await resend.emails.send({
-              from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+              from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
               to: [contact.email],
               subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
               html: `
@@ -333,7 +333,7 @@ serve(async (req) => {
 
           try {
             const emailResponse = await resend.emails.send({
-              from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+              from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
               to: [contact.email],
               subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
               html: `
@@ -425,7 +425,7 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
             to: [contact.email],
             subject: emailSubject,
             html: `
@@ -537,7 +537,7 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
             to: [contact.email],
             subject: emailSubject,
             html: `

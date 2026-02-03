@@ -87,7 +87,7 @@ serve(async (req) => {
         : "";
 
       const emailResponse = await resend.emails.send({
-        from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+        from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
         to: [contact.email],
         subject: `Document à signer : ${signatureRequest.titre}`,
         html: `
@@ -190,7 +190,7 @@ serve(async (req) => {
       const typeContratLabel = typeContratLabels[contrat.type_contrat as string] || "Contrat";
 
       const emailResponse = await resend.emails.send({
-        from: "T3P Campus Montrouge <montrouge@t3pcampus.fr>",
+        from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
         to: [contact.email],
         subject: `Contrat à signer : ${contrat.numero_contrat}`,
         html: `
