@@ -290,6 +290,11 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
               <TabsContent value="admin">
                 <ContactAdminTab
                   contactId={contact.id}
+                  contact={{
+                    nom: contact.nom,
+                    prenom: contact.prenom,
+                    formation: contact.formation,
+                  }}
                   documents={documents}
                   documentsLoading={documentsLoading}
                   documentTypes={[...documentTypes]}
