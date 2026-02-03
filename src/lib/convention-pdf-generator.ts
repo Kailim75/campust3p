@@ -28,23 +28,25 @@ import {
   type SousArticleCGV,
 } from "@/templates/conditionsGeneralesVente";
 
-// ==================== CHARTE GRAPHIQUE T3P ====================
+// ==================== IMPORT CHARTE GRAPHIQUE CENTRALISÉE ====================
+import { 
+  DOCUMENT_COLORS,
+  DOCUMENT_FONTS,
+  DOCUMENT_LAYOUT 
+} from "./document-styles";
+
+// Alias pour compatibilité
 const COLORS = {
-  // Forest Green - Couleur principale
-  forestGreen: { r: 27, g: 77, b: 62 },
-  forestGreenLight: { r: 42, g: 107, b: 84 },
-  // Cream - Fond
-  cream: { r: 245, g: 235, b: 215 },
-  creamLight: { r: 251, g: 247, b: 239 },
-  // Gold - Accent
-  gold: { r: 212, g: 168, b: 83 },
-  goldDark: { r: 196, g: 152, b: 67 },
-  // Warm Gray
-  warmGray600: { r: 107, g: 107, b: 107 },
-  warmGray700: { r: 75, g: 70, b: 60 },
-  warmGray800: { r: 44, g: 41, b: 34 },
-  // Fonctionnelles
-  white: { r: 255, g: 255, b: 255 },
+  forestGreen: DOCUMENT_COLORS.forestGreen,
+  forestGreenLight: DOCUMENT_COLORS.forestGreenLight,
+  cream: DOCUMENT_COLORS.cream,
+  creamLight: DOCUMENT_COLORS.creamLight,
+  gold: DOCUMENT_COLORS.gold,
+  goldDark: DOCUMENT_COLORS.goldDark,
+  warmGray600: DOCUMENT_COLORS.warmGray600,
+  warmGray700: DOCUMENT_COLORS.warmGray700,
+  warmGray800: DOCUMENT_COLORS.warmGray800,
+  white: DOCUMENT_COLORS.white,
 };
 
 // ==================== CONFIGURATION PDF ====================
