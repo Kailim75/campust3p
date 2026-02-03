@@ -201,126 +201,50 @@ export function AttestationEditorDialog({
   const handleGeneratePdf = async () => {
     setIsGeneratingPdf(true);
     try {
-      // Generate PDF using the attestation data
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF();
+      // Import the new attestation PDF generator with full branding
+      const { downloadAttestationPDF } = await import("@/lib/attestation-pdf-generator");
       
-      const pageWidth = doc.internal.pageSize.getWidth();
-      let y = 20;
+      // Build organisme info from centre data
+      const organismeInfo = {
+        nom: formData.nomCentre,
+        nomCommercial: formData.nomCentre,
+        adresse: formData.adresseCentre,
+        telephone: centre?.telephone || "",
+        email: centre?.email || "",
+        siret: centre?.siret || "",
+        nda: formData.nda,
+        qualiopiNumero: formData.qualiopi,
+        logoUrl: centre?.logo_url,
+        signatureCachetUrl: centre?.signature_cachet_url,
+        responsableLegal: {
+          nom: centre?.responsable_legal_nom || "Le Responsable",
+          fonction: centre?.responsable_legal_fonction || "Directeur pédagogique",
+        },
+        ville: formData.adresseCentre.split(",")[0]?.trim() || "Paris",
+      };
       
-      // Header with centre info
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text(formData.nomCentre, pageWidth / 2, y, { align: "center" });
-      y += 8;
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(formData.adresseCentre, pageWidth / 2, y, { align: "center" });
-      y += 5;
-      
-      if (formData.nda) {
-        doc.text(`N° Déclaration d'activité : ${formData.nda}`, pageWidth / 2, y, { align: "center" });
-        y += 5;
-      }
-      
-      if (formData.qualiopi) {
-        doc.text(`Certification Qualiopi : ${formData.qualiopi}`, pageWidth / 2, y, { align: "center" });
-        y += 5;
-      }
-      
-      y += 15;
-      
-      // Title
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("ATTESTATION DE FIN DE FORMATION", pageWidth / 2, y, { align: "center" });
-      y += 10;
-      
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-      doc.text(`N° ${formData.numeroCertificat}`, pageWidth / 2, y, { align: "center" });
-      y += 20;
-      
-      // Body
-      doc.setFontSize(11);
-      const text = `Je soussigné(e), représentant(e) de ${formData.nomCentre}, certifie que :`;
-      doc.text(text, 20, y);
-      y += 15;
-      
-      // Stagiaire info
-      doc.setFont("helvetica", "bold");
-      doc.text(`${formData.civilite} ${formData.prenom} ${formData.nom}`, 30, y);
-      y += 6;
-      
-      doc.setFont("helvetica", "normal");
-      if (formData.dateNaissance) {
-        const dateNaissance = formData.dateNaissance ? format(new Date(formData.dateNaissance), "dd MMMM yyyy", { locale: fr }) : "";
-        doc.text(`Né(e) le ${dateNaissance} à ${formData.lieuNaissance} (${formData.paysNaissance})`, 30, y);
-        y += 10;
-      }
-      
-      // Formation details
-      doc.text("A suivi avec succès la formation :", 20, y);
-      y += 8;
-      
-      doc.setFont("helvetica", "bold");
-      doc.text(formData.intituleFormation, 30, y);
-      y += 8;
-      
-      doc.setFont("helvetica", "normal");
-      
-      if (formData.dateDebut && formData.dateFin) {
-        const dateDebut = format(new Date(formData.dateDebut), "dd/MM/yyyy");
-        const dateFin = format(new Date(formData.dateFin), "dd/MM/yyyy");
-        doc.text(`Du ${dateDebut} au ${dateFin}`, 30, y);
-        y += 6;
-      }
-      
-      doc.text(`Durée : ${formData.dureeHeures} heures`, 30, y);
-      y += 10;
-      
-      // Modules
-      if (formData.modulesContenus) {
-        doc.text("Contenu pédagogique :", 20, y);
-        y += 6;
-        
-        const modules = formData.modulesContenus.split("\n");
-        modules.forEach(module => {
-          if (module.trim()) {
-            doc.text(`• ${module.trim()}`, 30, y);
-            y += 5;
-          }
-        });
-        y += 5;
-      }
-      
-      y += 10;
-      
-      // Signature section
-      const dateEmission = formData.dateEmission ? format(new Date(formData.dateEmission), "dd MMMM yyyy", { locale: fr }) : format(new Date(), "dd MMMM yyyy", { locale: fr });
-      doc.text(`Fait à ${formData.adresseCentre.split(",")[0] || "Paris"}, le ${dateEmission}`, 20, y);
-      y += 15;
-      
-      doc.text("Le Responsable pédagogique", 130, y);
-      y += 25;
-      
-      doc.text("Signature et cachet", 130, y);
-      
-      // Footer with legal mentions
-      doc.setFontSize(8);
-      doc.setTextColor(128);
-      const footerY = doc.internal.pageSize.getHeight() - 15;
-      doc.text(
-        "Ce document est une attestation de formation délivrée conformément à l'article L6353-1 du Code du travail.",
-        pageWidth / 2,
-        footerY,
-        { align: "center" }
+      // Generate and download PDF with full branding
+      await downloadAttestationPDF(
+        {
+          civilite: formData.civilite,
+          nom: formData.nom,
+          prenom: formData.prenom,
+          dateNaissance: formData.dateNaissance,
+          lieuNaissance: formData.lieuNaissance,
+          paysNaissance: formData.paysNaissance,
+          intituleFormation: formData.intituleFormation,
+          typeFormation: formData.typeFormation,
+          dateDebut: formData.dateDebut,
+          dateFin: formData.dateFin,
+          dureeHeures: formData.dureeHeures,
+          modulesContenus: formData.modulesContenus,
+          dateEmission: formData.dateEmission || new Date().toISOString(),
+          numeroCertificat: formData.numeroCertificat,
+        },
+        organismeInfo
       );
       
-      // Download
-      doc.save(`attestation_${formData.numeroCertificat}.pdf`);
-      toast.success("PDF généré avec succès");
+      toast.success("PDF généré avec succès - Charte graphique appliquée");
     } catch (error) {
       console.error("Erreur génération PDF:", error);
       toast.error("Erreur lors de la génération du PDF");

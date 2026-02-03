@@ -11,30 +11,38 @@ import {
   type TypeFormation 
 } from "@/constants/formations";
 
-// ==================== CHARTE GRAPHIQUE ====================
+// ==================== IMPORT CHARTE GRAPHIQUE CENTRALISÉE ====================
+// Utilise la configuration centralisée pour tous les documents PDF
+import { 
+  DOCUMENT_COLORS as COLORS_CENTRAL,
+  DOCUMENT_FONTS,
+  DOCUMENT_LAYOUT 
+} from "./document-styles";
+
+// Re-export pour compatibilité avec le code existant
 const COLORS = {
   // Forest Green - Couleur principale
-  forestGreen: { r: 27, g: 77, b: 62 },
-  forestGreenLight: { r: 42, g: 107, b: 84 },
-  forestGreenDark: { r: 20, g: 61, b: 49 },
+  forestGreen: COLORS_CENTRAL.forestGreen,
+  forestGreenLight: COLORS_CENTRAL.forestGreenLight,
+  forestGreenDark: COLORS_CENTRAL.forestGreenDark,
   // Cream - Fond
-  cream: { r: 245, g: 235, b: 215 },
-  creamLight: { r: 251, g: 247, b: 239 },
-  creamDark: { r: 232, g: 220, b: 196 },
+  cream: COLORS_CENTRAL.cream,
+  creamLight: COLORS_CENTRAL.creamLight,
+  creamDark: COLORS_CENTRAL.creamDark,
   // Gold - Accent
-  gold: { r: 212, g: 168, b: 83 },
-  goldLight: { r: 228, g: 190, b: 115 },
-  goldDark: { r: 196, g: 152, b: 67 },
+  gold: COLORS_CENTRAL.gold,
+  goldLight: COLORS_CENTRAL.goldLight,
+  goldDark: COLORS_CENTRAL.goldDark,
   // Warm Gray
-  warmGray500: { r: 137, g: 129, b: 114 },
-  warmGray600: { r: 107, g: 107, b: 107 },
-  warmGray700: { r: 75, g: 70, b: 60 },
-  warmGray800: { r: 44, g: 41, b: 34 },
+  warmGray500: COLORS_CENTRAL.warmGray500,
+  warmGray600: COLORS_CENTRAL.warmGray600,
+  warmGray700: COLORS_CENTRAL.warmGray700,
+  warmGray800: COLORS_CENTRAL.warmGray800,
   // Fonctionnelles
-  success: { r: 34, g: 197, b: 94 },
-  warning: { r: 245, g: 158, b: 11 },
-  error: { r: 239, g: 68, b: 68 },
-  white: { r: 255, g: 255, b: 255 },
+  success: COLORS_CENTRAL.success,
+  warning: COLORS_CENTRAL.warning,
+  error: COLORS_CENTRAL.error,
+  white: COLORS_CENTRAL.white,
 };
 
 export interface AgrementsAutre {
