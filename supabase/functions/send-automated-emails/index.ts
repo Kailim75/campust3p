@@ -78,10 +78,118 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const results: EmailResult[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   try {
+    // Check if this is a manual email send request
+    const body = await req.json().catch(() => null);
+    
+    // ========================================
+    // MANUAL EMAIL SENDING (prospect_email, document_envoi, direct_email)
+    // ========================================
+    if (body && (body.type === "prospect_email" || body.type === "document_envoi" || body.type === "direct_email" || body.to)) {
+      console.log("Processing manual email send request:", body.type || "direct");
+      
+      const recipientEmail = body.to || body.recipientEmail;
+      const recipientName = body.recipientName || "";
+      const subject = body.subject || "Message de Ecole T3P Montrouge";
+      const htmlContent = body.html || body.customMessage || "";
+      const documentTypes = body.documentTypes || [];
+      
+      if (!recipientEmail) {
+        return new Response(
+          JSON.stringify({ error: "Recipient email is required" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      
+      let finalHtml = htmlContent;
+      
+      // Build HTML for document_envoi type
+      if (body.type === "document_envoi" && documentTypes.length > 0) {
+        finalHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">📄 Documents envoyés</h2>
+            <p>Bonjour${recipientName ? ` ${recipientName}` : ""},</p>
+            <p>Nous vous adressons les documents suivants :</p>
+            <ul>
+              ${documentTypes.map((doc: string) => `<li>${doc}</li>`).join("")}
+            </ul>
+            ${body.customMessage ? `<p>${body.customMessage}</p>` : ""}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #888; font-size: 12px;">
+              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR
+            </p>
+          </div>
+        `;
+      }
+      
+      // Build HTML for prospect_email type
+      if (body.type === "prospect_email" && !finalHtml.includes("<")) {
+        finalHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            ${htmlContent}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #888; font-size: 12px;">
+              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR
+            </p>
+          </div>
+        `;
+      }
+      
+      try {
+        const emailResponse = await resend.emails.send({
+          from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+          to: [recipientEmail],
+          subject: subject,
+          html: finalHtml,
+        });
+        
+        console.log("Manual email sent successfully:", emailResponse);
+        
+        // Log to database
+        const { error: logError } = await supabase.from("email_logs").insert({
+          type: body.type || "manual",
+          recipient_email: recipientEmail,
+          recipient_name: recipientName,
+          subject: subject,
+          template_used: body.type || "manual",
+          status: "sent",
+          resend_id: emailResponse.data?.id,
+        });
+        if (logError) console.log("Email log insert failed (table may not exist):", logError);
+        
+        return new Response(
+          JSON.stringify({ success: true, id: emailResponse.data?.id }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      } catch (emailError: any) {
+        console.error("Failed to send manual email:", emailError);
+        
+        // Log failed email
+        const { error: logError2 } = await supabase.from("email_logs").insert({
+          type: body.type || "manual",
+          recipient_email: recipientEmail,
+          recipient_name: recipientName,
+          subject: subject,
+          template_used: body.type || "manual",
+          status: "failed",
+          error_message: emailError.message,
+        });
+        if (logError2) console.log("Email log insert failed:", logError2);
+        
+        return new Response(
+          JSON.stringify({ error: emailError.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+    
+    // ========================================
+    // AUTOMATED EMAILS (cron jobs)
+    // ========================================
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // ========================================
     // 1. RELANCES PAIEMENT J-7 (7 jours avant échéance)
     // ========================================
