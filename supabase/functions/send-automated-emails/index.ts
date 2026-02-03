@@ -4,6 +4,15 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// ===============================================
+// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
+// Adresse unique et verrouillée pour TOUS les envois
+// ===============================================
+const EMAIL_CONFIG = {
+  FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+  REPLY_TO: "montrouge@ecolet3p.fr",
+} as const;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -138,10 +147,11 @@ serve(async (req) => {
       
       try {
         const emailResponse = await resend.emails.send({
-          from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+          from: EMAIL_CONFIG.FROM,
           to: [recipientEmail],
           subject: subject,
           html: finalHtml,
+          reply_to: EMAIL_CONFIG.REPLY_TO,
         });
         
         console.log("Manual email sent successfully:", emailResponse);
@@ -224,9 +234,10 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+            from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
+            reply_to: EMAIL_CONFIG.REPLY_TO,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #f59e0b;">⏰ Rappel de paiement</h2>
@@ -338,9 +349,10 @@ serve(async (req) => {
 
           try {
             const emailResponse = await resend.emails.send({
-              from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+              from: EMAIL_CONFIG.FROM,
               to: [contact.email],
               subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
+              reply_to: EMAIL_CONFIG.REPLY_TO,
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2 style="color: #2563eb;">Votre formation commence dans 7 jours !</h2>
@@ -441,9 +453,10 @@ serve(async (req) => {
 
           try {
             const emailResponse = await resend.emails.send({
-              from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+              from: EMAIL_CONFIG.FROM,
               to: [contact.email],
               subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
+              reply_to: EMAIL_CONFIG.REPLY_TO,
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2 style="color: #059669;">🎓 Votre formation commence demain !</h2>
@@ -533,9 +546,10 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+            from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
+            reply_to: EMAIL_CONFIG.REPLY_TO,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #7c3aed;">📝 Rappel Examen T3P - J-7</h2>
@@ -645,9 +659,10 @@ serve(async (req) => {
 
         try {
           const emailResponse = await resend.emails.send({
-            from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+            from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
+            reply_to: EMAIL_CONFIG.REPLY_TO,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #0891b2;">🚗 Rappel Examen Pratique - J-7</h2>

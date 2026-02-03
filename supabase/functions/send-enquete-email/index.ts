@@ -4,6 +4,15 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const resend = new Resend(RESEND_API_KEY);
 
+// ===============================================
+// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
+// Adresse unique et verrouillée pour TOUS les envois
+// ===============================================
+const EMAIL_CONFIG = {
+  FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+  REPLY_TO: "montrouge@ecolet3p.fr",
+} as const;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -149,10 +158,11 @@ const handler = async (req: Request): Promise<Response> => {
        `;
 
     const emailResponse = await resend.emails.send({
-      from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+      from: EMAIL_CONFIG.FROM,
       to: [to],
       subject,
       html: htmlContent,
+      reply_to: EMAIL_CONFIG.REPLY_TO,
     });
 
     console.log("Resend response:", emailResponse);

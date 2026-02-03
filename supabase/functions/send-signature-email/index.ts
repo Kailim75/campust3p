@@ -4,6 +4,15 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// ===============================================
+// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
+// Adresse unique et verrouillée pour TOUS les envois
+// ===============================================
+const EMAIL_CONFIG = {
+  FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+  REPLY_TO: "montrouge@ecolet3p.fr",
+} as const;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -87,9 +96,10 @@ serve(async (req) => {
         : "";
 
       const emailResponse = await resend.emails.send({
-        from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+        from: EMAIL_CONFIG.FROM,
         to: [contact.email],
         subject: `Document à signer : ${signatureRequest.titre}`,
+        reply_to: EMAIL_CONFIG.REPLY_TO,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">📝 Document à signer</h2>
@@ -190,9 +200,10 @@ serve(async (req) => {
       const typeContratLabel = typeContratLabels[contrat.type_contrat as string] || "Contrat";
 
       const emailResponse = await resend.emails.send({
-        from: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+        from: EMAIL_CONFIG.FROM,
         to: [contact.email],
         subject: `Contrat à signer : ${contrat.numero_contrat}`,
+        reply_to: EMAIL_CONFIG.REPLY_TO,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">📄 Contrat à signer</h2>

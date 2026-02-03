@@ -2,6 +2,15 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
+// ===============================================
+// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
+// Adresse unique et verrouillée pour TOUS les envois
+// ===============================================
+const EMAIL_CONFIG = {
+  FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
+  REPLY_TO: "montrouge@ecolet3p.fr",
+} as const;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -240,20 +249,12 @@ async function sendEmailAction(
     return { success: false, error: 'No recipient email found' };
   }
 
-  // Récupérer les infos du centre
-  const { data: centre } = await supabase
-    .from('centre_formation')
-    .select('nom_commercial, email')
-    .single();
-
-  const fromEmail = centre?.email || 'noreply@formation.fr';
-  const fromName = centre?.nom_commercial || 'Centre de Formation';
-
   const emailResult = await resend.emails.send({
-    from: `${fromName} <${fromEmail.includes('@') && fromEmail.split('@')[1] !== 'resend.dev' ? 'onboarding@resend.dev' : fromEmail}>`,
+    from: EMAIL_CONFIG.FROM,
     to: [recipientEmail],
     subject,
-    html: content
+    html: content,
+    reply_to: EMAIL_CONFIG.REPLY_TO
   });
 
   // Logger l'envoi
