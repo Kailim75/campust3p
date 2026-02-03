@@ -8,10 +8,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -151,8 +151,8 @@ export function AttestationGeneratorDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Award className="h-5 w-5" />
             Générer une nouvelle attestation
@@ -162,136 +162,138 @@ export function AttestationGeneratorDialog({
           </DialogDescription>
         </DialogHeader>
         
-        {generatedCertificate ? (
-          <div className="py-8 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Attestation générée !</h3>
-              <p className="text-muted-foreground mt-1">
-                Numéro de certificat :
-              </p>
-              <code className="text-lg font-mono font-bold text-primary mt-2 block">
-                {generatedCertificate.numero}
-              </code>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              L'attestation a été ajoutée au dossier du stagiaire.
-              Vous pouvez maintenant l'éditer ou la télécharger.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4 py-4">
-            {/* Type d'attestation */}
-            <div className="space-y-2">
-              <Label>Type d'attestation</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {ATTESTATION_TYPES.map(type => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      attestationType === type.value
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                    onClick={() => setAttestationType(type.value)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{type.label}</span>
-                      {attestationType === type.value && (
-                        <CheckCircle className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {type.description}
-                    </p>
-                  </button>
-                ))}
+        <ScrollArea className="flex-1 overflow-auto pr-4">
+          {generatedCertificate ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-primary" />
               </div>
-            </div>
-            
-            {/* Formation */}
-            <div className="space-y-2">
-              <Label>Formation concernée</Label>
-              <Select value={formationType} onValueChange={setFormationType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une formation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FORMATION_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {contact?.formation && (
-                <p className="text-xs text-muted-foreground">
-                  Formation du profil : {contact.formation}
+              <div>
+                <h3 className="font-semibold text-lg">Attestation générée !</h3>
+                <p className="text-muted-foreground mt-1">
+                  Numéro de certificat :
                 </p>
-              )}
-            </div>
-            
-            {/* Session (optionnel) */}
-            <div className="space-y-2">
-              <Label>Session de formation (optionnel)</Label>
-              <Select 
-                value={sessionId || "none"} 
-                onValueChange={(val) => setSessionId(val === "none" ? "" : val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une session" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucune session</SelectItem>
-                  {contactSessions.map(session => (
-                    <SelectItem key={session.id} value={session.id}>
-                      {session.nom} ({format(new Date(session.date_debut), "dd/MM/yyyy")})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Associer à une session permet de lier l'attestation au parcours de formation
+                <code className="text-lg font-mono font-bold text-primary mt-2 block">
+                  {generatedCertificate.numero}
+                </code>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                L'attestation a été ajoutée au dossier du stagiaire.
+                Vous pouvez maintenant l'éditer ou la télécharger.
               </p>
             </div>
-            
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label>Notes internes (optionnel)</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notes additionnelles..."
-                rows={2}
-              />
-            </div>
-            
-            {/* Centre info */}
-            {centre && (
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                <p className="font-medium">{centre.nom_commercial || centre.nom_legal}</p>
-                <p className="text-muted-foreground text-xs">{centre.adresse_complete}</p>
-                {centre.nda && (
-                  <Badge variant="outline" className="mt-2 text-xs">
-                    NDA: {centre.nda}
-                  </Badge>
+          ) : (
+            <div className="space-y-4 py-4">
+              {/* Type d'attestation */}
+              <div className="space-y-2">
+                <Label>Type d'attestation</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {ATTESTATION_TYPES.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      className={`p-3 rounded-lg border text-left transition-colors ${
+                        attestationType === type.value
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                      onClick={() => setAttestationType(type.value)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{type.label}</span>
+                        {attestationType === type.value && (
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {type.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Formation */}
+              <div className="space-y-2">
+                <Label>Formation concernée</Label>
+                <Select value={formationType} onValueChange={setFormationType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une formation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FORMATION_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {contact?.formation && (
+                  <p className="text-xs text-muted-foreground">
+                    Formation du profil : {contact.formation}
+                  </p>
                 )}
               </div>
-            )}
-            
-            {!formationType && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning-foreground text-sm">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>Veuillez sélectionner une formation pour générer l'attestation</span>
+              
+              {/* Session (optionnel) */}
+              <div className="space-y-2">
+                <Label>Session de formation (optionnel)</Label>
+                <Select 
+                  value={sessionId || "none"} 
+                  onValueChange={(val) => setSessionId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune session</SelectItem>
+                    {contactSessions.map(session => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {session.nom} ({format(new Date(session.date_debut), "dd/MM/yyyy")})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Associer à une session permet de lier l'attestation au parcours de formation
+                </p>
               </div>
-            )}
-          </div>
-        )}
-        
-        <DialogFooter>
+              
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Notes internes (optionnel)</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Notes additionnelles..."
+                  rows={2}
+                />
+              </div>
+              
+              {/* Centre info */}
+              {centre && (
+                <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                  <p className="font-medium">{centre.nom_commercial || centre.nom_legal}</p>
+                  <p className="text-muted-foreground text-xs">{centre.adresse_complete}</p>
+                  {centre.nda && (
+                    <Badge variant="outline" className="mt-2 text-xs">
+                      NDA: {centre.nda}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
+              {!formationType && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 text-warning-foreground text-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>Veuillez sélectionner une formation pour générer l'attestation</span>
+                </div>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+
+        <DialogFooter className="flex-shrink-0">
           {generatedCertificate ? (
             <Button onClick={handleClose}>
               Fermer
