@@ -237,12 +237,15 @@ export function AttestationGeneratorDialog({
             {/* Session (optionnel) */}
             <div className="space-y-2">
               <Label>Session de formation (optionnel)</Label>
-              <Select value={sessionId} onValueChange={setSessionId}>
+              <Select 
+                value={sessionId || "none"} 
+                onValueChange={(val) => setSessionId(val === "none" ? "" : val)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une session" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune session</SelectItem>
+                  <SelectItem value="none">Aucune session</SelectItem>
                   {contactSessions.map(session => (
                     <SelectItem key={session.id} value={session.id}>
                       {session.nom} ({format(new Date(session.date_debut), "dd/MM/yyyy")})
