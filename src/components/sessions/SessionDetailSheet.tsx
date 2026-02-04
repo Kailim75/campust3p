@@ -38,6 +38,8 @@ import {
   Send,
   CheckCircle2,
   CreditCard,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -66,6 +68,7 @@ import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGene
 import { useGenerateBatchChevalets } from "@/hooks/useChevalets";
 import { useBatchPedagogicalDocuments } from "@/hooks/useBatchPedagogicalDocuments";
 import { CloseSessionDialog } from "./CloseSessionDialog";
+import { useArchiveSession, useUnarchiveSession, useCanArchiveSession } from "@/hooks/useSessionArchive";
 import SessionInscritsTable from "./SessionInscritsTable";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import { useSheetSize } from "@/hooks/useSheetSize";
@@ -101,6 +104,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
+  const archiveSession = useArchiveSession();
+  const unarchiveSession = useUnarchiveSession();
+  const canArchive = useCanArchiveSession(session?.date_fin);
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -289,6 +295,12 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       >
                         {statusConfig[session.statut]?.label || session.statut}
                       </Badge>
+                      {session.archived && (
+                        <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-muted">
+                          <Archive className="h-3 w-3 mr-1" />
+                          Archivée
+                        </Badge>
+                      )}
                     </div>
                     
                     {/* Formateur Badge */}
@@ -496,22 +508,52 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   </div>
 
                   <Separator />
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={() => onEdit(session)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Modifier
-                    </Button>
-                    {session.statut !== "terminee" && session.statut !== "annulee" && (
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 border-success text-success hover:bg-success/10"
-                        onClick={() => setCloseDialogOpen(true)}
-                        disabled={inscriptionCount === 0}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Clôturer
-                      </Button>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    {/* Actions principales */}
+                    <div className="flex gap-2">
+                      {!session.archived && (
+                        <Button className="flex-1" onClick={() => onEdit(session)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Modifier
+                        </Button>
+                      )}
+                      {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-success text-success hover:bg-success/10"
+                          onClick={() => setCloseDialogOpen(true)}
+                          disabled={inscriptionCount === 0}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Clôturer
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Actions archivage */}
+                    <div className="flex gap-2">
+                      {session.archived ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => unarchiveSession.mutate(session.id)}
+                          disabled={unarchiveSession.isPending}
+                        >
+                          <ArchiveRestore className="h-4 w-4 mr-2" />
+                          Désarchiver
+                        </Button>
+                      ) : canArchive ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => archiveSession.mutate(session.id)}
+                          disabled={archiveSession.isPending}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archiver
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </TabsContent>
 

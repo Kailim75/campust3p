@@ -8,14 +8,20 @@ export type SessionUpdate = TablesUpdate<"sessions">;
 
 export type SessionInscription = Tables<"session_inscriptions">;
 
-export function useSessions() {
+export function useSessions(includeArchived = false) {
   return useQuery({
-    queryKey: ["sessions"],
+    queryKey: ["sessions", { includeArchived }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("sessions")
         .select("*")
         .order("date_debut", { ascending: true });
+
+      if (!includeArchived) {
+        query = query.eq("archived", false);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Session[];
@@ -31,6 +37,7 @@ export function useUpcomingSessions(limit = 5) {
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
+        .eq("archived", false)
         .gte("date_fin", today)
         .order("date_debut", { ascending: true })
         .limit(limit);
