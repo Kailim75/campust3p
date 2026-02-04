@@ -206,140 +206,386 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   }
 ];
 
-// Programme TAXI conforme 2024 - Durée totale : 34 heures
+// Programme TAXI National conforme 2024 - Durée totale : 34 heures
+// (Tronc commun sans module territorial spécifique)
 export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation nationale et locale du transport de personnes",
+    titre: "Réglementation du transport public particulier de personnes",
     dureeHeures: 6,
     contenu: [
-      "Statut juridique et réglementation spécifique du taxi",
-      "ADS (Autorisation De Stationnement) : acquisition, location, cession",
-      "Réglementation tarifaire : lumineux, tarifs, suppléments",
-      "Équipements obligatoires du véhicule taxi",
-      "Stationnement et maraude : droits et obligations",
-      "Relations avec l'autorité organisatrice",
-      "Sanctions et contrôles spécifiques aux taxis"
+      "Réglementation s'appliquant aux différents modes de transports publics particuliers : taxis, VTC, VMDTR",
+      "Réglementation relative à l'utilisation de la voie publique pour la prise en charge de la clientèle",
+      "Obligations générales relatives aux véhicules taxi",
+      "Conditions d'accès et d'exercice de la profession de conducteur de taxi",
+      "Obligations de formation continue",
+      "Composition et rôle des organismes administratifs, consultatifs et professionnels",
+      "Agents susceptibles de procéder à des contrôles et leurs prérogatives",
+      "Sanctions administratives et pénales encourues",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite"
     ],
     objectifs: [
-      "Maîtriser la réglementation taxi",
-      "Connaître le fonctionnement des ADS",
-      "Respecter la tarification obligatoire"
+      "Maîtriser le cadre réglementaire du transport taxi",
+      "Identifier les obligations légales du conducteur",
+      "Connaître les sanctions encourues en cas d'infraction"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise",
-    dureeHeures: 4,
+    titre: "Gestion d'une entreprise de taxi",
+    dureeHeures: 5,
     contenu: [
-      "Création et gestion d'une activité taxi",
-      "Location et acquisition d'ADS : coûts et modalités",
-      "Obligations comptables du taxi artisan",
-      "Calcul des charges : ADS, assurances, entretien, carburant",
-      "Tarification et optimisation du chiffre d'affaires",
-      "Gestion de trésorerie et rentabilité",
-      "Transmission et cessation d'activité"
+      "Principes de base de gestion et de comptabilité",
+      "Obligations et documents comptables",
+      "Charges entrant dans le calcul du coût de revient (fixes et variables)",
+      "Détermination du produit d'exploitation, bénéfice, résultat, seuil de rentabilité",
+      "Amortissement du véhicule et des équipements",
+      "Différentes formes juridiques d'exploitation et leurs modes d'exploitation",
+      "Régimes d'imposition et déclarations fiscales",
+      "Régimes sociaux (régime général, indépendants)",
+      "Devis et facturation pour la réalisation d'une prestation",
+      "Calcul du coût de revient et de la marge"
     ],
     objectifs: [
-      "Comprendre l'économie du métier de taxi",
+      "Comprendre les principes de gestion d'une entreprise taxi",
       "Calculer sa rentabilité",
-      "Optimiser sa gestion financière"
+      "Maîtriser les obligations fiscales et sociales"
     ]
   },
   {
     numero: 3,
     titre: "Sécurité routière",
-    dureeHeures: 6,
+    dureeHeures: 5,
     contenu: [
-      "Réglementation routière spécifique aux taxis",
-      "Conduite en milieu urbain dense",
-      "Maîtrise du véhicule en toutes circonstances",
-      "Éco-conduite et économie de carburant",
-      "Sécurité des passagers : trajets, arrêts, chargement",
-      "Prévention des risques routiers professionnels",
-      "Gestion des situations d'urgence",
-      "Entretien préventif du véhicule"
+      "Obligations en matière d'entretien et de visite technique des véhicules",
+      "Mécanisme du permis à points",
+      "Règles du code de la route : restrictions de circulation, limitations de vitesse",
+      "Utilisation de la ceinture de sécurité",
+      "Conduite rationnelle pour économiser le carburant et préserver l'environnement",
+      "Règles de conduite à tenir en cas d'accident",
+      "Risques liés à l'alcoolémie, stupéfiants, médicaments, stress, fatigue",
+      "Règles de prudence pour préserver la sécurité",
+      "Règles de sécurité concernant l'utilisation du téléphone"
     ],
     objectifs: [
-      "Adopter une conduite taxi professionnelle",
-      "Assurer la sécurité des passagers",
-      "Prévenir les accidents"
+      "Adopter une conduite sécuritaire et responsable",
+      "Prévenir les risques d'accidents",
+      "Réagir efficacement en situation d'urgence"
     ]
   },
   {
     numero: 4,
     titre: "Français (compréhension et expression)",
-    dureeHeures: 6,
+    dureeHeures: 5,
     contenu: [
-      "Communication professionnelle en situation taxi",
-      "Accueil client et courtoisie",
-      "Gestion des conflits et réclamations",
-      "Vocabulaire professionnel du transport urbain",
-      "Rédaction de documents professionnels",
-      "Compréhension et exécution de demandes clients",
-      "Adaptation du langage au contexte professionnel"
+      "Accueil et présentation professionnelle",
+      "Communication efficace avec la clientèle",
+      "Vocabulaire professionnel du transport de personnes",
+      "Compréhension et transmission d'informations",
+      "Gestion des réclamations et situations conflictuelles",
+      "Rédaction de messages professionnels",
+      "Adaptation du discours selon l'interlocuteur"
     ],
     objectifs: [
-      "Communiquer efficacement avec les clients",
-      "Représenter professionnellement le métier",
-      "Désamorcer les situations conflictuelles"
+      "Communiquer efficacement en français",
+      "Adopter un langage professionnel adapté",
+      "Gérer les situations difficiles avec diplomatie"
     ]
   },
   {
     numero: 5,
     titre: "Anglais (niveau B1 du CECRL)",
-    dureeHeures: 6,
+    dureeHeures: 4,
     contenu: [
-      "Vocabulaire professionnel taxi en anglais",
-      "Accueil de clientèle internationale",
-      "Indications d'itinéraire et orientation en anglais",
-      "Explication de la tarification",
-      "Conversation courante pendant le trajet",
-      "Gestion des paiements et de la facturation",
-      "Présentation touristique de Paris"
+      "Accueil et salutations en anglais",
+      "Vocabulaire professionnel du transport taxi",
+      "Indications d'itinéraire et orientation",
+      "Situations courantes de transport (aéroports, gares, hôtels)",
+      "Gestion tarifaire et paiement en anglais",
+      "Compréhension orale et expression",
+      "Présentation touristique"
     ],
     objectifs: [
-      "Servir une clientèle anglophone",
-      "Expliquer les tarifs en anglais",
-      "Faciliter le tourisme international"
+      "Accueillir une clientèle anglophone",
+      "Communiquer dans les situations professionnelles courantes",
+      "Comprendre et répondre aux demandes en anglais"
     ]
   },
   {
     numero: 6,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
+    titre: "Réglementation nationale spécifique de l'activité taxi",
+    dureeHeures: 4,
     contenu: [
-      "Obligations spécifiques du conducteur de taxi",
-      "Les 27 critères de discrimination",
-      "Interdiction absolue du refus de prise en charge discriminatoire",
-      "Jurisprudence taxi et discriminations",
-      "Sanctions pénales, administratives et professionnelles",
-      "Cas pratiques et mises en situation",
-      "Contrôles et testing"
+      "Fonctionnement des équipements spéciaux obligatoires (taximètre, lumineux)",
+      "Terminal de paiement électronique",
+      "Articulation entre réglementations nationales et locales",
+      "Régime des autorisations de stationnement (ADS)",
+      "Règles de tarification d'une course taxi",
+      "Activités complémentaires : services réguliers, TAP",
+      "Détaxation partielle TICPE",
+      "Réglementation relative à la taxe de stationnement"
     ],
     objectifs: [
-      "Connaître ses obligations légales",
-      "Identifier et éviter les comportements discriminatoires",
-      "Comprendre les risques encourus"
+      "Maîtriser les équipements spécifiques taxi",
+      "Connaître le régime des ADS",
+      "Appliquer correctement la tarification"
     ]
   },
   {
     numero: 7,
+    titre: "Prévention et lutte contre les discriminations",
+    dureeHeures: 2,
+    contenu: [
+      "Cadre légal : loi du 27 mai 2008 et Code pénal",
+      "Les 27 critères de discrimination prohibés",
+      "Sanctions pénales et administratives",
+      "Études de cas concrets dans le transport de personnes",
+      "Refus de prise en charge : cas légitimes et illégitimes",
+      "Obligations spécifiques du conducteur de taxi",
+      "Signalement et témoignage"
+    ],
+    objectifs: [
+      "Connaître le cadre légal de la non-discrimination",
+      "Identifier les comportements discriminatoires",
+      "Adopter une attitude professionnelle égalitaire"
+    ]
+  },
+  {
+    numero: 8,
     titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
     dureeHeures: 1,
     contenu: [
-      "Rôle de vigilance du conducteur de taxi",
-      "Identification des situations suspectes",
-      "Procédures de signalement aux autorités",
-      "Numéros d'urgence : 119, 3919, 17",
-      "Protection des victimes",
-      "Responsabilités du professionnel",
-      "Cas concrets dans l'activité taxi"
+      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
+      "Signaux d'alerte et situations à risque",
+      "Obligations légales de signalement",
+      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
+      "Procédures de signalement et protection des victimes",
+      "Rôle de vigilance du conducteur professionnel",
+      "Responsabilités pénales et civiles"
     ],
     objectifs: [
-      "Exercer sa vigilance professionnelle",
-      "Savoir signaler aux autorités compétentes",
-      "Contribuer à la protection des victimes"
+      "Reconnaître les situations de danger",
+      "Connaître ses obligations de signalement",
+      "Savoir réagir face à ces situations"
+    ]
+  },
+  {
+    numero: 9,
+    titre: "Module pratique taxi",
+    dureeHeures: 2,
+    contenu: [
+      "Conduite en sécurité et respect du code de la route",
+      "Souplesse de la conduite assurant le confort des passagers",
+      "Prise en charge et dépose des clients et de leurs bagages",
+      "Présentation générale et attitude adaptées",
+      "Accueil du client, comportement durant le parcours, prise de congé",
+      "Vérification de l'état du véhicule avant et après la prestation",
+      "Élaboration et suivi d'un parcours",
+      "Utilisation des équipements spéciaux taxi",
+      "Établissement du prix, facturation et encaissement"
+    ],
+    objectifs: [
+      "Maîtriser la conduite professionnelle taxi",
+      "Assurer un service client de qualité",
+      "Utiliser correctement les équipements taxi"
+    ]
+  }
+];
+
+// Programme TAXI PARIS (75) - Durée totale : 34 heures
+// Formation initiale avec module spécifique à la zone Paris
+export const PROGRAMME_TAXI_75: ModuleFormation[] = [
+  {
+    numero: 1,
+    titre: "Réglementation du transport public particulier de personnes",
+    dureeHeures: 5,
+    contenu: [
+      "Réglementation s'appliquant aux différents modes de transports publics particuliers : taxis, VTC, VMDTR",
+      "Réglementation relative à l'utilisation de la voie publique pour la prise en charge de la clientèle",
+      "Obligations générales relatives aux véhicules taxi",
+      "Conditions d'accès et d'exercice de la profession de conducteur de taxi",
+      "Obligations de formation continue",
+      "Composition et rôle des organismes administratifs, consultatifs et professionnels",
+      "Agents susceptibles de procéder à des contrôles et leurs prérogatives",
+      "Sanctions administratives et pénales encourues",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite"
+    ],
+    objectifs: [
+      "Maîtriser le cadre réglementaire du transport taxi",
+      "Identifier les obligations légales du conducteur",
+      "Connaître les sanctions encourues en cas d'infraction"
+    ]
+  },
+  {
+    numero: 2,
+    titre: "Gestion d'une entreprise de taxi",
+    dureeHeures: 4,
+    contenu: [
+      "Principes de base de gestion et de comptabilité",
+      "Obligations et documents comptables",
+      "Charges entrant dans le calcul du coût de revient (fixes et variables)",
+      "Détermination du produit d'exploitation, bénéfice, résultat, seuil de rentabilité",
+      "Amortissement du véhicule et des équipements",
+      "Différentes formes juridiques d'exploitation et leurs modes d'exploitation",
+      "Régimes d'imposition et déclarations fiscales",
+      "Régimes sociaux (régime général, indépendants)",
+      "Devis et facturation pour la réalisation d'une prestation"
+    ],
+    objectifs: [
+      "Comprendre les principes de gestion d'une entreprise taxi",
+      "Calculer sa rentabilité",
+      "Maîtriser les obligations fiscales et sociales"
+    ]
+  },
+  {
+    numero: 3,
+    titre: "Sécurité routière",
+    dureeHeures: 4,
+    contenu: [
+      "Obligations en matière d'entretien et de visite technique des véhicules",
+      "Mécanisme du permis à points",
+      "Règles du code de la route : restrictions de circulation, limitations de vitesse",
+      "Utilisation de la ceinture de sécurité",
+      "Conduite rationnelle pour économiser le carburant et préserver l'environnement",
+      "Règles de conduite à tenir en cas d'accident",
+      "Risques liés à l'alcoolémie, stupéfiants, médicaments, stress, fatigue",
+      "Règles de sécurité concernant l'utilisation du téléphone"
+    ],
+    objectifs: [
+      "Adopter une conduite sécuritaire et responsable",
+      "Prévenir les risques d'accidents",
+      "Réagir efficacement en situation d'urgence"
+    ]
+  },
+  {
+    numero: 4,
+    titre: "Français (compréhension et expression)",
+    dureeHeures: 4,
+    contenu: [
+      "Accueil et présentation professionnelle",
+      "Communication efficace avec la clientèle",
+      "Vocabulaire professionnel du transport de personnes",
+      "Compréhension et transmission d'informations",
+      "Gestion des réclamations et situations conflictuelles",
+      "Rédaction de messages professionnels"
+    ],
+    objectifs: [
+      "Communiquer efficacement en français",
+      "Adopter un langage professionnel adapté",
+      "Gérer les situations difficiles avec diplomatie"
+    ]
+  },
+  {
+    numero: 5,
+    titre: "Anglais (niveau B1 du CECRL)",
+    dureeHeures: 3,
+    contenu: [
+      "Accueil et salutations en anglais",
+      "Vocabulaire professionnel du transport taxi",
+      "Indications d'itinéraire et orientation",
+      "Situations courantes de transport (aéroports, gares, hôtels)",
+      "Gestion tarifaire et paiement en anglais",
+      "Présentation touristique de Paris"
+    ],
+    objectifs: [
+      "Accueillir une clientèle anglophone",
+      "Communiquer dans les situations professionnelles courantes",
+      "Présenter les sites touristiques parisiens"
+    ]
+  },
+  {
+    numero: 6,
+    titre: "Connaissance du territoire Paris (75) et réglementation locale",
+    dureeHeures: 5,
+    contenu: [
+      "Topographie de Paris : arrondissements, quartiers, limites administratives",
+      "Principaux monuments et sites touristiques de Paris",
+      "Gares parisiennes et aéroports de la région",
+      "Hôpitaux, administrations et lieux stratégiques",
+      "Axes routiers principaux, périphérique et portes de Paris",
+      "Zones de stationnement taxi et emplacements réservés",
+      "Réglementation locale spécifique à Paris",
+      "Restrictions de circulation et ZFE (Zone à Faibles Émissions)"
+    ],
+    objectifs: [
+      "Connaître parfaitement le territoire parisien",
+      "Maîtriser les principaux itinéraires et points d'intérêt",
+      "Appliquer la réglementation locale Paris"
+    ]
+  },
+  {
+    numero: 7,
+    titre: "Réglementation nationale spécifique de l'activité taxi",
+    dureeHeures: 4,
+    contenu: [
+      "Fonctionnement des équipements spéciaux obligatoires (taximètre, lumineux)",
+      "Terminal de paiement électronique",
+      "Articulation entre réglementations nationales et locales",
+      "Régime des autorisations de stationnement (ADS)",
+      "Règles de tarification d'une course taxi parisien",
+      "Activités complémentaires : services réguliers, TAP",
+      "Détaxation partielle TICPE",
+      "Réglementation relative à la taxe de stationnement"
+    ],
+    objectifs: [
+      "Maîtriser les équipements spécifiques taxi",
+      "Connaître le régime des ADS parisien",
+      "Appliquer correctement la tarification parisienne"
+    ]
+  },
+  {
+    numero: 8,
+    titre: "Prévention et lutte contre les discriminations",
+    dureeHeures: 2,
+    contenu: [
+      "Cadre légal : loi du 27 mai 2008 et Code pénal",
+      "Les 27 critères de discrimination prohibés",
+      "Sanctions pénales et administratives",
+      "Études de cas concrets dans le transport de personnes",
+      "Refus de prise en charge : cas légitimes et illégitimes",
+      "Obligations spécifiques du conducteur de taxi"
+    ],
+    objectifs: [
+      "Connaître le cadre légal de la non-discrimination",
+      "Identifier les comportements discriminatoires",
+      "Adopter une attitude professionnelle égalitaire"
+    ]
+  },
+  {
+    numero: 9,
+    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
+    dureeHeures: 1,
+    contenu: [
+      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
+      "Signaux d'alerte et situations à risque",
+      "Obligations légales de signalement",
+      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
+      "Procédures de signalement et protection des victimes"
+    ],
+    objectifs: [
+      "Reconnaître les situations de danger",
+      "Connaître ses obligations de signalement",
+      "Savoir réagir face à ces situations"
+    ]
+  },
+  {
+    numero: 10,
+    titre: "Module pratique taxi",
+    dureeHeures: 2,
+    contenu: [
+      "Conduite en sécurité dans Paris et respect du code de la route",
+      "Souplesse de la conduite assurant le confort des passagers",
+      "Prise en charge et dépose des clients (aéroports, gares)",
+      "Présentation générale et attitude adaptées",
+      "Élaboration et suivi d'un parcours parisien",
+      "Informations touristiques et pratiques sur Paris",
+      "Utilisation des équipements spéciaux taxi",
+      "Établissement du prix, facturation et encaissement"
+    ],
+    objectifs: [
+      "Maîtriser la conduite professionnelle taxi à Paris",
+      "Assurer un service client de qualité",
+      "Délivrer des informations touristiques pertinentes"
     ]
   }
 ];
@@ -487,6 +733,17 @@ export const OBJECTIFS_TAXI = [
   "Réussir l'examen taxi de la Chambre des Métiers et de l'Artisanat"
 ];
 
+export const OBJECTIFS_TAXI_75 = [
+  "Maîtriser la réglementation spécifique au transport taxi parisien",
+  "Connaître parfaitement le territoire de Paris (75)",
+  "Comprendre le fonctionnement économique de l'activité taxi",
+  "Adopter une conduite professionnelle adaptée à l'environnement urbain parisien",
+  "Communiquer efficacement en français et en anglais avec une clientèle internationale",
+  "Respecter les obligations de non-discrimination",
+  "Exercer un rôle de vigilance contre les violences et la traite",
+  "Réussir l'examen taxi de la Chambre des Métiers et de l'Artisanat de Paris"
+];
+
 export const OBJECTIFS_VMDTR = [
   "Maîtriser la réglementation VMDTR",
   "Gérer une activité de transport en deux-roues",
@@ -579,6 +836,7 @@ export const getEpreuvesSpecifiques = (type: TypeFormation): EpreuveSpecifique[]
     case "VTC":
       return EPREUVES_SPECIFIQUES_VTC;
     case "TAXI":
+    case "TAXI-75":
       return EPREUVES_SPECIFIQUES_TAXI;
     case "VMDTR":
       return EPREUVES_SPECIFIQUES_VMDTR;
@@ -598,6 +856,11 @@ export const TARIFS = {
     weekend: 1090
   },
   TAXI: {
+    journee: 990,
+    soiree: 1090,
+    weekend: 1090
+  },
+  "TAXI-75": {
     journee: 990,
     soiree: 1090,
     weekend: 1090
@@ -635,7 +898,7 @@ export const HORAIRES = {
 // TYPES TYPESCRIPT
 // ═══════════════════════════════════════════════════════════════════
 
-export type TypeFormation = "VTC" | "TAXI" | "VMDTR" | "RECUPERATION_POINTS";
+export type TypeFormation = "VTC" | "TAXI" | "TAXI-75" | "VMDTR" | "RECUPERATION_POINTS";
 export type Modalite = "journée" | "soirée" | "weekend";
 export type Civilite = "M." | "Mme";
 
@@ -679,6 +942,8 @@ export const getProgramme = (type: TypeFormation): ModuleFormation[] => {
       return PROGRAMME_VTC;
     case "TAXI":
       return PROGRAMME_TAXI;
+    case "TAXI-75":
+      return PROGRAMME_TAXI_75;
     case "VMDTR":
       return PROGRAMME_VMDTR;
     default:
@@ -691,6 +956,7 @@ export const getPrerequis = (type: TypeFormation): string[] => {
     case "VTC":
       return PREREQUIS_VTC;
     case "TAXI":
+    case "TAXI-75":
       return PREREQUIS_TAXI;
     case "VMDTR":
       return PREREQUIS_VMDTR;
@@ -705,6 +971,8 @@ export const getObjectifs = (type: TypeFormation): string[] => {
       return OBJECTIFS_VTC;
     case "TAXI":
       return OBJECTIFS_TAXI;
+    case "TAXI-75":
+      return OBJECTIFS_TAXI_75;
     case "VMDTR":
       return OBJECTIFS_VMDTR;
     default:
@@ -841,12 +1109,14 @@ export default {
   ORGANISME,
   PROGRAMME_VTC,
   PROGRAMME_TAXI,
+  PROGRAMME_TAXI_75,
   PROGRAMME_VMDTR,
   PREREQUIS_VTC,
   PREREQUIS_TAXI,
   PREREQUIS_VMDTR,
   OBJECTIFS_VTC,
   OBJECTIFS_TAXI,
+  OBJECTIFS_TAXI_75,
   OBJECTIFS_VMDTR,
   EPREUVES_SPECIFIQUES_VTC,
   EPREUVES_SPECIFIQUES_TAXI,

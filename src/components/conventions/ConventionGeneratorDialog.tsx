@@ -128,6 +128,7 @@ export function ConventionGeneratorDialog({
     const intitules: Record<TypeFormation, string> = {
       VTC: "Conducteur de Voiture de Transport avec Chauffeur",
       TAXI: "Conducteur de Taxi",
+      "TAXI-75": "Conducteur de Taxi - Paris (75)",
       VMDTR: "Conducteur de Véhicule Motorisé à Deux ou Trois Roues",
       RECUPERATION_POINTS: "Stage de Récupération de Points",
     };

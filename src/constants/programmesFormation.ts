@@ -123,7 +123,36 @@ export const PROGRAMMES_CONTINUES: ProgrammeFormation[] = [
 ];
 
 // =====================================================
+// FORMATIONS TAXI TERRITORIALES (Formation initiale avec zone spécifique)
+// =====================================================
+export const PROGRAMMES_TAXI_TERRITORIAUX: ProgrammeFormation[] = [
+  {
+    code: 'INIT-TAXI-75-v1',
+    type: 'INIT',
+    metier: 'TAXI',
+    zone: '75',
+    intitule: 'Formation initiale - Conducteur de Taxi Paris (75)',
+    intituleCourt: 'Formation initiale Taxi Paris',
+    dureeHeures: 34,
+    description: 'Préparation à l\'examen d\'accès à la profession de conducteur de taxi sur le territoire de Paris',
+    couleur: '#DC2626', // red-600
+  },
+  {
+    code: 'INIT-TAXI-92-v1',
+    type: 'INIT',
+    metier: 'TAXI',
+    zone: '92',
+    intitule: 'Formation initiale - Conducteur de Taxi Hauts-de-Seine (92)',
+    intituleCourt: 'Formation initiale Taxi 92',
+    dureeHeures: 34,
+    description: 'Préparation à l\'examen d\'accès à la profession de conducteur de taxi sur le territoire des Hauts-de-Seine',
+    couleur: '#7C3AED', // violet-600
+  },
+];
+
+// =====================================================
 // FORMATIONS MOBILITÉ (MOB) - TAXI UNIQUEMENT
+// Extension territoriale pour les taxis déjà titulaires d'une carte
 // =====================================================
 export const PROGRAMMES_MOBILITE: ProgrammeFormation[] = [
   {
@@ -134,7 +163,7 @@ export const PROGRAMMES_MOBILITE: ProgrammeFormation[] = [
     intitule: 'Mobilité Taxi - Département 75 (Paris)',
     intituleCourt: 'Mobilité Taxi Paris',
     dureeHeures: 14,
-    description: 'Extension d\'activité taxi sur le territoire de Paris',
+    description: 'Extension d\'activité taxi sur le territoire de Paris pour les conducteurs déjà titulaires d\'une carte professionnelle',
     couleur: '#EF4444', // red-500
   },
   {
@@ -145,7 +174,7 @@ export const PROGRAMMES_MOBILITE: ProgrammeFormation[] = [
     intitule: 'Mobilité Taxi - Département 92 (Hauts-de-Seine)',
     intituleCourt: 'Mobilité Taxi 92',
     dureeHeures: 14,
-    description: 'Extension d\'activité taxi sur le territoire des Hauts-de-Seine',
+    description: 'Extension d\'activité taxi sur le territoire des Hauts-de-Seine pour les conducteurs déjà titulaires d\'une carte professionnelle',
     couleur: '#8B5CF6', // violet-500
   },
 ];
@@ -155,6 +184,7 @@ export const PROGRAMMES_MOBILITE: ProgrammeFormation[] = [
 // =====================================================
 export const TOUS_PROGRAMMES: ProgrammeFormation[] = [
   ...PROGRAMMES_INITIALES,
+  ...PROGRAMMES_TAXI_TERRITORIAUX,
   ...PROGRAMMES_CONTINUES,
   ...PROGRAMMES_MOBILITE,
 ];
