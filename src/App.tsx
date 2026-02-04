@@ -14,6 +14,9 @@ import Onboarding from "./pages/Onboarding";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import FlyerPage from "./pages/FlyerPage";
+import FlyerVTCPage from "./pages/FlyerVTCPage";
+import FlyerTaxiPage from "./pages/FlyerTaxiPage";
+import FlyerVMDTRPage from "./pages/FlyerVMDTRPage";
 import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -50,6 +53,9 @@ const App = () => (
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/flyer" element={<FlyerPage />} />
+              <Route path="/flyer-vtc" element={<FlyerVTCPage />} />
+              <Route path="/flyer-taxi" element={<FlyerTaxiPage />} />
+              <Route path="/flyer-vmdtr" element={<FlyerVMDTRPage />} />
 
               {/* Legacy deep-links */}
               <Route
