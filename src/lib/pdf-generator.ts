@@ -74,13 +74,15 @@ export interface CompanyInfo {
 }
 
 // Configuration par défaut de l'organisme de formation
+// ⚠️ IMPORTANT : Ces valeurs sont des placeholders.
+// Utiliser useCentreFormation() pour obtenir les données réelles du centre.
 export const DEFAULT_COMPANY: CompanyInfo = {
-  name: "Formation T3P",
-  address: "123 Rue de la Formation, 75001 Paris",
-  phone: "01 23 45 67 89",
-  email: "contact@formation-t3p.fr",
-  siret: "123 456 789 00012",
-  nda: "11 75 12345 75",
+  name: "[Centre non configuré]",
+  address: "[Adresse non configurée]",
+  phone: "[Téléphone non configuré]",
+  email: "[Email non configuré]",
+  siret: "[SIRET non configuré]",
+  nda: "[NDA non configuré]",
 };
 
 export interface ContactInfo {
@@ -819,7 +821,8 @@ export function generateConventionPDF(
   doc.setFontSize(10);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`Représenté par ${ORGANISME.responsablePedagogique.nom}, ${ORGANISME.responsablePedagogique.fonction}`, 25, yPos);
+  // Utilise les données du centre passées en paramètre
+  doc.text(`Représenté par le responsable de l'organisme`, 25, yPos);
   yPos += 5;
   doc.setFont("helvetica", "normal");
   doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
@@ -1008,7 +1011,7 @@ export function generateConventionPDF(
   yPos += 5;
   doc.text(`• Formateurs qualifiés et expérimentés dans le transport de personnes`, 25, yPos);
   yPos += 5;
-  doc.text(`• Responsable pédagogique : ${ORGANISME.responsablePedagogique.nom}`, 25, yPos);
+  doc.text(`• Responsable pédagogique : voir informations du centre`, 25, yPos);
   
   yPos += 7;
   doc.setFont("helvetica", "bold");

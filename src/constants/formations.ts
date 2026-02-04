@@ -7,34 +7,36 @@
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * @deprecated Utiliser useCentreFormation() à la place pour les données dynamiques.
- * Cette constante est conservée uniquement pour la rétrocompatibilité.
+ * Données par défaut de l'organisme - UTILISÉES UNIQUEMENT EN FALLBACK
+ * ⚠️ IMPORTANT : Toujours utiliser useCentreFormation() pour les données dynamiques.
+ * Ces valeurs sont remplacées par les données configurées dans Paramètres > Centre.
  */
 export const ORGANISME = {
-  nom: "T3P CAMPUS",
-  raisonSociale: "DROP ACADEMY",
-  adresse: "3 rue Corneille",
-  codePostal: "92120",
-  ville: "Montrouge",
-  telephone: "01 88 75 05 55",
-  email: "dropacademymontrouge@gmail.com",
-  siret: "94856480200023",
-  nda: "11924375592",
-  numeroRS: "RS5637",
-  agreementVTCTAXI: "23/005",
-  agreementVMDTR: "23/006",
+  // Ces valeurs sont des placeholders - les vraies données proviennent de la base de données
+  nom: "[Nom configuré dans Paramètres]",
+  raisonSociale: "[Raison sociale configurée dans Paramètres]",
+  adresse: "[Adresse configurée dans Paramètres]",
+  codePostal: "",
+  ville: "",
+  telephone: "[Téléphone configuré dans Paramètres]",
+  email: "[Email configuré dans Paramètres]",
+  siret: "[SIRET configuré dans Paramètres]",
+  nda: "[NDA configuré dans Paramètres]",
+  numeroRS: "[RS configuré dans Paramètres]",
+  agreementVTCTAXI: "[Agrément configuré dans Paramètres]",
+  agreementVMDTR: "[Agrément configuré dans Paramètres]",
   referentHandicap: {
-    nom: "Karim HAMADACHE",
-    telephone: "01 88 75 05 55",
-    email: "dropacademymontrouge@gmail.com"
+    nom: "[Configuré dans Paramètres]",
+    telephone: "[Configuré dans Paramètres]",
+    email: "[Configuré dans Paramètres]"
   },
   responsablePedagogique: {
-    nom: "Karim HAMADACHE",
+    nom: "[Configuré dans Paramètres]",
     fonction: "Directeur pédagogique"
   },
   assurance: {
-    nom: "À compléter",
-    numeroContrat: "À compléter"
+    nom: "[Configuré dans Paramètres]",
+    numeroContrat: "[Configuré dans Paramètres]"
   },
   mediateur: {
     nom: "MEDICYS",
@@ -45,9 +47,9 @@ export const ORGANISME = {
     web: "https://www.medicys.fr"
   },
   rib: {
-    banque: "À compléter",
-    iban: "À compléter",
-    bic: "À compléter"
+    banque: "[Configuré dans Paramètres]",
+    iban: "[Configuré dans Paramètres]",
+    bic: "[Configuré dans Paramètres]"
   }
 } as const;
 
@@ -65,12 +67,13 @@ export interface ModuleFormation {
   evaluation?: string[];
 }
 
-// Programme VTC conforme 2024 (35h)
+// Programme VTC conforme 2024 - Durée totale : 34 heures
+// Répartition adaptée au format 34h du centre de formation
 export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 1,
     titre: "Réglementation du transport public particulier de personnes",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Cadre juridique national et européen du transport de personnes",
       "Différences entre VTC, taxi, LOTI et covoiturage",
@@ -108,7 +111,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 3,
     titre: "Sécurité routière",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Réglementation du Code de la route applicable au transport de personnes",
       "Conduite défensive et anticipation des risques",
@@ -128,7 +131,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 4,
     titre: "Français (compréhension et expression)",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Accueil et présentation professionnelle",
       "Communication efficace avec la clientèle",
@@ -147,7 +150,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 5,
     titre: "Anglais (niveau B1 du CECRL)",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Accueil et salutations en anglais",
       "Vocabulaire professionnel du transport",
@@ -203,12 +206,12 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   }
 ];
 
-// Programme TAXI conforme 2024 (35h)
+// Programme TAXI conforme 2024 - Durée totale : 34 heures
 export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 1,
     titre: "Réglementation nationale et locale du transport de personnes",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Statut juridique et réglementation spécifique du taxi",
       "ADS (Autorisation De Stationnement) : acquisition, location, cession",
@@ -246,7 +249,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 3,
     titre: "Sécurité routière",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Réglementation routière spécifique aux taxis",
       "Conduite en milieu urbain dense",
@@ -266,7 +269,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 4,
     titre: "Français (compréhension et expression)",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Communication professionnelle en situation taxi",
       "Accueil client et courtoisie",
@@ -285,7 +288,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 5,
     titre: "Anglais (niveau B1 du CECRL)",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Vocabulaire professionnel taxi en anglais",
       "Accueil de clientèle internationale",
@@ -341,12 +344,12 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   }
 ];
 
-// Programme VMDTR conforme 2024 (35h)
+// Programme VMDTR conforme 2024 - Durée totale : 34 heures
 export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 1,
     titre: "Réglementation spécifique VMDTR",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Cadre réglementaire du VMDTR",
       "Différences avec le transport à 4 roues",
@@ -373,7 +376,7 @@ export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 3,
     titre: "Sécurité routière deux-roues",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Conduite défensive deux-roues",
       "Risques spécifiques moto/scooter",
@@ -387,7 +390,7 @@ export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 4,
     titre: "Français professionnel",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Communication en situation VMDTR",
       "Accueil et professionnalisme",
@@ -398,7 +401,7 @@ export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 5,
     titre: "Anglais professionnel",
-    dureeHeures: 7,
+    dureeHeures: 6,
     contenu: [
       "Vocabulaire VMDTR en anglais",
       "Instructions de sécurité",
