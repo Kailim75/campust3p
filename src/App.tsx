@@ -17,6 +17,7 @@ import FlyerPage from "./pages/FlyerPage";
 import FlyerVTCPage from "./pages/FlyerVTCPage";
 import FlyerTaxiPage from "./pages/FlyerTaxiPage";
 import FlyerVMDTRPage from "./pages/FlyerVMDTRPage";
+import FlyersPDFPage from "./pages/FlyersPDFPage";
 import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/flyer-vtc" element={<FlyerVTCPage />} />
               <Route path="/flyer-taxi" element={<FlyerTaxiPage />} />
               <Route path="/flyer-vmdtr" element={<FlyerVMDTRPage />} />
+              <Route path="/flyers-pdf" element={<FlyersPDFPage />} />
 
               {/* Legacy deep-links */}
               <Route
