@@ -9,6 +9,12 @@ import {
   type CompanyInfo,
   type DocumentType 
 } from "../_shared/pdf-generator.ts";
+import {
+  validateAttachment,
+  canSendEmailWithAttachments,
+  logPdfDiagnostic,
+  type ValidatedAttachment
+} from "../_shared/pdf-validator.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -220,23 +226,69 @@ serve(async (req) => {
         };
         
         // Generate PDF attachment if document type is supported
-        let attachments: Array<{ filename: string; content: string }> = [];
+        // VALIDATION STRICTE: aucun envoi avec pièce jointe vide
+        let validatedAttachments: ValidatedAttachment[] = [];
+        let pdfErrors: string[] = [];
         const pdfType = pdfDocTypes[documentType];
+        const requiresAttachment = generatePdfAttachments && pdfType;
         
-        if (generatePdfAttachments && pdfType && contactData) {
+        if (requiresAttachment && contactData) {
           try {
-            console.log(`Generating PDF: ${pdfType} for ${recipientName}`);
+            console.log(`[PDF-GEN] Génération PDF: ${pdfType} pour ${recipientName}`);
             const pdfDoc = generateDocumentPDF(pdfType, contactData, sessionDataForPdf, company);
             const pdfBase64 = getPdfAsBase64(pdfDoc);
             
-            attachments.push({
-              filename: `${documentType.replace(/\s+/g, "_")}-${contactData.nom}-${contactData.prenom}.pdf`,
-              content: pdfBase64,
-            });
-            console.log(`PDF generated successfully for ${recipientName}`);
+            const filename = `${documentType.replace(/\s+/g, "_")}-${contactData.nom}-${contactData.prenom}.pdf`;
+            
+            // Diagnostic complet
+            logPdfDiagnostic(`Génération ${pdfType}`, filename, pdfBase64);
+            
+            // Validation stricte
+            const { attachment, errors } = validateAttachment(filename, pdfBase64);
+            
+            if (attachment) {
+              validatedAttachments.push(attachment);
+              console.log(`[PDF-GEN] ✓ PDF validé: ${filename} (${attachment.sizeBytes} bytes)`);
+            } else {
+              pdfErrors = errors;
+              console.error(`[PDF-GEN] ❌ PDF invalide pour ${recipientName}:`, errors);
+            }
           } catch (pdfError: any) {
-            console.error(`Failed to generate PDF for ${recipientName}:`, pdfError);
-            // Continue without attachment
+            pdfErrors.push(`Erreur génération PDF: ${pdfError.message}`);
+            console.error(`[PDF-GEN] ❌ Échec génération PDF pour ${recipientName}:`, pdfError);
+          }
+        }
+        
+        // BLOCAGE: Si pièce jointe requise mais invalide/absente
+        if (requiresAttachment) {
+          const sendCheck = canSendEmailWithAttachments(validatedAttachments, 1);
+          
+          if (!sendCheck.allowed) {
+            const errorMessage = `Envoi bloqué: ${sendCheck.reason}. ${pdfErrors.join('; ')}`;
+            console.error(`[EMAIL-BLOCKED] ${recipient.email}: ${errorMessage}`);
+            
+            await supabase.from("email_logs").insert({
+              type: "document_envoi",
+              recipient_email: recipient.email,
+              recipient_name: recipientName,
+              contact_id: recipient.contactId,
+              subject: subject,
+              status: "blocked",
+              error_message: errorMessage,
+            });
+            
+            bulkResults.push({
+              type: "document_envoi",
+              recipient: recipient.email,
+              recipientName,
+              contactId: recipient.contactId,
+              subject,
+              success: false,
+              error: errorMessage,
+            });
+            
+            // SKIP cet envoi - ne pas continuer avec pièce jointe vide
+            continue;
           }
         }
         
@@ -249,7 +301,7 @@ serve(async (req) => {
             ${sessionInfo.date_fin ? `<p><strong>Date de fin :</strong> ${new Date(sessionInfo.date_fin).toLocaleDateString("fr-FR")}</p>` : ""}
             ${sessionInfo.lieu ? `<p><strong>Lieu :</strong> ${sessionInfo.lieu}</p>` : ""}
             ${customMessage ? `<p>${customMessage}</p>` : ""}
-            ${attachments.length > 0 ? `<p><strong>📎 Pièce jointe :</strong> ${attachments.map(a => a.filename).join(", ")}</p>` : ""}
+            ${validatedAttachments.length > 0 ? `<p><strong>📎 Pièce jointe :</strong> ${validatedAttachments.map(a => `${a.filename} (${Math.round(a.sizeBytes / 1024)} Ko)`).join(", ")}</p>` : ""}
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
             <p style="color: #888; font-size: 12px;">
               Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
@@ -267,16 +319,19 @@ serve(async (req) => {
             reply_to: EMAIL_CONFIG.REPLY_TO,
           };
           
-          // Add attachments if any
-          if (attachments.length > 0) {
-            emailPayload.attachments = attachments;
+          // Add validated attachments only
+          if (validatedAttachments.length > 0) {
+            emailPayload.attachments = validatedAttachments.map(a => ({
+              filename: a.filename,
+              content: a.content,
+            }));
           }
           
           const emailResponse = await resend.emails.send(emailPayload);
           
-          console.log(`Email sent to ${recipient.email}:`, emailResponse.data?.id, `(${attachments.length} attachment(s))`);
+          console.log(`[EMAIL-SENT] ${recipient.email}: ${emailResponse.data?.id} (${validatedAttachments.length} pièce(s) jointe(s), ${validatedAttachments.reduce((sum, a) => sum + a.sizeBytes, 0)} bytes total)`);
           
-          // Log success
+          // Log success with attachment info
           await supabase.from("email_logs").insert({
             type: "document_envoi",
             recipient_email: recipient.email,
@@ -298,7 +353,7 @@ serve(async (req) => {
           });
           
         } catch (emailError: any) {
-          console.error(`Failed to send email to ${recipient.email}:`, emailError);
+          console.error(`[EMAIL-FAILED] ${recipient.email}:`, emailError);
           
           await supabase.from("email_logs").insert({
             type: "document_envoi",
