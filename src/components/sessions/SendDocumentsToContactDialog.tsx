@@ -264,7 +264,7 @@ export function SendDocumentsToContactDialog({
           prix: sessionInfo.prix,
         };
 
-        if (['convocation', 'convention', 'attestation'].includes(docType)) {
+        if (['convocation', 'convention', 'attestation', 'programme'].includes(docType)) {
           generateDocument(docType as DocumentType, contactInfo, sessionDataForDoc);
         }
 
