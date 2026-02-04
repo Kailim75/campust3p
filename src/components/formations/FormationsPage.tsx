@@ -35,7 +35,9 @@ import {
   Euro,
   LayoutGrid,
   List,
-  Percent
+  Percent,
+  Download,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -43,8 +45,13 @@ import {
   useDeleteCatalogueFormation,
   type CatalogueFormation 
 } from "@/hooks/useCatalogueFormations";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
+import { centreToCompanyInfo } from "@/lib/centre-to-company";
+import { generateProgrammeStandalonePDF, downloadPDF } from "@/lib/pdf-generator";
+import { type TypeFormation } from "@/constants/formations";
 import { CatalogueFormDialog } from "./CatalogueFormDialog";
 import { FormationCard } from "./FormationCard";
+import { toast } from "sonner";
 
 const typeLabels: Record<string, { label: string; class: string }> = {
   initiale: { label: "Initiale", class: "bg-primary/10 text-primary" },
@@ -62,6 +69,7 @@ export function FormationsPage() {
   const [editingFormation, setEditingFormation] = useState<CatalogueFormation | null>(null);
   
   const { data: formations = [], isLoading } = useCatalogueFormations();
+  const { centreFormation } = useCentreFormation();
   const deleteFormation = useDeleteCatalogueFormation();
 
   const categories = ["all", ...new Set(formations.map((f) => f.categorie))];
@@ -90,6 +98,31 @@ export function FormationsPage() {
       currency: "EUR",
       maximumFractionDigits: 0,
     }).format(prix);
+  };
+
+  // Map categorie to TypeFormation for PDF generation
+  const getFormationType = (formation: CatalogueFormation): TypeFormation | null => {
+    const cat = formation.categorie.toUpperCase();
+    if (cat === "VTC") return "VTC";
+    if (cat === "TAXI" && formation.intitule.toLowerCase().includes("75")) return "TAXI-75";
+    if (cat === "TAXI" && formation.intitule.toLowerCase().includes("paris")) return "TAXI-75";
+    if (cat === "TAXI") return "TAXI";
+    if (cat === "VMDTR") return "VMDTR";
+    return null;
+  };
+
+  const handleDownloadProgramme = (formation: CatalogueFormation) => {
+    const formationType = getFormationType(formation);
+    if (!formationType) {
+      toast.error("Programme non disponible pour cette catégorie");
+      return;
+    }
+    
+    const company = centreToCompanyInfo(centreFormation);
+    const doc = generateProgrammeStandalonePDF(formationType, company);
+    const filename = `Programme-${formationType}-${formation.duree_heures}h.pdf`;
+    downloadPDF(doc, filename);
+    toast.success("Programme téléchargé avec succès");
   };
 
   // Transformer les données pour FormationCard
@@ -228,6 +261,17 @@ export function FormationsPage() {
                       )}
 
                       <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {getFormationType(formation) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDownloadProgramme(formation)}
+                            title="Télécharger le programme PDF"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Programme
+                          </Button>
+                        )}
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -308,6 +352,17 @@ export function FormationsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            {getFormationType(formation) && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-primary"
+                                onClick={() => handleDownloadProgramme(formation)}
+                                title="Télécharger le programme PDF"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="icon" 
