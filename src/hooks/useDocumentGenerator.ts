@@ -14,6 +14,7 @@ import {
   generateConventionPDF,
   generateContratFormationPDF,
   generateConvocationPDF,
+  generateProgrammePDF,
   downloadPDF,
   preloadCompanyImages,
   type ContactInfo,
@@ -55,7 +56,7 @@ async function getOrCreateCertificateNumber(
   }
 }
 
-export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation";
+export type DocumentType = "facture" | "attestation" | "convention" | "contrat" | "convocation" | "programme";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -320,6 +321,15 @@ export function useDocumentGenerator() {
             filename = `convocation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
+          case "programme":
+            if (!session) {
+              toast.error("Données de session manquantes");
+              return null;
+            }
+            doc = generateProgrammePDF(session, company);
+            filename = `programme-${session.nom.replace(/\s+/g, '-')}.pdf`;
+            break;
+
           default:
             toast.error("Type de document non supporté");
             return null;
@@ -509,6 +519,7 @@ function getDocumentLabel(type: DocumentType): string {
     convention: "Convention de formation",
     contrat: "Contrat de formation",
     convocation: "Convocation",
+    programme: "Programme de formation",
   };
   return labels[type];
 }
