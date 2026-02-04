@@ -55,7 +55,7 @@ export const PROGRAMMES_INITIALES: ProgrammeFormation[] = [
     zone: 'NAT',
     intitule: 'Formation initiale - Conducteur de Taxi',
     intituleCourt: 'Formation initiale Taxi',
-    dureeHeures: 250,
+    dureeHeures: 34, // Durée adaptée au format du centre
     description: 'Préparation à l\'examen d\'accès à la profession de conducteur de taxi',
     couleur: '#F59E0B', // amber-500
   },
@@ -66,7 +66,7 @@ export const PROGRAMMES_INITIALES: ProgrammeFormation[] = [
     zone: 'NAT',
     intitule: 'Formation initiale - Conducteur de VTC',
     intituleCourt: 'Formation initiale VTC',
-    dureeHeures: 250,
+    dureeHeures: 34, // Durée adaptée au format du centre
     description: 'Préparation à l\'examen d\'accès à la profession de conducteur VTC',
     couleur: '#3B82F6', // blue-500
   },
@@ -77,7 +77,7 @@ export const PROGRAMMES_INITIALES: ProgrammeFormation[] = [
     zone: 'NAT',
     intitule: 'Formation initiale - Conducteur de VMDTR',
     intituleCourt: 'Formation initiale VMDTR',
-    dureeHeures: 33,
+    dureeHeures: 34, // Durée adaptée au format du centre
     description: 'Préparation à l\'examen d\'accès à la profession de moto-taxi',
     couleur: '#10B981', // emerald-500
   },
