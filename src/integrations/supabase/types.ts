@@ -5128,6 +5128,9 @@ export type Database = {
           adresse_code_postal: string | null
           adresse_rue: string | null
           adresse_ville: string | null
+          archived: boolean | null
+          archived_at: string | null
+          archived_by: string | null
           catalogue_formation_id: string | null
           centre_id: string | null
           created_at: string
@@ -5161,6 +5164,9 @@ export type Database = {
           adresse_code_postal?: string | null
           adresse_rue?: string | null
           adresse_ville?: string | null
+          archived?: boolean | null
+          archived_at?: string | null
+          archived_by?: string | null
           catalogue_formation_id?: string | null
           centre_id?: string | null
           created_at?: string
@@ -5194,6 +5200,9 @@ export type Database = {
           adresse_code_postal?: string | null
           adresse_rue?: string | null
           adresse_ville?: string | null
+          archived?: boolean | null
+          archived_at?: string | null
+          archived_by?: string | null
           catalogue_formation_id?: string | null
           centre_id?: string | null
           created_at?: string
@@ -5644,6 +5653,7 @@ export type Database = {
     Functions: {
       accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
       anonymize_contact: { Args: { p_contact_id: string }; Returns: boolean }
+      archive_session: { Args: { p_session_id: string }; Returns: boolean }
       cancel_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -5784,6 +5794,7 @@ export type Database = {
         }
         Returns: Json
       }
+      unarchive_session: { Args: { p_session_id: string }; Returns: boolean }
       validate_enquete_token: {
         Args: { p_token: string }
         Returns: {

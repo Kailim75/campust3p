@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, List, CalendarDays, Download, Kanban } from "lucide-react";
+import { Search, Plus, List, CalendarDays, Download, Kanban, Archive } from "lucide-react";
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
@@ -24,6 +24,7 @@ import { SessionsKPICards } from "./SessionsKPICards";
 import { SessionsAdvancedFilters, type SessionFilters } from "./SessionsAdvancedFilters";
 import { SessionsGroupedTable } from "./SessionsGroupedTable";
 import { SessionsKanban } from "./SessionsKanban";
+import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
 import { toast } from "sonner";
 
 export function SessionsPage() {
@@ -49,6 +50,7 @@ export function SessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
 
   // Auto-update session statuses on load
   useEffect(() => {
@@ -243,6 +245,11 @@ export function SessionsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <Button variant="outline" onClick={() => setArchivedOpen(true)}>
+            <Archive className="h-4 w-4 mr-2" />
+            Sessions archivées
+          </Button>
+
           <Button onClick={handleAddNew}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle session
@@ -316,6 +323,12 @@ export function SessionsPage() {
           setDetailOpen(false);
           handleEdit(session);
         }}
+      />
+
+      {/* Archived Sessions Sheet */}
+      <ArchivedSessionsSheet
+        open={archivedOpen}
+        onOpenChange={setArchivedOpen}
       />
     </div>
   );
