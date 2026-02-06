@@ -77,10 +77,13 @@ import { BulkDocumentPreviewDialog, TemplateSelection } from './BulkDocumentPrev
 import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
 import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
 import { SendDocumentsToContactDialog } from './SendDocumentsToContactDialog';
+import { ContactDetailSheet } from '@/components/contacts/ContactDetailSheet';
+import { ContactFormDialog } from '@/components/contacts/ContactFormDialog';
 import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
 import { fetchContactsDocumentData } from '@/lib/documents/fetchContactDocumentData';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processor';
+import type { Contact } from '@/hooks/useContacts';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -145,7 +148,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
   const [typeDocumentEnvoi, setTypeDocumentEnvoi] = useState('');
-  const [contactDetail, setContactDetail] = useState<any>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
   
   // Helper to get facture for a contact
   const getFactureForContact = (contactId: string): FactureWithDetails | undefined => {
@@ -822,15 +827,20 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                               <TooltipContent>Créer une facture</TooltipContent>
                             </Tooltip>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setContactDetail(inscrit.contact)}
-                            aria-label="Voir le contact"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setSelectedContactId(inscrit.contact_id)}
+                                aria-label="Voir la fiche contact"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Voir la fiche contact</TooltipContent>
+                          </Tooltip>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -888,44 +898,25 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </DialogContent>
       </Dialog>
 
-      {/* Dialog fiche contact */}
-      <Dialog open={!!contactDetail} onOpenChange={() => setContactDetail(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {contactDetail?.prenom} {contactDetail?.nom}
-            </DialogTitle>
-          </DialogHeader>
-          {contactDetail && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{contactDetail.email || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Téléphone</p>
-                  <p className="font-medium">{contactDetail.telephone || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Formation</p>
-                  <Badge variant="outline">{contactDetail.formation || '-'}</Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Statut</p>
-                  <Badge variant="secondary">{contactDetail.statut || '-'}</Badge>
-                </div>
-              </div>
-              {contactDetail.ville && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Ville</p>
-                  <p className="font-medium">{contactDetail.ville}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Contact Detail Sheet - Fiche complète du stagiaire */}
+      <ContactDetailSheet
+        contactId={selectedContactId}
+        open={!!selectedContactId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedContactId(null);
+        }}
+        onEdit={(contact) => {
+          setEditingContact(contact);
+          setContactFormOpen(true);
+        }}
+      />
+
+      {/* Contact Form Dialog for editing */}
+      <ContactFormDialog
+        open={contactFormOpen}
+        onOpenChange={setContactFormOpen}
+        contact={editingContact}
+      />
 
       {/* Dialog ajout stagiaires multiples */}
       <Dialog open={addDialogOpen} onOpenChange={(open) => {
