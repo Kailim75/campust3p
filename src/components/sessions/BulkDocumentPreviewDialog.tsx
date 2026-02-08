@@ -54,6 +54,7 @@ import DOMPurify from 'dompurify';
 import { buildVariableData, createDocxPreviewPDF } from '@/lib/docx-processor';
 import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentData';
 import { PDFViewer } from '@/components/ui/pdf-viewer';
+import { centreToCompanyInfo } from '@/lib/centre-to-company';
 
 interface Inscrit {
   id: string;
@@ -347,17 +348,18 @@ export function BulkDocumentPreviewDialog({
           const pdfBlob = doc.output('blob');
           blobUrl = URL.createObjectURL(pdfBlob);
         } else {
-          // Use default generation
+          // Use default generation with centre formation data
+          const companyInfo = centreToCompanyInfo(centreFormation);
           let doc;
           switch (documentType) {
             case 'attestation':
-              doc = generateAttestationPDF(contactInfo, sessionInfo);
+              doc = generateAttestationPDF(contactInfo, sessionInfo, companyInfo);
               break;
             case 'convention':
-              doc = generateConventionPDF(contactInfo, sessionInfo);
+              doc = generateConventionPDF(contactInfo, sessionInfo, companyInfo);
               break;
             case 'convocation':
-              doc = generateConvocationPDF(contactInfo, sessionInfo);
+              doc = generateConvocationPDF(contactInfo, sessionInfo, companyInfo);
               break;
             default:
               doc = null;
