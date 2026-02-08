@@ -53,6 +53,7 @@ import { jsPDF } from 'jspdf';
 import DOMPurify from 'dompurify';
 import { buildVariableData, createDocxPreviewPDF } from '@/lib/docx-processor';
 import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentData';
+import { PDFViewer } from '@/components/ui/pdf-viewer';
 
 interface Inscrit {
   id: string;
@@ -603,19 +604,10 @@ export function BulkDocumentPreviewDialog({
                 </div>
               </div>
             ) : pdfDataUrl ? (
-              <object
-                data={pdfDataUrl}
-                type="application/pdf"
+              <PDFViewer 
+                pdfData={pdfDataUrl} 
                 className="w-full h-full min-h-[400px]"
-                aria-label="Aperçu du document"
-              >
-                {/* Fallback if object doesn't work */}
-                <iframe
-                  src={pdfDataUrl}
-                  className="w-full h-full min-h-[400px]"
-                  title="Aperçu du document"
-                />
-              </object>
+              />
             ) : (
               <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
