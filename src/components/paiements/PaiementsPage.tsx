@@ -10,13 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,6 +39,7 @@ import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureW
 import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
+import { ExportFECDialog } from "./ExportFECDialog";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -63,6 +65,7 @@ export function PaiementsPage() {
   const [editingFacture, setEditingFacture] = useState<any>(null);
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null);
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
+  const [showFECDialog, setShowFECDialog] = useState(false);
 
   // Filters state
   const [statutFilter, setStatutFilter] = useState<string>("all");
@@ -358,17 +361,22 @@ export function PaiementsPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
                   <Download className="h-4 w-4 mr-2" />
-                  Export comptable
+                  Export
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleExportComptable("csv")}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Exporter en CSV
+                  Export CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExportComptable("xlsx")}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Exporter en Excel
+                  Export Excel
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowFECDialog(true)}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export FEC (comptable)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -558,6 +566,11 @@ export function PaiementsPage() {
           montantRestant={paiementMontantRestant}
         />
       )}
+
+      <ExportFECDialog
+        open={showFECDialog}
+        onOpenChange={setShowFECDialog}
+      />
     </div>
   );
 }
