@@ -23,6 +23,7 @@ import { InstallPage as Install } from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { InstallPWA } from "./components/pwa/InstallPWA";
+import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
 import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingButton";
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { CentreProvider } from "@/contexts/CentreContext";
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <InstallPWA />
+            <OfflineIndicator />
             <AIAssistantFloatingButton />
           </BrowserRouter>
         </AppErrorBoundary>
