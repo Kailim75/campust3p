@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2, AlertCircle, Download } from "lucide-react";
-
 interface PDFViewerProps {
   pdfData: string | Blob | ArrayBuffer | null;
   className?: string;
@@ -265,14 +265,16 @@ export function PDFViewer({ pdfData, className, onDownload }: PDFViewerProps) {
         </div>
       )}
 
-      {/* Canvas container */}
-      <div className="flex-1 overflow-auto bg-muted/30 flex justify-center p-4">
-        <canvas
-          ref={canvasRef}
-          className="shadow-lg bg-white"
-          style={{ maxWidth: '100%', height: 'auto' }}
-        />
-      </div>
+      {/* Canvas container with ScrollArea */}
+      <ScrollArea className="flex-1 bg-muted/30">
+        <div className="flex justify-center p-4 min-h-full">
+          <canvas
+            ref={canvasRef}
+            className="shadow-lg bg-white"
+            style={{ maxWidth: '100%', height: 'auto' }}
+          />
+        </div>
+      </ScrollArea>
     </div>
   );
 }
