@@ -293,12 +293,26 @@ export function BulkDocumentPreviewDialog({
     }
   };
 
-  // Generate PDF preview when current inscrit or document type changes
+  // Cleanup blob URLs on unmount only
   useEffect(() => {
-    // Revoke previous blob URL to prevent memory leaks
+    let currentUrl: string | null = null;
+    
     return () => {
-      if (pdfDataUrl && pdfDataUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(pdfDataUrl);
+      if (currentUrl && currentUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, []);
+
+  // Track URL changes for cleanup
+  useEffect(() => {
+    const previousUrl = pdfDataUrl;
+    return () => {
+      // Revoke previous URL when a new one is set, with a delay to avoid race conditions
+      if (previousUrl && previousUrl.startsWith('blob:')) {
+        setTimeout(() => {
+          URL.revokeObjectURL(previousUrl);
+        }, 1000);
       }
     };
   }, [pdfDataUrl]);
@@ -582,20 +596,28 @@ export function BulkDocumentPreviewDialog({
           {/* PDF Preview */}
           <div className="flex-1 min-h-0 border rounded-lg bg-muted/50 overflow-hidden">
             {isGenerating ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground">Génération de l'aperçu...</span>
                 </div>
               </div>
             ) : pdfDataUrl ? (
-              <iframe
-                src={pdfDataUrl}
+              <object
+                data={pdfDataUrl}
+                type="application/pdf"
                 className="w-full h-full min-h-[400px]"
-                title="Aperçu du document"
-              />
+                aria-label="Aperçu du document"
+              >
+                {/* Fallback if object doesn't work */}
+                <iframe
+                  src={pdfDataUrl}
+                  className="w-full h-full min-h-[400px]"
+                  title="Aperçu du document"
+                />
+              </object>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <AlertCircle className="h-8 w-8" />
                   <span className="text-sm text-center max-w-xs">
