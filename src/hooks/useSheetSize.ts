@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export type SheetSize = "sm" | "md" | "lg" | "xl";
+export type SheetSize = "sm" | "md" | "lg" | "xl" | "full";
 
 interface SheetSizeConfig {
   label: string;
@@ -12,6 +12,7 @@ export const sheetSizeConfig: Record<SheetSize, SheetSizeConfig> = {
   md: { label: "Moyenne", class: "w-full sm:max-w-lg" },
   lg: { label: "Grande", class: "w-full sm:max-w-2xl" },
   xl: { label: "Très grande", class: "w-full sm:max-w-4xl" },
+  full: { label: "Plein écran", class: "w-full sm:max-w-6xl" },
 };
 
 const STORAGE_KEYS: Record<string, string> = {
@@ -22,7 +23,7 @@ const STORAGE_KEYS: Record<string, string> = {
 
 export function useSheetSize(type: "contact" | "session" | "prospect") {
   const storageKey = STORAGE_KEYS[type] || `${type}SheetSize`;
-  const defaultSize: SheetSize = type === "contact" || type === "prospect" ? "md" : "lg";
+  const defaultSize: SheetSize = type === "session" ? "xl" : type === "contact" || type === "prospect" ? "md" : "lg";
 
   const [size, setSize] = useState<SheetSize>(() => {
     if (typeof window === "undefined") return defaultSize;
