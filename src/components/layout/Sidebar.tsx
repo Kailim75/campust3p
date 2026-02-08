@@ -19,6 +19,7 @@ import {
   BookOpen,
   Shield,
   Building2,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -219,6 +220,18 @@ function SidebarContent({
         >
           <HelpCircle className="h-5 w-5 flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Aide</span>}
+        </button>
+        
+        {/* Formateur Space */}
+        <button
+          onClick={() => {
+            window.location.href = "/formateur";
+            onItemClick?.();
+          }}
+          className="sidebar-item w-full text-sidebar-foreground/70 hover:text-sidebar-foreground"
+        >
+          <ClipboardList className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span className="animate-fade-in">Espace formateur</span>}
         </button>
         
         {/* Super Admin Switch - Only visible for super admins */}
