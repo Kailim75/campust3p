@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, Scan } from "lucide-react";
 import { useUploadDocument, documentTypes } from "@/hooks/useContactDocuments";
+import { ScanDocumentButton } from "@/components/pwa/ScanDocumentButton";
 
 interface DocumentUploadDialogProps {
   contactId: string;
@@ -101,6 +102,18 @@ export function DocumentUploadDialog({
                 onChange={handleFileChange}
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 className="flex-1"
+              />
+              <ScanDocumentButton
+                onScan={(scannedFile) => {
+                  setFile(scannedFile);
+                  if (!nom) {
+                    setNom(scannedFile.name.replace(/\.[^/.]+$/, ""));
+                  }
+                }}
+                variant="outline"
+                size="icon"
+                label=""
+                className="shrink-0"
               />
             </div>
             {file && (
