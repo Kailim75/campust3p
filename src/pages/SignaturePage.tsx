@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "sonner";
 import {
-  FileSignature,
   Check,
   X,
   AlertTriangle,
@@ -18,6 +17,9 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  Download,
+  Eye,
+  FileSignature,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -29,13 +31,37 @@ interface SignatureData {
   type_document: string;
   date_expiration: string | null;
   statut: string;
+  document_url: string | null;
+  signature_url: string | null;
+  contact_id: string;
   contact: { id: string; nom: string; prenom: string; email: string | null } | null;
 }
+
+interface RelatedDocument {
+  id: string;
+  titre: string;
+  type_document: string;
+  statut: string;
+  document_url: string | null;
+  date_envoi: string | null;
+  date_signature: string | null;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  convention: "Convention de formation",
+  contrat: "Contrat de formation",
+  cgv: "Conditions générales de vente",
+  reglement: "Règlement intérieur",
+  programme: "Programme de formation",
+  convocation: "Convocation",
+  attestation: "Attestation",
+};
 
 export default function SignaturePage() {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [sigRequest, setSigRequest] = useState<SignatureData | null>(null);
+  const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [signatureData, setSignatureData] = useState<string | null>(null);
@@ -55,7 +81,7 @@ export default function SignaturePage() {
     try {
       const { data, error: fetchError } = await supabase
         .from("signature_requests")
-        .select("id, titre, description, type_document, date_expiration, statut, contact:contacts(id, nom, prenom, email)")
+        .select("id, titre, description, type_document, date_expiration, statut, document_url, signature_url, contact_id, contact:contacts(id, nom, prenom, email)")
         .eq("id", id!)
         .single();
 
@@ -74,6 +100,27 @@ export default function SignaturePage() {
       }
 
       setSigRequest(data as unknown as SignatureData);
+
+      // Load all related documents for the same contact
+      if (data.contact_id) {
+        const { data: related } = await supabase
+          .from("signature_requests")
+          .select("id, titre, type_document, statut, document_url, date_envoi, date_signature")
+          .eq("contact_id", data.contact_id)
+          .in("statut", ["envoye", "signe", "refuse"])
+          .order("created_at", { ascending: false });
+
+        if (related) {
+          // Deduplicate by type_document, keep latest
+          const seen = new Set<string>();
+          const unique = related.filter((d) => {
+            if (seen.has(d.type_document)) return false;
+            seen.add(d.type_document);
+            return true;
+          });
+          setRelatedDocs(unique);
+        }
+      }
     } catch {
       setError("Erreur lors du chargement du document.");
     } finally {
@@ -86,7 +133,6 @@ export default function SignaturePage() {
     setSigning(true);
 
     try {
-      // Upload signature image
       const fileName = `${sigRequest.id}_${Date.now()}.png`;
       const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, "");
       const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
@@ -112,6 +158,8 @@ export default function SignaturePage() {
       if (updateError) throw updateError;
 
       setCompleted("signed");
+      // Refresh related docs
+      loadSignatureRequest();
       toast.success("Document signé avec succès !");
     } catch {
       toast.error("Erreur lors de la signature. Veuillez réessayer.");
@@ -144,6 +192,39 @@ export default function SignaturePage() {
     }
   };
 
+  const handleDownloadDocument = async (doc: RelatedDocument) => {
+    if (doc.document_url) {
+      window.open(doc.document_url, "_blank");
+    } else {
+      toast.info("Le document sera disponible au téléchargement prochainement.");
+    }
+  };
+
+  const getStatusBadge = (statut: string) => {
+    switch (statut) {
+      case "signe":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+            <CheckCircle2 className="h-3 w-3" /> Signé
+          </span>
+        );
+      case "refuse":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <XCircle className="h-3 w-3" /> Refusé
+          </span>
+        );
+      case "envoye":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            <FileSignature className="h-3 w-3" /> En attente
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   const contact = sigRequest?.contact as any;
 
   return (
@@ -168,12 +249,25 @@ export default function SignaturePage() {
               <p className="text-slate-600 text-center">{error}</p>
             </div>
           ) : completed === "signed" ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <CheckCircle2 className="h-16 w-16 text-green-500" />
-              <h2 className="text-xl font-semibold text-slate-800">Document signé</h2>
-              <p className="text-slate-500 text-center max-w-md">
-                Votre signature a été enregistrée avec succès. Vous pouvez fermer cette page.
-              </p>
+            <div className="space-y-6">
+              <div className="flex flex-col items-center justify-center py-8 gap-4">
+                <CheckCircle2 className="h-16 w-16 text-green-500" />
+                <h2 className="text-xl font-semibold text-slate-800">Document signé</h2>
+                <p className="text-slate-500 text-center max-w-md">
+                  Votre signature a été enregistrée avec succès.
+                </p>
+              </div>
+
+              {/* Documents section after signing */}
+              {relatedDocs.length > 0 && (
+                <DocumentsSection
+                  docs={relatedDocs}
+                  currentId={id!}
+                  onDownload={handleDownloadDocument}
+                  getStatusBadge={getStatusBadge}
+                  title="Vos documents de formation"
+                />
+              )}
             </div>
           ) : completed === "refused" ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -211,6 +305,17 @@ export default function SignaturePage() {
                   )}
                 </div>
               </div>
+
+              {/* Related documents before signing */}
+              {relatedDocs.length > 1 && (
+                <DocumentsSection
+                  docs={relatedDocs}
+                  currentId={id!}
+                  onDownload={handleDownloadDocument}
+                  getStatusBadge={getStatusBadge}
+                  title="Documents liés à votre formation"
+                />
+              )}
 
               {/* Signature Canvas */}
               <div className="space-y-2">
@@ -313,6 +418,73 @@ export default function SignaturePage() {
         <p className="text-center text-xs text-slate-400 mt-6">
           T3P Formation — Centre de formation Taxi, VTC et VMDTR
         </p>
+      </div>
+    </div>
+  );
+}
+
+function DocumentsSection({
+  docs,
+  currentId,
+  onDownload,
+  getStatusBadge,
+  title,
+}: {
+  docs: RelatedDocument[];
+  currentId: string;
+  onDownload: (doc: RelatedDocument) => void;
+  getStatusBadge: (statut: string) => React.ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+        <Download className="h-4 w-4" />
+        {title}
+      </h3>
+      <div className="divide-y rounded-lg border overflow-hidden">
+        {docs.map((doc) => (
+          <div
+            key={doc.id}
+            className={`flex items-center justify-between p-3 text-sm ${
+              doc.id === currentId ? "bg-blue-50" : "bg-white hover:bg-slate-50"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-medium text-slate-700 truncate">
+                  {TYPE_LABELS[doc.type_document] || doc.titre}
+                </p>
+                {doc.date_signature && (
+                  <p className="text-xs text-slate-400">
+                    Signé le {format(parseISO(doc.date_signature), "d MMM yyyy", { locale: fr })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {getStatusBadge(doc.statut)}
+              {doc.statut === "envoye" && doc.id !== currentId && (
+                <a
+                  href={`/signature/${doc.id}`}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                >
+                  <FileSignature className="h-3 w-3" />
+                  Signer
+                </a>
+              )}
+              {doc.document_url && (
+                <button
+                  onClick={() => onDownload(doc)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded"
+                >
+                  <Download className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
