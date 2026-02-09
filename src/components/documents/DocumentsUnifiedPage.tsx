@@ -169,6 +169,13 @@ export function DocumentsUnifiedPage() {
   };
 
   const handleSendSignature = async (id: string) => {
+    // Vérifier que le contact a un email avant d'envoyer
+    const sig = signatures.find((s) => s.id === id);
+    const contact = sig?.contact as any;
+    if (!contact?.email) {
+      toast.error("Ce contact n'a pas d'adresse email. Veuillez d'abord renseigner son email.");
+      return;
+    }
     try {
       await sendEmail.mutateAsync({ signatureRequestId: id, type: "signature_request" });
       toast.success("Demande de signature envoyée");
