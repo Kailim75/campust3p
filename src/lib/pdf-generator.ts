@@ -2011,9 +2011,6 @@ export function generateProgrammePDF(
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
     doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 2);
     
-    // Durée à droite
-    doc.text(`${module.dureeHeures}h`, pageWidth - 30, yPos + 2, { align: "right" });
-    
     yPos += 12;
     
     // Contenu du module
@@ -2213,9 +2210,6 @@ export function generateProgrammeStandalonePDF(
     doc.setFontSize(10);
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
     doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 2);
-    
-    // Durée à droite
-    doc.text(`${module.dureeHeures}h`, pageWidth - 30, yPos + 2, { align: "right" });
     
     yPos += 12;
     
