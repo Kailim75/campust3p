@@ -36,7 +36,7 @@ import {
   type CompanyInfo,
   type AgrementsAutre,
 } from '@/lib/pdf-generator';
-import { generateReglementInterieurPDF, generateCGVPDF } from '@/lib/convention-pdf-generator';
+import { generateReglementInterieurPDF, generateCGVPDF, type ConventionCompanyInfo } from '@/lib/convention-pdf-generator';
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
@@ -535,9 +535,29 @@ export function SendDocumentsToContactDialog({
               } else if (docType === 'contrat' && companyInfo) {
                 pdfDoc = generateContratFormationPDF(pdfContact, pdfSession, companyInfo);
               } else if (docType === 'reglement') {
-                pdfDoc = generateReglementInterieurPDF();
+                const convCompany: ConventionCompanyInfo | undefined = companyInfo ? {
+                  name: companyInfo.name,
+                  address: companyInfo.address,
+                  phone: companyInfo.phone,
+                  email: companyInfo.email,
+                  siret: companyInfo.siret,
+                  nda: companyInfo.nda,
+                  qualiopi_numero: companyInfo.qualiopi_numero,
+                  agrement_prefecture: companyInfo.agrement_prefecture,
+                } : undefined;
+                pdfDoc = generateReglementInterieurPDF(convCompany);
               } else if (docType === 'cgv') {
-                pdfDoc = generateCGVPDF();
+                const convCompany: ConventionCompanyInfo | undefined = companyInfo ? {
+                  name: companyInfo.name,
+                  address: companyInfo.address,
+                  phone: companyInfo.phone,
+                  email: companyInfo.email,
+                  siret: companyInfo.siret,
+                  nda: companyInfo.nda,
+                  qualiopi_numero: companyInfo.qualiopi_numero,
+                  agrement_prefecture: companyInfo.agrement_prefecture,
+                } : undefined;
+                pdfDoc = generateCGVPDF(convCompany);
               }
             } catch (pdfErr) {
               console.warn(`Erreur génération PDF pour ${docType}:`, pdfErr);

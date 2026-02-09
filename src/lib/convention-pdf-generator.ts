@@ -49,6 +49,24 @@ const COLORS = {
   white: DOCUMENT_COLORS.white,
 };
 
+// Interface pour les données dynamiques du centre
+export interface ConventionCompanyInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  siret: string;
+  nda: string;
+  qualiopi_numero?: string;
+  agrement_prefecture?: string;
+  code_rs?: string;
+  logo_url?: string;
+  signature_cachet_url?: string;
+  ville?: string;
+  responsable_nom?: string;
+  responsable_fonction?: string;
+}
+
 // ==================== CONFIGURATION PDF ====================
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
@@ -68,28 +86,49 @@ function formatDateShort(date: Date): string {
   return format(date, "dd/MM/yyyy");
 }
 
+// Extract ville from address string (e.g. "10 rue X, 92120 Montrouge" -> "Montrouge")
+function extractVille(address?: string): string {
+  if (!address) return "";
+  // Try to match pattern: code_postal VILLE
+  const match = address.match(/\d{5}\s+(.+?)(?:,|$)/);
+  return match ? match[1].trim() : "";
+}
+
 // ==================== HEADER T3P CAMPUS ====================
-function addHeader(doc: jsPDF, title: string): number {
+function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): number {
+  const orgNom = company?.name || ORGANISME.nom;
+  const orgAdresse = company?.address || `${ORGANISME.adresse}, ${ORGANISME.codePostal} ${ORGANISME.ville}`;
+  const orgTel = company?.phone || ORGANISME.telephone;
+  const orgEmail = company?.email || ORGANISME.email;
+  const orgSiret = company?.siret || ORGANISME.siret;
+  const orgNda = company?.nda || ORGANISME.nda;
+
+  // Build legal info line
+  const legalParts = [`SIRET: ${orgSiret}`, `NDA: ${orgNda}`];
+  if (company?.qualiopi_numero) legalParts.push(`Qualiopi: ${company.qualiopi_numero}`);
+  if (company?.agrement_prefecture) legalParts.push(`Agrément Préf.: ${company.agrement_prefecture}`);
+  if (company?.code_rs) legalParts.push(`RS: ${company.code_rs}`);
+  const legalInfo = legalParts.join(" | ");
+
   // Bandeau vert Forest
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, PAGE_WIDTH, 42, "F");
 
-  // Logo/Nom T3P CAMPUS
+  // Logo/Nom
   doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text(ORGANISME.nom, MARGIN_LEFT, 16);
+  doc.text(orgNom, MARGIN_LEFT, 16);
 
   // Coordonnées
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.text(`${ORGANISME.adresse}, ${ORGANISME.codePostal} ${ORGANISME.ville}`, MARGIN_LEFT, 24);
-  doc.text(`Tél: ${ORGANISME.telephone} | Email: ${ORGANISME.email}`, MARGIN_LEFT, 30);
+  doc.text(orgAdresse, MARGIN_LEFT, 24);
+  doc.text(`Tél: ${orgTel} | Email: ${orgEmail}`, MARGIN_LEFT, 30);
 
   // Informations légales
   doc.setFontSize(7);
-  const legalInfo = `SIRET: ${ORGANISME.siret} | NDA: ${ORGANISME.nda} | RS: ${ORGANISME.numeroRS}`;
   doc.text(legalInfo, MARGIN_LEFT, 37);
 
   // Titre du document (bande dorée)
@@ -105,8 +144,10 @@ function addHeader(doc: jsPDF, title: string): number {
 }
 
 // ==================== FOOTER ====================
-function addFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
+function addFooter(doc: jsPDF, pageNum: number, totalPages: number, company?: ConventionCompanyInfo): void {
   const footerY = PAGE_HEIGHT - FOOTER_HEIGHT;
+  const orgNom = company?.name || ORGANISME.nom;
+  const orgSiret = company?.siret || ORGANISME.siret;
 
   // Ligne de séparation
   doc.setDrawColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -118,7 +159,7 @@ function addFooter(doc: jsPDF, pageNum: number, totalPages: number): void {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
 
-  doc.text(`${ORGANISME.nom} - ${ORGANISME.raisonSociale}`, MARGIN_LEFT, footerY + 6);
+  doc.text(`${orgNom} - SIRET: ${orgSiret}`, MARGIN_LEFT, footerY + 6);
   doc.text(`Page ${pageNum}/${totalPages}`, PAGE_WIDTH / 2, footerY + 6, { align: "center" });
   doc.text(`Généré le ${formatDateShort(new Date())}`, PAGE_WIDTH - MARGIN_RIGHT, footerY + 6, { align: "right" });
 }
@@ -479,14 +520,14 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
 // ============================================================
 // GÉNÉRATION RÈGLEMENT INTÉRIEUR
 // ============================================================
-export function generateReglementInterieurPDF(): jsPDF {
+export function generateReglementInterieurPDF(company?: ConventionCompanyInfo): jsPDF {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",
   });
 
-  let yPos = addHeader(doc, REGLEMENT_INTERIEUR.titre);
+  let yPos = addHeader(doc, REGLEMENT_INTERIEUR.titre, company);
   yPos += 2;
 
   // Référence légale
@@ -533,19 +574,22 @@ export function generateReglementInterieurPDF(): jsPDF {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`Fait à ${ORGANISME.ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT, yPos);
+  const ville = company?.ville || extractVille(company?.address) || ORGANISME.ville;
+  doc.text(`Fait à ${ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT, yPos);
   yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(REGLEMENT_INTERIEUR.signataire.nom, MARGIN_LEFT, yPos);
+  const sigNom = company?.responsable_nom || REGLEMENT_INTERIEUR.signataire.nom;
+  const sigFonction = company?.responsable_fonction || REGLEMENT_INTERIEUR.signataire.fonction;
+  doc.text(sigNom, MARGIN_LEFT, yPos);
   yPos += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(REGLEMENT_INTERIEUR.signataire.fonction, MARGIN_LEFT, yPos);
+  doc.text(sigFonction, MARGIN_LEFT, yPos);
 
   // Add footers
   const totalPages = doc.internal.pages.length - 1;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    addFooter(doc, i, totalPages);
+    addFooter(doc, i, totalPages, company);
   }
 
   return doc;
@@ -554,14 +598,14 @@ export function generateReglementInterieurPDF(): jsPDF {
 // ============================================================
 // GÉNÉRATION CONDITIONS GÉNÉRALES DE VENTE
 // ============================================================
-export function generateCGVPDF(): jsPDF {
+export function generateCGVPDF(company?: ConventionCompanyInfo): jsPDF {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",
   });
 
-  let yPos = addHeader(doc, CONDITIONS_GENERALES_VENTE.titre);
+  let yPos = addHeader(doc, CONDITIONS_GENERALES_VENTE.titre, company);
   yPos += 2;
 
   // Version
@@ -603,19 +647,22 @@ export function generateCGVPDF(): jsPDF {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`Fait à ${ORGANISME.ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT, yPos);
+  const ville = company?.ville || extractVille(company?.address) || ORGANISME.ville;
+  doc.text(`Fait à ${ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT, yPos);
   yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text(CONDITIONS_GENERALES_VENTE.signataire.nom, MARGIN_LEFT, yPos);
+  const sigNom = company?.responsable_nom || CONDITIONS_GENERALES_VENTE.signataire.nom;
+  const sigFonction = company?.responsable_fonction || CONDITIONS_GENERALES_VENTE.signataire.fonction;
+  doc.text(sigNom, MARGIN_LEFT, yPos);
   yPos += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(CONDITIONS_GENERALES_VENTE.signataire.fonction, MARGIN_LEFT, yPos);
+  doc.text(sigFonction, MARGIN_LEFT, yPos);
 
   // Add footers
   const totalPages = doc.internal.pages.length - 1;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    addFooter(doc, i, totalPages);
+    addFooter(doc, i, totalPages, company);
   }
 
   return doc;
