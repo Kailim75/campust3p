@@ -684,7 +684,12 @@ function formatFullAddress(session: SessionInfo): string {
 // Helper function to format session hours
 function formatSessionHours(session: SessionInfo): string {
   if (session.heure_debut && session.heure_fin) {
-    return `${session.heure_debut} - ${session.heure_fin}`;
+    // Format HH:MM:SS to HHhMM (e.g. "18:00:00" -> "18h00")
+    const formatTime = (time: string) => {
+      const [hours, minutes] = time.split(':');
+      return `${hours}h${minutes}`;
+    };
+    return `${formatTime(session.heure_debut)} - ${formatTime(session.heure_fin)}`;
   }
   return "9h00 - 12h30 / 13h30 - 17h00";
 }

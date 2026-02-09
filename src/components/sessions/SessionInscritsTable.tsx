@@ -443,6 +443,16 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           })),
           documentType: bulkEmailType,
           sessionName: session?.nom,
+          sessionInfo: sessionInfo ? {
+            formation_type: sessionInfo.formation_type,
+            date_debut: sessionInfo.date_debut,
+            date_fin: sessionInfo.date_fin,
+            lieu: sessionInfo.lieu,
+            heure_debut: sessionInfo.heure_debut,
+            heure_fin: sessionInfo.heure_fin,
+            duree_heures: sessionInfo.duree_heures,
+            formateur: session?.formateur || undefined,
+          } : undefined,
           customMessage: bulkEmailMessage || undefined,
         },
       });
