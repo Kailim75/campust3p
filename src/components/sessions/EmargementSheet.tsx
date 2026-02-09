@@ -316,8 +316,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Stagiaire</TableHead>
-                  <TableHead className="text-center">18h00 - 19h45</TableHead>
-                  <TableHead className="text-center">19h45 - 21h30</TableHead>
+                  <TableHead className="text-center">18h00 - 21h30 — Signature</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -328,6 +327,8 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
                   const afternoonEmarg = dateEmargements.find(
                     (e) => e.contact_id === contact?.id && e.periode === "apres_midi"
                   );
+                  // Use whichever has signature/presence
+                  const bestEmarg = (morningEmarg?.signature_url || morningEmarg?.present) ? morningEmarg : afternoonEmarg;
 
                   return (
                     <TableRow key={contact?.id}>
@@ -335,35 +336,18 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
                         {contact?.prenom} {contact?.nom}
                       </TableCell>
                       <TableCell className="text-center">
-                        {morningEmarg && (
+                        {bestEmarg && (
                           <EmargementCell
-                            emargement={morningEmarg}
+                            emargement={bestEmarg}
                             onSign={() =>
                               setSignatureDialog({
                                 open: true,
-                                emargementId: morningEmarg.id,
+                                emargementId: bestEmarg.id,
                                 contactName: `${contact?.prenom} ${contact?.nom}`,
                               })
                             }
                             onToggle={(present) =>
-                              handleTogglePresence(morningEmarg.id, present)
-                            }
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {afternoonEmarg && (
-                          <EmargementCell
-                            emargement={afternoonEmarg}
-                            onSign={() =>
-                              setSignatureDialog({
-                                open: true,
-                                emargementId: afternoonEmarg.id,
-                                contactName: `${contact?.prenom} ${contact?.nom}`,
-                              })
-                            }
-                            onToggle={(present) =>
-                              handleTogglePresence(afternoonEmarg.id, present)
+                              handleTogglePresence(bestEmarg.id, present)
                             }
                           />
                         )}
