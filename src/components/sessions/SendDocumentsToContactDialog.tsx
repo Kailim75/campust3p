@@ -416,6 +416,16 @@ export function SendDocumentsToContactDialog({
               ...selectedTemplateFiles.map(id => `file:${id}`),
             ],
             sessionName: sessionInfo.nom,
+            sessionInfo: {
+              formation_type: sessionInfo.formation_type,
+              date_debut: sessionInfo.date_debut,
+              date_fin: sessionInfo.date_fin,
+              lieu: sessionInfo.lieu,
+              heure_debut: sessionInfo.heure_debut,
+              heure_fin: sessionInfo.heure_fin,
+              duree_heures: sessionInfo.duree_heures,
+              formateur: sessionInfo.formateur || undefined,
+            },
             customMessage: customMessage || undefined,
           },
         });
