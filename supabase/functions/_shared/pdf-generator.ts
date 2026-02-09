@@ -546,7 +546,6 @@ export function generateProgrammePDF(
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
     doc.text(mod.titre, 25, yPos + 4);
-    doc.text(mod.duree, pageWidth - 30, yPos + 4, { align: "right" });
 
     yPos += 14;
     doc.setFont("helvetica", "normal");
@@ -750,7 +749,7 @@ export function generateContratFormationPDF(
 
   programme.modules.forEach(mod => {
     yPos = checkPageBreak(6);
-    doc.text(`• ${mod.titre} (${mod.duree})`, 25, yPos);
+    doc.text(`• ${mod.titre}`, 25, yPos);
     yPos += 5;
   });
   yPos += 4;
