@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Enquete from "./pages/Enquete";
 import LearnerPortal from "./pages/LearnerPortal";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import SignaturePage from "./pages/SignaturePage";
 import LandingPage from "./pages/LandingPage";
 import Onboarding from "./pages/Onboarding";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -48,6 +49,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/enquete/:token" element={<Enquete />} />
+              <Route path="/signature/:id" element={<SignaturePage />} />
               <Route path="/apprenant" element={<LearnerPortal />} />
               <Route path="/certificat" element={<VerifyCertificate />} />
               <Route path="/install" element={<Install />} />
