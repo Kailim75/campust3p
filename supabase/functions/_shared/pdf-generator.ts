@@ -60,57 +60,45 @@ interface ModuleT3P {
   contenu: string[];
 }
 
+// Modules communs à tous les métiers T3P
+const MODULES_COMMUNS: ModuleT3P[] = [
+  { titre: "Module 1 - Gestion", duree: "5h", contenu: ["Choix du statut juridique", "Obligations comptables et fiscales", "Assurances professionnelles", "Calcul du coût de revient et rentabilité"] },
+  { titre: "Module 2 - Réglementation T3P", duree: "5h", contenu: ["Cadre juridique national et européen", "Conditions d'accès et d'exercice de la profession", "Obligations du conducteur T3P", "Sanctions administratives et pénales"] },
+  { titre: "Module 3 - Français", duree: "5h", contenu: ["Communication professionnelle", "Accueil et prise en charge de la clientèle", "Gestion des réclamations", "Vocabulaire du transport"] },
+  { titre: "Module 4 - Anglais (B1 CECRL)", duree: "5h", contenu: ["Vocabulaire professionnel du transport", "Accueil clientèle anglophone", "Situations courantes", "Présentation touristique"] },
+  { titre: "Module 5 - Sécurité routière", duree: "5h", contenu: ["Réglementation Code de la route", "Conduite défensive et éco-conduite", "Gestion des situations d'urgence", "Entretien et visite technique du véhicule"] },
+];
+
 const PROGRAMMES_T3P: Record<string, { modules: ModuleT3P[]; sanctionFormation: string }> = {
   VTC: {
     modules: [
-      { titre: "Module 1 - Réglementation du transport public particulier de personnes", duree: "6h", contenu: ["Cadre juridique national et européen", "Conditions d'accès et d'exercice VTC", "Obligations du conducteur VTC", "Sanctions administratives et pénales"] },
-      { titre: "Module 2 - Gestion d'une entreprise", duree: "4h", contenu: ["Choix du statut juridique", "Obligations comptables et fiscales", "Assurances professionnelles", "Calcul du coût de revient"] },
-      { titre: "Module 3 - Sécurité routière", duree: "6h", contenu: ["Réglementation Code de la route", "Conduite défensive", "Éco-conduite", "Gestion des situations d'urgence"] },
-      { titre: "Module 4 - Français", duree: "6h", contenu: ["Accueil et présentation professionnelle", "Communication avec la clientèle", "Gestion des réclamations"] },
-      { titre: "Module 5 - Anglais (B1 CECRL)", duree: "6h", contenu: ["Vocabulaire professionnel du transport", "Situations courantes", "Présentation touristique"] },
-      { titre: "Module 6 - Prévention des discriminations", duree: "2h", contenu: ["Cadre légal", "Les 27 critères de discrimination prohibés", "Sanctions", "Études de cas"] },
-      { titre: "Module 7 - Prévention traite / harcèlement", duree: "1h", contenu: ["Définitions et signaux d'alerte", "Obligations de signalement", "Numéros d'urgence"] },
+      ...MODULES_COMMUNS,
+      { titre: "Module 6 - Réglementation nationale VTC", duree: "5h", contenu: ["Conditions d'accès spécifiques VTC", "Obligations du conducteur VTC", "Registre VTC et carte professionnelle", "Relations avec les plateformes de mise en relation"] },
+      { titre: "Module 7 - Développement commercial", duree: "4h", contenu: ["Stratégie commerciale et fidélisation", "Marketing digital et réseaux sociaux", "Relation client et qualité de service", "Gestion de la e-réputation"] },
     ],
     sanctionFormation: "Attestation de formation initiale VTC permettant de se présenter à l'examen T3P de la CMA",
   },
   TAXI: {
     modules: [
-      { titre: "Module 1 - Réglementation du transport public particulier de personnes", duree: "6h", contenu: ["Réglementation taxis, VTC, VMDTR", "Utilisation de la voie publique", "Conditions d'accès à la profession", "Sanctions"] },
-      { titre: "Module 2 - Gestion d'une entreprise de taxi", duree: "5h", contenu: ["Comptabilité et obligations", "Coût de revient et rentabilité", "Statuts juridiques", "Régimes fiscaux et sociaux"] },
-      { titre: "Module 3 - Sécurité routière", duree: "5h", contenu: ["Entretien et visite technique", "Permis à points", "Éco-conduite", "Risques alcool/stupéfiants"] },
-      { titre: "Module 4 - Français", duree: "5h", contenu: ["Communication professionnelle", "Gestion des réclamations", "Vocabulaire du transport"] },
-      { titre: "Module 5 - Anglais (B1 CECRL)", duree: "4h", contenu: ["Accueil clientèle anglophone", "Vocabulaire transport taxi", "Présentation touristique"] },
-      { titre: "Module 6 - Réglementation nationale spécifique taxi", duree: "4h", contenu: ["Équipements spéciaux (taximètre, lumineux)", "Régime des ADS", "Tarification course taxi"] },
-      { titre: "Module 7 - Prévention des discriminations", duree: "2h", contenu: ["Cadre légal", "Critères de discrimination", "Obligations du conducteur taxi"] },
-      { titre: "Module 8 - Prévention traite / harcèlement", duree: "1h", contenu: ["Signaux d'alerte", "Obligations de signalement", "Numéros d'urgence"] },
-      { titre: "Module 9 - Module pratique taxi", duree: "2h", contenu: ["Conduite en sécurité", "Prise en charge clients", "Utilisation équipements taxi", "Facturation et encaissement"] },
+      ...MODULES_COMMUNS,
+      { titre: "Module 6 - Réglementation nationale taxi", duree: "5h", contenu: ["Équipements spéciaux (taximètre, lumineux)", "Régime des autorisations de stationnement (ADS)", "Tarification réglementée des courses", "Obligations spécifiques du conducteur de taxi"] },
+      { titre: "Module 7 - Réglementation locale taxi", duree: "4h", contenu: ["Réglementation départementale applicable", "Zones de prise en charge", "Stations de taxi et emplacements réservés", "Spécificités locales de la profession"] },
     ],
     sanctionFormation: "Attestation de formation initiale TAXI permettant de se présenter à l'examen T3P de la CMA",
   },
   "TAXI-75": {
     modules: [
-      { titre: "Module 1 - Réglementation du transport public particulier", duree: "5h", contenu: ["Cadre juridique national", "Conditions d'accès", "Obligations et sanctions"] },
-      { titre: "Module 2 - Gestion d'une entreprise de taxi", duree: "4h", contenu: ["Comptabilité et obligations", "Coût de revient", "Statuts juridiques"] },
-      { titre: "Module 3 - Sécurité routière", duree: "4h", contenu: ["Entretien véhicule", "Conduite sécuritaire", "Risques routiers"] },
-      { titre: "Module 4 - Français", duree: "4h", contenu: ["Communication professionnelle", "Gestion des réclamations"] },
-      { titre: "Module 5 - Anglais (B1 CECRL)", duree: "4h", contenu: ["Accueil clientèle anglophone", "Situations professionnelles"] },
-      { titre: "Module 6 - Réglementation nationale spécifique taxi", duree: "4h", contenu: ["Taximètre et lumineux", "ADS", "Tarification"] },
-      { titre: "Module 7 - Réglementation locale taxi Paris", duree: "4h", contenu: ["Préfecture de Police de Paris", "Réglementation spécifique 75", "Zones de prise en charge", "Stations taxi parisiennes"] },
-      { titre: "Module 8 - Prévention des discriminations", duree: "2h", contenu: ["Cadre légal", "Critères de discrimination"] },
-      { titre: "Module 9 - Prévention traite / harcèlement", duree: "1h", contenu: ["Signaux d'alerte", "Obligations de signalement"] },
-      { titre: "Module 10 - Module pratique taxi", duree: "2h", contenu: ["Conduite professionnelle", "Utilisation équipements", "Facturation"] },
+      ...MODULES_COMMUNS,
+      { titre: "Module 6 - Réglementation nationale taxi", duree: "5h", contenu: ["Équipements spéciaux (taximètre, lumineux)", "Régime des ADS", "Tarification réglementée", "Obligations spécifiques taxi"] },
+      { titre: "Module 7 - Réglementation locale taxi Paris (75)", duree: "4h", contenu: ["Préfecture de Police de Paris", "Réglementation spécifique département 75", "Zones de prise en charge parisiennes", "Stations taxi et emplacements réservés à Paris"] },
     ],
     sanctionFormation: "Attestation de formation initiale TAXI Paris (75) permettant de se présenter à l'examen T3P de la CMA de Paris",
   },
   VMDTR: {
     modules: [
-      { titre: "Module 1 - Réglementation du transport public particulier", duree: "6h", contenu: ["Cadre juridique", "Conditions d'accès VMDTR", "Obligations et sanctions"] },
-      { titre: "Module 2 - Gestion d'une entreprise", duree: "4h", contenu: ["Statuts juridiques", "Comptabilité", "Coût de revient"] },
-      { titre: "Module 3 - Sécurité routière deux/trois roues", duree: "6h", contenu: ["Spécificités de conduite 2/3 roues", "Équipements de protection", "Risques spécifiques", "Éco-conduite"] },
-      { titre: "Module 4 - Français", duree: "6h", contenu: ["Communication professionnelle", "Vocabulaire du transport"] },
-      { titre: "Module 5 - Anglais (B1 CECRL)", duree: "6h", contenu: ["Accueil clientèle anglophone", "Vocabulaire professionnel"] },
-      { titre: "Module 6 - Prévention des discriminations", duree: "2h", contenu: ["Cadre légal", "Critères de discrimination"] },
-      { titre: "Module 7 - Prévention traite / harcèlement", duree: "1h", contenu: ["Signaux d'alerte", "Obligations de signalement"] },
+      ...MODULES_COMMUNS,
+      { titre: "Module 6 - Spécificité VMDTR", duree: "5h", contenu: ["Réglementation spécifique deux/trois roues motorisés", "Équipements de protection obligatoires", "Spécificités de conduite moto-taxi", "Prise en charge passager sur deux/trois roues"] },
+      { titre: "Module 7 - Sécurité spécifique VMDTR", duree: "4h", contenu: ["Risques spécifiques à la conduite 2/3 roues", "Techniques de conduite défensive moto", "Entretien et contrôle du véhicule 2/3 roues", "Gestion des conditions météorologiques"] },
     ],
     sanctionFormation: "Attestation de formation initiale VMDTR permettant de se présenter à l'examen T3P de la CMA",
   },
