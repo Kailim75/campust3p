@@ -248,7 +248,7 @@ function emargementTable(
   contacts: { id: string; nom: string; prenom: string }[],
   dateEmargements: EmargementData[]
 ): string {
-  const c1 = 4400, c2 = 3033, c3 = 3033;
+  const c1 = 5233, c2 = 5233;
 
   // Header row
   let headerRow = `<w:tr>
@@ -256,11 +256,7 @@ function emargementTable(
       <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Nom et Prénom du stagiaire</w:t></w:r></w:p>
     </w:tc>
     <w:tc><w:tcPr><w:tcW w:w="${c2}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.gold}"/><w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/></w:tcMar></w:tcPr>
-      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>18h00 - 19h45</w:t></w:r></w:p>
-      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="16"/><w:color w:val="${T3P.warmGray700}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Signature</w:t></w:r></w:p>
-    </w:tc>
-    <w:tc><w:tcPr><w:tcW w:w="${c3}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.gold}"/><w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/></w:tcMar></w:tcPr>
-      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>19h45 - 21h30</w:t></w:r></w:p>
+      <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>18h00 - 21h30</w:t></w:r></w:p>
       <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="16"/><w:color w:val="${T3P.warmGray700}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Signature</w:t></w:r></w:p>
     </w:tc>
   </w:tr>`;
@@ -271,15 +267,15 @@ function emargementTable(
     const bg = idx % 2 === 0 ? T3P.white : T3P.creamLight;
     const morning = dateEmargements.find((e) => e.contact_id === contact.id && e.periode === "matin");
     const afternoon = dateEmargements.find((e) => e.contact_id === contact.id && e.periode === "apres_midi");
-    const ms = sigStatus(morning);
-    const as = sigStatus(afternoon);
+    // Use whichever emargement has a signature/presence
+    const best = (morning?.signature_url || morning?.present) ? morning : afternoon;
+    const status = sigStatus(best);
 
     contactRows += `<w:tr><w:trPr><w:trHeight w:val="680" w:hRule="atLeast"/></w:trPr>
       <w:tc><w:tcPr><w:tcW w:w="${c1}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/><w:tcMar><w:left w:w="120" w:type="dxa"/></w:tcMar></w:tcPr>
         <w:p><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:color w:val="${T3P.warmGray700}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(contact.nom.toUpperCase())} ${esc(contact.prenom)}</w:t></w:r></w:p>
       </w:tc>
-      ${sigCell(c2, bg, ms)}
-      ${sigCell(c3, bg, as)}
+      ${sigCell(c2, bg, status)}
     </w:tr>`;
   });
 
@@ -290,7 +286,6 @@ function emargementTable(
     emptyRows += `<w:tr><w:trPr><w:trHeight w:val="680" w:hRule="atLeast"/></w:trPr>
       <w:tc><w:tcPr><w:tcW w:w="${c1}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p/></w:tc>
       <w:tc><w:tcPr><w:tcW w:w="${c2}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p/></w:tc>
-      <w:tc><w:tcPr><w:tcW w:w="${c3}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p/></w:tc>
     </w:tr>`;
   }
 
@@ -305,7 +300,7 @@ function emargementTable(
         <w:insideV w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
       </w:tblBorders>
     </w:tblPr>
-    <w:tblGrid><w:gridCol w:w="${c1}"/><w:gridCol w:w="${c2}"/><w:gridCol w:w="${c3}"/></w:tblGrid>
+    <w:tblGrid><w:gridCol w:w="${c1}"/><w:gridCol w:w="${c2}"/></w:tblGrid>
     ${headerRow}
     ${contactRows}
     ${emptyRows}
