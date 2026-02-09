@@ -43,8 +43,11 @@ import {
   X,
   Calendar,
   Users,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
+import { generateEmargementDocx } from "@/lib/emargement-docx-generator";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EmargementSheetProps {
   session: {
@@ -52,6 +55,9 @@ interface EmargementSheetProps {
     nom: string;
     date_debut: string;
     date_fin: string;
+    lieu?: string;
+    formation_type?: string;
+    formateur_id?: string | null;
   };
 }
 
@@ -101,6 +107,68 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       dateDebut: session.date_debut,
       dateFin: session.date_fin,
     });
+  };
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadDocx = async () => {
+    if (!emargements || emargements.length === 0) {
+      toast.error("Aucun émargement à exporter");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      // Fetch formateur name if needed
+      let formateurNom: string | undefined;
+      if (session.formateur_id) {
+        const { data: formateur } = await supabase
+          .from("formateurs")
+          .select("nom, prenom")
+          .eq("id", session.formateur_id)
+          .single();
+        if (formateur) formateurNom = `${formateur.prenom} ${formateur.nom}`;
+      }
+
+      // Fetch centre info
+      let centreNom: string | undefined;
+      let centreNda: string | undefined;
+      const { data: centre } = await supabase
+        .from("centre_formation")
+        .select("nom_commercial, nda")
+        .limit(1)
+        .single();
+      if (centre) {
+        centreNom = centre.nom_commercial;
+        centreNda = centre.nda;
+      }
+
+      const blob = generateEmargementDocx(emargements, {
+        nom: session.nom,
+        date_debut: session.date_debut,
+        date_fin: session.date_fin,
+        lieu: session.lieu,
+        formation_type: session.formation_type,
+        formateur_nom: formateurNom,
+        centre_nom: centreNom,
+        centre_nda: centreNda,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Emargement_${session.nom.replace(/\s+/g, "_")}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Feuille d'émargement téléchargée");
+    } catch (error) {
+      console.error("Erreur téléchargement:", error);
+      toast.error("Erreur lors du téléchargement");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleSignature = (signatureData: string) => {
@@ -198,6 +266,21 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         </Select>
 
         <div className="flex gap-2">
+          {totalEmargements > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadDocx}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Télécharger DOCX
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
