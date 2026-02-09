@@ -28,6 +28,15 @@ import {
   FileSignature
 } from 'lucide-react';
 import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
+import {
+  generateConventionPDF,
+  generateContratFormationPDF,
+  type ContactInfo as PdfContactInfo,
+  type SessionInfo as PdfSessionInfo,
+  type CompanyInfo,
+  type AgrementsAutre,
+} from '@/lib/pdf-generator';
+import { generateReglementInterieurPDF, generateCGVPDF } from '@/lib/convention-pdf-generator';
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
@@ -460,16 +469,109 @@ export function SendDocumentsToContactDialog({
           cgv: 'Conditions générales de vente',
         };
 
+        // Build company info for PDF generation
+        let companyInfo: CompanyInfo | undefined;
+        if (centreFormation) {
+          let agrements_autres: AgrementsAutre[] = [];
+          const rawAgrements = centreFormation.agrements_autres as unknown;
+          if (Array.isArray(rawAgrements)) {
+            agrements_autres = rawAgrements
+              .filter((a: any): a is AgrementsAutre => !!a && typeof a === "object")
+              .map((a: any) => ({
+                nom: String(a.nom ?? ""),
+                numero: String(a.numero ?? ""),
+                date_obtention: a.date_obtention ?? undefined,
+                date_expiration: a.date_expiration ?? undefined,
+              }))
+              .filter((a) => a.nom.trim() !== "" && a.numero.trim() !== "");
+          }
+          companyInfo = {
+            name: centreFormation.nom_commercial || centreFormation.nom_legal,
+            address: centreFormation.adresse_complete,
+            phone: centreFormation.telephone,
+            email: centreFormation.email,
+            siret: centreFormation.siret,
+            nda: centreFormation.nda,
+            logo_url: centreFormation.logo_url || undefined,
+            signature_cachet_url: centreFormation.signature_cachet_url || undefined,
+            qualiopi_numero: centreFormation.qualiopi_numero || undefined,
+            qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || undefined,
+            qualiopi_date_expiration: centreFormation.qualiopi_date_expiration || undefined,
+            agrement_prefecture: centreFormation.agrement_prefecture || undefined,
+            agrement_prefecture_date: centreFormation.agrement_prefecture_date || undefined,
+            agrements_autres: agrements_autres.length > 0 ? agrements_autres : undefined,
+          };
+        }
+
+        const pdfContact: PdfContactInfo = {
+          nom: contact.nom,
+          prenom: contact.prenom,
+          email: contact.email || undefined,
+          telephone: contact.telephone || undefined,
+          rue: contact.rue || undefined,
+          code_postal: contact.code_postal || undefined,
+          ville: contact.ville || undefined,
+          date_naissance: contact.date_naissance || undefined,
+        };
+
+        const pdfSession: PdfSessionInfo = {
+          nom: sessionInfo.nom,
+          formation_type: sessionInfo.formation_type,
+          date_debut: sessionInfo.date_debut,
+          date_fin: sessionInfo.date_fin,
+          lieu: sessionInfo.lieu || undefined,
+          duree_heures: sessionInfo.duree_heures || 35,
+          prix: sessionInfo.prix,
+        };
+
         let signaturesCreated = 0;
         for (const docType of signableDocTypes) {
           try {
+            // Generate PDF for this document type
+            let pdfDoc: jsPDF | null = null;
+            try {
+              if (docType === 'convention' && companyInfo) {
+                pdfDoc = generateConventionPDF(pdfContact, pdfSession, companyInfo);
+              } else if (docType === 'contrat' && companyInfo) {
+                pdfDoc = generateContratFormationPDF(pdfContact, pdfSession, companyInfo);
+              } else if (docType === 'reglement') {
+                pdfDoc = generateReglementInterieurPDF();
+              } else if (docType === 'cgv') {
+                pdfDoc = generateCGVPDF();
+              }
+            } catch (pdfErr) {
+              console.warn(`Erreur génération PDF pour ${docType}:`, pdfErr);
+            }
+
+            // Upload PDF to storage if generated
+            let documentUrl: string | undefined;
+            if (pdfDoc) {
+              try {
+                const pdfBlob = pdfDoc.output('blob');
+                const filePath = `signatures/${contact.id}/${docType}-${Date.now()}.pdf`;
+                const { error: uploadError } = await supabase.storage
+                  .from('generated-documents')
+                  .upload(filePath, pdfBlob, { contentType: 'application/pdf' });
+                
+                if (!uploadError) {
+                  const { data: urlData } = supabase.storage
+                    .from('generated-documents')
+                    .getPublicUrl(filePath);
+                  documentUrl = urlData.publicUrl;
+                }
+              } catch (uploadErr) {
+                console.warn(`Erreur upload PDF pour ${docType}:`, uploadErr);
+              }
+            }
+
             const sigRequest = await createSignatureRequest.mutateAsync({
               contact_id: contact.id,
               type_document: docType,
               titre: `${docLabels[docType] || docType} - ${sessionInfo.nom}`,
               description: `Signature électronique demandée pour ${docLabels[docType] || docType} de la session ${sessionInfo.nom}`,
               date_expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            });
+              document_url: documentUrl || null,
+            } as any);
 
             // Send signature email
             if (sigRequest?.id) {
