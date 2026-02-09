@@ -316,8 +316,8 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Stagiaire</TableHead>
-                  <TableHead className="text-center">Matin (9h-12h30)</TableHead>
-                  <TableHead className="text-center">Après-midi (14h-17h30)</TableHead>
+                  <TableHead className="text-center">18h00 - 19h45</TableHead>
+                  <TableHead className="text-center">19h45 - 21h30</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
