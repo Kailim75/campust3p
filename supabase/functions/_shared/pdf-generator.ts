@@ -60,7 +60,7 @@ interface ModuleT3P {
   contenu: string[];
 }
 
-// Modules communs à tous les métiers T3P
+// Modules communs à tous les métiers T3P (formation initiale)
 const MODULES_COMMUNS: ModuleT3P[] = [
   { titre: "Module 1 - Gestion", duree: "5h", contenu: ["Choix du statut juridique", "Obligations comptables et fiscales", "Assurances professionnelles", "Calcul du coût de revient et rentabilité"] },
   { titre: "Module 2 - Réglementation T3P", duree: "5h", contenu: ["Cadre juridique national et européen", "Conditions d'accès et d'exercice de la profession", "Obligations du conducteur T3P", "Sanctions administratives et pénales"] },
@@ -69,7 +69,17 @@ const MODULES_COMMUNS: ModuleT3P[] = [
   { titre: "Module 5 - Sécurité routière", duree: "5h", contenu: ["Réglementation Code de la route", "Conduite défensive et éco-conduite", "Gestion des situations d'urgence", "Entretien et visite technique du véhicule"] },
 ];
 
+// Modules communs formation continue (14h)
+const MODULES_COMMUNS_FC: ModuleT3P[] = [
+  { titre: "Module 1 - Actualisation des connaissances réglementaires", duree: "3h", contenu: ["Évolutions réglementaires T3P", "Nouvelles obligations légales", "Mise à jour du cadre juridique"] },
+  { titre: "Module 2 - Sécurité routière - perfectionnement", duree: "3h", contenu: ["Actualisation Code de la route", "Éco-conduite et nouvelles technologies", "Prévention des risques routiers"] },
+  { titre: "Module 3 - Gestion et développement", duree: "2h", contenu: ["Optimisation de la gestion d'entreprise", "Actualités fiscales et sociales", "Outils numériques de gestion"] },
+  { titre: "Module 4 - Langues (Français & Anglais)", duree: "2h", contenu: ["Perfectionnement communication client", "Anglais professionnel - mise à niveau"] },
+  { titre: "Module 5 - Prévention des discriminations et harcèlement", duree: "2h", contenu: ["Rappel du cadre légal", "Les 27 critères de discrimination prohibés", "Obligations de signalement traite/harcèlement"] },
+];
+
 const PROGRAMMES_T3P: Record<string, { modules: ModuleT3P[]; sanctionFormation: string }> = {
+  // ===== FORMATIONS INITIALES =====
   VTC: {
     modules: [
       ...MODULES_COMMUNS,
@@ -102,17 +112,54 @@ const PROGRAMMES_T3P: Record<string, { modules: ModuleT3P[]; sanctionFormation: 
     ],
     sanctionFormation: "Attestation de formation initiale VMDTR permettant de se présenter à l'examen T3P de la CMA",
   },
+  // ===== FORMATIONS CONTINUES (14h) =====
+  "FC-VTC": {
+    modules: [
+      ...MODULES_COMMUNS_FC,
+      { titre: "Module 6 - Actualisation réglementation VTC", duree: "1h", contenu: ["Évolutions spécifiques VTC", "Nouvelles obligations plateformes", "Mise à jour carte professionnelle VTC"] },
+      { titre: "Module 7 - Développement commercial VTC", duree: "1h", contenu: ["Nouvelles stratégies de fidélisation", "Évolution du marché VTC", "Outils digitaux et e-réputation"] },
+    ],
+    sanctionFormation: "Attestation de formation continue VTC permettant le renouvellement de la carte professionnelle",
+  },
+  "FC-TAXI": {
+    modules: [
+      ...MODULES_COMMUNS_FC,
+      { titre: "Module 6 - Actualisation réglementation taxi", duree: "1h", contenu: ["Évolutions taximètre et équipements", "Actualités ADS et tarification", "Nouvelles obligations taxi"] },
+      { titre: "Module 7 - Réglementation locale taxi - mise à jour", duree: "1h", contenu: ["Évolutions réglementation départementale", "Nouvelles zones et stations", "Actualités locales de la profession"] },
+    ],
+    sanctionFormation: "Attestation de formation continue TAXI permettant le renouvellement de la carte professionnelle",
+  },
+  "FC-VMDTR": {
+    modules: [
+      ...MODULES_COMMUNS_FC,
+      { titre: "Module 6 - Actualisation spécificité VMDTR", duree: "1h", contenu: ["Évolutions réglementaires 2/3 roues", "Nouveaux équipements de protection", "Actualités de la profession moto-taxi"] },
+      { titre: "Module 7 - Sécurité VMDTR - perfectionnement", duree: "1h", contenu: ["Nouvelles techniques de conduite défensive", "Retours d'expérience accidentologie", "Prévention des risques spécifiques"] },
+    ],
+    sanctionFormation: "Attestation de formation continue VMDTR permettant le renouvellement de la carte professionnelle",
+  },
 };
 
 function getFormationType(sessionName: string, formationType?: string): string {
   if (formationType) {
     const type = formationType.toUpperCase().replace(/\s+/g, '-');
+    // Détection formation continue
+    if (type.includes("FC") || type.includes("CONTINUE")) {
+      if (type.includes("VMDTR")) return "FC-VMDTR";
+      if (type.includes("VTC")) return "FC-VTC";
+      if (type.includes("TAXI")) return "FC-TAXI";
+    }
     if (type.includes("TAXI-75") || type.includes("TAXI 75") || type.includes("TAXI PARIS")) return "TAXI-75";
     if (type.includes("VMDTR")) return "VMDTR";
     if (type.includes("VTC")) return "VTC";
     if (type.includes("TAXI")) return "TAXI";
   }
   const name = sessionName.toUpperCase();
+  // Détection formation continue par le nom de session
+  if (name.includes("CONTINUE") || name.includes(" FC ") || name.startsWith("FC ") || name.includes("FC-")) {
+    if (name.includes("VMDTR")) return "FC-VMDTR";
+    if (name.includes("VTC")) return "FC-VTC";
+    if (name.includes("TAXI")) return "FC-TAXI";
+  }
   if (name.includes("TAXI 75") || name.includes("TAXI-75") || name.includes("PARIS")) return "TAXI-75";
   if (name.includes("VMDTR")) return "VMDTR";
   if (name.includes("VTC")) return "VTC";
