@@ -143,7 +143,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         centreNda = centre.nda;
       }
 
-      const blob = generateEmargementDocx(emargements, {
+      const blob = await generateEmargementDocx(emargements, {
         nom: session.nom,
         date_debut: session.date_debut,
         date_fin: session.date_fin,
@@ -157,7 +157,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Emargement_${session.nom.replace(/\s+/g, "_")}.doc`;
+      a.download = `Emargement_${session.nom.replace(/\s+/g, "_")}.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
