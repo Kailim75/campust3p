@@ -566,7 +566,7 @@ export function generateProgrammePDF(
   return doc;
 }
 
-// ==================== CONTRAT DE FORMATION PDF ====================
+// ==================== CONTRAT DE FORMATION PDF (Qualiopi / DREETS) ====================
 export function generateContratFormationPDF(
   contact: ContactInfo,
   session: SessionInfo,
@@ -580,8 +580,328 @@ export function generateContratFormationPDF(
 
   const formationType = getFormationType(session.nom, session.formation_type);
   const programme = PROGRAMMES_T3P[formationType] || PROGRAMMES_T3P.VTC;
+  const isFC = formationType.startsWith("FC-");
 
   const checkPageBreak = (neededSpace: number = 30): number => {
+    if (yPos + neededSpace > pageHeight - bottomMargin) {
+      addFooter(doc, pageNumber);
+      doc.addPage();
+      pageNumber++;
+      const newY = addHeader(doc, company);
+      return newY + 5;
+    }
+    return yPos;
+  };
+
+  const addArticle = (num: number, title: string, content: string[]): void => {
+    yPos = checkPageBreak(30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text(`Article ${num} - ${title}`, 20, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    yPos += 6;
+    for (const line of content) {
+      yPos = checkPageBreak(6);
+      if (line === "") { yPos += 3; continue; }
+      const splitLine = doc.splitTextToSize(line, pageWidth - 40);
+      doc.text(splitLine, 20, yPos);
+      yPos += splitLine.length * 4.5;
+    }
+    yPos += 6;
+  };
+
+  const headerEndY = addHeader(doc, company);
+
+  // Title
+  let yPos = headerEndY + 8;
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
+  const titleW = doc.getTextWidth(titleText) + 30;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 14, 3, 3, "F");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 7;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("En application des articles L.6353-3 à L.6353-7 du Code du travail", pageWidth / 2, yPos, { align: "center" });
+
+  // Parties
+  yPos += 10;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("ENTRE LES SOUSSIGNÉS", 20, yPos);
+
+  yPos += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.setFont("helvetica", "bold");
+  doc.text("L'organisme de formation :", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
+  yPos += 4.5;
+  doc.text(`${company.address}`, 25, yPos);
+  yPos += 4.5;
+  doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
+  yPos += 4.5;
+  doc.text(`Ci-après dénommé « l'Organisme »`, 25, yPos);
+
+  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.text("Et le stagiaire :", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  yPos += 5;
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  doc.setFont("helvetica", "bold");
+  doc.text(fullName, 25, yPos);
+  doc.setFont("helvetica", "normal");
+  if (contact.date_naissance) { yPos += 4.5; doc.text(`Né(e) le ${formatDate(contact.date_naissance)}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, 25, yPos); }
+  if (contact.rue) { yPos += 4.5; doc.text(contact.rue, 25, yPos); }
+  if (contact.code_postal || contact.ville) { yPos += 4.5; doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos); }
+  if (contact.email) { yPos += 4.5; doc.text(`Email : ${contact.email}`, 25, yPos); }
+  if (contact.telephone) { yPos += 4.5; doc.text(`Tél : ${contact.telephone}`, 25, yPos); }
+  yPos += 4.5;
+  doc.text(`Ci-après dénommé « le Stagiaire »`, 25, yPos);
+  yPos += 8;
+
+  // --- Article 1 - Objet ---
+  addArticle(1, "Objet du contrat", [
+    `Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. L'Organisme s'engage à organiser l'action de formation intitulée « ${session.nom} » et le Stagiaire s'engage à suivre cette formation avec assiduité.`,
+  ]);
+
+  // --- Article 2 - Nature et caractéristiques ---
+  yPos = checkPageBreak(55);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Article 2 - Nature et caractéristiques de l'action de formation", 20, yPos);
+  yPos += 7;
+
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(20, yPos - 3, pageWidth - 40, 42, 4, 4, "F");
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(20, yPos - 3, 4, 42, 2, 2, "F");
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(`• Intitulé : ${session.nom}`, 30, yPos + 5);
+  doc.text(`• Type : ${isFC ? "Formation continue (renouvellement carte professionnelle)" : "Formation initiale T3P (préparation examen CMA)"}`, 30, yPos + 11);
+  doc.text(`• Dates : Du ${formatDate(session.date_debut)} au ${formatDate(session.date_fin)}`, 30, yPos + 17);
+  doc.text(`• Durée : ${session.duree_heures || (isFC ? 14 : 35)} heures`, 30, yPos + 23);
+  doc.text(`• Horaires : ${formatSessionHours(session)}`, 30, yPos + 29);
+  doc.text(`• Lieu : ${session.lieu || "À définir"}`, 30, yPos + 35);
+  yPos += 48;
+
+  // --- Article 3 - Objectifs ---
+  const objectifs = isFC
+    ? [
+        `La formation a pour objectif de permettre au Stagiaire de :`,
+        `• Actualiser ses connaissances réglementaires pour le renouvellement de sa carte professionnelle`,
+        `• Se perfectionner en sécurité routière et éco-conduite`,
+        `• Mettre à jour ses compétences en gestion d'entreprise`,
+        `• Renforcer sa maîtrise des langues (français et anglais professionnel)`,
+        `• Maîtriser la prévention des discriminations et du harcèlement (obligation légale)`,
+      ]
+    : [
+        `La formation a pour objectif de permettre au Stagiaire de :`,
+        `• Acquérir les compétences nécessaires à l'exercice de la profession de conducteur de transport public particulier de personnes (T3P)`,
+        `• Se préparer à l'examen professionnel organisé par la Chambre des Métiers et de l'Artisanat (CMA)`,
+        `• Maîtriser la réglementation spécifique au métier visé`,
+        `• Développer les compétences en gestion, sécurité routière, relation client et langues étrangères`,
+      ];
+  addArticle(3, "Objectifs pédagogiques", objectifs);
+
+  // --- Article 4 - Prérequis ---
+  const prerequis = isFC
+    ? [
+        `• Être titulaire d'une carte professionnelle de conducteur T3P en cours de validité`,
+        `• Être titulaire du permis de conduire B en cours de validité`,
+      ]
+    : [
+        `• Être titulaire du permis de conduire B en cours de validité (3 ans d'ancienneté ou 2 ans si conduite accompagnée)`,
+        `• Être apte médicalement (visite médicale préfectorale obligatoire)`,
+        `• Disposer d'un casier judiciaire compatible avec l'exercice de la profession (bulletin n°2)`,
+        `• Maîtriser la langue française (compréhension et expression)`,
+      ];
+  addArticle(4, "Prérequis et public visé", prerequis);
+
+  // --- Article 5 - Programme ---
+  yPos = checkPageBreak(20);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Article 5 - Programme de formation", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  yPos += 6;
+  doc.text(`La formation se décompose en ${programme.modules.length} modules pour une durée totale de ${session.duree_heures || (isFC ? 14 : 35)} heures :`, 20, yPos);
+  yPos += 6;
+
+  programme.modules.forEach(mod => {
+    yPos = checkPageBreak(6);
+    doc.text(`• ${mod.titre} (${mod.duree})`, 25, yPos);
+    yPos += 5;
+  });
+  yPos += 4;
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.text("Le programme détaillé est annexé au présent contrat.", 20, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  yPos += 8;
+
+  // --- Article 6 - Moyens pédagogiques et techniques ---
+  addArticle(6, "Moyens pédagogiques, techniques et d'encadrement", [
+    "L'Organisme met à disposition les moyens suivants :",
+    "• Salle de formation équipée (vidéoprojecteur, tableau blanc, supports numériques)",
+    "• Supports pédagogiques remis à chaque stagiaire (livret de formation, fiches de synthèse)",
+    "• Accès à une plateforme de formation en ligne (exercices, QCM d'entraînement)",
+    "• Formateurs qualifiés et expérimentés dans le domaine du transport de personnes",
+    `• ${isFC ? "Véhicule de formation pour les exercices pratiques le cas échéant" : "Véhicule de formation conforme à la réglementation pour les sessions pratiques"}`,
+  ]);
+
+  // --- Article 7 - Modalités d'évaluation ---
+  addArticle(7, "Modalités d'évaluation et de suivi", [
+    "Le dispositif d'évaluation comprend :",
+    "• Évaluation diagnostique : positionnement initial du stagiaire en début de formation",
+    "• Évaluations formatives : QCM et mises en situation tout au long de la formation",
+    "• Évaluation sommative : examen blanc en conditions réelles en fin de formation",
+    "• Feuilles d'émargement signées par demi-journée",
+    "• Attestation de fin de formation remise au stagiaire",
+    "",
+    `Sanction de la formation : ${programme.sanctionFormation}`,
+  ]);
+
+  // --- Article 8 - Dispositions financières ---
+  const prix = session.prix || 0;
+  addArticle(8, "Dispositions financières", [
+    `Le coût total de la formation s'élève à ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € net de taxe.`,
+    "TVA non applicable - Article 261.4.4°a du CGI.",
+    "",
+    "Modalités de règlement :",
+    "• Le paiement peut s'effectuer par chèque, virement bancaire ou espèces",
+    "• Un échéancier de paiement peut être mis en place sur demande",
+    "• En cas de financement par un tiers (OPCO, CPF, Pôle Emploi), le Stagiaire fournit l'accord de prise en charge avant le début de la formation",
+    "",
+    "En cas de non-paiement, l'Organisme se réserve le droit de suspendre la formation après mise en demeure restée infructueuse.",
+  ]);
+
+  // --- Article 9 - Délai de rétractation ---
+  addArticle(9, "Délai de rétractation", [
+    `Conformément à l'article L.6353-5 du Code du travail, à compter de la date de signature du présent contrat, le Stagiaire dispose d'un délai de dix (10) jours pour se rétracter.`,
+    `La rétractation doit être notifiée par lettre recommandée avec accusé de réception adressée à : ${company.name}, ${company.address}.`,
+    "Aucune somme ne peut être exigée du Stagiaire avant l'expiration de ce délai.",
+  ]);
+
+  // --- Article 10 - Interruption et abandon ---
+  addArticle(10, "Interruption de la formation", [
+    "En cas d'abandon par le Stagiaire pour un motif non lié à un cas de force majeure :",
+    "• Les heures de formation effectuées restent dues",
+    "• Aucun remboursement ne sera effectué pour les heures non suivies",
+    "",
+    "En cas de cessation anticipée de la formation pour cause de force majeure dûment reconnue, seules les heures réalisées seront facturées au prorata.",
+    "",
+    "L'Organisme se réserve le droit d'exclure le Stagiaire en cas de manquement grave au règlement intérieur, sans qu'aucun remboursement ne soit dû.",
+  ]);
+
+  // --- Article 11 - Assiduité et obligations ---
+  addArticle(11, "Obligations du Stagiaire", [
+    "Le Stagiaire s'engage à :",
+    "• Suivre la formation avec assiduité et participer activement aux activités pédagogiques",
+    "• Respecter les horaires et signer les feuilles d'émargement",
+    "• Respecter le règlement intérieur de l'Organisme",
+    "• Se présenter muni des documents requis (pièce d'identité, permis de conduire)",
+    "• Ne pas utiliser les supports de formation à des fins commerciales ou les diffuser à des tiers",
+    "",
+    "Toute absence non justifiée pourra entraîner la non-délivrance de l'attestation de formation.",
+  ]);
+
+  // --- Article 12 - Règlement intérieur ---
+  addArticle(12, "Règlement intérieur", [
+    "Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme, remis en annexe du présent contrat.",
+    "Ce règlement fixe les règles d'hygiène, de sécurité, de discipline et les sanctions applicables conformément aux articles L.6352-3 et suivants du Code du travail.",
+  ]);
+
+  // --- Article 13 - Protection des données ---
+  addArticle(13, "Protection des données personnelles (RGPD)", [
+    "Conformément au Règlement Général sur la Protection des Données (UE 2016/679) :",
+    "• Les données personnelles collectées sont traitées pour les besoins de la gestion administrative et pédagogique de la formation",
+    "• Elles sont conservées pendant une durée de 5 ans après la fin de la formation",
+    "• Le Stagiaire dispose d'un droit d'accès, de rectification, d'effacement et de portabilité",
+    `• Contact DPO : ${company.email}`,
+  ]);
+
+  // --- Article 14 - Réclamations ---
+  addArticle(14, "Réclamations et médiation", [
+    `Toute réclamation relative à la formation doit être adressée par écrit à : ${company.name}, ${company.email}.`,
+    "L'Organisme s'engage à accuser réception sous 48h et à apporter une réponse sous 15 jours ouvrés.",
+    "",
+    "En cas de litige non résolu, le Stagiaire peut recourir gratuitement au médiateur de la consommation inscrit sur la liste des médiateurs notifiée à la Commission européenne.",
+  ]);
+
+  // --- Article 15 - Droit applicable ---
+  addArticle(15, "Droit applicable et attribution de compétence", [
+    "Le présent contrat est régi par le droit français.",
+    "En cas de contestation, et après épuisement des voies amiables, le litige sera soumis aux tribunaux compétents du ressort du siège de l'Organisme.",
+  ]);
+
+  // Signatures
+  yPos += 5;
+  yPos = checkPageBreak(60);
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(`Fait en deux exemplaires originaux, à ${session.lieu || "Paris"}, le ${formatDate(new Date().toISOString())}`, 20, yPos);
+
+  yPos += 12;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("L'Organisme de formation", 25, yPos);
+  doc.text("Le Stagiaire", pageWidth - 60, yPos);
+
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(company.name, 25, yPos);
+  doc.text(fullName, pageWidth - 60, yPos);
+
+  yPos += 18;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("Signature et cachet", 25, yPos);
+  doc.text('Mention "Lu et approuvé" + signature', pageWidth - 60, yPos);
+
+  yPos += 10;
+  doc.setFontSize(7);
+  doc.text("Paraphes sur chaque page : ________    ________", pageWidth / 2, yPos, { align: "center" });
+
+  addFooter(doc, pageNumber);
+  return doc;
+}
+
+// ==================== RÈGLEMENT INTÉRIEUR PDF ====================
+export function generateReglementInterieurPDF(company: CompanyInfo): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 30;
+  let pageNumber = 1;
+
+  let yPos = 0;
+
+  const checkPageBreak = (neededSpace: number = 20): number => {
     if (yPos + neededSpace > pageHeight - bottomMargin) {
       addFooter(doc, pageNumber);
       doc.addPage();
@@ -595,169 +915,146 @@ export function generateContratFormationPDF(
   const headerEndY = addHeader(doc, company);
 
   // Title
-  let yPos = headerEndY + 8;
+  yPos = headerEndY + 8;
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
+  const titleText = "RÈGLEMENT INTÉRIEUR";
   const titleW = doc.getTextWidth(titleText) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 14, 3, 3, "F");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
 
-  yPos += 8;
-  doc.setFontSize(8);
+  yPos += 7;
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("Articles L.6353-3 à L.6353-7 du Code du travail", pageWidth / 2, yPos, { align: "center" });
+  doc.text("Articles L.6352-3 et suivants et R.6352-1 à R.6352-15 du Code du travail", pageWidth / 2, yPos, { align: "center" });
 
-  // Parties
-  yPos += 12;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("ENTRE LES SOUSSIGNÉS", 20, yPos);
-
-  yPos += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.setFont("helvetica", "bold");
-  doc.text("L'organisme de formation :", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 6;
-  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
-  yPos += 5;
-  doc.text(`${company.address}`, 25, yPos);
-  yPos += 5;
-  doc.text(`Déclaration d'activité N° ${company.nda}`, 25, yPos);
-  yPos += 5;
-  doc.text(`Ci-après dénommé "l'Organisme"`, 25, yPos);
-
+  // Préambule
   yPos += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Et le stagiaire :", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += 6;
-  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
-  doc.setFont("helvetica", "bold");
-  doc.text(fullName, 25, yPos);
-  doc.setFont("helvetica", "normal");
-  if (contact.date_naissance) { yPos += 5; doc.text(`Né(e) le ${formatDate(contact.date_naissance)}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, 25, yPos); }
-  if (contact.rue) { yPos += 5; doc.text(contact.rue, 25, yPos); }
-  if (contact.code_postal || contact.ville) { yPos += 5; doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), 25, yPos); }
-  if (contact.email) { yPos += 5; doc.text(`Email : ${contact.email}`, 25, yPos); }
-  yPos += 5;
-  doc.text(`Ci-après dénommé "le Stagiaire"`, 25, yPos);
-
-  // Article 1 - Objet
-  yPos += 12;
-  yPos = checkPageBreak(30);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 1 - Objet du contrat", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 6;
-  const art1 = `Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. L'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}".`;
-  const splitArt1 = doc.splitTextToSize(art1, pageWidth - 40);
-  doc.text(splitArt1, 20, yPos);
-
-  // Article 2 - Nature de l'action
-  yPos += splitArt1.length * 5 + 10;
-  yPos = checkPageBreak(50);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 2 - Nature et caractéristiques de l'action", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 8;
-
-  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(20, yPos - 3, pageWidth - 40, 42, 4, 4, "F");
-  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect(20, yPos - 3, 4, 42, 2, 2, "F");
-
-  doc.text(`• Intitulé : ${session.nom}`, 30, yPos + 5);
-  doc.text(`• Dates : Du ${formatDate(session.date_debut)} au ${formatDate(session.date_fin)}`, 30, yPos + 12);
-  doc.text(`• Durée : ${session.duree_heures || 35} heures`, 30, yPos + 19);
-  doc.text(`• Horaires : ${formatSessionHours(session)}`, 30, yPos + 26);
-  doc.text(`• Lieu : ${session.lieu || "À définir"}`, 30, yPos + 33);
-
-  // Article 3 - Programme
-  yPos += 52;
-  yPos = checkPageBreak(30);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 3 - Programme de formation", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 6;
-  doc.text(`Durée totale : ${session.duree_heures || 35} heures réparties en ${programme.modules.length} modules :`, 20, yPos);
-  yPos += 6;
-
-  programme.modules.forEach(mod => {
-    yPos = checkPageBreak(6);
-    doc.text(`• ${mod.titre} (${mod.duree})`, 25, yPos);
-    yPos += 5;
-  });
-
-  // Article 4 - Prix
-  yPos += 8;
-  yPos = checkPageBreak(30);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 4 - Dispositions financières", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 6;
-  const prix = session.prix || 0;
-  doc.text(`Le coût total de la formation s'élève à ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € TTC.`, 20, yPos);
-  yPos += 5;
-  doc.setFontSize(8);
-  doc.text("TVA non applicable - Article 261.4.4°a du CGI", 20, yPos);
-  doc.setFontSize(10);
-
-  // Article 5 - Rétractation
-  yPos += 10;
-  yPos = checkPageBreak(25);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 5 - Délai de rétractation", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 6;
-  const art5 = `Conformément à l'article L.6353-5 du Code du travail, le Stagiaire dispose d'un délai de 10 jours à compter de la signature pour se rétracter par LRAR adressée à ${company.name}.`;
-  const splitArt5 = doc.splitTextToSize(art5, pageWidth - 40);
-  doc.text(splitArt5, 20, yPos);
-
-  // Article 6 - Règlement intérieur
-  yPos += splitArt5.length * 5 + 10;
-  yPos = checkPageBreak(20);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Article 6 - Règlement intérieur", 20, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  yPos += 6;
-  doc.text("Le Stagiaire s'engage à respecter le règlement intérieur de l'organisme annexé au présent contrat.", 20, yPos);
-
-  // Signatures
-  yPos += 20;
-  yPos = checkPageBreak(50);
-  doc.setFontSize(10);
-  doc.text(`Fait en deux exemplaires, à Paris, le ${formatDate(new Date().toISOString())}`, 20, yPos);
-
-  yPos += 15;
-  doc.setFont("helvetica", "bold");
-  doc.text("L'Organisme de formation", 25, yPos);
-  doc.text("Le Stagiaire", pageWidth - 60, yPos);
-
-  yPos += 8;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "italic");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  const preambule = `Le présent règlement s'applique à tous les stagiaires inscrits à une formation dispensée par ${company.name}, et ce pour toute la durée de la formation suivie. Il a pour objet de définir les règles d'hygiène et de sécurité, les règles générales et permanentes relatives à la discipline ainsi que la nature et l'échelle des sanctions applicables aux stagiaires.`;
+  const splitPre = doc.splitTextToSize(preambule, pageWidth - 40);
+  doc.text(splitPre, 20, yPos);
+  yPos += splitPre.length * 4.5 + 6;
+  doc.setFont("helvetica", "normal");
+
+  // Helper to add article content
+  const addRIArticle = (num: number, title: string, items: string[]): void => {
+    yPos = checkPageBreak(20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text(`Article ${num} - ${title}`, 20, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    yPos += 6;
+    for (const line of items) {
+      yPos = checkPageBreak(5);
+      if (line === "") { yPos += 2; continue; }
+      const splitLine = doc.splitTextToSize(line, pageWidth - 44);
+      doc.text(splitLine, 22, yPos);
+      yPos += splitLine.length * 4;
+    }
+    yPos += 4;
+  };
+
+  addRIArticle(1, "CHAMP D'APPLICATION", [
+    `Le présent règlement s'applique à l'ensemble des stagiaires inscrits à une session de formation organisée par ${company.name}, quels que soient le type de formation, sa durée et son mode de financement.`,
+  ]);
+
+  addRIArticle(2, "DISPOSITIONS GÉNÉRALES", [
+    "Chaque stagiaire est tenu de respecter les dispositions du présent règlement intérieur, les instructions données par la direction et les formateurs, les consignes générales et particulières de sécurité et les règles d'hygiène applicables aux locaux.",
+    "",
+    "Conformément aux principes de laïcité et de neutralité, le port de signes ou de tenues par lesquels les stagiaires manifestent ostensiblement une appartenance religieuse est interdit dans l'enceinte de l'établissement.",
+    "",
+    "Aucun stagiaire ne doit subir de discrimination au sens de l'article L.1132-1 du Code du travail. Tout comportement discriminatoire, raciste, sexiste ou homophobe est strictement interdit et passible de sanctions.",
+  ]);
+
+  addRIArticle(3, "RÈGLES D'HYGIÈNE ET DE SÉCURITÉ", [
+    "Les stagiaires doivent se présenter dans un état de propreté corporelle conforme aux règles d'hygiène, maintenir en état de propreté les locaux et le matériel, et ne pas introduire de nourriture dans les salles de formation.",
+    "",
+    "Consignes de sécurité :",
+    "• Respecter les consignes de sécurité incendie affichées dans les locaux",
+    "• Signaler immédiatement tout incident ou accident au responsable de formation",
+    "• Ne pas pénétrer dans les locaux en état d'ivresse ou sous l'emprise de stupéfiants",
+    "• Ne pas entraver les voies de circulation et sorties de secours",
+    "• Participer aux exercices d'évacuation",
+    "",
+    "Il est strictement interdit de fumer et de vapoter dans l'ensemble des locaux (décret n°2006-1386).",
+    "",
+    "Tout accident survenu pendant la formation ou sur le trajet doit être immédiatement déclaré à l'organisme.",
+    "",
+    "Numéros d'urgence : SAMU 15 • Pompiers 18 • Police 17 • Urgence européenne 112",
+  ]);
+
+  addRIArticle(4, "DISCIPLINE GÉNÉRALE", [
+    "Horaires et assiduité :",
+    "• Respecter scrupuleusement les horaires de formation",
+    "• Signer la feuille d'émargement à chaque demi-journée",
+    "• En cas d'absence, prévenir l'organisme et fournir un justificatif sous 48h",
+    "• Toute absence non justifiée peut entraîner la non-délivrance de l'attestation",
+    "",
+    "Comportement :",
+    "• Adopter un comportement respectueux envers formateurs, personnel et stagiaires",
+    "• Sont interdits : violences, injures, harcèlement, dégradations, vol",
+    "",
+    "Téléphones et appareils électroniques : éteints ou silencieux pendant les cours. Photos et enregistrements interdits sans autorisation.",
+    "",
+    "Les supports pédagogiques sont protégés par le droit d'auteur et strictement réservés à un usage personnel.",
+    "",
+    "Il est interdit de consommer de l'alcool ou des stupéfiants dans l'enceinte de l'établissement. Tout manquement entraîne une exclusion immédiate.",
+  ]);
+
+  addRIArticle(5, "REPRÉSENTATION DES STAGIAIRES", [
+    "Pour les formations d'une durée supérieure à 500 heures, il est procédé simultanément à l'élection d'un délégué titulaire et d'un délégué suppléant (article L.6352-6 du Code du travail).",
+  ]);
+
+  addRIArticle(6, "SANCTIONS ET PROCÉDURES DISCIPLINAIRES", [
+    "Tout manquement aux prescriptions du présent règlement pourra faire l'objet d'une sanction (article R.6352-3 du Code du travail).",
+    "",
+    "Échelle des sanctions par ordre croissant de gravité :",
+    "1. Rappel à l'ordre oral",
+    "2. Avertissement écrit",
+    "3. Exclusion temporaire (1 à 3 jours)",
+    "4. Exclusion définitive de la formation",
+    "",
+    "Procédure disciplinaire :",
+    "Aucune sanction ne peut être infligée sans que le stagiaire ait été informé des griefs retenus contre lui. Le stagiaire est convoqué par LRAR et peut se faire assister lors de l'entretien. La sanction ne peut intervenir moins d'un jour franc ni plus de 15 jours après l'entretien.",
+    "",
+    "En cas de faute grave portant atteinte à la sécurité, une exclusion immédiate à titre conservatoire peut être prononcée.",
+  ]);
+
+  addRIArticle(7, "PROTECTION DES DONNÉES PERSONNELLES (RGPD)", [
+    "Les données personnelles collectées sont utilisées pour la gestion administrative et pédagogique de la formation et les obligations réglementaires. Durée de conservation : 5 ans.",
+    "",
+    "Le stagiaire dispose d'un droit d'accès, rectification, suppression, opposition, limitation et portabilité.",
+    `Contact : ${company.email}`,
+  ]);
+
+  addRIArticle(8, "PUBLICITÉ ET MODIFICATION DU RÈGLEMENT", [
+    "Un exemplaire du présent règlement est remis à chaque stagiaire lors de son inscription. Il est affiché dans les locaux de formation et disponible sur demande.",
+    `Le règlement peut être modifié à tout moment par la direction de ${company.name}. Toute modification est portée à la connaissance des stagiaires par voie d'affichage.`,
+  ]);
+
+  // Signature
+  yPos += 5;
+  yPos = checkPageBreak(30);
   doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(`Fait à ${company.address.split(",")[0] || "Paris"}, le ${formatDate(new Date().toISOString())}`, 20, yPos);
+  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.text("Le Directeur de l'Organisme", 20, yPos);
+  yPos += 12;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("Signature et cachet", 25, yPos);
-  doc.text("Lu et approuvé, signature", pageWidth - 60, yPos);
+  doc.text("Signature et cachet", 20, yPos);
 
   addFooter(doc, pageNumber);
   return doc;
@@ -771,7 +1068,7 @@ export function getPdfAsBase64(doc: jsPDF): string {
 }
 
 // ==================== DOCUMENT TYPE MAPPING ====================
-export type DocumentType = "convocation" | "attestation" | "programme" | "contrat";
+export type DocumentType = "convocation" | "attestation" | "programme" | "contrat" | "reglement";
 
 export function generateDocumentPDF(
   documentType: DocumentType,
@@ -789,6 +1086,8 @@ export function generateDocumentPDF(
       return generateProgrammePDF(session, company);
     case "contrat":
       return generateContratFormationPDF(contact, session, company);
+    case "reglement":
+      return generateReglementInterieurPDF(company);
     default:
       throw new Error(`Unknown document type: ${documentType}`);
   }
