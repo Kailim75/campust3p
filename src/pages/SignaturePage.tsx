@@ -21,6 +21,7 @@ import {
   Eye,
   FileSignature,
 } from "lucide-react";
+import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -306,6 +307,23 @@ export default function SignaturePage() {
                 </div>
               </div>
 
+              {/* Preview of current document */}
+              {sigRequest?.document_url && (
+                <div className="rounded-lg border overflow-hidden bg-white">
+                  <div className="flex items-center justify-between p-3 border-b bg-slate-50">
+                    <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Aperçu du document
+                    </span>
+                  </div>
+                  <PDFViewer
+                    pdfData={sigRequest.document_url}
+                    className="h-[400px]"
+                    onDownload={() => window.open(sigRequest.document_url!, "_blank")}
+                  />
+                </div>
+              )}
+
               {/* Related documents before signing */}
               {relatedDocs.length > 1 && (
                 <DocumentsSection
@@ -436,6 +454,16 @@ function DocumentsSection({
   getStatusBadge: (statut: string) => React.ReactNode;
   title: string;
 }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+
+  const handlePreview = (doc: RelatedDocument) => {
+    if (doc.document_url) {
+      setPreviewUrl(doc.document_url);
+      setPreviewTitle(TYPE_LABELS[doc.type_document] || doc.titre);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -475,17 +503,47 @@ function DocumentsSection({
                 </a>
               )}
               {doc.document_url && (
-                <button
-                  onClick={() => onDownload(doc)}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded"
-                >
-                  <Download className="h-3 w-3" />
-                </button>
+                <>
+                  <button
+                    onClick={() => handlePreview(doc)}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                    title="Visualiser le document"
+                  >
+                    <Eye className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded"
+                    title="Télécharger le document"
+                  >
+                    <Download className="h-3 w-3" />
+                  </button>
+                </>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Inline PDF Viewer */}
+      {previewUrl && (
+        <div className="rounded-lg border overflow-hidden bg-white">
+          <div className="flex items-center justify-between p-3 border-b bg-slate-50">
+            <span className="text-sm font-medium text-slate-700">{previewTitle}</span>
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100"
+            >
+              Fermer
+            </button>
+          </div>
+          <PDFViewer
+            pdfData={previewUrl}
+            className="h-[500px] rounded-b-lg"
+            onDownload={() => window.open(previewUrl, "_blank")}
+          />
+        </div>
+      )}
     </div>
   );
 }
