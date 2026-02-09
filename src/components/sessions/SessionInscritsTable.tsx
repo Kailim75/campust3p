@@ -889,6 +889,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <SelectValue placeholder="Type de document" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Convocation">Convocation</SelectItem>
                 <SelectItem value="Convention">Convention</SelectItem>
                 <SelectItem value="Attestation">Attestation</SelectItem>
                 <SelectItem value="Programme">Programme</SelectItem>
