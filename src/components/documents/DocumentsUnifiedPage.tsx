@@ -61,6 +61,7 @@ import {
 import { useSendSignatureEmail } from "@/hooks/useSendSignatureEmail";
 import { SignatureFormDialog } from "@/components/signatures/SignatureFormDialog";
 import { SignatureSigningDialog } from "@/components/signatures/SignatureSigningDialog";
+import { SendDocumentsFromSignatureDialog } from "@/components/documents/SendDocumentsFromSignatureDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +141,7 @@ export function DocumentsUnifiedPage() {
   const [signingRequest, setSigningRequest] = useState<SignatureRequest | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [signatureStatusFilter, setSignatureStatusFilter] = useState<string>("all");
+  const [sendDocsContact, setSendDocsContact] = useState<{ id: string; nom: string; prenom: string } | null>(null);
 
   // Document filtering
   const filteredDocuments = mockDocuments.filter(
@@ -440,6 +442,12 @@ export function DocumentsUnifiedPage() {
                                   Voir signature
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem onClick={() => setSendDocsContact(
+                                contact ? { id: contact.id, nom: contact.nom, prenom: contact.prenom } : null
+                              )}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Envoyer documents
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -490,6 +498,17 @@ export function DocumentsUnifiedPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Documents from Signature Dialog */}
+      {sendDocsContact && (
+        <SendDocumentsFromSignatureDialog
+          open={!!sendDocsContact}
+          onOpenChange={(val) => { if (!val) setSendDocsContact(null); }}
+          contactId={sendDocsContact.id}
+          contactNom={sendDocsContact.nom}
+          contactPrenom={sendDocsContact.prenom}
+        />
+      )}
     </div>
   );
 }
