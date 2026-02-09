@@ -891,6 +891,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
               <SelectContent>
                 <SelectItem value="Convocation">Convocation</SelectItem>
                 <SelectItem value="Convention">Convention</SelectItem>
+                <SelectItem value="Contrat de formation">Contrat de formation</SelectItem>
                 <SelectItem value="Attestation">Attestation</SelectItem>
                 <SelectItem value="Programme">Programme</SelectItem>
                 <SelectItem value="Règlement intérieur">Règlement intérieur</SelectItem>
@@ -1025,7 +1026,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <SelectContent>
                   <SelectItem value="convocation">Convocation</SelectItem>
                   <SelectItem value="convention">Convention</SelectItem>
+                  <SelectItem value="contrat">Contrat de formation</SelectItem>
                   <SelectItem value="attestation">Attestation</SelectItem>
+                  <SelectItem value="programme">Programme</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -90,6 +90,7 @@ interface SendDocumentsToContactDialogProps {
 const DOCUMENT_OPTIONS = [
   { id: 'convocation', label: 'Convocation', icon: Send },
   { id: 'convention', label: 'Convention de formation', icon: FileText },
+  { id: 'contrat', label: 'Contrat de formation', icon: FileCheck },
   { id: 'attestation', label: 'Attestation de formation', icon: Award },
   { id: 'programme', label: 'Programme de formation', icon: BookOpen },
   { id: 'reglement', label: 'Règlement intérieur', icon: ScrollText },
@@ -264,7 +265,7 @@ export function SendDocumentsToContactDialog({
           prix: sessionInfo.prix,
         };
 
-        if (['convocation', 'convention', 'attestation', 'programme'].includes(docType)) {
+        if (['convocation', 'convention', 'contrat', 'attestation', 'programme'].includes(docType)) {
           generateDocument(docType as DocumentType, contactInfo, sessionDataForDoc);
         }
 

@@ -165,6 +165,9 @@ serve(async (req) => {
         "Programme de formation": "programme",
         "programme": "programme",
         "Programme": "programme",
+        "Contrat de formation": "contrat",
+        "contrat": "contrat",
+        "Contrat": "contrat",
       };
       
       for (const recipient of body.recipients) {
