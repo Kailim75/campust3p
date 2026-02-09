@@ -24,13 +24,16 @@ import {
   ScrollText,
   FileCheck,
   Upload,
-  File
+  File,
+  FileSignature
 } from 'lucide-react';
 import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
+import { useCreateSignatureRequest } from '@/hooks/useSignatures';
+import { useSendSignatureEmail } from '@/hooks/useSendSignatureEmail';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -107,6 +110,7 @@ export function SendDocumentsToContactDialog({
   const [selectedTemplateFiles, setSelectedTemplateFiles] = useState<string[]>([]);
   const [selectedTextTemplates, setSelectedTextTemplates] = useState<string[]>([]);
   const [sendEmail, setSendEmail] = useState(true);
+  const [requestSignature, setRequestSignature] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('standard');
@@ -114,6 +118,8 @@ export function SendDocumentsToContactDialog({
   const { generateDocument } = useDocumentGenerator();
   const createEnvoi = useCreateDocumentEnvoi();
   const { centreFormation } = useCentreFormation();
+  const createSignatureRequest = useCreateSignatureRequest();
+  const sendSignatureEmail = useSendSignatureEmail();
   
   // Fetch custom templates
   const { data: templateFiles = [] } = useDocumentTemplateFiles();
@@ -441,11 +447,56 @@ export function SendDocumentsToContactDialog({
         toast.success(`${totalSelected} document(s) généré(s) pour ${contact.prenom} ${contact.nom}`);
       }
 
+      // 5. Create signature requests if requested
+      if (requestSignature && hasEmail) {
+        const signableDocTypes = selectedDocuments.filter(d => 
+          ['contrat', 'convention', 'reglement', 'cgv'].includes(d)
+        );
+        
+        const docLabels: Record<string, string> = {
+          contrat: 'Contrat de formation',
+          convention: 'Convention de formation', 
+          reglement: 'Règlement intérieur',
+          cgv: 'Conditions générales de vente',
+        };
+
+        let signaturesCreated = 0;
+        for (const docType of signableDocTypes) {
+          try {
+            const sigRequest = await createSignatureRequest.mutateAsync({
+              contact_id: contact.id,
+              type_document: docType,
+              titre: `${docLabels[docType] || docType} - ${sessionInfo.nom}`,
+              description: `Signature électronique demandée pour ${docLabels[docType] || docType} de la session ${sessionInfo.nom}`,
+              date_expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            });
+
+            // Send signature email
+            if (sigRequest?.id) {
+              await sendSignatureEmail.mutateAsync({
+                signatureRequestId: sigRequest.id,
+                type: 'signature_request',
+              });
+              signaturesCreated++;
+            }
+          } catch (err) {
+            console.error(`Erreur création signature pour ${docType}:`, err);
+          }
+        }
+
+        if (signaturesCreated > 0) {
+          toast.success(`${signaturesCreated} demande(s) de signature envoyée(s)`);
+        } else if (signableDocTypes.length === 0) {
+          toast.info('Aucun document sélectionné ne nécessite de signature');
+        }
+      }
+
       // Reset and close
       setSelectedDocuments([]);
       setSelectedTemplateFiles([]);
       setSelectedTextTemplates([]);
       setCustomMessage('');
+      setRequestSignature(false);
       onOpenChange(false);
     } catch (error) {
       console.error('Erreur:', error);
@@ -461,6 +512,7 @@ export function SendDocumentsToContactDialog({
       setSelectedTemplateFiles([]);
       setSelectedTextTemplates([]);
       setCustomMessage('');
+      setRequestSignature(false);
       onOpenChange(false);
     }
   };
@@ -659,7 +711,37 @@ export function SendDocumentsToContactDialog({
             />
           </div>
 
-          {!hasEmail && sendEmail && (
+          {/* Option signature électronique */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileSignature className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="request-signature" className="text-sm cursor-pointer">
+                  Demander la signature électronique
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Contrat, convention, règlement, CGV
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="request-signature"
+              checked={requestSignature}
+              onCheckedChange={setRequestSignature}
+              disabled={!hasEmail}
+            />
+          </div>
+
+          {requestSignature && hasEmail && (
+            <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+              <FileSignature className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs text-primary">
+                Un email de signature sera envoyé au contact pour chaque document signable sélectionné (contrat, convention, règlement, CGV).
+              </p>
+            </div>
+          )}
+
+          {!hasEmail && (requestSignature || sendEmail) && (
             <p className="text-xs text-warning">
               Ce contact n'a pas d'adresse email. Les documents seront uniquement générés.
             </p>
