@@ -183,17 +183,42 @@ export function useGenerateEmargements() {
       dateDebut: string;
       dateFin: string;
     }) => {
-      // Get all inscriptions for this session
+      // Get all inscriptions for this session (all active statuses)
       const { data: inscriptions, error: inscError } = await supabase
         .from("session_inscriptions")
         .select("contact_id")
         .eq("session_id", sessionId)
-        .eq("statut", "inscrit");
+        .in("statut", ["inscrit", "confirme", "present"]);
 
       if (inscError) throw inscError;
       if (!inscriptions || inscriptions.length === 0) {
         throw new Error("Aucun stagiaire inscrit à cette session");
       }
+
+      const inscritContactIds = new Set(inscriptions.map(i => i.contact_id));
+
+      // Get existing emargements to find ones to remove (contacts no longer enrolled)
+      const { data: existingEmargements, error: existError } = await supabase
+        .from("emargements")
+        .select("id, contact_id")
+        .eq("session_id", sessionId);
+
+      if (existError) throw existError;
+
+      // Delete emargements for contacts no longer enrolled
+      const toDelete = (existingEmargements || []).filter(e => !inscritContactIds.has(e.contact_id));
+      if (toDelete.length > 0) {
+        const deleteIds = toDelete.map(e => e.id);
+        const { error: delError } = await supabase
+          .from("emargements")
+          .delete()
+          .in("id", deleteIds);
+        if (delError) throw delError;
+      }
+
+      // Find contacts that already have emargements
+      const existingContactIds = new Set((existingEmargements || []).map(e => e.contact_id));
+      const newContactIds = [...inscritContactIds].filter(id => !existingContactIds.has(id));
 
       // Generate dates between start and end
       const dates: string[] = [];
@@ -207,14 +232,14 @@ export function useGenerateEmargements() {
         }
       }
 
-      // Create emargements for each contact, date, and period
+      // Create emargements only for NEW contacts
       const emargements = [];
-      for (const inscription of inscriptions) {
+      for (const contactId of newContactIds) {
         for (const date of dates) {
           for (const periode of ["matin", "apres_midi"] as const) {
             emargements.push({
               session_id: sessionId,
-              contact_id: inscription.contact_id,
+              contact_id: contactId,
               date_emargement: date,
               periode,
               heure_debut: periode === "matin" ? "09:00" : "14:00",
@@ -225,18 +250,23 @@ export function useGenerateEmargements() {
       }
 
       // Insert in batches
-      const batchSize = 50;
-      for (let i = 0; i < emargements.length; i += batchSize) {
-        const batch = emargements.slice(i, i + batchSize);
-        const { error } = await supabase.from("emargements").insert(batch);
-        if (error && !error.message.includes("duplicate")) throw error;
+      if (emargements.length > 0) {
+        const batchSize = 50;
+        for (let i = 0; i < emargements.length; i += batchSize) {
+          const batch = emargements.slice(i, i + batchSize);
+          const { error } = await supabase.from("emargements").insert(batch);
+          if (error && !error.message.includes("duplicate")) throw error;
+        }
       }
 
-      return { count: emargements.length, sessionId };
+      return { count: emargements.length, deleted: toDelete.length, sessionId };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["emargements", result.sessionId] });
-      toast.success(`${result.count} émargements générés`);
+      const parts = [];
+      if (result.count > 0) parts.push(`${result.count} émargements ajoutés`);
+      if (result.deleted > 0) parts.push(`${result.deleted} supprimés`);
+      toast.success(parts.length > 0 ? parts.join(", ") : "Émargements synchronisés");
     },
     onError: (error: Error) => {
       toast.error("Erreur: " + error.message);

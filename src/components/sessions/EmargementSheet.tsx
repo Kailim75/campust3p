@@ -285,21 +285,19 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
-          {totalEmargements === 0 && (
-            <Button onClick={handleGenerate} disabled={generateEmargements.isPending}>
-              {generateEmargements.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Génération...
-                </>
-              ) : (
-                <>
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Générer la feuille
-                </>
-              )}
-            </Button>
-          )}
+          <Button onClick={handleGenerate} disabled={generateEmargements.isPending}>
+            {generateEmargements.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <ClipboardList className="h-4 w-4 mr-2" />
+                {totalEmargements === 0 ? "Générer la feuille" : "Régénérer (sync inscrits)"}
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
