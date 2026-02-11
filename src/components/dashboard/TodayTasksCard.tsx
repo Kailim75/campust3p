@@ -29,6 +29,7 @@ const taskTypeConfig: Record<Alert["type"], { icon: React.ElementType; color: st
   permis: { icon: AlertCircle, color: "text-warning" },
   exam_t3p: { icon: Award, color: "text-success" },
   exam_pratique: { icon: Award, color: "text-info" },
+  rappel: { icon: AlertCircle, color: "text-primary" },
 };
 
 export function TodayTasksCard({ onNavigate, onNavigateWithContact, maxItems = 5 }: TodayTasksCardProps) {

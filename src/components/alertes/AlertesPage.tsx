@@ -51,6 +51,7 @@ const typeConfig: Record<string, { icon: any; label: string; color: string }> = 
   payment: { icon: CreditCard, label: "Paiement", color: "text-destructive" },
   exam_t3p: { icon: Award, label: "Examen T3P", color: "text-success" },
   exam_pratique: { icon: Car, label: "Examen Pratique", color: "text-info" },
+  rappel: { icon: Bell, label: "Rappel", color: "text-primary" },
 };
 
 const priorityConfig = {
@@ -249,6 +250,7 @@ export function AlertesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
+              <SelectItem value="rappel">Rappel</SelectItem>
               <SelectItem value="exam_t3p">Examen T3P</SelectItem>
               <SelectItem value="exam_pratique">Examen Pratique</SelectItem>
               <SelectItem value="session">Session</SelectItem>

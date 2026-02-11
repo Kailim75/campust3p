@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, isPast, parseISO } from "date-fns";
+import { differenceInDays, isPast, parseISO, isToday, isBefore, startOfDay } from "date-fns";
 import { useDismissedAlerts } from "./useDismissedAlerts";
 export interface Alert {
   id: string;
-  type: "carte_pro" | "permis" | "session" | "document" | "payment" | "exam_t3p" | "exam_pratique";
+  type: "carte_pro" | "permis" | "session" | "document" | "payment" | "exam_t3p" | "exam_pratique" | "rappel";
   priority: "high" | "medium" | "low";
   title: string;
   description: string;
@@ -17,7 +17,7 @@ export interface Alert {
   documentId?: string;
   examenId?: string;
   montant?: number;
-  actionType?: "view_contact" | "view_session" | "view_facture" | "view_exam" | "send_reminder";
+  actionType?: "view_contact" | "view_session" | "view_facture" | "view_exam" | "send_reminder" | "view_rappel";
 }
 
 // Alerts for expiring professional cards and permits
@@ -459,6 +459,93 @@ export function useDocumentAlerts() {
   });
 }
 
+// Alerts for rappels (contact historique reminders + prospect follow-ups)
+export function useRappelAlerts() {
+  return useQuery({
+    queryKey: ["alerts", "rappels"],
+    queryFn: async () => {
+      const alerts: Alert[] = [];
+      const today = startOfDay(new Date());
+
+      // 1) Contact historique rappels
+      const { data: rappels, error: rappelsError } = await supabase
+        .from("contact_historique")
+        .select(`
+          id,
+          contact_id,
+          titre,
+          rappel_description,
+          date_rappel,
+          contacts (id, nom, prenom)
+        `)
+        .eq("alerte_active", true)
+        .not("date_rappel", "is", null);
+
+      if (rappelsError) throw rappelsError;
+
+      rappels?.forEach((r: any) => {
+        const contact = r.contacts;
+        if (!contact || !r.date_rappel) return;
+
+        const fullName = `${contact.prenom} ${contact.nom}`;
+        const rappelDate = parseISO(r.date_rappel);
+        const daysUntil = differenceInDays(startOfDay(rappelDate), today);
+        const overdue = isBefore(rappelDate, today) && !isToday(rappelDate);
+
+        // Show if overdue or within 7 days
+        if (daysUntil <= 7) {
+          alerts.push({
+            id: `rappel_contact_${r.id}`,
+            type: "rappel",
+            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            title: overdue ? "Rappel en retard" : isToday(rappelDate) ? "Rappel aujourd'hui" : "Rappel à venir",
+            description: `${fullName} — ${r.rappel_description || r.titre}`,
+            daysUntilExpiry: daysUntil,
+            contactId: contact.id,
+            contactName: fullName,
+            expiryDate: r.date_rappel,
+            actionType: "view_contact",
+          });
+        }
+      });
+
+      // 2) Prospect follow-up dates
+      const { data: prospects, error: prospectsError } = await supabase
+        .from("prospects")
+        .select("id, nom, prenom, date_prochaine_relance, statut")
+        .not("date_prochaine_relance", "is", null)
+        .neq("statut", "converti")
+        .neq("statut", "perdu");
+
+      if (prospectsError) throw prospectsError;
+
+      prospects?.forEach((p: any) => {
+        if (!p.date_prochaine_relance) return;
+
+        const fullName = `${p.prenom || ""} ${p.nom}`.trim();
+        const relanceDate = parseISO(p.date_prochaine_relance);
+        const daysUntil = differenceInDays(startOfDay(relanceDate), today);
+        const overdue = isBefore(relanceDate, today) && !isToday(relanceDate);
+
+        if (daysUntil <= 7) {
+          alerts.push({
+            id: `rappel_prospect_${p.id}`,
+            type: "rappel",
+            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            title: overdue ? "Relance prospect en retard" : isToday(relanceDate) ? "Relance prospect aujourd'hui" : "Relance prospect à venir",
+            description: `${fullName} — Relance prévue`,
+            daysUntilExpiry: daysUntil,
+            expiryDate: p.date_prochaine_relance,
+            actionType: "view_contact",
+          });
+        }
+      });
+
+      return alerts;
+    },
+  });
+}
+
 // Combined alerts - filters out dismissed alerts
 export function useAllAlerts(options?: { includeDismissed?: boolean }) {
   const { data: expirationAlerts = [], isLoading: loadingExpirations } = useExpirationAlerts();
@@ -467,6 +554,7 @@ export function useAllAlerts(options?: { includeDismissed?: boolean }) {
   const { data: documentAlerts = [], isLoading: loadingDocuments } = useDocumentAlerts();
   const { data: examT3PAlerts = [], isLoading: loadingExamT3P } = useExamT3PAlerts();
   const { data: examPratiqueAlerts = [], isLoading: loadingExamPratique } = useExamPratiqueAlerts();
+  const { data: rappelAlerts = [], isLoading: loadingRappels } = useRappelAlerts();
   const { data: dismissedAlertIds = [], isLoading: loadingDismissed } = useDismissedAlerts();
 
   const allRawAlerts = [
@@ -476,6 +564,7 @@ export function useAllAlerts(options?: { includeDismissed?: boolean }) {
     ...documentAlerts,
     ...examT3PAlerts,
     ...examPratiqueAlerts,
+    ...rappelAlerts,
   ];
 
   // Filter out dismissed alerts unless explicitly requested
@@ -497,10 +586,11 @@ export function useAllAlerts(options?: { includeDismissed?: boolean }) {
   const filteredDocuments = [...documentAlerts, ...expirationAlerts].filter(a => !dismissedAlertIds.includes(a.id));
   const filteredSessions = sessionAlerts.filter(a => !dismissedAlertIds.includes(a.id));
   const filteredExams = [...examT3PAlerts, ...examPratiqueAlerts].filter(a => !dismissedAlertIds.includes(a.id));
+  const filteredRappels = rappelAlerts.filter(a => !dismissedAlertIds.includes(a.id));
 
   return {
     data: sortedAlerts,
-    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments || loadingExamT3P || loadingExamPratique || loadingDismissed,
+    isLoading: loadingExpirations || loadingSessions || loadingPayments || loadingDocuments || loadingExamT3P || loadingExamPratique || loadingRappels || loadingDismissed,
     counts: {
       total: sortedAlerts.length,
       high: sortedAlerts.filter(a => a.priority === "high").length,
@@ -508,6 +598,7 @@ export function useAllAlerts(options?: { includeDismissed?: boolean }) {
       documents: filteredDocuments.length,
       sessions: filteredSessions.length,
       exams: filteredExams.length,
+      rappels: filteredRappels.length,
     },
     dismissedCount: dismissedAlertIds.length,
   };

@@ -12,6 +12,7 @@ const alertIcons: Record<Alert["type"], React.ElementType> = {
   permis: IdCard,
   exam_t3p: Award,
   exam_pratique: Car,
+  rappel: Clock,
 };
 
 const alertStyles: Record<Alert["type"], string> = {
@@ -22,6 +23,7 @@ const alertStyles: Record<Alert["type"], string> = {
   permis: "border-l-warning bg-warning/5",
   exam_t3p: "border-l-success bg-success/5",
   exam_pratique: "border-l-info bg-info/5",
+  rappel: "border-l-primary bg-primary/5",
 };
 
 const priorityBadge: Record<Alert["priority"], { label: string; class: string }> = {
