@@ -42,6 +42,8 @@ export function formatPhoneForWhatsApp(phone: string | null | undefined): string
 export function openWhatsApp(phone: string | null | undefined): void {
   const formatted = formatPhoneForWhatsApp(phone);
   if (formatted) {
-    window.open(`https://wa.me/${formatted}`, "_blank");
+    // wa.me requires the number WITHOUT the + prefix
+    const waNumber = formatted.replace(/^\+/, "");
+    window.open(`https://wa.me/${waNumber}`, "_blank");
   }
 }
