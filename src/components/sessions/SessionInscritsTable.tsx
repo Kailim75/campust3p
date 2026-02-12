@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
 import { useContacts } from '@/hooks/useContacts';
 import { useSession } from '@/hooks/useSessions';
@@ -555,6 +556,31 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     }
   };
 
+  const inscriptionStatuts = [
+    { value: 'inscrit', label: 'Inscrit', class: 'bg-info/10 text-info border-info/20' },
+    { value: 'confirme', label: 'Confirmé', class: 'bg-warning/10 text-warning border-warning/20' },
+    { value: 'present', label: 'Présent', class: 'bg-success/10 text-success border-success/20' },
+    { value: 'absent', label: 'Absent', class: 'bg-destructive/10 text-destructive border-destructive/20' },
+    { value: 'abandonne', label: 'Abandonné', class: 'bg-muted text-muted-foreground' },
+    { value: 'reporte', label: 'Reporté', class: 'bg-accent text-accent-foreground' },
+  ];
+
+  const queryClient = useQueryClient();
+
+  const handleStatutChange = async (inscriptionId: string, newStatut: string) => {
+    try {
+      const { error } = await supabase
+        .from('session_inscriptions')
+        .update({ statut: newStatut })
+        .eq('id', inscriptionId);
+      if (error) throw error;
+      toast.success(`Statut mis à jour : ${inscriptionStatuts.find(s => s.value === newStatut)?.label}`);
+      queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
+    } catch {
+      toast.error("Erreur lors de la mise à jour du statut");
+    }
+  };
+
   const getStatutBadge = (statut: string) => {
     const variants: Record<string, "secondary" | "default" | "destructive" | "outline"> = {
       inscrit: 'secondary',
@@ -709,7 +735,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                         {inscrit.contact?.email}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {getStatutBadge(inscrit.statut)}
+                        <Select
+                          value={inscrit.statut}
+                          onValueChange={(value) => handleStatutChange(inscrit.id, value)}
+                        >
+                          <SelectTrigger className="h-7 w-[130px] text-xs" onClick={(e) => e.stopPropagation()}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inscriptionStatuts.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${s.class}`}>
+                                  {s.label}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {facture ? (
