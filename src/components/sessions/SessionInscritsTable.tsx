@@ -557,12 +557,10 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   };
 
   const inscriptionStatuts = [
-    { value: 'inscrit', label: 'Inscrit', class: 'bg-info/10 text-info border-info/20' },
-    { value: 'confirme', label: 'Confirmé', class: 'bg-warning/10 text-warning border-warning/20' },
-    { value: 'present', label: 'Présent', class: 'bg-success/10 text-success border-success/20' },
-    { value: 'absent', label: 'Absent', class: 'bg-destructive/10 text-destructive border-destructive/20' },
-    { value: 'abandonne', label: 'Abandonné', class: 'bg-muted text-muted-foreground' },
-    { value: 'reporte', label: 'Reporté', class: 'bg-accent text-accent-foreground' },
+    { value: 'valide', label: 'Validé', class: 'bg-success/10 text-success border-success/20' },
+    { value: 'encours', label: 'En cours', class: 'bg-warning/10 text-warning border-warning/20' },
+    { value: 'document', label: 'Document', class: 'bg-info/10 text-info border-info/20' },
+    { value: 'annule', label: 'Annulé', class: 'bg-destructive/10 text-destructive border-destructive/20' },
   ];
 
   const queryClient = useQueryClient();
