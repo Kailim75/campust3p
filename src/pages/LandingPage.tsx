@@ -148,7 +148,10 @@ export default function LandingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    
+    // Simulation d'envoi
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
     toast.success("Demande envoyée ! Nous vous recontactons sous 24h.");
     setFormData({ name: "", email: "", phone: "", company: "", message: "" });
     setIsSubmitting(false);
@@ -164,74 +167,83 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(38,55%,95%)] text-foreground">
-      {/* Header - style ecolet3p.fr */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[hsl(38,55%,95%)]/90 backdrop-blur-lg border-b border-border/50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-white/10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">T3P</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
+              <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <div>
-              <span className="text-lg font-bold text-primary">ÉCOLE T3P</span>
-              <p className="text-[10px] text-muted-foreground leading-tight">Centre de formation agréé Préfecture</p>
-            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+              T3P Campus CRM
+            </span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-primary transition-colors">Fonctionnalités</a>
-            <a href="#testimonials" className="text-sm text-muted-foreground hover:text-primary transition-colors">Témoignages</a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-primary transition-colors">Tarifs</a>
-            <a href="#contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">Contact</a>
+            <a href="#features" className="text-sm text-slate-300 hover:text-white transition-colors">Fonctionnalités</a>
+            <a href="#testimonials" className="text-sm text-slate-300 hover:text-white transition-colors">Témoignages</a>
+            <a href="#pricing" className="text-sm text-slate-300 hover:text-white transition-colors">Tarifs</a>
+            <a href="#contact" className="text-sm text-slate-300 hover:text-white transition-colors">Contact</a>
           </nav>
           <div className="flex items-center gap-3">
             <Link to="/auth">
-              <Button variant="ghost" className="text-muted-foreground hover:text-primary">
+              <Button variant="ghost" className="text-slate-300 hover:text-white">
                 Connexion
               </Button>
             </Link>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-semibold">
-              S'inscrire
+            <Button 
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white border-0"
+              onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Essai gratuit
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section - warm cream bg like ecolet3p.fr */}
+      {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 relative overflow-hidden">
-        <div className="container mx-auto relative z-10">
+        {/* Background effects */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="max-w-3xl"
           >
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 px-4 py-2">
-              Centre agréé Préfecture
+            <Badge className="mb-6 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-2">
+              ✨ Nouveau : Module BIM 3D pour formations immersives
             </Badge>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-foreground">
-              Le CRM pensé pour les{" "}
-              <span className="text-accent">Centres de Formation</span>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+              Le CRM pensé pour les
+              <span className="block bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Centres de Formation
+              </span>
             </h1>
             
-            <p className="text-xl text-muted-foreground max-w-3xl mb-10">
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10">
               Gérez vos stagiaires, sessions, documents et facturation en un seul endroit. 
               Conforme Qualiopi, avec e-learning intégré et automatisations intelligentes.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 
                 size="lg" 
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg border-0 font-semibold"
+                className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white px-8 py-6 text-lg border-0"
                 onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                S'inscrire à la formation
+                Démarrer l'essai gratuit
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-primary/30 text-primary hover:bg-primary/5 px-8 py-6 text-lg"
+                className="border-white/20 text-white hover:bg-white/10 px-8 py-6 text-lg"
                 onClick={handleCalendly}
               >
                 <Play className="mr-2 h-5 w-5" />
@@ -240,19 +252,19 @@ export default function LandingPage() {
             </div>
           </motion.div>
           
-          {/* Stats - style cards like ecolet3p.fr */}
+          {/* Stats */}
           <motion.div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20 max-w-4xl"
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 max-w-4xl mx-auto"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             {stats.map((stat, index) => (
-              <div key={index} className="bg-card rounded-xl p-4 border border-border/50 shadow-sm text-center">
-                <div className="text-3xl font-bold text-primary">
+              <div key={index} className="text-center">
+                <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                   {stat.value}
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                <div className="text-sm text-slate-400 mt-1">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -260,16 +272,16 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 bg-card/60">
+      <section id="features" className="py-20 px-4 bg-slate-900/50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
+            <Badge className="mb-4 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
               Fonctionnalités
             </Badge>
-            <h2 className="text-4xl font-bold mb-4 text-foreground">
+            <h2 className="text-4xl font-bold mb-4">
               Tout ce dont vous avez besoin
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-slate-400 max-w-2xl mx-auto">
               Une suite complète d'outils pour gérer efficacement votre centre de formation
             </p>
           </div>
@@ -283,15 +295,15 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Card className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300 h-full group hover:shadow-md">
+                <Card className="bg-slate-800/50 border-white/10 hover:border-emerald-500/50 transition-all duration-300 h-full group">
                   <CardHeader>
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                      <feature.icon className="h-6 w-6 text-primary" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mb-4 group-hover:from-emerald-500/30 group-hover:to-cyan-500/30 transition-colors">
+                      <feature.icon className="h-6 w-6 text-emerald-400" />
                     </div>
-                    <CardTitle className="text-foreground text-lg">{feature.title}</CardTitle>
+                    <CardTitle className="text-white text-lg">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-muted-foreground">
+                    <CardDescription className="text-slate-400">
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -307,13 +319,13 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+              <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                 Pourquoi nous choisir
               </Badge>
-              <h2 className="text-4xl font-bold mb-6 text-foreground">
+              <h2 className="text-4xl font-bold mb-6">
                 Conçu spécifiquement pour les formations VTC, Taxi & Transport
               </h2>
-              <p className="text-muted-foreground mb-8">
+              <p className="text-slate-400 mb-8">
                 Nous comprenons les spécificités de votre métier. Notre CRM intègre nativement 
                 tous les documents réglementaires et processus propres aux formations T3P.
               </p>
@@ -326,55 +338,56 @@ export default function LandingPage() {
                   { icon: Award, text: "Support français réactif" }
                 ].map((item, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <item.icon className="h-5 w-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                      <item.icon className="h-5 w-5 text-emerald-400" />
                     </div>
-                    <span className="text-foreground">{item.text}</span>
+                    <span className="text-slate-300">{item.text}</span>
                   </div>
                 ))}
               </div>
             </div>
             
             <div className="relative">
-              <div className="relative bg-card border border-border/50 rounded-2xl p-8 shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-3xl blur-2xl" />
+              <div className="relative bg-slate-800/80 border border-white/10 rounded-2xl p-8">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-emerald-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-foreground">Nouveau stagiaire inscrit</div>
-                        <div className="text-xs text-muted-foreground">Jean Dupont - Formation VTC</div>
+                        <div className="text-sm font-medium text-white">Nouveau stagiaire inscrit</div>
+                        <div className="text-xs text-slate-400">Jean Dupont - Formation VTC</div>
                       </div>
                     </div>
-                    <CheckCircle2 className="h-5 w-5 text-success" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-accent" />
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-cyan-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-foreground">Convention générée</div>
-                        <div className="text-xs text-muted-foreground">Envoyée automatiquement</div>
+                        <div className="text-sm font-medium text-white">Convention générée</div>
+                        <div className="text-xs text-slate-400">Envoyée automatiquement</div>
                       </div>
                     </div>
-                    <CheckCircle2 className="h-5 w-5 text-success" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-info" />
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-blue-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-foreground">Paiement reçu</div>
-                        <div className="text-xs text-muted-foreground">1 500€ - Facture #2024-156</div>
+                        <div className="text-sm font-medium text-white">Paiement reçu</div>
+                        <div className="text-xs text-slate-400">1 500€ - Facture #2024-156</div>
                       </div>
                     </div>
-                    <CheckCircle2 className="h-5 w-5 text-success" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                   </div>
                 </div>
               </div>
@@ -384,16 +397,16 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 bg-primary text-primary-foreground">
+      <section id="testimonials" className="py-20 px-4 bg-slate-900/50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
+            <Badge className="mb-4 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
               Témoignages
             </Badge>
             <h2 className="text-4xl font-bold mb-4">
               Ils nous font confiance
             </h2>
-            <p className="text-primary-foreground/70 max-w-2xl mx-auto">
+            <p className="text-slate-400 max-w-2xl mx-auto">
               Découvrez ce que nos clients disent de leur expérience avec T3P Campus CRM
             </p>
           </div>
@@ -407,22 +420,22 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Card className="bg-primary-foreground/10 border-primary-foreground/20 h-full backdrop-blur-sm">
+                <Card className="bg-slate-800/50 border-white/10 h-full">
                   <CardContent className="pt-6">
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: testimonial.rating }).map((_, i) => (
-                        <Star key={i} className="h-5 w-5 fill-accent text-accent" />
+                        <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                       ))}
                     </div>
-                    <p className="text-primary-foreground/90 mb-6 italic">"{testimonial.content}"</p>
+                    <p className="text-slate-300 mb-6 italic">"{testimonial.content}"</p>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-accent-foreground font-semibold">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-semibold">
                         {testimonial.avatar}
                       </div>
                       <div>
-                        <div className="font-medium text-primary-foreground">{testimonial.name}</div>
-                        <div className="text-sm text-primary-foreground/70">{testimonial.role}</div>
-                        <div className="text-xs text-accent">{testimonial.company}</div>
+                        <div className="font-medium text-white">{testimonial.name}</div>
+                        <div className="text-sm text-slate-400">{testimonial.role}</div>
+                        <div className="text-xs text-emerald-400">{testimonial.company}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -437,13 +450,13 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
+            <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
               Tarification
             </Badge>
-            <h2 className="text-4xl font-bold mb-4 text-foreground">
+            <h2 className="text-4xl font-bold mb-4">
               Des tarifs simples et transparents
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-slate-400 max-w-2xl mx-auto">
               Choisissez l'offre adaptée à la taille de votre centre. Sans engagement.
             </p>
           </div>
@@ -459,29 +472,29 @@ export default function LandingPage() {
               >
                 <Card className={`relative h-full ${
                   plan.highlighted 
-                    ? 'bg-primary/5 border-primary/30 shadow-lg' 
-                    : 'bg-card border-border/50'
+                    ? 'bg-gradient-to-b from-emerald-900/50 to-slate-800/50 border-emerald-500/50' 
+                    : 'bg-slate-800/50 border-white/10'
                 }`}>
                   {plan.highlighted && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-accent text-accent-foreground border-0 font-semibold">
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-0">
                         Le plus populaire
                       </Badge>
                     </div>
                   )}
                   <CardHeader className="text-center pt-8">
-                    <CardTitle className="text-foreground text-2xl">{plan.name}</CardTitle>
-                    <CardDescription className="text-muted-foreground">{plan.description}</CardDescription>
+                    <CardTitle className="text-white text-2xl">{plan.name}</CardTitle>
+                    <CardDescription className="text-slate-400">{plan.description}</CardDescription>
                     <div className="mt-4">
-                      <span className="text-5xl font-bold text-primary">{plan.price}€</span>
-                      <span className="text-muted-foreground">/mois</span>
+                      <span className="text-5xl font-bold text-white">{plan.price}€</span>
+                      <span className="text-slate-400">/mois</span>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3 mb-6">
                       {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2 text-foreground">
-                          <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                        <li key={i} className="flex items-center gap-2 text-slate-300">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
                           <span>{feature}</span>
                         </li>
                       ))}
@@ -489,8 +502,8 @@ export default function LandingPage() {
                     <Button 
                       className={`w-full ${
                         plan.highlighted 
-                          ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                          : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                          ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white border-0' 
+                          : 'bg-white/10 hover:bg-white/20 text-white'
                       }`}
                       onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                     >
@@ -506,41 +519,41 @@ export default function LandingPage() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 px-4 bg-card/60">
+      <section id="contact" className="py-20 px-4 bg-slate-900/50">
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
             <div>
-              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+              <Badge className="mb-4 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
                 Contact
               </Badge>
-              <h2 className="text-4xl font-bold mb-4 text-foreground">
+              <h2 className="text-4xl font-bold mb-4">
                 Prêt à transformer votre gestion ?
               </h2>
-              <p className="text-muted-foreground mb-8">
+              <p className="text-slate-400 mb-8">
                 Remplissez le formulaire ou contactez-nous directement. Notre équipe vous répond sous 24h.
               </p>
               
               <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Mail className="h-6 w-6 text-primary" />
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-emerald-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Email</div>
-                    <a href="mailto:contact@ecolet3p.fr" className="text-foreground hover:text-primary transition-colors">
-                      contact@ecolet3p.fr
+                    <div className="text-sm text-slate-400">Email</div>
+                    <a href="mailto:contact@t3pcampus.com" className="text-white hover:text-emerald-400 transition-colors">
+                      contact@t3pcampus.com
                     </a>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Phone className="h-6 w-6 text-accent" />
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                    <Phone className="h-6 w-6 text-cyan-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Téléphone</div>
-                    <a href="tel:+33188750555" className="text-foreground hover:text-primary transition-colors">
-                      01 88 75 05 55
+                    <div className="text-sm text-slate-400">Téléphone</div>
+                    <a href="tel:+33123456789" className="text-white hover:text-emerald-400 transition-colors">
+                      01 23 45 67 89
                     </a>
                   </div>
                 </div>
@@ -549,7 +562,7 @@ export default function LandingPage() {
               <div className="flex gap-3">
                 <Button 
                   variant="outline" 
-                  className="border-primary/30 text-primary hover:bg-primary/5"
+                  className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
                   onClick={handleWhatsApp}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
@@ -557,7 +570,7 @@ export default function LandingPage() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="border-accent/30 text-accent hover:bg-accent/5"
+                  className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
                   onClick={handleCalendly}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
@@ -566,10 +579,10 @@ export default function LandingPage() {
               </div>
             </div>
             
-            <Card className="bg-card border-border/50 shadow-md">
+            <Card className="bg-slate-800/50 border-white/10">
               <CardHeader>
-                <CardTitle className="text-foreground">Demander une démo</CardTitle>
-                <CardDescription className="text-muted-foreground">
+                <CardTitle className="text-white">Demander une démo</CardTitle>
+                <CardDescription className="text-slate-400">
                   Essai gratuit de 14 jours, sans carte bancaire
                 </CardDescription>
               </CardHeader>
@@ -581,6 +594,7 @@ export default function LandingPage() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
+                      className="bg-slate-700/50 border-white/10 text-white placeholder:text-slate-500"
                     />
                     <Input 
                       placeholder="Votre email"
@@ -588,6 +602,7 @@ export default function LandingPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
+                      className="bg-slate-700/50 border-white/10 text-white placeholder:text-slate-500"
                     />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -596,11 +611,13 @@ export default function LandingPage() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="bg-slate-700/50 border-white/10 text-white placeholder:text-slate-500"
                     />
                     <Input 
                       placeholder="Nom du centre"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      className="bg-slate-700/50 border-white/10 text-white placeholder:text-slate-500"
                     />
                   </div>
                   <Textarea 
@@ -608,10 +625,11 @@ export default function LandingPage() {
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     rows={4}
+                    className="bg-slate-700/50 border-white/10 text-white placeholder:text-slate-500"
                   />
                   <Button 
                     type="submit" 
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white border-0"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Envoi en cours..." : "Demander ma démo gratuite"}
@@ -625,21 +643,22 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border bg-primary text-primary-foreground">
+      <footer className="py-12 px-4 border-t border-white/10">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-xs">T3P</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
+                <GraduationCap className="h-4 w-4 text-white" />
               </div>
-              <span className="font-bold">ÉCOLE T3P — Campus CRM</span>
+              <span className="font-bold text-white">T3P Campus CRM</span>
             </div>
-            <p className="text-sm text-primary-foreground/70">
-              © {new Date().getFullYear()} ÉCOLE T3P. Tous droits réservés.
+            <p className="text-sm text-slate-400">
+              © 2024 T3P Campus. Tous droits réservés.
             </p>
             <div className="flex gap-6">
-              <Link to="/mentions-legales" className="text-sm text-primary-foreground/70 hover:text-primary-foreground transition-colors">Mentions légales</Link>
-              <Link to="/politique-confidentialite" className="text-sm text-primary-foreground/70 hover:text-primary-foreground transition-colors">Confidentialité</Link>
+              <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Mentions légales</a>
+              <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Confidentialité</a>
+              <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">CGV</a>
             </div>
           </div>
         </div>

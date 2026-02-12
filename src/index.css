@@ -15,77 +15,78 @@
 
 @layer base {
   :root {
-    /* T3P Formation - Charte graphique ecolet3p.fr */
-    /* Fond crème chaud */
-    --background: 38 55% 95%;
-    --foreground: 160 30% 12%;
+    /* T3P Formation - Professional Blue Theme with Enhanced Contrast */
+    --background: 210 20% 98%;
+    --foreground: 220 30% 8%;
 
-    --card: 40 40% 99%;
-    --card-foreground: 160 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 8%;
 
-    --popover: 40 40% 99%;
-    --popover-foreground: 160 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 8%;
 
-    /* Vert Forêt T3P - couleur principale */
-    --primary: 162 48% 20%;
-    --primary-foreground: 40 60% 97%;
+    /* Deep professional blue - enhanced contrast */
+    --primary: 220 75% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Crème pour secondaire */
-    --secondary: 38 40% 90%;
-    --secondary-foreground: 160 30% 18%;
+    /* Warm gray for secondary - darker for readability */
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 30% 20%;
 
-    /* Tons chauds atténués */
-    --muted: 38 30% 92%;
-    --muted-foreground: 30 10% 40%;
+    /* Muted tones - improved contrast */
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 15% 35%;
 
-    /* Or / Orange T3P pour les accents et CTAs */
-    --accent: 40 61% 58%;
-    --accent-foreground: 40 80% 12%;
+    /* Amber accent for CTAs */
+    --accent: 35 95% 50%;
+    --accent-foreground: 35 100% 12%;
 
-    --destructive: 0 75% 48%;
+    --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Vert plus clair pour succès */
-    --success: 150 60% 35%;
+    /* Success green - darker for readability */
+    --success: 150 75% 35%;
     --success-foreground: 0 0% 100%;
 
-    /* Ambre pour avertissements */
-    --warning: 40 95% 48%;
+    /* Warning amber - darker */
+    --warning: 40 100% 45%;
     --warning-foreground: 40 100% 12%;
 
-    /* Bleu info */
-    --info: 200 80% 42%;
+    /* Info blue - darker */
+    --info: 200 90% 42%;
     --info-foreground: 0 0% 100%;
 
-    --border: 38 25% 82%;
-    --input: 38 25% 82%;
-    --ring: 162 48% 20%;
+    --border: 220 20% 85%;
+    --input: 220 20% 85%;
+    --ring: 220 75% 42%;
 
     --radius: 0.625rem;
 
-    /* Sidebar - Vert forêt profond */
-    --sidebar-background: 162 45% 10%;
-    --sidebar-foreground: 38 30% 92%;
-    --sidebar-primary: 40 61% 58%;
-    --sidebar-primary-foreground: 40 80% 12%;
-    --sidebar-accent: 162 40% 18%;
-    --sidebar-accent-foreground: 38 30% 96%;
-    --sidebar-border: 162 35% 16%;
-    --sidebar-ring: 40 61% 58%;
+    /* Sidebar - Darker professional */
+    --sidebar-background: 220 35% 12%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 220 75% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 20%;
+    --sidebar-accent-foreground: 220 10% 98%;
+    --sidebar-border: 220 30% 22%;
+    --sidebar-ring: 220 75% 55%;
 
-    /* Gradients T3P */
-    --gradient-primary: linear-gradient(135deg, hsl(162 48% 20%), hsl(162 50% 28%));
-    --gradient-accent: linear-gradient(135deg, hsl(40 61% 58%), hsl(30 70% 50%));
-    --gradient-success: linear-gradient(135deg, hsl(150 60% 35%), hsl(160 60% 40%));
-    --gradient-card: linear-gradient(145deg, hsl(40 40% 99%), hsl(38 40% 96%));
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 75% 42%), hsl(220 80% 52%));
+    --gradient-accent: linear-gradient(135deg, hsl(35 95% 50%), hsl(25 95% 45%));
+    --gradient-success: linear-gradient(135deg, hsl(150 75% 35%), hsl(160 75% 40%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 20% 97%));
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(160 20% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(160 20% 10% / 0.08), 0 2px 4px -2px hsl(160 20% 10% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(160 20% 10% / 0.08), 0 4px 6px -4px hsl(160 20% 10% / 0.04);
-    --shadow-xl: 0 20px 25px -5px hsl(160 20% 10% / 0.1), 0 8px 10px -6px hsl(160 20% 10% / 0.05);
-
-    /* Super Admin */
+    /* Shadows - slightly stronger */
+    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(220 30% 10% / 0.1), 0 2px 4px -2px hsl(220 30% 10% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(220 30% 10% / 0.1), 0 4px 6px -4px hsl(220 30% 10% / 0.06);
+    --shadow-xl: 0 20px 25px -5px hsl(220 30% 10% / 0.12), 0 8px 10px -6px hsl(220 30% 10% / 0.06);
+    /* ═══════════════════════════════════════════════════════════
+       SUPER ADMIN THEME - Distinct visual identity
+       Deep indigo/purple tones for clear separation from Centre space
+       ═══════════════════════════════════════════════════════════ */
     --superadmin-background: 235 25% 12%;
     --superadmin-foreground: 235 10% 95%;
     --superadmin-sidebar: 235 30% 8%;
@@ -101,51 +102,51 @@
   }
 
   .dark {
-    --background: 160 20% 7%;
-    --foreground: 38 20% 94%;
+    --background: 220 30% 6%;
+    --foreground: 220 10% 96%;
 
-    --card: 160 20% 11%;
-    --card-foreground: 38 20% 94%;
+    --card: 220 30% 10%;
+    --card-foreground: 220 10% 96%;
 
-    --popover: 160 20% 11%;
-    --popover-foreground: 38 20% 94%;
+    --popover: 220 30% 10%;
+    --popover-foreground: 220 10% 96%;
 
-    --primary: 162 48% 40%;
+    --primary: 220 75% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 20% 16%;
-    --secondary-foreground: 38 20% 88%;
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 220 10% 88%;
 
-    --muted: 160 15% 14%;
-    --muted-foreground: 38 10% 60%;
+    --muted: 220 25% 14%;
+    --muted-foreground: 220 12% 65%;
 
-    --accent: 40 70% 55%;
-    --accent-foreground: 40 100% 12%;
+    --accent: 35 95% 55%;
+    --accent-foreground: 35 100% 12%;
 
-    --destructive: 0 70% 48%;
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 60% 45%;
+    --success: 150 70% 48%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 90% 52%;
+    --warning: 40 95% 52%;
     --warning-foreground: 40 100% 12%;
 
-    --info: 200 80% 55%;
+    --info: 200 85% 58%;
     --info-foreground: 0 0% 100%;
 
-    --border: 160 20% 20%;
-    --input: 160 20% 20%;
-    --ring: 162 48% 40%;
+    --border: 220 25% 22%;
+    --input: 220 25% 22%;
+    --ring: 220 75% 58%;
 
-    --sidebar-background: 162 40% 6%;
-    --sidebar-foreground: 38 20% 88%;
-    --sidebar-primary: 40 70% 55%;
-    --sidebar-primary-foreground: 40 100% 12%;
-    --sidebar-accent: 162 30% 14%;
-    --sidebar-accent-foreground: 38 20% 96%;
-    --sidebar-border: 162 30% 14%;
-    --sidebar-ring: 40 70% 55%;
+    --sidebar-background: 220 35% 6%;
+    --sidebar-foreground: 220 10% 88%;
+    --sidebar-primary: 220 75% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 14%;
+    --sidebar-accent-foreground: 220 10% 98%;
+    --sidebar-border: 220 30% 18%;
+    --sidebar-ring: 220 75% 58%;
   }
 }
 
