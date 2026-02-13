@@ -34,6 +34,9 @@ export interface FactureWithDetails extends Facture {
       id: string;
       nom: string;
       formation_type: string;
+      date_debut: string | null;
+      date_fin: string | null;
+      duree_heures: number | null;
     } | null;
   } | null;
   total_paye: number;
@@ -75,7 +78,7 @@ export function useFactures() {
           contact:contacts(id, nom, prenom, email, telephone),
           session_inscription:session_inscriptions(
             id,
-            session:sessions(id, nom, formation_type)
+            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures)
           )
         `)
         .order("created_at", { ascending: false });
@@ -116,7 +119,7 @@ export function useContactFactures(contactId: string | null) {
           *,
           session_inscription:session_inscriptions(
             id,
-            session:sessions(id, nom, formation_type)
+            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures)
           )
         `)
         .eq("contact_id", contactId)
@@ -163,7 +166,7 @@ export function useFacture(id: string | null) {
           contact:contacts(id, nom, prenom, email, telephone),
           session_inscription:session_inscriptions(
             id,
-            session:sessions(id, nom, formation_type)
+            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures)
           )
         `)
         .eq("id", id)

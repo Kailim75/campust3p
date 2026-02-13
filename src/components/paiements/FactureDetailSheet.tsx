@@ -153,11 +153,13 @@ export function FactureDetailSheet({
       commentaires: facture.commentaires || undefined,
     };
     
-    const sessionInfo = facture.session_inscription?.session ? {
-      nom: facture.session_inscription.session.nom,
-      formation_type: facture.session_inscription.session.formation_type,
-      date_debut: "", // Would need to fetch from session
-      date_fin: "",
+    const session = facture.session_inscription?.session;
+    const sessionInfo = session ? {
+      nom: session.nom,
+      formation_type: session.formation_type,
+      date_debut: session.date_debut || "",
+      date_fin: session.date_fin || "",
+      duree_heures: session.duree_heures || undefined,
     } : undefined;
     
     generateDocument("facture", contactInfo, sessionInfo, factureInfo);
