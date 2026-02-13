@@ -479,9 +479,19 @@ export function generateFacturePDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
-  const description = session 
-    ? `Formation: ${session.nom}\nDu ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}\nDurée: ${session.duree_heures || "-"} heures`
-    : "Formation professionnelle";
+  let description = "Formation professionnelle";
+  if (session) {
+    const parts = [`Formation: ${session.nom}`];
+    if (session.date_debut && session.date_fin) {
+      try {
+        parts.push(`Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`);
+      } catch { /* dates invalides, on skip */ }
+    }
+    if (session.duree_heures) {
+      parts.push(`Durée: ${session.duree_heures} heures`);
+    }
+    description = parts.join("\n");
+  }
   
   const lines = description.split("\n");
   lines.forEach((line, i) => {
