@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Clock } from "lucide-react";
@@ -230,18 +232,39 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
             </Select>
           </div>
 
-          {/* Apprenant */}
+          {/* Apprenant (searchable) */}
           <div>
             <Label>Apprenant</Label>
-            <Select value={contactId} onValueChange={setContactId}>
-              <SelectTrigger><SelectValue placeholder="Libre (réservable)" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Libre (réservable)</SelectItem>
-                {activeContacts.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.nom} {c.prenom}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className={cn("w-full justify-between font-normal", contactId === "none" && "text-muted-foreground")}>
+                  {contactId !== "none"
+                    ? (() => { const c = activeContacts.find(ct => ct.id === contactId); return c ? `${c.nom} ${c.prenom}` : "Libre (réservable)"; })()
+                    : "Libre (réservable)"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Rechercher un apprenant..." />
+                  <CommandList>
+                    <CommandEmpty>Aucun apprenant trouvé.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem value="libre-reservable" onSelect={() => setContactId("none")}>
+                        <Check className={cn("mr-2 h-4 w-4", contactId === "none" ? "opacity-100" : "opacity-0")} />
+                        Libre (réservable)
+                      </CommandItem>
+                      {activeContacts.map(c => (
+                        <CommandItem key={c.id} value={`${c.nom} ${c.prenom}`} onSelect={() => setContactId(c.id)}>
+                          <Check className={cn("mr-2 h-4 w-4", contactId === c.id ? "opacity-100" : "opacity-0")} />
+                          {c.nom} {c.prenom}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Statut */}
