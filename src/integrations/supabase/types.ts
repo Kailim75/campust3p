@@ -1587,6 +1587,142 @@ export type Database = {
           },
         ]
       }
+      creneaux_conduite: {
+        Row: {
+          annule_at: string | null
+          annule_par: string | null
+          centre_id: string | null
+          commentaires: string | null
+          confirme_at: string | null
+          confirme_par: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          date_creneau: string
+          fiche_pratique_id: string | null
+          formateur_id: string | null
+          heure_debut: string
+          heure_fin: string
+          id: string
+          lieu_arrivee: string | null
+          lieu_depart: string | null
+          motif_annulation: string | null
+          parcours: string | null
+          rappel_envoye: boolean | null
+          rappel_envoye_at: string | null
+          recurrence_id: string | null
+          reserve_at: string | null
+          reserve_par: string | null
+          statut: string
+          type_seance: string
+          updated_at: string
+          vehicule_id: string | null
+        }
+        Insert: {
+          annule_at?: string | null
+          annule_par?: string | null
+          centre_id?: string | null
+          commentaires?: string | null
+          confirme_at?: string | null
+          confirme_par?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_creneau: string
+          fiche_pratique_id?: string | null
+          formateur_id?: string | null
+          heure_debut: string
+          heure_fin: string
+          id?: string
+          lieu_arrivee?: string | null
+          lieu_depart?: string | null
+          motif_annulation?: string | null
+          parcours?: string | null
+          rappel_envoye?: boolean | null
+          rappel_envoye_at?: string | null
+          recurrence_id?: string | null
+          reserve_at?: string | null
+          reserve_par?: string | null
+          statut?: string
+          type_seance?: string
+          updated_at?: string
+          vehicule_id?: string | null
+        }
+        Update: {
+          annule_at?: string | null
+          annule_par?: string | null
+          centre_id?: string | null
+          commentaires?: string | null
+          confirme_at?: string | null
+          confirme_par?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_creneau?: string
+          fiche_pratique_id?: string | null
+          formateur_id?: string | null
+          heure_debut?: string
+          heure_fin?: string
+          id?: string
+          lieu_arrivee?: string | null
+          lieu_depart?: string | null
+          motif_annulation?: string | null
+          parcours?: string | null
+          rappel_envoye?: boolean | null
+          rappel_envoye_at?: string | null
+          recurrence_id?: string | null
+          reserve_at?: string | null
+          reserve_par?: string | null
+          statut?: string
+          type_seance?: string
+          updated_at?: string
+          vehicule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creneaux_conduite_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_conduite_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_conduite_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_conduite_fiche_pratique_id_fkey"
+            columns: ["fiche_pratique_id"]
+            isOneToOne: false
+            referencedRelation: "fiches_pratique"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_conduite_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creneaux_conduite_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_breach_history: {
         Row: {
           action: string
@@ -5658,6 +5794,24 @@ export type Database = {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
       }
+      check_creneau_conflicts: {
+        Args: {
+          p_contact_id?: string
+          p_date: string
+          p_exclude_id?: string
+          p_formateur_id?: string
+          p_heure_debut: string
+          p_heure_fin: string
+          p_vehicule_id?: string
+        }
+        Returns: {
+          conflict_heure_debut: string
+          conflict_heure_fin: string
+          conflict_id: string
+          conflict_label: string
+          conflict_type: string
+        }[]
+      }
       cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
       create_attestation_certificate: {
         Args: {
@@ -5766,6 +5920,10 @@ export type Database = {
       pay_partner_commission: {
         Args: { p_amount: number; p_partner_id: string }
         Returns: boolean
+      }
+      reserver_creneau: {
+        Args: { p_contact_id: string; p_creneau_id: string }
+        Returns: Json
       }
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
