@@ -20,6 +20,7 @@ import {
   Shield,
   Building2,
   ClipboardList,
+  CalendarClock,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -57,6 +58,7 @@ const menuGroups = [
     items: [
       { id: "contacts", label: "Contacts", icon: Users },
       { id: "sessions", label: "Sessions", icon: Calendar },
+      { id: "planning", label: "Planning Conduite", icon: CalendarClock },
     ],
   },
   {
