@@ -35,9 +35,9 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
   const [date, setDate] = useState<Date | undefined>(defaultDate || new Date());
   const [heureDebut, setHeureDebut] = useState("09:00");
   const [heureFin, setHeureFin] = useState("10:00");
-  const [formateurId, setFormateurId] = useState<string>("");
-  const [vehiculeId, setVehiculeId] = useState<string>("");
-  const [contactId, setContactId] = useState<string>("");
+  const [formateurId, setFormateurId] = useState<string>("none");
+  const [vehiculeId, setVehiculeId] = useState<string>("none");
+  const [contactId, setContactId] = useState<string>("none");
   const [typeSeance, setTypeSeance] = useState("conduite");
   const [statut, setStatut] = useState("disponible");
   const [lieuDepart, setLieuDepart] = useState("");
@@ -51,9 +51,9 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
       setDate(new Date(creneau.date_creneau));
       setHeureDebut(creneau.heure_debut.slice(0, 5));
       setHeureFin(creneau.heure_fin.slice(0, 5));
-      setFormateurId(creneau.formateur_id || "");
-      setVehiculeId(creneau.vehicule_id || "");
-      setContactId(creneau.contact_id || "");
+      setFormateurId(creneau.formateur_id || "none");
+      setVehiculeId(creneau.vehicule_id || "none");
+      setContactId(creneau.contact_id || "none");
       setTypeSeance(creneau.type_seance);
       setStatut(creneau.statut);
       setLieuDepart(creneau.lieu_depart || "");
@@ -62,9 +62,9 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
       setDate(defaultDate || new Date());
       setHeureDebut("09:00");
       setHeureFin("10:00");
-      setFormateurId("");
-      setVehiculeId("");
-      setContactId("");
+      setFormateurId("none");
+      setVehiculeId("none");
+      setContactId("none");
       setTypeSeance("conduite");
       setStatut("disponible");
       setLieuDepart("");
@@ -76,7 +76,7 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
   // Check conflicts when key fields change
   useEffect(() => {
     if (!date || !heureDebut || !heureFin) return;
-    if (!formateurId && !vehiculeId && !contactId) {
+    if (formateurId === "none" && vehiculeId === "none" && contactId === "none") {
       setConflicts([]);
       return;
     }
@@ -86,9 +86,9 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
         date: format(date, "yyyy-MM-dd"),
         heureDebut,
         heureFin,
-        formateurId: formateurId || undefined,
-        vehiculeId: vehiculeId || undefined,
-        contactId: contactId || undefined,
+        formateurId: formateurId !== "none" ? formateurId : undefined,
+        vehiculeId: vehiculeId !== "none" ? vehiculeId : undefined,
+        contactId: contactId !== "none" ? contactId : undefined,
         excludeId: creneau?.id,
       }, {
         onSuccess: (data) => setConflicts(data || []),
@@ -106,9 +106,9 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
       date_creneau: format(date, "yyyy-MM-dd"),
       heure_debut: heureDebut,
       heure_fin: heureFin,
-      formateur_id: formateurId || null,
-      vehicule_id: vehiculeId || null,
-      contact_id: contactId || null,
+      formateur_id: formateurId !== "none" ? formateurId : null,
+      vehicule_id: vehiculeId !== "none" ? vehiculeId : null,
+      contact_id: contactId !== "none" ? contactId : null,
       type_seance: typeSeance,
       statut,
       lieu_depart: lieuDepart || null,
@@ -208,7 +208,7 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
             <Select value={formateurId} onValueChange={setFormateurId}>
               <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun</SelectItem>
+                <SelectItem value="none">Aucun</SelectItem>
                 {formateurs?.filter(f => f.actif).map(f => (
                   <SelectItem key={f.id} value={f.id}>{f.nom} {f.prenom}</SelectItem>
                 ))}
@@ -222,7 +222,7 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
             <Select value={vehiculeId} onValueChange={setVehiculeId}>
               <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun</SelectItem>
+                <SelectItem value="none">Aucun</SelectItem>
                 {vehicules?.map(v => (
                   <SelectItem key={v.id} value={v.id}>{v.marque} {v.modele} ({v.immatriculation})</SelectItem>
                 ))}
@@ -236,7 +236,7 @@ export function CreneauFormDialog({ open, onOpenChange, creneau, defaultDate }: 
             <Select value={contactId} onValueChange={setContactId}>
               <SelectTrigger><SelectValue placeholder="Libre (réservable)" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Libre (réservable)</SelectItem>
+                <SelectItem value="none">Libre (réservable)</SelectItem>
                 {activeContacts.map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.nom} {c.prenom}</SelectItem>
                 ))}
