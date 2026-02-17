@@ -228,6 +228,10 @@ serve(async (req) => {
           duree_heures: sessionInfo.duree_heures || 35,
           heure_debut: sessionInfo.heure_debut || undefined,
           heure_fin: sessionInfo.heure_fin || undefined,
+          heure_debut_matin: sessionInfo.heure_debut_matin || undefined,
+          heure_fin_matin: sessionInfo.heure_fin_matin || undefined,
+          heure_debut_aprem: sessionInfo.heure_debut_aprem || undefined,
+          heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
           formateur: sessionInfo.formateur || undefined,
         };
         

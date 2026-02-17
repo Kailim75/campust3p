@@ -158,7 +158,7 @@ export function useSessionInscrits(sessionId: string) {
       // 1. Récupérer les infos complètes de la session (pour génération PDF côté serveur)
       const { data: session, error: sessionError } = await supabase
         .from('sessions')
-        .select('nom, formation_type, date_debut, date_fin, lieu, heure_debut, heure_fin, duree_heures, formateur_id')
+        .select('nom, formation_type, date_debut, date_fin, lieu, heure_debut, heure_fin, heure_debut_matin, heure_fin_matin, heure_debut_aprem, heure_fin_aprem, duree_heures, formateur_id')
         .eq('id', sessionId)
         .single();
       
@@ -223,6 +223,10 @@ export function useSessionInscrits(sessionId: string) {
             lieu: session.lieu,
             heure_debut: session.heure_debut,
             heure_fin: session.heure_fin,
+            heure_debut_matin: session.heure_debut_matin,
+            heure_fin_matin: session.heure_fin_matin,
+            heure_debut_aprem: session.heure_debut_aprem,
+            heure_fin_aprem: session.heure_fin_aprem,
             duree_heures: session.duree_heures,
             formateur: formateurNom,
           },
