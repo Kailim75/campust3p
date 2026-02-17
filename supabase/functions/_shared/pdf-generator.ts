@@ -28,6 +28,10 @@ export interface SessionInfo {
   numero_session?: string;
   heure_debut?: string;
   heure_fin?: string;
+  heure_debut_matin?: string;
+  heure_fin_matin?: string;
+  heure_debut_aprem?: string;
+  heure_fin_aprem?: string;
   formateur?: string;
 }
 
@@ -179,14 +183,25 @@ function formatDateWithDay(dateStr: string): string {
 }
 
 function formatSessionHours(session: SessionInfo): string {
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    return `${hours}h${minutes}`;
+  };
+
+  // Use detailed morning/afternoon hours if available
+  if (session.heure_debut_matin && session.heure_fin_matin && session.heure_debut_aprem && session.heure_fin_aprem) {
+    return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)} / ${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
+  }
+  if (session.heure_debut_matin && session.heure_fin_matin) {
+    return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)}`;
+  }
+  if (session.heure_debut_aprem && session.heure_fin_aprem) {
+    return `${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
+  }
   if (session.heure_debut && session.heure_fin) {
-    const formatTime = (time: string) => {
-      const [hours, minutes] = time.split(':');
-      return `${hours}h${minutes}`;
-    };
     return `${formatTime(session.heure_debut)} - ${formatTime(session.heure_fin)}`;
   }
-  return "9h00 - 12h30 / 13h30 - 17h00";
+  return "";
 }
 
 function addHeader(doc: jsPDF, company: CompanyInfo): number {
@@ -294,37 +309,52 @@ export function generateConvocationPDF(
   yPos += 8;
   doc.text("Nous avons le plaisir de vous confirmer votre inscription à la formation suivante :", 20, yPos);
 
-  // Formation box
+  // Formation box - dynamic content
   yPos += 12;
   const boxStartY = yPos;
-  let boxContentY = yPos + 10;
 
-  // Draw box background first
-  const formationType = getFormationType(session.nom, session.formation_type);
-  const programme = PROGRAMMES_T3P[formationType] || PROGRAMMES_T3P.VTC;
-  const boxHeight = (session.formateur ? 7 : 0) + 48;
+  // Build dynamic lines (only show filled fields)
+  interface BoxLine { label: string; value: string; bold?: boolean; center?: boolean; fontSize?: number }
+  const boxLines: BoxLine[] = [];
+  
+  boxLines.push({ label: "", value: session.nom, bold: true, center: true, fontSize: 12 });
+  boxLines.push({ label: "Dates", value: `Du ${formatDateWithDay(session.date_debut)} au ${formatDateWithDay(session.date_fin)}` });
+  
+  const hours = formatSessionHours(session);
+  if (hours) {
+    boxLines.push({ label: "Horaires", value: hours });
+  }
+  if (session.lieu) {
+    boxLines.push({ label: "Lieu", value: session.lieu });
+  }
+  if (session.duree_heures) {
+    boxLines.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
+  }
+  if (session.formateur) {
+    boxLines.push({ label: "Formateur", value: session.formateur });
+  }
+
+  const boxPadding = 8;
+  const boxLineHeight = 7;
+  const titleLineHeight = 10;
+  const boxHeight = boxPadding * 2 + titleLineHeight + (boxLines.length - 1) * boxLineHeight;
   
   doc.setFillColor(245, 245, 245);
   doc.roundedRect(20, boxStartY, pageWidth - 40, boxHeight, 3, 3, "F");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(session.nom, pageWidth / 2, boxContentY, { align: "center" });
-
-  boxContentY += 10;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Dates : Du ${formatDateWithDay(session.date_debut)} au ${formatDateWithDay(session.date_fin)}`, 28, boxContentY);
-  boxContentY += 7;
-  doc.text(`Horaires : ${formatSessionHours(session)}`, 28, boxContentY);
-  boxContentY += 7;
-  doc.text(`Lieu : ${session.lieu || "À définir"}`, 28, boxContentY);
-  boxContentY += 7;
-  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 28, boxContentY);
-
-  if (session.formateur) {
-    boxContentY += 7;
-    doc.text(`Formateur : ${session.formateur}`, 28, boxContentY);
+  let boxContentY = boxStartY + boxPadding + 2;
+  for (const line of boxLines) {
+    if (line.center) {
+      doc.setFont("helvetica", line.bold ? "bold" : "normal");
+      doc.setFontSize(line.fontSize || 10);
+      doc.text(line.value, pageWidth / 2, boxContentY, { align: "center" });
+      boxContentY += titleLineHeight;
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`${line.label} : ${line.value}`, 28, boxContentY);
+      boxContentY += boxLineHeight;
+    }
   }
 
   yPos = boxStartY + boxHeight + 12;
