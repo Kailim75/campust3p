@@ -649,8 +649,10 @@ export function generateAttestationPDF(
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(`Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`, pageWidth / 2, yPos, { align: "center" });
   
-  yPos += 10;
-  doc.text(`Durée : ${session.duree_heures || "-"} heures`, pageWidth / 2, yPos, { align: "center" });
+  if (session.duree_heures) {
+    yPos += 10;
+    doc.text(`Durée : ${session.duree_heures} heures`, pageWidth / 2, yPos, { align: "center" });
+  }
   
   if (session.lieu) {
     yPos += 10;
@@ -692,7 +694,7 @@ function formatFullAddress(session: SessionInfo): string {
     parts.push(`${session.adresse_code_postal || ""} ${session.adresse_ville || ""}`.trim());
   }
   if (parts.length === 0 && session.lieu) return session.lieu;
-  return parts.join(", ") || "À définir";
+  return parts.join(", ");
 }
 
 // Helper function to format session hours
@@ -718,7 +720,7 @@ function formatSessionHours(session: SessionInfo): string {
   if (session.heure_debut && session.heure_fin) {
     return `${formatTime(session.heure_debut)} - ${formatTime(session.heure_fin)}`;
   }
-  return "9h00 - 12h30 / 13h30 - 17h00";
+  return "";
 }
 
 // Helper function to calculate TTC price
@@ -932,35 +934,43 @@ export function generateConventionPDF(
   yPos = checkPageBreak(65);
   yPos = addSectionTitle(doc, "Article 2 - Nature et caractéristiques de l'action", yPos);
   
+  // Calculer les lignes de contenu dynamiquement
+  const art2Lines: { text: string; bold?: boolean }[] = [];
+  art2Lines.push({ text: `• Intitulé : `, bold: true });
+  art2Lines.push({ text: `• Type d'action : Action de formation professionnelle continue` });
+  art2Lines.push({ text: `• Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` });
+  if (session.duree_heures) {
+    art2Lines.push({ text: `• Durée : ${session.duree_heures} heures` });
+  }
+  const sessionHours = formatSessionHours(session);
+  if (sessionHours) {
+    art2Lines.push({ text: `• Horaires : ${sessionHours}` });
+  }
+  const sessionAddress = formatFullAddress(session);
+  if (sessionAddress) {
+    art2Lines.push({ text: `• Lieu : ${sessionAddress}` });
+  }
+  art2Lines.push({ text: `• Modalités : Formation en présentiel | Effectif max : 12 stagiaires` });
+  
   yPos += 2;
-  const art2BoxHeight = 58;
+  const art2BoxHeight = 8 + art2Lines.length * 6 + 4;
   addInfoBox(doc, yPos, art2BoxHeight);
   
   yPos += 8;
   doc.setFontSize(10);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`• Intitulé : `, 30, yPos);
-  doc.setFont("helvetica", "bold");
-  doc.text(session.nom, 55, yPos);
-  doc.setFont("helvetica", "normal");
   
-  yPos += 6;
-  doc.text(`• Type d'action : Action de formation professionnelle continue`, 30, yPos);
-  
-  yPos += 6;
-  doc.text(`• Dates : Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`, 30, yPos);
-  
-  yPos += 6;
-  doc.text(`• Durée : ${session.duree_heures || 35} heures`, 30, yPos);
-  
-  yPos += 6;
-  doc.text(`• Horaires : ${formatSessionHours(session)}`, 30, yPos);
-  
-  yPos += 6;
-  doc.text(`• Lieu : ${formatFullAddress(session)}`, 30, yPos);
-  
-  yPos += 6;
-  doc.text(`• Modalités : Formation en présentiel | Effectif max : 12 stagiaires`, 30, yPos);
+  for (const line of art2Lines) {
+    if (line.bold) {
+      doc.text(line.text, 30, yPos);
+      doc.setFont("helvetica", "bold");
+      doc.text(session.nom, 55, yPos);
+      doc.setFont("helvetica", "normal");
+    } else {
+      doc.text(line.text, 30, yPos);
+    }
+    yPos += 6;
+  }
   
   // ============ ARTICLE 3 - Objectifs pédagogiques ============
   yPos += 18;
@@ -1671,9 +1681,17 @@ export function generateContratFormationPDF(
   const objText = session.objectifs || "Acquisition des compétences professionnelles visées par la formation";
   writeBullet(`• Objectif : ${objText}`);
   writeBullet(`• Dates : du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`);
-  writeBullet(`• Durée totale : ${session.duree_heures || "-"} heures`);
-  writeBullet(`• Horaires : ${formatSessionHours(session)}`);
-  writeBullet(`• Lieu : ${formatFullAddress(session)}`);
+  if (session.duree_heures) {
+    writeBullet(`• Durée totale : ${session.duree_heures} heures`);
+  }
+  const contratHours = formatSessionHours(session);
+  if (contratHours) {
+    writeBullet(`• Horaires : ${contratHours}`);
+  }
+  const contratAddress = formatFullAddress(session);
+  if (contratAddress) {
+    writeBullet(`• Lieu : ${contratAddress}`);
+  }
   writeBullet("• Modalité : En présentiel");
 
   // Article 3
@@ -1840,59 +1858,57 @@ export function generateConvocationPDF(
   // Formation box - hauteur dynamique
   yPos += 12;
   const boxStartY = yPos;
-  let boxContentY = yPos + 10;
   
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(session.nom, pageWidth / 2, boxContentY, { align: "center" });
+  // Calculer le contenu dynamiquement (seulement les champs remplis)
+  interface BoxLine { label: string; value: string; bold?: boolean; center?: boolean; fontSize?: number }
+  const boxLines: BoxLine[] = [];
   
-  boxContentY += 10;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 28, boxContentY);
+  boxLines.push({ label: "", value: session.nom, bold: true, center: true, fontSize: 12 });
   
-  boxContentY += 7;
-  doc.text(`Horaires : ${formatSessionHours(session)}`, 28, boxContentY);
+  boxLines.push({ label: "Dates", value: `Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}` });
   
-  boxContentY += 7;
-  doc.text(`Lieu : ${formatFullAddress(session)}`, 28, boxContentY);
-  
-  boxContentY += 7;
-  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 28, boxContentY);
-  
-  if (session.formateur) {
-    boxContentY += 7;
-    doc.text(`Formateur : ${session.formateur}`, 28, boxContentY);
+  const hours = formatSessionHours(session);
+  if (hours) {
+    boxLines.push({ label: "Horaires", value: hours });
   }
   
-  // Dessiner le box après avoir calculé la hauteur
-  const boxHeight = boxContentY - boxStartY + 8;
+  const address = formatFullAddress(session);
+  if (address) {
+    boxLines.push({ label: "Lieu", value: address });
+  }
+  
+  if (session.duree_heures) {
+    boxLines.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
+  }
+  
+  if (session.formateur) {
+    boxLines.push({ label: "Formateur", value: session.formateur });
+  }
+  
+  // Calculer la hauteur du box
+  const boxPadding = 8;
+  const boxLineHeight = 7;
+  const titleLineHeight = 10;
+  const boxHeight = boxPadding * 2 + titleLineHeight + (boxLines.length - 1) * boxLineHeight;
+  
+  // Dessiner le fond
   doc.setFillColor(245, 245, 245);
   doc.roundedRect(20, boxStartY, pageWidth - 40, boxHeight, 3, 3, "F");
   
-  // Redessiner le contenu par-dessus le fond
-  boxContentY = boxStartY + 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(session.nom, pageWidth / 2, boxContentY, { align: "center" });
-  
-  boxContentY += 10;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Dates : Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`, 28, boxContentY);
-  
-  boxContentY += 7;
-  doc.text(`Horaires : ${formatSessionHours(session)}`, 28, boxContentY);
-  
-  boxContentY += 7;
-  doc.text(`Lieu : ${formatFullAddress(session)}`, 28, boxContentY);
-  
-  boxContentY += 7;
-  doc.text(`Durée totale : ${session.duree_heures || "-"} heures`, 28, boxContentY);
-  
-  if (session.formateur) {
-    boxContentY += 7;
-    doc.text(`Formateur : ${session.formateur}`, 28, boxContentY);
+  // Dessiner le contenu
+  let boxContentY = boxStartY + boxPadding + 2;
+  for (const line of boxLines) {
+    if (line.center) {
+      doc.setFont("helvetica", line.bold ? "bold" : "normal");
+      doc.setFontSize(line.fontSize || 10);
+      doc.text(line.value, pageWidth / 2, boxContentY, { align: "center" });
+      boxContentY += titleLineHeight;
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`${line.label} : ${line.value}`, 28, boxContentY);
+      boxContentY += boxLineHeight;
+    }
   }
   
   yPos = boxStartY + boxHeight + 12;
