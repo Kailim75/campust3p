@@ -699,33 +699,30 @@ function formatFullAddress(session: SessionInfo): string {
 
 // Helper function to format session hours
 function formatSessionHours(session: SessionInfo): string {
-  console.log('[formatSessionHours] session hours:', {
-    heure_debut: session.heure_debut,
-    heure_fin: session.heure_fin,
-    heure_debut_matin: session.heure_debut_matin,
-    heure_fin_matin: session.heure_fin_matin,
-    heure_debut_aprem: session.heure_debut_aprem,
-    heure_fin_aprem: session.heure_fin_aprem,
-  });
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     return `${hours}h${minutes}`;
   };
 
+  // Helper to check if a time value is valid (not null, not empty, not "00:00:00")
+  const isValidTime = (time?: string): time is string => {
+    return !!time && time !== "00:00:00" && time !== "00:00";
+  };
+
   // Use detailed morning/afternoon hours if available
-  if (session.heure_debut_matin && session.heure_fin_matin && session.heure_debut_aprem && session.heure_fin_aprem) {
+  if (isValidTime(session.heure_debut_matin) && isValidTime(session.heure_fin_matin) && isValidTime(session.heure_debut_aprem) && isValidTime(session.heure_fin_aprem)) {
     return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)} / ${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
   }
   // Morning only
-  if (session.heure_debut_matin && session.heure_fin_matin) {
+  if (isValidTime(session.heure_debut_matin) && isValidTime(session.heure_fin_matin)) {
     return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)}`;
   }
   // Afternoon only
-  if (session.heure_debut_aprem && session.heure_fin_aprem) {
+  if (isValidTime(session.heure_debut_aprem) && isValidTime(session.heure_fin_aprem)) {
     return `${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
   }
   // Fallback to simple heure_debut/heure_fin
-  if (session.heure_debut && session.heure_fin) {
+  if (isValidTime(session.heure_debut) && isValidTime(session.heure_fin)) {
     return `${formatTime(session.heure_debut)} - ${formatTime(session.heure_fin)}`;
   }
   return "";
