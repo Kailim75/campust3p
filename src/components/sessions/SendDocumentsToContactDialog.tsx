@@ -85,6 +85,10 @@ interface SessionInfo {
   prix?: number;
   heure_debut?: string | null;
   heure_fin?: string | null;
+  heure_debut_matin?: string | null;
+  heure_fin_matin?: string | null;
+  heure_debut_aprem?: string | null;
+  heure_fin_aprem?: string | null;
   formateur?: string | null;
   objectifs?: string | null;
   prerequis?: string | null;
@@ -522,6 +526,12 @@ export function SendDocumentsToContactDialog({
           lieu: sessionInfo.lieu || undefined,
           duree_heures: sessionInfo.duree_heures || 35,
           prix: sessionInfo.prix,
+          heure_debut: sessionInfo.heure_debut || undefined,
+          heure_fin: sessionInfo.heure_fin || undefined,
+          heure_debut_matin: sessionInfo.heure_debut_matin || undefined,
+          heure_fin_matin: sessionInfo.heure_fin_matin || undefined,
+          heure_debut_aprem: sessionInfo.heure_debut_aprem || undefined,
+          heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
         };
 
         let signaturesCreated = 0;

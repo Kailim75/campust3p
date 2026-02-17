@@ -116,6 +116,10 @@ export interface SessionInfo {
   numero_session?: string;
   heure_debut?: string;
   heure_fin?: string;
+  heure_debut_matin?: string;
+  heure_fin_matin?: string;
+  heure_debut_aprem?: string;
+  heure_fin_aprem?: string;
   adresse_rue?: string;
   adresse_code_postal?: string;
   adresse_ville?: string;
@@ -693,12 +697,25 @@ function formatFullAddress(session: SessionInfo): string {
 
 // Helper function to format session hours
 function formatSessionHours(session: SessionInfo): string {
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    return `${hours}h${minutes}`;
+  };
+
+  // Use detailed morning/afternoon hours if available
+  if (session.heure_debut_matin && session.heure_fin_matin && session.heure_debut_aprem && session.heure_fin_aprem) {
+    return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)} / ${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
+  }
+  // Morning only
+  if (session.heure_debut_matin && session.heure_fin_matin) {
+    return `${formatTime(session.heure_debut_matin)} - ${formatTime(session.heure_fin_matin)}`;
+  }
+  // Afternoon only
+  if (session.heure_debut_aprem && session.heure_fin_aprem) {
+    return `${formatTime(session.heure_debut_aprem)} - ${formatTime(session.heure_fin_aprem)}`;
+  }
+  // Fallback to simple heure_debut/heure_fin
   if (session.heure_debut && session.heure_fin) {
-    // Format HH:MM:SS to HHhMM (e.g. "18:00:00" -> "18h00")
-    const formatTime = (time: string) => {
-      const [hours, minutes] = time.split(':');
-      return `${hours}h${minutes}`;
-    };
     return `${formatTime(session.heure_debut)} - ${formatTime(session.heure_fin)}`;
   }
   return "9h00 - 12h30 / 13h30 - 17h00";

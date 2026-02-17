@@ -75,6 +75,10 @@ export function useCloseSession() {
           lieu: session.lieu || undefined,
           heure_debut: session.heure_debut || undefined,
           heure_fin: session.heure_fin || undefined,
+          heure_debut_matin: session.heure_debut_matin || undefined,
+          heure_fin_matin: session.heure_fin_matin || undefined,
+          heure_debut_aprem: session.heure_debut_aprem || undefined,
+          heure_fin_aprem: session.heure_fin_aprem || undefined,
           duree_heures: session.duree_heures || 35,
           prix: session.prix ? Number(session.prix) : undefined,
         };
