@@ -274,7 +274,7 @@ export function SendDocumentsToContactDialog({
         };
 
         const sessionDataForDoc = {
-          id: sessionInfo.id, // Nécessaire pour générer le numéro de certificat
+          id: sessionInfo.id,
           nom: sessionInfo.nom,
           formation_type: sessionInfo.formation_type,
           date_debut: sessionInfo.date_debut,
@@ -282,6 +282,13 @@ export function SendDocumentsToContactDialog({
           lieu: sessionInfo.lieu || undefined,
           duree_heures: sessionInfo.duree_heures || 35,
           prix: sessionInfo.prix,
+          heure_debut: sessionInfo.heure_debut || undefined,
+          heure_fin: sessionInfo.heure_fin || undefined,
+          heure_debut_matin: sessionInfo.heure_debut_matin || undefined,
+          heure_fin_matin: sessionInfo.heure_fin_matin || undefined,
+          heure_debut_aprem: sessionInfo.heure_debut_aprem || undefined,
+          heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
+          formateur: sessionInfo.formateur || undefined,
         };
 
         if (['convocation', 'convention', 'contrat', 'attestation', 'programme'].includes(docType)) {
