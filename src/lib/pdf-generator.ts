@@ -699,6 +699,14 @@ function formatFullAddress(session: SessionInfo): string {
 
 // Helper function to format session hours
 function formatSessionHours(session: SessionInfo): string {
+  console.log('[formatSessionHours] session hours:', {
+    heure_debut: session.heure_debut,
+    heure_fin: session.heure_fin,
+    heure_debut_matin: session.heure_debut_matin,
+    heure_fin_matin: session.heure_fin_matin,
+    heure_debut_aprem: session.heure_debut_aprem,
+    heure_fin_aprem: session.heure_fin_aprem,
+  });
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     return `${hours}h${minutes}`;
