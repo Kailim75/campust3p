@@ -108,24 +108,30 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
-        {/* Express Enrollment CTA + Priority Action Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Express Enrollment Button - Prominent CTA */}
-          <Button 
-            size="lg" 
-            onClick={() => setExpressEnrollOpen(true)}
-            className="h-auto py-4 px-6 flex flex-col items-center gap-2 bg-primary hover:bg-primary/90"
-          >
-            <UserPlus className="h-6 w-6" />
-            <div className="text-center">
-              <p className="font-semibold">Inscription Express</p>
-              <p className="text-xs opacity-80">Nouveau stagiaire en 30 sec</p>
-            </div>
-          </Button>
-          
-          <PriorityActionCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
-          <TodayTasksCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
-          <SmartSuggestionsCard onNavigate={handleNavigate} />
+        {/* Express Enrollment CTA + Priority Actions */}
+        <div className="flex flex-col gap-4">
+          {/* Row 1: CTA + Priority Action */}
+          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 items-stretch">
+            <Button 
+              size="lg" 
+              onClick={() => setExpressEnrollOpen(true)}
+              className="h-auto py-3 px-5 flex items-center gap-3 bg-primary hover:bg-primary/90 whitespace-nowrap"
+            >
+              <UserPlus className="h-5 w-5 shrink-0" />
+              <div className="text-left">
+                <p className="font-semibold text-sm">Inscription Express</p>
+                <p className="text-xs opacity-80">Nouveau stagiaire en 30 sec</p>
+              </div>
+            </Button>
+            
+            <PriorityActionCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
+          </div>
+
+          {/* Row 2: Today Tasks + Smart Suggestions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TodayTasksCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
+            <SmartSuggestionsCard onNavigate={handleNavigate} />
+          </div>
         </div>
 
         {/* Period Selector */}
