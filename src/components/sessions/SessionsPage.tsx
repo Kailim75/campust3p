@@ -302,6 +302,7 @@ export function SessionsPage() {
                 inscriptionsCounts={inscriptionsCounts}
                 isLoading={isLoading}
                 groupBy={groupBy}
+                activeSessionId={detailOpen ? detailSessionId : null}
                 onGroupByChange={setGroupBy}
                 onViewDetail={handleViewDetail}
                 onEdit={handleEdit}
