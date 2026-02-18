@@ -1024,6 +1024,22 @@ serve(async (req) => {
     // Use service role for database operations (needed for full access)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // ========== SECURITY: Verify user has admin or staff role ==========
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', verifiedUserId)
+      .in('role', ['admin', 'staff'])
+      .limit(1)
+      .maybeSingle();
+
+    if (!userRole) {
+      return new Response(
+        JSON.stringify({ error: 'Accès refusé - Réservé au personnel autorisé' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { message, action, conversationHistory, confirmedActions, pendingAction } = await req.json();
 
     if (!message && !pendingAction) {
