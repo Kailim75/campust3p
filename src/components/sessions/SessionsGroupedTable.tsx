@@ -38,7 +38,6 @@ import {
   MapPin, 
   Edit, 
   Trash2, 
-  Eye, 
   Copy, 
   ChevronDown, 
   ChevronRight,
@@ -80,6 +79,7 @@ interface SessionsGroupedTableProps {
   inscriptionsCounts: Record<string, number>;
   isLoading: boolean;
   groupBy: GroupByMode;
+  activeSessionId?: string | null;
   onGroupByChange: (groupBy: GroupByMode) => void;
   onViewDetail: (session: Session) => void;
   onEdit: (session: Session) => void;
@@ -99,6 +99,7 @@ export function SessionsGroupedTable({
   inscriptionsCounts,
   isLoading,
   groupBy,
+  activeSessionId,
   onGroupByChange,
   onViewDetail,
   onEdit,
@@ -391,6 +392,7 @@ export function SessionsGroupedTable({
                 key={session.id} 
                 session={session} 
                 inscriptionsCounts={inscriptionsCounts}
+                isActive={activeSessionId === session.id}
                 onViewDetail={onViewDetail}
                 onEdit={onEdit}
                 onDuplicate={onDuplicate}
@@ -504,6 +506,7 @@ export function SessionsGroupedTable({
                         key={session.id} 
                         session={session} 
                         inscriptionsCounts={inscriptionsCounts}
+                        isActive={activeSessionId === session.id}
                         onViewDetail={onViewDetail}
                         onEdit={onEdit}
                         onDuplicate={onDuplicate}
@@ -533,6 +536,7 @@ export function SessionsGroupedTable({
 interface SessionRowProps {
   session: Session;
   inscriptionsCounts: Record<string, number>;
+  isActive?: boolean;
   onViewDetail: (session: Session) => void;
   onEdit: (session: Session) => void;
   onDuplicate: (session: Session) => void;
@@ -545,6 +549,7 @@ interface SessionRowProps {
 function SessionRow({
   session,
   inscriptionsCounts,
+  isActive,
   onViewDetail,
   onEdit,
   onDuplicate,
@@ -553,11 +558,24 @@ function SessionRow({
   hideStatus,
   hideLieu,
 }: SessionRowProps) {
+  const formationColor = getFormationColor(session.formation_type);
+  
   return (
-    <TableRow className="table-row-hover">
-      <TableCell>
-        <div>
-          <p className="font-medium text-foreground">{session.nom}</p>
+    <TableRow 
+      className={cn(
+        "table-row-hover transition-colors cursor-pointer group/row",
+        "even:bg-muted/20",
+        isActive && "bg-primary/5 ring-1 ring-inset ring-primary/20"
+      )}
+      onClick={() => onViewDetail(session)}
+    >
+      <TableCell className="relative">
+        <div className={cn(
+          "absolute left-0 top-2 bottom-2 w-1 rounded-r-full",
+          formationColor.dot
+        )} />
+        <div className="pl-3">
+          <p className="font-medium text-foreground group-hover/row:text-primary transition-colors">{session.nom}</p>
           {session.numero_session && (
             <p className="text-xs text-muted-foreground font-mono">
               {session.numero_session}
@@ -620,21 +638,12 @@ function SessionRow({
       )}
       
       <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => onViewDetail(session)}
-            title="Voir les détails"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onEdit(session)}
+            onClick={(e) => { e.stopPropagation(); onEdit(session); }}
             title="Modifier"
           >
             <Edit className="h-4 w-4" />
@@ -643,14 +652,19 @@ function SessionRow({
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => onDuplicate(session)}
+            onClick={(e) => { e.stopPropagation(); onDuplicate(session); }}
             title="Dupliquer"
           >
             <Copy className="h-4 w-4" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
