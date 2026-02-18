@@ -595,10 +595,10 @@ export function SendDocumentsToContactDialog({
                   .upload(filePath, pdfBlob, { contentType: 'application/pdf' });
                 
                 if (!uploadError) {
-                  const { data: urlData } = supabase.storage
+                  const { data: signedUrlData } = await supabase.storage
                     .from('generated-documents')
-                    .getPublicUrl(filePath);
-                  documentUrl = urlData.publicUrl;
+                    .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year
+                  documentUrl = signedUrlData?.signedUrl || null;
                 }
               } catch (uploadErr) {
                 console.warn(`Erreur upload PDF pour ${docType}:`, uploadErr);
