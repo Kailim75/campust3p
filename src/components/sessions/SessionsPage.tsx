@@ -189,76 +189,82 @@ export function SessionsPage() {
           />
         )}
 
-        {/* View Toggle + Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* View mode toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar" | "kanban")}>
-            <TabsList>
-              <TabsTrigger value="list" className="gap-2">
-                <List className="h-4 w-4" />
-                Liste
-              </TabsTrigger>
-              <TabsTrigger value="kanban" className="gap-2">
-                <Kanban className="h-4 w-4" />
-                Kanban
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="gap-2">
-                <CalendarDays className="h-4 w-4" />
-                Calendrier
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        {/* Toolbar */}
+        <div className="space-y-3">
+          {/* Row 1: View toggle + Search + Primary action */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar" | "kanban")}>
+              <TabsList>
+                <TabsTrigger value="list" className="gap-2">
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">Liste</span>
+                </TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-2">
+                  <Kanban className="h-4 w-4" />
+                  <span className="hidden sm:inline">Kanban</span>
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  <span className="hidden sm:inline">Calendrier</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher une session..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="pl-9 input-focus"
-            />
-          </div>
-          
-          <SessionsAdvancedFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            formateurs={formateurs}
-            lieux={uniqueLieux}
-            formationTypes={uniqueFormationTypes}
-          />
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une session..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="pl-9 input-focus"
+              />
+            </div>
 
-          {/* Export dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exporter
+            <div className="flex items-center gap-2">
+              <SessionsAdvancedFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                formateurs={formateurs}
+                lieux={uniqueLieux}
+                formationTypes={uniqueFormationTypes}
+              />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="shrink-0">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                    Export Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    Export CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button variant="outline" size="icon" className="shrink-0" onClick={() => setArchivedOpen(true)}>
+                <Archive className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleExport('xlsx')}>
-                Export Excel (.xlsx)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')}>
-                Export CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          <Button variant="outline" onClick={() => setArchivedOpen(true)}>
-            <Archive className="h-4 w-4 mr-2" />
-            Sessions archivées
-          </Button>
+              <Button onClick={handleAddNew} className="shrink-0">
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Nouvelle session</span>
+                <span className="sm:hidden">Nouveau</span>
+              </Button>
+            </div>
+          </div>
 
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle session
-          </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{filteredSessions.length} session{filteredSessions.length > 1 ? 's' : ''}</span>
+          {/* Result count */}
+          <div className="text-sm text-muted-foreground">
+            {filteredSessions.length} session{filteredSessions.length > 1 ? 's' : ''}
+            {filters.search || filters.status !== "all" || filters.formationType !== "all" || filters.formateurId !== "all" || filters.lieu !== "all" || filters.dateStart || filters.dateEnd
+              ? ` (filtrée${filteredSessions.length > 1 ? 's' : ''} sur ${sessions?.length || 0})`
+              : ''
+            }
+          </div>
         </div>
 
         {/* Calendar View */}
