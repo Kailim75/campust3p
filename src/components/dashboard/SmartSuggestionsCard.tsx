@@ -243,16 +243,15 @@ export function SmartSuggestionsCard({ onNavigate, onAction }: SmartSuggestionsC
                   </p>
                 </div>
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
-                  className="shrink-0"
+                  className="shrink-0 h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
                     onNavigate(suggestion.section);
                   }}
                 >
-                  {suggestion.actionLabel}
-                  <ArrowRight className="h-3 w-3 ml-1" />
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
