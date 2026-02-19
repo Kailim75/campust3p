@@ -34,6 +34,10 @@ import { useFacturePaiements, useDeletePaiement, ModePaiement } from "@/hooks/us
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
+import { generateFacturePDF } from "@/lib/pdf-generator";
+import { supabase } from "@/integrations/supabase/client";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
+import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,12 +97,14 @@ export function FactureDetailSheet({
   const [showPaiementForm, setShowPaiementForm] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const { data: facture, isLoading } = useFacture(factureId);
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
-  const { generateDocument } = useDocumentGenerator();
+  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
+
 
   if (!factureId) return null;
 
@@ -383,20 +389,98 @@ export function FactureDetailSheet({
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => {
+                      disabled={isSendingEmail}
+                      onClick={async () => {
                         const email = facture.contact?.email;
                         if (!email) {
-                          toast.error("Aucun email");
+                          toast.error("Aucun email pour ce contact");
                           return;
                         }
-                        const subject = encodeURIComponent(`Facture ${facture.numero_facture}`);
-                        const body = encodeURIComponent(
-                          `Bonjour ${facture.contact?.prenom || ""},\n\nVeuillez trouver ci-joint votre facture ${facture.numero_facture}.\n\nMontant total: ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€\nReste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€\n\nCordialement`
-                        );
-                        window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
+                        
+                        setIsSendingEmail(true);
+                        try {
+                          // Generate the facture PDF
+                          const contactInfo = {
+                            nom: facture.contact.nom,
+                            prenom: facture.contact.prenom,
+                            email: facture.contact.email || undefined,
+                            telephone: facture.contact.telephone || undefined,
+                          };
+                          
+                          const factureInfo = {
+                            numero_facture: facture.numero_facture,
+                            montant_total: Number(facture.montant_total),
+                            total_paye: facture.total_paye,
+                            statut: facture.statut,
+                            type_financement: facture.type_financement,
+                            date_emission: facture.date_emission || undefined,
+                            date_echeance: facture.date_echeance || undefined,
+                            commentaires: facture.commentaires || undefined,
+                          };
+                          
+                          const session = facture.session_inscription?.session;
+                          const sessionInfo = session ? {
+                            nom: session.nom,
+                            formation_type: session.formation_type,
+                            date_debut: session.date_debut || "",
+                            date_fin: session.date_fin || "",
+                            duree_heures: session.duree_heures || undefined,
+                          } : undefined;
+                          
+                          const company = getCompanyInfo();
+                          if (!company) {
+                            toast.error("Configuration du centre manquante");
+                            return;
+                          }
+                          
+                          const doc = generateFacturePDF(factureInfo, contactInfo, sessionInfo, company);
+                          const pdfBase64 = doc.output("datauristring").split(",")[1];
+                          const filename = `facture-${facture.numero_facture}.pdf`;
+                          
+                          // Send email with PDF attachment via edge function
+                          const { error } = await supabase.functions.invoke("send-automated-emails", {
+                            body: {
+                              type: "document_envoi",
+                              to: email,
+                              recipientName: `${facture.contact.prenom} ${facture.contact.nom}`,
+                              subject: `Facture ${facture.numero_facture} - Ecole T3P Montrouge`,
+                              html: `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                  <h2 style="color: #2563eb;">📄 Facture ${facture.numero_facture}</h2>
+                                  <p>Bonjour ${facture.contact.prenom},</p>
+                                  <p>Veuillez trouver ci-joint votre facture <strong>${facture.numero_facture}</strong>.</p>
+                                  <p><strong>Montant total :</strong> ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€</p>
+                                  <p><strong>Reste à payer :</strong> ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€</p>
+                                  <p>📎 <strong>Pièce jointe :</strong> ${filename}</p>
+                                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                  <p style="color: #888; font-size: 12px;">
+                                    Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
+                                    📧 montrouge@ecolet3p.fr
+                                  </p>
+                                </div>
+                              `,
+                              attachments: [{
+                                filename,
+                                content: pdfBase64,
+                              }],
+                            },
+                          });
+                          
+                          if (error) throw error;
+                          toast.success(`Facture envoyée par email à ${email}`);
+                        } catch (err: any) {
+                          console.error("Erreur envoi facture:", err);
+                          toast.error(err.message || "Erreur lors de l'envoi de la facture");
+                        } finally {
+                          setIsSendingEmail(false);
+                        }
                       }}
                     >
-                      <Mail className="h-4 w-4 mr-1" />
+                      {isSendingEmail ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Mail className="h-4 w-4 mr-1" />
+                      )}
                       Email
                     </Button>
                   </div>
