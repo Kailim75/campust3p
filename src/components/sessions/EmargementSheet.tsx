@@ -75,10 +75,12 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
   } | null>(null);
 
   // Get unique dates from session range
+  // Don't filter weekends for FC sessions (often held on Saturdays)
+  const isFC = session.formation_type?.toUpperCase().startsWith("FC-");
   const sessionDates = eachDayOfInterval({
     start: new Date(session.date_debut),
     end: new Date(session.date_fin),
-  }).filter((date) => !isWeekend(date));
+  }).filter((date) => isFC || !isWeekend(date));
 
   // Get unique contacts
   const contacts = emargements

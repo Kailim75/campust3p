@@ -220,14 +220,22 @@ export function useGenerateEmargements() {
       const existingContactIds = new Set((existingEmargements || []).map(e => e.contact_id));
       const newContactIds = [...inscritContactIds].filter(id => !existingContactIds.has(id));
 
+      // Detect FC (formation continue) sessions - often held on weekends
+      const { data: sessionData } = await supabase
+        .from("sessions")
+        .select("formation_type")
+        .eq("id", sessionId)
+        .single();
+      const isFC = sessionData?.formation_type?.toUpperCase().startsWith("FC-");
+
       // Generate dates between start and end
       const dates: string[] = [];
       const start = new Date(dateDebut);
       const end = new Date(dateFin);
       
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        // Skip weekends
-        if (d.getDay() !== 0 && d.getDay() !== 6) {
+        // Skip weekends only for non-FC sessions
+        if (isFC || (d.getDay() !== 0 && d.getDay() !== 6)) {
           dates.push(d.toISOString().split("T")[0]);
         }
       }
