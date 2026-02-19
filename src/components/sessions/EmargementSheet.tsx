@@ -132,18 +132,12 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         if (formateur) formateurNom = `${formateur.prenom} ${formateur.nom}`;
       }
 
-      // Fetch centre info
-      let centreNom: string | undefined;
-      let centreNda: string | undefined;
+      // Fetch centre info (all fields needed for the DOCX header)
       const { data: centre } = await supabase
         .from("centre_formation")
-        .select("nom_commercial, nda")
+        .select("nom_commercial, nda, siret, adresse_complete, telephone, email")
         .limit(1)
         .single();
-      if (centre) {
-        centreNom = centre.nom_commercial;
-        centreNda = centre.nda;
-      }
 
       const blob = await generateEmargementDocx(emargements, {
         nom: session.nom,
@@ -152,8 +146,12 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         lieu: session.lieu,
         formation_type: session.formation_type,
         formateur_nom: formateurNom,
-        centre_nom: centreNom,
-        centre_nda: centreNda,
+        centre_nom: centre?.nom_commercial || undefined,
+        centre_adresse: centre?.adresse_complete || undefined,
+        centre_nda: centre?.nda || undefined,
+        centre_siret: centre?.siret || undefined,
+        centre_telephone: centre?.telephone || undefined,
+        centre_email: centre?.email || undefined,
       });
 
       const url = URL.createObjectURL(blob);
