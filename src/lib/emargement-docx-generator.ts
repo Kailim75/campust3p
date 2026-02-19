@@ -66,10 +66,12 @@ export async function generateEmargementDocx(
   emargements: EmargementData[],
   session: SessionInfo
 ): Promise<Blob> {
+  // Don't filter weekends for FC (formation continue) sessions - often held on Saturdays
+  const isFC = session.formation_type?.toUpperCase().startsWith("FC-");
   const sessionDates = eachDayOfInterval({
     start: new Date(session.date_debut),
     end: new Date(session.date_fin),
-  }).filter((date) => !isWeekend(date));
+  }).filter((date) => isFC || !isWeekend(date));
 
   const contactsMap = new Map<string, { nom: string; prenom: string }>();
   emargements.forEach((e) => {
