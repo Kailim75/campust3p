@@ -508,6 +508,7 @@ export function useDocumentGenerator() {
   return {
     generateDocument,
     generateBulkDocuments,
+    getCompanyInfo,
     hasCentreFormation: !!centreFormation,
   };
 }

@@ -450,13 +450,24 @@ serve(async (req) => {
       }
       
       try {
-        const emailResponse = await resend.emails.send({
+        const emailPayload: any = {
           from: EMAIL_CONFIG.FROM,
           to: [recipientEmail],
           subject: subject,
           html: finalHtml,
           reply_to: EMAIL_CONFIG.REPLY_TO,
-        });
+        };
+        
+        // Support attachments passed from client (base64 encoded)
+        if (body.attachments && Array.isArray(body.attachments) && body.attachments.length > 0) {
+          emailPayload.attachments = body.attachments.map((att: any) => ({
+            filename: att.filename || "document.pdf",
+            content: att.content, // base64 string
+          }));
+          console.log(`[EMAIL] Adding ${body.attachments.length} attachment(s) to single email`);
+        }
+        
+        const emailResponse = await resend.emails.send(emailPayload);
         
         console.log("Manual email sent successfully:", emailResponse);
         
