@@ -64,6 +64,27 @@ export const FORMATION_COLORS: Record<string, {
     dot: "bg-rose-500",
     badge: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700",
   },
+  Passerelle: {
+    bg: "bg-indigo-50 dark:bg-indigo-900/20",
+    border: "border-l-indigo-500 border-indigo-200 dark:border-indigo-700",
+    text: "text-indigo-700 dark:text-indigo-300",
+    dot: "bg-indigo-500",
+    badge: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700",
+  },
+  Services: {
+    bg: "bg-slate-50 dark:bg-slate-900/20",
+    border: "border-l-slate-500 border-slate-200 dark:border-slate-700",
+    text: "text-slate-700 dark:text-slate-300",
+    dot: "bg-slate-500",
+    badge: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700",
+  },
+  Premium: {
+    bg: "bg-yellow-50 dark:bg-yellow-900/20",
+    border: "border-l-yellow-500 border-yellow-200 dark:border-yellow-700",
+    text: "text-yellow-700 dark:text-yellow-300",
+    dot: "bg-yellow-500",
+    badge: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
+  },
 };
 
 // Default color for unknown formation types
@@ -88,6 +109,9 @@ export const FORMATION_LABELS: Record<string, string> = {
   "Formation continue Taxi": "Continue Taxi",
   "Formation continue VTC": "Continue VTC",
   "Mobilité Taxi": "Mobilité Taxi",
+  Passerelle: "Passerelle",
+  Services: "Services",
+  Premium: "Premium",
 };
 
 export function getFormationLabel(formationType: string): string {
