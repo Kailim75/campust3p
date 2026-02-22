@@ -26,22 +26,25 @@ export function CockpitFinancierPage() {
   const { data: costs = [] } = useFinancialCosts(selectedMonthId);
   const { data: cashManual = [] } = useFinancialCashManual(selectedMonthId);
 
-  // Ensure current month exists on load
+  // Ensure current month exists on load and when month changes
   useEffect(() => {
+    const monthStr = format(selectedMonth, "yyyy-MM-dd");
+    
+    // Check if we already know the ID from loaded months
+    if (financialMonths) {
+      const found = financialMonths.find(m => m.month === monthStr);
+      if (found) {
+        setSelectedMonthId(found.id);
+        return;
+      }
+    }
+    
+    // Otherwise create the month
     ensureMonth.mutate(selectedMonth, {
       onSuccess: (id) => setSelectedMonthId(id),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth]);
-
-  // Update selectedMonthId when financialMonths changes
-  useEffect(() => {
-    if (financialMonths && !selectedMonthId) {
-      const monthStr = format(selectedMonth, "yyyy-MM-dd");
-      const found = financialMonths.find(m => m.month === monthStr);
-      if (found) setSelectedMonthId(found.id);
-    }
-  }, [financialMonths, selectedMonth, selectedMonthId]);
+  }, [selectedMonth, financialMonths]);
 
   const synthesis = useMemo(() => {
     if (!syncData) return null;
