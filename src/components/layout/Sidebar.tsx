@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Car,
   Menu,
+  Landmark,
   Mail,
   User,
   Award,
@@ -74,6 +75,7 @@ const menuGroups = [
     items: [
       { id: "documents", label: "Documents", icon: FileText },
       { id: "facturation", label: "Facturation", icon: CreditCard },
+      { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "communications", label: "Communications", icon: Mail },
     ],

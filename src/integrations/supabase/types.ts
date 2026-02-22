@@ -2862,6 +2862,94 @@ export type Database = {
           },
         ]
       }
+      financial_cash_manual: {
+        Row: {
+          amount: number
+          created_at: string
+          financial_month_id: string
+          id: string
+          label: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          financial_month_id: string
+          id?: string
+          label: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          financial_month_id?: string
+          id?: string
+          label?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_cash_manual_financial_month_id_fkey"
+            columns: ["financial_month_id"]
+            isOneToOne: false
+            referencedRelation: "financial_months"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_costs: {
+        Row: {
+          amount: number
+          created_at: string
+          financial_month_id: string
+          id: string
+          label: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          financial_month_id: string
+          id?: string
+          label: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          financial_month_id?: string
+          id?: string
+          label?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_costs_financial_month_id_fkey"
+            columns: ["financial_month_id"]
+            isOneToOne: false
+            referencedRelation: "financial_months"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_months: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+        }
+        Relationships: []
+      }
       formateur_documents: {
         Row: {
           commentaires: string | null
