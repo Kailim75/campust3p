@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, PiggyBank, TrendingDown } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Trash2, PiggyBank, TrendingDown, GraduationCap, Car, Calculator } from "lucide-react";
 
 const SUGGESTIONS_FIXES = [
   "Loyer local",
@@ -65,10 +67,61 @@ export function ChargesTab({ monthId, costs, cashManual }: Props) {
   const [cashAmount, setCashAmount] = useState("");
   const [cashType, setCashType] = useState<"encaissement" | "decaissement">("encaissement");
 
+  // Formateur cost calculator state
+  const [thTarifHoraire, setThTarifHoraire] = useState("35");
+  const [thHeuresJour, setThHeuresJour] = useState("3.5");
+  const [thJours, setThJours] = useState("10");
+  const [prCoutParCandidat, setPrCoutParCandidat] = useState("95");
+  const [prNbCandidats, setPrNbCandidats] = useState("");
+
   const createCost = useCreateFinancialCost();
   const deleteCost = useDeleteFinancialCost();
   const createCash = useCreateFinancialCash();
   const deleteCash = useDeleteFinancialCash();
+
+  // Computed trainer costs
+  const theorieTotal = parseFloat(thTarifHoraire || "0") * parseFloat(thHeuresJour || "0") * parseFloat(thJours || "0");
+  const pratiqueTotal = parseFloat(prCoutParCandidat || "0") * parseFloat(prNbCandidats || "0");
+  const formateurTotal = theorieTotal + pratiqueTotal;
+
+  const handleAddFormateurCosts = () => {
+    if (!monthId || formateurTotal === 0) {
+      toast.error("Veuillez renseigner au moins un coût formateur");
+      return;
+    }
+
+    const addSequentially = async () => {
+      if (theorieTotal > 0) {
+        await new Promise<void>((resolve) => {
+          createCost.mutate(
+            {
+              financial_month_id: monthId!,
+              type: "variable",
+              label: `Formateur théorie (${thTarifHoraire}€/h × ${thHeuresJour}h/j × ${thJours}j)`,
+              amount: Math.round(theorieTotal * 100) / 100,
+            },
+            { onSuccess: () => resolve() }
+          );
+        });
+      }
+      if (pratiqueTotal > 0) {
+        await new Promise<void>((resolve) => {
+          createCost.mutate(
+            {
+              financial_month_id: monthId!,
+              type: "variable",
+              label: `Formateur pratique (${prCoutParCandidat}€ × ${prNbCandidats} candidats – conduite + véhicule examen)`,
+              amount: Math.round(pratiqueTotal * 100) / 100,
+            },
+            { onSuccess: () => resolve() }
+          );
+        });
+      }
+      toast.success("Coûts formateur ajoutés aux charges variables");
+    };
+
+    addSequentially();
+  };
 
   const handleAddCost = () => {
     if (!monthId || !costLabel.trim() || !costAmount) return;
@@ -105,6 +158,94 @@ export function ChargesTab({ monthId, costs, cashManual }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Formateur cost calculator */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calculator className="h-4 w-4 text-primary" />
+            Calculateur coûts formateur
+          </CardTitle>
+          <CardDescription>
+            Calculez automatiquement les coûts formateurs (théorie + pratique) et ajoutez-les aux charges variables
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Théorie */}
+          <div>
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+              <GraduationCap className="h-4 w-4 text-primary" />
+              Formation théorique
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Tarif horaire (€)</Label>
+                <Input type="number" value={thTarifHoraire} onChange={e => setThTarifHoraire(e.target.value)} placeholder="35" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Heures / jour</Label>
+                <Input type="number" step="0.5" value={thHeuresJour} onChange={e => setThHeuresJour(e.target.value)} placeholder="3.5" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Nb jours</Label>
+                <Input type="number" value={thJours} onChange={e => setThJours(e.target.value)} placeholder="10" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Sous-total théorie</Label>
+                <div className="h-9 flex items-center px-3 rounded-md border bg-muted/50 font-semibold text-sm">
+                  {formatEuro(theorieTotal)}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {thTarifHoraire}€/h × {thHeuresJour}h/jour × {thJours} jours = <strong>{formatEuro(theorieTotal)}</strong>
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Pratique */}
+          <div>
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+              <Car className="h-4 w-4 text-primary" />
+              Formation pratique
+              <span className="text-xs font-normal text-muted-foreground">(conduite 2h + véhicule jour examen)</span>
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Coût / candidat (€)</Label>
+                <Input type="number" value={prCoutParCandidat} onChange={e => setPrCoutParCandidat(e.target.value)} placeholder="95" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Nb candidats</Label>
+                <Input type="number" value={prNbCandidats} onChange={e => setPrNbCandidats(e.target.value)} placeholder="Ex: 12" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Sous-total pratique</Label>
+                <div className="h-9 flex items-center px-3 rounded-md border bg-muted/50 font-semibold text-sm">
+                  {formatEuro(pratiqueTotal)}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {prCoutParCandidat}€ × {prNbCandidats || "0"} candidats = <strong>{formatEuro(pratiqueTotal)}</strong>
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Total + action */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="text-sm">
+              <span className="text-muted-foreground">Coût total formateur : </span>
+              <span className="text-lg font-bold text-primary">{formatEuro(formateurTotal)}</span>
+            </div>
+            <Button onClick={handleAddFormateurCosts} disabled={!monthId || formateurTotal === 0 || createCost.isPending}>
+              <Plus className="h-4 w-4 mr-1" /> Ajouter aux charges variables
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add cost form */}
       <Card>
         <CardHeader className="pb-3">
