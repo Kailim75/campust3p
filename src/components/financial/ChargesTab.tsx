@@ -5,6 +5,38 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, PiggyBank, TrendingDown } from "lucide-react";
+
+const SUGGESTIONS_FIXES = [
+  "Loyer local",
+  "Assurance RC Pro",
+  "Assurance local",
+  "Abonnement internet / téléphone",
+  "Logiciel de gestion / CRM",
+  "Comptable / Expert-comptable",
+  "Salaires (personnel administratif)",
+  "Charges sociales dirigeant",
+  "Électricité / Eau",
+  "Leasing véhicule",
+  "Cotisation CFE",
+  "Abonnement hébergement web",
+  "Frais bancaires",
+  "Maintenance matériel",
+];
+
+const SUGGESTIONS_VARIABLES = [
+  "Carburant véhicules",
+  "Fournitures pédagogiques",
+  "Frais d'examen (inscription candidats)",
+  "Location salle / véhicule ponctuelle",
+  "Rémunération formateur vacataire",
+  "Frais de déplacement",
+  "Supports de formation (impression)",
+  "Publicité / Marketing",
+  "Frais postaux",
+  "Réparation véhicule",
+  "Commissions apporteurs d'affaires",
+  "Frais de restauration (formation)",
+];
 import { toast } from "sonner";
 import {
   FinancialCost,
@@ -92,7 +124,18 @@ export function ChargesTab({ monthId, costs, cashManual }: Props) {
                 <SelectItem value="variable">Variable</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="Libellé (ex: Loyer)" value={costLabel} onChange={e => setCostLabel(e.target.value)} className="flex-1" />
+            <Select value={costLabel || "none"} onValueChange={(v) => setCostLabel(v === "none" ? "" : v)}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Choisir ou saisir un libellé" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" disabled>Sélectionner une charge…</SelectItem>
+                {(costType === "fixed" ? SUGGESTIONS_FIXES : SUGGESTIONS_VARIABLES).map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input placeholder="Ou libellé personnalisé" value={costLabel} onChange={e => setCostLabel(e.target.value)} className="flex-1" />
             <Input type="number" placeholder="Montant €" value={costAmount} onChange={e => setCostAmount(e.target.value)} className="w-[130px]" />
             <Button onClick={handleAddCost} disabled={!monthId || createCost.isPending}>
               <Plus className="h-4 w-4 mr-1" /> Ajouter
