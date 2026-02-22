@@ -22,6 +22,7 @@ import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
 import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
+import { CockpitFinancierPage } from "@/components/financial/CockpitFinancierPage";
 import { PlanningPage } from "@/components/planning/PlanningPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -168,6 +169,8 @@ const Index = () => {
         return <PartnersPage />;
       case "planning":
         return <PlanningPage />;
+      case "cockpit-financier":
+        return <CockpitFinancierPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }
