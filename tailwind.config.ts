@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Nunito Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Nunito', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -85,10 +85,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'soft': '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03)',
-        'elevated': '0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.03)',
-        'card': '0 1px 2px rgba(0,0,0,0.04)',
-        'focus': '0 0 0 3px rgba(21,128,61,0.12)',
+        'soft': '0 1px 3px rgba(22,16,10,0.06), 0 4px 14px rgba(22,16,10,0.05)',
+        'elevated': '0 4px 12px rgba(22,16,10,0.08), 0 2px 6px rgba(22,16,10,0.04)',
+        'card': '0 1px 2px rgba(22,16,10,0.05)',
+        'focus': '0 0 0 3px rgba(30,80,104,0.2)',
       },
       keyframes: {
         "accordion-down": {
@@ -100,7 +100,7 @@ export default {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(6px)" },
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-in-left": {
@@ -115,9 +115,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.2s ease-out",
+        "fade-in": "fade-in 0.25s ease-out",
         "slide-in-left": "slide-in-left 0.25s ease-out",
-        "scale-in": "scale-in 0.15s cubic-bezier(0.16, 1, 0.32, 1)",
+        "scale-in": "scale-in 0.25s cubic-bezier(0.16, 1, 0.32, 1)",
       },
     },
   },

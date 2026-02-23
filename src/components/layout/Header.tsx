@@ -51,8 +51,15 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border" style={{ height: '56px' }}>
-      <div className="flex items-center justify-between px-6 h-full">
+    <header 
+      className="sticky top-0 z-30 bg-surface border-b border-border"
+      style={{ 
+        height: '62px', 
+        boxShadow: '0 1px 4px rgba(22,16,10,0.05)',
+        padding: '0 26px',
+      }}
+    >
+      <div className="flex items-center justify-between h-full">
         <div className="flex-1 min-w-0">
           {activeSection && onNavigate && (
             <AppBreadcrumb 
@@ -62,7 +69,17 @@ export function Header({
             />
           )}
           
-          <h1 className="text-lg font-semibold text-foreground leading-tight truncate">{title}</h1>
+          <h1 
+            className="text-foreground leading-tight truncate"
+            style={{ 
+              fontFamily: 'Nunito', 
+              fontWeight: 900, 
+              fontSize: 18, 
+              letterSpacing: '-0.3px' 
+            }}
+          >
+            {title}
+          </h1>
           {subtitle && (
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}
@@ -75,7 +92,20 @@ export function Header({
           <NotificationBell />
 
           {onAddClick && (
-            <Button onClick={onAddClick} size="sm" className="gap-1.5 h-8 text-xs font-medium">
+            <Button 
+              onClick={onAddClick} 
+              size="sm" 
+              className="gap-1.5 text-primary-foreground"
+              style={{
+                fontFamily: 'Nunito',
+                fontWeight: 800,
+                fontSize: 13,
+                borderRadius: 99,
+                padding: '9px 18px',
+                height: 'auto',
+                boxShadow: '0 4px 14px rgba(30,80,104,0.3)',
+              }}
+            >
               <Plus className="h-3.5 w-3.5" />
               {addLabel || "Ajouter"}
             </Button>
@@ -83,9 +113,16 @@ export function Header({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                <Avatar className="h-9 w-9" style={{ border: '2px solid hsl(var(--border))' }}>
+                  <AvatarFallback 
+                    className="text-[11px] text-primary-foreground"
+                    style={{ 
+                      fontFamily: 'Nunito', 
+                      fontWeight: 800,
+                      background: 'linear-gradient(135deg, #1E5068, #5A8EA0)',
+                    }}
+                  >
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
