@@ -96,7 +96,7 @@ export function CompteRenduModal({ creneau, open, onOpenChange }: Props) {
         points_travailles: competences,
         points_positifs: positifs,
         points_ameliorer: ameliorer,
-        niveau_global: niveau,
+        niveau_global: niveau as "avance" | "debutant" | "intermediaire" | "pret_examen",
         recommandation_seances_sup: seancesSup,
       });
 
