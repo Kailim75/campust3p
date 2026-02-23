@@ -24,6 +24,7 @@ import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
 import { CockpitFinancierPage } from "@/components/financial/CockpitFinancierPage";
 import { PlanningPage } from "@/components/planning/PlanningPage";
+import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +149,7 @@ const Index = () => {
       case "sessions":
         return <SessionsPage />;
       case "pipeline":
-        return <ContactsUnifiedPage selectedContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        return <PipelinePage />;
       case "formateurs":
         return <FormateursPage />;
       case "documents":
