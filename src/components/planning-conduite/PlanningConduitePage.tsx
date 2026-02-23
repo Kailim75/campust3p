@@ -5,8 +5,10 @@ import { CalendarClock, Users, BookOpen } from "lucide-react";
 import { PlanningTab } from "./PlanningTab";
 import { ElevesTab } from "./ElevesTab";
 import { RessourcesTab } from "./RessourcesTab";
+import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 
 export function PlanningConduitePage() {
+  useNoShowDetection();
   const [activeTab, setActiveTab] = useState("planning");
 
   return (

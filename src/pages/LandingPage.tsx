@@ -552,8 +552,8 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-sm text-slate-400">Téléphone</div>
-                    <a href="tel:+33123456789" className="text-white hover:text-emerald-400 transition-colors">
-                      01 23 45 67 89
+                    <a href="tel:[KARIM : REMPLACER ICI]" className="text-white hover:text-emerald-400 transition-colors">
+                      [KARIM : REMPLACER ICI]
                     </a>
                   </div>
                 </div>

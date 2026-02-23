@@ -51,7 +51,7 @@ const menuGroups = [
   {
     label: "Accueil",
     items: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     ],
   },
   {
