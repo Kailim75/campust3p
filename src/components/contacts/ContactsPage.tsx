@@ -9,9 +9,9 @@ export function ContactsPage() {
   return (
     <div className="min-h-screen">
       <Header 
-        title="Contacts" 
-        subtitle="Gérez vos prospects et stagiaires"
-        addLabel="Nouveau contact"
+        title="Apprenants" 
+        subtitle="Gérez vos apprenants et stagiaires"
+        addLabel="Nouvel apprenant"
         onAddClick={() => setFormOpen(true)}
       />
 

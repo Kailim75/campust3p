@@ -165,7 +165,7 @@ export function ContactPedagogyTab({ contactId, contactPrenom, contactFormation 
       if (error) throw error;
 
       const baseUrl = window.location.origin;
-      const link = `${baseUrl}/apprenant?token=${token}`;
+      const link = `${baseUrl}/apprenants/portail?token=${token}`;
       setLearnerLink(link);
       toast.success("Lien généré avec succès");
     } catch (error: any) {

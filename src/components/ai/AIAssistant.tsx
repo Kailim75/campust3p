@@ -57,12 +57,6 @@ const TOOL_LABELS: Record<string, string> = {
   create_notification: 'Création notification',
   get_dashboard_stats: 'Statistiques',
   add_contact_historique: 'Ajout historique',
-  // BIM tools
-  list_bim_projets: 'Liste projets BIM',
-  create_bim_projet: 'Création projet BIM',
-  get_bim_progression: 'Progression BIM',
-  list_bim_scenes: 'Liste scènes BIM',
-  get_bim_stats: 'Statistiques BIM'
 };
 
 const TOOL_DESCRIPTIONS: Record<string, (params: any) => string> = {
@@ -70,9 +64,8 @@ const TOOL_DESCRIPTIONS: Record<string, (params: any) => string> = {
   register_payment: (p) => `Enregistrer un paiement de ${p.montant}€ (${p.mode_paiement})`,
   update_contact: (p) => `Modifier le contact: ${Object.keys(p.updates || {}).join(', ')}`,
   create_session: (p) => `Créer la session "${p.nom}" (${p.formation_type}) du ${p.date_debut} au ${p.date_fin}`,
-  enroll_contact_to_session: () => `Inscrire le contact à la session`,
+  enroll_contact_to_session: () => `Inscrire l'apprenant à la session`,
   send_email: (p) => `Envoyer l'email "${p.subject}"`,
-  create_bim_projet: (p) => `Créer le projet BIM "${p.titre}" (${p.type_formation || 'commun'})`
 };
 
 export function AIAssistant() {
@@ -80,7 +73,7 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Bonjour ! Je suis votre assistant IA. Je peux créer des contacts, planifier des sessions, gérer la facturation et envoyer des emails. Que puis-je faire pour vous ?",
+      content: "Bonjour ! Je suis votre assistant IA. Je peux créer des apprenants, planifier des sessions, gérer la facturation et envoyer des emails. Que puis-je faire pour vous ?",
       timestamp: new Date()
     }
   ]);
@@ -96,10 +89,9 @@ export function AIAssistant() {
 
   const quickActions = [
     { label: '📊 Stats', prompt: 'Statistiques du mois' },
-    { label: '➕ Contact', prompt: 'Créer un contact' },
+    { label: '➕ Apprenant', prompt: 'Créer un apprenant' },
     { label: '📅 Sessions', prompt: 'Prochaines sessions' },
     { label: '💳 Factures', prompt: 'Factures en attente' },
-    { label: '🏗️ BIM', prompt: 'Statistiques BIM' },
   ];
 
   const scrollToBottom = useCallback(() => {

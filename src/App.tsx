@@ -51,7 +51,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/enquete/:token" element={<Enquete />} />
               <Route path="/signature/:id" element={<SignaturePage />} />
-              <Route path="/apprenant" element={<LearnerPortal />} />
+              <Route path="/apprenants/portail" element={<LearnerPortal />} />
               <Route path="/certificat" element={<VerifyCertificate />} />
               <Route path="/install" element={<Install />} />
               <Route path="/landing" element={<LandingPage />} />
