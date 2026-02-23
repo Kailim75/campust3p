@@ -7,12 +7,13 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Users, ChevronRight, Calendar, CheckCircle } from "lucide-react";
+import { Users, ChevronRight, Calendar, CheckCircle, Link2 } from "lucide-react";
 import { useElevesConduite, useProgression, useCompteRendus } from "@/hooks/usePlanningConduite";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { SendReservationLinkModal } from "./SendReservationLinkModal";
 
 const NIVEAU_BADGES: Record<string, { label: string; className: string }> = {
   debutant: { label: "Débutant", className: "bg-destructive/15 text-destructive" },
@@ -131,6 +132,7 @@ function EleveCard({ eleve, onClick }: { eleve: any; onClick: () => void }) {
 // ─── DETAIL SHEET ───
 function EleveDetailSheet({ eleve, open, onOpenChange }: { eleve: any; open: boolean; onOpenChange: (v: boolean) => void }) {
   const { data: progression } = useProgression(eleve.id);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
 
   // Get all reservations for this student
   const { data: historique } = useQuery({
@@ -186,6 +188,9 @@ function EleveDetailSheet({ eleve, open, onOpenChange }: { eleve: any; open: boo
                   {eleve.formation && <Badge variant="outline" className="text-xs">{eleve.formation}</Badge>}
                   <Badge variant="outline" className={`text-xs ${niveauBadge?.className}`}>{niveauBadge?.label}</Badge>
                 </div>
+                <Button size="sm" variant="outline" className="mt-2" onClick={(e) => { e.stopPropagation(); setLinkModalOpen(true); }}>
+                  <Link2 className="h-3.5 w-3.5 mr-1" /> Envoyer le lien de réservation
+                </Button>
               </div>
             </div>
           </div>
@@ -264,6 +269,13 @@ function EleveDetailSheet({ eleve, open, onOpenChange }: { eleve: any; open: boo
             </div>
           </ScrollArea>
         </div>
+
+        <SendReservationLinkModal
+          apprenantId={eleve.id}
+          apprenantPrenom={eleve.prenom}
+          open={linkModalOpen}
+          onOpenChange={setLinkModalOpen}
+        />
       </SheetContent>
     </Sheet>
   );

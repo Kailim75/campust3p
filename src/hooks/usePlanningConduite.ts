@@ -20,6 +20,7 @@ export interface CreneauConduite {
   centre_id: string | null;
   created_at: string;
   commentaires: string | null;
+  visible_eleve: boolean | null;
   contacts?: { id: string; prenom: string; nom: string; formation: string | null } | null;
   formateurs?: { id: string; nom: string; prenom: string } | null;
 }
@@ -496,8 +497,70 @@ export function useDrivingAlerts() {
         });
       }
 
+      // 🟠 Inactivity alerts (no reservation in 10+ days)
+      const { data: activeStudents } = await supabase
+        .from("contacts")
+        .select("id, prenom, nom")
+        .eq("archived", false)
+        .in("statut", ["inscrit" as any, "en_formation" as any]);
+
+      if (activeStudents?.length) {
+        for (const student of activeStudents.slice(0, 50)) {
+          const { data: lastResa } = await supabase
+            .from("reservations_conduite")
+            .select("created_at")
+            .eq("apprenant_id", student.id)
+            .in("statut", ["confirmee" as any, "realisee" as any])
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (lastResa?.length) {
+            const daysSince = Math.floor((Date.now() - new Date(lastResa[0].created_at).getTime()) / 86400000);
+            if (daysSince > 10) {
+              // Check no future reservation
+              const { data: futureResa } = await supabase
+                .from("reservations_conduite")
+                .select("id")
+                .eq("apprenant_id", student.id)
+                .eq("statut", "confirmee" as any)
+                .limit(1);
+
+              if (!futureResa?.length) {
+                alerts.push({
+                  id: `inactive-${student.id}`,
+                  type: "warning",
+                  message: `🟠 ${student.prenom} ${student.nom} n'a pas réservé de séance depuis ${daysSince} jours`,
+                  action: "Envoyer le lien",
+                  section: "planning-conduite",
+                  apprenantId: student.id,
+                  apprenantPrenom: student.prenom,
+                });
+              }
+            }
+          }
+        }
+      }
+
       return alerts;
     },
     staleTime: 2 * 60_000,
+  });
+}
+
+// ─── TOGGLE VISIBLE_ELEVE ───
+export function useToggleVisibleEleve() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, visible }: { id: string; visible: boolean }) => {
+      const { error } = await supabase
+        .from("creneaux_conduite")
+        .update({ visible_eleve: visible })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["creneaux-conduite"] });
+      toast.success("Visibilité mise à jour");
+    },
   });
 }

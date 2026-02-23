@@ -1,12 +1,14 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MapPin, Clock, Users, Pencil, Trash2, ClipboardList } from "lucide-react";
+import { MapPin, Clock, Users, Pencil, Trash2, ClipboardList, Eye } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CreneauConduite, useUpdateCreneauStatut, useReservations, useCreateReservation, useProgression, useCompteRendus } from "@/hooks/usePlanningConduite";
+import { CreneauConduite, useUpdateCreneauStatut, useReservations, useCreateReservation, useProgression, useCompteRendus, useToggleVisibleEleve } from "@/hooks/usePlanningConduite";
 import { useContacts } from "@/hooks/useContacts";
 import { useState } from "react";
 
@@ -32,6 +34,7 @@ interface Props {
 
 export function CreneauSlideOver({ creneau, open, onOpenChange, onCompteRendu }: Props) {
   const updateStatut = useUpdateCreneauStatut();
+  const toggleVisible = useToggleVisibleEleve();
   const { data: reservations } = useReservations(creneau?.id);
   const createReservation = useCreateReservation();
   const { data: contacts } = useContacts();
@@ -129,6 +132,20 @@ export function CreneauSlideOver({ creneau, open, onOpenChange, onCompteRendu }:
               ) : (
                 <p className="text-sm text-muted-foreground">Aucun élève inscrit</p>
               )}
+            </div>
+          )}
+
+          {/* Visible élève toggle */}
+          {creneau.type_seance !== "accompagnement_examen" && (
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm cursor-pointer">Visible par les élèves</Label>
+              </div>
+              <Switch
+                checked={!!creneau.visible_eleve}
+                onCheckedChange={(checked) => toggleVisible.mutate({ id: creneau.id, visible: checked })}
+              />
             </div>
           )}
 
