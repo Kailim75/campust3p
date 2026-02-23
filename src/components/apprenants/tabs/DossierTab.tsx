@@ -74,7 +74,6 @@ export function DossierTab({ contactId, formation }: DossierTabProps) {
 
   const updateDocStatut = useMutation({
     mutationFn: async ({ docId, statut }: { docId: string; statut: string }) => {
-      // We use contact_documents - mark via comment update for now
       const { error } = await supabase
         .from("contact_documents")
         .update({ commentaires: `Statut: ${statut}` })
@@ -85,6 +84,48 @@ export function DossierTab({ contactId, formation }: DossierTabProps) {
       queryClient.invalidateQueries({ queryKey: ["contact_documents", contactId] });
       toast.success("Document mis à jour");
     },
+  });
+
+  // Mark a missing document as "received" by creating a placeholder entry
+  const markAsReceived = useMutation({
+    mutationFn: async ({ typeDocument, label }: { typeDocument: string; label: string }) => {
+      const { error } = await supabase
+        .from("contact_documents")
+        .insert({
+          contact_id: contactId,
+          type_document: typeDocument,
+          nom: label,
+          file_path: `manual/${typeDocument}_${Date.now()}`,
+          commentaires: "Statut: recu — marqué manuellement",
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contact_documents", contactId] });
+      toast.success("Document marqué comme reçu");
+    },
+    onError: () => toast.error("Erreur lors de la mise à jour"),
+  });
+
+  // Send a reminder for a missing document
+  const sendRappel = useMutation({
+    mutationFn: async ({ typeDocument, label }: { typeDocument: string; label: string }) => {
+      const { error } = await supabase
+        .from("contact_historique")
+        .insert({
+          contact_id: contactId,
+          type: "rappel",
+          titre: `Rappel document : ${label}`,
+          contenu: `Rappel envoyé pour le document manquant : ${label} (${typeDocument})`,
+          date_echange: new Date().toISOString(),
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contact_historique", contactId] });
+      toast.success("Rappel enregistré dans l'historique");
+    },
+    onError: () => toast.error("Erreur lors de l'envoi du rappel"),
   });
 
   return (
@@ -134,13 +175,25 @@ export function DossierTab({ contactId, formation }: DossierTabProps) {
               <div className="flex gap-1">
                 {statut === "attendu" && (
                   <>
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] text-success border-success/30">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px] text-success border-success/30"
+                      disabled={markAsReceived.isPending}
+                      onClick={() => markAsReceived.mutate({ typeDocument: doc.type, label: doc.label })}
+                    >
                       <Upload className="h-3 w-3 mr-1" />
-                      Reçu
+                      {markAsReceived.isPending ? "..." : "Reçu"}
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px]">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[10px]"
+                      disabled={sendRappel.isPending}
+                      onClick={() => sendRappel.mutate({ typeDocument: doc.type, label: doc.label })}
+                    >
                       <Send className="h-3 w-3 mr-1" />
-                      Rappel
+                      {sendRappel.isPending ? "..." : "Rappel"}
                     </Button>
                   </>
                 )}
