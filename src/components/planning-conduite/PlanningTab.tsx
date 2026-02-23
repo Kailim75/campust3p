@@ -99,6 +99,9 @@ export function PlanningTab() {
               <List className="h-4 w-4 mr-1" /> Liste
             </ToggleGroupItem>
           </ToggleGroup>
+          <Button onClick={() => setFormOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Nouveau créneau
+          </Button>
         </div>
       </div>
 
