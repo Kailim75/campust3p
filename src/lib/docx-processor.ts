@@ -51,13 +51,6 @@ export interface DocxVariableData {
   vehicule_modele?: string;
   vehicule_type?: string;
   
-  // Contrat de location fields
-  contrat_numero?: string;
-  contrat_date_debut?: string;
-  contrat_date_fin?: string;
-  contrat_montant_mensuel?: string;
-  contrat_montant_caution?: string;
-  contrat_objet?: string;
   
   // Date fields
   date_generation?: string;
@@ -461,23 +454,6 @@ export async function processDocxWithVariables(
       type: data.vehicule_type,
       plaque: data.vehicule_immatriculation || data.plaque || data.plaque_immatriculation,
     },
-    // Contrat de location
-    contrat: {
-      numero: data.contrat_numero || data.numero_contrat,
-      date_debut: data.contrat_date_debut || data.location_date_debut,
-      date_fin: data.contrat_date_fin || data.location_date_fin,
-      montant_mensuel: data.contrat_montant_mensuel || data.montant_mensuel || data.loyer_mensuel,
-      montant_caution: data.contrat_montant_caution || data.montant_caution || data.caution,
-      objet: data.contrat_objet || data.objet_location,
-    },
-    location: {
-      numero: data.contrat_numero || data.numero_contrat,
-      date_debut: data.contrat_date_debut || data.location_date_debut,
-      date_fin: data.contrat_date_fin || data.location_date_fin,
-      montant_mensuel: data.contrat_montant_mensuel || data.montant_mensuel,
-      caution: data.contrat_montant_caution || data.caution,
-      objet: data.contrat_objet || data.objet_location,
-    },
   };
 
   // Auto-handle tags with whitespace (ex: {{ nom }}) by copying values to the exact tag key
@@ -719,14 +695,6 @@ export function buildVariableData(
     modele?: string;
     type_vehicule?: string;
   },
-  contratLocation?: {
-    numero_contrat?: string;
-    date_debut?: string;
-    date_fin?: string;
-    montant_mensuel?: number;
-    montant_caution?: number;
-    objet_location?: string;
-  }
 ): DocxVariableData {
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "";
@@ -1052,29 +1020,6 @@ export function buildVariableData(
       ? `${vehicule.marque} ${vehicule.modele} - ${vehicule?.immatriculation || ""}`.trim()
       : "",
     
-    // Contrat de location fields
-    contrat_numero: contratLocation?.numero_contrat || "",
-    numero_contrat: contratLocation?.numero_contrat || "",
-    contrat_date_debut: contratLocation?.date_debut 
-      ? format(new Date(contratLocation.date_debut), "dd/MM/yyyy", { locale: fr }) 
-      : "",
-    contrat_date_fin: contratLocation?.date_fin 
-      ? format(new Date(contratLocation.date_fin), "dd/MM/yyyy", { locale: fr }) 
-      : "",
-    location_date_debut: contratLocation?.date_debut 
-      ? format(new Date(contratLocation.date_debut), "dd/MM/yyyy", { locale: fr }) 
-      : "",
-    location_date_fin: contratLocation?.date_fin 
-      ? format(new Date(contratLocation.date_fin), "dd/MM/yyyy", { locale: fr }) 
-      : "",
-    contrat_montant_mensuel: contratLocation?.montant_mensuel?.toFixed(2) || "",
-    montant_mensuel: contratLocation?.montant_mensuel?.toFixed(2) || "",
-    loyer_mensuel: contratLocation?.montant_mensuel?.toFixed(2) || "",
-    contrat_montant_caution: contratLocation?.montant_caution?.toFixed(2) || "",
-    montant_caution: contratLocation?.montant_caution?.toFixed(2) || "",
-    caution: contratLocation?.montant_caution?.toFixed(2) || "",
-    contrat_objet: contratLocation?.objet_location || "",
-    objet_location: contratLocation?.objet_location || "",
   };
 }
 

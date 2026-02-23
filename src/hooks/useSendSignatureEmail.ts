@@ -4,8 +4,7 @@ import { toast } from "sonner";
 
 interface SendSignatureEmailParams {
   signatureRequestId?: string;
-  contratLocationId?: string;
-  type: "signature_request" | "contrat_location";
+  type: "signature_request";
 }
 
 export function useSendSignatureEmail() {
@@ -26,13 +25,8 @@ export function useSendSignatureEmail() {
       return data;
     },
     onSuccess: (_, variables) => {
-      if (variables.type === "signature_request") {
-        queryClient.invalidateQueries({ queryKey: ["signature_requests"] });
-        toast.success("Email de signature envoyé avec succès");
-      } else if (variables.type === "contrat_location") {
-        queryClient.invalidateQueries({ queryKey: ["contrats-location"] });
-        toast.success("Email de contrat envoyé avec succès");
-      }
+      queryClient.invalidateQueries({ queryKey: ["signature_requests"] });
+      toast.success("Email de signature envoyé avec succès");
     },
     onError: (error: any) => {
       console.error("Error sending signature email:", error);

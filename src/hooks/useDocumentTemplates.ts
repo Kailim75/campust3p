@@ -20,7 +20,7 @@ export type DocumentTemplateInsert = Omit<DocumentTemplate, "id" | "created_at" 
 export const documentTypes = [
   { value: "convention", label: "Convention de formation" },
   { value: "contrat", label: "Contrat de formation" },
-  { value: "contrat_location", label: "Contrat de location de voiture" },
+  
   { value: "attestation", label: "Attestation de formation" },
   { value: "convocation", label: "Convocation" },
   { value: "reglement", label: "Règlement intérieur" },
@@ -116,14 +116,6 @@ export const availableVariables = [
   { key: "vehicule_marque", label: "Marque du véhicule", category: "Véhicule" },
   { key: "vehicule_modele", label: "Modèle du véhicule", category: "Véhicule" },
   { key: "vehicule_type", label: "Type de véhicule", category: "Véhicule" },
-  
-  // Contrat de location
-  { key: "contrat_numero", label: "Numéro de contrat", category: "Location" },
-  { key: "contrat_date_debut", label: "Date de début de location", category: "Location" },
-  { key: "contrat_date_fin", label: "Date de fin de location", category: "Location" },
-  { key: "contrat_montant_mensuel", label: "Montant mensuel (€)", category: "Location" },
-  { key: "contrat_montant_caution", label: "Montant caution (€)", category: "Location" },
-  { key: "contrat_objet", label: "Objet de la location", category: "Location" },
 ] as const;
 
 /**
@@ -287,8 +279,7 @@ export function replaceVariables(
   template: string,
   contact: Record<string, any>,
   session?: Record<string, any>,
-  vehicule?: Record<string, any>,
-  contratLocation?: Record<string, any>
+  vehicule?: Record<string, any>
 ): string {
   let result = template;
   
@@ -353,23 +344,6 @@ export function replaceVariables(
     result = result.replace(/\{\{vehicule\}\}/g, escapeHtml(voitureComplete + (vehicule.immatriculation ? ` - ${vehicule.immatriculation}` : "")));
   }
   
-  // Variables contrat de location
-  if (contratLocation) {
-    result = result.replace(/\{\{contrat_numero\}\}/g, escapeHtml(contratLocation.numero_contrat || ""));
-    result = result.replace(/\{\{numero_contrat\}\}/g, escapeHtml(contratLocation.numero_contrat || ""));
-    result = result.replace(/\{\{contrat_date_debut\}\}/g, escapeHtml(contratLocation.date_debut || ""));
-    result = result.replace(/\{\{contrat_date_fin\}\}/g, escapeHtml(contratLocation.date_fin || ""));
-    result = result.replace(/\{\{location_date_debut\}\}/g, escapeHtml(contratLocation.date_debut || ""));
-    result = result.replace(/\{\{location_date_fin\}\}/g, escapeHtml(contratLocation.date_fin || ""));
-    result = result.replace(/\{\{contrat_montant_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
-    result = result.replace(/\{\{montant_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
-    result = result.replace(/\{\{loyer_mensuel\}\}/g, escapeHtml(contratLocation.montant_mensuel?.toFixed?.(2) || contratLocation.montant_mensuel?.toString() || ""));
-    result = result.replace(/\{\{contrat_montant_caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
-    result = result.replace(/\{\{montant_caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
-    result = result.replace(/\{\{caution\}\}/g, escapeHtml(contratLocation.montant_caution?.toFixed?.(2) || contratLocation.montant_caution?.toString() || ""));
-    result = result.replace(/\{\{contrat_objet\}\}/g, escapeHtml(contratLocation.objet_location || ""));
-    result = result.replace(/\{\{objet_location\}\}/g, escapeHtml(contratLocation.objet_location || ""));
-  }
   
   // Variables de date
   const now = new Date();

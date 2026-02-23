@@ -1155,159 +1155,6 @@ export type Database = {
           },
         ]
       }
-      contrats_location: {
-        Row: {
-          conditions_particulieres: string | null
-          contact_id: string
-          created_at: string
-          created_by: string | null
-          date_debut: string
-          date_envoi: string | null
-          date_fin: string
-          date_signature: string | null
-          document_genere_path: string | null
-          document_signe_path: string | null
-          id: string
-          modalite_paiement: string | null
-          montant_caution: number | null
-          montant_mensuel: number
-          notes: string | null
-          numero_contrat: string
-          objet_location: string
-          signature_data: string | null
-          signature_ip: string | null
-          signature_user_agent: string | null
-          statut: Database["public"]["Enums"]["contrat_location_statut"]
-          template_file_id: string | null
-          type_contrat: Database["public"]["Enums"]["contrat_location_type"]
-          updated_at: string
-          vehicule_id: string | null
-        }
-        Insert: {
-          conditions_particulieres?: string | null
-          contact_id: string
-          created_at?: string
-          created_by?: string | null
-          date_debut: string
-          date_envoi?: string | null
-          date_fin: string
-          date_signature?: string | null
-          document_genere_path?: string | null
-          document_signe_path?: string | null
-          id?: string
-          modalite_paiement?: string | null
-          montant_caution?: number | null
-          montant_mensuel?: number
-          notes?: string | null
-          numero_contrat: string
-          objet_location: string
-          signature_data?: string | null
-          signature_ip?: string | null
-          signature_user_agent?: string | null
-          statut?: Database["public"]["Enums"]["contrat_location_statut"]
-          template_file_id?: string | null
-          type_contrat?: Database["public"]["Enums"]["contrat_location_type"]
-          updated_at?: string
-          vehicule_id?: string | null
-        }
-        Update: {
-          conditions_particulieres?: string | null
-          contact_id?: string
-          created_at?: string
-          created_by?: string | null
-          date_debut?: string
-          date_envoi?: string | null
-          date_fin?: string
-          date_signature?: string | null
-          document_genere_path?: string | null
-          document_signe_path?: string | null
-          id?: string
-          modalite_paiement?: string | null
-          montant_caution?: number | null
-          montant_mensuel?: number
-          notes?: string | null
-          numero_contrat?: string
-          objet_location?: string
-          signature_data?: string | null
-          signature_ip?: string | null
-          signature_user_agent?: string | null
-          statut?: Database["public"]["Enums"]["contrat_location_statut"]
-          template_file_id?: string | null
-          type_contrat?: Database["public"]["Enums"]["contrat_location_type"]
-          updated_at?: string
-          vehicule_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contrats_location_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contrats_location_template_file_id_fkey"
-            columns: ["template_file_id"]
-            isOneToOne: false
-            referencedRelation: "document_template_files"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contrats_location_vehicule_id_fkey"
-            columns: ["vehicule_id"]
-            isOneToOne: false
-            referencedRelation: "vehicules"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contrats_location_historique: {
-        Row: {
-          action: string
-          ancien_statut: string | null
-          contrat_id: string
-          created_at: string
-          details: string | null
-          id: string
-          ip_address: string | null
-          nouveau_statut: string | null
-          user_email: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          ancien_statut?: string | null
-          contrat_id: string
-          created_at?: string
-          details?: string | null
-          id?: string
-          ip_address?: string | null
-          nouveau_statut?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          ancien_statut?: string | null
-          contrat_id?: string
-          created_at?: string
-          details?: string | null
-          id?: string
-          ip_address?: string | null
-          nouveau_statut?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contrats_location_historique_contrat_id_fkey"
-            columns: ["contrat_id"]
-            isOneToOne: false
-            referencedRelation: "contrats_location"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       creneaux_conduite: {
         Row: {
           annule_at: string | null
@@ -5906,7 +5753,6 @@ export type Database = {
         Args: { p_type_attestation?: string }
         Returns: string
       }
-      generate_numero_contrat: { Args: never; Returns: string }
       generate_numero_devis: { Args: never; Returns: string }
       generate_numero_facture: { Args: never; Returns: string }
       get_active_charter: {
@@ -6122,14 +5968,6 @@ export type Database = {
         | "En formation pratique"
         | "Examen pratique programmé"
         | "Abandonné"
-      contrat_location_statut:
-        | "brouillon"
-        | "envoye"
-        | "signe"
-        | "refuse"
-        | "expire"
-        | "resilie"
-      contrat_location_type: "vehicule" | "materiel" | "autre"
       devis_statut:
         | "brouillon"
         | "envoye"
@@ -6379,15 +6217,6 @@ export const Constants = {
         "Examen pratique programmé",
         "Abandonné",
       ],
-      contrat_location_statut: [
-        "brouillon",
-        "envoye",
-        "signe",
-        "refuse",
-        "expire",
-        "resilie",
-      ],
-      contrat_location_type: ["vehicule", "materiel", "autre"],
       devis_statut: [
         "brouillon",
         "envoye",
