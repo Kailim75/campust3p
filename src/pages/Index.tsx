@@ -26,6 +26,7 @@ import { PartnersPage } from "@/components/partners/PartnersPage";
 import { RapportsPage } from "@/components/rapports/RapportsPage";
 import { PlanningPage } from "@/components/planning/PlanningPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
+import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -174,6 +175,8 @@ const Index = () => {
       case "planning":
         return <PlanningPage />;
       case "cockpit-financier":
+        return <CockpitFinancierPage />;
+      case "rapports":
         return <RapportsPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
