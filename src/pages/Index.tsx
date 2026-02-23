@@ -10,6 +10,7 @@ import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
+import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
@@ -143,7 +144,7 @@ const Index = () => {
       case "dashboard":
         return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
       case "contacts":
-        return <ContactsUnifiedPage selectedContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        return <ApprenantsPage />;
       case "formations":
         return <FormationsPage />;
       case "sessions":

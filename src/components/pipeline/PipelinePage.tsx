@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -517,12 +517,11 @@ export function PipelinePage() {
         </DragDropContext>
       </div>
 
-      {/* Contact Detail Sheet */}
-      <ContactDetailSheet
+      {/* Apprenant Detail Sheet */}
+      <ApprenantDetailSheet
         contactId={selectedContact?.id || null}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onEdit={() => {}}
       />
 
       {/* Quick Add Dialog */}
