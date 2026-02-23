@@ -51,8 +51,8 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border">
-      <div className="flex items-center justify-between px-6 py-4">
+    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '64px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div className="flex items-center justify-between px-6 h-full">
         <div className="flex-1">
           {/* Breadcrumb */}
           {activeSection && onNavigate && (
@@ -63,7 +63,7 @@ export function Header({
             />
           )}
           
-          <h1 className="text-2xl font-display font-bold text-foreground">{title}</h1>
+          <h1 className="text-[28px] font-display font-bold text-foreground leading-tight">{title}</h1>
           {subtitle && (
             <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
           )}
@@ -93,9 +93,9 @@ export function Header({
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-primary/10 text-primary font-medium">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-border">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs font-display font-bold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>

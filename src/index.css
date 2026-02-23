@@ -1,163 +1,179 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════
+   CLARITY — Light Premium Design System
+   Inspired by Stripe / Linear / Notion
+   ═══════════════════════════════════════════════ */
+
+/* Custom scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: hsl(210 20% 98%); }
+::-webkit-scrollbar-thumb { background: hsl(220 13% 84%); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(218 11% 65%); }
+
 /* Hide scrollbar for mobile tabs */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 @layer base {
   :root {
-    /* ═══════════════════════════════════════════════
-       OBSIDIAN PRO — Dark Premium Design System
-       ═══════════════════════════════════════════════ */
+    /* Fonds — hiérarchie de surfaces */
+    --background: 0 0% 98%;
+    --background-subtle: 220 14% 96%;
+    --surface: 0 0% 100%;
+    --surface-raised: 0 0% 100%;
+    --surface-hover: 210 20% 98%;
 
-    /* Fonds */
-    --background: 228 24% 8%;
-    --background-elevated: 228 20% 13%;
-    --background-subtle: 228 22% 10%;
-    --surface: 232 29% 16%;
-    --surface-hover: 233 25% 20%;
-
-    /* Primaire — Violet Indigo */
-    --primary: 239 84% 67%;
-    --primary-hover: 239 76% 59%;
+    /* Primaire — Bleu roi */
+    --primary: 217 91% 53%;
+    --primary-hover: 224 76% 48%;
+    --primary-active: 224 76% 40%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 239 84% 67% / 0.08;
-    --primary-border: 239 84% 67% / 0.19;
+    --primary-subtle: 214 100% 97%;
+    --primary-border: 214 95% 87%;
+    --primary-muted: 213 93% 78%;
 
-    /* Accent — Cyan lumineux */
-    --accent: 189 95% 43%;
-    --accent-hover: 189 94% 37%;
+    /* Accent — Violet doux */
+    --accent: 263 70% 58%;
+    --accent-hover: 263 70% 50%;
     --accent-foreground: 0 0% 100%;
-    --accent-subtle: 189 95% 43% / 0.08;
+    --accent-subtle: 250 100% 97%;
+    --accent-border: 251 91% 92%;
+    --accent-muted: 256 82% 76%;
 
     /* Textes */
-    --foreground: 210 40% 96%;
-    --muted: 232 29% 16%;
-    --muted-foreground: 215 16% 65%;
-    --foreground-subtle: 215 19% 35%;
+    --foreground: 221 39% 11%;
+    --foreground-secondary: 220 13% 28%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --foreground-subtle: 218 11% 65%;
 
     /* Secondary */
-    --secondary: 232 29% 16%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 221 39% 11%;
 
     /* Card & Popover */
-    --card: 228 20% 13%;
-    --card-foreground: 210 40% 96%;
-    --popover: 228 20% 13%;
-    --popover-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 221 39% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+
+    /* Bordures */
+    --border: 220 13% 91%;
+    --border-subtle: 220 14% 96%;
+    --border-strong: 220 13% 84%;
+    --border-focus: 217 91% 53%;
+    --input: 220 13% 84%;
 
     /* États */
-    --success: 160 84% 39%;
+    --success: 160 84% 31%;
     --success-foreground: 0 0% 100%;
-    --success-subtle: 160 84% 39% / 0.08;
-    --success-border: 160 84% 39% / 0.19;
+    --success-subtle: 152 81% 96%;
+    --success-border: 152 76% 80%;
+    --success-muted: 160 64% 52%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 44%;
     --warning-foreground: 0 0% 100%;
-    --warning-subtle: 38 92% 50% / 0.08;
-    --warning-border: 38 92% 50% / 0.19;
+    --warning-subtle: 48 100% 96%;
+    --warning-border: 48 96% 77%;
+    --warning-muted: 45 93% 65%;
 
-    --destructive: 350 89% 60%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-subtle: 350 89% 60% / 0.08;
-    --destructive-border: 350 89% 60% / 0.19;
+    --destructive-subtle: 0 86% 97%;
+    --destructive-border: 0 93% 89%;
+    --destructive-muted: 0 91% 71%;
 
-    --info: 189 95% 43%;
+    --info: 217 91% 53%;
     --info-foreground: 0 0% 100%;
-    --info-subtle: 189 95% 43% / 0.08;
+    --info-subtle: 214 100% 97%;
+    --info-border: 214 95% 87%;
 
-    /* Bordures et séparateurs */
-    --border: 232 25% 23%;
-    --border-subtle: 232 29% 16%;
-    --border-strong: 232 22% 31%;
-    --input: 232 25% 23%;
-
-    /* Spécial */
-    --ring: 239 84% 67%;
+    /* Ring & Radius */
+    --ring: 217 91% 53%;
     --radius: 0.75rem;
 
-    /* Sidebar — Obsidian Pro */
-    --sidebar-background: 228 20% 13%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 239 84% 67%;
+    /* Ombres — signature visuelle de Clarity */
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.04);
+    --shadow-xl: 0 20px 25px rgba(0,0,0,0.08), 0 8px 10px rgba(0,0,0,0.04);
+    --shadow-focus: 0 0 0 3px rgba(37,99,235,0.15);
+
+    /* Sidebar — Clarity */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 221 39% 11%;
+    --sidebar-primary: 217 91% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 239 84% 67% / 0.1;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 232 25% 23%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 214 100% 97%;
+    --sidebar-accent-foreground: 224 76% 48%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 53%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%), hsl(189 95% 43%));
-    --gradient-accent: linear-gradient(135deg, hsl(189 95% 43%), hsl(189 94% 37%));
-    --gradient-success: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 72% 45%));
-    --gradient-card: linear-gradient(145deg, hsl(228 20% 13%), hsl(232 29% 16%));
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 53%), hsl(263 70% 58%));
+    --gradient-accent: linear-gradient(135deg, hsl(263 70% 58%), hsl(263 70% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(160 84% 31%), hsl(160 64% 42%));
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(228 30% 4% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(228 30% 4% / 0.4), 0 2px 4px -2px hsl(228 30% 4% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(228 30% 4% / 0.4), 0 4px 6px -4px hsl(228 30% 4% / 0.3);
-    --shadow-xl: 0 20px 25px -5px hsl(228 30% 4% / 0.5), 0 8px 10px -6px hsl(228 30% 4% / 0.3);
-
-    /* Super Admin theme — aligned with Obsidian Pro */
-    --superadmin-background: 235 25% 10%;
-    --superadmin-foreground: 235 10% 95%;
-    --superadmin-sidebar: 235 30% 8%;
-    --superadmin-header: 235 25% 12%;
-    --superadmin-border: 235 25% 20%;
-    --superadmin-primary: 265 85% 60%;
+    /* Super Admin theme */
+    --superadmin-background: 235 25% 97%;
+    --superadmin-foreground: 235 30% 15%;
+    --superadmin-sidebar: 0 0% 100%;
+    --superadmin-header: 0 0% 100%;
+    --superadmin-border: 220 13% 91%;
+    --superadmin-primary: 263 70% 58%;
     --superadmin-primary-foreground: 0 0% 100%;
-    --superadmin-accent: 45 100% 55%;
-    --superadmin-accent-foreground: 45 100% 10%;
-    --superadmin-muted: 235 15% 50%;
-    --superadmin-card: 235 25% 14%;
-    --superadmin-card-foreground: 235 10% 95%;
+    --superadmin-accent: 38 92% 50%;
+    --superadmin-accent-foreground: 38 92% 10%;
+    --superadmin-muted: 218 11% 65%;
+    --superadmin-card: 0 0% 100%;
+    --superadmin-card-foreground: 235 30% 15%;
   }
 
-  /* Dark mode is the default — .dark class mirrors :root */
+  /* Dark mode — not the default but supported */
   .dark {
-    --background: 228 24% 8%;
-    --background-elevated: 228 20% 13%;
+    --background: 221 39% 6%;
+    --background-subtle: 220 20% 10%;
+    --surface: 220 20% 12%;
+    --surface-hover: 220 18% 14%;
     --foreground: 210 40% 96%;
-    --card: 228 20% 13%;
+    --foreground-secondary: 215 20% 75%;
+    --card: 220 20% 12%;
     --card-foreground: 210 40% 96%;
-    --popover: 228 20% 13%;
+    --popover: 220 20% 12%;
     --popover-foreground: 210 40% 96%;
-    --primary: 239 84% 67%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 232 29% 16%;
+    --secondary: 220 18% 16%;
     --secondary-foreground: 210 40% 96%;
-    --muted: 232 29% 16%;
-    --muted-foreground: 215 16% 65%;
-    --accent: 189 95% 43%;
+    --muted: 220 18% 16%;
+    --muted-foreground: 215 16% 55%;
+    --accent: 263 70% 65%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 350 89% 60%;
+    --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 189 95% 43%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
-    --border: 232 25% 23%;
-    --input: 232 25% 23%;
-    --ring: 239 84% 67%;
-    --sidebar-background: 228 20% 13%;
+    --border: 220 18% 20%;
+    --input: 220 18% 20%;
+    --ring: 217 91% 60%;
+    --sidebar-background: 220 20% 10%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 239 84% 67% / 0.1;
+    --sidebar-accent: 217 91% 60% / 0.1;
     --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 232 25% 23%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-border: 220 18% 20%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -168,56 +184,78 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    background-color: hsl(228 24% 8%);
-    color: hsl(210 40% 96%);
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Subtle radial gradient on the page background */
+    background-image: radial-gradient(ellipse at 0% 0%, rgba(37,99,235,0.03) 0%, transparent 60%);
+    background-attachment: fixed;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Syne', sans-serif;
-    @apply font-bold tracking-tight;
+  h1, h2, h3, h4, h5, h6, .nav-label, .kpi-label {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Mono font for numeric values */
+  .font-mono, .amount, .stat-value, .badge-count {
+    font-family: 'Instrument Mono', 'DM Mono', monospace !important;
   }
 }
 
 @layer components {
   /* ═══════════════════════════════════════════════
-     OBSIDIAN PRO — Component Styles
+     CLARITY — Component Styles
      ═══════════════════════════════════════════════ */
 
   .card-elevated {
-    @apply rounded-xl border border-border;
-    background: hsl(var(--card));
-    box-shadow: var(--shadow-md);
+    @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--shadow-sm);
   }
 
   .stat-card {
-    @apply relative overflow-hidden rounded-xl p-6 transition-all duration-300;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-md);
+    @apply relative overflow-hidden rounded-xl p-6 transition-all duration-200 bg-card border border-border;
+    box-shadow: var(--shadow-sm);
   }
 
   .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    border-color: hsl(var(--border-strong));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 
-  /* Sidebar Items — Obsidian Pro style */
+  /* Sidebar Items — Clarity style */
   .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200;
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150;
     color: hsl(var(--muted-foreground));
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    height: 36px;
+    margin: 1px 0;
+  }
+
+  .sidebar-item .lucide {
+    color: hsl(var(--foreground-subtle));
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
   }
 
   .sidebar-item:hover {
+    background: hsl(var(--background-subtle));
     color: hsl(var(--foreground));
-    background: hsl(239 84% 67% / 0.08);
+  }
+
+  .sidebar-item:hover .lucide {
+    color: hsl(var(--muted-foreground));
   }
 
   .sidebar-item.active {
-    color: hsl(var(--foreground));
-    background: hsl(239 84% 67% / 0.12);
+    background: hsl(var(--primary-subtle));
+    color: hsl(var(--primary-hover));
+    font-weight: 600;
     border-left: 2px solid hsl(var(--primary));
+    padding-left: 10px;
   }
 
   .sidebar-item.active .lucide {
@@ -226,11 +264,11 @@
 
   /* Sidebar section labels */
   .sidebar-section-label {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Bricolage Grotesque', sans-serif;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     color: hsl(var(--foreground-subtle));
   }
 
@@ -241,19 +279,20 @@
   }
 
   .superadmin-sidebar-item:hover {
-    background: hsl(var(--superadmin-primary) / 0.15);
+    background: hsl(var(--superadmin-primary) / 0.08);
     color: hsl(var(--superadmin-foreground));
   }
 
   .superadmin-sidebar-item.active {
-    background: hsl(var(--superadmin-primary));
-    color: hsl(var(--superadmin-primary-foreground));
+    background: hsl(var(--superadmin-primary) / 0.1);
+    color: hsl(var(--superadmin-primary));
+    border-left: 2px solid hsl(var(--superadmin-primary));
   }
 
   /* Super Admin specific backgrounds */
   .bg-superadmin-background { background: hsl(var(--superadmin-background)); }
   .bg-superadmin-sidebar { background: hsl(var(--superadmin-sidebar)); }
-  .bg-superadmin-header { background: hsl(var(--superadmin-header) / 0.95); }
+  .bg-superadmin-header { background: hsl(var(--superadmin-header)); }
   .bg-superadmin-card { background: hsl(var(--superadmin-card)); }
   .bg-superadmin-primary { background: hsl(var(--superadmin-primary)); }
   .bg-superadmin-accent { background: hsl(var(--superadmin-accent)); }
@@ -266,51 +305,50 @@
   .border-superadmin-border { border-color: hsl(var(--superadmin-border)); }
 
   .badge-status {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium;
+    font-family: 'Instrument Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
   }
 
   .table-row-hover {
-    @apply transition-colors duration-150;
+    @apply transition-colors duration-100;
   }
 
   .table-row-hover:hover {
-    background: hsl(var(--surface));
+    background: hsl(210 20% 98%);
   }
 
   .input-focus {
-    @apply transition-all duration-200;
+    @apply transition-all duration-150;
+    box-shadow: var(--shadow-xs);
   }
 
   .input-focus:focus {
     border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 3px hsl(239 84% 67% / 0.12);
+    box-shadow: var(--shadow-focus);
+    outline: none;
   }
 
   .btn-gradient {
     background: var(--gradient-primary);
-    @apply text-primary-foreground font-medium shadow-md hover:shadow-lg transition-all duration-200;
+    @apply text-primary-foreground font-semibold transition-all duration-150;
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-gradient:hover {
     transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 
   .card-interactive {
-    @apply rounded-xl border transition-all duration-300 cursor-pointer;
-    background: hsl(var(--card));
-    border-color: hsl(var(--border));
-    box-shadow: var(--shadow-sm);
+    @apply rounded-xl border border-border bg-card transition-all duration-200 cursor-pointer;
+    box-shadow: var(--shadow-xs);
   }
 
   .card-interactive:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-  }
-
-  /* Mono font for numeric values */
-  .font-mono, .stat-value, .amount {
-    font-family: 'DM Mono', monospace !important;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   /* Success pulse animation */
@@ -319,21 +357,21 @@
   }
 
   @keyframes successPulse {
-    0% { box-shadow: 0 0 0 0 hsl(var(--success) / 0.4); }
+    0% { box-shadow: 0 0 0 0 hsl(var(--success) / 0.3); }
     70% { box-shadow: 0 0 0 10px hsl(var(--success) / 0); }
     100% { box-shadow: 0 0 0 0 hsl(var(--success) / 0); }
   }
 
-  /* Shimmer loading effect */
+  /* Shimmer loading effect — Clarity style */
   .shimmer {
     background: linear-gradient(
       90deg,
-      hsl(var(--muted)) 25%,
-      hsl(var(--muted-foreground) / 0.1) 50%,
-      hsl(var(--muted)) 75%
+      hsl(220 14% 96%) 25%,
+      hsl(220 13% 91%) 50%,
+      hsl(220 14% 96%) 75%
     );
     background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+    animation: shimmer 1.8s infinite ease-in-out;
   }
 
   @keyframes shimmer {
@@ -358,7 +396,7 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -372,12 +410,12 @@
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.32, 1);
   }
 
   @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: scale(0.95) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
 
   .animate-bounce-subtle {
@@ -388,4 +426,12 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-4px); }
   }
+
+  /* Stagger animation for dashboard cards */
+  .stagger-1 { animation-delay: 0ms; }
+  .stagger-2 { animation-delay: 50ms; }
+  .stagger-3 { animation-delay: 100ms; }
+  .stagger-4 { animation-delay: 150ms; }
+  .stagger-5 { animation-delay: 200ms; }
+  .stagger-6 { animation-delay: 250ms; }
 }
