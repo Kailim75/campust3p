@@ -23,7 +23,7 @@ import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
 import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
-import { CockpitFinancierPage } from "@/components/financial/CockpitFinancierPage";
+import { RapportsPage } from "@/components/rapports/RapportsPage";
 import { PlanningPage } from "@/components/planning/PlanningPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -174,7 +174,7 @@ const Index = () => {
       case "planning":
         return <PlanningPage />;
       case "cockpit-financier":
-        return <CockpitFinancierPage />;
+        return <RapportsPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }

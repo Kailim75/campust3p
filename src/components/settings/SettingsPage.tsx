@@ -16,7 +16,10 @@ import {
   FileText,
   Settings2,
   Bell,
+  Webhook,
+  CreditCard as CreditCardIcon,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
 import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
@@ -390,7 +393,7 @@ export function SettingsPage() {
 
       <main className="p-6 animate-fade-in">
         <Tabs defaultValue="centre" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-flex">
             <TabsTrigger value="centre" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Centre</span>
@@ -410,6 +413,10 @@ export function SettingsPage() {
             <TabsTrigger value="utilisateurs" className="gap-2">
               <Settings2 className="h-4 w-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-2">
+              <Webhook className="h-4 w-4" />
+              <span className="hidden sm:inline">Intégrations</span>
             </TabsTrigger>
           </TabsList>
 
@@ -547,6 +554,79 @@ export function SettingsPage() {
           {/* Tab: Utilisateurs */}
           <TabsContent value="utilisateurs" className="space-y-6">
             <UserManagementSection />
+          </TabsContent>
+
+          {/* Tab: Intégrations */}
+          <TabsContent value="integrations" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Webhook */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Webhook className="h-5 w-5 text-primary" />
+                    Webhook entrant
+                  </CardTitle>
+                  <CardDescription>
+                    Connectez ecolet3p.fr pour recevoir les leads automatiquement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-success/10 text-success">Actif</Badge>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">URL du webhook</p>
+                    <code className="text-xs break-all">https://api.campust3p.fr/webhook/leads</code>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                    navigator.clipboard.writeText("https://api.campust3p.fr/webhook/leads");
+                    toast.success("URL copiée");
+                  }}>
+                    Copier l'URL
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Alma */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CreditCardIcon className="h-5 w-5 text-accent" />
+                    Alma
+                  </CardTitle>
+                  <CardDescription>
+                    Paiement en plusieurs fois pour vos apprenants
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Badge variant="outline" className="text-muted-foreground">Non configuré</Badge>
+                  <Input placeholder="Clé API Alma" className="text-sm" />
+                  <Button variant="outline" size="sm" className="w-full" disabled>
+                    Connecter
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* n8n */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Settings2 className="h-5 w-5 text-info" />
+                    n8n
+                  </CardTitle>
+                  <CardDescription>
+                    Automatisations et workflows avancés
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Badge variant="outline" className="text-muted-foreground">Non configuré</Badge>
+                  <Input placeholder="URL n8n" className="text-sm" />
+                  <Button variant="outline" size="sm" className="w-full" disabled>
+                    Connecter
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

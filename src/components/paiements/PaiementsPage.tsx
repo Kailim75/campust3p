@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -66,6 +66,8 @@ export function PaiementsPage() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null);
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
   const [showFECDialog, setShowFECDialog] = useState(false);
+  // Tab filter
+  const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
 
   // Filters state
   const [statutFilter, setStatutFilter] = useState<string>("all");
@@ -79,6 +81,10 @@ export function PaiementsPage() {
   // Filtered factures
   const filteredFactures = useMemo(() => {
     return factures.filter((facture) => {
+      // Tab filter
+      if (activeTab === "en_attente" && !["emise", "partiel", "impayee"].includes(facture.statut)) return false;
+      if (activeTab === "soldes" && facture.statut !== "payee") return false;
+      
       // Filter by status
       if (statutFilter !== "all" && facture.statut !== statutFilter) {
         return false;
@@ -102,9 +108,12 @@ export function PaiementsPage() {
       }
       return true;
     });
-  }, [factures, statutFilter, financementFilter, dateFrom, dateTo]);
+  }, [factures, statutFilter, financementFilter, dateFrom, dateTo, activeTab]);
 
   const hasActiveFilters = statutFilter !== "all" || financementFilter !== "all" || dateFrom || dateTo;
+  
+  // Taux de recouvrement
+  const tauxRecouvrement = stats && stats.total > 0 ? Math.round((stats.paye / stats.total) * 100) : 0;
 
   const clearFilters = () => {
     setStatutFilter("all");
@@ -211,16 +220,16 @@ export function PaiementsPage() {
 
       <main className="p-6 animate-fade-in">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="card-elevated p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-primary/10">
                 <Euro className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total facturé</p>
+                <p className="text-sm text-muted-foreground">CA ce mois</p>
                 <p className="text-2xl font-display font-bold text-foreground">
-                  {(stats?.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                  {(stats?.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
               </div>
             </div>
@@ -233,7 +242,7 @@ export function PaiementsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Encaissé</p>
                 <p className="text-2xl font-display font-bold text-success">
-                  {(stats?.paye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                  {(stats?.paye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
               </div>
             </div>
@@ -246,11 +255,47 @@ export function PaiementsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">En attente</p>
                 <p className="text-2xl font-display font-bold text-destructive">
-                  {(stats?.impaye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                  {(stats?.impaye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
               </div>
             </div>
           </div>
+          <div className="card-elevated p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-info/10">
+                <TrendingUp className="h-6 w-6 text-info" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Taux recouvrement</p>
+                <p className={cn("text-2xl font-display font-bold", tauxRecouvrement >= 75 ? "text-success" : tauxRecouvrement >= 50 ? "text-accent" : "text-destructive")}>
+                  {tauxRecouvrement}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Tabs */}
+        <div className="flex gap-1 mb-4 p-1 bg-muted rounded-xl w-fit">
+          {([
+            { key: "tous", label: "Tous", count: factures.length },
+            { key: "en_attente", label: "En attente", count: factures.filter(f => ["emise", "partiel", "impayee"].includes(f.statut)).length },
+            { key: "soldes", label: "Soldés", count: factures.filter(f => f.statut === "payee").length },
+          ] as const).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                activeTab === tab.key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+              <span className="ml-1.5 text-xs opacity-60">({tab.count})</span>
+            </button>
+          ))}
         </div>
 
         {/* Filters */}
