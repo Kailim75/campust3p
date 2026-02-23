@@ -289,13 +289,13 @@ export function DocumentsFormationTab({ contactId, contact }: DocumentsFormation
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "signed":
-        return <Badge variant="default" className="text-xs"><CheckCircle className="h-3 w-3 mr-1" />Signé</Badge>;
+        return <Badge variant="default" className="text-[11px] font-semibold px-2.5 py-0.5"><CheckCircle className="h-3 w-3 mr-1" />Signé</Badge>;
       case "pending":
-        return <Badge variant="secondary" className="text-xs"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
+        return <Badge variant="secondary" className="text-[11px] font-semibold px-2.5 py-0.5 bg-warning/10 text-warning border border-warning/20"><Clock className="h-3 w-3 mr-1" />Attendu</Badge>;
       case "expired":
-        return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" />Expiré</Badge>;
+        return <Badge variant="destructive" className="text-[11px] font-semibold px-2.5 py-0.5"><AlertCircle className="h-3 w-3 mr-1" />Expiré</Badge>;
       case "valid":
-        return <Badge variant="outline" className="text-xs"><CheckCircle className="h-3 w-3 mr-1" />Valide</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold px-2.5 py-0.5 bg-success/10 text-success border-success/20"><CheckCircle className="h-3 w-3 mr-1" />Reçu</Badge>;
       default:
         return null;
     }
@@ -411,7 +411,7 @@ export function DocumentsFormationTab({ contactId, contact }: DocumentsFormation
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {DOCUMENT_CATEGORIES.map(category => {
             const docs = documentsByCategory[category.id] || [];
             if (docs.length === 0 && categoryFilter !== "all") return null;
@@ -452,7 +452,7 @@ export function DocumentsFormationTab({ contactId, contact }: DocumentsFormation
                 <CollapsibleContent>
                   <div className={cn(
                     "mt-2 pl-4",
-                    viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-2" : "space-y-2"
+                    viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3"
                   )}>
                     {docs.map(doc => (
                       <DocumentCard
@@ -578,25 +578,31 @@ function DocumentCard({
   
   return (
     <div className={cn(
-      "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors",
+      "flex items-center justify-between p-4 rounded-2xl border border-border bg-card transition-all duration-150 group",
+      "hover:border-border-strong",
       isExpired && "opacity-75"
-    )}>
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <FileText className={cn("h-5 w-5 shrink-0", categoryColor)} />
+    )} style={{ boxShadow: 'var(--shadow-xs)' }}
+       onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
+       onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-xs)'}
+    >
+      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        <div className={cn("p-2 rounded-xl bg-muted/50", categoryColor)}>
+          <FileText className="h-4.5 w-4.5" />
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm truncate">{document.nom}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <p className="font-semibold text-sm truncate tracking-tight">{document.nom}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <span>{format(new Date(document.dateCreation), "dd/MM/yyyy", { locale: fr })}</span>
             {document.fileSize && (
               <>
-                <span>•</span>
+                <span className="text-border-strong">•</span>
                 <span>{(document.fileSize / 1024).toFixed(1)} Ko</span>
               </>
             )}
             {document.dateExpiration && (
               <>
-                <span>•</span>
-                <span className={isExpired ? "text-destructive" : ""}>
+                <span className="text-border-strong">•</span>
+                <span className={isExpired ? "text-destructive font-medium" : ""}>
                   Expire le {format(new Date(document.dateExpiration), "dd/MM/yyyy", { locale: fr })}
                 </span>
               </>
@@ -605,7 +611,7 @@ function DocumentCard({
         </div>
       </div>
       
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         {getStatusBadge(document.status)}
         <DocumentActions
           isAttestation={isAttestation}

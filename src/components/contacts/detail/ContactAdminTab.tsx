@@ -58,13 +58,13 @@ export function ContactAdminTab({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="documents" className="text-xs px-2">
+      <TabsList className="grid w-full grid-cols-2 mb-5 h-10 p-1 bg-muted/60 rounded-xl">
+        <TabsTrigger value="documents" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <GraduationCap className="h-3.5 w-3.5 mr-1.5" />
           <span className="hidden sm:inline">Documents formation</span>
           <span className="sm:hidden">Docs</span>
         </TabsTrigger>
-        <TabsTrigger value="factures" className="text-xs px-2">
+        <TabsTrigger value="factures" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <Receipt className="h-3.5 w-3.5 mr-1.5" />
           <span className="hidden sm:inline">Factures</span>
         </TabsTrigger>

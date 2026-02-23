@@ -119,45 +119,45 @@ export function ContactProgressBar({
   const hasBlockingStep = steps.some(s => s.isBlocking);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Progress header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-semibold text-foreground tracking-tight">
             Progression du dossier
           </span>
           {hasBlockingStep && (
-            <Badge variant="outline" className="text-warning border-warning/20 bg-warning/10 text-xs">
+            <Badge variant="outline" className="text-warning border-warning/20 bg-warning/10 text-[11px] font-semibold">
               <AlertCircle className="h-3 w-3 mr-1" />
               Action requise
             </Badge>
           )}
         </div>
-        <span className="text-sm font-semibold text-primary">
+        <span className="text-lg font-bold font-mono text-primary tabular-nums">
           {progressPercent}%
         </span>
       </div>
 
       {/* Progress bar */}
-      <Progress value={progressPercent} className="h-2" />
+      <Progress value={progressPercent} className="h-2.5 rounded-full" />
 
       {/* Steps */}
       <TooltipProvider>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-1">
           {steps.map((step, index) => {
             const Icon = step.isComplete ? CheckCircle2 : step.isBlocking ? AlertCircle : Circle;
             
             return (
               <Tooltip key={step.id}>
                 <TooltipTrigger asChild>
-                  <div className="flex flex-col items-center gap-1 cursor-help">
+                  <div className="flex flex-col items-center gap-1.5 cursor-help group">
                     <div className={cn(
-                      "p-2 rounded-full transition-all duration-200",
+                      "p-2 rounded-xl transition-all duration-150 group-hover:scale-110",
                       step.isComplete 
                         ? "bg-success/10" 
                         : step.isBlocking 
                           ? "bg-warning/10" 
-                          : "bg-muted"
+                          : "bg-muted/60"
                     )}>
                       <Icon className={cn(
                         "h-4 w-4",
@@ -166,10 +166,10 @@ export function ContactProgressBar({
                           : step.isBlocking 
                             ? "text-warning" 
                             : "text-muted-foreground"
-                      )} />
+                      )} strokeWidth={step.isComplete ? 2.5 : 1.5} />
                     </div>
                     <span className={cn(
-                      "text-[10px] font-medium text-center max-w-[60px] leading-tight",
+                      "text-[10px] font-semibold text-center max-w-[60px] leading-tight",
                       step.isComplete 
                         ? "text-success" 
                         : step.isBlocking 

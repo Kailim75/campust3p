@@ -51,11 +51,13 @@ function InfoRow({
 }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-3 py-2">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+    <div className="flex items-start gap-3.5 py-2.5 group">
+      <div className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground mt-0.5 shrink-0 group-hover:bg-primary/5 group-hover:text-primary transition-colors duration-150">
+        <Icon className="h-4 w-4" strokeWidth={1.5} />
+      </div>
       <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium">{value}</p>
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-medium mt-0.5">{value}</p>
       </div>
     </div>
   );
@@ -89,16 +91,16 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
     : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact</h3>
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Contact</h3>
         <InfoRow icon={Mail} label="Email" value={contact.email} />
         <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
         <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
           Informations personnelles
         </h3>
         <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
@@ -107,20 +109,20 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
 
       {permisInfo && (
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Permis de conduire</h3>
+          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Permis de conduire</h3>
           <InfoRow icon={Car} label="Permis" value={permisInfo} />
         </div>
       )}
 
       {carteProInfo && (
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Carte professionnelle</h3>
+          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Carte professionnelle</h3>
           <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
         </div>
       )}
 
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Formation</h3>
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Formation</h3>
         <InfoRow
           icon={GraduationCap}
           label="Type de formation"
@@ -128,9 +130,9 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
         />
         <InfoRow icon={FileText} label="Source" value={contact.source} />
         {contact.commentaires && (
-          <div className="mt-2 p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">Commentaires</p>
-            <p className="text-sm">{contact.commentaires}</p>
+          <div className="mt-3 p-4 bg-muted/40 rounded-xl border border-border/60">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Commentaires</p>
+            <p className="text-sm leading-relaxed">{contact.commentaires}</p>
           </div>
         )}
       </div>
