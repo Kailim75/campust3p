@@ -51,10 +51,9 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-card border-b border-border" style={{ height: '64px', boxShadow: 'var(--shadow-xs)' }}>
+    <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border" style={{ height: '56px' }}>
       <div className="flex items-center justify-between px-6 h-full">
-        <div className="flex-1">
-          {/* Breadcrumb */}
+        <div className="flex-1 min-w-0">
           {activeSection && onNavigate && (
             <AppBreadcrumb 
               activeSection={activeSection} 
@@ -63,39 +62,30 @@ export function Header({
             />
           )}
           
-          <h1 className="text-[26px] font-display font-bold text-foreground leading-tight">{title}</h1>
+          <h1 className="text-lg font-semibold text-foreground leading-tight truncate">{title}</h1>
           {subtitle && (
-            <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Centre Switcher */}
+        <div className="flex items-center gap-2">
           <CentreSwitcher />
-
-          {/* Global Search */}
           <GlobalSearch />
-
-          {/* Theme Toggle */}
           <ThemeToggle />
-
-          {/* Notifications */}
           <NotificationBell />
 
-          {/* Add Button */}
           {onAddClick && (
-            <Button onClick={onAddClick} className="btn-gradient gap-2">
-              <Plus className="h-4 w-4" />
+            <Button onClick={onAddClick} size="sm" className="gap-1.5 h-8 text-xs font-medium">
+              <Plus className="h-3.5 w-3.5" />
               {addLabel || "Ajouter"}
             </Button>
           )}
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-border">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs font-display font-bold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>

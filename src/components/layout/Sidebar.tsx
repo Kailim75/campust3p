@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   Users, 
-  GraduationCap, 
   Calendar, 
   FileText, 
   CreditCard, 
@@ -10,18 +9,15 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Car,
   Menu,
   Landmark,
   Mail,
-  User,
-  Award,
   HelpCircle,
-  BookOpen,
   Shield,
   Building2,
   ClipboardList,
   CalendarClock,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,12 +42,11 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-// Grouped menu structure for better UX
 const menuGroups = [
   {
-    label: "Accueil",
+    label: "",
     items: [
-      { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     ],
   },
   {
@@ -76,13 +71,12 @@ const menuGroups = [
   {
     label: "Rapports",
     items: [
-      { id: "rapports", label: "Rapports", icon: Landmark },
+      { id: "rapports", label: "Rapports", icon: BarChart3 },
       { id: "alertes", label: "Alertes", icon: Bell },
     ],
   },
 ];
 
-// Flat list for backward compatibility
 const menuItems = menuGroups.flatMap(g => g.items);
 
 function SidebarContent({ 
@@ -102,10 +96,8 @@ function SidebarContent({
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
 
   const handleRecentItemClick = (type: string, id: string) => {
-    // Navigate to appropriate section with the item
     if (type === "contact") {
       onSectionChange("contacts");
-      // Optionally could emit event to open contact detail
     } else if (type === "session") {
       onSectionChange("sessions");
     } else if (type === "facture") {
@@ -126,24 +118,24 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 border-b border-border-subtle" style={{ height: '68px' }}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-sm font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+      <div className="flex items-center gap-3 px-5 border-b border-border" style={{ height: '64px' }}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-primary-foreground bg-primary">
           T3
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="font-display font-bold text-[15px] text-foreground tracking-tight">T3P Campus</h1>
-            <p className="text-[11px] text-muted-foreground">FMS</p>
+            <h1 className="font-semibold text-sm text-foreground tracking-tight">T3P Campus</h1>
+            <p className="text-[11px] text-muted-foreground font-normal">FMS</p>
           </div>
         )}
       </div>
 
-      {/* Navigation - Grouped */}
-      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-3 space-y-3 overflow-y-auto">
         {menuGroups.map((group) => (
-          <div key={group.label}>
-            {!collapsed && (
-              <p className="sidebar-section-label px-3 mb-1">
+          <div key={group.label || 'home'}>
+            {!collapsed && group.label && (
+              <p className="sidebar-section-label px-3 mb-1.5 mt-2">
                 {group.label}
               </p>
             )}
@@ -165,13 +157,13 @@ function SidebarContent({
                       isActive && "active"
                     )}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <Icon className="h-4 w-4 flex-shrink-0" />
                     {!collapsed && (
                       <span className="animate-fade-in truncate">{item.label}</span>
                     )}
                     {showBadge && (
                       <span className={cn(
-                        "absolute flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold rounded-full",
+                        "absolute flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full",
                         collapsed ? "top-0 right-0 h-4 w-4" : "ml-auto h-5 min-w-5 px-1"
                       )}>
                         {highPriorityAlerts}
@@ -185,9 +177,8 @@ function SidebarContent({
         ))}
       </nav>
 
-      {/* Settings & Collapse */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-        {/* Recent Items Menu */}
+      {/* Footer */}
+      <div className="px-3 py-3 border-t border-border space-y-0.5">
         <RecentItemsMenu 
           onItemClick={handleRecentItemClick}
           collapsed={collapsed}
@@ -203,55 +194,52 @@ function SidebarContent({
             activeSection === "settings" && "active"
           )}
         >
-          <Settings className="h-5 w-5 flex-shrink-0" />
+          <Settings className="h-4 w-4 flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Paramètres</span>}
         </button>
         
-        {/* Help button to restart tour */}
         <button
           onClick={() => {
             localStorage.removeItem("crm-onboarding-completed");
             window.location.reload();
           }}
-          className="sidebar-item w-full text-muted-foreground hover:text-foreground"
+          className="sidebar-item w-full"
         >
-          <HelpCircle className="h-5 w-5 flex-shrink-0" />
+          <HelpCircle className="h-4 w-4 flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Aide</span>}
         </button>
         
-        {/* Formateur Space */}
         <button
           onClick={() => {
             window.location.href = "/formateur";
             onItemClick?.();
           }}
-          className="sidebar-item w-full text-sidebar-foreground/70 hover:text-sidebar-foreground"
+          className="sidebar-item w-full"
         >
-          <ClipboardList className="h-5 w-5 flex-shrink-0" />
+          <ClipboardList className="h-4 w-4 flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Espace formateur</span>}
         </button>
         
-        {/* Super Admin Switch - Only visible for super admins */}
         {canSwitchMode && (
           <button
             onClick={handleSwitchToSuperAdmin}
-            className="sidebar-item w-full text-sidebar-foreground/60 hover:text-sidebar-foreground border border-dashed border-sidebar-border/50 hover:border-sidebar-primary/50 hover:bg-sidebar-primary/10"
+            className="sidebar-item w-full border border-dashed border-border hover:border-primary/40 hover:bg-primary/5"
           >
-            <Shield className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span className="animate-fade-in text-xs font-medium">Espace Super Admin</span>}
+            <Shield className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && <span className="animate-fade-in text-xs font-medium">Super Admin</span>}
           </button>
         )}
         
         {setCollapsed && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="sidebar-item w-full justify-center mt-2 hidden md:flex"
+            className="sidebar-item w-full justify-center mt-1 hidden md:flex"
           >
             {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             ) : (
               <>
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
                 <span className="animate-fade-in">Réduire</span>
               </>
             )}
@@ -259,7 +247,6 @@ function SidebarContent({
         )}
       </div>
 
-      {/* Switch Confirmation Dialog */}
       <AlertDialog open={showSwitchDialog} onOpenChange={setShowSwitchDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -286,16 +273,14 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Mobile: Sheet drawer
   if (isMobile) {
     return (
       <>
-        {/* Mobile Header with Burger */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-card border-b border-border flex items-center px-4 gap-3" style={{ boxShadow: 'var(--shadow-xs)' }}>
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-card border-b border-border flex items-center px-4 gap-3">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="text-foreground h-8 w-8">
+                <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-60 p-0 bg-card border-border">
@@ -312,24 +297,21 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold text-primary-foreground bg-primary">
               T3
             </div>
-            <span className="font-display font-semibold text-foreground text-sm">T3P Campus</span>
+            <span className="font-semibold text-foreground text-sm">T3P Campus</span>
           </div>
         </header>
-        
-        {/* Spacer for fixed header */}
-        <div className="h-16" />
+        <div className="h-14" />
       </>
     );
   }
 
-  // Desktop: Fixed sidebar
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300 flex flex-col",
+        "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-200 flex flex-col",
         collapsed ? "w-16" : "w-60"
       )}
     >
