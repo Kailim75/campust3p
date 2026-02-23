@@ -23,13 +23,15 @@ import {
   UserPlus,
   BookOpen,
   GraduationCap,
+  Landmark,
 } from "lucide-react";
 import { useContacts } from "@/hooks/useContacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO } from "date-fns";
+import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO, endOfMonth, getDate } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDistanceToNow } from "date-fns";
+import { formatEuro } from "@/lib/formatFinancial";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -319,18 +321,103 @@ function useDashboardAlerts() {
     },
   });
 
+  // ── Alertes financières ──
+  const { data: financialAlerts } = useQuery({
+    queryKey: ["dashboard-alerts-financial"],
+    queryFn: async () => {
+      const now = new Date();
+      const mStart = format(startOfMonth(now), "yyyy-MM-dd");
+      const mEnd = format(endOfMonth(now), "yyyy-MM-dd");
+      const alerts: DashboardAlert[] = [];
+
+      // Get CA & charges for current month
+      const [versRes, chargesRes, paramsRes, recurringRes] = await Promise.all([
+        supabase.from("versements").select("montant").gte("date_encaissement", mStart).lte("date_encaissement", mEnd),
+        supabase.from("charges").select("montant, type_charge").gte("date_charge", mStart).lte("date_charge", mEnd).eq("statut", "active" as any),
+        supabase.from("parametres_financiers").select("*").limit(1).maybeSingle(),
+        supabase.from("charges").select("libelle, montant, periodicite").eq("statut", "active" as any).in("periodicite", ["mensuelle", "trimestrielle", "annuelle"] as any),
+      ]);
+
+      const ca = (versRes.data || []).reduce((s, v) => s + Number(v.montant), 0);
+      const totalCharges = (chargesRes.data || []).reduce((s, c) => s + Number(c.montant), 0);
+      const chargesFixes = (chargesRes.data || []).filter(c => c.type_charge === "fixe").reduce((s, c) => s + Number(c.montant), 0);
+      const resultat = ca - totalCharges;
+
+      const params = paramsRes.data;
+      const prixMoyen = params
+        ? (Number(params.prix_moyen_taxi) + Number(params.prix_moyen_vtc) + Number(params.prix_moyen_vmdtr)) / 3
+        : 990;
+
+      // 🔴 Déficit
+      if (resultat < 0) {
+        const manquantes = Math.ceil(Math.abs(resultat) / prixMoyen);
+        alerts.push({
+          id: "financial-deficit",
+          type: "danger",
+          icon: Landmark,
+          message: `Déficit de ${formatEuro(Math.abs(resultat))} ce mois — ${manquantes} formation${manquantes > 1 ? "s" : ""} manquante${manquantes > 1 ? "s" : ""} pour équilibrer`,
+          action: "Voir Cockpit",
+          section: "cockpit-financier",
+        });
+      }
+
+      // 🟠 Seuil de rentabilité à risque (après le 15)
+      if (getDate(now) > 15 && prixMoyen > 0) {
+        const seuil = Math.ceil(chargesFixes / prixMoyen);
+        const vendues = (versRes.data || []).length;
+        if (seuil > 0 && vendues < seuil * 0.6) {
+          const restantes = seuil - vendues;
+          alerts.push({
+            id: "financial-seuil-risque",
+            type: "warning",
+            icon: Landmark,
+            message: `Seuil de rentabilité à risque — ${restantes} formation${restantes > 1 ? "s" : ""} encore nécessaire${restantes > 1 ? "s" : ""}`,
+            action: "Voir pipeline",
+            section: "cockpit-financier",
+          });
+        }
+      }
+
+      // 🟡 Charges récurrentes non saisies ce mois
+      const currentChargesLabels = (chargesRes.data || []).map(() => ""); // We need libelles
+      const { data: currentChargesWithLabels } = await supabase
+        .from("charges")
+        .select("libelle")
+        .gte("date_charge", mStart)
+        .lte("date_charge", mEnd);
+      const saisisLabels = new Set((currentChargesWithLabels || []).map(c => c.libelle.toLowerCase()));
+
+      (recurringRes.data || []).forEach((rc: any) => {
+        if (!saisisLabels.has(rc.libelle.toLowerCase())) {
+          alerts.push({
+            id: `financial-recurring-${rc.libelle}`,
+            type: "warning",
+            icon: Landmark,
+            message: `${rc.libelle} non enregistrée ce mois`,
+            action: "Saisir",
+            section: "cockpit-financier",
+          });
+        }
+      });
+
+      return alerts;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const alerts = useMemo(() => {
     const all: DashboardAlert[] = [
       ...(incompleteAlerts || []),
       ...(paymentAlerts || []),
       ...(examAlerts || []),
+      ...(financialAlerts || []),
     ];
     // Sort: danger first, then warning, then info
     return all.sort((a, b) => {
       const order = { danger: 0, warning: 1, info: 2 };
       return order[a.type] - order[b.type];
     }).slice(0, 8);
-  }, [incompleteAlerts, paymentAlerts, examAlerts]);
+  }, [incompleteAlerts, paymentAlerts, examAlerts, financialAlerts]);
 
   return alerts;
 }
