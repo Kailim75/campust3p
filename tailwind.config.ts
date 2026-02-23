@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Nunito Sans', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Nunito', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -85,10 +85,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'soft': '0 1px 3px rgba(22,16,10,0.06), 0 4px 14px rgba(22,16,10,0.05)',
-        'elevated': '0 4px 12px rgba(22,16,10,0.08), 0 2px 6px rgba(22,16,10,0.04)',
-        'card': '0 1px 2px rgba(22,16,10,0.05)',
-        'focus': '0 0 0 3px rgba(30,80,104,0.2)',
+        'soft': '0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
+        'elevated': '0 4px 6px -1px rgba(15,23,42,0.07), 0 2px 4px -2px rgba(15,23,42,0.05)',
+        'card': '0 1px 2px rgba(15,23,42,0.04)',
+        'focus': '0 0 0 3px rgba(79,70,229,0.2)',
       },
       keyframes: {
         "accordion-down": {
@@ -100,24 +100,24 @@ export default {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(8px)" },
+          from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-in-left": {
-          from: { opacity: "0", transform: "translateX(-12px)" },
+          from: { opacity: "0", transform: "translateX(-8px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
+          from: { opacity: "0", transform: "scale(0.97)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.25s ease-out",
-        "slide-in-left": "slide-in-left 0.25s ease-out",
-        "scale-in": "scale-in 0.25s cubic-bezier(0.16, 1, 0.32, 1)",
+        "fade-in": "fade-in 0.2s ease-out",
+        "slide-in-left": "slide-in-left 0.2s ease-out",
+        "scale-in": "scale-in 0.2s cubic-bezier(0.16, 1, 0.32, 1)",
       },
     },
   },

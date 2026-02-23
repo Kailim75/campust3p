@@ -115,33 +115,23 @@ function SidebarContent({
 
   return (
     <>
-      {/* Logo zone — height 68px */}
+      {/* Logo zone */}
       <div 
-        className="flex items-center gap-3 px-5" 
-        style={{ 
-          height: '68px', 
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          padding: '0 18px',
-        }}
+        className="flex items-center gap-3 border-b border-border" 
+        style={{ height: '64px', padding: '0 16px' }}
       >
         <div 
-          className="flex items-center justify-center flex-shrink-0"
-          style={{ 
-            width: 40, 
-            height: 40, 
-            borderRadius: 12, 
-            background: 'rgba(255,255,255,0.15)', 
-            border: '1.5px solid rgba(255,255,255,0.25)',
-          }}
+          className="flex items-center justify-center flex-shrink-0 bg-primary rounded-lg"
+          style={{ width: 36, height: 36 }}
         >
-          <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 16, color: '#FFFFFF' }}>T3</span>
+          <span className="text-primary-foreground font-bold text-sm">T3</span>
         </div>
         {!collapsed && (
           <div className="animate-fade-in min-w-0">
-            <h1 style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 15.5, color: '#FFFFFF', lineHeight: 1.2 }}>
+            <h1 className="text-foreground font-bold text-[15px] leading-tight">
               T3P Campus
             </h1>
-            <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>
+            <p className="text-muted-foreground text-[11px] leading-tight">
               Formation Management
             </p>
           </div>
@@ -149,11 +139,11 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2.5 py-3 space-y-3 overflow-y-auto">
+      <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
         {menuGroups.map((group) => (
           <div key={group.label || 'home'}>
             {!collapsed && group.label && (
-              <p className="sidebar-section-label px-3 mb-1.5 mt-2">
+              <p className="sidebar-section-label px-3 mb-1.5 mt-1">
                 {group.label}
               </p>
             )}
@@ -175,21 +165,18 @@ function SidebarContent({
                       isActive && "active"
                     )}
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                     {!collapsed && (
                       <span className="animate-fade-in truncate">{item.label}</span>
                     )}
                     {showBadge && (
                       <span 
-                        className="absolute flex items-center justify-center text-white font-bold"
+                        className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold"
                         style={{
-                          background: 'rgba(255,255,255,0.2)',
-                          fontFamily: 'Nunito',
-                          fontWeight: 800,
                           fontSize: 10,
                           borderRadius: 99,
-                          padding: '2px 8px',
-                          right: collapsed ? 0 : 12,
+                          padding: '1px 6px',
+                          right: collapsed ? 0 : 8,
                           top: collapsed ? 0 : 'auto',
                           ...(collapsed ? { width: 16, height: 16 } : {}),
                         }}
@@ -206,7 +193,7 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="px-2.5 py-3 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+      <div className="px-3 py-3 space-y-0.5 border-t border-border">
         <RecentItemsMenu 
           onItemClick={handleRecentItemClick}
           collapsed={collapsed}
@@ -222,7 +209,7 @@ function SidebarContent({
             activeSection === "settings" && "active"
           )}
         >
-          <Settings className="h-4 w-4 flex-shrink-0" />
+          <Settings className="h-[18px] w-[18px] flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Paramètres</span>}
         </button>
         
@@ -233,7 +220,7 @@ function SidebarContent({
           }}
           className="sidebar-item w-full"
         >
-          <HelpCircle className="h-4 w-4 flex-shrink-0" />
+          <HelpCircle className="h-[18px] w-[18px] flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Aide</span>}
         </button>
         
@@ -244,7 +231,7 @@ function SidebarContent({
           }}
           className="sidebar-item w-full"
         >
-          <ClipboardList className="h-4 w-4 flex-shrink-0" />
+          <ClipboardList className="h-[18px] w-[18px] flex-shrink-0" />
           {!collapsed && <span className="animate-fade-in">Espace formateur</span>}
         </button>
         
@@ -252,9 +239,9 @@ function SidebarContent({
           <button
             onClick={handleSwitchToSuperAdmin}
             className="sidebar-item w-full"
-            style={{ border: '1px dashed rgba(255,255,255,0.2)' }}
+            style={{ border: '1px dashed hsl(var(--border))' }}
           >
-            <Shield className="h-4 w-4 flex-shrink-0" />
+            <Shield className="h-[18px] w-[18px] flex-shrink-0" />
             {!collapsed && <span className="animate-fade-in text-xs font-medium">Super Admin</span>}
           </button>
         )}
@@ -305,17 +292,14 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   if (isMobile) {
     return (
       <>
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 gap-3" style={{
-          height: 56,
-          background: '#1E5068',
-        }}>
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 gap-3 bg-card border-b border-border" style={{ height: 56 }}>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground">
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[230px] p-0" style={{ background: '#1E5068', border: 'none' }}>
+            <SheetContent side="left" className="w-[260px] p-0 bg-card border-r border-border">
               <div className="flex flex-col h-full">
                 <SidebarContent
                   activeSection={activeSection}
@@ -329,17 +313,10 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div 
-              className="flex items-center justify-center"
-              style={{ 
-                width: 28, height: 28, borderRadius: 8, 
-                background: 'rgba(255,255,255,0.15)', 
-                border: '1.5px solid rgba(255,255,255,0.25)' 
-              }}
-            >
-              <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 11, color: '#FFFFFF' }}>T3</span>
+            <div className="flex items-center justify-center bg-primary rounded-lg" style={{ width: 28, height: 28 }}>
+              <span className="text-primary-foreground font-bold text-[10px]">T3</span>
             </div>
-            <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 14, color: '#FFFFFF' }}>T3P Campus</span>
+            <span className="text-foreground font-bold text-sm">T3P Campus</span>
           </div>
         </header>
         <div style={{ height: 56 }} />
@@ -350,14 +327,9 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-200 flex flex-col",
-        collapsed ? "w-16" : "w-[230px]"
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-200 flex flex-col bg-card border-r border-border",
+        collapsed ? "w-16" : "w-[250px]"
       )}
-      style={{
-        background: '#1E5068',
-        backgroundImage: 
-          'radial-gradient(ellipse at 10% 90%, rgba(255,255,255,0.04) 0%, transparent 60%), radial-gradient(ellipse at 90% 10%, rgba(255,255,255,0.03) 0%, transparent 50%)',
-      }}
     >
       <SidebarContent
         activeSection={activeSection}
