@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,68 +15,68 @@
 
 @layer base {
   :root {
-    /* T3P Formation - Professional Blue Theme with Enhanced Contrast */
-    --background: 210 20% 98%;
-    --foreground: 220 30% 8%;
+    /* T3P Campus - Vert Forêt & Orange */
+    --background: 40 22% 96%;
+    --foreground: 100 30% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 30% 8%;
+    --card: 40 20% 99%;
+    --card-foreground: 100 30% 10%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 8%;
+    --popover: 40 20% 99%;
+    --popover-foreground: 100 30% 10%;
 
-    /* Deep professional blue - enhanced contrast */
-    --primary: 220 75% 42%;
+    /* Vert forêt #2D5016 */
+    --primary: 96 57% 20%;
     --primary-foreground: 0 0% 100%;
 
-    /* Warm gray for secondary - darker for readability */
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 30% 20%;
+    /* Secondaire doux */
+    --secondary: 40 15% 92%;
+    --secondary-foreground: 100 30% 18%;
 
-    /* Muted tones - improved contrast */
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 15% 35%;
+    /* Muted */
+    --muted: 40 12% 93%;
+    --muted-foreground: 100 10% 40%;
 
-    /* Amber accent for CTAs */
-    --accent: 35 95% 50%;
-    --accent-foreground: 35 100% 12%;
+    /* Orange accent #F97316 */
+    --accent: 25 95% 53%;
+    --accent-foreground: 25 100% 10%;
 
     --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success green - darker for readability */
-    --success: 150 75% 35%;
+    /* Success */
+    --success: 150 65% 35%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning amber - darker */
+    /* Warning */
     --warning: 40 100% 45%;
     --warning-foreground: 40 100% 12%;
 
-    /* Info blue - darker */
-    --info: 200 90% 42%;
+    /* Info */
+    --info: 200 85% 42%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 20% 85%;
-    --input: 220 20% 85%;
-    --ring: 220 75% 42%;
+    --border: 40 15% 85%;
+    --input: 40 15% 85%;
+    --ring: 96 57% 20%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Sidebar - Darker professional */
-    --sidebar-background: 220 35% 12%;
-    --sidebar-foreground: 220 10% 90%;
-    --sidebar-primary: 220 75% 55%;
+    /* Sidebar - Vert profond */
+    --sidebar-background: 100 40% 10%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 25 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 30% 20%;
-    --sidebar-accent-foreground: 220 10% 98%;
-    --sidebar-border: 220 30% 22%;
-    --sidebar-ring: 220 75% 55%;
+    --sidebar-accent: 100 30% 18%;
+    --sidebar-accent-foreground: 40 20% 96%;
+    --sidebar-border: 100 30% 16%;
+    --sidebar-ring: 25 95% 53%;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 75% 42%), hsl(220 80% 52%));
-    --gradient-accent: linear-gradient(135deg, hsl(35 95% 50%), hsl(25 95% 45%));
-    --gradient-success: linear-gradient(135deg, hsl(150 75% 35%), hsl(160 75% 40%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 20% 97%));
+    --gradient-primary: linear-gradient(135deg, hsl(96 57% 20%), hsl(96 50% 28%));
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%), hsl(20 90% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(150 65% 35%), hsl(160 65% 40%));
+    --gradient-card: linear-gradient(145deg, hsl(40 20% 99%), hsl(40 18% 96%));
 
     /* Shadows - slightly stronger */
     --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
@@ -102,51 +102,51 @@
   }
 
   .dark {
-    --background: 220 30% 6%;
-    --foreground: 220 10% 96%;
+    --background: 100 25% 6%;
+    --foreground: 40 15% 95%;
 
-    --card: 220 30% 10%;
-    --card-foreground: 220 10% 96%;
+    --card: 100 25% 10%;
+    --card-foreground: 40 15% 95%;
 
-    --popover: 220 30% 10%;
-    --popover-foreground: 220 10% 96%;
+    --popover: 100 25% 10%;
+    --popover-foreground: 40 15% 95%;
 
-    --primary: 220 75% 58%;
+    --primary: 96 50% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 25% 16%;
-    --secondary-foreground: 220 10% 88%;
+    --secondary: 100 20% 16%;
+    --secondary-foreground: 40 15% 88%;
 
-    --muted: 220 25% 14%;
-    --muted-foreground: 220 12% 65%;
+    --muted: 100 20% 14%;
+    --muted-foreground: 40 10% 60%;
 
-    --accent: 35 95% 55%;
-    --accent-foreground: 35 100% 12%;
+    --accent: 25 95% 55%;
+    --accent-foreground: 25 100% 10%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 70% 48%;
+    --success: 150 65% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 40 95% 52%;
     --warning-foreground: 40 100% 12%;
 
-    --info: 200 85% 58%;
+    --info: 200 85% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 25% 22%;
-    --input: 220 25% 22%;
-    --ring: 220 75% 58%;
+    --border: 100 20% 20%;
+    --input: 100 20% 20%;
+    --ring: 96 50% 40%;
 
-    --sidebar-background: 220 35% 6%;
-    --sidebar-foreground: 220 10% 88%;
-    --sidebar-primary: 220 75% 58%;
+    --sidebar-background: 100 35% 6%;
+    --sidebar-foreground: 40 15% 88%;
+    --sidebar-primary: 25 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 30% 14%;
-    --sidebar-accent-foreground: 220 10% 98%;
-    --sidebar-border: 220 30% 18%;
-    --sidebar-ring: 220 75% 58%;
+    --sidebar-accent: 100 25% 14%;
+    --sidebar-accent-foreground: 40 15% 96%;
+    --sidebar-border: 100 25% 16%;
+    --sidebar-ring: 25 95% 53%;
   }
 }
 
@@ -157,11 +157,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Fraunces', Georgia, serif;
     @apply font-semibold tracking-tight;
   }
 }
