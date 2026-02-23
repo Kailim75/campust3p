@@ -51,31 +51,26 @@ export function Header({
     : "?";
 
   return (
-    <header 
-      className="sticky top-0 z-30 bg-card border-b border-border"
-      style={{ height: '56px', padding: '0 24px' }}
-    >
+    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '52px', padding: '0 24px' }}>
       <div className="flex items-center justify-between h-full">
-        <div className="flex-1 min-w-0">
-          {activeSection && onNavigate && (
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          {activeSection && onNavigate ? (
             <AppBreadcrumb 
               activeSection={activeSection} 
               activeTab={activeTab}
               onNavigate={onNavigate} 
             />
-          )}
-          
-          <h1 className="text-foreground font-semibold text-[16px] leading-tight truncate tracking-tight">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          ) : (
+            <div>
+              <h1 className="text-foreground font-semibold text-[15px] leading-none tracking-tight">{title}</h1>
+              {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+            </div>
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
-          <CentreSwitcher />
           <GlobalSearch />
+          <CentreSwitcher />
           <ThemeToggle />
           <NotificationBell />
 
@@ -83,7 +78,7 @@ export function Header({
             <Button 
               onClick={onAddClick} 
               size="sm" 
-              className="gap-1.5 text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg font-semibold text-[13px] h-8 px-3"
+              className="gap-1.5 text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg font-medium text-[13px] h-8 px-3 ml-1"
             >
               <Plus className="h-3.5 w-3.5" />
               {addLabel || "Ajouter"}
@@ -92,9 +87,9 @@ export function Header({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
-                <Avatar className="h-8 w-8 border border-border">
-                  <AvatarFallback className="text-[11px] text-primary-foreground bg-primary font-semibold">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 ml-1">
+                <Avatar className="h-7 w-7 border border-border">
+                  <AvatarFallback className="text-[10px] text-primary-foreground bg-primary font-medium">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
