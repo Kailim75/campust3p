@@ -1214,6 +1214,60 @@ export type Database = {
           },
         ]
       }
+      compte_rendu_seance: {
+        Row: {
+          created_at: string | null
+          duree_reelle_minutes: number | null
+          formateur_id: string | null
+          id: string
+          niveau_global: Database["public"]["Enums"]["niveau_conduite"]
+          points_ameliorer: string | null
+          points_positifs: string | null
+          points_travailles: string[] | null
+          recommandation_seances_sup: number | null
+          reservation_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duree_reelle_minutes?: number | null
+          formateur_id?: string | null
+          id?: string
+          niveau_global?: Database["public"]["Enums"]["niveau_conduite"]
+          points_ameliorer?: string | null
+          points_positifs?: string | null
+          points_travailles?: string[] | null
+          recommandation_seances_sup?: number | null
+          reservation_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duree_reelle_minutes?: number | null
+          formateur_id?: string | null
+          id?: string
+          niveau_global?: Database["public"]["Enums"]["niveau_conduite"]
+          points_ameliorer?: string | null
+          points_positifs?: string | null
+          points_travailles?: string[] | null
+          recommandation_seances_sup?: number | null
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compte_rendu_seance_formateur_id_fkey"
+            columns: ["formateur_id"]
+            isOneToOne: false
+            referencedRelation: "formateurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compte_rendu_seance_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations_conduite"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_documents: {
         Row: {
           commentaires: string | null
@@ -1666,6 +1720,7 @@ export type Database = {
         Row: {
           annule_at: string | null
           annule_par: string | null
+          capacite_max: number
           centre_id: string | null
           commentaires: string | null
           confirme_at: string | null
@@ -1682,6 +1737,7 @@ export type Database = {
           lieu_arrivee: string | null
           lieu_depart: string | null
           motif_annulation: string | null
+          notes_formateur: string | null
           parcours: string | null
           rappel_envoye: boolean | null
           rappel_envoye_at: string | null
@@ -1696,6 +1752,7 @@ export type Database = {
         Insert: {
           annule_at?: string | null
           annule_par?: string | null
+          capacite_max?: number
           centre_id?: string | null
           commentaires?: string | null
           confirme_at?: string | null
@@ -1712,6 +1769,7 @@ export type Database = {
           lieu_arrivee?: string | null
           lieu_depart?: string | null
           motif_annulation?: string | null
+          notes_formateur?: string | null
           parcours?: string | null
           rappel_envoye?: boolean | null
           rappel_envoye_at?: string | null
@@ -1726,6 +1784,7 @@ export type Database = {
         Update: {
           annule_at?: string | null
           annule_par?: string | null
+          capacite_max?: number
           centre_id?: string | null
           commentaires?: string | null
           confirme_at?: string | null
@@ -1742,6 +1801,7 @@ export type Database = {
           lieu_arrivee?: string | null
           lieu_depart?: string | null
           motif_annulation?: string | null
+          notes_formateur?: string | null
           parcours?: string | null
           rappel_envoye?: boolean | null
           rappel_envoye_at?: string | null
@@ -4694,6 +4754,50 @@ export type Database = {
           },
         ]
       }
+      progression_conduite: {
+        Row: {
+          accompagnement_examen_fait: boolean | null
+          apprenant_id: string
+          commentaire_global: string | null
+          date_dernier_bilan: string | null
+          heures_preventive_realisees: number | null
+          heures_ville_realisees: number | null
+          id: string
+          niveau_actuel: Database["public"]["Enums"]["niveau_conduite"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          accompagnement_examen_fait?: boolean | null
+          apprenant_id: string
+          commentaire_global?: string | null
+          date_dernier_bilan?: string | null
+          heures_preventive_realisees?: number | null
+          heures_ville_realisees?: number | null
+          id?: string
+          niveau_actuel?: Database["public"]["Enums"]["niveau_conduite"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          accompagnement_examen_fait?: boolean | null
+          apprenant_id?: string
+          commentaire_global?: string | null
+          date_dernier_bilan?: string | null
+          heures_preventive_realisees?: number | null
+          heures_ville_realisees?: number | null
+          id?: string
+          niveau_actuel?: Database["public"]["Enums"]["niveau_conduite"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progression_conduite_apprenant_id_fkey"
+            columns: ["apprenant_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       progression_pedagogique: {
         Row: {
           commentaire: string | null
@@ -5180,6 +5284,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reservations_conduite: {
+        Row: {
+          apprenant_id: string
+          created_at: string | null
+          creneau_id: string
+          id: string
+          motif_annulation: string | null
+          rappel_24h_envoye: boolean | null
+          rappel_2h_envoye: boolean | null
+          statut: Database["public"]["Enums"]["statut_reservation_conduite"]
+        }
+        Insert: {
+          apprenant_id: string
+          created_at?: string | null
+          creneau_id: string
+          id?: string
+          motif_annulation?: string | null
+          rappel_24h_envoye?: boolean | null
+          rappel_2h_envoye?: boolean | null
+          statut?: Database["public"]["Enums"]["statut_reservation_conduite"]
+        }
+        Update: {
+          apprenant_id?: string
+          created_at?: string | null
+          creneau_id?: string
+          id?: string
+          motif_annulation?: string | null
+          rappel_24h_envoye?: boolean | null
+          rappel_2h_envoye?: boolean | null
+          statut?: Database["public"]["Enums"]["statut_reservation_conduite"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_conduite_apprenant_id_fkey"
+            columns: ["apprenant_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_conduite_creneau_id_fkey"
+            columns: ["creneau_id"]
+            isOneToOne: false
+            referencedRelation: "creneaux_conduite"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ressources_conduite: {
+        Row: {
+          categorie: Database["public"]["Enums"]["categorie_ressource_conduite"]
+          contenu: string
+          created_at: string | null
+          formation_cible:
+            | Database["public"]["Enums"]["formation_cible_conduite"]
+            | null
+          id: string
+          ordre_affichage: number | null
+          titre: string
+          type_contenu: Database["public"]["Enums"]["type_contenu_ressource"]
+          visible_eleve: boolean | null
+        }
+        Insert: {
+          categorie: Database["public"]["Enums"]["categorie_ressource_conduite"]
+          contenu: string
+          created_at?: string | null
+          formation_cible?:
+            | Database["public"]["Enums"]["formation_cible_conduite"]
+            | null
+          id?: string
+          ordre_affichage?: number | null
+          titre: string
+          type_contenu: Database["public"]["Enums"]["type_contenu_ressource"]
+          visible_eleve?: boolean | null
+        }
+        Update: {
+          categorie?: Database["public"]["Enums"]["categorie_ressource_conduite"]
+          contenu?: string
+          created_at?: string | null
+          formation_cible?:
+            | Database["public"]["Enums"]["formation_cible_conduite"]
+            | null
+          id?: string
+          ordre_affichage?: number | null
+          titre?: string
+          type_contenu?: Database["public"]["Enums"]["type_contenu_ressource"]
+          visible_eleve?: boolean | null
+        }
+        Relationships: []
       }
       satisfaction_reponses: {
         Row: {
@@ -6236,6 +6430,14 @@ export type Database = {
         | "a_reprendre"
       bim_projet_statut: "brouillon" | "actif" | "archive"
       budget_type: "charge" | "revenu"
+      categorie_ressource_conduite:
+        | "regles_centre"
+        | "regles_formateur"
+        | "deroulement_examen"
+        | "adresses_secteur"
+        | "checklist_jour_j"
+        | "conseils_conduite"
+        | "documents_apporter"
       charge_categorie:
         | "loyer"
         | "salaires"
@@ -6298,6 +6500,7 @@ export type Database = {
         | "impayee"
         | "annulee"
       financement_type: "personnel" | "entreprise" | "cpf" | "opco"
+      formation_cible_conduite: "taxi_initial" | "vtc" | "vmdtr" | "tous"
       formation_type:
         | "TAXI"
         | "VTC"
@@ -6309,6 +6512,7 @@ export type Database = {
         | "Mobilité Taxi"
       mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf"
       mode_versement: "especes" | "cb" | "virement" | "alma" | "cpf"
+      niveau_conduite: "debutant" | "intermediaire" | "avance" | "pret_examen"
       partner_category:
         | "assurance"
         | "comptable"
@@ -6338,7 +6542,18 @@ export type Database = {
         | "terminee"
         | "annulee"
         | "complet"
+      statut_reservation_conduite:
+        | "confirmee"
+        | "annulee_eleve"
+        | "annulee_formateur"
+        | "no_show"
+        | "realisee"
       type_charge: "fixe" | "variable"
+      type_contenu_ressource: "texte" | "liste" | "carte" | "pdf" | "video"
+      type_seance_conduite:
+        | "conduite_preventive"
+        | "conduite_ville"
+        | "accompagnement_examen"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6483,6 +6698,15 @@ export const Constants = {
       ],
       bim_projet_statut: ["brouillon", "actif", "archive"],
       budget_type: ["charge", "revenu"],
+      categorie_ressource_conduite: [
+        "regles_centre",
+        "regles_formateur",
+        "deroulement_examen",
+        "adresses_secteur",
+        "checklist_jour_j",
+        "conseils_conduite",
+        "documents_apporter",
+      ],
       charge_categorie: [
         "loyer",
         "salaires",
@@ -6551,6 +6775,7 @@ export const Constants = {
         "annulee",
       ],
       financement_type: ["personnel", "entreprise", "cpf", "opco"],
+      formation_cible_conduite: ["taxi_initial", "vtc", "vmdtr", "tous"],
       formation_type: [
         "TAXI",
         "VTC",
@@ -6563,6 +6788,7 @@ export const Constants = {
       ],
       mode_paiement: ["cb", "virement", "cheque", "especes", "cpf"],
       mode_versement: ["especes", "cb", "virement", "alma", "cpf"],
+      niveau_conduite: ["debutant", "intermediaire", "avance", "pret_examen"],
       partner_category: [
         "assurance",
         "comptable",
@@ -6590,7 +6816,20 @@ export const Constants = {
       ],
       prospect_status: ["nouveau", "contacte", "relance", "converti", "perdu"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
+      statut_reservation_conduite: [
+        "confirmee",
+        "annulee_eleve",
+        "annulee_formateur",
+        "no_show",
+        "realisee",
+      ],
       type_charge: ["fixe", "variable"],
+      type_contenu_ressource: ["texte", "liste", "carte", "pdf", "video"],
+      type_seance_conduite: [
+        "conduite_preventive",
+        "conduite_ville",
+        "accompagnement_examen",
+      ],
     },
   },
 } as const

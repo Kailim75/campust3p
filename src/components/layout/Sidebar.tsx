@@ -60,6 +60,7 @@ const menuGroups = [
       { id: "contacts", label: "Apprenants", icon: Users },
       { id: "pipeline", label: "Pipeline", icon: ClipboardList },
       { id: "sessions", label: "Sessions", icon: Calendar },
+      { id: "planning-conduite", label: "Planning Conduite", icon: CalendarClock },
     ],
   },
   {
