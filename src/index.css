@@ -15,68 +15,74 @@
 
 @layer base {
   :root {
-    /* T3P Campus — Bleu foncé, Vert forêt, Jaune soleil */
-    --background: 220 8% 98%;
-    --foreground: 0 0% 30%;
+    /* T3P Campus — Design System Officiel */
+    /* Fond général — #FFFFFF */
+    --background: 0 0% 100%;
+    /* Texte principal — #333333 */
+    --foreground: 0 0% 20%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 30%;
+    /* Fond cartes — #F8F9FA */
+    --card: 210 17% 98%;
+    --card-foreground: 0 0% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 30%;
+    --popover-foreground: 0 0% 20%;
 
-    /* Bleu foncé #1A4E8A */
+    /* Primary — Bleu marine #1A4E8A */
     --primary: 211 68% 32%;
     --primary-foreground: 0 0% 100%;
 
-    /* Vert forêt #2F6B4A — secondary */
+    /* Secondary — Vert forêt #2F6B4A */
     --secondary: 150 39% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted — Gris clair */
-    --muted: 220 8% 96%;
-    --muted-foreground: 0 0% 45%;
+    /* Muted — #F8F9FA / texte #666666 */
+    --muted: 210 17% 98%;
+    --muted-foreground: 0 0% 40%;
 
-    /* Jaune soleil #F2C94C */
+    /* Accent — Jaune doré #F2C94C */
     --accent: 44 87% 62%;
-    --accent-foreground: 44 90% 14%;
+    --accent-foreground: 0 0% 20%;
 
-    --destructive: 0 80% 50%;
+    /* Destructive — #E74C3C */
+    --destructive: 6 78% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success */
-    --success: 150 39% 30%;
+    /* Success — #27AE60 */
+    --success: 145 63% 42%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning */
+    /* Warning — #F2C94C (= accent) */
     --warning: 44 87% 62%;
-    --warning-foreground: 44 90% 14%;
+    --warning-foreground: 0 0% 20%;
 
-    /* Info */
+    /* Info — #1A4E8A (= primary lighter) */
     --info: 211 68% 42%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 10% 88%;
-    --input: 220 10% 88%;
+    /* Bordures — #E5E7EB */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 211 68% 32%;
 
     --radius: 0.75rem;
 
-    /* Sidebar — Bleu foncé profond */
-    --sidebar-background: 211 70% 14%;
-    --sidebar-foreground: 220 8% 92%;
-    --sidebar-primary: 44 87% 62%;
-    --sidebar-primary-foreground: 211 70% 14%;
-    --sidebar-accent: 211 60% 22%;
-    --sidebar-accent-foreground: 220 8% 96%;
-    --sidebar-border: 211 60% 20%;
+    /* Sidebar — Fond primary #1A4E8A */
+    --sidebar-background: 211 68% 32%;
+    --sidebar-foreground: 0 0% 100%;
+    /* Item actif sidebar — Vert forêt #2F6B4A */
+    --sidebar-primary: 150 39% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 211 68% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 211 68% 26%;
     --sidebar-ring: 44 87% 62%;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(211 68% 32%), hsl(211 60% 40%));
+    --gradient-primary: linear-gradient(135deg, hsl(211 68% 32%), hsl(211 60% 42%));
     --gradient-accent: linear-gradient(135deg, hsl(44 87% 62%), hsl(40 85% 55%));
-    --gradient-success: linear-gradient(135deg, hsl(150 39% 30%), hsl(155 40% 38%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 8% 97%));
+    --gradient-success: linear-gradient(135deg, hsl(145 63% 42%), hsl(145 55% 48%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 17% 97%));
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
@@ -103,34 +109,34 @@
 
   .dark {
     --background: 211 30% 8%;
-    --foreground: 220 8% 95%;
+    --foreground: 0 0% 90%;
 
     --card: 211 30% 12%;
-    --card-foreground: 220 8% 95%;
+    --card-foreground: 0 0% 90%;
 
     --popover: 211 30% 12%;
-    --popover-foreground: 220 8% 95%;
+    --popover-foreground: 0 0% 90%;
 
     --primary: 211 60% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 35% 35%;
+    --secondary: 150 35% 38%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 211 25% 16%;
-    --muted-foreground: 220 8% 60%;
+    --muted-foreground: 0 0% 55%;
 
     --accent: 44 87% 62%;
-    --accent-foreground: 44 90% 14%;
+    --accent-foreground: 0 0% 15%;
 
-    --destructive: 0 75% 50%;
+    --destructive: 6 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 40% 42%;
+    --success: 145 55% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 44 87% 58%;
-    --warning-foreground: 44 90% 14%;
+    --warning-foreground: 0 0% 15%;
 
     --info: 211 60% 55%;
     --info-foreground: 0 0% 100%;
@@ -139,12 +145,12 @@
     --input: 211 25% 22%;
     --ring: 211 60% 50%;
 
-    --sidebar-background: 211 35% 6%;
-    --sidebar-foreground: 220 8% 88%;
-    --sidebar-primary: 44 87% 62%;
-    --sidebar-primary-foreground: 211 35% 10%;
-    --sidebar-accent: 211 30% 16%;
-    --sidebar-accent-foreground: 220 8% 96%;
+    --sidebar-background: 211 40% 12%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 150 35% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 211 35% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 211 30% 18%;
     --sidebar-ring: 44 87% 62%;
   }

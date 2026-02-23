@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
         description: "CRM pour centre de formation Taxi/VTC",
         start_url: "/",
         display: "standalone",
-        background_color: "#F8F7F4",
+        background_color: "#FFFFFF",
         theme_color: "#1A4E8A",
         orientation: "portrait-primary",
         icons: [
