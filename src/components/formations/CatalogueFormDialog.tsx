@@ -226,7 +226,7 @@ export function CatalogueFormDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="prixHt">Prix (€)</Label>
               <Input
@@ -260,7 +260,7 @@ export function CatalogueFormDialog({
               {remise > 0 && (
                 <p className="text-xs text-success">Remise de {remise}% appliquée</p>
               )}
-              <p className="text-xs text-muted-foreground">TVA non applicable — art. 293 B du CGI</p>
+              <p className="text-xs text-muted-foreground">TVA non applicable — art. 261-4-4° et 293 B du CGI</p>
             </div>
           </div>
 
