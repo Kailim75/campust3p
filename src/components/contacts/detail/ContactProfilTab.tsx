@@ -36,12 +36,12 @@ export function ContactProfilTab({ contact, contactId }: ContactProfilTabProps) 
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="infos" className="text-xs px-2">
+      <TabsList className="grid w-full grid-cols-2 mb-5 h-10 p-1 bg-muted/60 rounded-xl">
+        <TabsTrigger value="infos" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <User className="h-3.5 w-3.5 mr-1.5" />
           <span>Informations</span>
         </TabsTrigger>
-        <TabsTrigger value="partners" className="text-xs px-2">
+        <TabsTrigger value="partners" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <Building2 className="h-3.5 w-3.5 mr-1.5" />
           <span>Partenaires</span>
         </TabsTrigger>
