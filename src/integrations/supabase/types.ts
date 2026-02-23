@@ -1748,6 +1748,7 @@ export type Database = {
           type_seance: string
           updated_at: string
           vehicule_id: string | null
+          visible_eleve: boolean | null
         }
         Insert: {
           annule_at?: string | null
@@ -1780,6 +1781,7 @@ export type Database = {
           type_seance?: string
           updated_at?: string
           vehicule_id?: string | null
+          visible_eleve?: boolean | null
         }
         Update: {
           annule_at?: string | null
@@ -1812,6 +1814,7 @@ export type Database = {
           type_seance?: string
           updated_at?: string
           vehicule_id?: string | null
+          visible_eleve?: boolean | null
         }
         Relationships: [
           {
@@ -5867,6 +5870,50 @@ export type Database = {
           },
         ]
       }
+      tokens_reservation: {
+        Row: {
+          actif: boolean | null
+          apprenant_id: string
+          created_at: string | null
+          created_by: string | null
+          date_expiration: string | null
+          derniere_utilisation: string | null
+          id: string
+          nb_utilisations: number | null
+          token: string
+        }
+        Insert: {
+          actif?: boolean | null
+          apprenant_id: string
+          created_at?: string | null
+          created_by?: string | null
+          date_expiration?: string | null
+          derniere_utilisation?: string | null
+          id?: string
+          nb_utilisations?: number | null
+          token?: string
+        }
+        Update: {
+          actif?: boolean | null
+          apprenant_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          date_expiration?: string | null
+          derniere_utilisation?: string | null
+          id?: string
+          nb_utilisations?: number | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tokens_reservation_apprenant_id_fkey"
+            columns: ["apprenant_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_centres: {
         Row: {
           centre_id: string
@@ -6219,6 +6266,10 @@ export type Database = {
     }
     Functions: {
       accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
+      annuler_reservation_public: {
+        Args: { p_motif?: string; p_reservation_id: string; p_token: string }
+        Returns: Json
+      }
       anonymize_contact: { Args: { p_contact_id: string }; Returns: boolean }
       archive_session: { Args: { p_session_id: string }; Returns: boolean }
       cancel_certificate: {
@@ -6356,6 +6407,10 @@ export type Database = {
         Args: { p_contact_id: string; p_creneau_id: string }
         Returns: Json
       }
+      reserver_creneau_public: {
+        Args: { p_creneau_id: string; p_token: string }
+        Returns: Json
+      }
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -6384,6 +6439,7 @@ export type Database = {
         Returns: Json
       }
       unarchive_session: { Args: { p_session_id: string }; Returns: boolean }
+      use_reservation_token: { Args: { p_token: string }; Returns: boolean }
       validate_enquete_token: {
         Args: { p_token: string }
         Returns: {
@@ -6411,6 +6467,17 @@ export type Database = {
           contact_prenom: string
           expire_at: string
           used_at: string
+        }[]
+      }
+      validate_reservation_token: {
+        Args: { p_token: string }
+        Returns: {
+          apprenant_formation: string
+          apprenant_id: string
+          apprenant_nom: string
+          apprenant_prenom: string
+          token_actif: boolean
+          token_expire: boolean
         }[]
       }
     }
