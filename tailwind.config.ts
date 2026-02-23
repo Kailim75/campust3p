@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        display: ['Syne', 'sans-serif'],
+        mono: ['DM Mono', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -23,6 +24,10 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          hover: "hsl(var(--surface-hover))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -80,9 +85,11 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'soft': '0 2px 8px -2px hsl(220 25% 10% / 0.08)',
-        'elevated': '0 4px 12px -2px hsl(220 25% 10% / 0.1)',
-        'card': '0 1px 3px 0 hsl(220 25% 10% / 0.05), 0 1px 2px -1px hsl(220 25% 10% / 0.05)',
+        'soft': '0 2px 8px -2px hsl(228 30% 4% / 0.3)',
+        'elevated': '0 4px 12px -2px hsl(228 30% 4% / 0.4)',
+        'card': '0 1px 3px 0 hsl(228 30% 4% / 0.2), 0 1px 2px -1px hsl(228 30% 4% / 0.2)',
+        'glow-primary': '0 0 20px -5px hsl(239 84% 67% / 0.3)',
+        'glow-accent': '0 0 20px -5px hsl(189 95% 43% / 0.3)',
       },
       keyframes: {
         "accordion-down": {

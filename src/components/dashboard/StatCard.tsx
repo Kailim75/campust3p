@@ -56,7 +56,7 @@ export function StatCard({
               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </div>
-          <p className="text-3xl font-display font-bold text-foreground">{value}</p>
+          <p className="text-3xl font-mono font-medium text-foreground">{value}</p>
           
           {change !== undefined && (
             <div className="flex items-center gap-1.5">
