@@ -243,7 +243,7 @@ export function FormationsPage() {
                         <span className="flex items-center gap-1">
                           <Euro className="h-3.5 w-3.5" />
                           <span className="font-semibold text-foreground">
-                            {formatPrix(formation.prix_ht)} HT
+                            {formatPrix(formation.prix_ht)}
                           </span>
                         </span>
                         {formation.remise_percent > 0 && (

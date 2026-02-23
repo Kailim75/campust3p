@@ -138,7 +138,7 @@ export function PaiementsPage() {
       "Téléphone": facture.contact?.telephone || "",
       "Formation": facture.session_inscription?.session?.nom || "",
       "Type financement": financementLabels[facture.type_financement].label,
-      "Montant HT": Number(facture.montant_total).toFixed(2),
+      "Montant": Number(facture.montant_total).toFixed(2),
       "Montant payé": facture.total_paye.toFixed(2),
       "Reste à payer": (Number(facture.montant_total) - facture.total_paye).toFixed(2),
       "Statut": statusConfig[facture.statut].label,

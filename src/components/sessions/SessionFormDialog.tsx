@@ -63,7 +63,6 @@ const sessionSchema = z.object({
   adresse_code_postal: z.string().max(10).optional(),
   adresse_ville: z.string().max(100).optional(),
   prix_ht: z.coerce.number().min(0).default(0),
-  tva_percent: z.coerce.number().min(0).max(100).default(0),
   duree_heures: z.coerce.number().min(0).optional(),
   objectifs: z.string().max(2000).optional(),
   prerequis: z.string().max(1000).optional(),
@@ -106,7 +105,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
       adresse_code_postal: "",
       adresse_ville: "",
       prix_ht: 0,
-      tva_percent: 0,
       duree_heures: 0,
       objectifs: "",
       prerequis: "",
@@ -115,15 +113,8 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
     },
   });
 
-  const watchPrixHt = form.watch("prix_ht");
-  const watchTvaPercent = form.watch("tva_percent");
+  const watchPrix = form.watch("prix_ht");
   const watchCatalogueId = form.watch("catalogue_formation_id");
-
-  const prixTtc = useMemo(() => {
-    const ht = Number(watchPrixHt) || 0;
-    const tva = Number(watchTvaPercent) || 0;
-    return ht * (1 + tva / 100);
-  }, [watchPrixHt, watchTvaPercent]);
 
   // Auto-fill from catalogue when selected
   useEffect(() => {
@@ -132,7 +123,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
       if (selectedFormation) {
         form.setValue("nom", selectedFormation.intitule);
         form.setValue("prix_ht", Number(selectedFormation.prix_ht) || 0);
-        form.setValue("tva_percent", Number(selectedFormation.tva_percent) || 0);
         form.setValue("duree_heures", selectedFormation.duree_heures || 0);
         form.setValue("objectifs", selectedFormation.objectifs || "");
         form.setValue("prerequis", selectedFormation.prerequis || "");
@@ -173,7 +163,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         adresse_code_postal: (session as any).adresse_code_postal || "",
         adresse_ville: (session as any).adresse_ville || "",
         prix_ht: Number((session as any).prix_ht) || 0,
-        tva_percent: Number((session as any).tva_percent) || 0,
         duree_heures: (session as any).duree_heures || 0,
         objectifs: (session as any).objectifs || "",
         prerequis: (session as any).prerequis || "",
@@ -199,7 +188,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         adresse_code_postal: "",
         adresse_ville: "",
         prix_ht: 0,
-        tva_percent: 0,
         duree_heures: 0,
         objectifs: "",
         prerequis: "",
@@ -222,7 +210,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         // New fields - keep legacy fields for backwards compatibility
         lieu: [values.adresse_rue, values.adresse_code_postal, values.adresse_ville].filter(Boolean).join(", ") || null,
         formateur: formateurs.find(f => f.id === values.formateur_id)?.nom || null,
-        prix: prixTtc || null,
+        prix: Number(values.prix_ht) || null,
         // Extended fields (will be added via spread to avoid type issues with current types)
       };
 
@@ -241,7 +229,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         adresse_code_postal: values.adresse_code_postal || null,
         adresse_ville: values.adresse_ville || null,
         prix_ht: values.prix_ht || 0,
-        tva_percent: values.tva_percent || 0,
+        tva_percent: 0,
         duree_heures: values.duree_heures || null,
         objectifs: values.objectifs || null,
         prerequis: values.prerequis || null,
@@ -616,13 +604,13 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                 Tarification
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="prix_ht"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prix HT (€)</FormLabel>
+                      <FormLabel>Prix (€)</FormLabel>
                       <FormControl>
                         <Input {...field} type="number" min={0} step={0.01} placeholder="1500" />
                       </FormControl>
@@ -631,25 +619,8 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="tva_percent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>TVA (%)</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="number" min={0} max={100} step={0.1} placeholder="20" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex flex-col justify-end">
-                  <FormLabel className="mb-2">Prix TTC</FormLabel>
-                  <div className="h-10 px-3 py-2 rounded-md border bg-muted/50 flex items-center font-medium">
-                    {prixTtc.toFixed(2)} €
-                  </div>
+                <div className="flex items-end">
+                  <p className="text-xs text-muted-foreground pb-3">TVA non applicable — art. 293 B du CGI</p>
                 </div>
               </div>
             </div>

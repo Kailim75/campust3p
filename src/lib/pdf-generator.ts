@@ -110,7 +110,6 @@ export interface SessionInfo {
   duree_heures?: number;
   prix?: number;
   prix_ht?: number;
-  tva_percent?: number;
   formateur?: string;
   // Nouvelles informations enrichies
   numero_session?: string;
@@ -728,11 +727,9 @@ function formatSessionHours(session: SessionInfo): string {
   return "";
 }
 
-// Helper function to calculate TTC price
-function calculateTTC(session: SessionInfo): number {
-  const prixHT = session.prix_ht || session.prix || 0;
-  const tva = session.tva_percent || 0;
-  return prixHT * (1 + tva / 100);
+// Helper function to get price
+function getPrice(session: SessionInfo): number {
+  return session.prix_ht || session.prix || 0;
 }
 
 // ==================== PROGRAMMES DETAILLES T3P ====================
@@ -1149,11 +1146,9 @@ export function generateConventionPDF(
   yPos = addSectionTitle(doc, "Article 9 - Dispositions financières", yPos);
   yPos += 2;
   
-  const prixHT = session.prix_ht || session.prix || 0;
-  const tvaPercent = session.tva_percent || 0;
-  const prixTTC = calculateTTC(session);
+  const prix = getPrice(session);
   
-  const financeBoxHeight = 42;
+  const financeBoxHeight = 32;
   addInfoBox(doc, yPos, financeBoxHeight);
   
   yPos += 8;
@@ -1161,24 +1156,12 @@ export function generateConventionPDF(
   doc.text("Le coût total de la formation s'élève à :", 30, yPos);
   yPos += 7;
   doc.setFont("helvetica", "bold");
-  doc.text(`• Montant HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
+  doc.text(`• Montant : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 6;
-  if (tvaPercent > 0) {
-    doc.text(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
-    yPos += 6;
-    doc.setFont("helvetica", "bold");
-    doc.text(`• Montant TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
-    doc.setFont("helvetica", "normal");
-  } else {
-    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-    doc.text("• TVA non applicable - Article 261.4.4°a du CGI", 35, yPos);
-    yPos += 6;
-    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-    doc.setFont("helvetica", "bold");
-    doc.text(`• Montant total TTC : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, 35, yPos);
-    doc.setFont("helvetica", "normal");
-  }
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("• TVA non applicable — art. 293 B du CGI", 35, yPos);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
   yPos += financeBoxHeight - 18;
   doc.setFontSize(9);
@@ -1714,17 +1697,9 @@ export function generateContratFormationPDF(
 
   // Article 6
   writeArticleTitle("Article 6 - Prix de la formation et modalités de paiement");
-  const prixHT = session.prix_ht || session.prix || 0;
-  const tvaPercent = session.tva_percent || 0;
-  const prixTTC = calculateTTC(session);
-  writeBullet(`• Prix HT : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
-  if (tvaPercent > 0) {
-    writeBullet(`• TVA (${tvaPercent}%) : ${(prixHT * tvaPercent / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
-    writeBullet(`• Prix TTC : ${prixTTC.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
-  } else {
-    writeBullet("• TVA non applicable - Article 261.4.4°a du CGI");
-    writeBullet(`• Prix net à payer : ${prixHT.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
-  }
+  const prixArt6 = getPrice(session);
+  writeBullet(`• Prix : ${prixArt6.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
+  writeBullet("• TVA non applicable — art. 293 B du CGI");
   yPos += 2;
   writeParagraph("Le paiement s'effectue à la signature du présent contrat ou selon l'échéancier convenu entre les parties.");
 

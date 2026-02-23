@@ -165,9 +165,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
   };
 
   const calculateLigneTotal = (ligne: LigneForm) => {
-    const ht = ligne.quantite * ligne.prix_unitaire_ht * (1 - ligne.remise_percent / 100);
-    const ttc = ht * (1 + ligne.tva_percent / 100);
-    return { ht, ttc };
+    const total = ligne.quantite * ligne.prix_unitaire_ht * (1 - ligne.remise_percent / 100);
+    return { ht: total, ttc: total };
   };
 
   const totaux = lignes.reduce(
@@ -385,7 +384,7 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">Prix HT</Label>
+                            <Label className="text-xs">Prix unitaire</Label>
                             <Input
                               type="number"
                               min="0"
@@ -410,21 +409,9 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">TVA %</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.1"
-                              value={ligne.tva_percent}
-                              onChange={(e) =>
-                                updateLigne(ligne.id, "tva_percent", parseFloat(e.target.value) || 0)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Total TTC</Label>
+                            <Label className="text-xs">Total</Label>
                             <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm font-medium">
-                              {ttc.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                              {ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
                             </div>
                           </div>
                         </div>
@@ -448,24 +435,13 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
             {lignes.length > 0 && (
               <div className="flex justify-end">
                 <div className="w-64 space-y-2 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total HT</span>
-                    <span className="font-medium">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span className="text-primary">
                       {totaux.ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">TVA</span>
-                    <span className="font-medium">
-                      {(totaux.ttc - totaux.ht).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Total TTC</span>
-                    <span className="text-primary">
-                      {totaux.ttc.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-                    </span>
-                  </div>
+                  <p className="text-xs text-muted-foreground">TVA non applicable — art. 293 B du CGI</p>
                 </div>
               </div>
             )}

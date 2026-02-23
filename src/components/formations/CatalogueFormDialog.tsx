@@ -110,7 +110,7 @@ export function CatalogueFormDialog({
       type_formation: typeFormation,
       duree_heures: parseInt(dureeHeures) || 0,
       prix_ht: parseFloat(prixHt) || 0,
-      tva_percent: parseFloat(tvaPercent) || 0,
+      tva_percent: 0,
       remise_percent: parseFloat(remisePercent) || 0,
       actif,
       prerequis: prerequis.trim() || null,
@@ -132,7 +132,7 @@ export function CatalogueFormDialog({
   const remise = parseFloat(remisePercent) || 0;
   const prixBase = parseFloat(prixHt) || 0;
   const prixApresRemise = prixBase * (1 - remise / 100);
-  const prixTtc = prixApresRemise * (1 + (parseFloat(tvaPercent) || 0) / 100);
+  const prixFinal = prixApresRemise;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -228,7 +228,7 @@ export function CatalogueFormDialog({
 
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="prixHt">Prix HT (€)</Label>
+              <Label htmlFor="prixHt">Prix (€)</Label>
               <Input
                 id="prixHt"
                 type="number"
@@ -253,25 +253,14 @@ export function CatalogueFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tvaPercent">TVA (%)</Label>
-              <Input
-                id="tvaPercent"
-                type="number"
-                min="0"
-                step="0.1"
-                value={tvaPercent}
-                onChange={(e) => setTvaPercent(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Prix TTC</Label>
+              <Label>Prix final</Label>
               <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm font-medium">
-                {prixTtc.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
+                {prixFinal.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}
               </div>
               {remise > 0 && (
                 <p className="text-xs text-success">Remise de {remise}% appliquée</p>
               )}
+              <p className="text-xs text-muted-foreground">TVA non applicable — art. 293 B du CGI</p>
             </div>
           </div>
 
