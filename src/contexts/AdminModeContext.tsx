@@ -21,24 +21,12 @@ export function AdminModeProvider({ children }: AdminModeProviderProps) {
   const { data: isSuperAdmin = false, isLoading } = useIsSuperAdmin();
   const [mode, setMode] = useState<AdminMode>("centre");
 
-  // Auto-set mode based on role on first load
-  useEffect(() => {
-    if (!isLoading && isSuperAdmin) {
-      // Check if there's a saved preference
-      const savedMode = localStorage.getItem("admin-mode") as AdminMode | null;
-      if (savedMode === "superadmin") {
-        setMode("superadmin");
-      }
-    }
-  }, [isLoading, isSuperAdmin]);
-
   const handleSetMode = (newMode: AdminMode) => {
-    // Only super admins can switch to superadmin mode
+    // Only server-verified super admins can switch to superadmin mode
     if (newMode === "superadmin" && !isSuperAdmin) {
       return;
     }
     setMode(newMode);
-    localStorage.setItem("admin-mode", newMode);
   };
 
   const value: AdminModeContextValue = {
