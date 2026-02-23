@@ -41,7 +41,7 @@ function SectionRedirect({ section }: { section: string }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
       <TooltipProvider>
         <Toaster />
         <Sonner />

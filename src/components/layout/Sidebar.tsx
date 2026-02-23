@@ -126,14 +126,14 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-6 border-b border-sidebar-border">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
-          <Car className="h-5 w-5 text-primary-foreground" />
+      <div className="flex items-center gap-3 px-5 border-b border-border-subtle" style={{ height: '64px' }}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+          T3
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="font-display font-bold text-sidebar-foreground tracking-tight">T3P Campus</h1>
-            <p className="text-xs text-muted-foreground">Formation professionnelle</p>
+            <h1 className="font-display font-semibold text-sm text-foreground tracking-tight">T3P Campus</h1>
+            <p className="text-[11px] text-muted-foreground">Formation Management System</p>
           </div>
         )}
       </div>
@@ -291,14 +291,14 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     return (
       <>
         {/* Mobile Header with Burger */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 gap-3">
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-card border-b border-border flex items-center px-4 gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-sidebar-foreground">
+              <Button variant="ghost" size="icon" className="text-foreground">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0 bg-sidebar border-sidebar-border">
+            <SheetContent side="left" className="w-60 p-0 bg-card border-border">
               <div className="flex flex-col h-full">
                 <SidebarContent
                   activeSection={activeSection}
@@ -312,15 +312,15 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'var(--gradient-primary)' }}>
-              <Car className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md text-xs font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+              T3
             </div>
-            <span className="font-display font-bold text-sidebar-foreground">T3P Campus</span>
+            <span className="font-display font-semibold text-foreground text-sm">T3P Campus</span>
           </div>
         </header>
         
         {/* Spacer for fixed header */}
-        <div className="h-14" />
+        <div className="h-16" />
       </>
     );
   }
@@ -329,8 +329,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col",
-        collapsed ? "w-[72px]" : "w-64"
+        "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300 flex flex-col",
+        collapsed ? "w-16" : "w-60"
       )}
     >
       <SidebarContent

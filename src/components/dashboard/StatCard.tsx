@@ -11,18 +11,11 @@ interface StatCardProps {
   onClick?: () => void;
 }
 
-const variants = {
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  info: "bg-info/10 text-info",
-};
-
-const iconBg = {
-  primary: "bg-primary",
-  success: "bg-success",
-  warning: "bg-warning",
-  info: "bg-info",
+const variantStyles = {
+  primary: { bg: "bg-blue-50", icon: "text-primary" },
+  success: { bg: "bg-emerald-50", icon: "text-success" },
+  warning: { bg: "bg-amber-50", icon: "text-warning" },
+  info: { bg: "bg-blue-50", icon: "text-info" },
 };
 
 export function StatCard({ 
@@ -51,19 +44,19 @@ export function StatCard({
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-[13px] font-medium text-muted-foreground">{title}</p>
             {isClickable && (
               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </div>
-          <p className="text-3xl font-mono font-medium text-foreground">{value}</p>
+          <p className="text-4xl font-mono font-medium text-foreground">{value}</p>
           
           {change !== undefined && (
             <div className="flex items-center gap-1.5">
               {isPositive && <TrendingUp className="h-4 w-4 text-success" />}
               {isNegative && <TrendingDown className="h-4 w-4 text-destructive" />}
               <span className={cn(
-                "text-sm font-medium",
+                "text-[13px] font-mono font-medium",
                 isPositive && "text-success",
                 isNegative && "text-destructive",
                 !isPositive && !isNegative && "text-muted-foreground"
@@ -77,8 +70,8 @@ export function StatCard({
           )}
         </div>
 
-        <div className={cn("p-3 rounded-xl", iconBg[variant])}>
-          <Icon className="h-6 w-6 text-white" />
+        <div className={cn("p-2.5 rounded-xl", variantStyles[variant].bg)}>
+          <Icon className={cn("h-5 w-5", variantStyles[variant].icon)} />
         </div>
       </div>
     </div>
