@@ -13,20 +13,20 @@ interface StatCardProps {
 
 const variantStyles = {
   primary: { 
-    iconBg: "bg-[#EBF3F7]", 
-    iconColor: "text-[#1E5068]",
+    iconBg: "bg-primary/10", 
+    iconColor: "text-primary",
   },
   success: { 
-    iconBg: "bg-[#E8F7F1]", 
-    iconColor: "text-[#1A9E6A]",
+    iconBg: "bg-success/10", 
+    iconColor: "text-success",
   },
   warning: { 
-    iconBg: "bg-[#FDF4E3]", 
-    iconColor: "text-[#D4880A]",
+    iconBg: "bg-warning/10", 
+    iconColor: "text-warning",
   },
   info: { 
-    iconBg: "bg-[#EBF3F7]", 
-    iconColor: "text-[#1E5068]",
+    iconBg: "bg-info/10", 
+    iconColor: "text-info",
   },
 };
 
@@ -55,22 +55,16 @@ export function StatCard({
       tabIndex={isClickable ? 0 : undefined}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-2 flex-1 min-w-0">
+        <div className="space-y-1.5 flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p 
-              className="text-muted-foreground truncate uppercase"
-              style={{ fontFamily: 'Nunito Sans', fontWeight: 600, fontSize: 11.5, letterSpacing: '0.07em' }}
-            >
+            <p className="text-muted-foreground truncate uppercase text-[11px] font-medium tracking-wider">
               {title}
             </p>
             {isClickable && (
               <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </div>
-          <p 
-            className="text-foreground tabular-nums"
-            style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 34 }}
-          >
+          <p className="text-foreground tabular-nums font-bold text-[28px] tracking-tight">
             {value}
           </p>
           
@@ -87,18 +81,17 @@ export function StatCard({
                 {isPositive && "+"}{change}%
               </span>
               {changeLabel && (
-                <span className="text-muted-foreground" style={{ fontSize: 11 }}>{changeLabel}</span>
+                <span className="text-muted-foreground text-[11px]">{changeLabel}</span>
               )}
             </div>
           )}
         </div>
 
-        {/* Icône ronde colorée */}
         <div className={cn(
-          "flex items-center justify-center rounded-[11px] flex-shrink-0",
+          "flex items-center justify-center rounded-xl flex-shrink-0",
           styles.iconBg
-        )} style={{ width: 38, height: 38 }}>
-          <Icon className={cn("h-[18px] w-[18px]", styles.iconColor)} />
+        )} style={{ width: 40, height: 40 }}>
+          <Icon className={cn("h-5 w-5", styles.iconColor)} />
         </div>
       </div>
     </div>
