@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, TrendingUp, BarChart3, PieChart, Award } from "lucide-react";
+import { Download, TrendingUp, BarChart3, PieChart, Award, Star, MessageSquare } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -196,14 +196,81 @@ function usePerformanceExamens() {
 
 // ─── COMPONENT ───────────────────────────────────────────
 
+function useSatisfactionStats() {
+  return useQuery({
+    queryKey: ["rapports-satisfaction"],
+    queryFn: async () => {
+      const [reponsesRes, tokensRes] = await Promise.all([
+        supabase
+          .from("satisfaction_reponses")
+          .select("note_globale, note_formateur, nps_score, commentaire, date_reponse, objectifs_atteints, contact:contacts(nom, prenom)")
+          .order("date_reponse", { ascending: false }),
+        supabase
+          .from("enquete_tokens")
+          .select("id, used_at")
+          .eq("type", "satisfaction"),
+      ]);
+
+      const reponses = reponsesRes.data || [];
+      const tokens = tokensRes.data || [];
+
+      const noteGlobale =
+        reponses.length > 0
+          ? Math.round(
+              (reponses.reduce((acc, r) => acc + (r.note_globale || 0), 0) /
+                reponses.length) *
+                10
+            ) / 10
+          : 0;
+
+      const npsScores = reponses
+        .filter((r) => r.nps_score !== null)
+        .map((r) => r.nps_score as number);
+      const nps =
+        npsScores.length > 0
+          ? Math.round(
+              ((npsScores.filter((s) => s >= 9).length -
+                npsScores.filter((s) => s <= 6).length) /
+                npsScores.length) *
+                100
+            )
+          : 0;
+
+      const tauxReponse =
+        tokens.length > 0
+          ? Math.round(
+              (tokens.filter((t) => t.used_at).length / tokens.length) * 100
+            )
+          : 0;
+
+      return {
+        noteGlobale,
+        nps,
+        tauxReponse,
+        nombreReponses: reponses.length,
+        nombreTokens: tokens.length,
+        commentaires: reponses
+          .filter((r) => r.commentaire)
+          .slice(0, 10)
+          .map((r) => ({
+            commentaire: r.commentaire,
+            note: r.note_globale,
+            date: r.date_reponse,
+            nom: (r.contact as any)?.prenom + " " + (r.contact as any)?.nom,
+          })),
+      };
+    },
+  });
+}
+
 export function RapportsPage() {
   const [caPeriod, setCAPeriod] = useState("6");
   const [showPrevYear, setShowPrevYear] = useState(false);
-
   const { data: caData, isLoading: caLoading } = useCAEvolution(Number(caPeriod));
   const { data: inscData, isLoading: inscLoading } = useInscriptionsParFormation(Number(caPeriod));
   const { data: sourcesData, isLoading: sourcesLoading } = useSourcesLeads();
   const { data: examData, isLoading: examLoading } = usePerformanceExamens();
+  const { data: satData, isLoading: satLoading } = useSatisfactionStats();
 
   const formationKeys = useMemo(() => {
     if (!inscData) return [];
@@ -417,6 +484,68 @@ export function RapportsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* 5. Satisfaction */}
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2 pb-2">
+            <Star className="h-5 w-5 text-warning" />
+            <CardTitle className="text-lg">Satisfaction</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {satLoading ? (
+              <Skeleton className="h-[200px] w-full rounded-xl" />
+            ) : !satData ? (
+              <div className="flex items-center justify-center h-[120px] text-muted-foreground">
+                Aucune donnée de satisfaction
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* KPIs */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <div className="text-2xl font-bold text-primary">{satData.noteGlobale}/5</div>
+                    <div className="text-xs text-muted-foreground mt-1">Note moyenne</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <div className={cn("text-2xl font-bold", satData.nps >= 0 ? "text-success" : "text-destructive")}>
+                      {satData.nps > 0 ? "+" : ""}{satData.nps}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Score NPS</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <div className="text-2xl font-bold">{satData.tauxReponse}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">Taux de réponse</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <div className="text-2xl font-bold">{satData.nombreReponses}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Réponses</div>
+                  </div>
+                </div>
+
+                {/* Derniers commentaires */}
+                {satData.commentaires.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <MessageSquare className="h-4 w-4" />
+                      Derniers commentaires
+                    </div>
+                    {satData.commentaires.map((c, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-muted/30 border text-sm">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium">{c.nom}</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            {"⭐".repeat(Math.round(c.note || 0))}
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground">{c.commentaire}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

@@ -23,7 +23,7 @@ interface AppBreadcrumbProps {
 const sectionConfig: Record<string, { label: string; icon?: string; tabs?: Record<string, string> }> = {
   dashboard: { label: "Tableau de bord" },
   contacts: { 
-    label: "Contacts",
+    label: "Apprenants",
     tabs: {
       list: "Liste",
       pipeline: "Pipeline",

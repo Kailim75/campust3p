@@ -194,7 +194,7 @@ export function GlobalSearch() {
                     <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
                   </div>
                   <span className="text-xs text-muted-foreground capitalize">
-                    {result.type === "contact" ? "Contact" : "Session"}
+                    {result.type === "contact" ? "Apprenant" : "Session"}
                   </span>
                 </button>
               ))}

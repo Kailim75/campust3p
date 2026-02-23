@@ -17,13 +17,13 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "T3P Formation CRM",
+        name: "T3P Campus CRM",
         short_name: "T3P CRM",
         description: "CRM pour centre de formation Taxi/VTC",
         start_url: "/",
         display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#3b82f6",
+        background_color: "#F8F7F4",
+        theme_color: "#2D5016",
         orientation: "portrait-primary",
         icons: [
           {

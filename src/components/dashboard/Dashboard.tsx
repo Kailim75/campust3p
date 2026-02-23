@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -519,6 +520,7 @@ function ActivityIcon({ type }: { type: string }) {
 // ─── MAIN DASHBOARD ──────────────────────────────────────
 
 export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
+  useNoShowDetection();
   const { metrics, isLoading } = useDashboardMetrics();
   const alerts = useDashboardAlerts();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();

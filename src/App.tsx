@@ -71,7 +71,7 @@ const App = () => (
               } />
               {/* Legacy deep-links */}
               <Route
-                path="/contacts"
+                path="/apprenants"
                 element={
                   <ProtectedRoute>
                     <SectionRedirect section="contacts" />

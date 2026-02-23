@@ -425,8 +425,31 @@ export function PipelinePage() {
         id: draggableId,
         updates: { statut: column.statut as any },
       });
+
+      // Auto-génération token enquête satisfaction quand diplômé
+      if (column.id === "diplome") {
+        const contact = contacts?.find((c) => c.id === draggableId);
+        if (contact) {
+          supabase
+            .from("enquete_tokens")
+            .insert({
+              contact_id: draggableId,
+              type: "satisfaction",
+            })
+            .select("token")
+            .single()
+            .then(({ data: tokenData }) => {
+              if (tokenData) {
+                toast.success(
+                  `📋 Enquête satisfaction générée pour ${contact.prenom} ${contact.nom}`,
+                  { description: "Vous pouvez l'envoyer depuis l'onglet Communications" }
+                );
+              }
+            });
+        }
+      }
     },
-    [updateContact]
+    [updateContact, contacts]
   );
 
   const handleAddClick = (columnId: string) => {
