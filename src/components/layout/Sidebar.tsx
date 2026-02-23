@@ -51,39 +51,30 @@ const menuGroups = [
   {
     label: "Accueil",
     items: [
-      { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     ],
   },
   {
     label: "Stagiaires",
     items: [
-      { id: "contacts", label: "Contacts", icon: Users },
+      { id: "contacts", label: "Apprenants", icon: Users },
+      { id: "pipeline", label: "Pipeline", icon: ClipboardList },
       { id: "sessions", label: "Sessions", icon: Calendar },
-      { id: "planning", label: "Planning Conduite", icon: CalendarClock },
-    ],
-  },
-  {
-    label: "Formations",
-    items: [
-      { id: "formations", label: "Catalogue", icon: GraduationCap },
-      { id: "elearning", label: "E-Learning", icon: BookOpen },
-      { id: "formateurs", label: "Formateurs", icon: User },
     ],
   },
   {
     label: "Gestion",
     items: [
-      { id: "documents", label: "Documents", icon: FileText },
-      { id: "facturation", label: "Facturation", icon: CreditCard },
-      { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
+      { id: "facturation", label: "Paiements", icon: CreditCard },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
+      { id: "documents", label: "Documents", icon: FileText },
       { id: "communications", label: "Communications", icon: Mail },
     ],
   },
   {
-    label: "Qualité",
+    label: "Rapports",
     items: [
-      { id: "qualite", label: "Qualiopi", icon: Award },
+      { id: "cockpit-financier", label: "Rapports", icon: Landmark },
       { id: "alertes", label: "Alertes", icon: Bell },
     ],
   },
@@ -139,8 +130,8 @@ function SidebarContent({
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="font-display font-bold text-sidebar-foreground">T3P Formation</h1>
-            <p className="text-xs text-sidebar-foreground/60">Gestion CRM</p>
+            <h1 className="font-display font-bold text-sidebar-foreground">T3P Campus</h1>
+            <p className="text-xs text-sidebar-foreground/60">Centre de formation</p>
           </div>
         )}
       </div>
@@ -322,7 +313,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
               <Car className="h-4 w-4 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-sidebar-foreground">T3P</span>
+            <span className="font-display font-bold text-sidebar-foreground">T3P Campus</span>
           </div>
         </header>
         

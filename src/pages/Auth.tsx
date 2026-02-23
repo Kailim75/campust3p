@@ -70,15 +70,15 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-4">
-            <Car className="h-7 w-7 text-primary-foreground" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4 shadow-lg">
+            <Car className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">T3P Formation</h1>
-          <p className="text-muted-foreground mt-1">Gestion CRM</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">T3P Campus</h1>
+          <p className="text-muted-foreground mt-1 font-sans">Gestion de centre de formation</p>
         </div>
 
         {/* Card */}

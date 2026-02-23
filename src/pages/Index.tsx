@@ -147,6 +147,8 @@ const Index = () => {
         return <FormationsPage />;
       case "sessions":
         return <SessionsPage />;
+      case "pipeline":
+        return <ContactsUnifiedPage selectedContactId={selectedContactId} onContactOpened={handleContactOpened} />;
       case "formateurs":
         return <FormateursPage />;
       case "documents":
