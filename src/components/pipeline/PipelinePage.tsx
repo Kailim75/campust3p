@@ -1,78 +1,136 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Header } from "@/components/layout/Header";
 import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
 import { useFormateurs } from "@/hooks/useFormateurs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Users, Filter } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Search, Users, Filter, Plus, Globe, Phone, UserCheck, Handshake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-// Pipeline column configuration
+// ─── PIPELINE COLUMNS ────────────────────────────────────
+
 const PIPELINE_COLUMNS = [
-  { id: "inscription", label: "Inscription", statut: "En attente de validation", color: "bg-slate-500" },
-  { id: "formation_theorique", label: "Formation Théorique", statut: "En formation théorique", color: "bg-blue-500" },
-  { id: "examen_theorique", label: "Examen T3P Programmé", statut: "Examen T3P programmé", color: "bg-indigo-500" },
-  { id: "t3p_obtenu", label: "T3P Obtenu", statut: "T3P obtenu", color: "bg-purple-500" },
-  { id: "formation_pratique", label: "Formation Pratique", statut: "En formation pratique", color: "bg-cyan-500" },
-  { id: "examen_pratique", label: "Examen Pratique Programmé", statut: "Examen pratique programmé", color: "bg-teal-500" },
-  { id: "carte_pro", label: "Carte Pro Obtenue", statut: "Bravo", color: "bg-green-500" },
-  { id: "abandonne", label: "Abandonné", statut: "Abandonné", color: "bg-red-500" },
+  { id: "nouveau_lead", label: "Nouveau lead", statut: "En attente de validation", color: "bg-muted-foreground" },
+  { id: "contacte", label: "Contacté", statut: "En attente de validation", color: "bg-info" },
+  { id: "en_formation", label: "En formation", statut: "En formation théorique", color: "bg-primary" },
+  { id: "examen_theorique", label: "Examen T3P", statut: "Examen T3P programmé", color: "bg-accent" },
+  { id: "t3p_obtenu", label: "T3P Obtenu", statut: "T3P obtenu", color: "bg-success" },
+  { id: "formation_pratique", label: "Formation pratique", statut: "En formation pratique", color: "bg-info" },
+  { id: "diplome", label: "Diplômé", statut: "Bravo", color: "bg-success" },
+  { id: "abandonne", label: "Abandonné", statut: "Abandonné", color: "bg-destructive" },
 ];
 
-// Map existing statuts to pipeline columns
+// Map DB statuts to pipeline column IDs
 const STATUT_TO_COLUMN: Record<string, string> = {
-  "En attente de validation": "inscription",
-  "En formation théorique": "formation_theorique",
+  "En attente de validation": "nouveau_lead",
+  "En formation théorique": "en_formation",
   "Examen T3P programmé": "examen_theorique",
   "T3P obtenu": "t3p_obtenu",
   "En formation pratique": "formation_pratique",
-  "Examen pratique programmé": "examen_pratique",
-  "Client": "carte_pro",
-  "Bravo": "carte_pro",
+  "Examen pratique programmé": "formation_pratique",
+  "Client": "diplome",
+  "Bravo": "diplome",
   "Abandonné": "abandonne",
 };
 
-// Formation types from the database enum
-const FORMATION_BADGES: Record<string, { label: string; className: string }> = {
-  "TAXI": { label: "Taxi", className: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30" },
-  "VTC": { label: "VTC", className: "bg-blue-500/20 text-blue-700 border-blue-500/30" },
-  "VMDTR": { label: "VMDTR", className: "bg-purple-500/20 text-purple-700 border-purple-500/30" },
-  "ACC VTC": { label: "ACC VTC", className: "bg-orange-500/20 text-orange-700 border-orange-500/30" },
-  "ACC VTC 75": { label: "ACC VTC 75", className: "bg-orange-500/20 text-orange-700 border-orange-500/30" },
-  "Mobilité Taxi": { label: "Mobilité", className: "bg-green-500/20 text-green-700 border-green-500/30" },
-  "Formation continue Taxi": { label: "FC Taxi", className: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
-  "Formation continue VTC": { label: "FC VTC", className: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
+// ─── FORMATION BADGES ────────────────────────────────────
+
+const FORMATION_CONFIG: Record<string, { label: string; className: string; color: string }> = {
+  TAXI: { label: "Taxi", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
+  VTC: { label: "VTC", className: "bg-primary/15 text-primary border-primary/20", color: "bg-primary" },
+  VMDTR: { label: "VMDTR", className: "bg-info/15 text-info border-info/20", color: "bg-info" },
+  "ACC VTC": { label: "ACC VTC", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
+  "ACC VTC 75": { label: "ACC VTC 75", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
+  "Formation continue Taxi": { label: "FC Taxi", className: "bg-success/15 text-success border-success/20", color: "bg-success" },
+  "Formation continue VTC": { label: "FC VTC", className: "bg-success/15 text-success border-success/20", color: "bg-success" },
+  "Mobilité Taxi": { label: "Mobilité", className: "bg-info/15 text-info border-info/20", color: "bg-info" },
 };
 
-function getAncienneteColor(createdAt: string): string {
-  const days = differenceInDays(new Date(), parseISO(createdAt));
-  if (days <= 7) return "border-l-green-500";
-  if (days <= 30) return "border-l-yellow-500";
-  if (days <= 60) return "border-l-orange-500";
-  return "border-l-red-500";
+// Source lead icons
+const SOURCE_ICONS: Record<string, { icon: typeof Globe; label: string }> = {
+  site_web: { icon: Globe, label: "Site web" },
+  bouche_a_oreille: { icon: UserCheck, label: "Recommandation" },
+  partenaire: { icon: Handshake, label: "Partenaire" },
+  reseaux_sociaux: { icon: Globe, label: "Réseaux sociaux" },
+  publicite: { icon: Globe, label: "Publicité" },
+  salon: { icon: Users, label: "Salon" },
+  autre: { icon: Phone, label: "Autre" },
+};
+
+// ─── DOCS PROGRESS HOOK ─────────────────────────────────
+
+function useContactDocsCounts(contactIds: string[]) {
+  return useQuery({
+    queryKey: ["pipeline-docs-counts", contactIds.length],
+    queryFn: async () => {
+      if (contactIds.length === 0) return new Map<string, number>();
+      const { data } = await supabase
+        .from("contact_documents")
+        .select("contact_id")
+        .in("contact_id", contactIds);
+
+      const counts = new Map<string, number>();
+      (data || []).forEach((d) => {
+        counts.set(d.contact_id, (counts.get(d.contact_id) || 0) + 1);
+      });
+      return counts;
+    },
+    enabled: contactIds.length > 0,
+  });
 }
 
-function getInitials(prenom: string, nom: string): string {
-  return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
-}
+// ─── PIPELINE CARD ───────────────────────────────────────
 
-interface PipelineCardProps {
+function PipelineCard({
+  contact,
+  index,
+  onClick,
+  docCount,
+}: {
   contact: Contact;
   index: number;
   onClick: () => void;
-}
+  docCount: number;
+}) {
+  const formation = contact.formation ? FORMATION_CONFIG[contact.formation] : null;
+  const source = contact.source ? SOURCE_ICONS[contact.source] || SOURCE_ICONS.autre : null;
+  const SourceIcon = source?.icon || Globe;
 
-function PipelineCard({ contact, index, onClick }: PipelineCardProps) {
-  const formationBadge = contact.formation ? FORMATION_BADGES[contact.formation] : null;
-  const ancienneteColor = getAncienneteColor(contact.created_at);
+  const totalRequiredDocs = 7;
+  const progressPct = Math.round((docCount / totalRequiredDocs) * 100);
+  const progressColor =
+    progressPct < 50 ? "bg-destructive" : progressPct < 80 ? "bg-accent" : "bg-success";
+
+  const timeAgo = formatDistanceToNow(parseISO(contact.created_at), { addSuffix: false, locale: fr });
 
   return (
     <Draggable draggableId={contact.id} index={index}>
@@ -83,29 +141,56 @@ function PipelineCard({ contact, index, onClick }: PipelineCardProps) {
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            "p-3 mb-2 cursor-pointer border-l-4 transition-all hover:shadow-md",
-            ancienneteColor,
-            snapshot.isDragging && "shadow-lg ring-2 ring-primary/50 rotate-2"
+            "p-3 mb-2 cursor-pointer transition-all hover:shadow-md border",
+            snapshot.isDragging && "shadow-lg ring-2 ring-primary/40 rotate-1"
           )}
         >
-          <div className="flex items-start gap-3">
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                {getInitials(contact.prenom, contact.nom)}
+          <div className="flex items-start gap-2.5">
+            {/* Avatar initiales */}
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarFallback
+                className={cn(
+                  "text-xs font-semibold text-primary-foreground",
+                  formation?.color || "bg-primary"
+                )}
+              >
+                {`${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">
+
+            <div className="flex-1 min-w-0 space-y-1.5">
+              {/* Name */}
+              <p className="font-medium text-sm truncate text-foreground">
                 {contact.prenom} {contact.nom}
               </p>
-              {formationBadge && (
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-[10px] px-1.5 py-0 mt-1", formationBadge.className)}
-                >
-                  {formationBadge.label}
-                </Badge>
-              )}
+
+              {/* Badges row */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {formation && (
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", formation.className)}>
+                    {formation.label}
+                  </Badge>
+                )}
+                {source && (
+                  <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </div>
+
+              {/* Progress bar documents */}
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{docCount}/{totalRequiredDocs} docs</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all", progressColor)}
+                    style={{ width: `${Math.min(progressPct, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Time */}
+              <p className="text-[10px] text-muted-foreground">il y a {timeAgo}</p>
             </div>
           </div>
         </Card>
@@ -114,46 +199,60 @@ function PipelineCard({ contact, index, onClick }: PipelineCardProps) {
   );
 }
 
-interface PipelineColumnProps {
-  column: typeof PIPELINE_COLUMNS[0];
-  contacts: Contact[];
-  onCardClick: (contact: Contact) => void;
-}
+// ─── PIPELINE COLUMN ─────────────────────────────────────
 
-function PipelineColumn({ column, contacts, onCardClick }: PipelineColumnProps) {
+function PipelineColumn({
+  column,
+  contacts,
+  onCardClick,
+  docCounts,
+  onAddClick,
+}: {
+  column: (typeof PIPELINE_COLUMNS)[0];
+  contacts: Contact[];
+  onCardClick: (c: Contact) => void;
+  docCounts: Map<string, number>;
+  onAddClick: () => void;
+}) {
   return (
     <div className="flex-shrink-0 w-72">
-      <div className="bg-muted/50 rounded-lg p-3 h-full flex flex-col">
-        {/* Column Header */}
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-muted/40 rounded-xl p-3 h-full flex flex-col border border-border/50">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
-            <div className={cn("w-3 h-3 rounded-full", column.color)} />
-            <h3 className="font-medium text-sm">{column.label}</h3>
+            <div className={cn("w-2.5 h-2.5 rounded-full", column.color)} />
+            <h3 className="font-semibold text-sm text-foreground">{column.label}</h3>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {contacts.length}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant="secondary" className="text-xs h-5 min-w-5 justify-center">
+              {contacts.length}
+            </Badge>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddClick}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
 
-        {/* Droppable Area */}
+        {/* Droppable */}
         <Droppable droppableId={column.id}>
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "flex-1 min-h-[200px] rounded-md transition-colors p-1",
-                snapshot.isDraggingOver && "bg-primary/5 ring-2 ring-primary/20"
+                "flex-1 min-h-[200px] rounded-lg transition-colors p-1",
+                snapshot.isDraggingOver && "bg-primary/5 ring-1 ring-primary/20"
               )}
             >
               <ScrollArea className="h-[calc(100vh-280px)]">
-                <div className="pr-3">
+                <div className="pr-2">
                   {contacts.map((contact, index) => (
                     <PipelineCard
                       key={contact.id}
                       contact={contact}
                       index={index}
                       onClick={() => onCardClick(contact)}
+                      docCount={docCounts.get(contact.id) || 0}
                     />
                   ))}
                   {provided.placeholder}
@@ -167,91 +266,182 @@ function PipelineColumn({ column, contacts, onCardClick }: PipelineColumnProps) 
   );
 }
 
+// ─── QUICK ADD DIALOG ────────────────────────────────────
+
+function QuickAddDialog({
+  open,
+  onOpenChange,
+  defaultColumn,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  defaultColumn: string;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    prenom: "",
+    nom: "",
+    telephone: "",
+    formation: "" as string,
+    source: "site_web" as string,
+  });
+
+  const createContact = useMutation({
+    mutationFn: async () => {
+      const col = PIPELINE_COLUMNS.find((c) => c.id === defaultColumn);
+      const { error } = await supabase.from("contacts").insert({
+        prenom: form.prenom,
+        nom: form.nom,
+        telephone: form.telephone || null,
+        formation: (form.formation || null) as any,
+        source: form.source as any,
+        statut: (col?.statut || "En attente de validation") as any,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Apprenant ajouté");
+      onOpenChange(false);
+      setForm({ prenom: "", nom: "", telephone: "", formation: "", source: "site_web" });
+    },
+    onError: () => toast.error("Erreur lors de l'ajout"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Ajout rapide</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Prénom *</Label>
+              <Input value={form.prenom} onChange={(e) => setForm((p) => ({ ...p, prenom: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Nom *</Label>
+              <Input value={form.nom} onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <Label>Téléphone</Label>
+            <Input value={form.telephone} onChange={(e) => setForm((p) => ({ ...p, telephone: e.target.value }))} />
+          </div>
+          <div>
+            <Label>Formation</Label>
+            <Select value={form.formation} onValueChange={(v) => setForm((p) => ({ ...p, formation: v }))}>
+              <SelectTrigger><SelectValue placeholder="Type de formation" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TAXI">Taxi Initial</SelectItem>
+                <SelectItem value="VTC">VTC</SelectItem>
+                <SelectItem value="VMDTR">VMDTR</SelectItem>
+                <SelectItem value="Formation continue Taxi">Recyclage Taxi</SelectItem>
+                <SelectItem value="Formation continue VTC">Recyclage VTC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Source</Label>
+            <Select value={form.source} onValueChange={(v) => setForm((p) => ({ ...p, source: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="site_web">🌐 Site web</SelectItem>
+                <SelectItem value="bouche_a_oreille">👥 Recommandation</SelectItem>
+                <SelectItem value="partenaire">🤝 Partenaire</SelectItem>
+                <SelectItem value="autre">📞 Autre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button
+            disabled={!form.prenom || !form.nom || createContact.isPending}
+            onClick={() => createContact.mutate()}
+          >
+            {createContact.isPending ? "Ajout..." : "Ajouter"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── MAIN PIPELINE PAGE ──────────────────────────────────
+
 export function PipelinePage() {
   const { data: contacts, isLoading } = useContacts();
-  const { data: formateurs } = useFormateurs();
   const updateContact = useUpdateContact();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [formationFilter, setFormationFilter] = useState<string>("all");
+  const [formationFilter, setFormationFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddColumn, setQuickAddColumn] = useState("nouveau_lead");
 
-  // Group contacts by pipeline column
+  // Doc counts
+  const contactIds = useMemo(() => (contacts || []).map((c) => c.id), [contacts]);
+  const { data: docCounts } = useContactDocsCounts(contactIds);
+
+  // Group contacts by column
   const groupedContacts = useMemo(() => {
-    if (!contacts) return {};
+    if (!contacts) return {} as Record<string, Contact[]>;
 
-    const filtered = contacts.filter((contact) => {
-      // Search filter
-      const matchesSearch = searchQuery === "" || 
-        `${contact.prenom} ${contact.nom}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        contact.email?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Formation filter
-      const matchesFormation = formationFilter === "all" || contact.formation === formationFilter;
-
-      return matchesSearch && matchesFormation;
+    const filtered = contacts.filter((c) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        `${c.prenom} ${c.nom}`.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFormation = formationFilter === "all" || c.formation === formationFilter;
+      const matchesSource = sourceFilter === "all" || c.source === sourceFilter;
+      return matchesSearch && matchesFormation && matchesSource;
     });
 
     const groups: Record<string, Contact[]> = {};
-    
-    PIPELINE_COLUMNS.forEach((col) => {
-      groups[col.id] = [];
-    });
+    PIPELINE_COLUMNS.forEach((col) => (groups[col.id] = []));
 
-    filtered.forEach((contact) => {
-      const columnId = STATUT_TO_COLUMN[contact.statut || "En attente de validation"] || "inscription";
-      if (groups[columnId]) {
-        groups[columnId].push(contact);
-      }
+    filtered.forEach((c) => {
+      const colId = STATUT_TO_COLUMN[c.statut || "En attente de validation"] || "nouveau_lead";
+      groups[colId]?.push(c);
     });
 
     return groups;
-  }, [contacts, searchQuery, formationFilter]);
+  }, [contacts, searchQuery, formationFilter, sourceFilter]);
 
-  // Handle drag end
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+  // Drag & drop
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { destination, draggableId } = result;
+      if (!destination) return;
 
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+      const column = PIPELINE_COLUMNS.find((col) => col.id === destination.droppableId);
+      if (!column) return;
 
-    const column = PIPELINE_COLUMNS.find((col) => col.id === destination.droppableId);
-    if (!column) return;
+      updateContact.mutate({
+        id: draggableId,
+        updates: { statut: column.statut as any },
+      });
+    },
+    [updateContact]
+  );
 
-    // Update contact status
-    updateContact.mutate({
-      id: draggableId,
-      updates: { statut: column.statut as any },
-    });
+  const handleAddClick = (columnId: string) => {
+    setQuickAddColumn(columnId);
+    setQuickAddOpen(true);
   };
-
-  // Handle card click
-  const handleCardClick = (contact: Contact) => {
-    setSelectedContact(contact);
-    setDetailOpen(true);
-  };
-
-  // Calculate total by formation type
-  const formationStats = useMemo(() => {
-    if (!contacts) return { taxi: 0, vtc: 0, vmdtr: 0, other: 0 };
-    return contacts.reduce((acc, c) => {
-      if (c.formation === "TAXI") acc.taxi++;
-      else if (c.formation === "VTC") acc.vtc++;
-      else if (c.formation === "VMDTR") acc.vmdtr++;
-      else acc.other++;
-      return acc;
-    }, { taxi: 0, vtc: 0, vmdtr: 0, other: 0 });
-  }, [contacts]);
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <Header title="Pipeline Candidats" subtitle="Suivi visuel de la progression" />
-        <div className="flex gap-4 mt-6 overflow-x-auto pb-4">
+      <div className="min-h-screen">
+        <Header title="Pipeline" subtitle="Suivi des apprenants" />
+        <div className="flex gap-4 p-6 overflow-x-auto">
           {PIPELINE_COLUMNS.map((col) => (
             <div key={col.id} className="flex-shrink-0 w-72">
-              <Skeleton className="h-[500px] rounded-lg" />
+              <Skeleton className="h-[500px] rounded-xl" />
             </div>
           ))}
         </div>
@@ -260,18 +450,15 @@ export function PipelinePage() {
   }
 
   return (
-    <div className="p-6">
-      <Header 
-        title="Pipeline Candidats" 
-        subtitle="Glissez-déposez pour changer le statut"
-      />
+    <div className="min-h-screen">
+      <Header title="Pipeline" subtitle="Glissez-déposez pour changer le statut" />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mt-6 mb-4">
+      <div className="px-6 pt-6 pb-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un candidat..."
+            placeholder="Rechercher un apprenant..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -279,53 +466,56 @@ export function PipelinePage() {
         </div>
 
         <Select value={formationFilter} onValueChange={setFormationFilter}>
-          <SelectTrigger className="w-[180px]">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Type formation" />
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Formation" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Toutes formations</SelectItem>
-            <SelectItem value="taxi">Taxi</SelectItem>
-            <SelectItem value="vtc">VTC</SelectItem>
-            <SelectItem value="vmdtr">VMDTR</SelectItem>
-            <SelectItem value="taxi_vtc">Taxi+VTC</SelectItem>
-            <SelectItem value="mobilite">Mobilité</SelectItem>
-            <SelectItem value="continue">Continue</SelectItem>
+            <SelectItem value="all">Toutes</SelectItem>
+            <SelectItem value="TAXI">Taxi</SelectItem>
+            <SelectItem value="VTC">VTC</SelectItem>
+            <SelectItem value="VMDTR">VMDTR</SelectItem>
           </SelectContent>
         </Select>
 
-        {/* Quick Stats */}
-        <div className="flex items-center gap-3 ml-auto text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Users className="h-4 w-4" />
-            <span>{contacts?.length || 0} candidats</span>
-          </div>
-          <span className="text-muted-foreground/50">|</span>
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">
-            Taxi: {formationStats.taxi}
-          </Badge>
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
-            VTC: {formationStats.vtc}
-          </Badge>
-          <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-500/20">
-            VMDTR: {formationStats.vmdtr}
-          </Badge>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes sources</SelectItem>
+            <SelectItem value="site_web">Site web</SelectItem>
+            <SelectItem value="bouche_a_oreille">Recommandation</SelectItem>
+            <SelectItem value="partenaire">Partenaire</SelectItem>
+            <SelectItem value="autre">Autre</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>{contacts?.length || 0} apprenants</span>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {PIPELINE_COLUMNS.map((column) => (
-            <PipelineColumn
-              key={column.id}
-              column={column}
-              contacts={groupedContacts[column.id] || []}
-              onCardClick={handleCardClick}
-            />
-          ))}
-        </div>
-      </DragDropContext>
+      <div className="px-6 pb-6">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {PIPELINE_COLUMNS.map((column) => (
+              <PipelineColumn
+                key={column.id}
+                column={column}
+                contacts={groupedContacts[column.id] || []}
+                onCardClick={(c) => {
+                  setSelectedContact(c);
+                  setDetailOpen(true);
+                }}
+                docCounts={docCounts || new Map()}
+                onAddClick={() => handleAddClick(column.id)}
+              />
+            ))}
+          </div>
+        </DragDropContext>
+      </div>
 
       {/* Contact Detail Sheet */}
       <ContactDetailSheet
@@ -335,26 +525,12 @@ export function PipelinePage() {
         onEdit={() => {}}
       />
 
-      {/* Legend */}
-      <div className="mt-6 flex items-center gap-6 text-xs text-muted-foreground">
-        <span className="font-medium">Ancienneté:</span>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-l-4 border-green-500" />
-          <span>&lt; 7 jours</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-l-4 border-yellow-500" />
-          <span>7-30 jours</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-l-4 border-orange-500" />
-          <span>30-60 jours</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-l-4 border-red-500" />
-          <span>&gt; 60 jours</span>
-        </div>
-      </div>
+      {/* Quick Add Dialog */}
+      <QuickAddDialog
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        defaultColumn={quickAddColumn}
+      />
     </div>
   );
 }

@@ -1,268 +1,553 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { Header } from "@/components/layout/Header";
-import { StatCard } from "./StatCard";
-import { AlertCard } from "./AlertCard";
-import { SessionsOverview } from "./SessionsOverview";
-import { RecentContacts } from "./RecentContacts";
-import { RecentCallsCard } from "./RecentCallsCard";
-import { MonthlyCAChart } from "./MonthlyCAChart";
-import { FormationPieChart } from "./FormationPieChart";
-import { FinancialSummaryCard } from "./FinancialSummaryCard";
-import { InscriptionTrendChart } from "./InscriptionTrendChart";
-import { ConversionKPICard } from "./ConversionKPICard";
-import { CAParSourceChart } from "./CAParSourceChart";
-import { FillRateCard } from "./FillRateCard";
-import { ForecastCACard } from "./ForecastCACard";
-import { PeriodSelector } from "./PeriodSelector";
-import { ExamSuccessChart, ExamSuccessByFormation } from "./ExamSuccessChart";
-import { MonthlyProjectionsChart, ProjectionDetailsTable } from "./MonthlyProjectionsChart";
-import { CAByFormationChart } from "./CAByFormationChart";
-import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
-import { ObjectifProgressCard } from "./ObjectifProgressCard";
-import { PriorityActionCard } from "./PriorityActionCard";
-import { TodayTasksCard } from "./TodayTasksCard";
-import { SmartSuggestionsCard } from "./SmartSuggestionsCard";
-import { Users, GraduationCap, TrendingUp, Euro, Download, UserPlus } from "lucide-react";
-import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
-import { useDashboardPeriod, periodOptions } from "@/hooks/useDashboardPeriod";
-import { useDashboardExport } from "@/hooks/useDashboardExport";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Users,
+  Euro,
+  TrendingUp,
+  Award,
+  FileWarning,
+  Calendar,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertCircle,
+  CreditCard,
+  Clock,
+  RefreshCw,
+  CheckCircle2,
+  UserPlus,
+  BookOpen,
+  GraduationCap,
+} from "lucide-react";
+import { useContacts } from "@/hooks/useContacts";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+import { formatDistanceToNow } from "date-fns";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
   onNavigateWithContact?: (section: string, contactId?: string) => void;
 }
 
-export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
-  const [expressEnrollOpen, setExpressEnrollOpen] = useState(false);
-  const { data: contactStats, isLoading: contactsLoading } = useDynamicContactStats();
-  const { data: financeStats, isLoading: financeLoading } = useDynamicFinanceStats();
-  const { selectedPeriod } = useDashboardPeriod();
-  const { exportDashboardToExcel } = useDashboardExport();
-  
-  const periodLabel = periodOptions.find(p => p.key === selectedPeriod)?.label.toLowerCase() || 'ce mois';
-  
-  const isLoading = contactsLoading || financeLoading;
+// ─── HOOKS ───────────────────────────────────────────────
 
-  const formatEuro = (value: number) => 
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+function useDashboardMetrics() {
+  const { data: contacts, isLoading: contactsLoading } = useContacts();
 
-  const handleNavigate = (section: string) => {
-    if (onNavigate) onNavigate(section);
+  // Paiements du mois
+  const { data: paiements, isLoading: paiementsLoading } = useQuery({
+    queryKey: ["dashboard-paiements-month"],
+    queryFn: async () => {
+      const thisMonth = format(startOfMonth(new Date()), "yyyy-MM-dd");
+      const lastMonth = format(startOfMonth(subMonths(new Date(), 1)), "yyyy-MM-dd");
+      const lastMonthEnd = format(startOfMonth(new Date()), "yyyy-MM-dd");
+
+      const [current, previous] = await Promise.all([
+        supabase
+          .from("paiements")
+          .select("montant")
+          .gte("date_paiement", thisMonth),
+        supabase
+          .from("paiements")
+          .select("montant")
+          .gte("date_paiement", lastMonth)
+          .lt("date_paiement", lastMonthEnd),
+      ]);
+
+      const caCurrent = (current.data || []).reduce((s, p) => s + Number(p.montant), 0);
+      const caPrevious = (previous.data || []).reduce((s, p) => s + Number(p.montant), 0);
+      return { caCurrent, caPrevious };
+    },
+  });
+
+  // Examens
+  const { data: examens, isLoading: examensLoading } = useQuery({
+    queryKey: ["dashboard-examens"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("examens_t3p")
+        .select("resultat");
+      if (error) throw error;
+      const total = (data || []).filter((e) => e.resultat !== "en_attente").length;
+      const admis = (data || []).filter((e) => e.resultat === "admis").length;
+      return { total, admis, taux: total > 0 ? Math.round((admis / total) * 100) : 0 };
+    },
+  });
+
+  // Sessions cette semaine
+  const { data: sessionsWeek, isLoading: sessionsLoading } = useQuery({
+    queryKey: ["dashboard-sessions-week"],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const inSevenDays = format(addDays(new Date(), 7), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("id")
+        .gte("date_debut", today)
+        .lte("date_debut", inSevenDays);
+      if (error) throw error;
+      return data?.length || 0;
+    },
+  });
+
+  // Documents incomplets
+  const { data: docsIncomplets, isLoading: docsLoading } = useQuery({
+    queryKey: ["dashboard-docs-incomplets"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_documents")
+        .select("contact_id, type_document")
+        .in("type_document", ["cni", "casier_b3", "certificat_medical", "photo", "permis_b"]);
+      if (error) throw error;
+
+      // Count contacts with at least 1 missing required doc
+      // This is approximate - we count contacts who have fewer than 5 required docs uploaded
+      const contactDocsCount = new Map<string, number>();
+      (data || []).forEach((d) => {
+        contactDocsCount.set(d.contact_id, (contactDocsCount.get(d.contact_id) || 0) + 1);
+      });
+
+      const activeContacts = contacts?.filter(
+        (c) =>
+          c.statut === "En formation théorique" ||
+          c.statut === "En formation pratique" ||
+          c.statut === "En attente de validation"
+      ) || [];
+
+      const incomplete = activeContacts.filter((c) => {
+        const docs = contactDocsCount.get(c.id) || 0;
+        return docs < 5;
+      });
+
+      return incomplete.length;
+    },
+    enabled: !!contacts,
+  });
+
+  const metrics = useMemo(() => {
+    if (!contacts) return [];
+
+    const activeStatuts = ["En formation théorique", "En formation pratique", "Examen T3P programmé", "Examen pratique programmé"];
+    const inscritStatuts = [...activeStatuts, "En attente de validation"];
+    const conversionStatuts = [...inscritStatuts];
+
+    const actifs = contacts.filter((c) => activeStatuts.includes(c.statut || "")).length;
+    const inscrits = contacts.filter((c) => inscritStatuts.includes(c.statut || "")).length;
+    const total = contacts.length;
+    const tauxConversion = total > 0 ? Math.round((inscrits / total) * 100) : 0;
+
+    const caChange = paiements
+      ? paiements.caPrevious > 0
+        ? Math.round(((paiements.caCurrent - paiements.caPrevious) / paiements.caPrevious) * 100)
+        : paiements.caCurrent > 0 ? 100 : 0
+      : undefined;
+
+    return [
+      {
+        label: "Apprenants actifs",
+        value: actifs,
+        icon: Users,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        delta: undefined,
+      },
+      {
+        label: "CA du mois",
+        value: new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(paiements?.caCurrent || 0),
+        icon: Euro,
+        color: "text-accent",
+        bgColor: "bg-accent/10",
+        delta: caChange,
+      },
+      {
+        label: "Taux de conversion",
+        value: `${tauxConversion}%`,
+        icon: TrendingUp,
+        color: "text-success",
+        bgColor: "bg-success/10",
+        delta: undefined,
+      },
+      {
+        label: "Réussite examens",
+        value: `${examens?.taux || 0}%`,
+        icon: Award,
+        color: "text-info",
+        bgColor: "bg-info/10",
+        delta: undefined,
+      },
+      {
+        label: "Dossiers incomplets",
+        value: docsIncomplets || 0,
+        icon: FileWarning,
+        color: (docsIncomplets || 0) > 0 ? "text-accent" : "text-success",
+        bgColor: (docsIncomplets || 0) > 0 ? "bg-accent/10" : "bg-success/10",
+        delta: undefined,
+        isWarning: (docsIncomplets || 0) > 0,
+      },
+      {
+        label: "Sessions cette semaine",
+        value: sessionsWeek || 0,
+        icon: Calendar,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        delta: undefined,
+      },
+    ];
+  }, [contacts, paiements, examens, docsIncomplets, sessionsWeek]);
+
+  return {
+    metrics,
+    isLoading: contactsLoading || paiementsLoading || examensLoading || sessionsLoading || docsLoading,
   };
+}
 
-  const handleNavigateWithContact = (section: string, contactId?: string) => {
-    if (onNavigateWithContact) {
+// ─── ALERTS HOOK ─────────────────────────────────────────
+
+interface DashboardAlert {
+  id: string;
+  type: "danger" | "warning" | "info";
+  icon: typeof AlertCircle;
+  message: string;
+  action: string;
+  section: string;
+  contactId?: string;
+}
+
+function useDashboardAlerts() {
+  const { data: contacts } = useContacts();
+
+  // Dossiers incomplets > 5 jours
+  const { data: incompleteAlerts } = useQuery({
+    queryKey: ["dashboard-alerts-incomplete"],
+    queryFn: async () => {
+      if (!contacts) return [];
+      const fiveDaysAgo = subMonths(new Date(), 0); // placeholder - filter by created_at
+      
+      // Get documents for active contacts
+      const activeContacts = contacts.filter(
+        (c) =>
+          c.statut === "En attente de validation" ||
+          c.statut === "En formation théorique" ||
+          c.statut === "En formation pratique"
+      );
+
+      const { data: docs } = await supabase
+        .from("contact_documents")
+        .select("contact_id, type_document")
+        .in("contact_id", activeContacts.map((c) => c.id));
+
+      const docsMap = new Map<string, number>();
+      (docs || []).forEach((d) => {
+        docsMap.set(d.contact_id, (docsMap.get(d.contact_id) || 0) + 1);
+      });
+
+      return activeContacts
+        .filter((c) => {
+          const numDocs = docsMap.get(c.id) || 0;
+          const daysSinceCreation = differenceInDays(new Date(), parseISO(c.created_at));
+          return numDocs < 5 && daysSinceCreation > 5;
+        })
+        .slice(0, 3)
+        .map((c) => ({
+          id: `incomplete-${c.id}`,
+          type: "danger" as const,
+          icon: FileWarning,
+          message: `${c.prenom} ${c.nom} — ${5 - (docsMap.get(c.id) || 0)} documents manquants`,
+          action: "Voir le dossier",
+          section: "contacts",
+          contactId: c.id,
+        }));
+    },
+    enabled: !!contacts && contacts.length > 0,
+  });
+
+  // Paiements en attente > 7 jours
+  const { data: paymentAlerts } = useQuery({
+    queryKey: ["dashboard-alerts-payments"],
+    queryFn: async () => {
+      const { data: factures } = await supabase
+        .from("factures")
+        .select("id, montant_total, contact_id, date_emission, contacts(prenom, nom)")
+        .in("statut", ["emise", "partiel"])
+        .order("date_emission", { ascending: true })
+        .limit(3);
+
+      return (factures || [])
+        .filter((f) => differenceInDays(new Date(), parseISO(f.date_emission)) > 7)
+        .map((f: any) => ({
+          id: `payment-${f.id}`,
+          type: "warning" as const,
+          icon: CreditCard,
+          message: `${f.contacts?.prenom} ${f.contacts?.nom} — ${Number(f.montant_total).toLocaleString("fr-FR")}€ en attente`,
+          action: "Voir paiement",
+          section: "facturation",
+          contactId: f.contact_id,
+        }));
+    },
+  });
+
+  // Examens dans ≤ 7 jours
+  const { data: examAlerts } = useQuery({
+    queryKey: ["dashboard-alerts-exams"],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const inSevenDays = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+      const { data } = await supabase
+        .from("examens_t3p")
+        .select("id, date_examen, type_examen, contacts(prenom, nom, formation)")
+        .gte("date_examen", today)
+        .lte("date_examen", inSevenDays)
+        .eq("resultat", "en_attente")
+        .limit(3);
+
+      return (data || []).map((e: any) => ({
+        id: `exam-${e.id}`,
+        type: "info" as const,
+        icon: GraduationCap,
+        message: `${e.contacts?.prenom} ${e.contacts?.nom} — ${e.contacts?.formation || "Examen"} le ${format(parseISO(e.date_examen), "dd/MM", { locale: fr })}`,
+        action: "Voir fiche",
+        section: "contacts",
+      }));
+    },
+  });
+
+  const alerts = useMemo(() => {
+    const all: DashboardAlert[] = [
+      ...(incompleteAlerts || []),
+      ...(paymentAlerts || []),
+      ...(examAlerts || []),
+    ];
+    // Sort: danger first, then warning, then info
+    return all.sort((a, b) => {
+      const order = { danger: 0, warning: 1, info: 2 };
+      return order[a.type] - order[b.type];
+    }).slice(0, 8);
+  }, [incompleteAlerts, paymentAlerts, examAlerts]);
+
+  return alerts;
+}
+
+// ─── ACTIVITY TIMELINE HOOK ──────────────────────────────
+
+function useRecentActivity() {
+  return useQuery({
+    queryKey: ["dashboard-recent-activity"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_historique")
+        .select("id, type, titre, contenu, date_echange, contact_id, contacts(prenom, nom)")
+        .order("date_echange", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return (data || []).map((h: any) => ({
+        id: h.id,
+        initials: `${(h.contacts?.prenom || "?").charAt(0)}${(h.contacts?.nom || "?").charAt(0)}`.toUpperCase(),
+        name: `${h.contacts?.prenom || ""} ${h.contacts?.nom || ""}`,
+        action: h.titre,
+        type: h.type,
+        date: h.date_echange,
+      }));
+    },
+  });
+}
+
+// ─── COMPONENTS ──────────────────────────────────────────
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  bgColor,
+  delta,
+  isWarning,
+}: {
+  label: string;
+  value: string | number;
+  icon: any;
+  color: string;
+  bgColor: string;
+  delta?: number;
+  isWarning?: boolean;
+}) {
+  return (
+    <Card className={`p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated ${isWarning ? "ring-1 ring-accent/30" : ""}`}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground font-medium">{label}</p>
+          <p className="text-2xl font-display font-bold text-foreground">{value}</p>
+          {delta !== undefined && (
+            <div className={`flex items-center gap-1 text-xs font-medium ${delta >= 0 ? "text-success" : "text-destructive"}`}>
+              {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              <span>{delta >= 0 ? "+" : ""}{delta}% vs mois préc.</span>
+            </div>
+          )}
+        </div>
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${bgColor}`}>
+          <Icon className={`h-5 w-5 ${color}`} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function AlertTypeIcon({ type }: { type: string }) {
+  const colors = {
+    danger: "bg-destructive/10 text-destructive",
+    warning: "bg-accent/10 text-accent",
+    info: "bg-info/10 text-info",
+  };
+  return (
+    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${colors[type as keyof typeof colors] || colors.info}`}>
+      <AlertCircle className="h-4 w-4" />
+    </div>
+  );
+}
+
+function ActivityIcon({ type }: { type: string }) {
+  const iconMap: Record<string, { icon: any; color: string }> = {
+    appel: { icon: Clock, color: "bg-info/10 text-info" },
+    email: { icon: BookOpen, color: "bg-primary/10 text-primary" },
+    note: { icon: FileWarning, color: "bg-muted text-muted-foreground" },
+    rdv: { icon: Calendar, color: "bg-accent/10 text-accent" },
+  };
+  const config = iconMap[type] || iconMap.note;
+  const Icon = config.icon;
+  return (
+    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${config.color}`}>
+      <Icon className="h-4 w-4" />
+    </div>
+  );
+}
+
+// ─── MAIN DASHBOARD ──────────────────────────────────────
+
+export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
+  const { metrics, isLoading } = useDashboardMetrics();
+  const alerts = useDashboardAlerts();
+  const { data: activity, isLoading: activityLoading } = useRecentActivity();
+
+  const handleNavigate = (section: string, contactId?: string) => {
+    if (contactId && onNavigateWithContact) {
       onNavigateWithContact(section, contactId);
     } else if (onNavigate) {
       onNavigate(section);
     }
   };
 
-  const stats = [
-    { 
-      title: "Contacts total", 
-      value: isLoading ? "..." : contactStats?.total ?? 0, 
-      change: contactStats?.totalChange, 
-      changeLabel: periodLabel, 
-      icon: Users, 
-      variant: "info" as const,
-      section: "contacts",
-    },
-    { 
-      title: "Clients actifs", 
-      value: isLoading ? "..." : contactStats?.clients ?? 0, 
-      change: contactStats?.clientsChange, 
-      changeLabel: periodLabel, 
-      icon: GraduationCap, 
-      variant: "success" as const,
-      section: "contacts",
-    },
-    { 
-      title: "En attente", 
-      value: isLoading ? "..." : contactStats?.enAttente ?? 0, 
-      change: contactStats?.enAttenteChange, 
-      changeLabel: periodLabel, 
-      icon: TrendingUp, 
-      variant: "primary" as const,
-      section: "contacts",
-    },
-    { 
-      title: "CA émis", 
-      value: isLoading ? "..." : formatEuro(financeStats?.caThisPeriod ?? 0), 
-      change: financeStats?.caChange, 
-      changeLabel: periodLabel, 
-      icon: Euro, 
-      variant: "warning" as const,
-      section: "paiements",
-    },
-  ];
-
   return (
     <div className="min-h-screen">
-      <Header 
-        title="Tableau de bord" 
-        subtitle="Vue d'ensemble de votre activité"
-      />
+      <Header title="Dashboard" subtitle="Vue d'ensemble de votre centre" />
 
-      <main className="p-6 space-y-6 animate-fade-in">
-        {/* Express Enrollment CTA + Priority Actions */}
-        <div className="flex flex-col gap-4">
-          {/* Row 1: CTA + Priority Action */}
-          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 items-stretch">
-            <Button 
-              size="lg" 
-              onClick={() => setExpressEnrollOpen(true)}
-              className="h-auto py-3 px-5 flex items-center gap-3 bg-primary hover:bg-primary/90 whitespace-nowrap"
-            >
-              <UserPlus className="h-5 w-5 shrink-0" />
-              <div className="text-left">
-                <p className="font-semibold text-sm">Inscription Express</p>
-                <p className="text-xs opacity-80">Nouveau stagiaire en 30 sec</p>
-              </div>
-            </Button>
-            
-            <PriorityActionCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
-          </div>
+      <main className="p-6 space-y-8 animate-fade-in">
+        {/* ZONE 1 — Métriques */}
+        <section>
+          <h2 className="text-lg font-display font-semibold text-foreground mb-4">Indicateurs clés</h2>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-28 rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {metrics.map((m) => (
+                <MetricCard key={m.label} {...m} />
+              ))}
+            </div>
+          )}
+        </section>
 
-          {/* Row 2: Today Tasks + Smart Suggestions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TodayTasksCard onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
-            <SmartSuggestionsCard onNavigate={handleNavigate} />
-          </div>
+        {/* ZONE 2 + 3 side by side on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* ZONE 2 — Alertes du jour */}
+          <section className="lg:col-span-3">
+            <h2 className="text-lg font-display font-semibold text-foreground mb-4">Alertes du jour</h2>
+            <Card className="p-0 overflow-hidden">
+              {alerts.length === 0 ? (
+                <div className="flex items-center gap-3 p-6 text-success">
+                  <CheckCircle2 className="h-6 w-6" />
+                  <div>
+                    <p className="font-semibold">Tout est à jour !</p>
+                    <p className="text-sm text-muted-foreground">Aucune alerte pour le moment.</p>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[420px]">
+                  <div className="divide-y divide-border">
+                    {alerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <AlertTypeIcon type={alert.type} />
+                        <p className="flex-1 text-sm text-foreground">{alert.message}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-primary hover:text-primary shrink-0"
+                          onClick={() => handleNavigate(alert.section, alert.contactId)}
+                        >
+                          {alert.action}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </Card>
+          </section>
+
+          {/* ZONE 3 — Activité récente */}
+          <section className="lg:col-span-2">
+            <h2 className="text-lg font-display font-semibold text-foreground mb-4">Activité récente</h2>
+            <Card className="p-0 overflow-hidden">
+              {activityLoading ? (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 rounded-lg" />
+                  ))}
+                </div>
+              ) : (activity?.length || 0) === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm">
+                  Aucune activité récente
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[420px]">
+                  <div className="divide-y divide-border">
+                    {activity?.map((item) => (
+                      <div key={item.id} className="flex items-start gap-3 px-4 py-3">
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
+                            {item.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground truncate">
+                            <span className="font-medium">{item.name}</span>{" "}
+                            <span className="text-muted-foreground">— {item.action}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatDistanceToNow(parseISO(item.date), { addSuffix: true, locale: fr })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </Card>
+          </section>
         </div>
-
-        {/* Period Selector */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-semibold text-foreground">Indicateurs clés</h2>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={exportDashboardToExcel}
-              className="gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export Excel
-            </Button>
-            <PeriodSelector />
-          </div>
-        </div>
-        
-        {/* Stats Grid - Clickable KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <StatCard 
-              key={stat.title} 
-              title={stat.title}
-              value={stat.value}
-              change={stat.change}
-              changeLabel={stat.changeLabel}
-              icon={stat.icon}
-              variant={stat.variant}
-              onClick={() => handleNavigate(stat.section)}
-            />
-          ))}
-        </div>
-
-        {/* Tabs for different dashboard views */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="objectifs">Objectifs</TabsTrigger>
-            <TabsTrigger value="comparison">Comparaison</TabsTrigger>
-            <TabsTrigger value="finance">Finance</TabsTrigger>
-            <TabsTrigger value="examens">Examens</TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* KPIs avancés */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ConversionKPICard onClick={() => handleNavigate("contacts")} />
-              <FillRateCard onClick={() => handleNavigate("sessions")} />
-              <ForecastCACard onClick={() => handleNavigate("paiements")} />
-              <CAParSourceChart />
-            </div>
-
-            {/* Sessions and Alerts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <SessionsOverview onClick={() => handleNavigate("sessions")} />
-              </div>
-              <div>
-                <AlertCard onClick={() => handleNavigate("alertes")} />
-              </div>
-            </div>
-
-            {/* Formations and Inscriptions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FormationPieChart onClick={() => handleNavigate("formations")} />
-              <InscriptionTrendChart onClick={() => handleNavigate("sessions")} />
-            </div>
-
-            {/* Recent Contacts & Calls */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RecentContacts onClick={() => handleNavigate("contacts")} />
-              <RecentCallsCard onClick={() => handleNavigate("contacts")} />
-            </div>
-          </TabsContent>
-
-          {/* Objectifs Tab */}
-          <TabsContent value="objectifs" className="space-y-6">
-            <ObjectifProgressCard />
-          </TabsContent>
-
-          {/* Comparison Tab */}
-          <TabsContent value="comparison" className="space-y-6">
-            <PeriodComparisonDashboard />
-          </TabsContent>
-
-          {/* Finance Tab */}
-          <TabsContent value="finance" className="space-y-6">
-            {/* CA Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <MonthlyCAChart />
-              <FinancialSummaryCard onClick={() => handleNavigate("paiements")} />
-            </div>
-
-            {/* Projections */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <MonthlyProjectionsChart onClick={() => handleNavigate("sessions")} />
-              <ProjectionDetailsTable />
-            </div>
-
-            {/* CA by Formation */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CAByFormationChart onClick={() => handleNavigate("paiements")} />
-              <ForecastCACard onClick={() => handleNavigate("paiements")} />
-            </div>
-          </TabsContent>
-
-          {/* Examens Tab */}
-          <TabsContent value="examens" className="space-y-6">
-            {/* Exam Success Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <ExamSuccessChart onClick={() => handleNavigate("contacts")} />
-              <ExamSuccessByFormation />
-            </div>
-
-            {/* Sessions Overview for exams context */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SessionsOverview onClick={() => handleNavigate("sessions")} />
-              <AlertCard onClick={() => handleNavigate("alertes")} />
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Express Enrollment Dialog */}
-        <ExpressEnrollmentDialog 
-          open={expressEnrollOpen} 
-          onOpenChange={setExpressEnrollOpen}
-          onSuccess={() => handleNavigate("contacts")}
-        />
       </main>
     </div>
   );
