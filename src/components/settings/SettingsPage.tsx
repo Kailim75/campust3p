@@ -556,6 +556,11 @@ export function SettingsPage() {
             <TemplateFilesSection />
           </TabsContent>
 
+          {/* Tab: Financier */}
+          <TabsContent value="financier" className="space-y-6">
+            <FinancialSettingsSection />
+          </TabsContent>
+
           {/* Tab: Utilisateurs */}
           <TabsContent value="utilisateurs" className="space-y-6">
             <UserManagementSection />
