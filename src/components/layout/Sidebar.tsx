@@ -18,6 +18,7 @@ import {
   ClipboardList,
   CalendarClock,
   BarChart3,
+  Plus,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -94,18 +95,10 @@ function SidebarContent({
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
 
   const handleRecentItemClick = (type: string, id: string) => {
-    if (type === "contact") {
-      onSectionChange("contacts");
-    } else if (type === "session") {
-      onSectionChange("sessions");
-    } else if (type === "facture") {
-      onSectionChange("paiements");
-    }
+    if (type === "contact") onSectionChange("contacts");
+    else if (type === "session") onSectionChange("sessions");
+    else if (type === "facture") onSectionChange("paiements");
     onItemClick?.();
-  };
-
-  const handleSwitchToSuperAdmin = () => {
-    setShowSwitchDialog(true);
   };
 
   const confirmSwitchToSuperAdmin = () => {
@@ -115,39 +108,50 @@ function SidebarContent({
 
   return (
     <>
-      {/* Logo zone */}
-      <div 
-        className="flex items-center gap-3 border-b border-border" 
-        style={{ height: '64px', padding: '0 16px' }}
-      >
-        <div 
-          className="flex items-center justify-center flex-shrink-0 bg-primary rounded-lg"
-          style={{ width: 36, height: 36 }}
-        >
-          <span className="text-primary-foreground font-bold text-sm">T3</span>
+      {/* Logo */}
+      <div className="flex items-center gap-3 border-b border-border px-4" style={{ height: '60px' }}>
+        <div className="flex items-center justify-center flex-shrink-0 bg-primary rounded-lg" style={{ width: 32, height: 32 }}>
+          <span className="text-primary-foreground font-bold text-xs">T3</span>
         </div>
         {!collapsed && (
           <div className="animate-fade-in min-w-0">
-            <h1 className="text-foreground font-bold text-[15px] leading-tight">
-              T3P Campus
-            </h1>
-            <p className="text-muted-foreground text-[11px] leading-tight">
-              Formation Management
-            </p>
+            <h1 className="text-foreground font-bold text-sm leading-none">T3P Campus</h1>
           </div>
         )}
       </div>
 
+      {/* Quick Add Button */}
+      {!collapsed && (
+        <div className="px-3 pt-3">
+          <Button 
+            onClick={() => { onSectionChange("contacts"); onItemClick?.(); }}
+            className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg h-9 text-[13px] font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Nouveau stagiaire
+          </Button>
+        </div>
+      )}
+      {collapsed && (
+        <div className="px-2 pt-3">
+          <Button
+            onClick={() => { onSectionChange("contacts"); onItemClick?.(); }}
+            size="icon"
+            className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+      <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto mt-1">
         {menuGroups.map((group) => (
           <div key={group.label || 'home'}>
             {!collapsed && group.label && (
-              <p className="sidebar-section-label px-3 mb-1.5 mt-1">
-                {group.label}
-              </p>
+              <p className="sidebar-section-label px-3 mb-1 mt-1">{group.label}</p>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-px">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
@@ -156,31 +160,14 @@ function SidebarContent({
                 return (
                   <button
                     key={item.id}
-                    onClick={() => {
-                      onSectionChange(item.id);
-                      onItemClick?.();
-                    }}
-                    className={cn(
-                      "sidebar-item w-full relative",
-                      isActive && "active"
-                    )}
+                    onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                    className={cn("sidebar-item w-full relative", isActive && "active")}
                   >
-                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    {!collapsed && (
-                      <span className="animate-fade-in truncate">{item.label}</span>
-                    )}
+                    <Icon className="h-[17px] w-[17px] flex-shrink-0" />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
                     {showBadge && (
-                      <span 
-                        className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold"
-                        style={{
-                          fontSize: 10,
-                          borderRadius: 99,
-                          padding: '1px 6px',
-                          right: collapsed ? 0 : 8,
-                          top: collapsed ? 0 : 'auto',
-                          ...(collapsed ? { width: 16, height: 16 } : {}),
-                        }}
-                      >
+                      <span className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold rounded-full text-[9px]"
+                        style={{ padding: '1px 5px', right: collapsed ? 2 : 8, top: collapsed ? 2 : 'auto' }}>
                         {highPriorityAlerts}
                       </span>
                     )}
@@ -193,71 +180,38 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 space-y-0.5 border-t border-border">
-        <RecentItemsMenu 
-          onItemClick={handleRecentItemClick}
-          collapsed={collapsed}
-        />
+      <div className="px-2 py-2 space-y-px border-t border-border">
+        <RecentItemsMenu onItemClick={handleRecentItemClick} collapsed={collapsed} />
         
         <button
-          onClick={() => {
-            onSectionChange("settings");
-            onItemClick?.();
-          }}
-          className={cn(
-            "sidebar-item w-full",
-            activeSection === "settings" && "active"
-          )}
+          onClick={() => { onSectionChange("settings"); onItemClick?.(); }}
+          className={cn("sidebar-item w-full", activeSection === "settings" && "active")}
         >
-          <Settings className="h-[18px] w-[18px] flex-shrink-0" />
-          {!collapsed && <span className="animate-fade-in">Paramètres</span>}
+          <Settings className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Paramètres</span>}
         </button>
         
-        <button
-          onClick={() => {
-            localStorage.removeItem("crm-onboarding-completed");
-            window.location.reload();
-          }}
-          className="sidebar-item w-full"
-        >
-          <HelpCircle className="h-[18px] w-[18px] flex-shrink-0" />
-          {!collapsed && <span className="animate-fade-in">Aide</span>}
+        <button onClick={() => { localStorage.removeItem("crm-onboarding-completed"); window.location.reload(); }} className="sidebar-item w-full">
+          <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Aide</span>}
         </button>
         
-        <button
-          onClick={() => {
-            window.location.href = "/formateur";
-            onItemClick?.();
-          }}
-          className="sidebar-item w-full"
-        >
-          <ClipboardList className="h-[18px] w-[18px] flex-shrink-0" />
-          {!collapsed && <span className="animate-fade-in">Espace formateur</span>}
+        <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className="sidebar-item w-full">
+          <ClipboardList className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Espace formateur</span>}
         </button>
         
         {canSwitchMode && (
-          <button
-            onClick={handleSwitchToSuperAdmin}
-            className="sidebar-item w-full"
-            style={{ border: '1px dashed hsl(var(--border))' }}
-          >
-            <Shield className="h-[18px] w-[18px] flex-shrink-0" />
-            {!collapsed && <span className="animate-fade-in text-xs font-medium">Super Admin</span>}
+          <button onClick={() => setShowSwitchDialog(true)} className="sidebar-item w-full" style={{ border: '1px dashed hsl(var(--border))' }}>
+            <Shield className="h-[17px] w-[17px] flex-shrink-0" />
+            {!collapsed && <span className="text-xs font-medium">Super Admin</span>}
           </button>
         )}
         
         {setCollapsed && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="sidebar-item w-full justify-center mt-1 hidden md:flex"
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4" />
-                <span className="animate-fade-in">Réduire</span>
-              </>
+          <button onClick={() => setCollapsed(!collapsed)} className="sidebar-item w-full justify-center mt-1 hidden md:flex">
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : (
+              <><ChevronLeft className="h-4 w-4" /><span>Réduire</span></>
             )}
           </button>
         )}
@@ -268,15 +222,12 @@ function SidebarContent({
           <AlertDialogHeader>
             <AlertDialogTitle>Basculer vers l'espace Super Admin ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vous allez accéder à l'interface de pilotage global de la plateforme CampusT3P. 
-              Cette vue est réservée aux administrateurs de l'éditeur.
+              Vous allez accéder à l'interface de pilotage global de la plateforme CampusT3P.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSwitchToSuperAdmin} className="bg-primary">
-              Accéder au pilotage
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmSwitchToSuperAdmin} className="bg-primary">Accéder au pilotage</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -292,7 +243,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   if (isMobile) {
     return (
       <>
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 gap-3 bg-card border-b border-border" style={{ height: 56 }}>
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 gap-3 bg-card border-b border-border" style={{ height: 52 }}>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground">
@@ -301,25 +252,18 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
             </SheetTrigger>
             <SheetContent side="left" className="w-[260px] p-0 bg-card border-r border-border">
               <div className="flex flex-col h-full">
-                <SidebarContent
-                  activeSection={activeSection}
-                  onSectionChange={onSectionChange}
-                  collapsed={false}
-                  setCollapsed={() => {}}
-                  onItemClick={() => setMobileOpen(false)}
-                />
+                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
-          
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center bg-primary rounded-lg" style={{ width: 28, height: 28 }}>
-              <span className="text-primary-foreground font-bold text-[10px]">T3</span>
+            <div className="flex items-center justify-center bg-primary rounded-lg" style={{ width: 26, height: 26 }}>
+              <span className="text-primary-foreground font-bold text-[9px]">T3</span>
             </div>
-            <span className="text-foreground font-bold text-sm">T3P Campus</span>
+            <span className="text-foreground font-semibold text-sm">T3P Campus</span>
           </div>
         </header>
-        <div style={{ height: 56 }} />
+        <div style={{ height: 52 }} />
       </>
     );
   }
@@ -328,15 +272,10 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen transition-all duration-200 flex flex-col bg-card border-r border-border",
-        collapsed ? "w-16" : "w-[250px]"
+        collapsed ? "w-[60px]" : "w-[240px]"
       )}
     >
-      <SidebarContent
-        activeSection={activeSection}
-        onSectionChange={onSectionChange}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
+      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} collapsed={collapsed} setCollapsed={setCollapsed} />
     </aside>
   );
 }
