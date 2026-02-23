@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info, GraduationCap, Car, Calculator } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { formatEuro, CHARGE_CATEGORIES, CHARGE_CATEGORY_ICONS } from "@/lib/formatFinancial";
@@ -27,6 +27,144 @@ const PERIODICITE_LABELS: Record<string, string> = {
   annuelle: "Annuelle",
 };
 
+// ── Calculateur coûts formateur ──
+function FormateurCostCalculator({ onAddCharge }: { onAddCharge: (charge: { categorie: string; type_charge: string; libelle: string; montant: number; date_charge: string; periodicite: string; prestataire?: string; notes?: string }) => void }) {
+  const now = new Date();
+  const [theorie, setTheorie] = useState({
+    tarif_horaire: 35,
+    nb_jours: 10,
+    heures_par_jour: 3.5,
+    nb_sessions: 1,
+    prestataire: "",
+  });
+  const [pratique, setPratique] = useState({
+    cout_par_candidat: 95,
+    nb_candidats: 1,
+    prestataire: "",
+  });
+
+  const coutTheorie = theorie.tarif_horaire * theorie.nb_jours * theorie.heures_par_jour * theorie.nb_sessions;
+  const coutPratique = pratique.cout_par_candidat * pratique.nb_candidats;
+  const coutTotal = coutTheorie + coutPratique;
+
+  const handleAddTheorie = () => {
+    if (coutTheorie <= 0) return;
+    onAddCharge({
+      categorie: "formateurs_vacataires",
+      type_charge: "variable",
+      libelle: `Formateur théorie — ${theorie.nb_sessions} session${theorie.nb_sessions > 1 ? "s" : ""} (${theorie.nb_jours}j × ${theorie.heures_par_jour}h × ${formatEuro(theorie.tarif_horaire)}/h)`,
+      montant: coutTheorie,
+      date_charge: format(now, "yyyy-MM-dd"),
+      periodicite: "unique",
+      prestataire: theorie.prestataire || undefined,
+    });
+  };
+
+  const handleAddPratique = () => {
+    if (coutPratique <= 0) return;
+    onAddCharge({
+      categorie: "formateurs_vacataires",
+      type_charge: "variable",
+      libelle: `Formateur pratique — ${pratique.nb_candidats} candidat${pratique.nb_candidats > 1 ? "s" : ""} (${formatEuro(pratique.cout_par_candidat)}/candidat, incl. 2h conduite + véhicule examen)`,
+      montant: coutPratique,
+      date_charge: format(now, "yyyy-MM-dd"),
+      periodicite: "unique",
+      prestataire: pratique.prestataire || undefined,
+    });
+  };
+
+  const handleAddBoth = () => {
+    if (coutTheorie > 0) handleAddTheorie();
+    if (coutPratique > 0) handleAddPratique();
+  };
+
+  return (
+    <Card className="p-5 border-dashed border-2 border-primary/20 bg-primary/[0.02]">
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator className="h-5 w-5 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Calculateur coûts formateur</h3>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Théorie */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <GraduationCap className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Formation théorique</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Tarif horaire (€)</label>
+              <Input type="number" step="0.5" min="0" value={theorie.tarif_horaire} onChange={e => setTheorie(t => ({ ...t, tarif_horaire: parseFloat(e.target.value) || 0 }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nb de jours</label>
+              <Input type="number" min="1" value={theorie.nb_jours} onChange={e => setTheorie(t => ({ ...t, nb_jours: parseInt(e.target.value) || 0 }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Heures / jour</label>
+              <Input type="number" step="0.5" min="0.5" value={theorie.heures_par_jour} onChange={e => setTheorie(t => ({ ...t, heures_par_jour: parseFloat(e.target.value) || 0 }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nb sessions</label>
+              <Input type="number" min="1" value={theorie.nb_sessions} onChange={e => setTheorie(t => ({ ...t, nb_sessions: parseInt(e.target.value) || 1 }))} />
+            </div>
+          </div>
+          <Input placeholder="Nom du formateur (optionnel)" value={theorie.prestataire} onChange={e => setTheorie(t => ({ ...t, prestataire: e.target.value }))} className="text-sm" />
+          <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">
+              {theorie.nb_jours}j × {theorie.heures_par_jour}h × {formatEuro(theorie.tarif_horaire)}/h × {theorie.nb_sessions} session{theorie.nb_sessions > 1 ? "s" : ""}
+            </div>
+            <span className="font-bold text-sm">{formatEuro(coutTheorie)}</span>
+          </div>
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleAddTheorie} disabled={coutTheorie <= 0}>
+            <Plus className="h-3.5 w-3.5" /> Ajouter théorie
+          </Button>
+        </div>
+
+        {/* Pratique */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Car className="h-4 w-4 text-accent" />
+            <span className="text-sm font-medium">Formation pratique</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Coût / candidat (€)</label>
+              <Input type="number" step="1" min="0" value={pratique.cout_par_candidat} onChange={e => setPratique(p => ({ ...p, cout_par_candidat: parseFloat(e.target.value) || 0 }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nb candidats</label>
+              <Input type="number" min="1" value={pratique.nb_candidats} onChange={e => setPratique(p => ({ ...p, nb_candidats: parseInt(e.target.value) || 1 }))} />
+            </div>
+          </div>
+          <Input placeholder="Nom du formateur (optionnel)" value={pratique.prestataire} onChange={e => setPratique(p => ({ ...p, prestataire: e.target.value }))} className="text-sm" />
+          <div className="bg-muted/50 p-3 rounded-lg space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{pratique.nb_candidats} candidat{pratique.nb_candidats > 1 ? "s" : ""} × {formatEuro(pratique.cout_par_candidat)}</span>
+              <span className="font-bold text-sm">{formatEuro(coutPratique)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground italic">Inclut 2h de conduite + mise à disposition véhicule le jour de l'examen</p>
+          </div>
+          <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleAddPratique} disabled={coutPratique <= 0}>
+            <Plus className="h-3.5 w-3.5" /> Ajouter pratique
+          </Button>
+        </div>
+      </div>
+
+      {/* Total & add both */}
+      <div className="mt-4 flex items-center justify-between p-3 rounded-lg bg-primary/10">
+        <span className="text-sm font-semibold">Coût formateur total</span>
+        <span className="text-lg font-bold text-primary">{formatEuro(coutTotal)}</span>
+      </div>
+      <Button className="w-full mt-3 gap-2" onClick={handleAddBoth} disabled={coutTotal <= 0}>
+        <Plus className="h-4 w-4" /> Ajouter théorie + pratique en charges
+      </Button>
+    </Card>
+  );
+}
+
+// ── Main ──
 export function ChargesTab({ range }: Props) {
   const { data: charges = [], isLoading } = useCharges(range);
   const { data: recurring = [] } = useRecurringCharges();
@@ -49,7 +187,6 @@ export function ChargesTab({ range }: Props) {
     prestataire: "",
   });
   const [cancelId, setCancelId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +207,15 @@ export function ChargesTab({ range }: Props) {
       });
       toast.success("Charge ajoutée");
       setForm({ categorie: "", type_charge: "fixe", libelle: "", montant: "", date_charge: format(now, "yyyy-MM-dd"), periodicite: "unique", prestataire: "" });
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    }
+  };
+
+  const handleAddCalculatedCharge = async (charge: { categorie: string; type_charge: string; libelle: string; montant: number; date_charge: string; periodicite: string; prestataire?: string }) => {
+    try {
+      await createCharge.mutateAsync(charge);
+      toast.success("Charge formateur ajoutée");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     }
@@ -129,6 +275,9 @@ export function ChargesTab({ range }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* CALCULATEUR FORMATEUR */}
+      <FormateurCostCalculator onAddCharge={handleAddCalculatedCharge} />
+
       {/* SECTION A — Form */}
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4">Saisir une charge</h3>
