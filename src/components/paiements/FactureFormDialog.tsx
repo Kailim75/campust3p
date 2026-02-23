@@ -199,10 +199,8 @@ export function FactureFormDialog({
     }
   };
 
-  const calculateLigneHT = (l: LigneFacture) => l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100);
-  const totalHT = lignes.reduce((acc, l) => acc + calculateLigneHT(l), 0);
-  const totalTVA = lignes.reduce((acc, l) => acc + (calculateLigneHT(l) * l.tva_percent / 100), 0);
-  const totalTTC = totalHT + totalTVA;
+  const calculateLigneTotal = (l: LigneFacture) => l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100);
+  const totalMontant = lignes.reduce((acc, l) => acc + calculateLigneTotal(l), 0);
 
   const onSubmit = async (values: FormValues) => {
     if (lignes.length === 0) {
@@ -217,7 +215,7 @@ export function FactureFormDialog({
         await updateFacture.mutateAsync({
           id: facture.id,
           contact_id: values.contact_id,
-          montant_total: totalTTC,
+          montant_total: totalMontant,
           type_financement: values.type_financement,
           statut: values.statut,
           date_emission: values.date_emission || null,
@@ -245,7 +243,7 @@ export function FactureFormDialog({
         const newFacture = await createFacture.mutateAsync({
           contact_id: values.contact_id,
           numero_facture: nextNumero || `FAC-${Date.now()}`,
-          montant_total: totalTTC,
+          montant_total: totalMontant,
           type_financement: values.type_financement,
           statut: values.statut,
           date_emission: values.date_emission || null,
@@ -431,7 +429,7 @@ export function FactureFormDialog({
                                   value={ligne.prix_unitaire_ht}
                                   onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
                                 />
-                                <span className="text-xs text-muted-foreground">€ HT</span>
+                                <span className="text-xs text-muted-foreground">€</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Input
@@ -446,18 +444,8 @@ export function FactureFormDialog({
                                 />
                                 <span className="text-xs text-muted-foreground">% remise</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  className="w-16"
-                                  value={ligne.tva_percent}
-                                  onChange={(e) => updateLigne(ligne.id, "tva_percent", parseFloat(e.target.value) || 0)}
-                                />
-                                <span className="text-xs text-muted-foreground">% TVA</span>
-                              </div>
                               <span className="ml-auto font-medium text-sm">
-                                {formatPrix(calculateLigneHT(ligne) * (1 + ligne.tva_percent / 100))}
+                                {formatPrix(calculateLigneTotal(ligne))}
                               </span>
                             </div>
                           </div>
@@ -479,18 +467,11 @@ export function FactureFormDialog({
                   {lignes.length > 0 && (
                     <div className="flex justify-end">
                       <div className="w-64 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total HT</span>
-                          <span>{formatPrix(totalHT)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">TVA</span>
-                          <span>{formatPrix(totalTVA)}</span>
-                        </div>
                         <div className="flex justify-between font-bold text-base pt-1 border-t">
-                          <span>Total TTC</span>
-                          <span className="text-primary">{formatPrix(totalTTC)}</span>
+                          <span>Total</span>
+                          <span className="text-primary">{formatPrix(totalMontant)}</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">TVA non applicable — art. 293 B du CGI</p>
                       </div>
                     </div>
                   )}

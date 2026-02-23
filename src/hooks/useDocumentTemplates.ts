@@ -89,9 +89,7 @@ export const availableVariables = [
   { key: "session_adresse_ville", label: "Ville", category: "Session" },
   { key: "session_adresse_complete", label: "Adresse complète", category: "Session" },
   { key: "session_formateur", label: "Formateur", category: "Session" },
-  { key: "session_prix_ht", label: "Prix HT", category: "Session" },
-  { key: "session_tva_percent", label: "TVA (%)", category: "Session" },
-  { key: "session_prix_ttc", label: "Prix TTC", category: "Session" },
+  { key: "session_prix", label: "Prix", category: "Session" },
   { key: "duree_heures", label: "Durée (heures)", category: "Session" },
   { key: "session_places", label: "Places totales", category: "Session" },
   { key: "session_objectifs", label: "Objectifs", category: "Session" },
@@ -313,14 +311,11 @@ export function replaceVariables(
     result = result.replace(/\{\{session_adresse_complete\}\}/g, escapeHtml(adresseComplete));
     
     result = result.replace(/\{\{session_formateur\}\}/g, escapeHtml(session.formateur || ""));
-    result = result.replace(/\{\{session_prix_ht\}\}/g, escapeHtml(session.prix_ht?.toString() || session.prix?.toString() || ""));
-    result = result.replace(/\{\{session_tva_percent\}\}/g, escapeHtml(session.tva_percent?.toString() || "0"));
-    
-    // Calcul prix TTC
-    const prixHT = session.prix_ht || session.prix || 0;
-    const tva = session.tva_percent || 0;
-    const prixTTC = prixHT * (1 + tva / 100);
-    result = result.replace(/\{\{session_prix_ttc\}\}/g, escapeHtml(prixTTC.toFixed(2)));
+    const sessionPrix = session.prix_ht || session.prix || 0;
+    result = result.replace(/\{\{session_prix_ht\}\}/g, escapeHtml(sessionPrix.toString()));
+    result = result.replace(/\{\{session_prix\}\}/g, escapeHtml(sessionPrix.toString()));
+    result = result.replace(/\{\{session_tva_percent\}\}/g, "0");
+    result = result.replace(/\{\{session_prix_ttc\}\}/g, escapeHtml(sessionPrix.toString()));
     
     result = result.replace(/\{\{session_duree\}\}/g, escapeHtml(session.duree_heures?.toString() || ""));
     result = result.replace(/\{\{session_places\}\}/g, escapeHtml(session.places_totales?.toString() || ""));

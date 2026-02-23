@@ -268,24 +268,13 @@ export function DevisDetailSheet({
                 {/* Totaux */}
                 <div className="mt-4 flex justify-end">
                   <div className="w-64 space-y-2 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total HT</span>
-                      <span className="font-medium">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span className="text-primary">
                         {totaux.ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">TVA</span>
-                      <span className="font-medium">
-                        {totaux.tva.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2">
-                      <span>Total TTC</span>
-                      <span className="text-primary">
-                        {totaux.ttc.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
-                      </span>
-                    </div>
+                    <p className="text-xs text-muted-foreground">TVA non applicable — art. 293 B du CGI</p>
                   </div>
                 </div>
               </div>

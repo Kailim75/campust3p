@@ -395,15 +395,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Euro className="h-4 w-4" />
                         <span>
-                          {session.prix_ht 
-                            ? `${Number(session.prix_ht).toLocaleString('fr-FR')} € HT`
-                            : `${Number(session.prix).toLocaleString('fr-FR')} €`
+                          {(session.prix_ht || session.prix) 
+                            ? `${Number(session.prix_ht || session.prix).toLocaleString('fr-FR')} €`
+                            : '—'
                           }
-                          {session.tva_percent && session.prix_ht && (
-                            <span className="text-xs ml-1">
-                              (TVA {session.tva_percent}%)
-                            </span>
-                          )}
                         </span>
                       </div>
                     )}

@@ -29,7 +29,7 @@ export function useSessionsExport() {
       'Places totales': session.places_totales,
       'Inscrits': inscriptionsCounts[session.id] || 0,
       'Taux de remplissage': `${Math.round(((inscriptionsCounts[session.id] || 0) / session.places_totales) * 100)}%`,
-      'Prix HT': session.prix_ht ? `${session.prix_ht} €` : '-',
+      'Prix': session.prix_ht ? `${session.prix_ht} €` : '-',
       'Statut': statusLabels[session.statut] || session.statut,
     }));
 

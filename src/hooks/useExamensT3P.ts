@@ -54,12 +54,6 @@ export const centresExamenT3P = [
   "CCI Yvelines",
   "CCI Val-d'Oise",
   "CCI Seine-et-Marne",
-  "CCI Lyon Métropole",
-  "CCI Marseille Provence",
-  "CCI Bordeaux Gironde",
-  "CCI Toulouse Haute-Garonne",
-  "CCI Nantes Saint-Nazaire",
-  "CCI Nice Côte d'Azur",
   "Centre agréé préfecture",
   "Autre",
 ];
