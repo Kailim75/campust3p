@@ -19,7 +19,7 @@ import {
   BookOpen,
   ArrowLeft,
   User,
-  Box,
+  
   FileText,
   TrendingUp,
   Pen,
@@ -32,7 +32,7 @@ import {
   LmsQuiz,
 } from "@/hooks/useLmsQuizzes";
 import { QuizPlayer } from "@/components/lms/quiz/QuizPlayer";
-import { LearnerBimSection } from "@/components/lms/bim/LearnerBimSection";
+
 import { LearnerDocumentsTab } from "@/components/learner/LearnerDocumentsTab";
 import { LearnerEmargementTab } from "@/components/learner/LearnerEmargementTab";
 import { LearnerProgressionTab } from "@/components/learner/LearnerProgressionTab";
@@ -268,10 +268,6 @@ export default function LearnerPortal() {
               <ClipboardCheck className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Quiz</span>
             </TabsTrigger>
-            <TabsTrigger value="bim" className="flex flex-col sm:flex-row items-center gap-1 py-2">
-              <Box className="h-4 w-4" />
-              <span className="text-xs sm:text-sm">BIM 3D</span>
-            </TabsTrigger>
             <TabsTrigger value="documents" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <FileText className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Documents</span>
@@ -448,9 +444,6 @@ export default function LearnerPortal() {
             )}
           </TabsContent>
 
-          <TabsContent value="bim" className="space-y-6">
-            {contact && <LearnerBimSection contactId={contact.id} />}
-          </TabsContent>
 
           <TabsContent value="documents" className="space-y-6">
             {contact && <LearnerDocumentsTab contactId={contact.id} />}

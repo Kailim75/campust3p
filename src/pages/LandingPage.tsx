@@ -38,7 +38,7 @@ const features = [
   {
     icon: GraduationCap,
     title: "E-Learning Intégré",
-    description: "Plateforme LMS avec quiz, modules 3D/BIM et suivi pédagogique complet."
+    description: "Plateforme LMS avec quiz et suivi pédagogique complet."
   },
   {
     icon: BarChart3,
@@ -78,7 +78,7 @@ const testimonials = [
     name: "Sophie Lambert",
     role: "Responsable Pédagogique",
     company: "Transport Academy",
-    content: "Le module e-learning avec BIM 3D est un vrai plus pour nos formations. Les stagiaires adorent !",
+    content: "Le module e-learning avec les quiz interactifs est un vrai plus pour nos formations. Les stagiaires adorent !",
     rating: 5,
     avatar: "SL"
   }
@@ -216,7 +216,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <Badge className="mb-6 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-2">
-              ✨ Nouveau : Module BIM 3D pour formations immersives
+              ✨ Le CRM dédié aux centres de formation Taxi / VTC / VMDTR
             </Badge>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">

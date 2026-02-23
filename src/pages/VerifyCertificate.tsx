@@ -290,23 +290,6 @@ export default function VerifyCertificate() {
                       </div>
                     )}
 
-                    {/* BIM metadata */}
-                    {result.metadata?.source === "bim" && (
-                      <div className="flex items-start gap-3 sm:col-span-2">
-                        <BookOpen className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Module BIM</p>
-                          <p className="font-medium">
-                            {(result.metadata.projet_titre as string) || "Projet BIM"}{" "}
-                            {result.metadata.projet_code && (
-                              <span className="text-muted-foreground">
-                                ({result.metadata.projet_code as string})
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Revocation info */}
