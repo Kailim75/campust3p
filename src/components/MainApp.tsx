@@ -7,10 +7,8 @@ import { useLegalDocuments } from "@/hooks/useLegalDocuments";
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
-  // TEMPORARILY DISABLED - legal docs check requires auth
-  // const { hasPendingDocuments, isLoading: docsLoading } = useLegalDocuments();
-  const docsLoading = false;
-  const showLegalModal = false;
+  const { hasPendingDocuments, isLoading: docsLoading } = useLegalDocuments();
+  const showLegalModal = hasPendingDocuments;
 
   // Loading state
   if (isLoading || docsLoading) {
