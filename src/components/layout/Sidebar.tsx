@@ -126,14 +126,14 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 border-b border-border-subtle" style={{ height: '64px' }}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+      <div className="flex items-center gap-3 px-5 border-b border-border-subtle" style={{ height: '68px' }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-sm font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
           T3
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="font-display font-semibold text-sm text-foreground tracking-tight">T3P Campus</h1>
-            <p className="text-[11px] text-muted-foreground">Formation Management System</p>
+            <h1 className="font-display font-bold text-[15px] text-foreground tracking-tight">T3P Campus</h1>
+            <p className="text-[11px] text-muted-foreground">FMS</p>
           </div>
         )}
       </div>
@@ -291,7 +291,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     return (
       <>
         {/* Mobile Header with Burger */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-card border-b border-border flex items-center px-4 gap-3" style={{ boxShadow: 'var(--shadow-sm)' }}>
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-card border-b border-border flex items-center px-4 gap-3" style={{ boxShadow: 'var(--shadow-xs)' }}>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="text-foreground">
@@ -312,7 +312,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md text-xs font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-display font-extrabold text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
               T3
             </div>
             <span className="font-display font-semibold text-foreground text-sm">T3P Campus</span>

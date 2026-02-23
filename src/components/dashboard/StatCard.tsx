@@ -12,10 +12,10 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  primary: { bg: "bg-blue-50", icon: "text-primary" },
-  success: { bg: "bg-emerald-50", icon: "text-success" },
-  warning: { bg: "bg-amber-50", icon: "text-warning" },
-  info: { bg: "bg-blue-50", icon: "text-info" },
+  primary: { bg: "bg-primary/10", icon: "text-primary" },
+  success: { bg: "bg-success/10", icon: "text-success" },
+  warning: { bg: "bg-accent/10", icon: "text-accent" },
+  info: { bg: "bg-info/10", icon: "text-info" },
 };
 
 export function StatCard({ 
@@ -49,7 +49,7 @@ export function StatCard({
               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </div>
-          <p className="text-4xl font-mono font-medium text-foreground">{value}</p>
+          <p className="text-[34px] font-mono font-medium text-foreground">{value}</p>
           
           {change !== undefined && (
             <div className="flex items-center gap-1.5">
