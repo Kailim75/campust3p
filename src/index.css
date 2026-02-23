@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,144 +15,149 @@
 
 @layer base {
   :root {
-    /* T3P Campus — Design System Officiel */
-    /* Fond général — #FFFFFF */
-    --background: 0 0% 100%;
-    /* Texte principal — #333333 */
-    --foreground: 0 0% 20%;
+    /* ═══════════════════════════════════════════════
+       OBSIDIAN PRO — Dark Premium Design System
+       ═══════════════════════════════════════════════ */
 
-    /* Fond cartes — #F8F9FA */
-    --card: 210 17% 98%;
-    --card-foreground: 0 0% 20%;
+    /* Fonds */
+    --background: 228 24% 8%;
+    --background-elevated: 228 20% 13%;
+    --background-subtle: 228 22% 10%;
+    --surface: 232 29% 16%;
+    --surface-hover: 233 25% 20%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
-
-    /* Primary — Bleu marine #1A4E8A */
-    --primary: 211 68% 32%;
+    /* Primaire — Violet Indigo */
+    --primary: 239 84% 67%;
+    --primary-hover: 239 76% 59%;
     --primary-foreground: 0 0% 100%;
+    --primary-subtle: 239 84% 67% / 0.08;
+    --primary-border: 239 84% 67% / 0.19;
 
-    /* Secondary — Vert forêt #2F6B4A */
-    --secondary: 150 39% 30%;
-    --secondary-foreground: 0 0% 100%;
+    /* Accent — Cyan lumineux */
+    --accent: 189 95% 43%;
+    --accent-hover: 189 94% 37%;
+    --accent-foreground: 0 0% 100%;
+    --accent-subtle: 189 95% 43% / 0.08;
 
-    /* Muted — #F8F9FA / texte #666666 */
-    --muted: 210 17% 98%;
-    --muted-foreground: 0 0% 40%;
+    /* Textes */
+    --foreground: 210 40% 96%;
+    --muted: 232 29% 16%;
+    --muted-foreground: 215 16% 65%;
+    --foreground-subtle: 215 19% 35%;
 
-    /* Accent — Jaune doré #F2C94C */
-    --accent: 44 87% 62%;
-    --accent-foreground: 0 0% 20%;
+    /* Secondary */
+    --secondary: 232 29% 16%;
+    --secondary-foreground: 210 40% 96%;
 
-    /* Destructive — #E74C3C */
-    --destructive: 6 78% 57%;
-    --destructive-foreground: 0 0% 100%;
+    /* Card & Popover */
+    --card: 228 20% 13%;
+    --card-foreground: 210 40% 96%;
+    --popover: 228 20% 13%;
+    --popover-foreground: 210 40% 96%;
 
-    /* Success — #27AE60 */
-    --success: 145 63% 42%;
+    /* États */
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
+    --success-subtle: 160 84% 39% / 0.08;
+    --success-border: 160 84% 39% / 0.19;
 
-    /* Warning — #F2C94C (= accent) */
-    --warning: 44 87% 62%;
-    --warning-foreground: 0 0% 20%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-subtle: 38 92% 50% / 0.08;
+    --warning-border: 38 92% 50% / 0.19;
 
-    /* Info — #1A4E8A (= primary lighter) */
-    --info: 211 68% 42%;
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-subtle: 350 89% 60% / 0.08;
+    --destructive-border: 350 89% 60% / 0.19;
+
+    --info: 189 95% 43%;
     --info-foreground: 0 0% 100%;
+    --info-subtle: 189 95% 43% / 0.08;
 
-    /* Bordures — #E5E7EB */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 211 68% 32%;
+    /* Bordures et séparateurs */
+    --border: 232 25% 23%;
+    --border-subtle: 232 29% 16%;
+    --border-strong: 232 22% 31%;
+    --input: 232 25% 23%;
 
+    /* Spécial */
+    --ring: 239 84% 67%;
     --radius: 0.75rem;
 
-    /* Sidebar — Fond primary #1A4E8A */
-    --sidebar-background: 211 68% 32%;
-    --sidebar-foreground: 0 0% 100%;
-    /* Item actif sidebar — Vert forêt #2F6B4A */
-    --sidebar-primary: 150 39% 30%;
+    /* Sidebar — Obsidian Pro */
+    --sidebar-background: 228 20% 13%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 211 68% 40%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 211 68% 26%;
-    --sidebar-ring: 44 87% 62%;
+    --sidebar-accent: 239 84% 67% / 0.1;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 232 25% 23%;
+    --sidebar-ring: 239 84% 67%;
 
-    /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(211 68% 32%), hsl(211 60% 42%));
-    --gradient-accent: linear-gradient(135deg, hsl(44 87% 62%), hsl(40 85% 55%));
-    --gradient-success: linear-gradient(135deg, hsl(145 63% 42%), hsl(145 55% 48%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 17% 97%));
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%), hsl(189 95% 43%));
+    --gradient-accent: linear-gradient(135deg, hsl(189 95% 43%), hsl(189 94% 37%));
+    --gradient-success: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 72% 45%));
+    --gradient-card: linear-gradient(145deg, hsl(228 20% 13%), hsl(232 29% 16%));
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
-    --shadow-md: 0 4px 6px -1px hsl(220 30% 10% / 0.1), 0 2px 4px -2px hsl(220 30% 10% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(220 30% 10% / 0.1), 0 4px 6px -4px hsl(220 30% 10% / 0.06);
-    --shadow-xl: 0 20px 25px -5px hsl(220 30% 10% / 0.12), 0 8px 10px -6px hsl(220 30% 10% / 0.06);
-    /* ═══════════════════════════════════════════════════════════
-       SUPER ADMIN THEME - Distinct visual identity
-       Deep indigo/purple tones for clear separation from Centre space
-       ═══════════════════════════════════════════════════════════ */
-    --superadmin-background: 235 25% 12%;
+    --shadow-sm: 0 1px 2px 0 hsl(228 30% 4% / 0.3);
+    --shadow-md: 0 4px 6px -1px hsl(228 30% 4% / 0.4), 0 2px 4px -2px hsl(228 30% 4% / 0.3);
+    --shadow-lg: 0 10px 15px -3px hsl(228 30% 4% / 0.4), 0 4px 6px -4px hsl(228 30% 4% / 0.3);
+    --shadow-xl: 0 20px 25px -5px hsl(228 30% 4% / 0.5), 0 8px 10px -6px hsl(228 30% 4% / 0.3);
+
+    /* Super Admin theme — aligned with Obsidian Pro */
+    --superadmin-background: 235 25% 10%;
     --superadmin-foreground: 235 10% 95%;
     --superadmin-sidebar: 235 30% 8%;
-    --superadmin-header: 235 25% 14%;
+    --superadmin-header: 235 25% 12%;
     --superadmin-border: 235 25% 20%;
     --superadmin-primary: 265 85% 60%;
     --superadmin-primary-foreground: 0 0% 100%;
     --superadmin-accent: 45 100% 55%;
     --superadmin-accent-foreground: 45 100% 10%;
     --superadmin-muted: 235 15% 50%;
-    --superadmin-card: 235 25% 16%;
+    --superadmin-card: 235 25% 14%;
     --superadmin-card-foreground: 235 10% 95%;
   }
 
+  /* Dark mode is the default — .dark class mirrors :root */
   .dark {
-    --background: 211 30% 8%;
-    --foreground: 0 0% 90%;
-
-    --card: 211 30% 12%;
-    --card-foreground: 0 0% 90%;
-
-    --popover: 211 30% 12%;
-    --popover-foreground: 0 0% 90%;
-
-    --primary: 211 60% 50%;
+    --background: 228 24% 8%;
+    --background-elevated: 228 20% 13%;
+    --foreground: 210 40% 96%;
+    --card: 228 20% 13%;
+    --card-foreground: 210 40% 96%;
+    --popover: 228 20% 13%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 150 35% 38%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 211 25% 16%;
-    --muted-foreground: 0 0% 55%;
-
-    --accent: 44 87% 62%;
-    --accent-foreground: 0 0% 15%;
-
-    --destructive: 6 78% 52%;
+    --secondary: 232 29% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 232 29% 16%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 189 95% 43%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 350 89% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    --success: 145 55% 45%;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-
-    --warning: 44 87% 58%;
-    --warning-foreground: 0 0% 15%;
-
-    --info: 211 60% 55%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 189 95% 43%;
     --info-foreground: 0 0% 100%;
-
-    --border: 211 25% 22%;
-    --input: 211 25% 22%;
-    --ring: 211 60% 50%;
-
-    --sidebar-background: 211 40% 12%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 150 35% 38%;
+    --border: 232 25% 23%;
+    --input: 232 25% 23%;
+    --ring: 239 84% 67%;
+    --sidebar-background: 228 20% 13%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 211 35% 20%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 211 30% 18%;
-    --sidebar-ring: 44 87% 62%;
+    --sidebar-accent: 239 84% 67% / 0.1;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 232 25% 23%;
+    --sidebar-ring: 239 84% 67%;
   }
 }
 
@@ -162,48 +167,74 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background-color: hsl(228 24% 8%);
+    color: hsl(210 40% 96%);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Fraunces', Georgia, serif;
-    @apply font-semibold tracking-tight;
+    font-family: 'Syne', sans-serif;
+    @apply font-bold tracking-tight;
   }
 }
 
 @layer components {
+  /* ═══════════════════════════════════════════════
+     OBSIDIAN PRO — Component Styles
+     ═══════════════════════════════════════════════ */
+
   .card-elevated {
-    @apply bg-card rounded-xl border border-border/50;
+    @apply rounded-xl border border-border;
+    background: hsl(var(--card));
     box-shadow: var(--shadow-md);
-    background: var(--gradient-card);
   }
 
   .stat-card {
-    @apply relative overflow-hidden rounded-xl p-5 transition-all duration-300;
+    @apply relative overflow-hidden rounded-xl p-6 transition-all duration-300;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-md);
   }
 
   .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+    border-color: hsl(var(--border-strong));
   }
 
+  /* Sidebar Items — Obsidian Pro style */
   .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 transition-all duration-200;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200;
+    color: hsl(var(--muted-foreground));
   }
 
   .sidebar-item:hover {
-    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+    color: hsl(var(--foreground));
+    background: hsl(239 84% 67% / 0.08);
   }
 
   .sidebar-item.active {
-    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+    color: hsl(var(--foreground));
+    background: hsl(239 84% 67% / 0.12);
+    border-left: 2px solid hsl(var(--primary));
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     SUPER ADMIN SIDEBAR - Purple/Indigo theme
-     ═══════════════════════════════════════════════════════════ */
+  .sidebar-item.active .lucide {
+    color: hsl(var(--primary));
+  }
+
+  /* Sidebar section labels */
+  .sidebar-section-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--foreground-subtle));
+  }
+
+  /* Super Admin Sidebar */
   .superadmin-sidebar-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200;
     color: hsl(var(--superadmin-foreground) / 0.7);
@@ -220,68 +251,39 @@
   }
 
   /* Super Admin specific backgrounds */
-  .bg-superadmin-background {
-    background: hsl(var(--superadmin-background));
-  }
-
-  .bg-superadmin-sidebar {
-    background: hsl(var(--superadmin-sidebar));
-  }
-
-  .bg-superadmin-header {
-    background: hsl(var(--superadmin-header) / 0.95);
-  }
-
-  .bg-superadmin-card {
-    background: hsl(var(--superadmin-card));
-  }
-
-  .bg-superadmin-primary {
-    background: hsl(var(--superadmin-primary));
-  }
-
-  .bg-superadmin-accent {
-    background: hsl(var(--superadmin-accent));
-  }
-
-  .text-superadmin-foreground {
-    color: hsl(var(--superadmin-foreground));
-  }
-
-  .text-superadmin-muted {
-    color: hsl(var(--superadmin-muted));
-  }
-
-  .text-superadmin-primary {
-    color: hsl(var(--superadmin-primary));
-  }
-
-  .text-superadmin-primary-foreground {
-    color: hsl(var(--superadmin-primary-foreground));
-  }
-
-  .text-superadmin-accent {
-    color: hsl(var(--superadmin-accent));
-  }
-
-  .text-superadmin-accent-foreground {
-    color: hsl(var(--superadmin-accent-foreground));
-  }
-
-  .border-superadmin-border {
-    border-color: hsl(var(--superadmin-border));
-  }
+  .bg-superadmin-background { background: hsl(var(--superadmin-background)); }
+  .bg-superadmin-sidebar { background: hsl(var(--superadmin-sidebar)); }
+  .bg-superadmin-header { background: hsl(var(--superadmin-header) / 0.95); }
+  .bg-superadmin-card { background: hsl(var(--superadmin-card)); }
+  .bg-superadmin-primary { background: hsl(var(--superadmin-primary)); }
+  .bg-superadmin-accent { background: hsl(var(--superadmin-accent)); }
+  .text-superadmin-foreground { color: hsl(var(--superadmin-foreground)); }
+  .text-superadmin-muted { color: hsl(var(--superadmin-muted)); }
+  .text-superadmin-primary { color: hsl(var(--superadmin-primary)); }
+  .text-superadmin-primary-foreground { color: hsl(var(--superadmin-primary-foreground)); }
+  .text-superadmin-accent { color: hsl(var(--superadmin-accent)); }
+  .text-superadmin-accent-foreground { color: hsl(var(--superadmin-accent-foreground)); }
+  .border-superadmin-border { border-color: hsl(var(--superadmin-border)); }
 
   .badge-status {
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
   }
 
   .table-row-hover {
-    @apply transition-colors duration-150 hover:bg-muted/50;
+    @apply transition-colors duration-150;
+  }
+
+  .table-row-hover:hover {
+    background: hsl(var(--surface));
   }
 
   .input-focus {
-    @apply focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
+    @apply transition-all duration-200;
+  }
+
+  .input-focus:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(239 84% 67% / 0.12);
   }
 
   .btn-gradient {
@@ -293,18 +295,25 @@
     transform: translateY(-1px);
   }
 
-  /* Interactive card with hover effects */
   .card-interactive {
-    @apply bg-card rounded-xl border border-border/50 transition-all duration-300 cursor-pointer;
+    @apply rounded-xl border transition-all duration-300 cursor-pointer;
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
     box-shadow: var(--shadow-sm);
   }
 
   .card-interactive:hover {
-    @apply border-primary/30 shadow-lg;
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
   }
 
-  /* Success pulse animation for completed actions */
+  /* Mono font for numeric values */
+  .font-mono, .stat-value, .amount {
+    font-family: 'DM Mono', monospace !important;
+  }
+
+  /* Success pulse animation */
   .success-pulse {
     animation: successPulse 0.6s ease-out;
   }
@@ -332,7 +341,6 @@
     100% { background-position: 200% 0; }
   }
 
-  /* Hover scale for interactive elements */
   .hover-scale {
     @apply transition-transform duration-200;
   }
@@ -341,7 +349,6 @@
     transform: scale(1.02);
   }
 
-  /* Focus ring for accessibility */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
   }
@@ -351,14 +358,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .animate-slide-in {
@@ -366,14 +367,8 @@
   }
 
   @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
   .animate-scale-in {
@@ -381,17 +376,10 @@
   }
 
   @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
   }
 
-  /* Bounce animation for notifications */
   .animate-bounce-subtle {
     animation: bounceSubtle 0.5s ease-out;
   }

@@ -126,14 +126,14 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary">
-          <Car className="h-5 w-5 text-sidebar-primary-foreground" />
+      <div className="flex items-center gap-3 px-4 py-6 border-b border-sidebar-border">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
+          <Car className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="font-display font-bold text-sidebar-foreground">T3P Campus</h1>
-            <p className="text-xs text-sidebar-foreground/60">Centre de formation</p>
+            <h1 className="font-display font-bold text-sidebar-foreground tracking-tight">T3P Campus</h1>
+            <p className="text-xs text-muted-foreground">Formation professionnelle</p>
           </div>
         )}
       </div>
@@ -143,7 +143,7 @@ function SidebarContent({
         {menuGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+              <p className="sidebar-section-label px-3 mb-1">
                 {group.label}
               </p>
             )}
@@ -312,8 +312,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Car className="h-4 w-4 text-sidebar-primary-foreground" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'var(--gradient-primary)' }}>
+              <Car className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-sidebar-foreground">T3P Campus</span>
           </div>
