@@ -5,12 +5,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MapPin, Clock, Users, Pencil, Trash2, ClipboardList, Eye } from "lucide-react";
+import { MapPin, Clock, Users, Pencil, Trash2, ClipboardList, Eye, Send, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreneauConduite, useUpdateCreneauStatut, useReservations, useCreateReservation, useProgression, useCompteRendus, useToggleVisibleEleve } from "@/hooks/usePlanningConduite";
 import { useContacts } from "@/hooks/useContacts";
 import { useState } from "react";
+import { SendReservationLinkModal } from "./SendReservationLinkModal";
+import { toast } from "sonner";
 
 const TYPE_LABELS: Record<string, string> = {
   conduite_preventive: "Conduite préventive",
@@ -39,6 +41,8 @@ export function CreneauSlideOver({ creneau, open, onOpenChange, onCompteRendu }:
   const createReservation = useCreateReservation();
   const { data: contacts } = useContacts();
   const [selectedApprenant, setSelectedApprenant] = useState<string>("");
+  const [sendLinkOpen, setSendLinkOpen] = useState(false);
+  const [sendLinkApprenant, setSendLinkApprenant] = useState<{ id: string; prenom: string } | null>(null);
 
   if (!creneau) return null;
 
@@ -126,11 +130,70 @@ export function CreneauSlideOver({ creneau, open, onOpenChange, onCompteRendu }:
           {!isCollectif && (
             <div className="space-y-3">
               {creneau.contacts ? (
-                <EleveInfo apprenantId={creneau.contacts.id} contact={creneau.contacts} />
+                <>
+                  <EleveInfo apprenantId={creneau.contacts.id} contact={creneau.contacts} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSendLinkApprenant({ id: creneau.contacts!.id, prenom: creneau.contacts!.prenom });
+                      setSendLinkOpen(true);
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Envoyer lien de réservation
+                  </Button>
+                </>
               ) : reservations?.[0] ? (
-                <EleveInfo apprenantId={reservations[0].apprenant_id} contact={(reservations[0] as any).contacts} />
+                <>
+                  <EleveInfo apprenantId={reservations[0].apprenant_id} contact={(reservations[0] as any).contacts} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const c = (reservations[0] as any).contacts;
+                      setSendLinkApprenant({ id: reservations[0].apprenant_id, prenom: c?.prenom || "" });
+                      setSendLinkOpen(true);
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Envoyer lien de réservation
+                  </Button>
+                </>
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun élève inscrit</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Aucun élève inscrit — inscrivez un élève ou envoyez-lui un lien de réservation.</p>
+                  <div className="flex gap-2">
+                    <Select value={selectedApprenant} onValueChange={setSelectedApprenant}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Choisir un élève" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contacts?.filter(c => !c.archived).slice(0, 50).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.prenom} {c.nom}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={handleInscrire} disabled={!selectedApprenant}>
+                      <UserPlus className="h-4 w-4 mr-1" /> Inscrire
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      if (selectedApprenant) {
+                        const c = contacts?.find(ct => ct.id === selectedApprenant);
+                        setSendLinkApprenant({ id: selectedApprenant, prenom: c?.prenom || "" });
+                      } else {
+                        toast.info("Sélectionnez d'abord un élève");
+                        return;
+                      }
+                      setSendLinkOpen(true);
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-1" /> Envoyer lien de réservation
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -192,6 +255,18 @@ export function CreneauSlideOver({ creneau, open, onOpenChange, onCompteRendu }:
           </div>
         </div>
       </SheetContent>
+
+      {sendLinkApprenant && (
+        <SendReservationLinkModal
+          apprenantId={sendLinkApprenant.id}
+          apprenantPrenom={sendLinkApprenant.prenom}
+          open={sendLinkOpen}
+          onOpenChange={(v) => {
+            setSendLinkOpen(v);
+            if (!v) setSendLinkApprenant(null);
+          }}
+        />
+      )}
     </Sheet>
   );
 }
