@@ -114,7 +114,7 @@ export function DossierTab({ contactId, formation }: DossierTabProps) {
         .from("contact_historique")
         .insert({
           contact_id: contactId,
-          type: "rappel",
+          type: "note",
           titre: `Rappel document : ${label}`,
           contenu: `Rappel envoyé pour le document manquant : ${label} (${typeDocument})`,
           date_echange: new Date().toISOString(),
