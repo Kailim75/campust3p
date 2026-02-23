@@ -61,14 +61,6 @@ const exampleVehicule = {
   type_vehicule: "Berline",
 };
 
-const exampleContratLocation = {
-  numero_contrat: "LOC-2026-0001",
-  date_debut: "01/02/2026",
-  date_fin: "31/01/2027",
-  montant_mensuel: 850,
-  montant_caution: 1700,
-  objet_location: "Location véhicule pour activité VTC",
-};
 
 export function DocumentTemplatePreviewDialog({
   open,
@@ -77,7 +69,7 @@ export function DocumentTemplatePreviewDialog({
 }: DocumentTemplatePreviewDialogProps) {
   const previewContent = useMemo(() => {
     if (!template) return "";
-    return replaceVariables(template.contenu, exampleContact, exampleSession, exampleVehicule, exampleContratLocation);
+    return replaceVariables(template.contenu, exampleContact, exampleSession, exampleVehicule);
   }, [template]);
 
   const handlePrint = () => {
