@@ -51,7 +51,7 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '64px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+    <header className="sticky top-0 z-30 bg-card border-b border-border" style={{ height: '64px', boxShadow: 'var(--shadow-xs)' }}>
       <div className="flex items-center justify-between px-6 h-full">
         <div className="flex-1">
           {/* Breadcrumb */}
@@ -63,7 +63,7 @@ export function Header({
             />
           )}
           
-          <h1 className="text-[28px] font-display font-bold text-foreground leading-tight">{title}</h1>
+          <h1 className="text-[26px] font-display font-bold text-foreground leading-tight">{title}</h1>
           {subtitle && (
             <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
           )}
