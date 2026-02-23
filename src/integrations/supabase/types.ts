@@ -599,6 +599,36 @@ export type Database = {
           },
         ]
       }
+      budget_previsionnel: {
+        Row: {
+          annee: number
+          categorie: string
+          created_at: string
+          id: string
+          mois: number
+          montant_prevu: number
+          type: Database["public"]["Enums"]["budget_type"]
+        }
+        Insert: {
+          annee: number
+          categorie: string
+          created_at?: string
+          id?: string
+          mois: number
+          montant_prevu: number
+          type: Database["public"]["Enums"]["budget_type"]
+        }
+        Update: {
+          annee?: number
+          categorie?: string
+          created_at?: string
+          id?: string
+          mois?: number
+          montant_prevu?: number
+          type?: Database["public"]["Enums"]["budget_type"]
+        }
+        Relationships: []
+      }
       cartes_professionnelles: {
         Row: {
           contact_id: string
@@ -913,6 +943,51 @@ export type Database = {
           stripe_subscription_id?: string | null
           telephone?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      charges: {
+        Row: {
+          categorie: Database["public"]["Enums"]["charge_categorie"]
+          created_at: string
+          created_by: string | null
+          date_charge: string
+          id: string
+          libelle: string
+          montant: number
+          notes: string | null
+          periodicite: Database["public"]["Enums"]["charge_periodicite"]
+          prestataire: string | null
+          statut: Database["public"]["Enums"]["charge_statut"]
+          type_charge: Database["public"]["Enums"]["type_charge"]
+        }
+        Insert: {
+          categorie: Database["public"]["Enums"]["charge_categorie"]
+          created_at?: string
+          created_by?: string | null
+          date_charge: string
+          id?: string
+          libelle: string
+          montant: number
+          notes?: string | null
+          periodicite?: Database["public"]["Enums"]["charge_periodicite"]
+          prestataire?: string | null
+          statut?: Database["public"]["Enums"]["charge_statut"]
+          type_charge: Database["public"]["Enums"]["type_charge"]
+        }
+        Update: {
+          categorie?: Database["public"]["Enums"]["charge_categorie"]
+          created_at?: string
+          created_by?: string | null
+          date_charge?: string
+          id?: string
+          libelle?: string
+          montant?: number
+          notes?: string | null
+          periodicite?: Database["public"]["Enums"]["charge_periodicite"]
+          prestataire?: string | null
+          statut?: Database["public"]["Enums"]["charge_statut"]
+          type_charge?: Database["public"]["Enums"]["type_charge"]
         }
         Relationships: []
       }
@@ -4424,6 +4499,39 @@ export type Database = {
           },
         ]
       }
+      parametres_financiers: {
+        Row: {
+          created_at: string
+          devise: string | null
+          id: string
+          prix_moyen_recyclage: number | null
+          prix_moyen_taxi: number | null
+          prix_moyen_vmdtr: number | null
+          prix_moyen_vtc: number | null
+          regime_tva: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          devise?: string | null
+          id?: string
+          prix_moyen_recyclage?: number | null
+          prix_moyen_taxi?: number | null
+          prix_moyen_vmdtr?: number | null
+          prix_moyen_vtc?: number | null
+          regime_tva?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          devise?: string | null
+          id?: string
+          prix_moyen_recyclage?: number | null
+          prix_moyen_taxi?: number | null
+          prix_moyen_vmdtr?: number | null
+          prix_moyen_vtc?: number | null
+          regime_tva?: boolean | null
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           address: string | null
@@ -5694,6 +5802,47 @@ export type Database = {
           },
         ]
       }
+      versements: {
+        Row: {
+          created_at: string
+          date_encaissement: string
+          id: string
+          mode: Database["public"]["Enums"]["mode_versement"]
+          montant: number
+          notes: string | null
+          paiement_id: string
+          reference: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_encaissement: string
+          id?: string
+          mode: Database["public"]["Enums"]["mode_versement"]
+          montant: number
+          notes?: string | null
+          paiement_id: string
+          reference?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_encaissement?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["mode_versement"]
+          montant?: number
+          notes?: string | null
+          paiement_id?: string
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versements_paiement_id_fkey"
+            columns: ["paiement_id"]
+            isOneToOne: false
+            referencedRelation: "paiements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_executions: {
         Row: {
           completed_at: string | null
@@ -6086,6 +6235,25 @@ export type Database = {
         | "valide"
         | "a_reprendre"
       bim_projet_statut: "brouillon" | "actif" | "archive"
+      budget_type: "charge" | "revenu"
+      charge_categorie:
+        | "loyer"
+        | "salaires"
+        | "charges_sociales"
+        | "formateurs_vacataires"
+        | "materiel_pedagogique"
+        | "logiciels_abonnements"
+        | "marketing_publicite"
+        | "comptabilite_juridique"
+        | "assurances"
+        | "telephone_internet"
+        | "fournitures_bureau"
+        | "deplacement"
+        | "entretien_locaux"
+        | "taxes_impots"
+        | "autre"
+      charge_periodicite: "unique" | "mensuelle" | "trimestrielle" | "annuelle"
+      charge_statut: "active" | "annulee"
       charter_status: "draft" | "active" | "archived"
       civilite: "Monsieur" | "Madame"
       contact_origin:
@@ -6140,6 +6308,7 @@ export type Database = {
         | "Formation continue VTC"
         | "Mobilité Taxi"
       mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf"
+      mode_versement: "especes" | "cb" | "virement" | "alma" | "cpf"
       partner_category:
         | "assurance"
         | "comptable"
@@ -6169,6 +6338,7 @@ export type Database = {
         | "terminee"
         | "annulee"
         | "complet"
+      type_charge: "fixe" | "variable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6312,6 +6482,26 @@ export const Constants = {
         "a_reprendre",
       ],
       bim_projet_statut: ["brouillon", "actif", "archive"],
+      budget_type: ["charge", "revenu"],
+      charge_categorie: [
+        "loyer",
+        "salaires",
+        "charges_sociales",
+        "formateurs_vacataires",
+        "materiel_pedagogique",
+        "logiciels_abonnements",
+        "marketing_publicite",
+        "comptabilite_juridique",
+        "assurances",
+        "telephone_internet",
+        "fournitures_bureau",
+        "deplacement",
+        "entretien_locaux",
+        "taxes_impots",
+        "autre",
+      ],
+      charge_periodicite: ["unique", "mensuelle", "trimestrielle", "annuelle"],
+      charge_statut: ["active", "annulee"],
       charter_status: ["draft", "active", "archived"],
       civilite: ["Monsieur", "Madame"],
       contact_origin: [
@@ -6372,6 +6562,7 @@ export const Constants = {
         "Mobilité Taxi",
       ],
       mode_paiement: ["cb", "virement", "cheque", "especes", "cpf"],
+      mode_versement: ["especes", "cb", "virement", "alma", "cpf"],
       partner_category: [
         "assurance",
         "comptable",
@@ -6399,6 +6590,7 @@ export const Constants = {
       ],
       prospect_status: ["nouveau", "contacte", "relance", "converti", "perdu"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
+      type_charge: ["fixe", "variable"],
     },
   },
 } as const

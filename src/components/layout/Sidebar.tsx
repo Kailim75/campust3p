@@ -66,6 +66,7 @@ const menuGroups = [
     label: "Gestion",
     items: [
       { id: "facturation", label: "Paiements", icon: CreditCard },
+      { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "documents", label: "Documents", icon: FileText },
       { id: "communications", label: "Communications", icon: Mail },
@@ -74,7 +75,7 @@ const menuGroups = [
   {
     label: "Rapports",
     items: [
-      { id: "cockpit-financier", label: "Rapports", icon: Landmark },
+      { id: "rapports", label: "Rapports", icon: Landmark },
       { id: "alertes", label: "Alertes", icon: Bell },
     ],
   },
