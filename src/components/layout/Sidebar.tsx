@@ -77,8 +77,6 @@ const menuGroups = [
   },
 ];
 
-const menuItems = menuGroups.flatMap(g => g.items);
-
 function SidebarContent({ 
   activeSection, 
   onSectionChange, 
@@ -117,21 +115,41 @@ function SidebarContent({
 
   return (
     <>
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 border-b border-border" style={{ height: '64px' }}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-primary-foreground bg-primary">
-          T3
+      {/* Logo zone — height 68px */}
+      <div 
+        className="flex items-center gap-3 px-5" 
+        style={{ 
+          height: '68px', 
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          padding: '0 18px',
+        }}
+      >
+        <div 
+          className="flex items-center justify-center flex-shrink-0"
+          style={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: 12, 
+            background: 'rgba(255,255,255,0.15)', 
+            border: '1.5px solid rgba(255,255,255,0.25)',
+          }}
+        >
+          <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 16, color: '#FFFFFF' }}>T3</span>
         </div>
         {!collapsed && (
-          <div className="animate-fade-in">
-            <h1 className="font-semibold text-sm text-foreground tracking-tight">T3P Campus</h1>
-            <p className="text-[11px] text-muted-foreground font-normal">FMS</p>
+          <div className="animate-fade-in min-w-0">
+            <h1 style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 15.5, color: '#FFFFFF', lineHeight: 1.2 }}>
+              T3P Campus
+            </h1>
+            <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>
+              Formation Management
+            </p>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-3 space-y-3 overflow-y-auto">
+      <nav className="flex-1 px-2.5 py-3 space-y-3 overflow-y-auto">
         {menuGroups.map((group) => (
           <div key={group.label || 'home'}>
             {!collapsed && group.label && (
@@ -162,10 +180,20 @@ function SidebarContent({
                       <span className="animate-fade-in truncate">{item.label}</span>
                     )}
                     {showBadge && (
-                      <span className={cn(
-                        "absolute flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full",
-                        collapsed ? "top-0 right-0 h-4 w-4" : "ml-auto h-5 min-w-5 px-1"
-                      )}>
+                      <span 
+                        className="absolute flex items-center justify-center text-white font-bold"
+                        style={{
+                          background: 'rgba(255,255,255,0.2)',
+                          fontFamily: 'Nunito',
+                          fontWeight: 800,
+                          fontSize: 10,
+                          borderRadius: 99,
+                          padding: '2px 8px',
+                          right: collapsed ? 0 : 12,
+                          top: collapsed ? 0 : 'auto',
+                          ...(collapsed ? { width: 16, height: 16 } : {}),
+                        }}
+                      >
                         {highPriorityAlerts}
                       </span>
                     )}
@@ -178,7 +206,7 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-border space-y-0.5">
+      <div className="px-2.5 py-3 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <RecentItemsMenu 
           onItemClick={handleRecentItemClick}
           collapsed={collapsed}
@@ -223,7 +251,8 @@ function SidebarContent({
         {canSwitchMode && (
           <button
             onClick={handleSwitchToSuperAdmin}
-            className="sidebar-item w-full border border-dashed border-border hover:border-primary/40 hover:bg-primary/5"
+            className="sidebar-item w-full"
+            style={{ border: '1px dashed rgba(255,255,255,0.2)' }}
           >
             <Shield className="h-4 w-4 flex-shrink-0" />
             {!collapsed && <span className="animate-fade-in text-xs font-medium">Super Admin</span>}
@@ -276,14 +305,17 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   if (isMobile) {
     return (
       <>
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-card border-b border-border flex items-center px-4 gap-3">
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 gap-3" style={{
+          height: 56,
+          background: '#1E5068',
+        }}>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-60 p-0 bg-card border-border">
+            <SheetContent side="left" className="w-[230px] p-0" style={{ background: '#1E5068', border: 'none' }}>
               <div className="flex flex-col h-full">
                 <SidebarContent
                   activeSection={activeSection}
@@ -297,13 +329,20 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           </Sheet>
           
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold text-primary-foreground bg-primary">
-              T3
+            <div 
+              className="flex items-center justify-center"
+              style={{ 
+                width: 28, height: 28, borderRadius: 8, 
+                background: 'rgba(255,255,255,0.15)', 
+                border: '1.5px solid rgba(255,255,255,0.25)' 
+              }}
+            >
+              <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 11, color: '#FFFFFF' }}>T3</span>
             </div>
-            <span className="font-semibold text-foreground text-sm">T3P Campus</span>
+            <span style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 14, color: '#FFFFFF' }}>T3P Campus</span>
           </div>
         </header>
-        <div className="h-14" />
+        <div style={{ height: 56 }} />
       </>
     );
   }
@@ -311,9 +350,14 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-200 flex flex-col",
-        collapsed ? "w-16" : "w-60"
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-200 flex flex-col",
+        collapsed ? "w-16" : "w-[230px]"
       )}
+      style={{
+        background: '#1E5068',
+        backgroundImage: 
+          'radial-gradient(ellipse at 10% 90%, rgba(255,255,255,0.04) 0%, transparent 60%), radial-gradient(ellipse at 90% 10%, rgba(255,255,255,0.03) 0%, transparent 50%)',
+      }}
     >
       <SidebarContent
         activeSection={activeSection}
