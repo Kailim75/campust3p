@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
+import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
 import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
@@ -393,7 +394,7 @@ export function SettingsPage() {
 
       <main className="p-6 animate-fade-in">
         <Tabs defaultValue="centre" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 lg:w-auto lg:inline-flex">
             <TabsTrigger value="centre" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Centre</span>
@@ -405,6 +406,10 @@ export function SettingsPage() {
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="financier" className="gap-2">
+              <CreditCardIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Financier</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="h-4 w-4" />

@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Landmark, CalendarDays } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-
-type Periode = "mois" | "trimestre" | "annee" | "personnalise";
+import { computePeriodRange, type Periode } from "@/hooks/useFinancialData";
+import { VueEnsembleTab } from "./VueEnsembleTab";
+import { RevenusTab } from "./RevenusTab";
+import { ChargesTab } from "./ChargesTab";
+import { PrevisionnelTab } from "./PrevisionnelTab";
 
 export function CockpitFinancierPage() {
   const [periode, setPeriode] = useState<Periode>("mois");
+  const range = useMemo(() => computePeriodRange(periode), [periode]);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -23,7 +26,6 @@ export function CockpitFinancierPage() {
           </div>
         </div>
 
-        {/* Period selector */}
         <Select value={periode} onValueChange={(v) => setPeriode(v as Periode)}>
           <SelectTrigger className="w-[200px]">
             <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -33,7 +35,6 @@ export function CockpitFinancierPage() {
             <SelectItem value="mois">Ce mois</SelectItem>
             <SelectItem value="trimestre">Ce trimestre</SelectItem>
             <SelectItem value="annee">Cette année</SelectItem>
-            <SelectItem value="personnalise">Personnalisé</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -48,37 +49,21 @@ export function CockpitFinancierPage() {
         </TabsList>
 
         <TabsContent value="vue-ensemble">
-          <EmptyTabPlaceholder label="Vue d'ensemble" />
+          <VueEnsembleTab range={range} />
         </TabsContent>
 
         <TabsContent value="revenus">
-          <EmptyTabPlaceholder label="Revenus" />
+          <RevenusTab range={range} />
         </TabsContent>
 
         <TabsContent value="charges">
-          <EmptyTabPlaceholder label="Charges" />
+          <ChargesTab range={range} />
         </TabsContent>
 
         <TabsContent value="previsionnel">
-          <EmptyTabPlaceholder label="Prévisionnel" />
+          <PrevisionnelTab />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function EmptyTabPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-12 flex flex-col items-center justify-center text-center space-y-4">
-      <div className="p-4 rounded-full bg-muted">
-        <Landmark className="h-8 w-8 text-muted-foreground" />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">{label}</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ce module sera bientôt disponible.
-        </p>
-      </div>
     </div>
   );
 }
