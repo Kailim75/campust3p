@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Save, Send, CheckCircle, Rocket, Loader2,
-  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield, Wand2, Archive,
+  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield, Wand2, Archive, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -29,7 +29,8 @@ import {
   TEMPLATE_GENERATORS,
   type ComplianceReport,
 } from "./complianceEngine";
-import DOMPurify from "dompurify";
+import TemplatePreview from "./TemplatePreview";
+import GenerateDocumentModal from "./GenerateDocumentModal";
 import { toast } from "sonner";
 
 interface Props {
@@ -53,6 +54,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
   const [editorTab, setEditorTab] = useState("edit");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
 
   useEffect(() => {
     if (template) {
@@ -156,6 +158,10 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const isComplianceGated = COMPLIANCE_GATED_TYPES.includes(type);
   const canShowPublish = template?.status === "approved";
   const complianceBlocking = isComplianceGated && complianceReport && !complianceReport.ready_to_publish;
+  
+  // Save button: require name, type, format, body. scenario required only if type=email
+  const canSave = !!(name.trim() && type && format && body.trim() && (type !== "email" || scenario.trim()));
+  const isSaved = !!template && !isCreating;
 
   if (!isCreating && !templateId) {
     return (
@@ -218,10 +224,16 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
             <Shield className="h-4 w-4" />
             Vérifier conformité
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || !name} className="gap-2">
+          <Button onClick={handleSave} disabled={isSaving || !canSave} className="gap-2">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Enregistrer
           </Button>
+          {isSaved && (
+            <Button variant="outline" onClick={() => setGenerateOpen(true)} className="gap-2">
+              <FileText className="h-4 w-4" />
+              Générer un document
+            </Button>
+          )}
           {template?.status === "draft" && (
             <Button variant="outline" onClick={handleSubmitReview} className="gap-2">
               <Send className="h-4 w-4" />
@@ -329,12 +341,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                   className="min-h-[400px] font-mono text-sm"
                 />
               ) : (
-                <ScrollArea className="max-h-[400px] border rounded-lg p-4">
-                  <div
-                    className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(body) }}
-                  />
-                </ScrollArea>
+                <TemplatePreview body={body} />
               )}
             </CardContent>
           </Card>
@@ -445,6 +452,15 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
           </Card>
         </div>
       </div>
+
+      {/* Generate Document Modal */}
+      {template && (
+        <GenerateDocumentModal
+          open={generateOpen}
+          onOpenChange={setGenerateOpen}
+          template={template}
+        />
+      )}
     </div>
   );
 }
