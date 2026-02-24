@@ -54,8 +54,8 @@ export function Header({
             />
           ) : (
             <div>
-              <h1 className="text-foreground font-semibold text-lg leading-none tracking-tight">{title}</h1>
-              {subtitle && <p className="text-[12px] text-muted-foreground mt-1">{subtitle}</p>}
+              <h1 className="text-foreground font-semibold text-[28px] leading-none tracking-tight">{title}</h1>
+              {subtitle && <p className="text-[13px] text-foreground-subtle mt-1.5">{subtitle}</p>}
             </div>
           )}
         </div>
