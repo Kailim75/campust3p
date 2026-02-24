@@ -202,7 +202,7 @@ export function useDocumentGenerator() {
                   let fullContact: any = contact;
                   if (contactId) {
                     try {
-                      fullContact = { ...contact, ...(await fetchContactDocumentData(contactId)) };
+                      fullContact = { ...contact, ...(await fetchContactDocumentData(contactId, session.formation_type)) };
                     } catch (e) {
                       console.warn("[DOCX] Contact partiel (fallback)", e);
                     }
@@ -390,7 +390,7 @@ export function useDocumentGenerator() {
                 const ids = contacts
                   .map((c) => (c as any)?.id)
                   .filter(Boolean) as string[];
-                contactsById = await fetchContactsDocumentData(ids);
+                contactsById = await fetchContactsDocumentData(ids, session?.formation_type);
               } catch (e) {
                 console.warn("[DOCX] Impossible de précharger les contacts (bulk)", e);
               }

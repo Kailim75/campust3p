@@ -229,6 +229,7 @@ export type Database = {
           date_expiration: string | null
           date_obtention: string | null
           documents_manquants: string[] | null
+          formation_type: string | null
           id: string
           notes: string | null
           numero_carte: string | null
@@ -245,6 +246,7 @@ export type Database = {
           date_expiration?: string | null
           date_obtention?: string | null
           documents_manquants?: string[] | null
+          formation_type?: string | null
           id?: string
           notes?: string | null
           numero_carte?: string | null
@@ -261,6 +263,7 @@ export type Database = {
           date_expiration?: string | null
           date_obtention?: string | null
           documents_manquants?: string[] | null
+          formation_type?: string | null
           id?: string
           notes?: string | null
           numero_carte?: string | null
@@ -5798,6 +5801,16 @@ export type Database = {
           siret: string
           telephone_contact: string
           version: number
+        }[]
+      }
+      get_carte_pro_for_formation: {
+        Args: { p_contact_id: string; p_formation_type: string }
+        Returns: {
+          date_expiration: string
+          date_obtention: string
+          numero_carte: string
+          prefecture: string
+          type_carte: string
         }[]
       }
       get_partner_stats: {

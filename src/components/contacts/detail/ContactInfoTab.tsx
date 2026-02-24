@@ -2,6 +2,7 @@ import { Mail, Phone, MapPin, Calendar, User, Car, CreditCard, GraduationCap, Fi
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ContactCertificatesSection } from "./ContactCertificatesSection";
+import { ContactCartesProSection } from "./ContactCartesProSection";
 
 interface Contact {
   id?: string;
@@ -114,7 +115,11 @@ export function ContactInfoTab({ contact }: ContactInfoTabProps) {
         </div>
       )}
 
-      {carteProInfo && (
+      {/* Cartes professionnelles multiples */}
+      {contact.id && <ContactCartesProSection contactId={contact.id} />}
+
+      {/* Legacy single card fallback */}
+      {!contact.id && carteProInfo && (
         <div className="space-y-1">
           <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Carte professionnelle</h3>
           <InfoRow icon={CreditCard} label="Carte" value={carteProInfo} />
