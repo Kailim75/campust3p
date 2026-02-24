@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,27 @@ function getInitialExpertMode(): boolean {
   }
 }
 
-export function ApprenantsPage() {
+interface ApprenantsPageProps {
+  initialContactId?: string | null;
+  onContactOpened?: () => void;
+}
+
+export function ApprenantsPage({ initialContactId, onContactOpened }: ApprenantsPageProps = {}) {
   const { data: contacts, isLoading } = useEnrichedContacts();
   const [search, setSearch] = useState("");
   const [formationFilter, setFormationFilter] = useState("all");
   const [quickFilter, setQuickFilter] = useState("all");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Open contact sheet when initialContactId is provided (e.g. from IA Director)
+  useEffect(() => {
+    if (initialContactId) {
+      setSelectedContactId(initialContactId);
+      setDetailOpen(true);
+      onContactOpened?.();
+    }
+  }, [initialContactId, onContactOpened]);
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);

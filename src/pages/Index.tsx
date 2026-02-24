@@ -154,7 +154,7 @@ const Index = () => {
       case "dashboard":
         return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
       case "contacts":
-        return <ApprenantsPage />;
+        return <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
       case "formations":
         return <FormationsPage />;
       case "sessions":
