@@ -213,13 +213,13 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
   return base;
 }
 
-// ── Record detail types ──
 interface RecordDetail {
   id: string;
   label: string;
   sublabel?: string;
   icon: typeof User;
   tags?: string[];
+  navigateTo?: string; // deep-link to open profile
 }
 
 function useAffectedRecordDetails(anomaly: Anomaly | null) {
@@ -239,7 +239,7 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
 
         if (anomaly.category === "prospects") {
           const { data } = await supabase
-            .from("prospects")
+            .from("contacts")
             .select("id, nom, prenom, email, telephone, statut")
             .in("id", ids);
           setRecords((data || []).map((p: any) => ({
@@ -248,18 +248,28 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
             sublabel: p.email || p.telephone || "Pas de contact",
             icon: Target,
             tags: [p.statut].filter(Boolean),
+            navigateTo: `/?section=contacts&contactId=${p.id}`,
           })));
         } else if (anomaly.category === "paiements") {
           const { data } = await supabase
             .from("factures")
-            .select("id, numero_facture, montant_total, statut, contact_id, contacts(nom, prenom)")
+            .select("id, numero_facture, montant_total, statut, contact_id, contacts(nom, prenom, email)")
             .in(anomaly.id.includes("solde-impaye") ? "contact_id" : "id", ids);
-          setRecords((data || []).map((f: any) => ({
-            id: f.id,
+          // Deduplicate by contact_id for payment anomalies
+          const seen = new Set<string>();
+          const deduped = (data || []).filter((f: any) => {
+            const key = f.contact_id || f.id;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setRecords(deduped.map((f: any) => ({
+            id: f.contact_id || f.id,
             label: f.contacts ? `${f.contacts.prenom || ""} ${f.contacts.nom || ""}`.trim() : f.numero_facture,
             sublabel: `${f.numero_facture} — ${(f.montant_total || 0).toLocaleString("fr-FR")}€ — ${f.statut}`,
             icon: CreditCard,
             tags: [f.statut].filter(Boolean),
+            navigateTo: f.contact_id ? `/?section=contacts&contactId=${f.contact_id}` : `/?section=facturation`,
           })));
         } else if (anomaly.category === "sessions") {
           const { data } = await supabase
@@ -272,6 +282,7 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
             sublabel: `${s.formation_type || "Formation"} — ${s.date_debut ? new Date(s.date_debut).toLocaleDateString("fr-FR") : "Date non définie"} — ${s.places_max || "?"} places`,
             icon: Calendar,
             tags: [s.formation_type].filter(Boolean),
+            navigateTo: `/?section=sessions`,
           })));
         } else {
           // contacts (administratif, qualite_data, default)
@@ -290,6 +301,7 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
               sublabel: c.email || c.telephone || "Aucune coordonnée",
               icon: User,
               tags: missing.length > 0 ? missing : undefined,
+              navigateTo: `/?section=contacts&contactId=${c.id}`,
             };
           }));
         }
@@ -580,7 +592,18 @@ export default function AnomalyActionModal({
                         return (
                           <div
                             key={record.id}
-                            className="flex items-center gap-3 p-2.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                            className={cn(
+                              "flex items-center gap-3 p-2.5 rounded-lg border bg-card transition-colors",
+                              record.navigateTo
+                                ? "hover:bg-primary/5 hover:border-primary/30 cursor-pointer group"
+                                : "hover:bg-muted/30"
+                            )}
+                            onClick={() => {
+                              if (record.navigateTo) {
+                                onOpenChange(false);
+                                navigate(record.navigateTo);
+                              }
+                            }}
                           >
                             <div className="p-1.5 rounded bg-muted shrink-0">
                               <RecIcon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -597,6 +620,9 @@ export default function AnomalyActionModal({
                                   </Badge>
                                 ))}
                               </div>
+                            )}
+                            {record.navigateTo && (
+                              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                             )}
                           </div>
                         );
