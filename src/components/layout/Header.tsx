@@ -51,7 +51,7 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '52px', padding: '0 24px' }}>
+    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '52px', padding: '0 24px', borderImage: 'linear-gradient(to right, hsl(199 55% 26% / 0.15), transparent) 1' }}>
       <div className="flex items-center justify-between h-full">
         <div className="flex-1 min-w-0 flex items-center gap-3">
           {activeSection && onNavigate ? (
