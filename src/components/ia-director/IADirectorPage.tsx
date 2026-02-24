@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProspectScorings, useRunProspectScoring } from "@/hooks/useProspectScoring";
 import { useLatestScoreHistory, useScoreHistoryTrend, useRunCentreScoring } from "@/hooks/useScoreHistory";
 import { useProspects } from "@/hooks/useProspects";
-import { useQuickAudit, useDeepAudit } from "@/hooks/useAuditEngine";
+import { useQuickAudit, useDeepAudit, useActionLogs } from "@/hooks/useAuditEngine";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +15,14 @@ import IADirectorDashboard from "./IADirectorDashboard";
 import AuditAnomaliesTab from "./AuditAnomaliesTab";
 import ActionsHistoryTab from "./ActionsHistoryTab";
 import { cn } from "@/lib/utils";
+import type { AnomalyStatus } from "./audit/types";
 
 export default function IADirectorPage() {
   const { data: scorings, isLoading } = useProspectScorings();
   const { data: prospects } = useProspects();
   const { data: latestScore, isLoading: scoreLoading } = useLatestScoreHistory();
   const { data: trend } = useScoreHistoryTrend(30);
+  const { data: actionLogs } = useActionLogs();
   const runScoring = useRunProspectScoring();
   const runCentreScoring = useRunCentreScoring();
 
@@ -42,15 +44,33 @@ export default function IADirectorPage() {
   // Auto-run quick audit on mount
   useEffect(() => {
     if (!quickAudit.result && !quickAudit.isRunning) {
-      quickAudit.run();
+      quickAudit.run(actionLogs || undefined);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRunAll = async () => {
     runScoring.mutate();
     runCentreScoring.mutate(undefined);
-    quickAudit.run();
+    quickAudit.run(actionLogs || undefined);
   };
+
+  // Handle anomaly status change locally
+  const handleAnomalyStatusChange = useCallback((anomalyId: string, newStatus: AnomalyStatus) => {
+    const currentResult = deepAudit.result || quickAudit.result;
+    if (!currentResult) return;
+    
+    const updatedAnomalies = currentResult.anomalies.map(a => 
+      a.id === anomalyId ? { ...a, status: newStatus } : a
+    );
+    
+    const updatedResult = { ...currentResult, anomalies: updatedAnomalies };
+    
+    if (deepAudit.result) {
+      deepAudit.setResult(updatedResult);
+    } else {
+      quickAudit.setResult(updatedResult);
+    }
+  }, [deepAudit, quickAudit]);
 
   const isRunning = runScoring.isPending || runCentreScoring.isPending;
 
@@ -78,7 +98,7 @@ export default function IADirectorPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => deepAudit.run()}
+            onClick={() => deepAudit.run(actionLogs || undefined)}
             disabled={deepAudit.isRunning}
             className="gap-2"
           >
@@ -166,6 +186,7 @@ export default function IADirectorPage() {
           <AuditAnomaliesTab
             anomalies={anomalies}
             isLoading={quickAudit.isRunning || deepAudit.isRunning}
+            onAnomalyStatusChange={handleAnomalyStatusChange}
           />
         </TabsContent>
 

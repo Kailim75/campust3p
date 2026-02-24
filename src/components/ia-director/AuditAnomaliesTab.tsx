@@ -1,26 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, Target, Activity, FileText, CreditCard, Database,
-  Play, CheckCircle2, XCircle, Loader2, ChevronRight,
+  CheckCircle2, Loader2, Eye, EyeOff, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Anomaly, AnomalyCategory, AnomalySeverity } from "./audit/types";
-import { useExecuteAction } from "@/hooks/useAuditEngine";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import type { Anomaly, AnomalyCategory, AnomalySeverity, AnomalyStatus } from "./audit/types";
+import AnomalyActionModal from "./AnomalyActionModal";
+import { useExecuteAction, useChangeAnomalyStatus } from "@/hooks/useAuditEngine";
 
 const categoryConfig: Record<AnomalyCategory, { icon: typeof Target; label: string }> = {
   prospects: { icon: Target, label: "Prospects" },
@@ -39,51 +30,60 @@ const severityConfig: Record<AnomalySeverity, { label: string; className: string
   low: { label: "Basse", className: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400" },
 };
 
+const statusIcons: Record<AnomalyStatus, { icon: typeof CheckCircle2; className: string; label: string }> = {
+  open: { icon: AlertTriangle, className: "text-amber-500", label: "Ouverte" },
+  in_progress: { icon: Clock, className: "text-blue-500", label: "En cours" },
+  resolved: { icon: CheckCircle2, className: "text-green-500", label: "Résolue" },
+  ignored: { icon: EyeOff, className: "text-muted-foreground", label: "Ignorée" },
+};
+
 interface Props {
   anomalies: Anomaly[];
   isLoading: boolean;
+  onAnomalyStatusChange?: (anomalyId: string, status: AnomalyStatus) => void;
 }
 
-export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
+export default function AuditAnomaliesTab({ anomalies, isLoading, onAnomalyStatusChange }: Props) {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
-  const [confirmAction, setConfirmAction] = useState<{
-    anomalyId: string;
-    label: string;
-    actionType: string;
-  } | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null);
   const executeAction = useExecuteAction();
+  const changeStatus = useChangeAnomalyStatus();
 
   const filtered = anomalies.filter((a) => {
     if (filterCategory !== "all" && a.category !== filterCategory) return false;
     if (filterSeverity !== "all" && a.severity !== filterSeverity) return false;
+    if (filterStatus !== "all" && a.status !== filterStatus) return false;
     return true;
   });
 
-  const handleAction = (anomaly: Anomaly, playbook: Anomaly["playbooks"][0]) => {
-    if (playbook.confirmation_required) {
-      setConfirmAction({
-        anomalyId: anomaly.id,
-        label: playbook.label,
-        actionType: playbook.action_type,
-      });
-    } else {
-      executeAction.mutate({
-        anomalyId: anomaly.id,
-        actionType: playbook.action_type,
-        payload: { label: playbook.label, affected_count: anomaly.affected_count },
-      });
-    }
+  const handleExecuteAction = (anomalyId: string, actionType: string, payload: Record<string, unknown>, entityIds: string[], anomalyTitle: string) => {
+    executeAction.mutate({
+      anomalyId,
+      actionType,
+      payload,
+      entityIds,
+      anomalyTitle,
+    }, {
+      onSuccess: () => {
+        // Auto-mark as in_progress
+        onAnomalyStatusChange?.(anomalyId, "in_progress");
+      }
+    });
   };
 
-  const handleConfirm = () => {
-    if (!confirmAction) return;
-    executeAction.mutate({
-      anomalyId: confirmAction.anomalyId,
-      actionType: confirmAction.actionType,
-      payload: { label: confirmAction.label },
+  const handleChangeStatus = (anomalyId: string, status: AnomalyStatus) => {
+    const anomaly = anomalies.find(a => a.id === anomalyId);
+    changeStatus.mutate({
+      anomalyId,
+      newStatus: status,
+      anomalyTitle: anomaly?.title,
+    }, {
+      onSuccess: () => {
+        onAnomalyStatusChange?.(anomalyId, status);
+      }
     });
-    setConfirmAction(null);
   };
 
   if (isLoading) {
@@ -120,6 +120,18 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous statuts</SelectItem>
+            <SelectItem value="open">Ouvertes</SelectItem>
+            <SelectItem value="in_progress">En cours</SelectItem>
+            <SelectItem value="resolved">Résolues</SelectItem>
+            <SelectItem value="ignored">Ignorées</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-sm text-muted-foreground ml-auto">
           {filtered.length} anomalie(s)
         </span>
@@ -140,13 +152,21 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
             {filtered.map((anomaly) => {
               const catCfg = categoryConfig[anomaly.category];
               const sevCfg = severityConfig[anomaly.severity];
+              const stCfg = statusIcons[anomaly.status || "open"];
               const CatIcon = catCfg.icon;
+              const StIcon = stCfg.icon;
               return (
-                <Card key={anomaly.id} className={cn(
-                  "border transition-all hover:shadow-md",
-                  anomaly.severity === "critical" && "border-red-500/30",
-                  anomaly.severity === "high" && "border-orange-500/20",
-                )}>
+                <Card
+                  key={anomaly.id}
+                  className={cn(
+                    "border transition-all hover:shadow-md cursor-pointer",
+                    anomaly.severity === "critical" && "border-red-500/30",
+                    anomaly.severity === "high" && "border-orange-500/20",
+                    anomaly.status === "resolved" && "opacity-60",
+                    anomaly.status === "ignored" && "opacity-40",
+                  )}
+                  onClick={() => setSelectedAnomaly(anomaly)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className={cn("p-2 rounded-lg shrink-0 mt-0.5", sevCfg.className.split(" ").find(c => c.startsWith("bg-")))}>
@@ -158,7 +178,7 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
                             <p className="font-medium text-foreground text-sm">{anomaly.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">{anomaly.description}</p>
                           </div>
-                          <div className="text-right shrink-0">
+                          <div className="text-right shrink-0 space-y-1">
                             <span className="text-sm font-bold text-foreground">
                               {anomaly.priority_score}
                             </span>
@@ -167,6 +187,10 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
                         </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className={cn("text-[10px] gap-1", stCfg.className)}>
+                            <StIcon className="h-3 w-3" />
+                            {stCfg.label}
+                          </Badge>
                           <Badge variant="outline" className={cn("text-[10px]", sevCfg.className)}>
                             {sevCfg.label}
                           </Badge>
@@ -181,36 +205,19 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
                               💰 {anomaly.impact_estime_euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
                             </span>
                           )}
-                          <span className="text-[10px] text-muted-foreground ml-auto">
-                            Confiance : {anomaly.confidence_score}%
-                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] gap-1 ml-auto text-primary hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedAnomaly(anomaly);
+                            }}
+                          >
+                            <Eye className="h-3 w-3" />
+                            Actions
+                          </Button>
                         </div>
-
-                        <p className="text-[10px] text-muted-foreground italic">
-                          Règle : {anomaly.detection_rule}
-                        </p>
-
-                        {/* Playbooks */}
-                        {anomaly.playbooks.length > 0 && (
-                          <div className="flex items-center gap-2 flex-wrap pt-1">
-                            {anomaly.playbooks.map((pb, i) => (
-                              <Button
-                                key={i}
-                                variant={pb.confirmation_required ? "outline" : "secondary"}
-                                size="sm"
-                                className="h-7 text-xs gap-1.5"
-                                onClick={() => handleAction(anomaly, pb)}
-                                disabled={executeAction.isPending}
-                              >
-                                <Play className="h-3 w-3" />
-                                {pb.label}
-                                {pb.confirmation_required && (
-                                  <AlertTriangle className="h-3 w-3 text-amber-500" />
-                                )}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -221,22 +228,15 @@ export default function AuditAnomaliesTab({ anomalies, isLoading }: Props) {
         </ScrollArea>
       )}
 
-      {/* Confirmation dialog */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer l'action</AlertDialogTitle>
-            <AlertDialogDescription>
-              Voulez-vous exécuter : <strong>{confirmAction?.label}</strong> ?
-              <br />Cette action sera loggée et tracée.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>Exécuter</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Action Modal */}
+      <AnomalyActionModal
+        anomaly={selectedAnomaly}
+        open={!!selectedAnomaly}
+        onOpenChange={(open) => { if (!open) setSelectedAnomaly(null); }}
+        onExecuteAction={handleExecuteAction}
+        onChangeStatus={handleChangeStatus}
+        isExecuting={executeAction.isPending || changeStatus.isPending}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@
 
 export type AnomalySeverity = "critical" | "high" | "medium" | "low";
 export type AnomalyCategory = "prospects" | "sessions" | "administratif" | "paiements" | "qualite_data" | "documents" | "conformite";
+export type AnomalyStatus = "open" | "in_progress" | "resolved" | "ignored";
 
 export type PlaybookActionType =
   | "create_task"
@@ -11,7 +12,8 @@ export type PlaybookActionType =
   | "send_sms"
   | "open_filtered_view"
   | "bulk_update"
-  | "schedule_session_suggestion";
+  | "schedule_session_suggestion"
+  | "schedule_campaign";
 
 export interface Playbook {
   label: string;
@@ -24,6 +26,7 @@ export interface Anomaly {
   id: string;
   category: AnomalyCategory;
   severity: AnomalySeverity;
+  status: AnomalyStatus;
   title: string;
   description: string;
   detection_rule: string;
@@ -35,6 +38,9 @@ export interface Anomaly {
   priority_score: number;     // calculated
   playbooks: Playbook[];
 }
+
+/** Used by audit rules — status defaults to "open" in runRules */
+export type AnomalyDraft = Omit<Anomaly, "status"> & { status?: AnomalyStatus };
 
 export interface AuditResult {
   mode: "quick" | "deep";
@@ -68,7 +74,9 @@ export interface ActionLog {
   id: string;
   centre_id: string | null;
   anomaly_id: string;
+  anomaly_title: string | null;
   action_type: string;
+  entity_ids: string[];
   payload: Record<string, unknown>;
   status: string;
   result: Record<string, unknown> | null;

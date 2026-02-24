@@ -2,7 +2,7 @@
 // IA Director — Business Rules for Anomaly Detection
 // ═══════════════════════════════════════════════════════════════
 
-import type { Anomaly, AuditContext } from "./types";
+import type { Anomaly, AnomalyDraft, AuditContext } from "./types";
 import { computeImpact } from "./impactEngine";
 import { computePriorityScore, urgenceFromSeverity } from "./priorityEngine";
 
@@ -11,7 +11,7 @@ const daysAgo = (d: number) => new Date(Date.now() - d * 86400000).toISOString()
 
 // ═══════════════ A) PROSPECTS ═══════════════
 
-function ruleProspectSansRelance(ctx: AuditContext): Anomaly | null {
+function ruleProspectSansRelance(ctx: AuditContext): AnomalyDraft | null {
   const threshold = daysAgo(5);
   const affected = ctx.prospects.filter((p) => {
     const lastHist = ctx.historique
@@ -43,7 +43,7 @@ function ruleProspectSansRelance(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleProspectChaudInactif(ctx: AuditContext): Anomaly | null {
+function ruleProspectChaudInactif(ctx: AuditContext): AnomalyDraft | null {
   const threshold = daysAgo(3);
   const scoringsMap = new Map(ctx.scorings.map((s: any) => [s.prospect_id, s]));
   const affected = ctx.prospects.filter((p) => {
@@ -77,7 +77,7 @@ function ruleProspectChaudInactif(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleTripleRelanceSansReponse(ctx: AuditContext): Anomaly | null {
+function ruleTripleRelanceSansReponse(ctx: AuditContext): AnomalyDraft | null {
   const prospectHistMap = new Map<string, any[]>();
   ctx.historique.forEach((h) => {
     const list = prospectHistMap.get(h.contact_id) || [];
@@ -113,7 +113,7 @@ function ruleTripleRelanceSansReponse(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function rulePipelineFaible(ctx: AuditContext): Anomaly | null {
+function rulePipelineFaible(ctx: AuditContext): AnomalyDraft | null {
   const seuil = 5;
   const chauds = ctx.scorings.filter(
     (s: any) => s.niveau_chaleur === "chaud" || s.niveau_chaleur === "brulant"
@@ -141,7 +141,7 @@ function rulePipelineFaible(ctx: AuditContext): Anomaly | null {
 
 // ═══════════════ B) SESSIONS ═══════════════
 
-function ruleSessionSousRemplie(ctx: AuditContext): Anomaly | null {
+function ruleSessionSousRemplie(ctx: AuditContext): AnomalyDraft | null {
   const j10 = daysAgo(-10); // 10 days from now
   const affected = ctx.sessions.filter((s: any) => {
     if (s.archived || !s.date_debut || s.date_debut > j10) return false;
@@ -171,7 +171,7 @@ function ruleSessionSousRemplie(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleSessionSansInscription(ctx: AuditContext): Anomaly | null {
+function ruleSessionSansInscription(ctx: AuditContext): AnomalyDraft | null {
   const j7 = daysAgo(7);
   const affected = ctx.sessions.filter((s: any) => {
     if (s.archived) return false;
@@ -200,8 +200,7 @@ function ruleSessionSansInscription(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleAucuneSessionPlanifiee(ctx: AuditContext): Anomaly | null {
-  const j30 = daysAgo(-30);
+function ruleAucuneSessionPlanifiee(ctx: AuditContext): AnomalyDraft | null {
   const futures = ctx.sessions.filter((s: any) => !s.archived && s.date_debut && s.date_debut >= today());
   if (futures.length > 0) return null;
   return {
@@ -225,7 +224,7 @@ function ruleAucuneSessionPlanifiee(ctx: AuditContext): Anomaly | null {
 
 // ═══════════════ C) ADMINISTRATIF ═══════════════
 
-function ruleDossierIncomplet(ctx: AuditContext): Anomaly | null {
+function ruleDossierIncomplet(ctx: AuditContext): AnomalyDraft | null {
   const j5 = daysAgo(5);
   const affected = ctx.contacts.filter((c) => {
     if (c.archived || !c.created_at || c.created_at > j5) return false;
@@ -253,7 +252,7 @@ function ruleDossierIncomplet(ctx: AuditContext): Anomaly | null {
 
 // ═══════════════ D) PAIEMENTS ═══════════════
 
-function rulePaiementRetard(ctx: AuditContext): Anomaly | null {
+function rulePaiementRetard(ctx: AuditContext): AnomalyDraft | null {
   const j7 = daysAgo(7);
   const affected = ctx.factures.filter(
     (f: any) => f.statut === "en_retard" && f.date_echeance && f.date_echeance < j7
@@ -280,8 +279,7 @@ function rulePaiementRetard(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleSoldeImpayeAvantExamen(ctx: AuditContext): Anomaly | null {
-  // Contacts inscrits à des sessions avec examen proche et solde impayé
+function ruleSoldeImpayeAvantExamen(ctx: AuditContext): AnomalyDraft | null {
   const futureSessionIds = new Set(
     ctx.sessions
       .filter((s: any) => !s.archived && s.date_debut && s.date_debut >= today())
@@ -320,7 +318,7 @@ function ruleSoldeImpayeAvantExamen(ctx: AuditContext): Anomaly | null {
 
 // ═══════════════ E) QUALITÉ DATA ═══════════════
 
-function ruleContactSansCoordonnees(ctx: AuditContext): Anomaly | null {
+function ruleContactSansCoordonnees(ctx: AuditContext): AnomalyDraft | null {
   const affected = ctx.contacts.filter((c) => !c.archived && !c.email && !c.telephone);
   if (affected.length === 0) return null;
   return {
@@ -342,7 +340,7 @@ function ruleContactSansCoordonnees(ctx: AuditContext): Anomaly | null {
   };
 }
 
-function ruleDoublonsPotentiels(ctx: AuditContext): Anomaly | null {
+function ruleDoublonsPotentiels(ctx: AuditContext): AnomalyDraft | null {
   const seen = new Map<string, any[]>();
   ctx.contacts.filter((c) => !c.archived).forEach((c) => {
     const keys: string[] = [];
@@ -383,7 +381,7 @@ function ruleDoublonsPotentiels(ctx: AuditContext): Anomaly | null {
 
 // ═══════════════ ALL RULES ═══════════════
 
-type RuleFn = (ctx: AuditContext) => Anomaly | null;
+type RuleFn = (ctx: AuditContext) => AnomalyDraft | null;
 
 const QUICK_RULES: RuleFn[] = [
   ruleProspectChaudInactif,
@@ -416,10 +414,15 @@ function runRules(rules: RuleFn[], ctx: AuditContext): Anomaly[] {
   const anomalies: Anomaly[] = [];
   for (const rule of rules) {
     try {
-      const result = rule(ctx);
-      if (result) {
-        result.priority_score = computePriorityScore(result);
-        anomalies.push(result);
+      const draft = rule(ctx);
+      if (draft) {
+        const anomaly: Anomaly = {
+          ...draft,
+          status: draft.status || "open",
+          priority_score: 0,
+        };
+        anomaly.priority_score = computePriorityScore(anomaly);
+        anomalies.push(anomaly);
       }
     } catch (e) {
       console.warn("Audit rule error:", e);

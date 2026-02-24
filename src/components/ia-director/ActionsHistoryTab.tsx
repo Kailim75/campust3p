@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { History, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActionLogs } from "@/hooks/useAuditEngine";
 
@@ -9,6 +9,17 @@ const statusConfig: Record<string, { label: string; icon: typeof CheckCircle2; c
   executed: { label: "Exécutée", icon: CheckCircle2, className: "text-green-500" },
   pending: { label: "En attente", icon: Clock, className: "text-yellow-500" },
   failed: { label: "Échouée", icon: XCircle, className: "text-red-500" },
+};
+
+const actionTypeLabels: Record<string, string> = {
+  open_filtered_view: "Voir liste filtrée",
+  send_email: "Email envoyé",
+  send_sms: "SMS envoyé",
+  create_task: "Tâche créée",
+  bulk_update: "Mise à jour masse",
+  schedule_campaign: "Campagne planifiée",
+  schedule_session_suggestion: "Session suggérée",
+  change_status: "Changement statut",
 };
 
 export default function ActionsHistoryTab() {
@@ -52,6 +63,7 @@ export default function ActionsHistoryTab() {
                   <th className="text-left p-3 font-medium text-muted-foreground text-xs">Date</th>
                   <th className="text-left p-3 font-medium text-muted-foreground text-xs">Anomalie</th>
                   <th className="text-left p-3 font-medium text-muted-foreground text-xs">Action</th>
+                  <th className="text-center p-3 font-medium text-muted-foreground text-xs">Enregistrements</th>
                   <th className="text-center p-3 font-medium text-muted-foreground text-xs">Statut</th>
                   <th className="text-left p-3 font-medium text-muted-foreground text-xs">Détails</th>
                 </tr>
@@ -61,6 +73,7 @@ export default function ActionsHistoryTab() {
                   const sCfg = statusConfig[log.status] || statusConfig.pending;
                   const StatusIcon = sCfg.icon;
                   const payload = log.payload as Record<string, any> || {};
+                  const entityCount = (log.entity_ids || []).length;
                   return (
                     <tr key={log.id} className="hover:bg-muted/30 transition-colors">
                       <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
@@ -71,13 +84,22 @@ export default function ActionsHistoryTab() {
                           minute: "2-digit",
                         })}
                       </td>
-                      <td className="p-3 text-xs font-medium text-foreground">
-                        {log.anomaly_id}
+                      <td className="p-3 text-xs text-foreground max-w-[200px]">
+                        <p className="font-medium truncate">{log.anomaly_title || log.anomaly_id}</p>
                       </td>
                       <td className="p-3">
                         <Badge variant="outline" className="text-[10px]">
-                          {log.action_type}
+                          {actionTypeLabels[log.action_type] || log.action_type}
                         </Badge>
+                      </td>
+                      <td className="p-3 text-center">
+                        {entityCount > 0 ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {entityCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="p-3 text-center">
                         <div className={cn("inline-flex items-center gap-1 text-xs", sCfg.className)}>
@@ -86,7 +108,7 @@ export default function ActionsHistoryTab() {
                         </div>
                       </td>
                       <td className="p-3 text-xs text-muted-foreground max-w-[200px] truncate">
-                        {payload.label || "—"}
+                        {payload.label || payload.new_status || "—"}
                       </td>
                     </tr>
                   );
