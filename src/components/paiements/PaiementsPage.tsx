@@ -41,7 +41,7 @@ import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { ExportFECDialog } from "./ExportFECDialog";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+// XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
   personnel: { label: "Personnel", class: "bg-muted text-muted-foreground" },
@@ -123,7 +123,7 @@ export function PaiementsPage() {
   };
 
   // Export comptable CSV/Excel
-  const handleExportComptable = (exportFormat: "csv" | "xlsx") => {
+  const handleExportComptable = async (exportFormat: "csv" | "xlsx") => {
     if (filteredFactures.length === 0) {
       toast.error("Aucune facture à exporter");
       return;
@@ -171,7 +171,8 @@ export function PaiementsPage() {
       URL.revokeObjectURL(url);
       toast.success(`${filteredFactures.length} facture(s) exportée(s) en CSV`);
     } else {
-      // Export XLSX
+      // Export XLSX - dynamic import for performance
+      const XLSX = await import("xlsx");
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Factures");

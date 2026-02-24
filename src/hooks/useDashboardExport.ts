@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import * as XLSX from "xlsx";
+// XLSX loaded dynamically for performance
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useDynamicContactStats, useDynamicFinanceStats } from "./useDashboardDynamicStats";
@@ -13,8 +13,9 @@ export function useDashboardExport() {
   const { data: sessions } = useSessions();
   const { data: contacts } = useContacts();
 
-  const exportDashboardToExcel = useCallback(() => {
+  const exportDashboardToExcel = useCallback(async () => {
     try {
+      const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
       const exportDate = format(new Date(), "dd/MM/yyyy HH:mm", { locale: fr });
 

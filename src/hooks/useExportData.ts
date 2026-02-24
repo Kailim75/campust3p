@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import * as XLSX from "xlsx";
+// XLSX loaded dynamically for performance
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -254,12 +254,13 @@ export function useExportData() {
 }
 
 // Helper function to export data to Excel
-function exportToExcel(data: any[], config: ExportConfig) {
+async function exportToExcel(data: any[], config: ExportConfig) {
   if (data.length === 0) {
     toast.error("Aucune donnée à exporter");
     return;
   }
 
+  const XLSX = await import("xlsx");
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, config.sheetName || "Données");
