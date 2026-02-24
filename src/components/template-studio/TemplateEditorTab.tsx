@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Save, Send, CheckCircle, Rocket, Loader2,
-  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield,
+  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield, Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,8 +23,14 @@ import {
   TEMPLATE_FORMATS,
   TEMPLATE_STATUSES,
 } from "@/hooks/useTemplateStudio";
-import { runComplianceCheck, type ComplianceReport } from "./complianceEngine";
+import {
+  runComplianceCheck,
+  COMPLIANCE_GATED_TYPES,
+  TEMPLATE_GENERATORS,
+  type ComplianceReport,
+} from "./complianceEngine";
 import DOMPurify from "dompurify";
+import { toast } from "sonner";
 
 interface Props {
   templateId: string | null;
@@ -46,7 +52,6 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
   const [editorTab, setEditorTab] = useState("edit");
 
-  // Load template data
   useEffect(() => {
     if (template) {
       setName(template.name);
@@ -101,11 +106,40 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
 
   const handlePublish = async () => {
     if (!template) return;
+
+    // Compliance gate: block publication if critical fields missing
+    if (COMPLIANCE_GATED_TYPES.includes(template.type)) {
+      const report = runComplianceCheck(body, template.type);
+      setComplianceReport(report);
+
+      if (!report.ready_to_publish) {
+        toast.error(
+          `Publication bloquée : ${report.blocking_issues.length} mention(s) obligatoire(s) manquante(s)`,
+          {
+            description: report.blocking_issues.slice(0, 3).join(", ") +
+              (report.blocking_issues.length > 3 ? ` (+${report.blocking_issues.length - 3})` : ""),
+            duration: 8000,
+          }
+        );
+        return;
+      }
+    }
+
     await workflow.publish(template);
+  };
+
+  const handleGenerate = () => {
+    const gen = TEMPLATE_GENERATORS[type];
+    if (gen) {
+      setBody(gen.generator());
+      setComplianceReport(null);
+      toast.success(`Template "${gen.label}" généré — personnalisez-le avant publication`);
+    }
   };
 
   const statusCfg = TEMPLATE_STATUSES.find((s) => s.value === template?.status);
   const isSaving = createTemplate.isPending || updateTemplate.isPending;
+  const hasGenerator = !!TEMPLATE_GENERATORS[type];
 
   if (!isCreating && !templateId) {
     return (
@@ -149,7 +183,13 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {hasGenerator && (
+            <Button variant="outline" onClick={handleGenerate} className="gap-2">
+              <Wand2 className="h-4 w-4" />
+              {TEMPLATE_GENERATORS[type]?.label || "Générer"}
+            </Button>
+          )}
           <Button variant="outline" onClick={handleRunCompliance} className="gap-2">
             <Shield className="h-4 w-4" />
             Vérifier conformité
@@ -287,8 +327,19 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                   <Progress value={complianceReport.score} className="h-2" />
 
                   <Badge variant={complianceReport.ready_to_publish ? "default" : "destructive"} className="text-xs w-full justify-center">
-                    {complianceReport.ready_to_publish ? "✓ Prêt à publier" : "✗ Mentions manquantes"}
+                    {complianceReport.ready_to_publish ? "✓ Prêt à publier" : `✗ ${complianceReport.blocking_issues.length} mention(s) critique(s) manquante(s)`}
                   </Badge>
+
+                  {!complianceReport.ready_to_publish && (
+                    <div className="p-2 rounded-lg border border-destructive/30 bg-destructive/5 text-xs">
+                      <p className="font-medium text-destructive mb-1">Publication bloquée :</p>
+                      <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                        {complianceReport.blocking_issues.map((issue, i) => (
+                          <li key={i}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <ScrollArea className="max-h-[300px]">
                     <div className="space-y-2">
@@ -330,11 +381,13 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                 <p><code className="bg-muted px-1 rounded">{"{{prenom}}"}</code> Prénom</p>
                 <p><code className="bg-muted px-1 rounded">{"{{session_nom}}"}</code> Session</p>
                 <p><code className="bg-muted px-1 rounded">{"{{session_date_debut}}"}</code> Date début</p>
+                <p><code className="bg-muted px-1 rounded">{"{{session_date_fin}}"}</code> Date fin</p>
                 <p><code className="bg-muted px-1 rounded">{"{{centre_nom}}"}</code> Centre</p>
                 <p><code className="bg-muted px-1 rounded">{"{{centre_siret}}"}</code> SIRET</p>
                 <p><code className="bg-muted px-1 rounded">{"{{centre_nda}}"}</code> N° NDA</p>
                 <p><code className="bg-muted px-1 rounded">{"{{date_jour}}"}</code> Date du jour</p>
-                <p className="pt-1 text-primary cursor-pointer">Voir toutes les variables →</p>
+                <p><code className="bg-muted px-1 rounded">{"{{duree_heures}}"}</code> Durée (heures)</p>
+                <p><code className="bg-muted px-1 rounded">{"{{prix_total}}"}</code> Prix total</p>
               </div>
             </CardContent>
           </Card>
