@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, StickyNote, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, StickyNote, User, Bell, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -19,6 +22,10 @@ export function NotesTab({ contactId }: NotesTabProps) {
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [alerteActive, setAlerteActive] = useState(false);
+  const [dateRappel, setDateRappel] = useState("");
+  const [heureRappel, setHeureRappel] = useState("09:00");
+  const [rappelDescription, setRappelDescription] = useState("");
 
   const { data: notes, isLoading } = useQuery({
     queryKey: ["apprenant-notes", contactId],
@@ -36,23 +43,39 @@ export function NotesTab({ contactId }: NotesTabProps) {
 
   const addNote = useMutation({
     mutationFn: async () => {
+      let dateRappelFull: string | null = null;
+      if (alerteActive && dateRappel) {
+        dateRappelFull = `${dateRappel}T${heureRappel}:00`;
+      }
+
       const { error } = await supabase.from("contact_historique").insert({
         contact_id: contactId,
         type: "note",
         titre: "Note interne",
         contenu: newNote,
         date_echange: new Date().toISOString(),
+        alerte_active: alerteActive,
+        date_rappel: dateRappelFull,
+        rappel_description: rappelDescription.trim() || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["apprenant-notes", contactId] });
       toast.success("Note ajoutée");
-      setNewNote("");
-      setShowForm(false);
+      resetForm();
     },
     onError: () => toast.error("Erreur lors de l'ajout"),
   });
+
+  const resetForm = () => {
+    setNewNote("");
+    setShowForm(false);
+    setAlerteActive(false);
+    setDateRappel("");
+    setHeureRappel("09:00");
+    setRappelDescription("");
+  };
 
   if (isLoading) return <Skeleton className="h-[200px] rounded-xl" />;
 
@@ -76,11 +99,65 @@ export function NotesTab({ contactId }: NotesTabProps) {
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
           />
+
+          {/* Section Rappel */}
+          <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-warning" />
+                <Label htmlFor="alerte-note" className="font-medium text-sm">Créer un rappel</Label>
+              </div>
+              <Switch
+                id="alerte-note"
+                checked={alerteActive}
+                onCheckedChange={setAlerteActive}
+              />
+            </div>
+
+            {alerteActive && (
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="dateRappelNote" className="text-xs">Date *</Label>
+                    <Input
+                      id="dateRappelNote"
+                      type="date"
+                      value={dateRappel}
+                      onChange={(e) => setDateRappel(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="heureRappelNote" className="text-xs">Heure</Label>
+                    <Input
+                      id="heureRappelNote"
+                      type="time"
+                      value={heureRappel}
+                      onChange={(e) => setHeureRappel(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="rappelDescNote" className="text-xs">Motif du rappel</Label>
+                  <Input
+                    id="rappelDescNote"
+                    value={rappelDescription}
+                    onChange={(e) => setRappelDescription(e.target.value)}
+                    placeholder="Ex: Rappeler pour documents manquants"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
-            <Button size="sm" disabled={!newNote.trim() || addNote.isPending} onClick={() => addNote.mutate()}>
+            <Button
+              size="sm"
+              disabled={!newNote.trim() || addNote.isPending || (alerteActive && !dateRappel)}
+              onClick={() => addNote.mutate()}
+            >
               {addNote.isPending ? "..." : "Enregistrer"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+            <Button size="sm" variant="ghost" onClick={resetForm}>Annuler</Button>
           </div>
         </Card>
       )}
@@ -106,6 +183,17 @@ export function NotesTab({ contactId }: NotesTabProps) {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.contenu}</p>
+
+                    {/* Rappel indicator */}
+                    {note.alerte_active && note.date_rappel && (
+                      <div className="mt-2 flex items-center gap-2 text-xs bg-warning/10 text-warning rounded-md px-2 py-1.5">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          Rappel : {format(parseISO(note.date_rappel), "dd/MM/yyyy à HH:mm", { locale: fr })}
+                          {note.rappel_description && ` — ${note.rappel_description}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
