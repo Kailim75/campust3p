@@ -15,10 +15,10 @@ import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { BrandedLoader } from "@/components/ui/branded-loader";
 
-const FORMATION_COLORS: Record<string, string> = {
-  TAXI: "bg-primary",
-  VTC: "bg-accent",
-  VMDTR: "bg-info",
+const FORMATION_BADGE: Record<string, string> = {
+  TAXI: "badge-soft badge-soft-blue",
+  VTC: "badge-soft badge-soft-gray",
+  VMDTR: "badge-soft badge-soft-teal",
 };
 
 const STATUT_LABELS: Record<string, string> = {
@@ -30,6 +30,16 @@ const STATUT_LABELS: Record<string, string> = {
   "Client": "Diplômé",
   "Bravo": "Diplômé",
   "Abandonné": "Abandonné",
+};
+
+const STATUT_BADGE: Record<string, string> = {
+  "Nouveau": "badge-soft badge-soft-amber",
+  "En formation": "badge-soft badge-soft-blue",
+  "Examen T3P": "badge-soft badge-soft-teal",
+  "T3P Obtenu": "badge-soft badge-soft-green",
+  "Pratique": "badge-soft badge-soft-blue",
+  "Diplômé": "badge-soft badge-soft-gray",
+  "Abandonné": "badge-soft badge-soft-red",
 };
 
 export function ApprenantsPage() {
@@ -53,11 +63,18 @@ export function ApprenantsPage() {
     });
   }, [contacts, search, formationFilter]);
 
+  const activeCount = contacts?.length || 0;
+
   return (
     <div className="min-h-screen">
-      <Header title="Apprenants" subtitle={`${filtered.length} apprenant${filtered.length > 1 ? "s" : ""}`} addLabel="Nouveau stagiaire" onAddClick={() => setFormOpen(true)} />
+      <Header 
+        title="Apprenants" 
+        subtitle={`${activeCount} apprenant${activeCount > 1 ? "s" : ""} actifs`} 
+        addLabel="Nouveau stagiaire" 
+        onAddClick={() => setFormOpen(true)} 
+      />
 
-      <main className="p-6 space-y-6 animate-fade-in">
+      <main className="p-6 space-y-5 animate-fade-in">
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 min-w-0">
@@ -66,11 +83,11 @@ export function ApprenantsPage() {
               placeholder="Rechercher un apprenant..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-10 rounded-xl border-border bg-card"
             />
           </div>
           <Select value={formationFilter} onValueChange={setFormationFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] h-10 rounded-xl">
               <SelectValue placeholder="Formation" />
             </SelectTrigger>
             <SelectContent>
@@ -83,53 +100,53 @@ export function ApprenantsPage() {
         </div>
 
         {/* Table — Desktop */}
-        <Card className="overflow-hidden hidden md:block">
+        <div className="hidden md:block rounded-xl bg-card border border-border overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Apprenant</TableHead>
-                <TableHead>Formation</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Email</TableHead>
+              <TableRow className="border-b border-border hover:bg-transparent">
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11">Apprenant</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11">Formation</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11">Statut</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11">Téléphone</TableHead>
+                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11">Email</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((contact) => {
                 const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
-                const avatarColor = contact.formation ? FORMATION_COLORS[contact.formation] || "bg-primary" : "bg-primary";
+                const statutLabel = STATUT_LABELS[contact.statut || ""] || contact.statut || "—";
+                const statutClass = STATUT_BADGE[statutLabel] || "badge-soft badge-soft-gray";
+                const formationClass = contact.formation ? (FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray") : "";
+                
                 return (
                   <TableRow
                     key={contact.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 last:border-0"
+                    style={{ height: '56px' }}
                     onClick={() => {
                       setSelectedContactId(contact.id);
                       setDetailOpen(true);
                     }}
                   >
-                    <TableCell>
+                    <TableCell className="py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className={cn("text-xs font-semibold text-primary-foreground", avatarColor)}>
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="text-xs font-semibold bg-primary/8 text-foreground">
                             {initials}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-sm">{contact.prenom} {contact.nom}</span>
+                        <span className="font-medium text-sm text-foreground">{contact.prenom} {contact.nom}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       {contact.formation && (
-                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                          {contact.formation}
-                        </Badge>
+                        <span className={formationClass}>{contact.formation}</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {STATUT_LABELS[contact.statut || ""] || contact.statut || "—"}
-                      </Badge>
+                      <span className={statutClass}>{statutLabel}</span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{contact.telephone || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground font-mono text-[13px]">{contact.telephone || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{contact.email || "—"}</TableCell>
                   </TableRow>
                 );
@@ -150,7 +167,7 @@ export function ApprenantsPage() {
               )}
             </TableBody>
           </Table>
-        </Card>
+        </div>
 
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
@@ -165,11 +182,13 @@ export function ApprenantsPage() {
           )}
           {filtered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
-            const avatarColor = contact.formation ? FORMATION_COLORS[contact.formation] || "bg-primary" : "bg-primary";
+            const statutLabel = STATUT_LABELS[contact.statut || ""] || contact.statut || "—";
+            const statutClass = STATUT_BADGE[statutLabel] || "badge-soft badge-soft-gray";
+            const formationClass = contact.formation ? (FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray") : "";
             return (
               <Card
                 key={contact.id}
-                className="p-4 cursor-pointer hover:shadow-soft transition-shadow active:scale-[0.99]"
+                className="p-4 cursor-pointer hover:shadow-soft transition-shadow active:scale-[0.99] rounded-xl"
                 onClick={() => {
                   setSelectedContactId(contact.id);
                   setDetailOpen(true);
@@ -177,7 +196,7 @@ export function ApprenantsPage() {
               >
                 <div className="flex items-center gap-3 mb-2">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className={cn("text-xs font-semibold text-primary-foreground", avatarColor)}>
+                    <AvatarFallback className="text-xs font-semibold bg-primary/8 text-foreground">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -188,13 +207,9 @@ export function ApprenantsPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   {contact.formation && (
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                      {contact.formation}
-                    </Badge>
+                    <span className={formationClass}>{contact.formation}</span>
                   )}
-                  <Badge variant="outline" className="text-[10px]">
-                    {STATUT_LABELS[contact.statut || ""] || contact.statut || "—"}
-                  </Badge>
+                  <span className={statutClass}>{statutLabel}</span>
                 </div>
               </Card>
             );
