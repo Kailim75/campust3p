@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
@@ -203,7 +204,9 @@ const Index = () => {
           setActiveTab={setActiveTab}
           onNavigate={setActiveSection}
         >
-          {renderContent()}
+          <PageTransition transitionKey={activeSection}>
+            {renderContent()}
+          </PageTransition>
         </NavigationProvider>
       </main>
 

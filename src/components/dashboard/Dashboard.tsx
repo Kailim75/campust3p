@@ -311,14 +311,14 @@ const CompactMetric = React.forwardRef<HTMLDivElement, {
   label, value, icon: Icon, color, bgColor, delta, isWarning,
 }, ref) {
   return (
-    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-card border border-border transition-all duration-150 hover:shadow-soft ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
+    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border transition-all duration-150 hover:shadow-soft hover:scale-[1.01] ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor} shrink-0`}>
         <Icon className={`h-5 w-5 ${color}`} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</p>
         <div className="flex items-baseline gap-2">
-          <p className="text-xl font-bold text-foreground tabular-nums tracking-tight">{value}</p>
+          <p className="text-xl font-bold text-foreground font-mono tabular-nums tracking-tight">{value}</p>
           {delta !== undefined && (
             <span className={`flex items-center gap-0.5 text-[11px] font-medium ${Number(delta) >= 0 ? "text-success" : "text-destructive"}`}>
               {Number(delta) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}

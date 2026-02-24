@@ -52,7 +52,7 @@
     --muted-foreground: 28 16% 54%;
     --foreground-subtle: 30 22% 72%;
 
-    /* ── Card & Popover ── */
+    --header-gradient: linear-gradient(135deg, hsl(199 55% 26%), hsl(199 55% 32%));
     --card: 0 0% 100%;
     --card-foreground: 30 38% 6%;
     --popover: 0 0% 100%;
@@ -194,8 +194,9 @@
     @apply font-semibold tracking-tight;
   }
 
-  .font-mono, .amount, .stat-value, .badge-count {
+  .font-mono, .amount, .stat-value, .badge-count, .tabular-nums {
     font-family: 'JetBrains Mono', monospace !important;
+    font-feature-settings: "tnum";
   }
 }
 
