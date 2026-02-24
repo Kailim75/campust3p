@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,16 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  Plus, CalendarDays, List, ChevronLeft, ChevronRight, Clock, MapPin, Users, User,
+  Plus, CalendarDays, List, ChevronLeft, ChevronRight, Clock, MapPin, Users, User, Sparkles, AlertTriangle,
 } from "lucide-react";
 import {
   format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay, parseISO,
-  startOfMonth, endOfMonth, addMonths, subMonths,
+  startOfMonth, endOfMonth, addMonths, subMonths, differenceInHours,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCreneaux, useCreateCreneau, useUpdateCreneauStatut, useReservations, CreneauConduite } from "@/hooks/usePlanningConduite";
 import { CompteRenduModal } from "./CompteRenduModal";
 import { CreneauSlideOver } from "./CreneauSlideOver";
+import { PlanningKPIBanner } from "./PlanningKPIBanner";
+import { OptimiserDrawer } from "./OptimiserDrawer";
+import { useWeeklyPlanningKPIs } from "@/hooks/useWeeklyPlanningKPIs";
+import { useCreateReservation } from "@/hooks/usePlanningConduite";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const TYPE_COLORS: Record<string, string> = {
   conduite_preventive: "bg-[#2D5016] text-white",
@@ -35,7 +40,7 @@ const TYPE_LABELS: Record<string, string> = {
   accompagnement_examen: "Examen",
 };
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 7h-20h
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
 
 export function PlanningTab() {
   const [view, setView] = useState<"semaine" | "liste">("semaine");
@@ -43,9 +48,12 @@ export function PlanningTab() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedCreneau, setSelectedCreneau] = useState<CreneauConduite | null>(null);
   const [compteRenduCreneau, setCompteRenduCreneau] = useState<CreneauConduite | null>(null);
+  const [optimiserOpen, setOptimiserOpen] = useState(false);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const prevWeekStart = startOfWeek(subWeeks(currentDate, 1), { weekStartsOn: 1 });
+  const prevWeekEnd = endOfWeek(subWeeks(currentDate, 1), { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
 
@@ -54,11 +62,33 @@ export function PlanningTab() {
     : { start: monthStart, end: monthEnd };
 
   const { data: creneaux, isLoading } = useCreneaux(dateRange);
+  const { data: prevCreneaux } = useCreneaux({ start: prevWeekStart, end: prevWeekEnd });
+
+  const kpis = useWeeklyPlanningKPIs(creneaux, prevCreneaux);
+  const createReservation = useCreateReservation();
 
   const weekDays = useMemo(
     () => eachDayOfInterval({ start: weekStart, end: weekEnd }),
     [weekStart, weekEnd]
   );
+
+  // Créneaux vides < 72h for optimizer
+  const creneauxVidesOptimiser = useMemo(() => {
+    if (!creneaux) return [];
+    const now = new Date();
+    return creneaux.filter(c => {
+      if (c.statut !== "disponible" || c.contact_id) return false;
+      const hoursUntil = differenceInHours(parseISO(c.date_creneau), now);
+      return hoursUntil >= 0 && hoursUntil < 72;
+    });
+  }, [creneaux]);
+
+  const handleOptimiserReserver = (creneauId: string, apprenantId: string) => {
+    createReservation.mutate(
+      { creneau_id: creneauId, apprenant_id: apprenantId },
+      { onSuccess: () => toast.success("Élève inscrit au créneau") }
+    );
+  };
 
   const navigate = (dir: number) => {
     if (view === "semaine") {
@@ -70,6 +100,9 @@ export function PlanningTab() {
 
   return (
     <div className="space-y-4">
+      {/* KPI Banner */}
+      {view === "semaine" && !isLoading && <PlanningKPIBanner kpis={kpis} />}
+
       {/* Controls */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
@@ -91,6 +124,15 @@ export function PlanningTab() {
         </div>
 
         <div className="flex items-center gap-2">
+          {creneauxVidesOptimiser.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setOptimiserOpen(true)} className="text-warning border-warning hover:bg-warning/10">
+              <Sparkles className="h-4 w-4 mr-1" />
+              Optimiser ma semaine
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5">
+                {creneauxVidesOptimiser.length}
+              </Badge>
+            </Button>
+          )}
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)}>
             <ToggleGroupItem value="semaine" size="sm">
               <CalendarDays className="h-4 w-4 mr-1" /> Semaine
@@ -117,6 +159,7 @@ export function PlanningTab() {
           days={weekDays}
           creneaux={creneaux || []}
           onSelectCreneau={setSelectedCreneau}
+          creneauxARisque={kpis.creneauxARisque}
         />
       ) : (
         <ListView
@@ -164,6 +207,14 @@ export function PlanningTab() {
           onOpenChange={(open) => !open && setCompteRenduCreneau(null)}
         />
       )}
+
+      {/* Optimization drawer */}
+      <OptimiserDrawer
+        open={optimiserOpen}
+        onOpenChange={setOptimiserOpen}
+        creneauxVides={creneauxVidesOptimiser}
+        onReserver={handleOptimiserReserver}
+      />
     </div>
   );
 }
@@ -173,11 +224,15 @@ function WeekView({
   days,
   creneaux,
   onSelectCreneau,
+  creneauxARisque,
 }: {
   days: Date[];
   creneaux: CreneauConduite[];
   onSelectCreneau: (c: CreneauConduite) => void;
+  creneauxARisque: CreneauConduite[];
 }) {
+  const risqueIds = useMemo(() => new Set(creneauxARisque.map(c => c.id)), [creneauxARisque]);
+
   return (
     <div className="overflow-x-auto">
       <div className="grid grid-cols-[60px_repeat(7,1fr)] min-w-[800px]">
@@ -212,33 +267,39 @@ function WeekView({
                   key={`${day.toISOString()}-${hour}`}
                   className="border-b border-r border-border h-16 p-0.5 relative"
                 >
-                  {dayCreneaux.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => onSelectCreneau(c)}
-                      className={`w-full text-left p-1 rounded text-[10px] leading-tight truncate cursor-pointer transition-opacity hover:opacity-80 ${
-                        c.statut === "annule"
-                          ? "bg-muted text-muted-foreground line-through opacity-60"
-                          : TYPE_COLORS[c.type_seance] || "bg-muted"
-                      }`}
-                    >
-                      <div className="font-semibold">
-                        {TYPE_LABELS[c.type_seance] || c.type_seance}{" "}
-                        {c.heure_debut?.slice(0, 5)}-{c.heure_fin?.slice(0, 5)}
-                      </div>
-                      <div className="truncate">
-                        {c.contacts
-                          ? `${c.contacts.prenom}`
-                          : c.type_seance === "conduite_preventive"
-                          ? `0/${c.capacite_max} places`
-                          : "Libre"
-                        }
-                      </div>
-                      {c.lieu_depart && (
-                        <div className="truncate opacity-80">{c.lieu_depart.split(" ").slice(0, 2).join(" ")}</div>
-                      )}
-                    </button>
-                  ))}
+                  {dayCreneaux.map((c) => {
+                    const isRisque = risqueIds.has(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => onSelectCreneau(c)}
+                        className={cn(
+                          "w-full text-left p-1 rounded text-[10px] leading-tight truncate cursor-pointer transition-opacity hover:opacity-80",
+                          c.statut === "annule"
+                            ? "bg-muted text-muted-foreground line-through opacity-60"
+                            : TYPE_COLORS[c.type_seance] || "bg-muted",
+                          isRisque && "ring-2 ring-warning ring-offset-1"
+                        )}
+                      >
+                        <div className="font-semibold flex items-center gap-0.5">
+                          {isRisque && <AlertTriangle className="h-2.5 w-2.5 text-warning flex-shrink-0" />}
+                          {TYPE_LABELS[c.type_seance] || c.type_seance}{" "}
+                          {c.heure_debut?.slice(0, 5)}-{c.heure_fin?.slice(0, 5)}
+                        </div>
+                        <div className="truncate">
+                          {c.contacts
+                            ? `${c.contacts.prenom}`
+                            : c.type_seance === "conduite_preventive"
+                            ? `0/${c.capacite_max} places`
+                            : "Libre"
+                          }
+                        </div>
+                        {c.lieu_depart && (
+                          <div className="truncate opacity-80">{c.lieu_depart.split(" ").slice(0, 2).join(" ")}</div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })}
