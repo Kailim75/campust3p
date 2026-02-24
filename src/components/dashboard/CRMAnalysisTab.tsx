@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain, RefreshCw, Loader2, Sparkles, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 const ANALYSIS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-analysis`;
 
@@ -30,11 +31,18 @@ export function CRMAnalysisTab() {
     abortRef.current = controller;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: "Erreur", description: "Vous devez être connecté", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
       const resp = await fetch(ANALYSIS_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ analysisType: "full" }),
         signal: controller.signal,
