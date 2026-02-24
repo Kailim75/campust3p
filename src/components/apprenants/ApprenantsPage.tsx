@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { ApprenantDetailSheet } from "./ApprenantDetailSheet";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -134,8 +136,15 @@ export function ApprenantsPage() {
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Aucun apprenant trouvé
+                  <TableCell colSpan={5} className="p-0">
+                    <EmptyState
+                      icon={search ? FileWarning : Users}
+                      title={search ? "Aucun résultat" : "Aucun apprenant"}
+                      description={search ? "Essayez avec d'autres mots-clés." : "Ajoutez votre premier stagiaire pour démarrer."}
+                      tip={search ? "La recherche porte sur le nom, email et téléphone" : "Raccourci : Ctrl+N pour créer rapidement"}
+                      action={!search ? <EmptyStateAction label="Nouveau stagiaire" onClick={() => setFormOpen(true)} /> : undefined}
+                      variant="minimal"
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -146,7 +155,13 @@ export function ApprenantsPage() {
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
           {filtered.length === 0 && (
-            <Card className="p-6 text-center text-muted-foreground text-sm">Aucun apprenant trouvé</Card>
+            <EmptyState
+              icon={search ? FileWarning : Users}
+              title={search ? "Aucun résultat" : "Aucun apprenant"}
+              description={search ? "Essayez avec d'autres mots-clés." : "Ajoutez votre premier stagiaire."}
+              action={!search ? <EmptyStateAction label="Nouveau stagiaire" onClick={() => setFormOpen(true)} /> : undefined}
+              variant="minimal"
+            />
           )}
           {filtered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { OnboardingWizard } from "@/components/onboarding/wizard/OnboardingWizard";
 import { useAuth } from "@/hooks/useAuth";
 import { useCentres } from "@/hooks/useCentres";
-import { Loader2 } from "lucide-react";
+import { BrandedLoader } from "@/components/ui/branded-loader";
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -25,11 +25,7 @@ export default function Onboarding() {
   }, [user, authLoading, navigate]);
 
   if (authLoading || centresLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <BrandedLoader message="Préparation de votre espace..." />;
   }
 
   return <OnboardingWizard />;
