@@ -3021,6 +3021,66 @@ export type Database = {
           },
         ]
       }
+      ia_score_history: {
+        Row: {
+          centre_id: string | null
+          created_at: string
+          date_snapshot: string
+          details: Json | null
+          id: string
+          ponderations: Json
+          score_admin: number
+          score_commercial: number
+          score_financier: number
+          score_global: number
+          score_risque_ca: number
+          score_sante: number
+        }
+        Insert: {
+          centre_id?: string | null
+          created_at?: string
+          date_snapshot?: string
+          details?: Json | null
+          id?: string
+          ponderations?: Json
+          score_admin?: number
+          score_commercial?: number
+          score_financier?: number
+          score_global?: number
+          score_risque_ca?: number
+          score_sante?: number
+        }
+        Update: {
+          centre_id?: string | null
+          created_at?: string
+          date_snapshot?: string
+          details?: Json | null
+          id?: string
+          ponderations?: Json
+          score_admin?: number
+          score_commercial?: number
+          score_financier?: number
+          score_global?: number
+          score_risque_ca?: number
+          score_sante?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_score_history_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_score_history_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_mentions: {
         Row: {
           activated_at: string | null
