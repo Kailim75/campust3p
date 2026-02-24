@@ -36,6 +36,7 @@ const menuGroups = [
   {
     label: "Gestion",
     items: [
+      { id: "rappels", label: "Rappels", icon: Bell },
       { id: "facturation", label: "Paiements", icon: CreditCard },
       { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
