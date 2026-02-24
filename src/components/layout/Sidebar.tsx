@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Calendar, FileText, CreditCard, Bell, Settings,
   ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
   Building2, ClipboardList, CalendarClock, BarChart3, Plus, Headphones, User,
-  Brain,
+  Brain, UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,6 +30,7 @@ const menuGroups = [
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "contacts", label: "Apprenants", icon: Users },
+      { id: "prospects", label: "Prospects", icon: UserPlus },
       { id: "pipeline", label: "Pipeline", icon: ClipboardList },
       { id: "sessions", label: "Sessions", icon: Calendar },
       { id: "planning-conduite", label: "Planning Conduite", icon: CalendarClock },
