@@ -20,18 +20,36 @@ interface RappelWithFinancials {
 interface RappelsFinancialData {
   rappels: RappelWithFinancials[];
   kpis: {
-    montantTotalEnAttente: number;
+    montantARelancer: number;
     montantCritique: number;
     retardMoyen: number;
   };
-  disciplineScore: number;
-  disciplineLevel: "healthy" | "warning" | "danger";
+  unifiedScore: number;
+  unifiedScoreLevel: "healthy" | "warning" | "danger";
+  scoreComponents: {
+    discipline: number;
+    rapiditeTraitement: number;
+    rapiditeEncaissement: number | null; // null = no data
+  };
 }
 
 const CRITICAL_DAYS = 15;
 
+function computeRapiditeTraitement(retardMoyen: number): number {
+  if (retardMoyen <= 2) return 100;
+  if (retardMoyen <= 5) return 80;
+  if (retardMoyen <= 10) return 60;
+  return 30;
+}
+
+function computeRapiditeEncaissement(delaiMoyen: number): number {
+  if (delaiMoyen <= 5) return 100;
+  if (delaiMoyen <= 10) return 80;
+  if (delaiMoyen <= 20) return 60;
+  return 40;
+}
+
 export function useRappelsFinancials(contactId?: string) {
-  // Fetch rappels (active alerts)
   const alertsQuery = useQuery({
     queryKey: contactId ? ["contact-historique", contactId] : ["historique-alerts"],
     queryFn: async () => {
@@ -55,7 +73,6 @@ export function useRappelsFinancials(contactId?: string) {
     },
   });
 
-  // Fetch all factures with unpaid amounts for contacts that have rappels
   const contactIds = useMemo(() => {
     if (!alertsQuery.data) return [];
     const ids = new Set<string>();
@@ -102,16 +119,14 @@ export function useRappelsFinancials(contactId?: string) {
     const paiements = financialsQuery.data?.paiements || [];
     const contactsData = financialsQuery.data?.contactsData || [];
 
-    // Build contacts map
     const contactsMap = new Map<string, any>();
     contactsData.forEach((c: any) => contactsMap.set(c.id, c));
-    // Build paiement totals per facture
+
     const paiementsByFacture = new Map<string, number>();
     paiements.forEach((p: any) => {
       paiementsByFacture.set(p.facture_id, (paiementsByFacture.get(p.facture_id) || 0) + Number(p.montant));
     });
 
-    // Build financial summary per contact
     const contactFinancials = new Map<string, { enAttente: number; critique: number }>();
     factures.forEach((f: any) => {
       const paid = paiementsByFacture.get(f.id) || 0;
@@ -128,11 +143,9 @@ export function useRappelsFinancials(contactId?: string) {
       contactFinancials.set(f.contact_id, current);
     });
 
-    // Enrich rappels with priority
     const now = startOfDay(new Date());
     let totalRetardDays = 0;
     let overdueCount = 0;
-    let criticalUntreatedCount = 0;
 
     const rappels: RappelWithFinancials[] = alerts
       .filter((r: any) => r.date_rappel)
@@ -140,22 +153,24 @@ export function useRappelsFinancials(contactId?: string) {
         const fin = contactFinancials.get(r.contact_id) || { enAttente: 0, critique: 0 };
         const dateRappel = parseISO(r.date_rappel);
         const isOverdue = r.alerte_active && isPast(dateRappel) && !isToday(dateRappel);
+        const daysOverdue = isOverdue ? differenceInDays(now, startOfDay(dateRappel)) : 0;
 
         if (isOverdue) {
-          const days = differenceInDays(now, startOfDay(dateRappel));
-          totalRetardDays += days;
+          totalRetardDays += daysOverdue;
           overdueCount++;
         }
 
-        // Priority logic
+        // NEW priority logic:
+        // 🔴 Critical = financial impact + overdue > 7 days
+        // 🟠 Important = administrative blocking (document keywords) or financial but < 7 days
+        // 🟢 Standard = everything else
         let priority: "critical" | "important" | "standard" = "standard";
-        if (fin.critique > 0 || fin.enAttente > 500) {
+        const hasFinancialImpact = fin.enAttente > 0 || fin.critique > 0;
+        const isAdminBlocking = (r.rappel_description || "").toLowerCase().match(/document|dossier|pièce|manquant|attestation|certificat/);
+
+        if (hasFinancialImpact && daysOverdue > 7) {
           priority = "critical";
-          if (isOverdue && r.alerte_active) criticalUntreatedCount++;
-        } else if (
-          (r.rappel_description || "").toLowerCase().match(/document|dossier|pièce|manquant/) ||
-          fin.enAttente > 0
-        ) {
+        } else if (isAdminBlocking || hasFinancialImpact) {
           priority = "important";
         }
 
@@ -168,33 +183,50 @@ export function useRappelsFinancials(contactId?: string) {
       });
 
     // KPIs
-    let montantTotalEnAttente = 0;
+    let montantARelancer = 0;
     let montantCritique = 0;
     contactFinancials.forEach((v) => {
-      montantTotalEnAttente += v.enAttente;
+      montantARelancer += v.enAttente;
       montantCritique += v.critique;
     });
 
     const retardMoyen = overdueCount > 0 ? Math.round(totalRetardDays / overdueCount) : 0;
 
-    // Discipline score
+    // === UNIFIED SCORE ===
     const totalActive = rappels.filter((r) => r.alerte_active).length;
-    const overduePercent = totalActive > 0 ? (overdueCount / totalActive) * 100 : 0;
-    const criticalPercent = totalActive > 0 ? (criticalUntreatedCount / totalActive) * 100 : 0;
 
-    // Score = 100 - (40% × overduePercent) - (30% × min(retardMoyen/30,1)*100) - (30% × criticalPercent)
-    const ageFactor = Math.min(retardMoyen / 30, 1) * 100;
-    const rawScore = 100 - 0.4 * overduePercent - 0.3 * ageFactor - 0.3 * criticalPercent;
-    const disciplineScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+    // Discipline = 100 - (% rappels en retard × 100)
+    const overduePercent = totalActive > 0 ? (overdueCount / totalActive) : 0;
+    const discipline = Math.round(100 - overduePercent * 100);
 
-    const disciplineLevel: "healthy" | "warning" | "danger" =
-      disciplineScore >= 85 ? "healthy" : disciplineScore >= 70 ? "warning" : "danger";
+    // Rapidité traitement
+    const rapiditeTraitement = computeRapiditeTraitement(retardMoyen);
+
+    // Rapidité encaissement - will be null if no data (neutralized)
+    // We don't have encaissement data in this hook, so we mark it null
+    // The page will use treasury hook data to complete this
+    const rapiditeEncaissement: number | null = null;
+
+    // Score with potential neutralization
+    let unifiedScore: number;
+    if (totalActive === 0) {
+      unifiedScore = 100;
+    } else {
+      // Will be recalculated in the page when encaissement data is available
+      // For now: 40% discipline + 30% rapidité + 30% neutralized → proportional
+      // Without encaissement: 40/70 discipline + 30/70 rapidité
+      unifiedScore = Math.round((40 / 70) * discipline + (30 / 70) * rapiditeTraitement);
+    }
+
+    const unifiedScoreLevel: "healthy" | "warning" | "danger" =
+      unifiedScore >= 85 ? "healthy" : unifiedScore >= 70 ? "warning" : "danger";
 
     return {
       rappels,
-      kpis: { montantTotalEnAttente, montantCritique, retardMoyen },
-      disciplineScore,
-      disciplineLevel,
+      kpis: { montantARelancer, montantCritique, retardMoyen },
+      unifiedScore,
+      unifiedScoreLevel,
+      scoreComponents: { discipline, rapiditeTraitement, rapiditeEncaissement },
       rawFinancials: { factures, paiements, contacts: contactsMap },
     };
   }, [alertsQuery.data, financialsQuery.data]);

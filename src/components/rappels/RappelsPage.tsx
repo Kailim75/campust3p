@@ -16,13 +16,14 @@ import {
   User,
   ExternalLink,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 import { RelancesDrawer } from "@/components/rappels/RelancesDrawer";
 import { useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
 import { useRappelsFinancials } from "@/hooks/useRappelsFinancials";
 import { useTreasuryKPIs } from "@/hooks/useTreasuryKPIs";
-import { RappelsFinancialKPIs } from "@/components/rappels/RappelsFinancialKPIs";
-import { TreasuryKPICards } from "@/components/rappels/TreasuryKPICards";
+import { RappelsActionKPIs } from "@/components/rappels/RappelsActionKPIs";
+import { RappelsPerformanceBlock } from "@/components/rappels/RappelsPerformanceBlock";
 import { RappelPriorityBadge } from "@/components/rappels/RappelPriorityBadge";
 import { format, parseISO, isPast, isToday, isTomorrow, differenceInDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -32,7 +33,6 @@ type RappelStatus = "overdue" | "today" | "tomorrow" | "upcoming";
 
 function getRappelStatus(dateRappel: string): RappelStatus {
   const date = startOfDay(parseISO(dateRappel));
-  const now = startOfDay(new Date());
   if (isToday(date)) return "today";
   if (isTomorrow(date)) return "tomorrow";
   if (isPast(date)) return "overdue";
@@ -72,8 +72,33 @@ const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; cl
 
 type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
+// Compute unified score with encaissement data
+function computeUnifiedScore(
+  discipline: number,
+  rapiditeTraitement: number,
+  rapiditeEncaissement: number | null
+): { score: number; level: "healthy" | "warning" | "danger" } {
+  let score: number;
+  if (rapiditeEncaissement !== null) {
+    score = Math.round(0.4 * discipline + 0.3 * rapiditeTraitement + 0.3 * rapiditeEncaissement);
+  } else {
+    // Neutralize encaissement: redistribute proportionally
+    score = Math.round((40 / 70) * discipline + (30 / 70) * rapiditeTraitement);
+  }
+  score = Math.max(0, Math.min(100, score));
+  const level: "healthy" | "warning" | "danger" = score >= 85 ? "healthy" : score >= 70 ? "warning" : "danger";
+  return { score, level };
+}
+
+function computeRapiditeEncaissement(delaiMoyen: number): number {
+  if (delaiMoyen <= 5) return 100;
+  if (delaiMoyen <= 10) return 80;
+  if (delaiMoyen <= 20) return 60;
+  return 40;
+}
+
 export default function RappelsPage() {
-  const { rappels: enrichedRappels, kpis, disciplineScore, disciplineLevel, rawFinancials, isLoading } = useRappelsFinancials();
+  const { rappels: enrichedRappels, kpis, scoreComponents, rawFinancials, isLoading } = useRappelsFinancials();
   const treasuryKPIs = useTreasuryKPIs();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
@@ -97,7 +122,6 @@ export default function RappelsPage() {
         contactNom: a.contacts ? `${a.contacts.prenom} ${a.contacts.nom}` : "Contact",
       }))
       .sort((a: any, b: any) => {
-        // Sort by priority first, then status, then date
         const prioOrder: Record<string, number> = { critical: 0, important: 1, standard: 2 };
         if (prioOrder[a.priority] !== prioOrder[b.priority]) return prioOrder[a.priority] - prioOrder[b.priority];
         const order: Record<RappelStatus, number> = { overdue: 0, today: 1, tomorrow: 2, upcoming: 3 };
@@ -128,6 +152,17 @@ export default function RappelsPage() {
     return counts;
   }, [rappels]);
 
+  // Compute unified score with treasury data when available
+  const encaissementScore = !treasuryKPIs.isLoading && treasuryKPIs.delaiEncaissementMoyen > 0
+    ? computeRapiditeEncaissement(treasuryKPIs.delaiEncaissementMoyen)
+    : null;
+
+  const { score: unifiedScore, level: unifiedScoreLevel } = rappels.length === 0
+    ? { score: 100, level: "healthy" as const }
+    : computeUnifiedScore(scoreComponents.discipline, scoreComponents.rapiditeTraitement, encaissementScore);
+
+  const hasFinancialRappels = kpis.montantARelancer > 0;
+
   const handleMarkDone = (rappel: any) => {
     updateAlert.mutate({
       id: rappel.id,
@@ -142,8 +177,8 @@ export default function RappelsPage() {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        <div className="grid grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
         </div>
         <Skeleton className="h-[400px] rounded-xl" />
       </div>
@@ -158,71 +193,64 @@ export default function RappelsPage() {
     { key: "upcoming", label: "À venir", count: stats.upcoming },
   ];
 
+  // Empty state
+  if (rappels.length === 0) {
+    return (
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Station Rappels</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+          </p>
+        </div>
+        <Card className="p-12 text-center">
+          <Sparkles className="h-10 w-10 text-emerald-500/40 mx-auto mb-3" />
+          <p className="text-base font-medium text-foreground">Station vide — suivi optimal</p>
+          <p className="text-sm text-muted-foreground mt-1">Score : 100 / 100</p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="p-6 space-y-5 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-            Station Rappels
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Station Rappels</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} — {rappels.length} rappel{rappels.length > 1 ? "s" : ""} actif{rappels.length > 1 ? "s" : ""}
           </p>
         </div>
-        <Button
-          onClick={() => setRelancesOpen(true)}
-          className="gap-2"
-          size="sm"
-        >
+        <Button onClick={() => setRelancesOpen(true)} className="gap-2" size="sm">
           <MessageSquare className="h-4 w-4" />
           Préparer mes relances
         </Button>
       </div>
 
-      {/* Financial KPIs */}
-      <RappelsFinancialKPIs
-        montantTotalEnAttente={kpis.montantTotalEnAttente}
-        montantCritique={kpis.montantCritique}
-        retardMoyen={kpis.retardMoyen}
-        disciplineScore={disciplineScore}
-        disciplineLevel={disciplineLevel}
+      {/* BLOC A — ACTION IMMÉDIATE (5 cartes max) */}
+      <RappelsActionKPIs
+        overdueCount={stats.overdue}
+        todayCount={stats.today}
+        tomorrowCount={stats.tomorrow}
+        montantARelancer={kpis.montantARelancer}
+        hasFinancialRappels={hasFinancialRappels}
+        unifiedScore={unifiedScore}
+        unifiedScoreLevel={unifiedScoreLevel}
       />
 
-      {/* Treasury KPIs */}
+      {/* BLOC B — PERFORMANCE (repliable) */}
       {!treasuryKPIs.isLoading && (
-        <TreasuryKPICards
+        <RappelsPerformanceBlock
           delaiEncaissementMoyen={treasuryKPIs.delaiEncaissementMoyen}
           delaiEncaissementMoisPrecedent={treasuryKPIs.delaiEncaissementMoisPrecedent}
           tauxRelancesEfficaces={treasuryKPIs.tauxRelancesEfficaces}
           tauxRelancesEfficacesMoisPrecedent={treasuryKPIs.tauxRelancesEfficacesMoisPrecedent}
-          scoreTresorerie={treasuryKPIs.scoreTresorerie}
-          scoreTresorerieLevel={treasuryKPIs.scoreTresorerieLevel}
-          caMoisActuel={treasuryKPIs.caMoisActuel}
-          caMoisPrecedent={treasuryKPIs.caMoisPrecedent}
           encaissementsMoisActuel={treasuryKPIs.encaissementsMoisActuel}
           encaissementsMoisPrecedent={treasuryKPIs.encaissementsMoisPrecedent}
+          montantCritique={kpis.montantCritique}
         />
       )}
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "En retard", value: stats.overdue, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", borderColor: "border-destructive/20" },
-          { label: "Aujourd'hui", value: stats.today, icon: Bell, color: "text-warning", bg: "bg-warning/10", borderColor: "border-warning/20" },
-          { label: "Demain", value: stats.tomorrow, icon: Clock, color: "text-info", bg: "bg-info/10", borderColor: "border-info/20" },
-          { label: "À venir", value: stats.upcoming, icon: Calendar, color: "text-primary", bg: "bg-primary/10", borderColor: "border-primary/20" },
-        ].map((s) => (
-          <Card key={s.label} className={cn("p-4 flex items-center gap-4 border", s.borderColor)}>
-            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", s.bg)}>
-              <s.icon className={cn("h-5 w-5", s.color)} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground leading-none">{s.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
 
       {/* Filters + Search */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -277,17 +305,11 @@ export default function RappelsPage() {
               return (
                 <Card
                   key={rappel.id}
-                  className={cn(
-                    "p-4 transition-all hover:shadow-md group cursor-pointer",
-                    config.cardClass
-                  )}
+                  className={cn("p-4 transition-all hover:shadow-md group cursor-pointer", config.cardClass)}
                   onClick={() => handleGoToContact(rappel.contact_id)}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Status dot */}
                     <div className={cn("mt-1.5 h-2.5 w-2.5 rounded-full shrink-0", config.dotColor)} />
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.className)}>
@@ -310,27 +332,19 @@ export default function RappelsPage() {
                           </span>
                         )}
                       </div>
-
-                      {/* Title / Description */}
                       <p className="text-sm font-medium text-foreground mb-0.5 truncate">
                         {rappel.rappel_description || rappel.titre || "Rappel"}
                       </p>
-
-                      {/* Contact */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                         <User className="h-3 w-3" />
                         <span className="font-medium text-primary underline-offset-2 group-hover:underline">{rappel.contactNom}</span>
                         <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-
-                      {/* Date/Time */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {format(parseISO(rappel.date_rappel), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })}
                       </div>
                     </div>
-
-                    {/* Actions */}
                     <Button
                       size="sm"
                       variant="outline"
