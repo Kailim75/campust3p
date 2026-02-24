@@ -1,0 +1,217 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  // Vérifier le secret webhook pour sécuriser l'accès
+  const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
+  const providedSecret = req.headers.get('x-webhook-secret') || new URL(req.url).searchParams.get('secret');
+
+  if (WEBHOOK_SECRET && providedSecret !== WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  try {
+    const body = await req.json();
+    const { event, data } = body;
+
+    if (!event) {
+      return new Response(JSON.stringify({ error: 'Missing "event" field' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    let result: any = { received: true };
+
+    switch (event) {
+      // ─── Formulaire de contact depuis le site web ───
+      case 'contact_form': {
+        const { nom, prenom, email, telephone, message, formation, source } = data;
+        if (!nom || !prenom) {
+          return new Response(JSON.stringify({ error: 'nom and prenom are required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Créer le contact dans le CRM
+        const { data: contact, error: contactError } = await supabase
+          .from('contacts')
+          .insert({
+            nom: String(nom).substring(0, 100),
+            prenom: String(prenom).substring(0, 100),
+            email: email ? String(email).substring(0, 255) : null,
+            telephone: telephone ? String(telephone).substring(0, 20) : null,
+            formation: formation || null,
+            source: source || 'site_web',
+            origine: 'site_web',
+            statut: 'prospect',
+            commentaires: message ? String(message).substring(0, 2000) : null,
+          })
+          .select('id')
+          .single();
+
+        if (contactError) throw contactError;
+
+        // Ajouter un historique
+        if (contact) {
+          await supabase.from('contact_historique').insert({
+            contact_id: contact.id,
+            type: 'formulaire',
+            titre: 'Formulaire de contact site web',
+            contenu: message ? String(message).substring(0, 2000) : 'Contact créé depuis le site web',
+            date_echange: new Date().toISOString(),
+          });
+        }
+
+        result = { contact_id: contact?.id };
+        break;
+      }
+
+      // ─── Notification de paiement ───
+      case 'payment_received': {
+        const { contact_id, montant, methode, reference, facture_id } = data;
+        if (!contact_id || !montant) {
+          return new Response(JSON.stringify({ error: 'contact_id and montant are required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Enregistrer le paiement
+        const { data: paiement, error: paiementError } = await supabase
+          .from('paiements')
+          .insert({
+            facture_id: facture_id || null,
+            montant: Number(montant),
+            methode_paiement: methode || 'alma',
+            reference_paiement: reference || null,
+            date_paiement: new Date().toISOString().split('T')[0],
+          })
+          .select('id')
+          .single();
+
+        if (paiementError) throw paiementError;
+
+        // Historique
+        await supabase.from('contact_historique').insert({
+          contact_id,
+          type: 'paiement',
+          titre: `Paiement reçu : ${Number(montant).toFixed(2)} €`,
+          contenu: `Paiement par ${methode || 'Alma'} - Réf: ${reference || 'N/A'}`,
+          date_echange: new Date().toISOString(),
+        });
+
+        result = { paiement_id: paiement?.id };
+        break;
+      }
+
+      // ─── Inscription depuis le site web ───
+      case 'inscription': {
+        const { nom, prenom, email, telephone, formation, session_id, commentaires } = data;
+        if (!nom || !prenom || !email) {
+          return new Response(JSON.stringify({ error: 'nom, prenom and email are required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Chercher si le contact existe déjà
+        const { data: existing } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('email', String(email).substring(0, 255))
+          .limit(1)
+          .single();
+
+        let contactId = existing?.id;
+
+        if (!contactId) {
+          const { data: newContact, error: createError } = await supabase
+            .from('contacts')
+            .insert({
+              nom: String(nom).substring(0, 100),
+              prenom: String(prenom).substring(0, 100),
+              email: String(email).substring(0, 255),
+              telephone: telephone ? String(telephone).substring(0, 20) : null,
+              formation: formation || null,
+              source: 'site_web',
+              origine: 'site_web',
+              statut: 'prospect',
+            })
+            .select('id')
+            .single();
+
+          if (createError) throw createError;
+          contactId = newContact?.id;
+        }
+
+        // Si une session est spécifiée, créer l'inscription
+        if (session_id && contactId) {
+          await supabase.from('session_inscrits').insert({
+            session_id,
+            contact_id: contactId,
+            statut: 'en_attente',
+          });
+        }
+
+        // Historique
+        if (contactId) {
+          await supabase.from('contact_historique').insert({
+            contact_id: contactId,
+            type: 'inscription',
+            titre: 'Demande d\'inscription depuis le site web',
+            contenu: commentaires ? String(commentaires).substring(0, 2000) : `Inscription formation ${formation || 'non précisée'}`,
+            date_echange: new Date().toISOString(),
+          });
+        }
+
+        result = { contact_id: contactId };
+        break;
+      }
+
+      // ─── Callback Alma (webhook de paiement) ───
+      case 'alma_payment_callback': {
+        const { payment_id, status } = data;
+        console.log(`Alma callback: payment ${payment_id} - status ${status}`);
+        result = { acknowledged: true, payment_id, status };
+        break;
+      }
+
+      // ─── Événement générique ───
+      default: {
+        console.log(`Webhook received unknown event: ${event}`, data);
+        result = { acknowledged: true, event };
+        break;
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, ...result }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ success: false, error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
