@@ -1,483 +1,556 @@
 import React, { useMemo, useState } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
-import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Users,
   Euro,
   TrendingUp,
-  Award,
+  TrendingDown,
+  Percent,
+  Phone,
+  BarChart3,
+  AlertTriangle,
+  CreditCard,
   FileWarning,
+  UserX,
   Calendar,
+  ChevronRight,
   ArrowUpRight,
   ArrowDownRight,
-  AlertCircle,
-  CreditCard,
-  Clock,
-  RefreshCw,
-  CheckCircle2,
-  UserPlus,
-  BookOpen,
-  GraduationCap,
-  Landmark,
-  ChevronRight,
+  Target,
 } from "lucide-react";
-import { useContacts } from "@/hooks/useContacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO, endOfMonth, getDate } from "date-fns";
+import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO, endOfMonth, getDate, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { formatDistanceToNow } from "date-fns";
-import { formatEuro } from "@/lib/formatFinancial";
+import { formatEuro, formatEuroShort } from "@/lib/formatFinancial";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
+import { cn } from "@/lib/utils";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
   onNavigateWithContact?: (section: string, contactId?: string) => void;
 }
 
-// ─── HOOKS ───────────────────────────────────────────────
+// ─── STRATEGIC KPI HOOK ──────────────────────────────────
 
-function useDashboardMetrics() {
-  const { data: contacts, isLoading: contactsLoading } = useContacts();
+function useStrategicKPIs() {
+  const now = new Date();
+  const mStart = format(startOfMonth(now), "yyyy-MM-dd");
+  const mEnd = format(endOfMonth(now), "yyyy-MM-dd");
+  const prevMStart = format(startOfMonth(subMonths(now, 1)), "yyyy-MM-dd");
+  const prevMEnd = format(endOfMonth(subMonths(now, 1)), "yyyy-MM-dd");
+  const sevenDaysAgo = format(subDays(now, 7), "yyyy-MM-dd");
 
-  const { data: paiements, isLoading: paiementsLoading } = useQuery({
-    queryKey: ["dashboard-paiements-month"],
+  return useQuery({
+    queryKey: ["dashboard-strategic-kpis", mStart],
     queryFn: async () => {
-      const thisMonth = format(startOfMonth(new Date()), "yyyy-MM-dd");
-      const lastMonth = format(startOfMonth(subMonths(new Date(), 1)), "yyyy-MM-dd");
-      const lastMonthEnd = format(startOfMonth(new Date()), "yyyy-MM-dd");
-
-      const [current, previous] = await Promise.all([
-        supabase.from("paiements").select("montant").gte("date_paiement", thisMonth),
-        supabase.from("paiements").select("montant").gte("date_paiement", lastMonth).lt("date_paiement", lastMonthEnd),
+      const [
+        versCurrentRes, versPrevRes,
+        chargesRes, paramsRes,
+        sessionsRes, inscriptionsRes,
+        leadsRes, contactsRes,
+      ] = await Promise.all([
+        // CA current month (versements réels)
+        supabase.from("versements").select("montant").gte("date_encaissement", mStart).lte("date_encaissement", mEnd),
+        // CA previous month
+        supabase.from("versements").select("montant").gte("date_encaissement", prevMStart).lte("date_encaissement", prevMEnd),
+        // Charges du mois
+        supabase.from("charges").select("montant, type_charge").gte("date_charge", mStart).lte("date_charge", mEnd).eq("statut", "active" as any),
+        // Params financiers
+        supabase.from("parametres_financiers").select("*").limit(1).maybeSingle(),
+        // Sessions ouvertes (pour remplissage)
+        supabase.from("sessions").select("id, places_totales, statut, date_debut").in("statut", ["a_venir", "en_cours"]).eq("archived", false),
+        // Inscriptions pour sessions ouvertes
+        supabase.from("session_inscriptions").select("session_id"),
+        // Leads 7 jours (historique contacts)
+        supabase.from("contact_historique").select("id, type, contact_id").gte("date_echange", sevenDaysAgo).in("type", ["appel", "whatsapp", "email"]),
+        // Contacts récents (pour conversion leads)
+        supabase.from("contacts").select("id, statut, created_at").gte("created_at", sevenDaysAgo),
       ]);
 
-      const caCurrent = (current.data || []).reduce((s, p) => s + Number(p.montant), 0);
-      const caPrevious = (previous.data || []).reduce((s, p) => s + Number(p.montant), 0);
-      return { caCurrent, caPrevious };
-    },
-  });
+      // 1. CA du mois
+      const caCurrent = (versCurrentRes.data || []).reduce((s, v) => s + Number(v.montant), 0);
+      const caPrev = (versPrevRes.data || []).reduce((s, v) => s + Number(v.montant), 0);
+      const caVariation = caPrev > 0 ? Math.round(((caCurrent - caPrev) / caPrev) * 100) : caCurrent > 0 ? 100 : 0;
 
-  const { data: examens, isLoading: examensLoading } = useQuery({
-    queryKey: ["dashboard-examens"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("examens_t3p").select("resultat");
-      if (error) throw error;
-      const total = (data || []).filter((e) => e.resultat !== "en_attente").length;
-      const admis = (data || []).filter((e) => e.resultat === "admis").length;
-      return { total, admis, taux: total > 0 ? Math.round((admis / total) * 100) : 0 };
-    },
-  });
+      // Objectif CA (charges fixes * 1.3 comme objectif minimal)
+      const totalCharges = (chargesRes.data || []).reduce((s, c) => s + Number(c.montant), 0);
+      const chargesFixes = (chargesRes.data || []).filter(c => c.type_charge === "fixe").reduce((s, c) => s + Number(c.montant), 0);
+      const objectifCA = chargesFixes > 0 ? chargesFixes * 1.5 : 10000; // fallback
+      const pctObjectif = objectifCA > 0 ? Math.round((caCurrent / objectifCA) * 100) : 0;
+      const dayOfMonth = getDate(now);
+      const daysInMonth = parseInt(format(endOfMonth(now), "d"));
+      const isRythmInsuffisant = dayOfMonth > 15 && pctObjectif < 60;
 
-  const { data: sessionsWeek, isLoading: sessionsLoading } = useQuery({
-    queryKey: ["dashboard-sessions-week"],
-    queryFn: async () => {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const inSevenDays = format(addDays(new Date(), 7), "yyyy-MM-dd");
-      const { data, error } = await supabase.from("sessions").select("id").gte("date_debut", today).lte("date_debut", inSevenDays);
-      if (error) throw error;
-      return data?.length || 0;
-    },
-  });
+      // 2. Marge estimée
+      const marge = caCurrent - totalCharges;
+      const margePercent = caCurrent > 0 ? Math.round((marge / caCurrent) * 100) : 0;
 
-  const { data: docsIncomplets, isLoading: docsLoading } = useQuery({
-    queryKey: ["dashboard-docs-incomplets"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contact_documents")
-        .select("contact_id, type_document")
-        .in("type_document", ["cni", "casier_b3", "certificat_medical", "photo", "permis_b"]);
-      if (error) throw error;
+      // 3. Taux de remplissage global (sessions ouvertes seulement)
+      const sessions = sessionsRes.data || [];
+      const inscriptions = inscriptionsRes.data || [];
+      const inscriptionsBySession = new Map<string, number>();
+      inscriptions.forEach((i: any) => {
+        inscriptionsBySession.set(i.session_id, (inscriptionsBySession.get(i.session_id) || 0) + 1);
+      });
+      
+      let totalPlaces = 0;
+      let totalInscrits = 0;
+      sessions.filter(s => s.statut === "a_venir" || s.statut === "en_cours").forEach((s: any) => {
+        const inscrits = inscriptionsBySession.get(s.id) || 0;
+        totalPlaces += s.places_totales;
+        totalInscrits += inscrits;
+      });
+      const tauxRemplissage = totalPlaces > 0 ? Math.round((totalInscrits / totalPlaces) * 100) : 0;
 
-      const contactDocsCount = new Map<string, number>();
-      (data || []).forEach((d) => {
-        contactDocsCount.set(d.contact_id, (contactDocsCount.get(d.contact_id) || 0) + 1);
+      // 4. Leads 7 jours
+      const leads = leadsRes.data || [];
+      const uniqueLeadContacts = new Set(leads.map((l: any) => l.contact_id));
+      const leadsCount = uniqueLeadContacts.size;
+      
+      const recentContacts = contactsRes.data || [];
+      const convertis = recentContacts.filter((c: any) => 
+        c.statut && !["Prospect", "nouveau"].includes(c.statut)
+      ).length;
+      const tauxConversion = leadsCount > 0 ? Math.round((convertis / leadsCount) * 100) : 0;
+
+      // 5. CA Prévisionnel (basé sur inscriptions confirmées non encore facturées)
+      const params = paramsRes.data;
+      const prixMoyen = params ? (Number(params.prix_moyen_taxi || 990) + Number(params.prix_moyen_vtc || 990) + Number(params.prix_moyen_vmdtr || 990)) / 3 : 990;
+      const sessionsAVenir = sessions.filter(s => parseISO(s.date_debut) > now);
+      let caPrevi = 0;
+      sessionsAVenir.forEach((s: any) => {
+        const inscrits = inscriptionsBySession.get(s.id) || 0;
+        caPrevi += inscrits * prixMoyen;
       });
 
-      const activeContacts = contacts?.filter(
-        (c) =>
-          c.statut === "En formation théorique" ||
-          c.statut === "En formation pratique" ||
-          c.statut === "En attente de validation"
-      ) || [];
-
-      return activeContacts.filter((c) => (contactDocsCount.get(c.id) || 0) < 5).length;
+      return {
+        ca: { value: caCurrent, variation: caVariation, pctObjectif, isRythmInsuffisant },
+        marge: { value: marge, percent: margePercent },
+        remplissage: { value: tauxRemplissage, totalPlaces, totalInscrits },
+        leads: { count: leadsCount, tauxConversion, isProblemeClosing: leadsCount > 5 && tauxConversion < 10 },
+        caPrevi: { value: caPrevi },
+      };
     },
-    enabled: !!contacts,
+    staleTime: 2 * 60 * 1000,
   });
-
-  const metrics = useMemo(() => {
-    if (!contacts) return [];
-
-    const activeStatuts = ["En formation théorique", "En formation pratique", "Examen T3P programmé", "Examen pratique programmé"];
-    const inscritStatuts = [...activeStatuts, "En attente de validation"];
-    const actifs = contacts.filter((c) => activeStatuts.includes(c.statut || "")).length;
-    const inscrits = contacts.filter((c) => inscritStatuts.includes(c.statut || "")).length;
-    const total = contacts.length;
-    const tauxConversion = total > 0 ? Math.round((inscrits / total) * 100) : 0;
-
-    const caChange = paiements
-      ? paiements.caPrevious > 0
-        ? Math.round(((paiements.caCurrent - paiements.caPrevious) / paiements.caPrevious) * 100)
-        : paiements.caCurrent > 0 ? 100 : 0
-      : undefined;
-
-    return [
-      { label: "Apprenants actifs", value: actifs, icon: Users, color: "text-primary", bgColor: "bg-primary/10", delta: undefined },
-      { label: "CA du mois", value: new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(paiements?.caCurrent || 0), icon: Euro, color: "text-primary", bgColor: "bg-primary/10", delta: caChange },
-      { label: "Taux de conversion", value: `${tauxConversion}%`, icon: TrendingUp, color: "text-success", bgColor: "bg-success/10", delta: undefined },
-      { label: "Réussite examens", value: `${examens?.taux || 0}%`, icon: Award, color: "text-info", bgColor: "bg-info/10", delta: undefined },
-      { label: "Dossiers incomplets", value: docsIncomplets || 0, icon: FileWarning, color: (docsIncomplets || 0) > 0 ? "text-warning" : "text-success", bgColor: (docsIncomplets || 0) > 0 ? "bg-warning/10" : "bg-success/10", delta: undefined, isWarning: (docsIncomplets || 0) > 0 },
-      { label: "Sessions cette semaine", value: sessionsWeek || 0, icon: Calendar, color: "text-primary", bgColor: "bg-primary/10", delta: undefined },
-    ];
-  }, [contacts, paiements, examens, docsIncomplets, sessionsWeek]);
-
-  return { metrics, isLoading: contactsLoading || paiementsLoading || examensLoading || sessionsLoading || docsLoading };
 }
 
-// ─── ALERTS HOOK ─────────────────────────────────────────
+// ─── CRITICAL SESSIONS HOOK ──────────────────────────────
 
-interface DashboardAlert {
+function useCriticalSessions() {
+  const now = new Date();
+  const in21Days = format(addDays(now, 21), "yyyy-MM-dd");
+
+  return useQuery({
+    queryKey: ["dashboard-critical-sessions"],
+    queryFn: async () => {
+      const { data: sessions } = await supabase
+        .from("sessions")
+        .select("id, nom, date_debut, date_fin, places_totales, statut, formation_type")
+        .in("statut", ["a_venir", "en_cours"])
+        .eq("archived", false)
+        .lte("date_debut", in21Days)
+        .order("date_debut", { ascending: true });
+
+      if (!sessions?.length) return [];
+
+      const { data: inscriptions } = await supabase
+        .from("session_inscriptions")
+        .select("session_id")
+        .in("session_id", sessions.map(s => s.id));
+
+      const countMap = new Map<string, number>();
+      (inscriptions || []).forEach((i: any) => {
+        countMap.set(i.session_id, (countMap.get(i.session_id) || 0) + 1);
+      });
+
+      return sessions.map(s => {
+        const inscrits = countMap.get(s.id) || 0;
+        const taux = s.places_totales > 0 ? Math.round((inscrits / s.places_totales) * 100) : 0;
+        const joursAvant = differenceInDays(parseISO(s.date_debut), now);
+        const isCritical = taux < 50 && joursAvant < 14;
+        return { ...s, inscrits, taux, joursAvant, isCritical };
+      }).sort((a, b) => {
+        if (a.isCritical !== b.isCritical) return a.isCritical ? -1 : 1;
+        if (a.joursAvant !== b.joursAvant) return a.joursAvant - b.joursAvant;
+        return a.taux - b.taux;
+      });
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+// ─── PRIORITY ALERTS HOOK ────────────────────────────────
+
+interface PriorityAlert {
   id: string;
-  type: "danger" | "warning" | "info";
-  icon: typeof AlertCircle;
+  type: "danger" | "warning";
+  icon: React.ElementType;
   message: string;
-  action: string;
   section: string;
   contactId?: string;
 }
 
-function useDashboardAlerts() {
-  const { data: contacts } = useContacts();
-
-  const { data: incompleteAlerts } = useQuery({
-    queryKey: ["dashboard-alerts-incomplete"],
+function usePriorityAlerts() {
+  return useQuery({
+    queryKey: ["dashboard-priority-alerts"],
     queryFn: async () => {
-      if (!contacts) return [];
-      const activeContacts = contacts.filter(
-        (c) => c.statut === "En attente de validation" || c.statut === "En formation théorique" || c.statut === "En formation pratique"
-      );
-      const { data: docs } = await supabase.from("contact_documents").select("contact_id, type_document").in("contact_id", activeContacts.map((c) => c.id));
-      const docsMap = new Map<string, number>();
-      (docs || []).forEach((d) => { docsMap.set(d.contact_id, (docsMap.get(d.contact_id) || 0) + 1); });
+      const alerts: PriorityAlert[] = [];
 
-      return activeContacts
-        .filter((c) => (docsMap.get(c.id) || 0) < 5 && differenceInDays(new Date(), parseISO(c.created_at)) > 5)
-        .slice(0, 3)
-        .map((c) => ({
-          id: `incomplete-${c.id}`, type: "danger" as const, icon: FileWarning,
-          message: `${c.prenom} ${c.nom} — ${5 - (docsMap.get(c.id) || 0)} documents manquants`,
-          action: "Voir le dossier", section: "contacts", contactId: c.id,
-        }));
-    },
-    enabled: !!contacts && contacts.length > 0,
-  });
-
-  const { data: paymentAlerts } = useQuery({
-    queryKey: ["dashboard-alerts-payments"],
-    queryFn: async () => {
+      // Paiements en retard
       const { data: factures } = await supabase
-        .from("factures").select("id, montant_total, contact_id, date_emission, contacts(prenom, nom)")
-        .in("statut", ["emise", "partiel"]).order("date_emission", { ascending: true }).limit(3);
-      return (factures || [])
-        .filter((f) => differenceInDays(new Date(), parseISO(f.date_emission)) > 7)
-        .map((f: any) => ({
-          id: `payment-${f.id}`, type: "warning" as const, icon: CreditCard,
-          message: `${f.contacts?.prenom} ${f.contacts?.nom} — ${Number(f.montant_total).toLocaleString("fr-FR")}€ en attente`,
-          action: "Voir paiement", section: "facturation", contactId: f.contact_id,
-        }));
-    },
-  });
+        .from("factures")
+        .select("id, montant_total, contact_id, date_emission, contacts(prenom, nom)")
+        .in("statut", ["emise", "partiel"])
+        .order("date_emission", { ascending: true })
+        .limit(4);
 
-  const { data: examAlerts } = useQuery({
-    queryKey: ["dashboard-alerts-exams"],
-    queryFn: async () => {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const inSevenDays = format(addDays(new Date(), 7), "yyyy-MM-dd");
-      const { data } = await supabase.from("examens_t3p")
-        .select("id, date_examen, type_formation, contacts(prenom, nom, formation)")
-        .gte("date_examen", today).lte("date_examen", inSevenDays).eq("resultat", "en_attente").limit(3);
-      return (data || []).map((e: any) => ({
-        id: `exam-${e.id}`, type: "info" as const, icon: GraduationCap,
-        message: `${e.contacts?.prenom} ${e.contacts?.nom} — ${e.contacts?.formation || "Examen"} le ${format(parseISO(e.date_examen), "dd/MM", { locale: fr })}`,
-        action: "Voir fiche", section: "contacts",
-      }));
-    },
-  });
-
-  const { data: financialAlerts } = useQuery({
-    queryKey: ["dashboard-alerts-financial"],
-    queryFn: async () => {
-      const now = new Date();
-      const mStart = format(startOfMonth(now), "yyyy-MM-dd");
-      const mEnd = format(endOfMonth(now), "yyyy-MM-dd");
-      const alerts: DashboardAlert[] = [];
-
-      const [versRes, chargesRes, paramsRes, recurringRes] = await Promise.all([
-        supabase.from("versements").select("montant").gte("date_encaissement", mStart).lte("date_encaissement", mEnd),
-        supabase.from("charges").select("montant, type_charge").gte("date_charge", mStart).lte("date_charge", mEnd).eq("statut", "active" as any),
-        supabase.from("parametres_financiers").select("*").limit(1).maybeSingle(),
-        supabase.from("charges").select("libelle, montant, periodicite").eq("statut", "active" as any).in("periodicite", ["mensuelle", "trimestrielle", "annuelle"] as any),
-      ]);
-
-      const ca = (versRes.data || []).reduce((s, v) => s + Number(v.montant), 0);
-      const totalCharges = (chargesRes.data || []).reduce((s, c) => s + Number(c.montant), 0);
-      const chargesFixes = (chargesRes.data || []).filter(c => c.type_charge === "fixe").reduce((s, c) => s + Number(c.montant), 0);
-      const resultat = ca - totalCharges;
-      const params = paramsRes.data;
-      const prixMoyen = params ? (Number(params.prix_moyen_taxi) + Number(params.prix_moyen_vtc) + Number(params.prix_moyen_vmdtr)) / 3 : 990;
-
-      if (resultat < 0) {
-        const manquantes = Math.ceil(Math.abs(resultat) / prixMoyen);
+      (factures || []).filter((f: any) => differenceInDays(new Date(), parseISO(f.date_emission)) > 7).forEach((f: any) => {
         alerts.push({
-          id: "financial-deficit", type: "danger", icon: Landmark,
-          message: `Déficit de ${formatEuro(Math.abs(resultat))} ce mois — ${manquantes} formation${manquantes > 1 ? "s" : ""} manquante${manquantes > 1 ? "s" : ""} pour équilibrer`,
-          action: "Voir Cockpit", section: "cockpit-financier",
+          id: `pay-${f.id}`, type: "danger", icon: CreditCard,
+          message: `${f.contacts?.prenom} ${f.contacts?.nom} — ${formatEuro(Number(f.montant_total))} en retard`,
+          section: "facturation", contactId: f.contact_id,
+        });
+      });
+
+      // Dossiers incomplets bloquants
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, prenom, nom, statut, created_at")
+        .in("statut", ["En attente de validation", "En formation théorique", "En formation pratique"])
+        .eq("archived", false);
+
+      if (contacts?.length) {
+        const { data: docs } = await supabase
+          .from("contact_documents")
+          .select("contact_id, type_document")
+          .in("contact_id", contacts.map(c => c.id));
+
+        const docsMap = new Map<string, number>();
+        (docs || []).forEach((d: any) => { docsMap.set(d.contact_id, (docsMap.get(d.contact_id) || 0) + 1); });
+
+        contacts
+          .filter(c => (docsMap.get(c.id) || 0) < 4 && differenceInDays(new Date(), parseISO(c.created_at)) > 5)
+          .slice(0, 3)
+          .forEach(c => {
+            alerts.push({
+              id: `doc-${c.id}`, type: "warning", icon: FileWarning,
+              message: `${c.prenom} ${c.nom} — dossier incomplet bloquant`,
+              section: "contacts", contactId: c.id,
+            });
+          });
+      }
+
+      // Élèves inactifs > 7 jours
+      const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
+      const { data: activeContacts } = await supabase
+        .from("contacts")
+        .select("id, prenom, nom, updated_at")
+        .in("statut", ["En formation théorique", "En formation pratique"])
+        .eq("archived", false)
+        .lt("updated_at", sevenDaysAgo)
+        .limit(3);
+
+      (activeContacts || []).forEach(c => {
+        const jours = differenceInDays(new Date(), parseISO(c.updated_at));
+        alerts.push({
+          id: `inactive-${c.id}`, type: "warning", icon: UserX,
+          message: `${c.prenom} ${c.nom} — inactif depuis ${jours}j`,
+          section: "contacts", contactId: c.id,
+        });
+      });
+
+      return alerts.sort((a, b) => {
+        const order = { danger: 0, warning: 1 };
+        return order[a.type] - order[b.type];
+      }).slice(0, 8);
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+// ─── CA HISTORY HOOK ─────────────────────────────────────
+
+function useCAHistory() {
+  return useQuery({
+    queryKey: ["dashboard-ca-history-6m"],
+    queryFn: async () => {
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = subMonths(new Date(), i);
+        months.push({
+          label: format(d, "MMM yy", { locale: fr }),
+          start: format(startOfMonth(d), "yyyy-MM-dd"),
+          end: format(endOfMonth(d), "yyyy-MM-dd"),
         });
       }
 
-      if (getDate(now) > 15 && prixMoyen > 0) {
-        const seuil = Math.ceil(chargesFixes / prixMoyen);
-        const vendues = (versRes.data || []).length;
-        if (seuil > 0 && vendues < seuil * 0.6) {
-          const restantes = seuil - vendues;
-          alerts.push({
-            id: "financial-seuil-risque", type: "warning", icon: Landmark,
-            message: `Seuil de rentabilité à risque — ${restantes} formation${restantes > 1 ? "s" : ""} encore nécessaire${restantes > 1 ? "s" : ""}`,
-            action: "Voir pipeline", section: "cockpit-financier",
-          });
-        }
-      }
+      const results = await Promise.all(
+        months.map(async (m) => {
+          const { data } = await supabase
+            .from("versements")
+            .select("montant")
+            .gte("date_encaissement", m.start)
+            .lte("date_encaissement", m.end);
+          const total = (data || []).reduce((s, v) => s + Number(v.montant), 0);
+          return { name: m.label, ca: total };
+        })
+      );
 
-      const { data: currentChargesWithLabels } = await supabase.from("charges").select("libelle").gte("date_charge", mStart).lte("date_charge", mEnd);
-      const saisisLabels = new Set((currentChargesWithLabels || []).map(c => c.libelle.toLowerCase()));
-      (recurringRes.data || []).forEach((rc: any) => {
-        if (!saisisLabels.has(rc.libelle.toLowerCase())) {
-          alerts.push({
-            id: `financial-recurring-${rc.libelle}`, type: "warning", icon: Landmark,
-            message: `${rc.libelle} non enregistrée ce mois`, action: "Saisir", section: "cockpit-financier",
-          });
-        }
-      });
-
-      return alerts;
+      return results;
     },
     staleTime: 5 * 60 * 1000,
   });
-
-  return useMemo(() => {
-    const all: DashboardAlert[] = [
-      ...(incompleteAlerts || []), ...(paymentAlerts || []),
-      ...(examAlerts || []), ...(financialAlerts || []),
-    ];
-    return all.sort((a, b) => {
-      const order = { danger: 0, warning: 1, info: 2 };
-      return order[a.type] - order[b.type];
-    }).slice(0, 8);
-  }, [incompleteAlerts, paymentAlerts, examAlerts, financialAlerts]);
 }
-
-// ─── ACTIVITY TIMELINE HOOK ──────────────────────────────
-
-function useRecentActivity() {
-  return useQuery({
-    queryKey: ["dashboard-recent-activity"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contact_historique")
-        .select("id, type, titre, contenu, date_echange, contact_id, contacts(prenom, nom)")
-        .order("date_echange", { ascending: false }).limit(8);
-      if (error) throw error;
-      return (data || []).map((h: any) => ({
-        id: h.id,
-        initials: `${(h.contacts?.prenom || "?").charAt(0)}${(h.contacts?.nom || "?").charAt(0)}`.toUpperCase(),
-        name: `${h.contacts?.prenom || ""} ${h.contacts?.nom || ""}`,
-        action: h.titre, type: h.type, date: h.date_echange,
-      }));
-    },
-  });
-}
-
-// ─── COMPACT METRIC ──────────────────────────────────────
-
-const CompactMetric = React.forwardRef<HTMLDivElement, {
-  label: string; value: string | number; icon: React.ElementType; color: string; bgColor: string; delta?: string | number; isWarning?: boolean;
-}>(function CompactMetric({
-  label, value, icon: Icon, color, bgColor, delta, isWarning,
-}, ref) {
-  return (
-    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border transition-all duration-200 hover:shadow-[0_4px_20px_hsl(199_55%_26%/0.12),0_0_0_1px_hsl(199_55%_26%/0.15)] hover:-translate-y-0.5 hover:border-primary/20 ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor} shrink-0`}>
-        <Icon className={`h-5 w-5 ${color}`} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider truncate">{label}</p>
-        <div className="flex items-baseline gap-2">
-          <p className="text-xl font-bold text-foreground font-mono tabular-nums tracking-tight">{value}</p>
-          {delta !== undefined && (
-            <span className={`flex items-center gap-0.5 text-[11px] font-medium ${Number(delta) >= 0 ? "text-success" : "text-destructive"}`}>
-              {Number(delta) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {Number(delta) >= 0 ? "+" : ""}{delta}%
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// ─── ALERT ROW ───────────────────────────────────────────
-
-const AlertRow = React.forwardRef<HTMLDivElement, { alert: DashboardAlert; onAction: () => void }>(function AlertRow({ alert, onAction }, ref) {
-  const colorMap = {
-    danger: { dot: "bg-destructive", text: "text-destructive" },
-    warning: { dot: "bg-warning", text: "text-warning" },
-    info: { dot: "bg-info", text: "text-info" },
-  };
-  const c = colorMap[alert.type];
-
-  return (
-    <div
-      ref={ref}
-      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer group"
-      onClick={onAction}
-    >
-      <div className={`h-2 w-2 rounded-full ${c.dot} shrink-0`} />
-      <p className="flex-1 text-sm text-foreground truncate">{alert.message}</p>
-      <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1">
-        {alert.action}
-        <ChevronRight className="h-3 w-3" />
-      </span>
-    </div>
-  );
-});
 
 // ─── MAIN DASHBOARD ──────────────────────────────────────
 
-export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
+export function Dashboard({ onNavigate }: DashboardProps) {
   useNoShowDetection();
-  const { metrics, isLoading } = useDashboardMetrics();
-  const alerts = useDashboardAlerts();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { data: kpis, isLoading: kpisLoading } = useStrategicKPIs();
+  const { data: criticalSessions, isLoading: sessionsLoading } = useCriticalSessions();
+  const { data: alerts, isLoading: alertsLoading } = usePriorityAlerts();
+  const { data: caHistory, isLoading: historyLoading } = useCAHistory();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const handleNavigate = (section: string, contactId?: string) => {
-    if (contactId) {
-      setSelectedContactId(contactId);
+  const handleAlertClick = (alert: PriorityAlert) => {
+    if (alert.contactId) {
+      setSelectedContactId(alert.contactId);
       setDetailOpen(true);
     } else if (onNavigate) {
-      onNavigate(section);
+      onNavigate(alert.section);
     }
   };
 
+  const isLoading = kpisLoading;
+
   return (
     <div className="min-h-screen">
-      <Header title="Dashboard" subtitle={format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} />
+      {/* Minimal header */}
+      <div className="px-6 pt-6 pb-2">
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">Pilotage</h1>
+        <p className="text-xs text-muted-foreground">{format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}</p>
+      </div>
 
-      <main className="p-6 max-w-[1400px] mx-auto space-y-6 animate-fade-in">
-        {/* KPI Grid — Compact 2x3 on desktop */}
-        <section>
-          {isLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-[72px] rounded-xl" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-              {metrics.map((m) => (
-                <CompactMetric key={m.label} {...m} />
-              ))}
-            </div>
-          )}
-        </section>
+      <main className="px-6 pb-6 space-y-5 max-w-[1400px]">
+        {/* ─── ZONE 1: KPI STRATÉGIQUES ─── */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />)}
+          </div>
+        ) : kpis ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* CA du mois */}
+            <KPICard
+              label="CA du mois"
+              value={formatEuro(kpis.ca.value)}
+              icon={Euro}
+              delta={kpis.ca.variation}
+              sub={`${kpis.ca.pctObjectif}% objectif`}
+              badge={kpis.ca.isRythmInsuffisant ? { label: "Rythme insuffisant", variant: "warning" } : undefined}
+            />
+            {/* Marge estimée */}
+            <KPICard
+              label="Marge estimée"
+              value={formatEuro(kpis.marge.value)}
+              icon={kpis.marge.value >= 0 ? TrendingUp : TrendingDown}
+              sub={`${kpis.marge.percent}% du CA`}
+              badge={
+                kpis.marge.percent < 15 ? { label: "Critique", variant: "danger" }
+                : kpis.marge.percent < 30 ? { label: "Attention", variant: "warning" }
+                : undefined
+              }
+              negative={kpis.marge.value < 0}
+            />
+            {/* Taux remplissage */}
+            <KPICard
+              label="Remplissage"
+              value={`${kpis.remplissage.value}%`}
+              icon={Percent}
+              sub={`${kpis.remplissage.totalInscrits}/${kpis.remplissage.totalPlaces} places`}
+              badge={kpis.remplissage.value < 60 ? { label: "Acquisition ↑", variant: "warning" } : undefined}
+            />
+            {/* Leads 7j */}
+            <KPICard
+              label="Leads 7 jours"
+              value={kpis.leads.count}
+              icon={Phone}
+              sub={`${kpis.leads.tauxConversion}% conversion`}
+              badge={kpis.leads.isProblemeClosing ? { label: "Problème closing", variant: "danger" } : undefined}
+            />
+            {/* CA Prévisionnel */}
+            <KPICard
+              label="CA prévisionnel"
+              value={formatEuro(kpis.caPrevi.value)}
+              icon={Target}
+              sub="sessions à venir"
+            />
+          </div>
+        ) : null}
 
-        {/* Two-column layout: Alerts + Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Alerts — wider */}
-          <section className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground">À traiter</h2>
-              {alerts.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] font-medium">
-                  {alerts.length} action{alerts.length > 1 ? "s" : ""}
-                </Badge>
-              )}
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* ─── LEFT COLUMN: Sessions + Alerts ─── */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* ─── ZONE 2: SESSIONS CRITIQUES ─── */}
             <Card className="p-0 overflow-hidden">
-              {alerts.length === 0 ? (
-                <div className="flex items-center gap-3 p-5 text-success">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <div>
-                    <p className="text-sm font-medium">Tout est à jour</p>
-                    <p className="text-xs text-muted-foreground">Aucune action requise pour le moment</p>
-                  </div>
-                </div>
-              ) : (
-                <ScrollArea className="max-h-[380px]">
-                  <div className="divide-y divide-border">
-                    {alerts.map((alert) => (
-                      <AlertRow
-                        key={alert.id}
-                        alert={alert}
-                        onAction={() => handleNavigate(alert.section, alert.contactId)}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </Card>
-          </section>
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <h2 className="text-sm font-semibold text-foreground">Sessions critiques</h2>
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => onNavigate?.("sessions")}>
+                  Toutes <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
 
-          {/* Activity — narrower */}
-          <section className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground">Activité récente</h2>
-            </div>
-            <Card className="p-0 overflow-hidden">
-              {activityLoading ? (
-                <div className="p-4 space-y-3">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 rounded-lg" />
-                  ))}
+              {sessionsLoading ? (
+                <div className="p-4 space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
                 </div>
-              ) : (activity?.length || 0) === 0 ? (
-                <div className="p-6 text-center text-muted-foreground text-sm">
-                  Aucune activité récente
-                </div>
+              ) : !criticalSessions?.length ? (
+                <div className="px-4 pb-4 text-sm text-muted-foreground">Aucune session à risque</div>
               ) : (
-                <ScrollArea className="max-h-[380px]">
-                  <div className="divide-y divide-border">
-                    {activity?.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
-                        <Avatar className="h-7 w-7 shrink-0">
-                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
-                            {item.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] text-foreground truncate">
-                            <span className="font-medium">{item.name}</span>
-                            <span className="text-muted-foreground"> — {item.action}</span>
-                          </p>
+                <div className="divide-y divide-border">
+                  {criticalSessions.slice(0, 6).map(s => (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 hover:bg-muted/40 cursor-pointer transition-colors",
+                        s.isCritical && "bg-destructive/5 border-l-2 border-l-destructive"
+                      )}
+                      onClick={() => onNavigate?.("sessions")}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">{s.nom}</p>
+                          {s.isCritical && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                              Action immédiate
+                            </Badge>
+                          )}
                         </div>
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          {formatDistanceToNow(parseISO(item.date), { addSuffix: false, locale: fr })}
+                        <p className="text-xs text-muted-foreground">
+                          {format(parseISO(s.date_debut), "dd MMM", { locale: fr })} · {s.formation_type}
+                        </p>
+                      </div>
+                      {/* Fill bar */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              s.taux >= 80 ? "bg-success" : s.taux >= 50 ? "bg-warning" : "bg-destructive"
+                            )}
+                            style={{ width: `${Math.min(s.taux, 100)}%` }}
+                          />
+                        </div>
+                        <span className={cn(
+                          "text-xs font-mono font-medium tabular-nums w-10 text-right",
+                          s.taux >= 80 ? "text-success" : s.taux >= 50 ? "text-warning" : "text-destructive"
+                        )}>
+                          {s.inscrits}/{s.places_totales}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                      <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">
+                        {s.joursAvant <= 0 ? "Auj." : `${s.joursAvant}j`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </Card>
-          </section>
+
+            {/* ─── ZONE 3: ALERTES PRIORITAIRES ─── */}
+            <Card className="p-0 overflow-hidden">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  Alertes prioritaires
+                  {(alerts?.length || 0) > 0 && (
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">{alerts?.length}</Badge>
+                  )}
+                </h2>
+                {(alerts?.length || 0) > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => onNavigate?.("alertes")}>
+                    Voir tout <ChevronRight className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+
+              {alertsLoading ? (
+                <div className="p-4 space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 rounded-lg" />)}
+                </div>
+              ) : !alerts?.length ? (
+                <div className="px-4 pb-4 text-sm text-muted-foreground">Aucune alerte — tout est en ordre ✓</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {alerts.map(alert => {
+                    const Icon = alert.icon;
+                    return (
+                      <div
+                        key={alert.id}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 cursor-pointer transition-colors group"
+                        onClick={() => handleAlertClick(alert)}
+                      >
+                        <div className={cn(
+                          "h-2 w-2 rounded-full shrink-0",
+                          alert.type === "danger" ? "bg-destructive" : "bg-warning"
+                        )} />
+                        <p className="flex-1 text-sm text-foreground truncate">{alert.message}</p>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* ─── RIGHT COLUMN: CA Chart ─── */}
+          <div className="space-y-5">
+            {/* ─── ZONE 4: HISTORIQUE CA ─── */}
+            <Card className="p-4">
+              <h2 className="text-sm font-semibold text-foreground mb-4">CA mensuel — 6 mois</h2>
+              {historyLoading ? (
+                <Skeleton className="h-[200px] rounded-lg" />
+              ) : (
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={caHistory || []} barSize={24}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => formatEuroShort(v)}
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        width={55}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => [formatEuro(value), "CA"]}
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Bar dataKey="ca" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       </main>
 
@@ -487,5 +560,61 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
         onOpenChange={setDetailOpen}
       />
     </div>
+  );
+}
+
+// ─── KPI CARD ────────────────────────────────────────────
+
+function KPICard({
+  label, value, icon: Icon, delta, sub, badge, negative,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  delta?: number;
+  sub?: string;
+  badge?: { label: string; variant: "warning" | "danger" };
+  negative?: boolean;
+}) {
+  return (
+    <Card className={cn(
+      "p-4 flex flex-col gap-1.5 relative overflow-hidden",
+      badge?.variant === "danger" && "ring-1 ring-destructive/30",
+      badge?.variant === "warning" && "ring-1 ring-warning/30",
+    )}>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
+        <Icon className={cn("h-4 w-4", negative ? "text-destructive" : "text-primary")} />
+      </div>
+      <p className={cn(
+        "text-lg font-bold font-mono tabular-nums tracking-tight leading-none",
+        negative ? "text-destructive" : "text-foreground"
+      )}>
+        {value}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        {delta !== undefined && (
+          <span className={cn(
+            "flex items-center gap-0.5 text-[10px] font-medium",
+            delta >= 0 ? "text-success" : "text-destructive"
+          )}>
+            {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {delta >= 0 ? "+" : ""}{delta}%
+          </span>
+        )}
+        {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
+      </div>
+      {badge && (
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[9px] px-1.5 py-0 h-4 mt-0.5 w-fit",
+            badge.variant === "danger" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-warning/10 text-warning border-warning/20"
+          )}
+        >
+          {badge.label}
+        </Badge>
+      )}
+    </Card>
   );
 }
