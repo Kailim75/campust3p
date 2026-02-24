@@ -1521,12 +1521,11 @@ export function generateContratFormationPDF(
   const marginLeft = 20;
   const marginRight = 20;
   const contentWidth = pageWidth - marginLeft - marginRight;
-  const bottomMargin = 30; // espace pour footer
-  const lineH = 5; // hauteur de ligne standard
-  const paraGap = 3; // espace entre paragraphes
+  const bottomMargin = 30;
+  const lineH = 5;
+  const paraGap = 3;
   let pageNum = 1;
 
-  // Fonction pour vérifier et ajouter une page si nécessaire
   function checkPageBreak(needed: number): void {
     if (yPos + needed > pageHeight - bottomMargin) {
       addFooter(doc, pageNum);
@@ -1537,244 +1536,381 @@ export function generateContratFormationPDF(
     }
   }
 
-  // Fonction utilitaire pour écrire un paragraphe wrappé avec gestion de page
   function writeParagraph(text: string, x: number = marginLeft, maxW: number = contentWidth, fontSize: number = 9): void {
     doc.setFontSize(fontSize);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
     const lines = doc.splitTextToSize(text, maxW) as string[];
     for (const line of lines) {
       checkPageBreak(lineH + 2);
       doc.text(line, x, yPos);
       yPos += lineH;
     }
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   }
 
-  // Fonction pour écrire un titre d'article
   function writeArticleTitle(title: string): void {
     yPos += paraGap * 2;
     checkPageBreak(lineH * 3);
+
+    // Barre latérale Forest Green
+    doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.text(title, marginLeft, yPos);
+    doc.text(title, marginLeft + 7, yPos + 3);
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
     doc.setFont("helvetica", "normal");
-    yPos += lineH + 2;
+    yPos += lineH + 6;
   }
 
-  // Fonction pour écrire un bullet point
   function writeBullet(text: string): void {
     doc.setFontSize(9);
-    const lines = doc.splitTextToSize(text, contentWidth - 8) as string[];
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    const lines = doc.splitTextToSize(text, contentWidth - 12) as string[];
     for (let i = 0; i < lines.length; i++) {
       checkPageBreak(lineH + 1);
-      doc.text(lines[i], marginLeft + (i === 0 ? 0 : 5), yPos);
+      doc.text(lines[i], marginLeft + (i === 0 ? 4 : 9), yPos);
       yPos += lineH;
     }
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   }
 
   const headerEndY = addHeader(doc, company);
   let yPos = headerEndY + 5;
 
-  // ===== TITRE =====
+  // ===== TITRE avec badge Gold =====
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("CONTRAT DE FORMATION PROFESSIONNELLE", pageWidth / 2, yPos, { align: "center" });
-  yPos += 6;
+  const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
+  const titleW = doc.getTextWidth(titleText) + 30;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 14, 3, 3, "F");
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 8;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   doc.text("En application des articles L.6353-3 à L.6353-7 du Code du travail", pageWidth / 2, yPos, { align: "center" });
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 
   if (session.numero_session) {
     yPos += 5;
-    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-    doc.text(`Référence : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.forestGreenLight.r, COLORS.forestGreenLight.g, COLORS.forestGreenLight.b);
+    doc.text(`Réf: ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   }
 
-  // ===== ENTRE LES SOUSSIGNÉS =====
+  // ===== ENTRE LES SOUSSIGNÉS - Deux colonnes dans info boxes =====
   yPos += 10;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text("ENTRE LES SOUSSIGNÉS :", marginLeft, yPos);
-  yPos += lineH + 3;
-
-  // --- Organisme ---
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("L'organisme de formation :", marginLeft, yPos);
-  doc.setFont("helvetica", "normal");
-  yPos += lineH + 1;
-  doc.text(`${company.name} - SIRET : ${company.siret}`, marginLeft + 5, yPos);
-  yPos += lineH;
-  const addressLines = doc.splitTextToSize(company.address, contentWidth - 10) as string[];
-  for (const line of addressLines) {
-    doc.text(line, marginLeft + 5, yPos);
-    yPos += lineH;
-  }
-  doc.text(`Déclaration d'activité N° ${company.nda}`, marginLeft + 5, yPos);
-  yPos += lineH;
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("(ne vaut pas agrément de l'État)", marginLeft + 5, yPos);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  doc.setFontSize(9);
-  yPos += lineH;
-  doc.text("Ci-après dénommé « l'Organisme »", marginLeft + 5, yPos);
+  yPos += lineH + 5;
 
-  // --- Stagiaire ---
-  yPos += lineH + 4;
+  // --- Box Organisme (fond cream + accent gold) ---
+  const orgBoxH = 36;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(marginLeft, yPos, contentWidth, orgBoxH, 3, 3, "F");
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(marginLeft, yPos, 3, orgBoxH, 1, 1, "F");
+
+  let orgY = yPos + 6;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("Et le stagiaire :", marginLeft, yPos);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("L'organisme de formation :", marginLeft + 8, orgY);
   doc.setFont("helvetica", "normal");
-  yPos += lineH + 1;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  orgY += lineH + 1;
+  doc.setFont("helvetica", "bold");
+  doc.text(`${company.name}`, marginLeft + 8, orgY);
+  doc.setFont("helvetica", "normal");
+  doc.text(` — SIRET : ${company.siret}`, marginLeft + 8 + doc.getTextWidth(`${company.name} `), orgY);
+  orgY += lineH;
+  const addressLines = doc.splitTextToSize(company.address, contentWidth - 16) as string[];
+  for (const line of addressLines) {
+    doc.text(line, marginLeft + 8, orgY);
+    orgY += lineH;
+  }
+  doc.text(`Déclaration d'activité N° ${company.nda}`, marginLeft + 8, orgY);
+  orgY += lineH - 1;
+  doc.setFontSize(7.5);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", marginLeft + 8, orgY);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+
+  yPos += orgBoxH + 5;
+
+  // --- Box Stagiaire (fond cream + accent forest green) ---
+  let stagLines = 3;
+  if (contact.date_naissance) stagLines++;
+  if (contact.rue) stagLines++;
+  if (contact.code_postal || contact.ville) stagLines++;
+  if (contact.email) stagLines++;
+  if (contact.telephone) stagLines++;
+  const stagBoxH = Math.max(30, (stagLines + 1) * lineH + 10);
+
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(marginLeft, yPos, contentWidth, stagBoxH, 3, 3, "F");
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(marginLeft, yPos, 3, stagBoxH, 1, 1, "F");
+
+  let stagY = yPos + 6;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Le stagiaire :", marginLeft + 8, stagY);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  stagY += lineH + 1;
+
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.setFont("helvetica", "bold");
-  doc.text(fullName, marginLeft + 5, yPos);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  doc.text(fullName, marginLeft + 8, stagY);
   doc.setFont("helvetica", "normal");
-  yPos += lineH;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  stagY += lineH;
   if (contact.date_naissance) {
-    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, marginLeft + 5, yPos);
-    yPos += lineH;
+    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, marginLeft + 8, stagY);
+    stagY += lineH;
   }
   if (contact.rue) {
-    doc.text(contact.rue, marginLeft + 5, yPos);
-    yPos += lineH;
+    doc.text(contact.rue, marginLeft + 8, stagY);
+    stagY += lineH;
   }
   if (contact.code_postal || contact.ville) {
-    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), marginLeft + 5, yPos);
-    yPos += lineH;
+    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), marginLeft + 8, stagY);
+    stagY += lineH;
   }
   if (contact.email) {
-    doc.text(`Email : ${contact.email}`, marginLeft + 5, yPos);
-    yPos += lineH;
+    doc.text(`Email : ${contact.email}`, marginLeft + 8, stagY);
+    stagY += lineH;
   }
   if (contact.telephone) {
-    doc.text(`Tél : ${contact.telephone}`, marginLeft + 5, yPos);
-    yPos += lineH;
+    doc.text(`Tél : ${contact.telephone}`, marginLeft + 8, stagY);
+    stagY += lineH;
   }
-  doc.text("Ci-après dénommé « le Stagiaire »", marginLeft + 5, yPos);
+  doc.setFontSize(7.5);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("Ci-après dénommé « le Stagiaire »", marginLeft + 8, stagY);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+
+  yPos += stagBoxH + 4;
 
   // ===== ARTICLES =====
 
   // Article 1
-  writeArticleTitle("Article 1 - Objet du contrat");
+  writeArticleTitle("Article 1 — Objet du contrat");
   writeParagraph("Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. L'Organisme s'engage à organiser l'action de formation définie ci-après et le Stagiaire s'engage à suivre cette formation avec assiduité.");
 
-  // Article 2
-  writeArticleTitle("Article 2 - Nature et caractéristiques de l'action de formation");
-  writeBullet(`• Intitulé : ${session.nom}`);
+  // Article 2 - Info box pour les détails de formation
+  writeArticleTitle("Article 2 — Nature et caractéristiques de l'action de formation");
+  checkPageBreak(40);
+
+  // Info box pour les caractéristiques
+  const art2Items: string[] = [];
+  art2Items.push(`Intitulé : ${session.nom}`);
   const objText = session.objectifs || "Acquisition des compétences professionnelles visées par la formation";
-  writeBullet(`• Objectif : ${objText}`);
-  writeBullet(`• Dates : du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`);
-  if (session.duree_heures) {
-    writeBullet(`• Durée totale : ${session.duree_heures} heures`);
-  }
+  art2Items.push(`Objectif : ${objText}`);
+  art2Items.push(`Dates : du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`);
+  if (session.duree_heures) art2Items.push(`Durée totale : ${session.duree_heures} heures`);
   const contratHours = formatSessionHours(session);
-  if (contratHours) {
-    writeBullet(`• Horaires : ${contratHours}`);
-  }
+  if (contratHours) art2Items.push(`Horaires : ${contratHours}`);
   const contratAddress = formatFullAddress(session);
-  if (contratAddress) {
-    writeBullet(`• Lieu : ${contratAddress}`);
+  if (contratAddress) art2Items.push(`Lieu : ${contratAddress}`);
+  art2Items.push("Modalité : En présentiel");
+
+  const art2BoxH = art2Items.length * lineH + 10;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(marginLeft, yPos, contentWidth, art2BoxH, 3, 3, "F");
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(marginLeft, yPos, 3, art2BoxH, 1, 1, "F");
+
+  let art2Y = yPos + 6;
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  for (const item of art2Items) {
+    doc.setFont("helvetica", "bold");
+    const [label, ...rest] = item.split(" : ");
+    doc.text(`${label} :`, marginLeft + 8, art2Y);
+    doc.setFont("helvetica", "normal");
+    const labelW = doc.getTextWidth(`${label} : `);
+    const value = rest.join(" : ");
+    const valueLines = doc.splitTextToSize(value, contentWidth - 16 - labelW) as string[];
+    doc.text(valueLines[0] || "", marginLeft + 8 + labelW, art2Y);
+    art2Y += lineH;
+    for (let i = 1; i < valueLines.length; i++) {
+      doc.text(valueLines[i], marginLeft + 8 + labelW, art2Y);
+      art2Y += lineH;
+    }
   }
-  writeBullet("• Modalité : En présentiel");
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += art2BoxH + 3;
 
   // Article 3
-  writeArticleTitle("Article 3 - Niveau requis et public concerné");
+  writeArticleTitle("Article 3 — Niveau requis et public concerné");
   const prerequis = session.prerequis || "Aucun prérequis spécifique n'est demandé pour cette formation.";
   writeParagraph(prerequis);
 
   // Article 4
-  writeArticleTitle("Article 4 - Moyens pédagogiques et techniques");
+  writeArticleTitle("Article 4 — Moyens pédagogiques et techniques");
   writeParagraph("La formation est dispensée en présentiel dans les locaux de l'Organisme. Les moyens pédagogiques mis en œuvre comprennent : supports de cours, exercices pratiques, mises en situation, évaluations formatives. L'Organisme met à disposition les équipements techniques nécessaires au bon déroulement de la formation.");
 
   // Article 5
-  writeArticleTitle("Article 5 - Modalités d'évaluation");
+  writeArticleTitle("Article 5 — Modalités d'évaluation");
   writeParagraph("Les acquis du Stagiaire sont évalués tout au long de la formation par des évaluations formatives (QCM, exercices, mises en situation). Une évaluation sommative est réalisée en fin de formation. Une attestation de fin de formation précisant les objectifs atteints est remise au Stagiaire.");
 
-  // Article 6
-  writeArticleTitle("Article 6 - Prix de la formation et modalités de paiement");
+  // Article 6 - Prix dans un encadré Gold
+  writeArticleTitle("Article 6 — Prix de la formation et modalités de paiement");
+  checkPageBreak(25);
+
   const prixArt6 = getPrice(session);
-  writeBullet(`• Prix : ${prixArt6.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`);
-  writeBullet("• TVA non applicable — art. 293 B du CGI");
-  yPos += 2;
+  const priceBoxH = 18;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  // Light gold tinted background
+  doc.roundedRect(marginLeft, yPos, contentWidth, priceBoxH, 3, 3, "F");
+  // Overlay with actual opacity simulation
+  doc.setFillColor(255, 251, 240);
+  doc.roundedRect(marginLeft, yPos, contentWidth, priceBoxH, 3, 3, "F");
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(marginLeft, yPos, 3, priceBoxH, 1, 1, "F");
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text(`Prix : ${prixArt6.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, marginLeft + 8, yPos + 7);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  doc.text("TVA non applicable — art. 293 B du CGI", marginLeft + 8, yPos + 13);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += priceBoxH + 3;
+
   writeParagraph("Le paiement s'effectue à la signature du présent contrat ou selon l'échéancier convenu entre les parties.");
 
-  // Article 7
-  writeArticleTitle("Article 7 - Délai de rétractation (Art. L.6353-5)");
+  // Article 7 - Rétractation (mise en évidence)
+  writeArticleTitle("Article 7 — Délai de rétractation (Art. L.6353-5)");
+  checkPageBreak(20);
+
+  // Encadré d'alerte pour le délai de rétractation
+  const retractBoxH = 16;
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(marginLeft, yPos, contentWidth, retractBoxH, 3, 3, "F");
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.text("⚠ DÉLAI DE RÉTRACTATION : 10 JOURS", marginLeft + 8, yPos + 6);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.text("À compter de la signature — par lettre recommandée avec accusé de réception", marginLeft + 8, yPos + 12);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += retractBoxH + 3;
+
   writeParagraph("Conformément à l'article L.6353-5 du Code du travail, le Stagiaire dispose d'un délai de DIX (10) JOURS à compter de la signature du présent contrat pour se rétracter. Cette rétractation doit être notifiée par lettre recommandée avec accusé de réception adressée à l'Organisme. Dans ce cas, aucune somme ne peut être exigée du Stagiaire.");
 
   // Article 8
-  writeArticleTitle("Article 8 - Paiement anticipé (Art. L.6353-6)");
+  writeArticleTitle("Article 8 — Paiement anticipé (Art. L.6353-6)");
   writeParagraph("Conformément à l'article L.6353-6 du Code du travail, aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte maximum de 30% du prix convenu peut être versé. Le solde donne lieu à échelonnement des paiements au fur et à mesure du déroulement de l'action de formation.");
 
   // Article 9
-  writeArticleTitle("Article 9 - Interruption de la formation (Art. L.6353-7)");
+  writeArticleTitle("Article 9 — Interruption de la formation (Art. L.6353-7)");
   writeParagraph("En cas de cessation anticipée de la formation du fait de l'Organisme ou d'abandon pour un motif relevant de la force majeure dûment reconnu, seules les prestations effectivement dispensées sont dues au prorata temporis de leur valeur prévue au contrat.");
 
   // Article 10
-  writeArticleTitle("Article 10 - Obligations du Stagiaire");
+  writeArticleTitle("Article 10 — Obligations du Stagiaire");
   writeParagraph("Le Stagiaire s'engage à : suivre la formation avec assiduité, respecter le règlement intérieur de l'Organisme, participer aux évaluations prévues, informer l'Organisme de tout empêchement dans les meilleurs délais.");
 
   // Article 11
-  writeArticleTitle("Article 11 - Règlement intérieur");
+  writeArticleTitle("Article 11 — Règlement intérieur");
   writeParagraph("Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme de formation, qui lui a été remis préalablement à la signature du présent contrat et s'engage à le respecter.");
 
   // Article 12
-  writeArticleTitle("Article 12 - Responsabilité et assurance");
+  writeArticleTitle("Article 12 — Responsabilité et assurance");
   writeParagraph("L'Organisme a souscrit une assurance de responsabilité civile professionnelle. Le Stagiaire doit être couvert par sa propre assurance responsabilité civile pendant la durée de la formation.");
 
   // Article 13
-  writeArticleTitle("Article 13 - Protection des données personnelles (RGPD)");
+  writeArticleTitle("Article 13 — Protection des données personnelles (RGPD)");
   writeParagraph("Les données personnelles recueillies dans le cadre du présent contrat font l'objet d'un traitement informatique destiné à la gestion administrative et pédagogique de la formation. Conformément au RGPD, le Stagiaire dispose d'un droit d'accès, de rectification, de suppression et de portabilité de ses données.");
 
   // Article 14
-  writeArticleTitle("Article 14 - Règlement des litiges");
+  writeArticleTitle("Article 14 — Règlement des litiges");
   writeParagraph("En cas de contestation, les parties conviennent de rechercher une solution amiable. Le Stagiaire peut recourir gratuitement au service du médiateur de la consommation. À défaut d'accord amiable, le litige sera soumis aux tribunaux compétents.");
 
   // Article 15
-  writeArticleTitle("Article 15 - Dispositions générales");
+  writeArticleTitle("Article 15 — Dispositions générales");
   writeParagraph("Le présent contrat est soumis au droit français. Il annule et remplace tout accord antérieur entre les parties relatif à la même formation. Toute modification doit faire l'objet d'un avenant signé par les deux parties.");
 
-  // ===== SIGNATURES =====
+  // ===== SIGNATURES - Bloc structuré avec boxes =====
   yPos += paraGap * 2;
-  checkPageBreak(50);
+  checkPageBreak(60);
 
-  // Ligne de séparation
-  doc.setDrawColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.setLineWidth(0.5);
-  doc.line(marginLeft, yPos, pageWidth - marginRight, yPos);
+  // Ligne séparatrice Gold
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(marginLeft, yPos, contentWidth, 1, "F");
   yPos += 8;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(`Fait en double exemplaire, à _________________, le ${format(new Date(), "dd/MM/yyyy")}`, marginLeft, yPos);
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("SIGNATURES", marginLeft, yPos);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += 4;
 
-  yPos += 12;
-  doc.setFontSize(9);
-  doc.text("Pour l'Organisme de formation", marginLeft, yPos);
-  doc.text("Le Stagiaire", pageWidth - marginRight - 40, yPos);
-
-  yPos += 5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-
-  const stampAdded = addStampImage(doc, company, marginLeft, yPos + 2, 40, 25);
-  if (!stampAdded) {
-    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-    doc.text("(Cachet et signature)", marginLeft, yPos);
-    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  }
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text('(Signature précédée de la mention', pageWidth - marginRight - 40, yPos);
-  doc.text('"Lu et approuvé, bon pour accord")', pageWidth - marginRight - 40, yPos + 4);
+  doc.text(`Fait en double exemplaire, le ${format(new Date(), "dd/MM/yyyy")}`, marginLeft, yPos);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += 6;
 
-  // Mention légale en bas
-  yPos += 30;
+  const halfW = (contentWidth - 10) / 2;
+  const sigBoxH = 38;
+
+  // Box gauche - Organisme
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.setDrawColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginLeft, yPos, halfW, sigBoxH, 2, 2, "FD");
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Pour l'Organisme de formation", marginLeft + 4, yPos + 6);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  doc.text("(Cachet et signature)", marginLeft + 4, yPos + 12);
+
+  const stampAdded = addStampImage(doc, company, marginLeft + halfW - 44, yPos + 5, 40, 25);
+
+  // Box droite - Stagiaire
+  const rightX = marginLeft + halfW + 10;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(rightX, yPos, halfW, sigBoxH, 2, 2, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("Le Stagiaire", rightX + 4, yPos + 6);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(fullName, rightX + 4, yPos + 12);
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text("(Signature précédée de la mention", rightX + 4, yPos + 24);
+  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 4, yPos + 28);
+
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  yPos += sigBoxH + 8;
+
+  // Mention légale finale
   checkPageBreak(10);
   doc.setFontSize(7);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
