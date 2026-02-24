@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,14 +68,16 @@ const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; cl
 type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
 export default function RappelsPage() {
-  const [, setSearchParams] = useSearchParams();
   const { data: alertsRaw, isLoading } = useHistoriqueAlerts();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const handleGoToContact = (contactId: string) => {
-    setSearchParams({ section: "contacts", contactId });
+    setSelectedContactId(contactId);
+    setDetailOpen(true);
   };
 
   const rappels = useMemo(() => {
@@ -299,6 +301,12 @@ export default function RappelsPage() {
           )}
         </div>
       </ScrollArea>
+
+      <ApprenantDetailSheet
+        contactId={selectedContactId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
