@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
-import { ApprenantDetailSheet } from "./ApprenantDetailSheet";
+import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
+import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { ApprenantsToolbar } from "./ApprenantsToolbar";
@@ -36,6 +37,7 @@ export function ApprenantsPage() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -350,12 +352,23 @@ export function ApprenantsPage() {
         </div>
       </main>
 
-      <ApprenantDetailSheet
+      <ContactDetailSheet
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onEdit={(contact) => {
+          setEditContact(contact);
+          setDetailOpen(false);
+        }}
       />
       <ContactFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      {editContact && (
+        <EditContactFormDialog
+          open={!!editContact}
+          onOpenChange={(open) => { if (!open) setEditContact(null); }}
+          contact={editContact}
+        />
+      )}
     </div>
   );
 }
