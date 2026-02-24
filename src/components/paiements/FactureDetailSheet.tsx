@@ -161,7 +161,7 @@ export function FactureDetailSheet({
     
     const session = facture.session_inscription?.session;
     const sessionInfo = session ? {
-      nom: session.nom,
+      nom: session.catalogue_formation?.intitule || session.nom,
       formation_type: session.formation_type,
       date_debut: session.date_debut || "",
       date_fin: session.date_fin || "",
@@ -278,7 +278,7 @@ export function FactureDetailSheet({
                 {facture.session_inscription?.session && (
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">Formation associée</p>
-                    <p className="font-medium">{facture.session_inscription.session.nom}</p>
+                    <p className="font-medium">{facture.session_inscription.session.catalogue_formation?.intitule || facture.session_inscription.session.nom}</p>
                   </div>
                 )}
 
@@ -420,7 +420,7 @@ export function FactureDetailSheet({
                           
                           const session = facture.session_inscription?.session;
                           const sessionInfo = session ? {
-                            nom: session.nom,
+                            nom: session.catalogue_formation?.intitule || session.nom,
                             formation_type: session.formation_type,
                             date_debut: session.date_debut || "",
                             date_fin: session.date_fin || "",
