@@ -33,6 +33,7 @@ import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFina
 import RappelsPage from "@/components/rappels/RappelsPage";
 import AgentIAPage from "@/components/agent-ia/AgentIAPage";
 import IADirectorPage from "@/components/ia-director/IADirectorPage";
+import TemplateStudioPage from "@/components/template-studio/TemplateStudioPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -194,6 +195,8 @@ const Index = () => {
         return <RapportsPage />;
       case "ia-director":
         return <IADirectorPage />;
+      case "template-studio":
+        return <TemplateStudioPage />;
       case "agent-ia":
         return <AgentIAPage />;
       default:

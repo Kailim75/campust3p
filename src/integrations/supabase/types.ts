@@ -1693,6 +1693,67 @@ export type Database = {
           },
         ]
       }
+      document_instances: {
+        Row: {
+          centre_id: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["template_entity_type"]
+          id: string
+          metadata: Json | null
+          rendered_output_url: string | null
+          status: Database["public"]["Enums"]["document_instance_status"]
+          template_id: string | null
+        }
+        Insert: {
+          centre_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["template_entity_type"]
+          id?: string
+          metadata?: Json | null
+          rendered_output_url?: string | null
+          status?: Database["public"]["Enums"]["document_instance_status"]
+          template_id?: string | null
+        }
+        Update: {
+          centre_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["template_entity_type"]
+          id?: string
+          metadata?: Json | null
+          rendered_output_url?: string | null
+          status?: Database["public"]["Enums"]["document_instance_status"]
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_instances_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_instances_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_template_files: {
         Row: {
           actif: boolean | null
@@ -5493,6 +5554,174 @@ export type Database = {
           },
         ]
       }
+      template_approval_logs: {
+        Row: {
+          action: string
+          centre_id: string | null
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          action: string
+          centre_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          template_id: string
+          version: number
+        }
+        Update: {
+          action?: string
+          centre_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_approval_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_approval_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_approval_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_studio_templates: {
+        Row: {
+          centre_id: string | null
+          compliance_tags: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          format: Database["public"]["Enums"]["template_format"]
+          id: string
+          is_active: boolean
+          name: string
+          status: Database["public"]["Enums"]["template_status"]
+          template_body: string
+          type: Database["public"]["Enums"]["template_type"]
+          updated_at: string
+          variables_schema: Json | null
+          version: number
+        }
+        Insert: {
+          centre_id?: string | null
+          compliance_tags?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          format?: Database["public"]["Enums"]["template_format"]
+          id?: string
+          is_active?: boolean
+          name: string
+          status?: Database["public"]["Enums"]["template_status"]
+          template_body?: string
+          type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          variables_schema?: Json | null
+          version?: number
+        }
+        Update: {
+          centre_id?: string | null
+          compliance_tags?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          format?: Database["public"]["Enums"]["template_format"]
+          id?: string
+          is_active?: boolean
+          name?: string
+          status?: Database["public"]["Enums"]["template_status"]
+          template_body?: string
+          type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          variables_schema?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_studio_templates_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_studio_templates_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          compliance_tags: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          status: Database["public"]["Enums"]["template_status"]
+          template_body: string
+          template_id: string
+          variables_schema: Json | null
+          version: number
+        }
+        Insert: {
+          compliance_tags?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["template_status"]
+          template_body: string
+          template_id: string
+          variables_schema?: Json | null
+          version: number
+        }
+        Update: {
+          compliance_tags?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["template_status"]
+          template_body?: string
+          template_id?: string
+          variables_schema?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tokens_reservation: {
         Row: {
           actif: boolean | null
@@ -6169,6 +6398,7 @@ export type Database = {
         | "refuse"
         | "expire"
         | "converti"
+      document_instance_status: "generated" | "sent" | "signed" | "archived"
       document_status: "actif" | "archive"
       facture_statut:
         | "brouillon"
@@ -6226,6 +6456,35 @@ export type Database = {
         | "annulee_formateur"
         | "no_show"
         | "realisee"
+      template_entity_type:
+        | "prospect"
+        | "stagiaire"
+        | "inscription"
+        | "session"
+        | "paiement"
+        | "centre"
+      template_format: "html" | "pdf" | "docx" | "email" | "markdown"
+      template_status:
+        | "draft"
+        | "review"
+        | "approved"
+        | "published"
+        | "inactive"
+      template_type:
+        | "invoice"
+        | "email"
+        | "attestation"
+        | "programme"
+        | "contrat"
+        | "convention"
+        | "bulletin_inscription"
+        | "positionnement"
+        | "evaluation"
+        | "emargement"
+        | "chef_oeuvre"
+        | "reglement_interieur"
+        | "convocation"
+        | "autre"
       type_charge: "fixe" | "variable"
       type_contenu_ressource: "texte" | "liste" | "carte" | "pdf" | "video"
       type_seance_conduite:
@@ -6419,6 +6678,7 @@ export const Constants = {
         "expire",
         "converti",
       ],
+      document_instance_status: ["generated", "sent", "signed", "archived"],
       document_status: ["actif", "archive"],
       facture_statut: [
         "brouillon",
@@ -6476,6 +6736,32 @@ export const Constants = {
         "annulee_formateur",
         "no_show",
         "realisee",
+      ],
+      template_entity_type: [
+        "prospect",
+        "stagiaire",
+        "inscription",
+        "session",
+        "paiement",
+        "centre",
+      ],
+      template_format: ["html", "pdf", "docx", "email", "markdown"],
+      template_status: ["draft", "review", "approved", "published", "inactive"],
+      template_type: [
+        "invoice",
+        "email",
+        "attestation",
+        "programme",
+        "contrat",
+        "convention",
+        "bulletin_inscription",
+        "positionnement",
+        "evaluation",
+        "emargement",
+        "chef_oeuvre",
+        "reglement_interieur",
+        "convocation",
+        "autre",
       ],
       type_charge: ["fixe", "variable"],
       type_contenu_ressource: ["texte", "liste", "carte", "pdf", "video"],
