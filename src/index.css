@@ -20,54 +20,54 @@
 @layer base {
   :root {
     /* ── FONDS ── */
-    --background: 220 14% 96%;
-    --background-subtle: 220 13% 94%;
+    --background: 210 40% 98%;
+    --background-subtle: 210 40% 96%;
     --surface: 0 0% 100%;
-    --surface-hover: 220 14% 95%;
-    --surface-warm: 220 13% 94%;
+    --surface-hover: 210 40% 96%;
+    --surface-warm: 210 33% 95%;
 
     /* ── PRIMAIRE : Bleu nuit / Anthracite ── */
-    --primary: 220 26% 14%;
-    --primary-hover: 220 28% 18%;
-    --primary-active: 220 30% 11%;
+    --primary: 222 47% 11%;
+    --primary-hover: 222 44% 16%;
+    --primary-active: 222 50% 8%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 220 20% 94%;
-    --primary-border: 220 18% 80%;
-    --primary-mid: 220 15% 40%;
+    --primary-subtle: 214 32% 94%;
+    --primary-border: 214 25% 80%;
+    --primary-mid: 215 20% 40%;
 
-    /* ── CTA : Teal / Vert bleuté ── */
+    /* ── CTA : Teal tech ── */
     --cta: 173 58% 39%;
-    --cta-hover: 173 58% 34%;
+    --cta-hover: 173 62% 32%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
-    --secondary: 220 13% 91%;
-    --secondary-hover: 220 11% 87%;
-    --secondary-foreground: 220 14% 10%;
+    --secondary: 214 32% 91%;
+    --secondary-hover: 214 25% 87%;
+    --secondary-foreground: 222 47% 11%;
 
     /* ── ACCENT ── */
-    --accent: 220 13% 91%;
-    --accent-hover: 220 11% 87%;
-    --accent-foreground: 220 14% 10%;
+    --accent: 214 32% 91%;
+    --accent-hover: 214 25% 87%;
+    --accent-foreground: 222 47% 11%;
 
     /* ── TEXTES ── */
-    --foreground: 220 14% 10%;
-    --foreground-secondary: 220 9% 36%;
-    --muted: 220 13% 91%;
-    --muted-foreground: 220 9% 46%;
-    --foreground-subtle: 220 8% 65%;
+    --foreground: 220 54% 8%;
+    --foreground-secondary: 215 16% 35%;
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 43%;
+    --foreground-subtle: 215 12% 58%;
 
-    --header-gradient: linear-gradient(135deg, hsl(220 26% 14%), hsl(220 26% 20%));
+    --header-gradient: linear-gradient(135deg, hsl(222 47% 11%), hsl(222 44% 16%));
     --card: 0 0% 100%;
-    --card-foreground: 220 14% 10%;
+    --card-foreground: 220 54% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 10%;
+    --popover-foreground: 220 54% 8%;
 
     /* ── BORDURES ── */
-    --border: 220 13% 90%;
-    --border-subtle: 220 14% 93%;
-    --border-strong: 220 8% 75%;
-    --input: 220 13% 90%;
+    --border: 214 32% 91%;
+    --border-subtle: 214 32% 94%;
+    --border-strong: 215 20% 75%;
+    --input: 214 32% 91%;
 
     /* ── ÉTATS ── */
     --success: 156 72% 36%;
@@ -103,8 +103,8 @@
     --shadow-focus: 0 0 0 3px hsl(173 58% 39% / 0.2);
 
     /* ── Sidebar : Dark premium ── */
-    --sidebar-background: 220 26% 14%;
-    --sidebar-foreground: 220 15% 75%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 215 20% 70%;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 220 26% 14%;
     --sidebar-accent: 0 0% 100% / 0.08;
@@ -224,7 +224,7 @@
   }
 
   .stat-card {
-    @apply relative overflow-hidden rounded-xl p-5 transition-all bg-card;
+    @apply relative overflow-hidden rounded-xl p-6 transition-all bg-card;
     transition-duration: 150ms;
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-sm);
@@ -238,7 +238,7 @@
 
   /* ── Sidebar Dark Theme ── */
   .sidebar-dark {
-    background: linear-gradient(180deg, hsl(220 26% 14%) 0%, hsl(222 28% 11%) 100%);
+    background: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(224 50% 8%) 100%);
   }
 
   .sidebar-item {
@@ -247,8 +247,8 @@
     font-family: 'Inter', sans-serif;
     font-weight: 500;
     font-size: 13.5px;
-    height: 36px;
-    margin-bottom: 1px;
+    height: 40px;
+    margin-bottom: 2px;
     color: hsl(var(--sidebar-foreground));
   }
 
@@ -337,10 +337,12 @@
   /* ── Table ── */
   .table-row-hover {
     @apply transition-all duration-100;
+    padding-top: 18px;
+    padding-bottom: 18px;
   }
 
   .table-row-hover:hover {
-    background: hsl(var(--surface-hover));
+    background: hsl(210 40% 96%);
   }
 
   .press-scale:active {
@@ -368,12 +370,12 @@
     font-size: 13px;
     border-radius: 10px;
     padding: 8px 16px;
-    box-shadow: 0 1px 3px hsl(173 58% 39% / 0.25);
+    box-shadow: 0 4px 6px -1px hsl(173 58% 39% / 0.3), 0 2px 4px -2px hsl(173 58% 39% / 0.15);
   }
 
   .btn-cta:hover {
     background: hsl(var(--cta-hover));
-    box-shadow: 0 4px 12px hsl(173 58% 39% / 0.3);
+    box-shadow: 0 10px 25px -3px hsl(173 58% 39% / 0.35), 0 4px 6px -4px hsl(173 58% 39% / 0.2);
     transform: translateY(-1px);
   }
 
