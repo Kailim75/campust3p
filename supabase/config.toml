@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.send-enquete-email]
 verify_jwt = false
+
+[functions.alma-payment]
+verify_jwt = false
+
+[functions.incoming-webhook]
+verify_jwt = false
