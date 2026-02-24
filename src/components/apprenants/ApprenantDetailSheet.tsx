@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
+import { openWhatsApp } from "@/lib/phone-utils";
+import { SiWhatsapp } from "react-icons/si";
 import { DossierTab } from "./tabs/DossierTab";
 import { FormationTab } from "./tabs/FormationTab";
 import { ExamensTab } from "./tabs/ExamensTab";
@@ -145,6 +147,11 @@ export function ApprenantDetailSheet({ contactId, open, onOpenChange }: Apprenan
                     <a href={`mailto:${contact.email}`}>
                       <Mail className="h-3 w-3 mr-1" /> Email
                     </a>
+                  </Button>
+                )}
+                {contact.telephone && (
+                  <Button size="sm" variant="outline" className="text-xs text-green-600 border-green-200 hover:bg-green-50" onClick={() => openWhatsApp(contact.telephone)}>
+                    <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}
                 <Button size="sm" variant="outline" className="text-xs" onClick={() => setActiveTab("notes")}>
