@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Nunito Sans', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Nunito', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -27,6 +27,11 @@ export default {
         surface: {
           DEFAULT: "hsl(var(--surface))",
           hover: "hsl(var(--surface-hover))",
+        },
+        cta: {
+          DEFAULT: "hsl(var(--cta))",
+          hover: "hsl(var(--cta-hover))",
+          foreground: "hsl(var(--cta-foreground))",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -85,10 +90,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'soft': '0 1px 3px rgba(22,16,10,0.06), 0 4px 14px rgba(22,16,10,0.05)',
-        'elevated': '0 4px 20px rgba(22,16,10,0.10)',
-        'card': '0 1px 2px rgba(22,16,10,0.04)',
-        'focus': '0 0 0 3px rgba(30,80,104,0.2)',
+        'soft': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+        'elevated': '0 10px 25px -3px rgba(0,0,0,0.08)',
+        'card': '0 1px 2px rgba(0,0,0,0.04)',
+        'focus': '0 0 0 3px hsl(173 58% 39% / 0.2)',
       },
       keyframes: {
         "accordion-down": {

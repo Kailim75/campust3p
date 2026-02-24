@@ -1,12 +1,9 @@
-import { Plus, LogOut } from "lucide-react";
+import { Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -15,6 +12,7 @@ import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
 import { CentreSwitcher } from "./CentreSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
+import { LogOut } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -27,13 +25,7 @@ interface HeaderProps {
 }
 
 export function Header({ 
-  title, 
-  subtitle, 
-  onAddClick, 
-  addLabel,
-  activeSection,
-  activeTab,
-  onNavigate,
+  title, subtitle, onAddClick, addLabel, activeSection, activeTab, onNavigate,
 }: HeaderProps) {
   const { user, signOut } = useAuth();
 
@@ -51,7 +43,7 @@ export function Header({
     : "?";
 
   return (
-    <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border" style={{ height: '52px', padding: '0 24px', borderImage: 'linear-gradient(to right, hsl(199 55% 26% / 0.15), transparent) 1' }}>
+    <header className="sticky top-0 z-30 bg-card/98 backdrop-blur-md border-b border-border" style={{ height: '60px', padding: '0 28px' }}>
       <div className="flex items-center justify-between h-full">
         <div className="flex-1 min-w-0 flex items-center gap-3">
           {activeSection && onNavigate ? (
@@ -62,34 +54,33 @@ export function Header({
             />
           ) : (
             <div>
-              <h1 className="text-foreground font-semibold text-[15px] leading-none tracking-tight">{title}</h1>
-              {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+              <h1 className="text-foreground font-semibold text-lg leading-none tracking-tight">{title}</h1>
+              {subtitle && <p className="text-[12px] text-muted-foreground mt-1">{subtitle}</p>}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <GlobalSearch />
           <CentreSwitcher />
           <ThemeToggle />
           <NotificationBell />
 
           {onAddClick && (
-            <Button 
+            <button 
               onClick={onAddClick} 
-              size="sm" 
-              className="gap-1.5 text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg font-medium text-[13px] h-8 px-3 ml-1"
+              className="btn-cta flex items-center gap-1.5 text-[13px] h-9 px-4 ml-1"
             >
               <Plus className="h-3.5 w-3.5" />
               {addLabel || "Ajouter"}
-            </Button>
+            </button>
           )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 ml-1">
-                <Avatar className="h-7 w-7 border border-border">
-                  <AvatarFallback className="text-[10px] text-primary-foreground bg-primary font-medium">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ml-1">
+                <Avatar className="h-8 w-8 border-2 border-border">
+                  <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
