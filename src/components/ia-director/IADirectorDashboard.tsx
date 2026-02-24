@@ -89,8 +89,47 @@ export default function IADirectorDashboard({
     );
   }
 
+  // Top 3 actions recommandées basées sur priority_score
+  const top3Actions = anomalies
+    .filter(a => a.status === "open" || !a.status)
+    .sort((a, b) => b.priority_score - a.priority_score)
+    .slice(0, 3);
+
   return (
     <div className="space-y-6">
+      {/* ── Top 3 Actions Recommandées Aujourd'hui ── */}
+      {top3Actions.length > 0 && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Flame className="h-4 w-4 text-primary" />
+              Top 3 actions recommandées aujourd'hui
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {top3Actions.map((a, i) => (
+                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
+                  <span className="text-lg font-bold text-primary w-7 text-center">#{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{a.description}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-sm font-bold text-foreground">{a.priority_score}</span>
+                    <p className="text-[10px] text-muted-foreground">Priorité</p>
+                  </div>
+                  {a.impact_estime_euros > 0 && (
+                    <span className="text-xs font-semibold text-foreground shrink-0">
+                      {a.impact_estime_euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* ── Row 1: Score Global + CA Pipeline ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="border-primary/20 lg:col-span-2">

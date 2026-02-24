@@ -3016,9 +3016,11 @@ export type Database = {
         Row: {
           action_type: string
           anomaly_id: string
+          anomaly_title: string | null
           centre_id: string | null
           created_at: string
           created_by: string | null
+          entity_ids: string[] | null
           id: string
           payload: Json | null
           result: Json | null
@@ -3027,9 +3029,11 @@ export type Database = {
         Insert: {
           action_type: string
           anomaly_id: string
+          anomaly_title?: string | null
           centre_id?: string | null
           created_at?: string
           created_by?: string | null
+          entity_ids?: string[] | null
           id?: string
           payload?: Json | null
           result?: Json | null
@@ -3038,9 +3042,11 @@ export type Database = {
         Update: {
           action_type?: string
           anomaly_id?: string
+          anomaly_title?: string | null
           centre_id?: string | null
           created_at?: string
           created_by?: string | null
+          entity_ids?: string[] | null
           id?: string
           payload?: Json | null
           result?: Json | null
