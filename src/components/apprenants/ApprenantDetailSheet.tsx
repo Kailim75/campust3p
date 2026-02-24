@@ -21,6 +21,7 @@ import {
   CreditCard,
   MessageCircle,
   FileText,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
@@ -32,6 +33,7 @@ import { ExamensTab } from "./tabs/ExamensTab";
 import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
 import { NotesTab } from "./tabs/NotesTab";
+import { RappelsTab } from "./tabs/RappelsTab";
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -173,6 +175,7 @@ export function ApprenantDetailSheet({ contactId, open, onOpenChange }: Apprenan
                   { value: "paiements", icon: CreditCard, label: "Paiements" },
                   { value: "communications", icon: MessageCircle, label: "Communications" },
                   { value: "notes", icon: FileText, label: "Notes" },
+                  { value: "rappels", icon: Bell, label: "Rappels" },
                 ].map((tab) => (
                   <TabsTrigger
                     key={tab.value}
@@ -203,6 +206,9 @@ export function ApprenantDetailSheet({ contactId, open, onOpenChange }: Apprenan
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <NotesTab contactId={contact.id} />
+                </TabsContent>
+                <TabsContent value="rappels" className="mt-0">
+                  <RappelsTab contactId={contact.id} />
                 </TabsContent>
               </div>
             </Tabs>
