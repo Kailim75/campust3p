@@ -220,7 +220,7 @@ export function GenerateDocumentDialog({
         // Recharge la fiche contact complète (certains écrans passent un contact partiel)
         let fullContact: any = contact;
         try {
-          fullContact = await fetchContactDocumentData(contact.id);
+          fullContact = await fetchContactDocumentData(contact.id, selectedSession?.formation_type);
         } catch (e) {
           console.warn("[DOCX] Impossible de recharger le contact complet, fallback sur contact partiel", e);
         }

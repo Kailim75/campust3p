@@ -267,7 +267,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             const ids = inscrits
               .map((i) => i.contact?.id)
               .filter(Boolean) as string[];
-            contactsById = await fetchContactsDocumentData(ids);
+            contactsById = await fetchContactsDocumentData(ids, session?.formation_type);
           } catch (e) {
             console.warn('[DOCX] Impossible de précharger les contacts (bulk UI)', e);
           }

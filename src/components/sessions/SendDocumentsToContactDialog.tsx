@@ -332,7 +332,7 @@ export function SendDocumentsToContactDialog({
           try {
             let fullContact: any = contact;
             try {
-              fullContact = await fetchContactDocumentData(contact.id);
+              fullContact = await fetchContactDocumentData(contact.id, sessionInfo.formation_type);
             } catch (e) {
               console.warn('[DOCX] Contact partiel (fallback)', e);
             }
