@@ -66,11 +66,17 @@ serve(async (req) => {
       .eq("centre_id", centreId);
     if (pError) throw pError;
 
-    // Fetch historique counts per prospect
-    const { data: historique, error: hError } = await supabaseAdmin
-      .from("prospect_historique")
-      .select("prospect_id, type, resultat");
-    if (hError) throw hError;
+    // Fetch historique counts per prospect — filtered to this centre's prospects only
+    const prospectIds = (prospects || []).map((p: any) => p.id);
+    let historique: any[] = [];
+    if (prospectIds.length > 0) {
+      const { data: hData, error: hError } = await supabaseAdmin
+        .from("prospect_historique")
+        .select("prospect_id, type, resultat")
+        .in("prospect_id", prospectIds);
+      if (hError) throw hError;
+      historique = hData || [];
+    }
 
     // Fetch formation prices from catalogue
     const { data: formations, error: fError } = await supabaseAdmin
