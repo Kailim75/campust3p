@@ -8,17 +8,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import {
   Bell,
-  BellOff,
   Clock,
   CheckCircle2,
   AlertTriangle,
   Calendar,
   Search,
   User,
-  Filter,
   ExternalLink,
 } from "lucide-react";
-import { useHistoriqueAlerts, useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
+import { useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
+import { useRappelsFinancials } from "@/hooks/useRappelsFinancials";
+import { RappelsFinancialKPIs } from "@/components/rappels/RappelsFinancialKPIs";
+import { RappelPriorityBadge } from "@/components/rappels/RappelPriorityBadge";
 import { format, parseISO, isPast, isToday, isTomorrow, differenceInDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -68,7 +69,7 @@ const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; cl
 type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
 export default function RappelsPage() {
-  const { data: alertsRaw, isLoading } = useHistoriqueAlerts();
+  const { rappels: enrichedRappels, kpis, disciplineScore, disciplineLevel, isLoading } = useRappelsFinancials();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
@@ -81,20 +82,23 @@ export default function RappelsPage() {
   };
 
   const rappels = useMemo(() => {
-    if (!alertsRaw) return [];
-    return alertsRaw
-      .filter((a: any) => a.date_rappel)
+    if (!enrichedRappels) return [];
+    return enrichedRappels
+      .filter((a: any) => a.date_rappel && a.alerte_active)
       .map((a: any) => ({
         ...a,
         status: getRappelStatus(a.date_rappel),
-        contactNom: a.contacts ? `${a.contacts.prenom} ${a.contacts.nom}` : "Contact inconnu",
+        contactNom: a.contacts ? `${a.contacts.prenom} ${a.contacts.nom}` : "Contact",
       }))
       .sort((a: any, b: any) => {
+        // Sort by priority first, then status, then date
+        const prioOrder: Record<string, number> = { critical: 0, important: 1, standard: 2 };
+        if (prioOrder[a.priority] !== prioOrder[b.priority]) return prioOrder[a.priority] - prioOrder[b.priority];
         const order: Record<RappelStatus, number> = { overdue: 0, today: 1, tomorrow: 2, upcoming: 3 };
         if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
         return new Date(a.date_rappel).getTime() - new Date(b.date_rappel).getTime();
       });
-  }, [alertsRaw]);
+  }, [enrichedRappels]);
 
   const filtered = useMemo(() => {
     let result = rappels;
@@ -159,6 +163,15 @@ export default function RappelsPage() {
           {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} — {rappels.length} rappel{rappels.length > 1 ? "s" : ""} actif{rappels.length > 1 ? "s" : ""}
         </p>
       </div>
+
+      {/* Financial KPIs */}
+      <RappelsFinancialKPIs
+        montantTotalEnAttente={kpis.montantTotalEnAttente}
+        montantCritique={kpis.montantCritique}
+        retardMoyen={kpis.retardMoyen}
+        disciplineScore={disciplineScore}
+        disciplineLevel={disciplineLevel}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -250,6 +263,7 @@ export default function RappelsPage() {
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {config.label}
                         </Badge>
+                        <RappelPriorityBadge priority={rappel.priority} />
                         <span className="text-[10px] text-muted-foreground">
                           {rappel.status === "overdue"
                             ? `${Math.abs(daysUntil)}j de retard`
@@ -259,6 +273,11 @@ export default function RappelsPage() {
                             ? "Demain"
                             : `Dans ${daysUntil}j`}
                         </span>
+                        {rappel.montantEnAttente > 0 && (
+                          <span className="text-[10px] font-medium text-amber-600">
+                            {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(rappel.montantEnAttente)} dû
+                          </span>
+                        )}
                       </div>
 
                       {/* Title / Description */}
