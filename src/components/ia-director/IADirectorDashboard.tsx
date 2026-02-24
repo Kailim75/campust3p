@@ -12,6 +12,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import type { ProspectScoring } from "@/hooks/useProspectScoring";
 import type { ScoreHistory } from "@/hooks/useScoreHistory";
 import type { Recommendation } from "./recommendationEngine";
+import type { Anomaly } from "./audit/types";
 
 const scoreConfig = [
   { key: "score_sante", label: "Santé CRM", icon: Activity, description: "Qualité & complétude des données" },
@@ -50,6 +51,7 @@ interface Props {
   prospectMap: Map<string, any>;
   chartData: { date: string; global: number; sante: number; commercial: number; financier: number }[];
   recommendations: Recommendation[];
+  anomalies?: Anomaly[];
 }
 
 export default function IADirectorDashboard({
@@ -59,6 +61,7 @@ export default function IADirectorDashboard({
   prospectMap,
   chartData,
   recommendations,
+  anomalies = [],
 }: Props) {
   const pipelineCA = scorings.reduce((sum, s) => sum + Number(s.valeur_potentielle_euros), 0);
 
@@ -72,7 +75,9 @@ export default function IADirectorDashboard({
     .sort((a, b) => b.score_conversion - a.score_conversion)
     .slice(0, 5);
 
-  const alertesCritiques = recommendations.filter((r) => r.priorite === "critique");
+  const alertesCritiques = anomalies.length > 0
+    ? anomalies.filter(a => a.severity === "critical" || a.severity === "high").slice(0, 5)
+    : recommendations.filter((r) => r.priorite === "critique");
 
   if (!latestScore && !scoreLoading) {
     return (
@@ -186,11 +191,11 @@ export default function IADirectorDashboard({
               <p className="text-sm text-muted-foreground py-4 text-center">Aucune alerte critique</p>
             ) : (
               <div className="space-y-2">
-                {alertesCritiques.slice(0, 4).map((a) => (
+                {alertesCritiques.slice(0, 5).map((a: any) => (
                   <div key={a.id} className="p-2.5 rounded-lg bg-destructive/5 border border-destructive/10">
-                    <p className="text-xs font-medium text-foreground">{a.action_recommandee}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{a.justification}</p>
-                    {a.impact_estime_euros > 0 && (
+                    <p className="text-xs font-medium text-foreground">{a.title || a.action_recommandee}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{a.description || a.justification}</p>
+                    {(a.impact_estime_euros > 0) && (
                       <span className="text-[10px] font-semibold text-destructive mt-1 inline-block">
                         Impact : {a.impact_estime_euros.toLocaleString("fr-FR")}€
                       </span>

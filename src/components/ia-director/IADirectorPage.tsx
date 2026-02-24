@@ -1,28 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProspectScorings, useRunProspectScoring } from "@/hooks/useProspectScoring";
 import { useLatestScoreHistory, useScoreHistoryTrend, useRunCentreScoring } from "@/hooks/useScoreHistory";
 import { useProspects } from "@/hooks/useProspects";
+import { useQuickAudit, useDeepAudit } from "@/hooks/useAuditEngine";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Loader2, Zap, TrendingUp, Target, Flame, ThermometerSun, Snowflake,
-  RefreshCw, DollarSign, Clock, AlertTriangle, BarChart3, Lightbulb,
+  Loader2, Zap, RefreshCw, BarChart3, Search, History, AlertTriangle, Shield,
 } from "lucide-react";
 import { generateRecommendations } from "./recommendationEngine";
-import RecommendationsPanel from "./RecommendationsPanel";
 import IADirectorDashboard from "./IADirectorDashboard";
+import AuditAnomaliesTab from "./AuditAnomaliesTab";
+import ActionsHistoryTab from "./ActionsHistoryTab";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-const chaleurConfig = {
-  brulant: { label: "Brûlant", icon: Flame, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20" },
-  chaud: { label: "Chaud", icon: TrendingUp, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-  tiede: { label: "Tiède", icon: ThermometerSun, color: "text-yellow-500", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-  froid: { label: "Froid", icon: Snowflake, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
-};
 
 export default function IADirectorPage() {
   const { data: scorings, isLoading } = useProspectScorings();
@@ -31,28 +23,11 @@ export default function IADirectorPage() {
   const { data: trend } = useScoreHistoryTrend(30);
   const runScoring = useRunProspectScoring();
   const runCentreScoring = useRunCentreScoring();
-  const [selectedChaleur, setSelectedChaleur] = useState<string | null>(null);
+
+  const quickAudit = useQuickAudit();
+  const deepAudit = useDeepAudit();
 
   const prospectMap = new Map((prospects || []).map(p => [p.id, p]));
-
-  const filtered = selectedChaleur
-    ? (scorings || []).filter(s => s.niveau_chaleur === selectedChaleur)
-    : scorings || [];
-
-  const summary = {
-    brulant: (scorings || []).filter(s => s.niveau_chaleur === "brulant").length,
-    chaud: (scorings || []).filter(s => s.niveau_chaleur === "chaud").length,
-    tiede: (scorings || []).filter(s => s.niveau_chaleur === "tiede").length,
-    froid: (scorings || []).filter(s => s.niveau_chaleur === "froid").length,
-    valeurTotale: (scorings || []).reduce((sum, s) => sum + Number(s.valeur_potentielle_euros), 0),
-  };
-
-  const handleRunAll = async () => {
-    runScoring.mutate();
-    runCentreScoring.mutate(undefined);
-  };
-
-  const isRunning = runScoring.isPending || runCentreScoring.isPending;
 
   const chartData = (trend || []).map(t => ({
     date: new Date(t.date_snapshot).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
@@ -64,10 +39,31 @@ export default function IADirectorPage() {
 
   const recommendations = generateRecommendations(scorings || [], latestScore || null);
 
+  // Auto-run quick audit on mount
+  useEffect(() => {
+    if (!quickAudit.result && !quickAudit.isRunning) {
+      quickAudit.run();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRunAll = async () => {
+    runScoring.mutate();
+    runCentreScoring.mutate(undefined);
+    quickAudit.run();
+  };
+
+  const isRunning = runScoring.isPending || runCentreScoring.isPending;
+
+  // Use deep audit results if available, fallback to quick
+  const currentAudit = deepAudit.result || quickAudit.result;
+  const anomalies = currentAudit?.anomalies || [];
+  const totalImpact = currentAudit?.total_impact_euros || 0;
+  const criticalCount = currentAudit?.scores_summary.critical || 0;
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/10">
@@ -76,14 +72,60 @@ export default function IADirectorPage() {
             IA Director
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Intelligence stratégique — Scoring global & Prospect Intelligence
+            Moteur d'audit stratégique — Détection, impact & actions
           </p>
         </div>
-        <Button onClick={handleRunAll} disabled={isRunning} className="gap-2">
-          {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          {isRunning ? "Analyse en cours..." : "Lancer l'analyse complète"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => deepAudit.run()}
+            disabled={deepAudit.isRunning}
+            className="gap-2"
+          >
+            {deepAudit.isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+            {deepAudit.isRunning ? "Audit en cours..." : "Audit approfondi"}
+          </Button>
+          <Button onClick={handleRunAll} disabled={isRunning} className="gap-2">
+            {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isRunning ? "Analyse..." : "Analyse rapide"}
+          </Button>
+        </div>
       </div>
+
+      {/* Quick Impact Strip */}
+      {currentAudit && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className={cn(totalImpact > 0 && "border-primary/20")}>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">
+                {totalImpact.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
+              </p>
+              <p className="text-xs text-muted-foreground">Impact total estimé</p>
+            </CardContent>
+          </Card>
+          <Card className={cn(criticalCount > 0 && "border-destructive/30")}>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{criticalCount}</p>
+              <p className="text-xs text-muted-foreground">Critiques</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{currentAudit.scores_summary.high}</p>
+              <p className="text-xs text-muted-foreground">Hautes</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{anomalies.length}</p>
+              <p className="text-xs text-muted-foreground">Total anomalies</p>
+              <Badge variant="outline" className="text-[10px] mt-1">
+                {currentAudit.mode === "deep" ? "Audit approfondi" : "Analyse rapide"}
+              </Badge>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList>
@@ -91,19 +133,22 @@ export default function IADirectorPage() {
             <BarChart3 className="h-4 w-4" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger value="prospects" className="gap-2">
-            <Target className="h-4 w-4" />
-            Prospect Intelligence
+          <TabsTrigger value="audit" className="gap-2">
+            <Search className="h-4 w-4" />
+            Audit & Anomalies
+            {criticalCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+                {criticalCount}
+              </Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="recommandations" className="gap-2">
-            <Lightbulb className="h-4 w-4" />
-            Recommandations
+          <TabsTrigger value="actions" className="gap-2">
+            <History className="h-4 w-4" />
+            Actions exécutées
           </TabsTrigger>
         </TabsList>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: DASHBOARD IA DIRECTOR              */}
-        {/* ═══════════════════════════════════════ */}
+        {/* TAB 1: DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
           <IADirectorDashboard
             latestScore={latestScore || null}
@@ -112,197 +157,21 @@ export default function IADirectorPage() {
             prospectMap={prospectMap}
             chartData={chartData}
             recommendations={recommendations}
+            anomalies={anomalies}
           />
         </TabsContent>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: PROSPECT INTELLIGENCE              */}
-        {/* ═══════════════════════════════════════ */}
-        <TabsContent value="prospects" className="space-y-6">
-          {/* Chaleur KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {(Object.entries(chaleurConfig) as [string, typeof chaleurConfig.brulant][]).map(([key, cfg]) => {
-              const count = summary[key as keyof typeof summary] as number;
-              const Icon = cfg.icon;
-              return (
-                <Card
-                  key={key}
-                  className={cn("cursor-pointer transition-all hover:shadow-md border", cfg.border, selectedChaleur === key && "ring-2 ring-primary")}
-                  onClick={() => setSelectedChaleur(selectedChaleur === key ? null : key)}
-                >
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={cn("p-2 rounded-lg", cfg.bg)}>
-                      <Icon className={cn("h-5 w-5", cfg.color)} />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">{count}</p>
-                      <p className="text-xs text-muted-foreground">{cfg.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Impact + Priorités */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Impact Financier Estimé
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <span className="text-4xl font-bold text-foreground">
-                  {summary.valeurTotale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">Valeur pondérée du pipeline prospect</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Priorités du Jour
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <span className="text-4xl font-bold text-foreground">
-                  {(scorings || []).filter(s => s.niveau_chaleur === "brulant" || s.niveau_chaleur === "chaud").sort((a, b) => b.score_conversion - a.score_conversion).slice(0, 5).length}
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">Prospects à relancer en priorité</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Priorités journalières */}
-          {(() => {
-            const pj = (scorings || []).filter(s => s.niveau_chaleur === "brulant" || s.niveau_chaleur === "chaud").sort((a, b) => b.score_conversion - a.score_conversion).slice(0, 5);
-            return pj.length > 0 && (
-              <Card className="border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-primary" />
-                    Priorités Journalières — Top Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {pj.map((s, i) => {
-                    const prospect = prospectMap.get(s.prospect_id);
-                    const cfg = chaleurConfig[s.niveau_chaleur];
-                    return (
-                      <div key={s.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                        <span className="text-lg font-bold text-muted-foreground w-6">#{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">
-                            {prospect ? `${prospect.prenom} ${prospect.nom}` : "Prospect inconnu"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {prospect?.formation_souhaitee || "Aucune formation"} · Relance dans {s.delai_optimal_relance}j
-                          </p>
-                        </div>
-                        <Badge variant="outline" className={cn(cfg.bg, cfg.color, cfg.border)}>
-                          {s.score_conversion}/100
-                        </Badge>
-                        <span className="text-sm font-semibold text-foreground">
-                          {Number(s.valeur_potentielle_euros).toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
-                        </span>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            );
-          })()}
-
-          {/* Scoring table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Scoring des Prospects {selectedChaleur && `— ${chaleurConfig[selectedChaleur as keyof typeof chaleurConfig]?.label}`}
-                <span className="text-muted-foreground font-normal ml-2 text-sm">({filtered.length})</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Zap className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">Aucun scoring disponible</p>
-                  <p className="text-sm">Lancez l'analyse pour scorer vos prospects</p>
-                </div>
-              ) : (
-                <ScrollArea className="max-h-[500px]">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 sticky top-0">
-                      <tr>
-                        <th className="text-left p-3 font-medium text-muted-foreground">Prospect</th>
-                        <th className="text-center p-3 font-medium text-muted-foreground">Score</th>
-                        <th className="text-center p-3 font-medium text-muted-foreground">Chaleur</th>
-                        <th className="text-right p-3 font-medium text-muted-foreground">Valeur €</th>
-                        <th className="text-center p-3 font-medium text-muted-foreground">Relance</th>
-                        <th className="text-left p-3 font-medium text-muted-foreground">Facteurs</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {filtered.map((s) => {
-                        const prospect = prospectMap.get(s.prospect_id);
-                        const cfg = chaleurConfig[s.niveau_chaleur];
-                        const Icon = cfg.icon;
-                        return (
-                          <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                            <td className="p-3">
-                              <p className="font-medium text-foreground">
-                                {prospect ? `${prospect.prenom} ${prospect.nom}` : "—"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{prospect?.formation_souhaitee || ""}</p>
-                            </td>
-                            <td className="p-3 text-center">
-                              <div className="inline-flex items-center gap-2">
-                                <Progress value={s.score_conversion} className="w-16 h-1.5" />
-                                <span className="font-semibold text-foreground">{s.score_conversion}</span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-center">
-                              <Badge variant="outline" className={cn("gap-1", cfg.bg, cfg.color, cfg.border)}>
-                                <Icon className="h-3 w-3" />
-                                {cfg.label}
-                              </Badge>
-                            </td>
-                            <td className="p-3 text-right font-semibold text-foreground">
-                              {Number(s.valeur_potentielle_euros).toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
-                            </td>
-                            <td className="p-3 text-center text-muted-foreground">{s.delai_optimal_relance}j</td>
-                            <td className="p-3 max-w-[200px]">
-                              <div className="flex flex-wrap gap-1">
-                                {(s.facteurs_positifs || []).slice(0, 2).map((f, i) => (
-                                  <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-600 dark:text-green-400 truncate max-w-[120px]">{f}</span>
-                                ))}
-                                {(s.facteurs_negatifs || []).slice(0, 1).map((f, i) => (
-                                  <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive truncate max-w-[120px]">{f}</span>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
+        {/* TAB 2: AUDIT & ANOMALIES */}
+        <TabsContent value="audit" className="space-y-6">
+          <AuditAnomaliesTab
+            anomalies={anomalies}
+            isLoading={quickAudit.isRunning || deepAudit.isRunning}
+          />
         </TabsContent>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: RECOMMANDATIONS                    */}
-        {/* ═══════════════════════════════════════ */}
-        <TabsContent value="recommandations" className="space-y-6">
-          <RecommendationsPanel recommendations={recommendations} />
+        {/* TAB 3: ACTIONS HISTORY */}
+        <TabsContent value="actions" className="space-y-6">
+          <ActionsHistoryTab />
         </TabsContent>
       </Tabs>
     </div>

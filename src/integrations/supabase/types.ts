@@ -2951,6 +2951,57 @@ export type Database = {
           },
         ]
       }
+      ia_action_logs: {
+        Row: {
+          action_type: string
+          anomaly_id: string
+          centre_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json | null
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          action_type: string
+          anomaly_id: string
+          centre_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json | null
+          result?: Json | null
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          anomaly_id?: string
+          centre_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json | null
+          result?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_action_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_action_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_prospect_scoring: {
         Row: {
           centre_id: string
