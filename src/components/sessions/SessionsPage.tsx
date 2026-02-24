@@ -4,18 +4,22 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, List, CalendarDays, Download, Kanban, Archive } from "lucide-react";
+import { Search, Plus, List, CalendarDays, Download, Kanban, Archive, TrendingUp } from "lucide-react";
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
 import { useSessionsViewPreferences } from "@/hooks/useSessionsViewPreferences";
 import { useSessionsExport } from "@/hooks/useSessionsExport";
+import { useSessionFinancials } from "@/hooks/useSessionFinancials";
 import { parseISO, isAfter, isBefore } from "date-fns";
 import { SessionFormDialog } from "./SessionFormDialog";
 import { SessionDetailSheet } from "./SessionDetailSheet";
@@ -31,12 +35,16 @@ export function SessionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: sessions, isLoading, error } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
+  const { data: financials = {} } = useSessionFinancials();
   const { data: formateurs = [] } = useFormateursTable();
   const deleteSession = useDeleteSession();
   const createSession = useCreateSession();
   const { updateSessionStatuses } = useAutoUpdateSessionStatus();
   const { exportSessions } = useSessionsExport();
   const { viewMode, groupBy, setViewMode, setGroupBy } = useSessionsViewPreferences();
+  const [showProfitability, setShowProfitability] = useState(() => {
+    try { return localStorage.getItem('sessions-profitability') === 'true'; } catch { return false; }
+  });
   const [filters, setFilters] = useState<SessionFilters>({
     search: "",
     status: "all",
@@ -185,7 +193,8 @@ export function SessionsPage() {
         {sessions && (
           <SessionsKPICards 
             sessions={sessions} 
-            inscriptionsCounts={inscriptionsCounts} 
+            inscriptionsCounts={inscriptionsCounts}
+            financials={financials}
           />
         )}
 
@@ -249,6 +258,22 @@ export function SessionsPage() {
                 <Archive className="h-4 w-4" />
               </Button>
 
+              <div className="flex items-center gap-2 px-2">
+                <Switch
+                  id="profitability-toggle"
+                  checked={showProfitability}
+                  onCheckedChange={(v) => {
+                    setShowProfitability(v);
+                    try { localStorage.setItem('sessions-profitability', String(v)); } catch {}
+                  }}
+                  className="data-[state=checked]:bg-success"
+                />
+                <Label htmlFor="profitability-toggle" className="text-xs cursor-pointer whitespace-nowrap">
+                  <TrendingUp className="h-3.5 w-3.5 inline mr-1" />
+                  Rentabilité
+                </Label>
+              </div>
+
               <Button onClick={handleAddNew} className="shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Nouvelle session</span>
@@ -300,6 +325,8 @@ export function SessionsPage() {
               <SessionsGroupedTable
                 sessions={filteredSessions}
                 inscriptionsCounts={inscriptionsCounts}
+                financials={financials}
+                showProfitability={showProfitability}
                 isLoading={isLoading}
                 groupBy={groupBy}
                 activeSessionId={detailOpen ? detailSessionId : null}
