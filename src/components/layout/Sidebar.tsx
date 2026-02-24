@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Users, Calendar, FileText, CreditCard, Bell, Settings,
   ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
   Building2, ClipboardList, CalendarClock, BarChart3, Plus, Headphones, User,
+  Brain,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -43,6 +44,12 @@ const menuGroups = [
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "documents", label: "Documents", icon: FileText },
       { id: "settings", label: "Paramètres", icon: Settings },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { id: "agent-ia", label: "Agent IA", icon: Brain },
     ],
   },
 ];
