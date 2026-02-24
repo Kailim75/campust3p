@@ -311,7 +311,7 @@ const CompactMetric = React.forwardRef<HTMLDivElement, {
   label, value, icon: Icon, color, bgColor, delta, isWarning,
 }, ref) {
   return (
-    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border transition-all duration-150 hover:shadow-soft hover:scale-[1.01] ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
+    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-card to-card/80 border border-border transition-all duration-200 hover:shadow-[0_4px_20px_hsl(199_55%_26%/0.12),0_0_0_1px_hsl(199_55%_26%/0.15)] hover:-translate-y-0.5 hover:border-primary/20 ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor} shrink-0`}>
         <Icon className={`h-5 w-5 ${color}`} />
       </div>
