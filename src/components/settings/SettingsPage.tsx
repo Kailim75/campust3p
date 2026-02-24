@@ -45,7 +45,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import * as XLSX from "xlsx";
+// XLSX loaded dynamically for performance
+type XLSXModule = typeof import("xlsx");
 
 // CSV columns mapping
 const CSV_COLUMNS = [
@@ -234,7 +235,8 @@ export function SettingsPage() {
   };
 
   // Parse XLSX file
-  const parseXLSX = (buffer: ArrayBuffer): { headers: string[]; rows: string[][] } => {
+  const parseXLSX = async (buffer: ArrayBuffer): Promise<{ headers: string[]; rows: string[][] }> => {
+    const XLSX = await import("xlsx");
     const workbook = XLSX.read(buffer, { type: "array" });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
@@ -290,7 +292,7 @@ export function SettingsPage() {
         rows = parsed.rows;
       } else {
         const buffer = await file.arrayBuffer();
-        const parsed = parseXLSX(buffer);
+        const parsed = await parseXLSX(buffer);
         headers = parsed.headers;
         rows = parsed.rows;
       }

@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+// XLSX loaded dynamically for performance
 
 /**
  * FEC - Fichier des Écritures Comptables
@@ -248,7 +248,7 @@ export function useExportFEC() {
   });
 }
 
-export function downloadFEC(
+export async function downloadFEC(
   lines: FECLine[],
   centreInfo: { siret: string; nom: string } | null,
   dateFrom: Date,
@@ -310,6 +310,7 @@ export function downloadFEC(
     toast.success(`FEC exporté : ${lines.length} écritures`);
   } else {
     // Export Excel pour visualisation
+    const XLSX = await import("xlsx");
     const worksheet = XLSX.utils.json_to_sheet(lines);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "FEC");

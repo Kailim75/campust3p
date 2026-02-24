@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import * as XLSX from 'xlsx';
+// XLSX loaded dynamically for performance
 import { Session } from './useSessions';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -13,11 +13,12 @@ const statusLabels: Record<string, string> = {
 };
 
 export function useSessionsExport() {
-  const exportSessions = (
+  const exportSessions = async (
     sessions: Session[],
     inscriptionsCounts: Record<string, number>,
     formatType: 'xlsx' | 'csv' = 'xlsx'
   ) => {
+    const XLSX = await import('xlsx');
     const data = sessions.map((session) => ({
       'Numéro': session.numero_session || '-',
       'Nom': session.nom,
@@ -68,7 +69,7 @@ export function useSessionsExport() {
     }
   };
 
-  const exportSessionInscriptions = (
+  const exportSessionInscriptions = async (
     sessionName: string,
     inscriptions: Array<{
       contact: { nom: string; prenom: string; email?: string; telephone?: string };
@@ -77,6 +78,7 @@ export function useSessionsExport() {
     }>,
     formatType: 'xlsx' | 'csv' = 'xlsx'
   ) => {
+    const XLSX = await import('xlsx');
     const data = inscriptions.map((inscription) => ({
       'Nom': inscription.contact.nom,
       'Prénom': inscription.contact.prenom,
