@@ -609,11 +609,14 @@ export function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Badge variant="outline" className="text-muted-foreground">Non configuré</Badge>
-                  <Input placeholder="Clé API Alma" className="text-sm" />
-                  <Button variant="outline" size="sm" className="w-full" disabled>
-                    Connecter
-                  </Button>
+                  <Badge className="bg-success/10 text-success">Actif</Badge>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Mode</p>
+                    <p className="text-sm font-medium">Sandbox (test)</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Paiement en 3x et 4x disponible via l'edge function <code>alma-payment</code>
+                  </p>
                 </CardContent>
               </Card>
 
@@ -629,11 +632,16 @@ export function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Badge variant="outline" className="text-muted-foreground">Non configuré</Badge>
-                  <Input placeholder="URL n8n" className="text-sm" />
-                  <Button variant="outline" size="sm" className="w-full" disabled>
-                    Connecter
-                  </Button>
+                  <Badge className="bg-success/10 text-success">Actif</Badge>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Webhook entrant</p>
+                    <code className="text-xs break-all">
+                      {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/incoming-webhook`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Envoyez vos événements n8n vers le webhook avec le header <code>x-webhook-secret</code>
+                  </p>
                 </CardContent>
               </Card>
             </div>
