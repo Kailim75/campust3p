@@ -80,46 +80,59 @@ export default function SignaturePage() {
 
   const loadSignatureRequest = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from("signature_requests")
-        .select("id, titre, description, type_document, date_expiration, statut, document_url, signature_url, contact_id, contact:contacts(id, nom, prenom, email)")
-        .eq("id", id!)
-        .single();
+      // Use Security Definer RPC to bypass RLS on contacts table
+      const { data, error: fetchError } = await (supabase as any)
+        .rpc("get_signature_request_public", { p_signature_id: id! });
 
-      if (fetchError || !data) {
+      if (fetchError || !data || (Array.isArray(data) && data.length === 0)) {
         setError("Document introuvable ou lien expiré.");
         return;
       }
 
-      if (data.statut === "signe") {
+      const row = Array.isArray(data) ? data[0] : data;
+
+      if (row.statut === "signe") {
         setCompleted("signed");
-      } else if (data.statut === "refuse") {
+      } else if (row.statut === "refuse") {
         setCompleted("refused");
-      } else if (data.date_expiration && new Date(data.date_expiration) < new Date()) {
+      } else if (row.date_expiration && new Date(row.date_expiration) < new Date()) {
         setError("Ce lien de signature a expiré.");
         return;
       }
 
-      setSigRequest(data as unknown as SignatureData);
+      const sigData: SignatureData = {
+        id: row.id,
+        titre: row.titre,
+        description: row.description,
+        type_document: row.type_document,
+        date_expiration: row.date_expiration,
+        statut: row.statut,
+        document_url: row.document_url,
+        signature_url: row.signature_url,
+        contact_id: row.contact_id,
+        contact: row.contact_nom ? {
+          id: row.contact_id,
+          nom: row.contact_nom,
+          prenom: row.contact_prenom,
+          email: row.contact_email,
+        } : null,
+      };
 
-      // Load all related documents for the same contact
-      if (data.contact_id) {
-        const { data: related } = await supabase
-          .from("signature_requests")
-          .select("id, titre, type_document, statut, document_url, date_envoi, date_signature")
-          .eq("contact_id", data.contact_id)
-          .in("statut", ["envoye", "signe", "refuse"])
-          .order("created_at", { ascending: false });
+      setSigRequest(sigData);
 
-        if (related) {
-          // Deduplicate by type_document, keep latest
+      // Load related documents via RPC
+      if (row.contact_id) {
+        const { data: related } = await (supabase as any)
+          .rpc("get_related_signature_docs", { p_contact_id: row.contact_id });
+
+        if (related && Array.isArray(related)) {
           const seen = new Set<string>();
-          const unique = related.filter((d) => {
+          const unique = related.filter((d: any) => {
             if (seen.has(d.type_document)) return false;
             seen.add(d.type_document);
             return true;
           });
-          setRelatedDocs(unique);
+          setRelatedDocs(unique as RelatedDocument[]);
         }
       }
     } catch {
@@ -146,20 +159,18 @@ export default function SignaturePage() {
 
       const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(fileName);
 
-      const { error: updateError } = await supabase
-        .from("signature_requests")
-        .update({
-          statut: "signe",
-          date_signature: new Date().toISOString(),
-          signature_url: urlData.publicUrl,
-          user_agent_signature: navigator.userAgent,
-        })
-        .eq("id", sigRequest.id);
+      // Use Security Definer RPC to update signature
+      const { data: result, error: rpcError } = await (supabase as any)
+        .rpc("sign_document_public", {
+          p_signature_id: sigRequest.id,
+          p_signature_url: urlData.publicUrl,
+          p_user_agent: navigator.userAgent,
+        });
 
-      if (updateError) throw updateError;
+      if (rpcError) throw rpcError;
+      if (result && !result.success) throw new Error(result.error);
 
       setCompleted("signed");
-      // Refresh related docs
       loadSignatureRequest();
       toast.success("Document signé avec succès !");
     } catch {
@@ -174,15 +185,15 @@ export default function SignaturePage() {
     setRefusing(true);
 
     try {
-      const { error: updateError } = await supabase
-        .from("signature_requests")
-        .update({
-          statut: "refuse",
-          commentaires: refuseReason || "Refusé par le signataire",
-        })
-        .eq("id", sigRequest.id);
+      // Use Security Definer RPC to refuse document
+      const { data: result, error: rpcError } = await (supabase as any)
+        .rpc("refuse_document_public", {
+          p_signature_id: sigRequest.id,
+          p_commentaires: refuseReason || "Refusé par le signataire",
+        });
 
-      if (updateError) throw updateError;
+      if (rpcError) throw rpcError;
+      if (result && !result.success) throw new Error(result.error);
 
       setCompleted("refused");
       toast.success("Document refusé.");
