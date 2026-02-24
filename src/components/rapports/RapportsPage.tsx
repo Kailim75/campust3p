@@ -171,7 +171,7 @@ function usePerformanceExamens() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("examens_t3p")
-        .select("type_examen, resultat, contacts(formation)")
+        .select("type_formation, resultat, contacts(formation)")
         .neq("resultat", "en_attente");
 
       if (error) throw error;
