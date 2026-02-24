@@ -32,6 +32,7 @@ import { PlanningConduitePage } from "@/components/planning-conduite/PlanningCon
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import RappelsPage from "@/components/rappels/RappelsPage";
 import AgentIAPage from "@/components/agent-ia/AgentIAPage";
+import IADirectorPage from "@/components/ia-director/IADirectorPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -191,6 +192,8 @@ const Index = () => {
         return <RappelsPage />;
       case "rapports":
         return <RapportsPage />;
+      case "ia-director":
+        return <IADirectorPage />;
       case "agent-ia":
         return <AgentIAPage />;
       default:
