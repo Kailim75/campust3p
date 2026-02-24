@@ -10,8 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, Zap, TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake,
   AlertTriangle, RefreshCw, DollarSign, Activity, ShieldCheck, FileText,
-  CreditCard, BarChart3,
+  CreditCard, BarChart3, Lightbulb,
 } from "lucide-react";
+import { generateRecommendations } from "./recommendationEngine";
+import RecommendationsPanel from "./RecommendationsPanel";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -90,6 +92,8 @@ export default function IADirectorPage() {
     financier: t.score_financier,
   }));
 
+  const recommendations = generateRecommendations(scorings || [], latestScore || null);
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -120,6 +124,10 @@ export default function IADirectorPage() {
           <TabsTrigger value="prospects" className="gap-2">
             <Target className="h-4 w-4" />
             Prospect Intelligence
+          </TabsTrigger>
+          <TabsTrigger value="recommandations" className="gap-2">
+            <Lightbulb className="h-4 w-4" />
+            Recommandations
           </TabsTrigger>
         </TabsList>
 
@@ -410,6 +418,12 @@ export default function IADirectorPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        {/* ═══════════════════════════════════════ */}
+        {/* TAB: RECOMMANDATIONS                    */}
+        {/* ═══════════════════════════════════════ */}
+        <TabsContent value="recommandations" className="space-y-6">
+          <RecommendationsPanel recommendations={recommendations} />
         </TabsContent>
       </Tabs>
     </div>
