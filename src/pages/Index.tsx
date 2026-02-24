@@ -13,6 +13,7 @@ import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
 import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
+import { ProspectsPage } from "@/components/prospects/ProspectsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { DocumentsUnifiedPage } from "@/components/documents/DocumentsUnifiedPage";
@@ -158,6 +159,8 @@ const Index = () => {
         return <SessionsPage />;
       case "pipeline":
         return <PipelinePage />;
+      case "prospects":
+        return <ProspectsPage />;
       case "formateurs":
         return <FormateursPage />;
       case "documents":
