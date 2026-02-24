@@ -81,7 +81,6 @@ export function PriorityActionCard({ onNavigate, onNavigateWithContact }: Priori
   const Icon = config?.icon || Zap;
 
   const handleClick = () => {
-    // Navigate to contact detail if contactId exists
     if (priorityAction?.contactId && onNavigateWithContact) {
       onNavigateWithContact("contacts", priorityAction.contactId);
     } else {

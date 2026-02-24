@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ export function AlertesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [showDismissed, setShowDismissed] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const { data: alerts, isLoading, counts, dismissedCount } = useAllAlerts({ includeDismissed: showDismissed });
   const { data: dismissedAlertIds = [] } = useDismissedAlerts();
   const dismissAlert = useDismissAlert();
@@ -91,7 +94,8 @@ export function AlertesPage() {
     switch (alert.actionType) {
       case "view_contact":
         if (alert.contactId) {
-          navigate(`/?section=contacts&id=${alert.contactId}`);
+          setSelectedContactId(alert.contactId);
+          setDetailOpen(true);
         }
         break;
       case "view_session":
@@ -106,17 +110,20 @@ export function AlertesPage() {
         break;
       case "view_exam":
         if (alert.contactId) {
-          navigate(`/?section=contacts&id=${alert.contactId}&tab=examens`);
+          setSelectedContactId(alert.contactId);
+          setDetailOpen(true);
         }
         break;
       case "send_reminder":
         if (alert.contactId) {
-          navigate(`/?section=contacts&id=${alert.contactId}&action=reminder`);
+          setSelectedContactId(alert.contactId);
+          setDetailOpen(true);
         }
         break;
       default:
         if (alert.contactId) {
-          navigate(`/?section=contacts&id=${alert.contactId}`);
+          setSelectedContactId(alert.contactId);
+          setDetailOpen(true);
         }
     }
   };
@@ -435,6 +442,12 @@ export function AlertesPage() {
           </div>
         )}
       </main>
+
+      <ApprenantDetailSheet
+        contactId={selectedContactId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
