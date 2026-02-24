@@ -30,6 +30,7 @@ import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import RappelsPage from "@/components/rappels/RappelsPage";
+import AgentIAPage from "@/components/agent-ia/AgentIAPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -187,6 +188,8 @@ const Index = () => {
         return <RappelsPage />;
       case "rapports":
         return <RapportsPage />;
+      case "agent-ia":
+        return <AgentIAPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }
