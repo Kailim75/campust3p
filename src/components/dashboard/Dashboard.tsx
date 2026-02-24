@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
@@ -200,7 +200,7 @@ function useDashboardAlerts() {
       const today = format(new Date(), "yyyy-MM-dd");
       const inSevenDays = format(addDays(new Date(), 7), "yyyy-MM-dd");
       const { data } = await supabase.from("examens_t3p")
-        .select("id, date_examen, type_examen, contacts(prenom, nom, formation)")
+        .select("id, date_examen, type_formation, contacts(prenom, nom, formation)")
         .gte("date_examen", today).lte("date_examen", inSevenDays).eq("resultat", "en_attente").limit(3);
       return (data || []).map((e: any) => ({
         id: `exam-${e.id}`, type: "info" as const, icon: GraduationCap,
@@ -305,13 +305,13 @@ function useRecentActivity() {
 
 // ─── COMPACT METRIC ──────────────────────────────────────
 
-function CompactMetric({
+const CompactMetric = React.forwardRef<HTMLDivElement, {
+  label: string; value: string | number; icon: React.ElementType; color: string; bgColor: string; delta?: string | number; isWarning?: boolean;
+}>(function CompactMetric({
   label, value, icon: Icon, color, bgColor, delta, isWarning,
-}: {
-  label: string; value: string | number; icon: any; color: string; bgColor: string; delta?: number; isWarning?: boolean;
-}) {
+}, ref) {
   return (
-    <div className={`flex items-center gap-3 p-4 rounded-xl bg-card border border-border transition-all duration-150 hover:shadow-soft ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
+    <div ref={ref} className={`flex items-center gap-3 p-4 rounded-xl bg-card border border-border transition-all duration-150 hover:shadow-soft ${isWarning ? "ring-1 ring-warning/30" : ""}`}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor} shrink-0`}>
         <Icon className={`h-5 w-5 ${color}`} />
       </div>
@@ -320,20 +320,20 @@ function CompactMetric({
         <div className="flex items-baseline gap-2">
           <p className="text-xl font-bold text-foreground tabular-nums tracking-tight">{value}</p>
           {delta !== undefined && (
-            <span className={`flex items-center gap-0.5 text-[11px] font-medium ${delta >= 0 ? "text-success" : "text-destructive"}`}>
-              {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {delta >= 0 ? "+" : ""}{delta}%
+            <span className={`flex items-center gap-0.5 text-[11px] font-medium ${Number(delta) >= 0 ? "text-success" : "text-destructive"}`}>
+              {Number(delta) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {Number(delta) >= 0 ? "+" : ""}{delta}%
             </span>
           )}
         </div>
       </div>
     </div>
   );
-}
+});
 
 // ─── ALERT ROW ───────────────────────────────────────────
 
-function AlertRow({ alert, onAction }: { alert: DashboardAlert; onAction: () => void }) {
+const AlertRow = React.forwardRef<HTMLDivElement, { alert: DashboardAlert; onAction: () => void }>(function AlertRow({ alert, onAction }, ref) {
   const colorMap = {
     danger: { dot: "bg-destructive", text: "text-destructive" },
     warning: { dot: "bg-warning", text: "text-warning" },
@@ -343,6 +343,7 @@ function AlertRow({ alert, onAction }: { alert: DashboardAlert; onAction: () => 
 
   return (
     <div
+      ref={ref}
       className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer group"
       onClick={onAction}
     >
@@ -354,7 +355,7 @@ function AlertRow({ alert, onAction }: { alert: DashboardAlert; onAction: () => 
       </span>
     </div>
   );
-}
+});
 
 // ─── MAIN DASHBOARD ──────────────────────────────────────
 
