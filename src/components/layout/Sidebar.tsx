@@ -20,6 +20,7 @@ import {
 interface SidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
+  onNewContact?: () => void;
 }
 
 const menuGroups = [
@@ -47,7 +48,7 @@ const menuGroups = [
 ];
 
 function SidebarContent({ 
-  activeSection, onSectionChange, collapsed, setCollapsed, onItemClick 
+  activeSection, onSectionChange, onNewContact, collapsed, setCollapsed, onItemClick 
 }: SidebarProps & { 
   collapsed: boolean; 
   setCollapsed: (v: boolean) => void;
@@ -92,7 +93,7 @@ function SidebarContent({
       {!collapsed && (
         <div className="px-4 pt-4 pb-1">
           <button 
-            onClick={() => { onSectionChange("contacts"); onItemClick?.(); }}
+            onClick={() => { onNewContact?.(); onItemClick?.(); }}
             className="btn-cta w-full flex items-center justify-center gap-2 h-10 text-[13px]"
           >
             <Plus className="h-4 w-4" />
@@ -103,7 +104,7 @@ function SidebarContent({
       {collapsed && (
         <div className="px-2 pt-4 pb-1">
           <button
-            onClick={() => { onSectionChange("contacts"); onItemClick?.(); }}
+            onClick={() => { onNewContact?.(); onItemClick?.(); }}
             className="btn-cta w-full flex items-center justify-center h-9 rounded-lg"
           >
             <Plus className="h-4 w-4" />
@@ -212,7 +213,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onNewContact }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -229,7 +230,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
             </SheetTrigger>
             <SheetContent side="left" className="w-[260px] p-0 sidebar-dark border-r-0">
               <div className="flex flex-col h-full">
-                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
+                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
@@ -253,7 +254,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
       )}
       style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
     >
-      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} collapsed={collapsed} setCollapsed={setCollapsed} />
+      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={collapsed} setCollapsed={setCollapsed} />
     </aside>
   );
 }
