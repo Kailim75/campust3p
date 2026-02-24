@@ -42,11 +42,28 @@ serve(async (req) => {
       });
     }
 
-    // Fetch all active prospects
+    // Resolve user's centre_id
+    const { data: userCentre, error: centreError } = await supabaseAdmin
+      .from("user_centres")
+      .select("centre_id")
+      .eq("user_id", user.id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    if (centreError) throw centreError;
+    if (!userCentre?.centre_id) {
+      return new Response(JSON.stringify({ error: "Aucun centre associé" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const centreId = userCentre.centre_id;
+
+    // Fetch all active prospects for this centre
     const { data: prospects, error: pError } = await supabaseAdmin
       .from("prospects")
       .select("*")
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("centre_id", centreId);
     if (pError) throw pError;
 
     // Fetch historique counts per prospect
@@ -179,7 +196,7 @@ serve(async (req) => {
 
       scoringResults.push({
         prospect_id: prospect.id,
-        centre_id: null, // Will be set per-centre later
+        centre_id: centreId,
         score_conversion: score,
         probabilite_conversion: probabilite,
         valeur_potentielle_euros: valeurPotentielle,

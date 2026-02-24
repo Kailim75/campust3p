@@ -2953,7 +2953,7 @@ export type Database = {
       }
       ia_prospect_scoring: {
         Row: {
-          centre_id: string | null
+          centre_id: string
           created_at: string
           date_derniere_analyse: string
           delai_optimal_relance: number | null
@@ -2968,7 +2968,7 @@ export type Database = {
           valeur_potentielle_euros: number
         }
         Insert: {
-          centre_id?: string | null
+          centre_id: string
           created_at?: string
           date_derniere_analyse?: string
           delai_optimal_relance?: number | null
@@ -2983,7 +2983,7 @@ export type Database = {
           valeur_potentielle_euros?: number
         }
         Update: {
-          centre_id?: string | null
+          centre_id?: string
           created_at?: string
           date_derniere_analyse?: string
           delai_optimal_relance?: number | null
@@ -3023,7 +3023,7 @@ export type Database = {
       }
       ia_score_history: {
         Row: {
-          centre_id: string | null
+          centre_id: string
           created_at: string
           date_snapshot: string
           details: Json | null
@@ -3037,7 +3037,7 @@ export type Database = {
           score_sante: number
         }
         Insert: {
-          centre_id?: string | null
+          centre_id: string
           created_at?: string
           date_snapshot?: string
           details?: Json | null
@@ -3051,7 +3051,7 @@ export type Database = {
           score_sante?: number
         }
         Update: {
-          centre_id?: string | null
+          centre_id?: string
           created_at?: string
           date_snapshot?: string
           details?: Json | null

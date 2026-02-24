@@ -41,6 +41,22 @@ serve(async (req) => {
       });
     }
 
+    // Resolve user's centre_id
+    const { data: userCentre, error: centreError } = await supabaseAdmin
+      .from("user_centres")
+      .select("centre_id")
+      .eq("user_id", user.id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    if (centreError) throw centreError;
+    if (!userCentre?.centre_id) {
+      return new Response(JSON.stringify({ error: "Aucun centre associé" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const centreId = userCentre.centre_id;
+
     // Optional custom weights from request body
     const body = await req.json().catch(() => ({}));
     const ponderations = {
@@ -63,19 +79,19 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
 
-    // Fetch all data in parallel
+    // Fetch all data in parallel — filtered by centre_id
     const [
       contactsRes, prospectsRes, facturesRes, sessionsRes,
       inscriptionsRes, historiqueRes, paiementsRes, scoringsRes
     ] = await Promise.all([
-      supabaseAdmin.from("contacts").select("id, email, telephone, statut, formation, created_at, archived").eq("archived", false),
-      supabaseAdmin.from("prospects").select("id, statut, is_active, created_at").eq("is_active", true),
-      supabaseAdmin.from("factures").select("id, montant_total, statut, date_echeance").in("statut", ["emise", "en_retard", "partiel", "payee"]),
-      supabaseAdmin.from("sessions").select("id, statut, date_debut, date_fin, places_max, archived").eq("archived", false),
+      supabaseAdmin.from("contacts").select("id, email, telephone, statut, formation, created_at, archived").eq("archived", false).eq("centre_id", centreId),
+      supabaseAdmin.from("prospects").select("id, statut, is_active, created_at").eq("is_active", true).eq("centre_id", centreId),
+      supabaseAdmin.from("factures").select("id, montant_total, statut, date_echeance, centre_id").in("statut", ["emise", "en_retard", "partiel", "payee"]).eq("centre_id", centreId),
+      supabaseAdmin.from("sessions").select("id, statut, date_debut, date_fin, places_max, archived, centre_id").eq("archived", false).eq("centre_id", centreId),
       supabaseAdmin.from("session_inscrits").select("id, session_id, statut"),
       supabaseAdmin.from("contact_historique").select("id, alerte_active, date_rappel").eq("alerte_active", true),
       supabaseAdmin.from("paiements").select("id, montant, date_paiement").gte("date_paiement", thirtyDaysAgo),
-      supabaseAdmin.from("ia_prospect_scoring").select("score_conversion, niveau_chaleur"),
+      supabaseAdmin.from("ia_prospect_scoring").select("score_conversion, niveau_chaleur").eq("centre_id", centreId),
     ]);
 
     const contacts = contactsRes.data || [];
@@ -224,7 +240,7 @@ serve(async (req) => {
     );
 
     const snapshot = {
-      centre_id: null, // Global for now, multi-centre ready
+      centre_id: centreId,
       score_global,
       score_sante,
       score_commercial,
