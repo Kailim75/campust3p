@@ -79,18 +79,14 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
 
-    // Fetch all data in parallel — filtered by centre_id
+    // Fetch primary data in parallel — filtered by centre_id
     const [
-      contactsRes, prospectsRes, facturesRes, sessionsRes,
-      inscriptionsRes, historiqueRes, paiementsRes, scoringsRes
+      contactsRes, prospectsRes, facturesRes, sessionsRes, scoringsRes
     ] = await Promise.all([
       supabaseAdmin.from("contacts").select("id, email, telephone, statut, formation, created_at, archived").eq("archived", false).eq("centre_id", centreId),
       supabaseAdmin.from("prospects").select("id, statut, is_active, created_at").eq("is_active", true).eq("centre_id", centreId),
       supabaseAdmin.from("factures").select("id, montant_total, statut, date_echeance, centre_id").in("statut", ["emise", "en_retard", "partiel", "payee"]).eq("centre_id", centreId),
       supabaseAdmin.from("sessions").select("id, statut, date_debut, date_fin, places_max, archived, centre_id").eq("archived", false).eq("centre_id", centreId),
-      supabaseAdmin.from("session_inscrits").select("id, session_id, statut"),
-      supabaseAdmin.from("contact_historique").select("id, alerte_active, date_rappel").eq("alerte_active", true),
-      supabaseAdmin.from("paiements").select("id, montant, date_paiement").gte("date_paiement", thirtyDaysAgo),
       supabaseAdmin.from("ia_prospect_scoring").select("score_conversion, niveau_chaleur").eq("centre_id", centreId),
     ]);
 
@@ -98,10 +94,28 @@ serve(async (req) => {
     const prospects = prospectsRes.data || [];
     const factures = facturesRes.data || [];
     const sessions = sessionsRes.data || [];
+    const scorings = scoringsRes.data || [];
+
+    // Secondary queries filtered by parent IDs (centre-scoped)
+    const sessionIds = sessions.map((s: any) => s.id);
+    const contactIds = contacts.map((c: any) => c.id);
+    const factureIds = factures.map((f: any) => f.id);
+
+    const [inscriptionsRes, historiqueRes, paiementsRes] = await Promise.all([
+      sessionIds.length > 0
+        ? supabaseAdmin.from("session_inscrits").select("id, session_id, statut").in("session_id", sessionIds)
+        : Promise.resolve({ data: [], error: null }),
+      contactIds.length > 0
+        ? supabaseAdmin.from("contact_historique").select("id, contact_id, alerte_active, date_rappel").eq("alerte_active", true).in("contact_id", contactIds)
+        : Promise.resolve({ data: [], error: null }),
+      factureIds.length > 0
+        ? supabaseAdmin.from("paiements").select("id, montant, date_paiement, facture_id").gte("date_paiement", thirtyDaysAgo).in("facture_id", factureIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
     const inscriptions = inscriptionsRes.data || [];
     const alertes = historiqueRes.data || [];
     const paiements = paiementsRes.data || [];
-    const scorings = scoringsRes.data || [];
 
     // ═══════════════════════════════════════
     // 1. SCORE SANTÉ CRM (qualité données)
