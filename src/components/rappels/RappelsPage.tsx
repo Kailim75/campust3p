@@ -20,7 +20,9 @@ import {
 import { RelancesDrawer } from "@/components/rappels/RelancesDrawer";
 import { useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
 import { useRappelsFinancials } from "@/hooks/useRappelsFinancials";
+import { useTreasuryKPIs } from "@/hooks/useTreasuryKPIs";
 import { RappelsFinancialKPIs } from "@/components/rappels/RappelsFinancialKPIs";
+import { TreasuryKPICards } from "@/components/rappels/TreasuryKPICards";
 import { RappelPriorityBadge } from "@/components/rappels/RappelPriorityBadge";
 import { format, parseISO, isPast, isToday, isTomorrow, differenceInDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -72,6 +74,7 @@ type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
 export default function RappelsPage() {
   const { rappels: enrichedRappels, kpis, disciplineScore, disciplineLevel, rawFinancials, isLoading } = useRappelsFinancials();
+  const treasuryKPIs = useTreasuryKPIs();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
@@ -186,7 +189,22 @@ export default function RappelsPage() {
         disciplineLevel={disciplineLevel}
       />
 
-      {/* Stats */}
+      {/* Treasury KPIs */}
+      {!treasuryKPIs.isLoading && (
+        <TreasuryKPICards
+          delaiEncaissementMoyen={treasuryKPIs.delaiEncaissementMoyen}
+          delaiEncaissementMoisPrecedent={treasuryKPIs.delaiEncaissementMoisPrecedent}
+          tauxRelancesEfficaces={treasuryKPIs.tauxRelancesEfficaces}
+          tauxRelancesEfficacesMoisPrecedent={treasuryKPIs.tauxRelancesEfficacesMoisPrecedent}
+          scoreTresorerie={treasuryKPIs.scoreTresorerie}
+          scoreTresorerieLevel={treasuryKPIs.scoreTresorerieLevel}
+          caMoisActuel={treasuryKPIs.caMoisActuel}
+          caMoisPrecedent={treasuryKPIs.caMoisPrecedent}
+          encaissementsMoisActuel={treasuryKPIs.encaissementsMoisActuel}
+          encaissementsMoisPrecedent={treasuryKPIs.encaissementsMoisPrecedent}
+        />
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "En retard", value: stats.overdue, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", borderColor: "border-destructive/20" },
