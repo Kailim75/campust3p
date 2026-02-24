@@ -133,16 +133,24 @@ export function ApprenantDetailSheet({ contactId, open, onOpenChange }: Apprenan
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Phone className="h-3 w-3 mr-1" /> Appeler
-                </Button>
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Mail className="h-3 w-3 mr-1" /> Email
-                </Button>
-                <Button size="sm" variant="outline" className="text-xs">
+                {contact.telephone && (
+                  <Button size="sm" variant="outline" className="text-xs" asChild>
+                    <a href={`tel:${contact.telephone}`}>
+                      <Phone className="h-3 w-3 mr-1" /> Appeler
+                    </a>
+                  </Button>
+                )}
+                {contact.email && (
+                  <Button size="sm" variant="outline" className="text-xs" asChild>
+                    <a href={`mailto:${contact.email}`}>
+                      <Mail className="h-3 w-3 mr-1" /> Email
+                    </a>
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => setActiveTab("notes")}>
                   <StickyNote className="h-3 w-3 mr-1" /> Note
                 </Button>
-                <Button size="sm" variant="outline" className="text-xs">
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => setActiveTab("dossier")}>
                   <Zap className="h-3 w-3 mr-1" /> Statut
                 </Button>
               </div>
