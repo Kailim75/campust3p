@@ -85,15 +85,13 @@ export function useRappelsFinancials(contactId?: string) {
     queryFn: async () => {
       if (contactIds.length === 0) return { factures: [], paiements: [], contactsData: [] };
 
-      const [facturesRes, paiementsRes, contactsRes] = await Promise.all([
+      // First fetch factures and contacts in parallel
+      const [facturesRes, contactsRes] = await Promise.all([
         supabase
           .from("factures")
           .select("id, contact_id, montant_total, statut, date_echeance, numero_facture")
           .in("contact_id", contactIds)
-          .in("statut", ["envoyee", "partiel", "en_retard"] as any),
-        supabase
-          .from("paiements")
-          .select("id, facture_id, montant"),
+          .in("statut", ["emise", "partiel", "impayee"]),
         supabase
           .from("contacts")
           .select("id, nom, prenom, email, telephone, formation")
@@ -101,12 +99,23 @@ export function useRappelsFinancials(contactId?: string) {
       ]);
 
       if (facturesRes.error) throw facturesRes.error;
-      if (paiementsRes.error) throw paiementsRes.error;
       if (contactsRes.error) throw contactsRes.error;
+
+      // Only fetch paiements for relevant factures (avoid loading ALL paiements)
+      const factureIds = (facturesRes.data || []).map((f: any) => f.id);
+      let paiementsData: any[] = [];
+      if (factureIds.length > 0) {
+        const paiementsRes = await supabase
+          .from("paiements")
+          .select("id, facture_id, montant")
+          .in("facture_id", factureIds);
+        if (paiementsRes.error) throw paiementsRes.error;
+        paiementsData = paiementsRes.data || [];
+      }
 
       return {
         factures: facturesRes.data || [],
-        paiements: paiementsRes.data || [],
+        paiements: paiementsData,
         contactsData: contactsRes.data || [],
       };
     },
