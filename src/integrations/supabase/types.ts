@@ -2951,6 +2951,76 @@ export type Database = {
           },
         ]
       }
+      ia_prospect_scoring: {
+        Row: {
+          centre_id: string | null
+          created_at: string
+          date_derniere_analyse: string
+          delai_optimal_relance: number | null
+          facteurs_negatifs: string[] | null
+          facteurs_positifs: string[] | null
+          id: string
+          niveau_chaleur: string
+          probabilite_conversion: number
+          prospect_id: string
+          score_conversion: number
+          updated_at: string
+          valeur_potentielle_euros: number
+        }
+        Insert: {
+          centre_id?: string | null
+          created_at?: string
+          date_derniere_analyse?: string
+          delai_optimal_relance?: number | null
+          facteurs_negatifs?: string[] | null
+          facteurs_positifs?: string[] | null
+          id?: string
+          niveau_chaleur?: string
+          probabilite_conversion?: number
+          prospect_id: string
+          score_conversion?: number
+          updated_at?: string
+          valeur_potentielle_euros?: number
+        }
+        Update: {
+          centre_id?: string | null
+          created_at?: string
+          date_derniere_analyse?: string
+          delai_optimal_relance?: number | null
+          facteurs_negatifs?: string[] | null
+          facteurs_positifs?: string[] | null
+          id?: string
+          niveau_chaleur?: string
+          probabilite_conversion?: number
+          prospect_id?: string
+          score_conversion?: number
+          updated_at?: string
+          valeur_potentielle_euros?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_prospect_scoring_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_prospect_scoring_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_prospect_scoring_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: true
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_mentions: {
         Row: {
           activated_at: string | null
