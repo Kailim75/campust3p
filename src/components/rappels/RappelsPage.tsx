@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   Search,
   User,
   Filter,
+  ExternalLink,
 } from "lucide-react";
 import { useHistoriqueAlerts, useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
 import { format, parseISO, isPast, isToday, isTomorrow, differenceInDays, startOfDay } from "date-fns";
@@ -66,10 +68,15 @@ const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; cl
 type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
 export default function RappelsPage() {
+  const [, setSearchParams] = useSearchParams();
   const { data: alertsRaw, isLoading } = useHistoriqueAlerts();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
+
+  const handleGoToContact = (contactId: string) => {
+    setSearchParams({ section: "contacts", contactId });
+  };
 
   const rappels = useMemo(() => {
     if (!alertsRaw) return [];
@@ -225,9 +232,10 @@ export default function RappelsPage() {
                 <Card
                   key={rappel.id}
                   className={cn(
-                    "p-4 transition-all hover:shadow-md group",
+                    "p-4 transition-all hover:shadow-md group cursor-pointer",
                     config.cardClass
                   )}
+                  onClick={() => handleGoToContact(rappel.contact_id)}
                 >
                   <div className="flex items-start gap-3">
                     {/* Status dot */}
@@ -259,7 +267,8 @@ export default function RappelsPage() {
                       {/* Contact */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                         <User className="h-3 w-3" />
-                        <span className="font-medium">{rappel.contactNom}</span>
+                        <span className="font-medium text-primary underline-offset-2 group-hover:underline">{rappel.contactNom}</span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
 
                       {/* Date/Time */}
@@ -274,7 +283,10 @@ export default function RappelsPage() {
                       size="sm"
                       variant="outline"
                       className="shrink-0 h-8 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleMarkDone(rappel)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkDone(rappel);
+                      }}
                       disabled={updateAlert.isPending}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
