@@ -15,7 +15,9 @@ import {
   Search,
   User,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
+import { RelancesDrawer } from "@/components/rappels/RelancesDrawer";
 import { useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
 import { useRappelsFinancials } from "@/hooks/useRappelsFinancials";
 import { RappelsFinancialKPIs } from "@/components/rappels/RappelsFinancialKPIs";
@@ -69,12 +71,13 @@ const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; cl
 type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
 
 export default function RappelsPage() {
-  const { rappels: enrichedRappels, kpis, disciplineScore, disciplineLevel, isLoading } = useRappelsFinancials();
+  const { rappels: enrichedRappels, kpis, disciplineScore, disciplineLevel, rawFinancials, isLoading } = useRappelsFinancials();
   const updateAlert = useUpdateHistoriqueAlert();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [relancesOpen, setRelancesOpen] = useState(false);
 
   const handleGoToContact = (contactId: string) => {
     setSelectedContactId(contactId);
@@ -155,13 +158,23 @@ export default function RappelsPage() {
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-          Station Rappels
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} — {rappels.length} rappel{rappels.length > 1 ? "s" : ""} actif{rappels.length > 1 ? "s" : ""}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+            Station Rappels
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} — {rappels.length} rappel{rappels.length > 1 ? "s" : ""} actif{rappels.length > 1 ? "s" : ""}
+          </p>
+        </div>
+        <Button
+          onClick={() => setRelancesOpen(true)}
+          className="gap-2"
+          size="sm"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Préparer mes relances
+        </Button>
       </div>
 
       {/* Financial KPIs */}
@@ -325,6 +338,13 @@ export default function RappelsPage() {
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      <RelancesDrawer
+        open={relancesOpen}
+        onOpenChange={setRelancesOpen}
+        rappels={rappels}
+        financials={rawFinancials}
       />
     </div>
   );

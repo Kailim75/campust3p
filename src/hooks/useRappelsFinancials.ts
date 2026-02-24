@@ -66,35 +66,45 @@ export function useRappelsFinancials(contactId?: string) {
   const financialsQuery = useQuery({
     queryKey: ["rappels-financials", contactIds],
     queryFn: async () => {
-      if (contactIds.length === 0) return { factures: [], paiements: [] };
+      if (contactIds.length === 0) return { factures: [], paiements: [], contactsData: [] };
 
-      const [facturesRes, paiementsRes] = await Promise.all([
+      const [facturesRes, paiementsRes, contactsRes] = await Promise.all([
         supabase
           .from("factures")
-          .select("id, contact_id, montant_total, statut, date_echeance")
+          .select("id, contact_id, montant_total, statut, date_echeance, numero_facture")
           .in("contact_id", contactIds)
           .in("statut", ["envoyee", "partiel", "en_retard"] as any),
         supabase
           .from("paiements")
           .select("id, facture_id, montant"),
+        supabase
+          .from("contacts")
+          .select("id, nom, prenom, email, telephone, formation")
+          .in("id", contactIds),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;
       if (paiementsRes.error) throw paiementsRes.error;
+      if (contactsRes.error) throw contactsRes.error;
 
       return {
         factures: facturesRes.data || [],
         paiements: paiementsRes.data || [],
+        contactsData: contactsRes.data || [],
       };
     },
     enabled: contactIds.length > 0,
   });
 
-  const result = useMemo((): RappelsFinancialData => {
+  const result = useMemo((): RappelsFinancialData & { rawFinancials: { factures: any[]; paiements: any[]; contacts: Map<string, any> } } => {
     const alerts = alertsQuery.data || [];
     const factures = financialsQuery.data?.factures || [];
     const paiements = financialsQuery.data?.paiements || [];
+    const contactsData = financialsQuery.data?.contactsData || [];
 
+    // Build contacts map
+    const contactsMap = new Map<string, any>();
+    contactsData.forEach((c: any) => contactsMap.set(c.id, c));
     // Build paiement totals per facture
     const paiementsByFacture = new Map<string, number>();
     paiements.forEach((p: any) => {
@@ -185,6 +195,7 @@ export function useRappelsFinancials(contactId?: string) {
       kpis: { montantTotalEnAttente, montantCritique, retardMoyen },
       disciplineScore,
       disciplineLevel,
+      rawFinancials: { factures, paiements, contacts: contactsMap },
     };
   }, [alertsQuery.data, financialsQuery.data]);
 
