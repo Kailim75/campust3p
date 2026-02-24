@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.incoming-webhook]
 verify_jwt = false
+
+[functions.prospect-scoring]
+verify_jwt = false
