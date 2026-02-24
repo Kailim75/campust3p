@@ -4,7 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Clock, Save } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Save, ExternalLink } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -26,6 +27,7 @@ interface FormationTabProps {
 export function FormationTab({ contactId }: FormationTabProps) {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
+  const [, setSearchParams] = useSearchParams();
 
   // Get inscriptions with session details
   const { data: inscriptions, isLoading } = useQuery({
@@ -91,9 +93,19 @@ export function FormationTab({ contactId }: FormationTabProps) {
                 const presence = PRESENCE_CONFIG[ins.statut || "en_cours"] || PRESENCE_CONFIG.en_cours;
                 const PresenceIcon = presence.icon;
                 return (
-                  <TableRow key={ins.id}>
+                  <TableRow key={ins.id} className="group">
                     <TableCell className="font-medium text-sm">
-                      {session?.nom || "—"}
+                      <button
+                        className="inline-flex items-center gap-1 text-primary hover:underline underline-offset-2 cursor-pointer"
+                        onClick={() => {
+                          if (session?.id) {
+                            setSearchParams({ section: "sessions", sessionId: session.id });
+                          }
+                        }}
+                      >
+                        {session?.nom || "—"}
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {session?.date_debut ? format(parseISO(session.date_debut), "dd/MM", { locale: fr }) : "—"}
