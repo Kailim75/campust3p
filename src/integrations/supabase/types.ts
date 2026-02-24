@@ -5612,7 +5612,11 @@ export type Database = {
       template_studio_templates: {
         Row: {
           centre_id: string | null
+          compliance_report_json: Json | null
+          compliance_score: number | null
           compliance_tags: Json | null
+          compliance_validated_at: string | null
+          compliance_validated_by: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -5620,6 +5624,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          scenario: string | null
           status: Database["public"]["Enums"]["template_status"]
           template_body: string
           type: Database["public"]["Enums"]["template_type"]
@@ -5629,7 +5634,11 @@ export type Database = {
         }
         Insert: {
           centre_id?: string | null
+          compliance_report_json?: Json | null
+          compliance_score?: number | null
           compliance_tags?: Json | null
+          compliance_validated_at?: string | null
+          compliance_validated_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -5637,6 +5646,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          scenario?: string | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body?: string
           type?: Database["public"]["Enums"]["template_type"]
@@ -5646,7 +5656,11 @@ export type Database = {
         }
         Update: {
           centre_id?: string | null
+          compliance_report_json?: Json | null
+          compliance_score?: number | null
           compliance_tags?: Json | null
+          compliance_validated_at?: string | null
+          compliance_validated_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -5654,6 +5668,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          scenario?: string | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body?: string
           type?: Database["public"]["Enums"]["template_type"]
@@ -5680,6 +5695,9 @@ export type Database = {
       }
       template_versions: {
         Row: {
+          centre_id: string | null
+          compliance_report_json: Json | null
+          compliance_score: number | null
           compliance_tags: Json | null
           created_at: string
           created_by: string | null
@@ -5691,6 +5709,9 @@ export type Database = {
           version: number
         }
         Insert: {
+          centre_id?: string | null
+          compliance_report_json?: Json | null
+          compliance_score?: number | null
           compliance_tags?: Json | null
           created_at?: string
           created_by?: string | null
@@ -5702,6 +5723,9 @@ export type Database = {
           version: number
         }
         Update: {
+          centre_id?: string | null
+          compliance_report_json?: Json | null
+          compliance_score?: number | null
           compliance_tags?: Json | null
           created_at?: string
           created_by?: string | null
@@ -5713,6 +5737,20 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "template_versions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_versions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "template_versions_template_id_fkey"
             columns: ["template_id"]
@@ -6470,6 +6508,7 @@ export type Database = {
         | "approved"
         | "published"
         | "inactive"
+        | "archived"
       template_type:
         | "invoice"
         | "email"
@@ -6485,6 +6524,11 @@ export type Database = {
         | "reglement_interieur"
         | "convocation"
         | "autre"
+        | "evaluation_chaud"
+        | "evaluation_froid"
+        | "test_positionnement"
+        | "feuille_emargement"
+        | "procedure_reclamation"
       type_charge: "fixe" | "variable"
       type_contenu_ressource: "texte" | "liste" | "carte" | "pdf" | "video"
       type_seance_conduite:
@@ -6746,7 +6790,14 @@ export const Constants = {
         "centre",
       ],
       template_format: ["html", "pdf", "docx", "email", "markdown"],
-      template_status: ["draft", "review", "approved", "published", "inactive"],
+      template_status: [
+        "draft",
+        "review",
+        "approved",
+        "published",
+        "inactive",
+        "archived",
+      ],
       template_type: [
         "invoice",
         "email",
@@ -6762,6 +6813,11 @@ export const Constants = {
         "reglement_interieur",
         "convocation",
         "autre",
+        "evaluation_chaud",
+        "evaluation_froid",
+        "test_positionnement",
+        "feuille_emargement",
+        "procedure_reclamation",
       ],
       type_charge: ["fixe", "variable"],
       type_contenu_ressource: ["texte", "liste", "carte", "pdf", "video"],

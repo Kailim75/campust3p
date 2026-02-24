@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Save, Send, CheckCircle, Rocket, Loader2,
-  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield, Wand2,
+  AlertTriangle, CheckCircle2, XCircle, Eye, Code, Shield, Wand2, Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,9 +48,11 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const [description, setDescription] = useState("");
   const [type, setType] = useState("autre");
   const [format, setFormat] = useState("html");
+  const [scenario, setScenario] = useState("");
   const [body, setBody] = useState("");
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null);
   const [editorTab, setEditorTab] = useState("edit");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     if (template) {
@@ -58,13 +60,19 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
       setDescription(template.description || "");
       setType(template.type);
       setFormat(template.format);
+      setScenario(template.scenario || "");
       setBody(template.template_body);
-      setComplianceReport(runComplianceCheck(template.template_body, template.type));
+      if (template.compliance_report_json) {
+        setComplianceReport(template.compliance_report_json);
+      } else {
+        setComplianceReport(runComplianceCheck(template.template_body, template.type));
+      }
     } else if (isCreating) {
       setName("");
       setDescription("");
       setType("autre");
       setFormat("html");
+      setScenario("");
       setBody("");
       setComplianceReport(null);
     }
@@ -78,6 +86,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
         type: type as any,
         format: format as any,
         template_body: body,
+        scenario: scenario || null,
       });
       if (result) onBack();
     } else if (templateId) {
@@ -86,12 +95,22 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
         name,
         description: description || null,
         template_body: body,
+        scenario: scenario || null,
       });
     }
   };
 
   const handleRunCompliance = () => {
-    setComplianceReport(runComplianceCheck(body, type));
+    const report = runComplianceCheck(body, type);
+    setComplianceReport(report);
+    // Also persist to DB if editing existing template
+    if (templateId) {
+      updateTemplate.mutate({
+        id: templateId,
+        compliance_score: report.score,
+        compliance_report_json: report as any,
+      });
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -106,26 +125,20 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
 
   const handlePublish = async () => {
     if (!template) return;
-
-    // Compliance gate: block publication if critical fields missing
-    if (COMPLIANCE_GATED_TYPES.includes(template.type)) {
+    setIsPublishing(true);
+    try {
+      // Run fresh compliance check
       const report = runComplianceCheck(body, template.type);
       setComplianceReport(report);
-
-      if (!report.ready_to_publish) {
-        toast.error(
-          `Publication bloquée : ${report.blocking_issues.length} mention(s) obligatoire(s) manquante(s)`,
-          {
-            description: report.blocking_issues.slice(0, 3).join(", ") +
-              (report.blocking_issues.length > 3 ? ` (+${report.blocking_issues.length - 3})` : ""),
-            duration: 8000,
-          }
-        );
-        return;
-      }
+      await workflow.publish(template, report);
+    } finally {
+      setIsPublishing(false);
     }
+  };
 
-    await workflow.publish(template);
+  const handleArchive = async () => {
+    if (!template) return;
+    await workflow.archive(template);
   };
 
   const handleGenerate = () => {
@@ -140,6 +153,9 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const statusCfg = TEMPLATE_STATUSES.find((s) => s.value === template?.status);
   const isSaving = createTemplate.isPending || updateTemplate.isPending;
   const hasGenerator = !!TEMPLATE_GENERATORS[type];
+  const isComplianceGated = COMPLIANCE_GATED_TYPES.includes(type);
+  const canShowPublish = template?.status === "approved";
+  const complianceBlocking = isComplianceGated && complianceReport && !complianceReport.ready_to_publish;
 
   if (!isCreating && !templateId) {
     return (
@@ -179,6 +195,14 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                   {statusCfg?.label}
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">v{template.version}</Badge>
+                {template.is_active && (
+                  <Badge className="text-[10px] bg-green-500/10 text-green-600 border-green-500/30">Actif</Badge>
+                )}
+                {template.compliance_validated_at && (
+                  <Badge variant="outline" className="text-[10px] text-green-600">
+                    ✓ Validé {new Date(template.compliance_validated_at).toLocaleDateString("fr-FR")}
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -210,10 +234,20 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
               Approuver
             </Button>
           )}
-          {template?.status === "approved" && (
-            <Button onClick={handlePublish} className="gap-2 bg-green-600 hover:bg-green-700">
-              <Rocket className="h-4 w-4" />
+          {canShowPublish && (
+            <Button
+              onClick={handlePublish}
+              disabled={isPublishing || complianceBlocking}
+              className="gap-2 bg-green-600 hover:bg-green-700"
+              title={complianceBlocking ? "Conformité bloquante — vérifiez le rapport" : undefined}
+            >
+              {isPublishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
               Publier
+            </Button>
+          )}
+          {template && template.status !== "archived" && template.status !== "draft" && (
+            <Button variant="ghost" size="icon" onClick={handleArchive} title="Archiver">
+              <Archive className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -235,7 +269,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                   <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description optionnelle" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Type</Label>
                   <Select value={type} onValueChange={setType} disabled={!isCreating}>
@@ -257,6 +291,14 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Scénario <span className="text-muted-foreground">(emails)</span></Label>
+                  <Input
+                    value={scenario}
+                    onChange={(e) => setScenario(e.target.value)}
+                    placeholder="ex: relance, convocation..."
+                  />
                 </div>
               </div>
             </CardContent>
@@ -305,6 +347,9 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
                 Rapport de Conformité
+                {isComplianceGated && (
+                  <Badge variant="outline" className="text-[10px] ml-auto">Bloquant</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -326,13 +371,20 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                   </div>
                   <Progress value={complianceReport.score} className="h-2" />
 
-                  <Badge variant={complianceReport.ready_to_publish ? "default" : "destructive"} className="text-xs w-full justify-center">
-                    {complianceReport.ready_to_publish ? "✓ Prêt à publier" : `✗ ${complianceReport.blocking_issues.length} mention(s) critique(s) manquante(s)`}
+                  <Badge
+                    variant={complianceReport.ready_to_publish ? "default" : "destructive"}
+                    className="text-xs w-full justify-center"
+                  >
+                    {complianceReport.ready_to_publish
+                      ? "✓ Prêt à publier"
+                      : `✗ ${complianceReport.blocking_issues.length} mention(s) critique(s) manquante(s)`}
                   </Badge>
 
                   {!complianceReport.ready_to_publish && (
                     <div className="p-2 rounded-lg border border-destructive/30 bg-destructive/5 text-xs">
-                      <p className="font-medium text-destructive mb-1">Publication bloquée :</p>
+                      <p className="font-medium text-destructive mb-1">
+                        {isComplianceGated ? "Publication bloquée :" : "Recommandations :"}
+                      </p>
                       <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
                         {complianceReport.blocking_issues.map((issue, i) => (
                           <li key={i}>{issue}</li>

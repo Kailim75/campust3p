@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, FileText, Edit, Trash2, CheckCircle2, Plus } from "lucide-react";
+import { Loader2, FileText, Edit, Trash2, CheckCircle2, Plus, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useStudioTemplates,
@@ -130,6 +130,16 @@ export default function TemplateListTab({ onEdit, onCreate }: Props) {
                           <Badge variant="outline" className="text-[10px]">
                             {t.format}
                           </Badge>
+                          {(t as any).compliance_score != null && (
+                            <Badge variant="outline" className={cn(
+                              "text-[10px] gap-1",
+                              (t as any).compliance_score >= 80 ? "text-green-600" :
+                              (t as any).compliance_score >= 50 ? "text-yellow-600" : "text-red-600"
+                            )}>
+                              <Shield className="h-3 w-3" />
+                              {(t as any).compliance_score}%
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
