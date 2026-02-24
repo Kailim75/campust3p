@@ -14,20 +14,10 @@ import { fr } from "date-fns/locale";
 
 // Required docs per formation type
 const COMMON_DOCS = [
-  { type: "cni", label: "Carte d'identité" },
-  { type: "casier_b3", label: "Extrait casier B3" },
-  { type: "certificat_medical", label: "Certificat médical" },
+  { type: "cni", label: "Pièce d'identité" },
   { type: "photo", label: "Photo d'identité" },
   { type: "attestation_domicile", label: "Justificatif de domicile" },
-  { type: "permis_b", label: "Permis B (3 ans min)" },
-  { type: "psc1", label: "PSC1" },
-  { type: "ants", label: "ANTS" },
-];
-
-const VTC_DOCS = [{ type: "justificatif_vtc", label: "Justificatif CPAM VTC" }];
-const VMDTR_DOCS = [
-  { type: "certificat_medical", label: "Certificat médical ATSU" },
-  { type: "autre", label: "Formation ATSU" },
+  { type: "permis_b", label: "Permis" },
 ];
 
 const STATUT_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string; badgeClass: string }> = {
@@ -47,11 +37,8 @@ export function DossierTab({ contactId, formation }: DossierTabProps) {
   const queryClient = useQueryClient();
 
   const requiredDocs = useMemo(() => {
-    const docs = [...COMMON_DOCS];
-    if (formation === "VTC" || formation === "ACC VTC") docs.push(...VTC_DOCS);
-    if (formation === "VMDTR") docs.push(...VMDTR_DOCS);
-    return docs;
-  }, [formation]);
+    return [...COMMON_DOCS];
+  }, []);
 
   // Map existing docs by type
   const docsMap = useMemo(() => {
