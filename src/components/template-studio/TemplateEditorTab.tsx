@@ -32,6 +32,7 @@ import {
 import TemplatePreview from "./TemplatePreview";
 import GenerateDocumentModal from "./GenerateDocumentModal";
 import { toast } from "sonner";
+import { useCentreContext } from "@/contexts/CentreContext";
 
 interface Props {
   templateId: string | null;
@@ -44,6 +45,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
   const workflow = useTemplateWorkflow();
+  const { currentCentre } = useCentreContext();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -82,6 +84,10 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
 
   const handleSave = async () => {
     if (isCreating) {
+      if (!currentCentre?.id) {
+        toast.error("Aucun centre sélectionné");
+        return;
+      }
       const result = await createTemplate.mutateAsync({
         name,
         description: description || null,
@@ -89,6 +95,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
         format: format as any,
         template_body: body,
         scenario: scenario || null,
+        centre_id: currentCentre.id,
       });
       if (result) onBack();
     } else if (templateId) {
