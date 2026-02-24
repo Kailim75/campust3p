@@ -39,15 +39,12 @@ export function TodayTasksCard({ onNavigate, onNavigateWithContact, maxItems = 5
   const tasks = alerts.filter(a => a.priority === "high" || a.priority === "medium").slice(0, maxItems);
 
   const handleTaskClick = (task: Alert) => {
-    // Navigate to contact detail if contactId exists
     if (task.contactId && onNavigateWithContact) {
       onNavigateWithContact("contacts", task.contactId);
     } else if (task.actionType === "view_facture") {
       onNavigate("paiements");
     } else if (task.actionType === "view_session") {
       onNavigate("sessions");
-    } else if (task.actionType === "view_contact" || task.actionType === "view_exam") {
-      onNavigate("contacts");
     } else {
       onNavigate("alertes");
     }

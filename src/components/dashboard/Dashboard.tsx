@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import { startOfMonth, subMonths, format, differenceInDays, addDays, parseISO, e
 import { fr } from "date-fns/locale";
 import { formatDistanceToNow } from "date-fns";
 import { formatEuro } from "@/lib/formatFinancial";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -364,10 +365,13 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
   const { metrics, isLoading } = useDashboardMetrics();
   const alerts = useDashboardAlerts();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const handleNavigate = (section: string, contactId?: string) => {
-    if (contactId && onNavigateWithContact) {
-      onNavigateWithContact(section, contactId);
+    if (contactId) {
+      setSelectedContactId(contactId);
+      setDetailOpen(true);
     } else if (onNavigate) {
       onNavigate(section);
     }
@@ -476,6 +480,12 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
           </section>
         </div>
       </main>
+
+      <ApprenantDetailSheet
+        contactId={selectedContactId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
