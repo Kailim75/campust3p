@@ -57,7 +57,7 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
             description: "Afficher les prospects concernés dans le CRM",
             whatItDoes: "Vous serez redirigé vers la page Prospects avec un filtre actif pour ne voir que les prospects détectés par cette anomalie. Aucune modification ne sera effectuée.",
             icon: ExternalLink, actionType: "open_filtered_view", confirmation_required: false,
-            navigateTo: "/prospects",
+            navigateTo: "/?section=contacts",
           },
           {
             id: "create_relance_tasks", label: "Créer tâches de relance en masse",
@@ -104,7 +104,7 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
           description: "Afficher les factures impayées",
           whatItDoes: "Vous serez redirigé vers la page Paiements avec un filtre sur les factures en retard ou impayées. Aucune modification ne sera effectuée.",
           icon: ExternalLink, actionType: "open_filtered_view", confirmation_required: false,
-          navigateTo: "/paiements",
+          navigateTo: "/?section=paiements",
         },
         {
           id: "send_payment_email", label: "Générer email relance paiement",
@@ -134,7 +134,7 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
           description: "Voir les sessions en détail",
           whatItDoes: "Vous serez redirigé vers la page Sessions pour consulter les détails et la liste d'inscrits.",
           icon: ExternalLink, actionType: "open_filtered_view", confirmation_required: false,
-          navigateTo: "/sessions",
+          navigateTo: "/?section=sessions",
         },
         {
           id: "send_recruitment_email", label: "Lancer campagne de recrutement",
@@ -158,7 +158,7 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
           description: "Filtrer les contacts avec infos manquantes",
           whatItDoes: "Vous serez redirigé vers la liste des contacts filtrée pour ne voir que ceux ayant des informations manquantes (email, téléphone ou date de naissance).",
           icon: ExternalLink, actionType: "open_filtered_view", confirmation_required: false,
-          navigateTo: "/contacts",
+          navigateTo: "/?section=contacts",
         },
         {
           id: "send_completion_email", label: "Demander complétion par email",
@@ -182,7 +182,7 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
           description: "Voir les contacts avec problèmes de données",
           whatItDoes: "Vous serez redirigé vers la liste des contacts pour examiner et corriger manuellement les problèmes de données détectés.",
           icon: ExternalLink, actionType: "open_filtered_view", confirmation_required: false,
-          navigateTo: "/contacts",
+          navigateTo: "/?section=contacts",
         },
         {
           id: "create_cleanup_task", label: "Créer tâche de nettoyage",
