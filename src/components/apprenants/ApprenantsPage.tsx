@@ -11,6 +11,7 @@ import { Search, Plus, Users, FileWarning } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { ApprenantDetailSheet } from "./ApprenantDetailSheet";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -35,6 +36,7 @@ export function ApprenantsPage() {
   const [formationFilter, setFormationFilter] = useState("all");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!contacts) return [];
@@ -51,7 +53,7 @@ export function ApprenantsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header title="Apprenants" subtitle={`${filtered.length} apprenant${filtered.length > 1 ? "s" : ""}`} />
+      <Header title="Apprenants" subtitle={`${filtered.length} apprenant${filtered.length > 1 ? "s" : ""}`} addLabel="Nouveau stagiaire" onAddClick={() => setFormOpen(true)} />
 
       <main className="p-6 space-y-6 animate-fade-in">
         {/* Toolbar */}
@@ -147,6 +149,7 @@ export function ApprenantsPage() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
+      <ContactFormDialog open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 }
