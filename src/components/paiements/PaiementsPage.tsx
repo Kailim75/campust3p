@@ -136,7 +136,7 @@ export function PaiementsPage() {
       "Client": facture.contact ? `${facture.contact.prenom} ${facture.contact.nom}` : "",
       "Email": facture.contact?.email || "",
       "Téléphone": facture.contact?.telephone || "",
-      "Formation": facture.session_inscription?.session?.nom || "",
+      "Formation": facture.session_inscription?.session?.catalogue_formation?.intitule || facture.session_inscription?.session?.nom || "",
       "Type financement": financementLabels[facture.type_financement].label,
       "Montant": Number(facture.montant_total).toFixed(2),
       "Montant payé": facture.total_paye.toFixed(2),
@@ -508,7 +508,7 @@ export function PaiementsPage() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {facture.session_inscription?.session?.nom || "—"}
+                        {facture.session_inscription?.session?.catalogue_formation?.intitule || facture.session_inscription?.session?.nom || "—"}
                       </TableCell>
                       <TableCell>
                         <Badge
