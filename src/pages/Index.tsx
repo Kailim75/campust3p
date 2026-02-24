@@ -30,6 +30,7 @@ import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import RappelsPage from "@/components/rappels/RappelsPage";
+import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [newContactOpen, setNewContactOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undo);
@@ -194,7 +196,8 @@ const Index = () => {
     <div className="h-screen bg-background overflow-hidden">
       <Sidebar 
         activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
+        onSectionChange={setActiveSection}
+        onNewContact={() => setNewContactOpen(true)}
       />
       
       <main className={cn(
@@ -227,6 +230,8 @@ const Index = () => {
       
       {/* Onboarding tour for new users */}
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
+
+      <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
     </div>
   );
 };
