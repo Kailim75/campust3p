@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserCheck, Clock, Euro, Download, GraduationCap } from "lucide-react";
+import { Users, UserCheck, Clock, Euro, Download, GraduationCap, Brain } from "lucide-react";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { PriorityActionCard } from "./PriorityActionCard";
 import { TodayTasksCard } from "./TodayTasksCard";
@@ -19,6 +19,7 @@ import { ObjectifProgressCard } from "./ObjectifProgressCard";
 import { PeriodComparisonDashboard } from "./PeriodComparisonDashboard";
 import { ExamSuccessChart } from "./ExamSuccessChart";
 import { FinancialSummaryCard } from "./FinancialSummaryCard";
+import { CRMAnalysisTab } from "./CRMAnalysisTab";
 import { useDynamicContactStats, useDynamicFinanceStats } from "@/hooks/useDashboardDynamicStats";
 import { useDashboardPeriod } from "@/hooks/useDashboardPeriod";
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
@@ -171,6 +172,10 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
             <TabsTrigger value="comparison">Comparaison</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="examens">Examens</TabsTrigger>
+            <TabsTrigger value="ia" className="gap-1.5">
+              <Brain className="h-3.5 w-3.5" />
+              Agent IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Vue d'ensemble */}
@@ -201,6 +206,10 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
             </div>
           </TabsContent>
 
+          {/* Agent IA */}
+          <TabsContent value="ia" className="mt-4">
+            <CRMAnalysisTab />
+          </TabsContent>
           {/* Examens */}
           <TabsContent value="examens" className="mt-4">
             <ExamSuccessChart />
