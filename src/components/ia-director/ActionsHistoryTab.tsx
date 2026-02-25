@@ -10,6 +10,22 @@ import { useActionLogs } from "@/hooks/useAuditEngine";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import type { ActionLog } from "./audit/types";
+
+/** Keep only the most recent log per (anomaly_id, action_type) combo */
+function deduplicateLogs(logs: ActionLog[]): ActionLog[] {
+  const seen = new Map<string, ActionLog>();
+  for (const log of logs) {
+    const key = `${log.anomaly_id}::${log.action_type}`;
+    const existing = seen.get(key);
+    if (!existing || new Date(log.created_at) > new Date(existing.created_at)) {
+      seen.set(key, log);
+    }
+  }
+  return Array.from(seen.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
 
 const statusConfig: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
   executed: { label: "Exécutée", icon: CheckCircle2, className: "text-green-500" },
@@ -205,8 +221,11 @@ function EntityDetails({ entityIds }: { entityIds: string[] }) {
 }
 
 export default function ActionsHistoryTab() {
-  const { data: logs, isLoading } = useActionLogs();
+  const { data: rawLogs, isLoading } = useActionLogs();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // Dédupliquer les logs : garder uniquement la plus récente par (anomaly_id, action_type)
+  const logs = rawLogs ? deduplicateLogs(rawLogs) : undefined;
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => {
