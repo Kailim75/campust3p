@@ -166,12 +166,30 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       }
     }
 
-    // Always fetch centre info
+    // Always fetch centre info — all fields
     const { data: centre } = await supabase.from("centre_formation").select("*").limit(1).maybeSingle();
     if (centre) {
-      map.centre_nom = centre.nom_commercial || "";
+      map.centre_nom = centre.nom_commercial || centre.nom_legal || "";
+      map.centre_nom_legal = centre.nom_legal || "";
+      map.centre_nom_commercial = centre.nom_commercial || "";
       map.centre_siret = centre.siret || "";
       map.centre_nda = centre.nda || "";
+      map.centre_adresse = centre.adresse_complete || "";
+      map.centre_email = centre.email || "";
+      map.centre_telephone = centre.telephone || "";
+      map.centre_forme_juridique = centre.forme_juridique || "";
+      map.centre_iban = centre.iban || "";
+      map.centre_bic = centre.bic || "";
+      map.centre_region = centre.region_declaration || "";
+      map.responsable_nom = centre.responsable_legal_nom || "";
+      map.responsable_fonction = centre.responsable_legal_fonction || "";
+      map.centre_qualiopi_numero = centre.qualiopi_numero || "";
+      map.centre_qualiopi_date = centre.qualiopi_date_obtention || "";
+      map.centre_agrement = centre.agrement_prefecture || "";
+      map.centre_agrement_date = centre.agrement_prefecture_date || "";
+      map.centre_code_rncp = centre.code_rncp || "";
+      map.centre_code_rs = centre.code_rs || "";
+      map.lieu = centre.adresse_complete?.split(",").pop()?.trim() || "";
     }
 
     return map;
