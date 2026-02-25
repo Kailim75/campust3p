@@ -2,7 +2,7 @@
 // Generate Document Modal — Pick entity, render template, create instance
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Download, Eye, Search, User, Calendar, CreditCard, Building } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, FileText, Download, Eye, Search, User, Calendar, CreditCard, Building, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
@@ -48,6 +49,8 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
   const [searching, setSearching] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const [editableHtml, setEditableHtml] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(true);
   const [generatedInstanceId, setGeneratedInstanceId] = useState<string | null>(null);
 
   // Reset on open
@@ -57,6 +60,8 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
       setResults([]);
       setSelectedEntity(null);
       setGeneratedHtml(null);
+      setEditableHtml("");
+      setIsEditing(true);
       setGeneratedInstanceId(null);
     }
   }, [open]);
@@ -178,6 +183,8 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
       const html = renderTemplate(template.template_body, dataMap);
       const sanitized = DOMPurify.sanitize(html, { ADD_ATTR: ["style"], ADD_TAGS: ["mark"] });
       setGeneratedHtml(sanitized);
+      setEditableHtml(sanitized);
+      setIsEditing(true);
 
       // Create document_instances record
       const { data: { user } } = await supabase.auth.getUser();
@@ -207,9 +214,9 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
   };
 
   const handleDownloadHtml = () => {
-    if (!generatedHtml) return;
-    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${template.name}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;}</style></head><body>${generatedHtml}</body></html>`;
-    const blob = new Blob([fullHtml], { type: "text/html" });
+    if (!editableHtml) return;
+    const finalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${template.name}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;}</style></head><body>${editableHtml}</body></html>`;
+    const blob = new Blob([finalHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -306,7 +313,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
             </Button>
           </div>
         ) : (
-          <div className="space-y-4 py-2 flex-1 min-h-0 flex flex-col">
+          <div className="space-y-3 py-2 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="text-xs text-green-600 border-green-500/30 bg-green-500/10">
                 ✓ Document généré
@@ -314,23 +321,55 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleDownloadHtml} className="gap-1.5">
                   <Download className="h-3.5 w-3.5" />
-                  Télécharger HTML
+                  Télécharger
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setGeneratedHtml(null); setSelectedEntity(null); setSearch(""); }}
+                  onClick={() => { setGeneratedHtml(null); setEditableHtml(""); setSelectedEntity(null); setSearch(""); }}
                   className="gap-1.5"
                 >
                   Générer un autre
                 </Button>
               </div>
             </div>
-            <ScrollArea className="flex-1 max-h-[400px] border rounded-lg">
-              <div className="p-6 bg-white dark:bg-card prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: generatedHtml }}
-              />
-            </ScrollArea>
+
+            <Tabs defaultValue="editor" className="flex-1 flex flex-col min-h-0">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="editor" className="gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" />
+                  Éditeur
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Aperçu
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="editor" className="flex-1 min-h-0 mt-2">
+                <ScrollArea className="h-[350px] border rounded-lg">
+                  <div
+                    className="p-4 min-h-[300px] bg-background text-foreground text-sm font-mono outline-none"
+                    contentEditable
+                    suppressContentEditableWarning
+                    dangerouslySetInnerHTML={{ __html: editableHtml }}
+                    onBlur={(e) => setEditableHtml(e.currentTarget.innerHTML)}
+                  />
+                </ScrollArea>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Modifiez directement le contenu ci-dessus, puis passez à l'onglet Aperçu pour vérifier.
+                </p>
+              </TabsContent>
+
+              <TabsContent value="preview" className="flex-1 min-h-0 mt-2">
+                <ScrollArea className="h-[350px] border rounded-lg">
+                  <div
+                    className="p-6 bg-white dark:bg-card prose prose-sm max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(editableHtml, { ADD_ATTR: ["style"], ADD_TAGS: ["mark"] }) }}
+                  />
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </DialogContent>
