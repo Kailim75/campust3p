@@ -38,9 +38,10 @@ interface Props {
   templateId: string | null;
   isCreating: boolean;
   onBack: () => void;
+  onGenerate?: (templateId?: string) => void;
 }
 
-export default function TemplateEditorTab({ templateId, isCreating, onBack }: Props) {
+export default function TemplateEditorTab({ templateId, isCreating, onBack, onGenerate }: Props) {
   const { data: template, isLoading } = useStudioTemplate(templateId);
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();

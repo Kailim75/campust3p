@@ -518,4 +518,165 @@ SIRET : {{centre_siret}}<br/>
 NDA : {{centre_nda}}</p>
 
 <p>Signature et cachet :</p>` },
+  invoice: { label: "Générer Facture Standard", generator: generateFactureStandard },
+  convocation: { label: "Générer Convocation Session", generator: generateConvocationSession },
+  reglement_interieur: { label: "Générer Règlement Intérieur", generator: generateReglementInterieur },
+  procedure_reclamation: { label: "Générer Procédure Réclamation", generator: generateProcedureReclamation },
 };
+
+export function generateFactureStandard(): string {
+  return `<div style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;">
+<div style="display:flex;justify-content:space-between;margin-bottom:30px;">
+<div>
+<h2 style="margin:0;">{{centre_nom}}</h2>
+<p style="margin:4px 0;font-size:12px;">SIRET : {{centre_siret}}<br/>NDA : {{centre_nda}}<br/>{{centre_adresse}}</p>
+</div>
+<div style="text-align:right;">
+<h1 style="margin:0;color:#2563eb;">FACTURE</h1>
+<p style="font-size:14px;margin:4px 0;">N° {{numero_facture}}<br/>Date : {{date_jour}}</p>
+</div>
+</div>
+
+<div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:24px;">
+<p style="margin:0;font-weight:bold;">Destinataire :</p>
+<p style="margin:4px 0;">{{civilite}} {{prenom}} {{nom}}<br/>{{adresse}}<br/>Email : {{email}}<br/>Tél : {{telephone}}</p>
+</div>
+
+<table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+<thead>
+<tr style="background:#0f172a;color:#fff;">
+<th style="padding:10px;text-align:left;">Désignation</th>
+<th style="padding:10px;text-align:center;">Qté</th>
+<th style="padding:10px;text-align:right;">P.U. HT</th>
+<th style="padding:10px;text-align:right;">Montant HT</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom:1px solid #e2e8f0;">
+<td style="padding:10px;">{{intitule_formation}}<br/><span style="font-size:12px;color:#64748b;">Du {{session_date_debut}} au {{session_date_fin}} — {{duree_heures}}h</span></td>
+<td style="padding:10px;text-align:center;">1</td>
+<td style="padding:10px;text-align:right;">{{prix_total}} €</td>
+<td style="padding:10px;text-align:right;">{{prix_total}} €</td>
+</tr>
+</tbody>
+</table>
+
+<div style="display:flex;justify-content:flex-end;">
+<table style="width:250px;">
+<tr><td style="padding:4px;">Total HT</td><td style="padding:4px;text-align:right;font-weight:bold;">{{prix_total}} €</td></tr>
+<tr><td style="padding:4px;font-size:12px;color:#64748b;">TVA non applicable — art. 293 B du CGI</td><td></td></tr>
+<tr style="border-top:2px solid #0f172a;"><td style="padding:8px 4px;font-weight:bold;font-size:16px;">Total TTC</td><td style="padding:8px 4px;text-align:right;font-weight:bold;font-size:16px;color:#2563eb;">{{prix_total}} €</td></tr>
+</table>
+</div>
+
+<div style="margin-top:30px;padding:16px;background:#f8fafc;border-radius:8px;font-size:12px;">
+<p style="margin:0;"><strong>Conditions de règlement :</strong> {{modalites_paiement}}</p>
+<p style="margin:4px 0;">En cas de retard de paiement, une pénalité de 3 fois le taux d'intérêt légal sera appliquée. Indemnité forfaitaire de recouvrement : 40 €.</p>
+</div>
+</div>`;
+}
+
+export function generateConvocationSession(): string {
+  return `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
+<div style="text-align:right;margin-bottom:20px;">
+<p>{{centre_nom}}<br/>{{centre_adresse}}<br/>SIRET : {{centre_siret}} — NDA : {{centre_nda}}</p>
+</div>
+
+<p style="text-align:right;">Le {{date_jour}}</p>
+
+<p><strong>À l'attention de :</strong><br/>{{civilite}} {{prenom}} {{nom}}<br/>{{adresse}}<br/>{{email}}</p>
+
+<h1 style="text-align:center;color:#0f172a;border-bottom:2px solid #2563eb;padding-bottom:10px;">CONVOCATION</h1>
+
+<p>{{civilite}} {{nom}},</p>
+
+<p>Nous avons le plaisir de vous confirmer votre inscription à la formation suivante :</p>
+
+<table style="width:100%;border-collapse:collapse;margin:20px 0;">
+<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;font-weight:bold;width:200px;">Formation</td><td style="padding:8px;">{{intitule_formation}}</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;font-weight:bold;">Session</td><td style="padding:8px;">{{session_nom}}</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;font-weight:bold;">Dates</td><td style="padding:8px;">Du {{session_date_debut}} au {{session_date_fin}}</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;font-weight:bold;">Durée</td><td style="padding:8px;">{{duree_heures}} heures</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;font-weight:bold;">Horaires</td><td style="padding:8px;">{{horaires}}</td></tr>
+<tr><td style="padding:8px;font-weight:bold;">Lieu</td><td style="padding:8px;">{{lieu_formation}}</td></tr>
+</table>
+
+<p><strong>Documents à apporter :</strong></p>
+<ul>
+<li>Pièce d'identité en cours de validité</li>
+<li>Le présent courrier de convocation</li>
+</ul>
+
+<p>Nous vous prions d'agréer l'expression de nos salutations distinguées.</p>
+
+<p style="margin-top:30px;"><strong>{{responsable_nom}}</strong><br/>{{centre_nom}}</p>
+</div>`;
+}
+
+export function generateReglementInterieur(): string {
+  return `<h1 style="text-align:center;">Règlement Intérieur</h1>
+<p style="text-align:center;"><em>Établi conformément aux articles L.6352-3 et R.6352-1 à R.6352-15 du Code du travail</em></p>
+
+<p><strong>{{centre_nom}}</strong><br/>SIRET : {{centre_siret}} — NDA : {{centre_nda}}</p>
+
+<h2>Article 1 — Objet et champ d'application</h2>
+<p>Le présent règlement s'applique à tous les stagiaires inscrits à une formation dispensée par {{centre_nom}}, et ce pendant toute la durée de la formation.</p>
+
+<h2>Article 2 — Hygiène et sécurité</h2>
+<p>Les stagiaires sont tenus de respecter les consignes d'hygiène et de sécurité. Il est interdit de fumer ou vapoter dans les locaux. L'introduction de boissons alcoolisées est interdite.</p>
+
+<h2>Article 3 — Discipline</h2>
+<p>Les stagiaires doivent respecter les horaires de formation. En cas d'absence ou de retard, le stagiaire doit en informer l'organisme. Toute absence non justifiée pourra entraîner l'exclusion.</p>
+
+<h2>Article 4 — Sanctions disciplinaires</h2>
+<p>Tout manquement au présent règlement pourra faire l'objet d'une sanction, allant de l'avertissement écrit à l'exclusion définitive, conformément aux dispositions des articles R.6352-3 et suivants du Code du travail.</p>
+
+<h2>Article 5 — Représentation des stagiaires</h2>
+<p>Pour les formations d'une durée supérieure à 500 heures, un délégué des stagiaires est élu dans les conditions prévues aux articles R.6352-9 à R.6352-15.</p>
+
+<h2>Article 6 — Procédure disciplinaire</h2>
+<p>Aucune sanction ne peut être infligée sans que le stagiaire ait été informé des griefs retenus contre lui et ait pu présenter ses observations (art. R.6352-4 à R.6352-8).</p>
+
+<h2>Article 7 — Réclamations</h2>
+<p>Toute réclamation peut être adressée au responsable de l'organisme par écrit. Une procédure de traitement des réclamations est mise en place conformément au référentiel Qualiopi.</p>
+
+<h2>Article 8 — Entrée en vigueur</h2>
+<p>Le présent règlement entre en vigueur à compter du {{date_jour}}.</p>
+
+<p style="margin-top:30px;"><strong>{{responsable_nom}}</strong><br/>{{centre_nom}}</p>`;
+}
+
+export function generateProcedureReclamation(): string {
+  return `<h1 style="text-align:center;">Procédure de Réclamation</h1>
+<p style="text-align:center;"><em>Conformément au Référentiel National Qualité (Qualiopi) — Critère 7, Indicateur 31</em></p>
+
+<p><strong>{{centre_nom}}</strong><br/>SIRET : {{centre_siret}} — NDA : {{centre_nda}}</p>
+
+<h2>1. Objet</h2>
+<p>La présente procédure définit les modalités de traitement des réclamations et difficultés rencontrées par les parties prenantes (stagiaires, employeurs, financeurs).</p>
+
+<h2>2. Périmètre</h2>
+<p>Cette procédure s'applique à toute réclamation relative à l'organisation, au contenu, aux conditions de déroulement ou aux résultats des formations dispensées par {{centre_nom}}.</p>
+
+<h2>3. Dépôt de la réclamation</h2>
+<p>Toute réclamation peut être formulée :</p>
+<ul>
+<li>Par email : {{email_contact}}</li>
+<li>Par courrier : {{centre_adresse}}</li>
+<li>Via le formulaire en ligne disponible sur l'espace apprenant</li>
+</ul>
+
+<h2>4. Accusé de réception</h2>
+<p>Un accusé de réception est adressé au réclamant dans un délai de <strong>48 heures ouvrées</strong>.</p>
+
+<h2>5. Traitement</h2>
+<p>La réclamation est analysée par le responsable pédagogique. Une réponse argumentée est apportée dans un délai de <strong>15 jours ouvrés</strong>.</p>
+
+<h2>6. Suivi et amélioration continue</h2>
+<p>Chaque réclamation est enregistrée dans un registre dédié. Les réclamations sont analysées trimestriellement pour identifier les axes d'amélioration.</p>
+
+<h2>7. Médiation</h2>
+<p>En cas de litige non résolu, le réclamant peut saisir le médiateur de la consommation dont les coordonnées sont disponibles sur demande.</p>
+
+<p style="margin-top:30px;"><em>Date de mise à jour : {{date_jour}}</em><br/><strong>{{responsable_nom}}</strong> — {{centre_nom}}</p>`;
+}
