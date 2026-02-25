@@ -55,6 +55,8 @@ import { buildVariableData, createDocxPreviewPDF } from '@/lib/docx-processor';
 import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentData';
 import { PDFViewer } from '@/components/ui/pdf-viewer';
 import { centreToCompanyInfo } from '@/lib/centre-to-company';
+import { usePublishedTemplate } from '@/hooks/usePublishedTemplate';
+import { renderTemplateHtml, buildDocumentVariables, printHtmlDocument } from '@/lib/template-renderer';
 
 interface Inscrit {
   id: string;
@@ -75,7 +77,7 @@ interface Inscrit {
 }
 
 export interface TemplateSelection {
-  type: 'default' | 'text' | 'file';
+  type: 'default' | 'text' | 'file' | 'studio';
   templateId?: string;
 }
 
@@ -112,9 +114,10 @@ export function BulkDocumentPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [templateTab, setTemplateTab] = useState<'default' | 'text' | 'file'>('default');
+  const [templateTab, setTemplateTab] = useState<'default' | 'text' | 'file' | 'studio'>('default');
   const [selectedTextTemplateId, setSelectedTextTemplateId] = useState<string>('');
   const [selectedFileTemplateId, setSelectedFileTemplateId] = useState<string>('');
+  const [studioPreviewHtml, setStudioPreviewHtml] = useState<string | null>(null);
 
   const { data: textTemplates = [] } = useDocumentTemplates();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
@@ -123,6 +126,9 @@ export function BulkDocumentPreviewDialog({
   // Get the default template for this document type and formation
   const templateType = documentTypeToTemplateType[documentType];
   const { data: defaultFileTemplate } = useDefaultTemplate(templateType, sessionInfo?.formation_type);
+  
+  // Check for published Template Studio template
+  const { data: publishedStudioTemplate } = usePublishedTemplate(templateType);
 
   // Filter templates by document type
   const availableTextTemplates = useMemo(() => {
@@ -130,17 +136,20 @@ export function BulkDocumentPreviewDialog({
   }, [textTemplates, templateType]);
 
   const availableFileTemplates = useMemo(() => {
-    // File templates with matching category (formation includes convocation, convention, attestation)
     return fileTemplates.filter(t => t.actif && t.categorie === 'formation');
   }, [fileTemplates]);
 
-  // Auto-select default file template when dialog opens
+  // Auto-select published Studio template first, then default file template
   useEffect(() => {
-    if (open && defaultFileTemplate && templateTab === 'default') {
-      setTemplateTab('file');
-      setSelectedFileTemplateId(defaultFileTemplate.id);
+    if (open) {
+      if (publishedStudioTemplate) {
+        setTemplateTab('studio');
+      } else if (defaultFileTemplate && templateTab === 'default') {
+        setTemplateTab('file');
+        setSelectedFileTemplateId(defaultFileTemplate.id);
+      }
     }
-  }, [open, defaultFileTemplate]);
+  }, [open, defaultFileTemplate, publishedStudioTemplate]);
 
   const selectedTextTemplate = useMemo(() => {
     if (!selectedTextTemplateId) return null;
@@ -338,17 +347,29 @@ export function BulkDocumentPreviewDialog({
       try {
         let blobUrl: string | null = null;
         
-        if (templateTab === 'file' && selectedFileTemplate && contactInfo) {
-          // Use file template - generate preview with variable replacement visualization
+        if (templateTab === 'studio' && publishedStudioTemplate && contactInfo) {
+          // Use published Template Studio template — render HTML preview
+          const contactId = currentInscrit?.contact_id || (currentInscrit?.contact as any)?.id;
+          const vars = await buildDocumentVariables({
+            contactId,
+            sessionId: (sessionInfo as any)?.id,
+            extra: {
+              session_nom: sessionInfo?.nom || "",
+              formation_type: sessionInfo?.formation_type || "",
+            },
+          });
+          const html = renderTemplateHtml(publishedStudioTemplate.template_body, vars);
+          setStudioPreviewHtml(html);
+          setPdfDataUrl(null);
+          setIsGenerating(false);
+          return;
+        } else if (templateTab === 'file' && selectedFileTemplate && contactInfo) {
           blobUrl = await generatePreviewFromFileTemplate(selectedFileTemplate, contactInfo, sessionInfo);
         } else if (templateTab === 'text' && selectedTextTemplate && contactInfo) {
-          // Use text template
           const doc = generatePDFFromTextTemplate(selectedTextTemplate, contactInfo, sessionInfo);
-          // Use blob URL instead of data URI for better browser compatibility
           const pdfBlob = doc.output('blob');
           blobUrl = URL.createObjectURL(pdfBlob);
         } else {
-          // Use default generation with centre formation data
           const companyInfo = centreToCompanyInfo(centreFormation);
           let doc;
           switch (documentType) {
@@ -365,16 +386,17 @@ export function BulkDocumentPreviewDialog({
               doc = null;
           }
           if (doc) {
-            // Use blob URL instead of data URI for better browser compatibility
             const pdfBlob = doc.output('blob');
             blobUrl = URL.createObjectURL(pdfBlob);
           }
         }
 
+        setStudioPreviewHtml(null);
         setPdfDataUrl(blobUrl);
       } catch (error) {
         console.error('Error generating preview:', error);
         setPdfDataUrl(null);
+        setStudioPreviewHtml(null);
       } finally {
         setIsGenerating(false);
       }
@@ -382,7 +404,7 @@ export function BulkDocumentPreviewDialog({
 
     const timeout = setTimeout(generatePreview, 100);
     return () => clearTimeout(timeout);
-  }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate, currentInscrit]);
+  }, [open, contactInfo, sessionInfo, documentType, currentIndex, templateTab, selectedTextTemplate, selectedFileTemplate, currentInscrit, publishedStudioTemplate]);
 
   // Reset state when dialog opens (but don't reset template selection - let auto-select handle it)
   useEffect(() => {
@@ -408,7 +430,9 @@ export function BulkDocumentPreviewDialog({
   const handleConfirmGeneration = () => {
     let selection: TemplateSelection;
     
-    if (templateTab === 'text' && selectedTextTemplateId) {
+    if (templateTab === 'studio' && publishedStudioTemplate) {
+      selection = { type: 'studio', templateId: publishedStudioTemplate.id };
+    } else if (templateTab === 'text' && selectedTextTemplateId) {
       selection = { type: 'text', templateId: selectedTextTemplateId };
     } else if (templateTab === 'file' && selectedFileTemplateId) {
       selection = { type: 'file', templateId: selectedFileTemplateId };
@@ -421,6 +445,9 @@ export function BulkDocumentPreviewDialog({
   };
 
   const getSelectedTemplateName = () => {
+    if (templateTab === 'studio' && publishedStudioTemplate) {
+      return `📐 ${publishedStudioTemplate.name} (Template Studio)`;
+    }
     if (templateTab === 'text' && selectedTextTemplate) {
       return selectedTextTemplate.nom;
     }
@@ -467,9 +494,16 @@ export function BulkDocumentPreviewDialog({
             </div>
             
             <Tabs value={templateTab} onValueChange={(v) => setTemplateTab(v as typeof templateTab)}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="default" className="text-xs">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="studio" className="text-xs relative">
                   <Sparkles className="h-3 w-3 mr-1" />
+                  Template Studio
+                  {publishedStudioTemplate && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-success rounded-full" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="default" className="text-xs">
+                  <FileText className="h-3 w-3 mr-1" />
                   Intégré
                 </TabsTrigger>
                 <TabsTrigger value="text" className="text-xs">
@@ -484,6 +518,29 @@ export function BulkDocumentPreviewDialog({
                   )}
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="studio" className="mt-3">
+                {publishedStudioTemplate ? (
+                  <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/20 rounded-lg">
+                    <Sparkles className="h-4 w-4 text-success" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {publishedStudioTemplate.name}
+                        <Badge variant="default" className="ml-2 text-xs bg-success">Publié v{publishedStudioTemplate.version}</Badge>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Template créé dans le Template Studio — les variables seront remplacées automatiquement.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Aucun template publié pour "{documentTypeLabels[documentType]}".
+                    <br />
+                    Créez et publiez un template dans le Template & Compliance Studio.
+                  </p>
+                )}
+              </TabsContent>
 
               <TabsContent value="default" className="mt-3">
                 <p className="text-sm text-muted-foreground">
@@ -596,7 +653,7 @@ export function BulkDocumentPreviewDialog({
             </Button>
           </div>
 
-          {/* PDF Preview */}
+          {/* Preview */}
           <div className="flex-1 min-h-0 border rounded-lg bg-muted/50 overflow-hidden">
             {isGenerating ? (
               <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -605,6 +662,13 @@ export function BulkDocumentPreviewDialog({
                   <span className="text-sm text-muted-foreground">Génération de l'aperçu...</span>
                 </div>
               </div>
+            ) : studioPreviewHtml ? (
+              <ScrollArea className="h-[400px]">
+                <div
+                  className="p-6 bg-white dark:bg-card prose prose-sm max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: studioPreviewHtml }}
+                />
+              </ScrollArea>
             ) : pdfDataUrl ? (
               <PDFViewer 
                 pdfData={pdfDataUrl} 
@@ -617,9 +681,11 @@ export function BulkDocumentPreviewDialog({
                   <span className="text-sm text-center max-w-xs">
                     {!contactInfo
                       ? 'Données du contact non disponibles pour cet inscrit'
-                      : templateTab !== 'default' && !selectedTextTemplateId && !selectedFileTemplateId
-                        ? 'Sélectionnez un modèle pour voir l\'aperçu'
-                        : 'Impossible de générer l\'aperçu'}
+                      : templateTab === 'studio' && !publishedStudioTemplate
+                        ? 'Aucun template publié pour ce type de document'
+                        : templateTab !== 'default' && !selectedTextTemplateId && !selectedFileTemplateId
+                          ? 'Sélectionnez un modèle pour voir l\'aperçu'
+                          : 'Impossible de générer l\'aperçu'}
                   </span>
                 </div>
               </div>
