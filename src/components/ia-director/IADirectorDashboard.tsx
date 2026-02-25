@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Activity, TrendingUp, FileText, CreditCard, ShieldCheck,
   DollarSign, AlertTriangle, Flame, Clock, Target,
-  ThermometerSun, Snowflake, BarChart3,
+  ThermometerSun, Snowflake, BarChart3, Eye, LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -13,7 +13,10 @@ import type { ProspectScoring } from "@/hooks/useProspectScoring";
 import type { ScoreHistory } from "@/hooks/useScoreHistory";
 import type { Recommendation } from "./recommendationEngine";
 import type { Anomaly } from "./audit/types";
-
+import FinancialProjectionsCard from "./projections/FinancialProjectionsCard";
+import { useFinancialProjections } from "./projections/useFinancialProjections";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 const scoreConfig = [
   { key: "score_sante", label: "Santé CRM", icon: Activity, description: "Qualité & complétude des données" },
   { key: "score_commercial", label: "Commercial", icon: TrendingUp, description: "Pipeline & conversion prospects" },
@@ -63,6 +66,8 @@ export default function IADirectorDashboard({
   recommendations,
   anomalies = [],
 }: Props) {
+  const [viewMode, setViewMode] = useState<"executive" | "analytical">("executive");
+  const { data: projectionData, isLoading: projLoading } = useFinancialProjections(scorings);
   const pipelineCA = scorings.reduce((sum, s) => sum + Number(s.valeur_potentielle_euros), 0);
 
   const top10Chauds = scorings
@@ -97,7 +102,30 @@ export default function IADirectorDashboard({
 
   return (
     <div className="space-y-6">
-      {/* ── Top 3 Actions Recommandées Aujourd'hui ── */}
+      {/* ── View Mode Toggle ── */}
+      <div className="flex items-center gap-2 justify-end">
+        <Button
+          variant={viewMode === "executive" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setViewMode("executive")}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          Exécutif
+        </Button>
+        <Button
+          variant={viewMode === "analytical" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setViewMode("analytical")}
+        >
+          <LineChart className="h-3.5 w-3.5" />
+          Analytique
+        </Button>
+      </div>
+
+      {/* ── Financial Projections ── */}
+      <FinancialProjectionsCard data={projectionData} isLoading={projLoading} viewMode={viewMode} />
       {top3Actions.length > 0 && (
         <Card className="border-primary/20 bg-primary/[0.02]">
           <CardHeader className="pb-2">
@@ -289,7 +317,8 @@ export default function IADirectorDashboard({
         </Card>
       </div>
 
-      {/* ── Row 4: Top 10 Prospects Chauds ── */}
+      {viewMode === "analytical" && (
+      /* ── Row 4: Top 10 Prospects Chauds ── */
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -353,9 +382,10 @@ export default function IADirectorDashboard({
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* ── Row 5: Trend Chart ── */}
-      {chartData.length > 1 && (
+      {viewMode === "analytical" && chartData.length > 1 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
