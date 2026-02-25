@@ -489,17 +489,42 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack, onGe
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground space-y-1">
-                <p><code className="bg-muted px-1 rounded">{"{{nom}}"}</code> Nom du stagiaire</p>
+                <p className="font-semibold text-foreground text-[11px] mt-1">Stagiaire</p>
+                <p><code className="bg-muted px-1 rounded">{"{{nom}}"}</code> Nom</p>
                 <p><code className="bg-muted px-1 rounded">{"{{prenom}}"}</code> Prénom</p>
-                <p><code className="bg-muted px-1 rounded">{"{{session_nom}}"}</code> Session</p>
+                <p><code className="bg-muted px-1 rounded">{"{{email}}"}</code> Email</p>
+                <p><code className="bg-muted px-1 rounded">{"{{telephone}}"}</code> Téléphone</p>
+                <p><code className="bg-muted px-1 rounded">{"{{civilite}}"}</code> Civilité</p>
+                <p><code className="bg-muted px-1 rounded">{"{{date_naissance}}"}</code> Date naissance</p>
+                <p><code className="bg-muted px-1 rounded">{"{{adresse}}"}</code> Adresse</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Session</p>
+                <p><code className="bg-muted px-1 rounded">{"{{session_nom}}"}</code> Nom session</p>
                 <p><code className="bg-muted px-1 rounded">{"{{session_date_debut}}"}</code> Date début</p>
                 <p><code className="bg-muted px-1 rounded">{"{{session_date_fin}}"}</code> Date fin</p>
-                <p><code className="bg-muted px-1 rounded">{"{{centre_nom}}"}</code> Centre</p>
+                <p><code className="bg-muted px-1 rounded">{"{{duree_heures}}"}</code> Durée (h)</p>
+                <p><code className="bg-muted px-1 rounded">{"{{horaires}}"}</code> Horaires</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Centre</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_nom}}"}</code> Nom commercial</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_nom_legal}}"}</code> Nom légal</p>
                 <p><code className="bg-muted px-1 rounded">{"{{centre_siret}}"}</code> SIRET</p>
                 <p><code className="bg-muted px-1 rounded">{"{{centre_nda}}"}</code> N° NDA</p>
-                <p><code className="bg-muted px-1 rounded">{"{{date_jour}}"}</code> Date du jour</p>
-                <p><code className="bg-muted px-1 rounded">{"{{duree_heures}}"}</code> Durée (heures)</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_adresse}}"}</code> Adresse</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_email}}"}</code> Email</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_telephone}}"}</code> Téléphone</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_forme_juridique}}"}</code> Forme juridique</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_iban}}"}</code> IBAN</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_bic}}"}</code> BIC</p>
+                <p><code className="bg-muted px-1 rounded">{"{{responsable_nom}}"}</code> Responsable</p>
+                <p><code className="bg-muted px-1 rounded">{"{{responsable_fonction}}"}</code> Fonction</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_qualiopi_numero}}"}</code> N° Qualiopi</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_agrement}}"}</code> Agrément</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Finance</p>
                 <p><code className="bg-muted px-1 rounded">{"{{prix_total}}"}</code> Prix total</p>
+                <p><code className="bg-muted px-1 rounded">{"{{numero_facture}}"}</code> N° facture</p>
+                <p><code className="bg-muted px-1 rounded">{"{{montant_total}}"}</code> Montant</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Autre</p>
+                <p><code className="bg-muted px-1 rounded">{"{{date_jour}}"}</code> Date du jour</p>
+                <p><code className="bg-muted px-1 rounded">{"{{lieu}}"}</code> Lieu</p>
               </div>
             </CardContent>
           </Card>
