@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,9 +40,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template: StudioTemplate;
+  inline?: boolean;
 }
 
-export default function GenerateDocumentModal({ open, onOpenChange, template }: Props) {
+export default function GenerateDocumentModal({ open, onOpenChange, template, inline }: Props) {
   const [entityType, setEntityType] = useState<EntityType>("apprenant");
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -225,18 +227,17 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Générer un document
-          </DialogTitle>
-          <DialogDescription>
-            Template : <strong>{template.name}</strong> — Sélectionnez l'entité pour remplir les variables.
-          </DialogDescription>
-        </DialogHeader>
+  const content = (
+    <>
+      <div className={inline ? "mb-4" : ""}>
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <FileText className="h-5 w-5 text-primary" />
+          Générer un document
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Template : <strong>{template.name}</strong> — Sélectionnez l'entité pour remplir les variables.
+        </p>
+      </div>
 
         {!generatedHtml ? (
           <div className="space-y-4 py-2">
@@ -372,6 +373,17 @@ export default function GenerateDocumentModal({ open, onOpenChange, template }: 
             </Tabs>
           </div>
         )}
+    </>
+  );
+
+  if (inline) {
+    return <Card className="p-6">{content}</Card>;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        {content}
       </DialogContent>
     </Dialog>
   );
