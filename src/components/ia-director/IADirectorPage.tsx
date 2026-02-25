@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useProspectScorings, useRunProspectScoring } from "@/hooks/useProspectScoring";
 import { useLatestScoreHistory, useScoreHistoryTrend, useRunCentreScoring } from "@/hooks/useScoreHistory";
 import { useProspects } from "@/hooks/useProspects";
-import { useQuickAudit, useDeepAudit, useActionLogs } from "@/hooks/useAuditEngine";
+import { useQuickAudit, useDeepAudit, useActionLogs, useExecuteAction, useChangeAnomalyStatus } from "@/hooks/useAuditEngine";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +14,9 @@ import { generateRecommendations } from "./recommendationEngine";
 import IADirectorDashboard from "./IADirectorDashboard";
 import AuditAnomaliesTab from "./AuditAnomaliesTab";
 import ActionsHistoryTab from "./ActionsHistoryTab";
+import AnomalyActionModal from "./AnomalyActionModal";
 import { cn } from "@/lib/utils";
-import type { AnomalyStatus } from "./audit/types";
+import type { Anomaly, AnomalyStatus } from "./audit/types";
 
 export default function IADirectorPage() {
   const { data: scorings, isLoading } = useProspectScorings();
@@ -28,6 +29,10 @@ export default function IADirectorPage() {
 
   const quickAudit = useQuickAudit();
   const deepAudit = useDeepAudit();
+  const executeAction = useExecuteAction();
+  const changeStatus = useChangeAnomalyStatus();
+
+  const [dashboardSelectedAnomaly, setDashboardSelectedAnomaly] = useState<Anomaly | null>(null);
 
   const prospectMap = new Map((prospects || []).map(p => [p.id, p]));
 
@@ -178,6 +183,25 @@ export default function IADirectorPage() {
             chartData={chartData}
             recommendations={recommendations}
             anomalies={anomalies}
+            onSelectAnomaly={setDashboardSelectedAnomaly}
+          />
+          {/* Dashboard Action Modal */}
+          <AnomalyActionModal
+            anomaly={dashboardSelectedAnomaly}
+            open={!!dashboardSelectedAnomaly}
+            onOpenChange={(open) => { if (!open) setDashboardSelectedAnomaly(null); }}
+            onExecuteAction={(anomalyId, actionType, payload, entityIds, anomalyTitle) => {
+              executeAction.mutate({ anomalyId, actionType, payload, entityIds, anomalyTitle }, {
+                onSuccess: () => handleAnomalyStatusChange(anomalyId, "in_progress"),
+              });
+            }}
+            onChangeStatus={(anomalyId, status) => {
+              const anomaly = anomalies.find(a => a.id === anomalyId);
+              changeStatus.mutate({ anomalyId, newStatus: status, anomalyTitle: anomaly?.title || "" }, {
+                onSuccess: () => handleAnomalyStatusChange(anomalyId, status),
+              });
+            }}
+            isExecuting={executeAction.isPending || changeStatus.isPending}
           />
         </TabsContent>
 
