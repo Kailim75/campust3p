@@ -22,7 +22,9 @@ import {
   Download,
   History,
   AlertTriangle,
-  ClipboardCheck
+  ClipboardCheck,
+  Lightbulb,
+  ArrowRight
 } from "lucide-react";
 import { useComplianceChecklist, ItemWithValidation, ValidationStatut } from "@/hooks/useComplianceChecklist";
 import { toast } from "sonner";
@@ -51,6 +53,7 @@ export default function SuperAdminComplianceChecklist() {
     globalStats, 
     cnilStats, 
     qualiopiStats,
+    items: allChecklistItems,
     upsertValidation,
     isUpdating,
     getValidationHistory
@@ -396,6 +399,88 @@ export default function SuperAdminComplianceChecklist() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Corrections suggérées */}
+      {globalStats.conformitePct < 100 && (
+        <Card className="border-warning/50 bg-warning/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-warning" />
+              <CardTitle className="text-lg">Corrections pour atteindre 100%</CardTitle>
+              <Badge variant="outline" className="text-warning border-warning/30">
+                {globalStats.nonValides + globalStats.enCours} action(s) restante(s)
+              </Badge>
+            </div>
+            <CardDescription>
+              Voici les items non conformes à traiter pour atteindre la conformité totale.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Obligatoires d'abord */}
+            {(() => {
+              const nonConformes = (allChecklistItems || []).filter(
+                i => i.validation?.statut !== 'valide' && i.validation?.statut !== 'non_applicable'
+              );
+              const obligatoires = nonConformes.filter(i => i.criticite === 'obligatoire');
+              const recommandes = nonConformes.filter(i => i.criticite === 'recommande');
+              const optionnels = nonConformes.filter(i => i.criticite === 'optionnel');
+
+              const renderCorrectionGroup = (title: string, items: typeof nonConformes, variant: "destructive" | "secondary" | "outline") => {
+                if (items.length === 0) return null;
+                return (
+                  <div key={title}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant={variant === "destructive" ? "default" : variant} className={variant === "destructive" ? "bg-destructive" : ""}>
+                        {title}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{items.length} item(s)</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {items.map(item => {
+                        const status = item.validation?.statut || 'non_valide';
+                        const StatusIcon = STATUS_CONFIG[status].icon;
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-3 p-2.5 rounded-lg border bg-background hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => openItemDialog(item as ItemWithValidation)}
+                          >
+                            <StatusIcon className={`h-4 w-4 shrink-0 ${STATUS_CONFIG[status].color}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
+                                <span className="text-sm font-medium truncate">{item.titre}</span>
+                              </div>
+                              {item.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
+                              )}
+                              {item.reference_legale && (
+                                <p className="text-[10px] text-muted-foreground/70 mt-0.5">📚 {item.reference_legale}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge variant="outline" className="text-[10px]">{item.categorie.toUpperCase()}</Badge>
+                              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <>
+                  {renderCorrectionGroup("Obligatoire", obligatoires, "destructive")}
+                  {renderCorrectionGroup("Recommandé", recommandes, "secondary")}
+                  {renderCorrectionGroup("Optionnel", optionnels, "outline")}
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
