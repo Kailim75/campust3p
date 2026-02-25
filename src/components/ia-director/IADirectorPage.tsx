@@ -3,17 +3,23 @@ import { useProspectScorings, useRunProspectScoring } from "@/hooks/useProspectS
 import { useLatestScoreHistory, useScoreHistoryTrend, useRunCentreScoring } from "@/hooks/useScoreHistory";
 import { useProspects } from "@/hooks/useProspects";
 import { useQuickAudit, useDeepAudit, useActionLogs, useExecuteAction, useChangeAnomalyStatus } from "@/hooks/useAuditEngine";
+import { useActionPlan } from "@/hooks/useActionPlan";
+import { usePredictiveAnalysis } from "@/hooks/usePredictiveAnalysis";
+import { useDirectorAlerts } from "@/hooks/useDirectorAlerts";
+import { useContactHistorique } from "@/hooks/useContactHistorique";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Loader2, Zap, RefreshCw, BarChart3, Search, History, AlertTriangle, Shield,
+  Loader2, Zap, RefreshCw, BarChart3, Search, History, Shield, Sparkles, Brain, Bell,
 } from "lucide-react";
 import { generateRecommendations } from "./recommendationEngine";
 import IADirectorDashboard from "./IADirectorDashboard";
 import AuditAnomaliesTab from "./AuditAnomaliesTab";
 import ActionsHistoryTab from "./ActionsHistoryTab";
+import ActionPlanPanel from "./ActionPlanPanel";
+import PredictiveAnalysisCard from "./PredictiveAnalysisCard";
 import AnomalyActionModal from "./AnomalyActionModal";
 import { cn } from "@/lib/utils";
 import type { Anomaly, AnomalyStatus } from "./audit/types";
@@ -32,6 +38,10 @@ export default function IADirectorPage() {
   const executeAction = useExecuteAction();
   const changeStatus = useChangeAnomalyStatus();
 
+  // New features
+  const actionPlan = useActionPlan();
+  const predictiveAnalysis = usePredictiveAnalysis();
+
   const [dashboardSelectedAnomaly, setDashboardSelectedAnomaly] = useState<Anomaly | null>(null);
 
   const prospectMap = new Map((prospects || []).map(p => [p.id, p]));
@@ -46,6 +56,15 @@ export default function IADirectorPage() {
 
   const recommendations = generateRecommendations(scorings || [], latestScore || null);
 
+  // Use deep audit results if available, fallback to quick
+  const currentAudit = deepAudit.result || quickAudit.result;
+  const anomalies = currentAudit?.anomalies || [];
+  const totalImpact = currentAudit?.total_impact_euros || 0;
+  const criticalCount = currentAudit?.scores_summary.critical || 0;
+
+  // Real-time alerts
+  useDirectorAlerts(anomalies, true);
+
   // Auto-run quick audit on mount
   useEffect(() => {
     if (!quickAudit.result && !quickAudit.isRunning) {
@@ -59,7 +78,6 @@ export default function IADirectorPage() {
     quickAudit.run(actionLogs || undefined);
   };
 
-  // Handle anomaly status change locally
   const handleAnomalyStatusChange = useCallback((anomalyId: string, newStatus: AnomalyStatus) => {
     const currentResult = deepAudit.result || quickAudit.result;
     if (!currentResult) return;
@@ -67,7 +85,6 @@ export default function IADirectorPage() {
     const updatedAnomalies = currentResult.anomalies.map(a => 
       a.id === anomalyId ? { ...a, status: newStatus } : a
     );
-    
     const updatedResult = { ...currentResult, anomalies: updatedAnomalies };
     
     if (deepAudit.result) {
@@ -77,13 +94,24 @@ export default function IADirectorPage() {
     }
   }, [deepAudit, quickAudit]);
 
-  const isRunning = runScoring.isPending || runCentreScoring.isPending;
+  const handleGenerateActionPlan = () => {
+    actionPlan.generate({
+      anomalies: anomalies.slice(0, 10),
+      scorings: (scorings || []).slice(0, 10),
+      latestScore: latestScore || null,
+      projections: null,
+    });
+  };
 
-  // Use deep audit results if available, fallback to quick
-  const currentAudit = deepAudit.result || quickAudit.result;
-  const anomalies = currentAudit?.anomalies || [];
-  const totalImpact = currentAudit?.total_impact_euros || 0;
-  const criticalCount = currentAudit?.scores_summary.critical || 0;
+  const handlePredictiveAnalysis = () => {
+    predictiveAnalysis.analyze({
+      scorings: (scorings || []).slice(0, 20),
+      prospects: (prospects || []).slice(0, 20),
+      historique: [],
+    });
+  };
+
+  const isRunning = runScoring.isPending || runCentreScoring.isPending;
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -97,7 +125,7 @@ export default function IADirectorPage() {
             IA Director
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Moteur d'audit stratégique — Détection, impact & actions
+            Moteur d'audit stratégique — Détection, prédiction & actions IA
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -153,10 +181,18 @@ export default function IADirectorPage() {
       )}
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="dashboard" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="action-plan" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Plan d'action IA
+          </TabsTrigger>
+          <TabsTrigger value="predictive" className="gap-2">
+            <Brain className="h-4 w-4" />
+            Prédictif
           </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2">
             <Search className="h-4 w-4" />
@@ -169,7 +205,7 @@ export default function IADirectorPage() {
           </TabsTrigger>
           <TabsTrigger value="actions" className="gap-2">
             <History className="h-4 w-4" />
-            Actions exécutées
+            Historique
           </TabsTrigger>
         </TabsList>
 
@@ -186,7 +222,6 @@ export default function IADirectorPage() {
             onSelectAnomaly={setDashboardSelectedAnomaly}
             onAnomalyStatusChange={(id, status) => handleAnomalyStatusChange(id, status as any)}
           />
-          {/* Dashboard Action Modal */}
           <AnomalyActionModal
             anomaly={dashboardSelectedAnomaly}
             open={!!dashboardSelectedAnomaly}
@@ -206,7 +241,26 @@ export default function IADirectorPage() {
           />
         </TabsContent>
 
-        {/* TAB 2: AUDIT & ANOMALIES */}
+        {/* TAB 2: PLAN D'ACTION IA */}
+        <TabsContent value="action-plan" className="space-y-6">
+          <ActionPlanPanel
+            plan={actionPlan.plan}
+            isGenerating={actionPlan.isGenerating}
+            onGenerate={handleGenerateActionPlan}
+          />
+        </TabsContent>
+
+        {/* TAB 3: ANALYSE PRÉDICTIVE */}
+        <TabsContent value="predictive" className="space-y-6">
+          <PredictiveAnalysisCard
+            analysis={predictiveAnalysis.analysis}
+            isAnalyzing={predictiveAnalysis.isAnalyzing}
+            onAnalyze={handlePredictiveAnalysis}
+            prospectMap={prospectMap}
+          />
+        </TabsContent>
+
+        {/* TAB 4: AUDIT & ANOMALIES */}
         <TabsContent value="audit" className="space-y-6">
           <AuditAnomaliesTab
             anomalies={anomalies}
@@ -215,7 +269,7 @@ export default function IADirectorPage() {
           />
         </TabsContent>
 
-        {/* TAB 3: ACTIONS HISTORY */}
+        {/* TAB 5: ACTIONS HISTORY */}
         <TabsContent value="actions" className="space-y-6">
           <ActionsHistoryTab />
         </TabsContent>
