@@ -83,29 +83,42 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   }, [template, isCreating]);
 
   const handleSave = async () => {
-    if (isCreating) {
-      if (!currentCentre?.id) {
-        toast.error("Aucun centre sélectionné");
-        return;
+    if (!body.trim()) {
+      toast.warning("Ajoutez du contenu dans l'éditeur avant d'enregistrer");
+      return;
+    }
+    try {
+      if (isCreating) {
+        if (!currentCentre?.id) {
+          toast.error("Aucun centre sélectionné — impossible d'enregistrer");
+          return;
+        }
+        const result = await createTemplate.mutateAsync({
+          name,
+          description: description || null,
+          type: type as any,
+          format: format as any,
+          template_body: body,
+          scenario: scenario || null,
+          centre_id: currentCentre.id,
+        });
+        if (result) {
+          console.log("[TemplateStudio] Template créé:", result.id);
+          onBack();
+        }
+      } else if (templateId) {
+        await updateTemplate.mutateAsync({
+          id: templateId,
+          name,
+          description: description || null,
+          template_body: body,
+          scenario: scenario || null,
+        });
+        console.log("[TemplateStudio] Template mis à jour:", templateId);
       }
-      const result = await createTemplate.mutateAsync({
-        name,
-        description: description || null,
-        type: type as any,
-        format: format as any,
-        template_body: body,
-        scenario: scenario || null,
-        centre_id: currentCentre.id,
-      });
-      if (result) onBack();
-    } else if (templateId) {
-      await updateTemplate.mutateAsync({
-        id: templateId,
-        name,
-        description: description || null,
-        template_body: body,
-        scenario: scenario || null,
-      });
+    } catch (err: any) {
+      console.error("[TemplateStudio] Erreur sauvegarde:", err);
+      toast.error("Erreur lors de la sauvegarde : " + (err.message || "erreur inconnue"));
     }
   };
 
@@ -170,6 +183,14 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
   const canSave = !!(name.trim() && type && format && body.trim() && (type !== "email" || scenario.trim()));
   const isSaved = !!template && !isCreating;
 
+  // Unsaved changes detection
+  const hasUnsavedChanges = isSaved && (
+    name !== (template?.name || "") ||
+    body !== (template?.template_body || "") ||
+    description !== (template?.description || "") ||
+    scenario !== (template?.scenario || "")
+  );
+
   if (!isCreating && !templateId) {
     return (
       <Card>
@@ -216,6 +237,11 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
                     ✓ Validé {new Date(template.compliance_validated_at).toLocaleDateString("fr-FR")}
                   </Badge>
                 )}
+                {hasUnsavedChanges && (
+                  <Badge variant="outline" className="text-[10px] border-orange-500/30 bg-orange-500/10 text-orange-600">
+                    ● Non enregistré
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -233,7 +259,7 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !canSave} className="gap-2">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Enregistrer
+            {hasUnsavedChanges ? "Enregistrer ●" : "Enregistrer"}
           </Button>
           {isSaved && (
             <Button variant="outline" onClick={() => setGenerateOpen(true)} className="gap-2">
@@ -341,12 +367,20 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack }: Pr
             </CardHeader>
             <CardContent>
               {editorTab === "edit" ? (
-                <Textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="Contenu du template (HTML, Markdown, etc.)..."
-                  className="min-h-[400px] font-mono text-sm"
-                />
+                <div className="space-y-2">
+                  <Textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="Contenu du template (HTML, Markdown, etc.)&#10;&#10;Exemple : &lt;h1&gt;Bonjour {{prenom}} {{nom}}&lt;/h1&gt;"
+                    className="min-h-[400px] font-mono text-sm"
+                  />
+                  {!body.trim() && (
+                    <p className="text-sm text-orange-600 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Ajoutez du contenu dans l'éditeur pour activer l'aperçu et l'enregistrement
+                    </p>
+                  )}
+                </div>
               ) : (
                 <TemplatePreview body={body} />
               )}
