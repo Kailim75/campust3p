@@ -184,6 +184,7 @@ export default function IADirectorPage() {
             recommendations={recommendations}
             anomalies={anomalies}
             onSelectAnomaly={setDashboardSelectedAnomaly}
+            onAnomalyStatusChange={(id, status) => handleAnomalyStatusChange(id, status as any)}
           />
           {/* Dashboard Action Modal */}
           <AnomalyActionModal
