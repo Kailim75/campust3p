@@ -2,6 +2,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { WelcomeStep } from "./steps/WelcomeStep";
 import { CentreStep } from "./steps/CentreStep";
 import { FormationsStep } from "./steps/FormationsStep";
@@ -37,6 +40,7 @@ const STEPS = [
 ];
 
 export function OnboardingWizard() {
+  const { signOut } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({
     nomCentre: "",
@@ -95,6 +99,10 @@ export function OnboardingWizard() {
               <span className="text-sm text-muted-foreground">
                 Étape {currentStep + 1} sur {STEPS.length}
               </span>
+              <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-muted-foreground hover:text-destructive">
+                <LogOut className="h-4 w-4 mr-1" />
+                Déconnexion
+              </Button>
             </div>
             <Progress value={progress} className="h-2" />
             <div className="flex justify-between mt-2">
