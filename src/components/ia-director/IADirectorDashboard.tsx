@@ -15,6 +15,7 @@ import type { Recommendation } from "./recommendationEngine";
 import type { Anomaly } from "./audit/types";
 import FinancialProjectionsCard from "./projections/FinancialProjectionsCard";
 import { useFinancialProjections } from "./projections/useFinancialProjections";
+import InlineActionBar from "./InlineActionBar";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 const scoreConfig = [
@@ -56,6 +57,7 @@ interface Props {
   recommendations: Recommendation[];
   anomalies?: Anomaly[];
   onSelectAnomaly?: (anomaly: Anomaly) => void;
+  onAnomalyStatusChange?: (anomalyId: string, status: "in_progress" | "resolved") => void;
 }
 
 export default function IADirectorDashboard({
@@ -67,6 +69,7 @@ export default function IADirectorDashboard({
   recommendations,
   anomalies = [],
   onSelectAnomaly,
+  onAnomalyStatusChange,
 }: Props) {
   const [viewMode, setViewMode] = useState<"executive" | "analytical">("executive");
   const { data: projectionData, isLoading: projLoading } = useFinancialProjections(scorings);
@@ -158,18 +161,9 @@ export default function IADirectorDashboard({
                       {a.impact_estime_euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
                     </span>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectAnomaly?.(a);
-                    }}
-                  >
-                    <Target className="h-3 w-3" />
-                    Agir
-                  </Button>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <InlineActionBar anomaly={a} compact onStatusChange={onAnomalyStatusChange} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -277,14 +271,27 @@ export default function IADirectorDashboard({
             ) : (
               <div className="space-y-2">
                 {alertesCritiques.slice(0, 5).map((a: any) => (
-                  <div key={a.id} className="p-2.5 rounded-lg bg-destructive/5 border border-destructive/10">
-                    <p className="text-xs font-medium text-foreground">{a.title || a.action_recommandee}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{a.description || a.justification}</p>
-                    {(a.impact_estime_euros > 0) && (
-                      <span className="text-[10px] font-semibold text-destructive mt-1 inline-block">
-                        Impact : {a.impact_estime_euros.toLocaleString("fr-FR")}€
-                      </span>
-                    )}
+                  <div
+                    key={a.id}
+                    className="p-2.5 rounded-lg bg-destructive/5 border border-destructive/10 cursor-pointer hover:border-destructive/30 transition-all"
+                    onClick={() => a.playbooks ? onSelectAnomaly?.(a) : undefined}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground">{a.title || a.action_recommandee}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{a.description || a.justification}</p>
+                        {(a.impact_estime_euros > 0) && (
+                          <span className="text-[10px] font-semibold text-destructive mt-1 inline-block">
+                            Impact : {a.impact_estime_euros.toLocaleString("fr-FR")}€
+                          </span>
+                        )}
+                      </div>
+                      {a.playbooks && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <InlineActionBar anomaly={a} compact onStatusChange={onAnomalyStatusChange} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

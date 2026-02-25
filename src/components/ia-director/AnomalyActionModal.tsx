@@ -26,10 +26,11 @@ import {
   ExternalLink, Send, Calendar, Archive, Eye, EyeOff,
   CheckCircle2, Clock, AlertTriangle, XCircle, Info,
   ArrowRight, FileText, CreditCard, Target, Phone,
-  User, Hash, Euro,
+  User, Hash, Euro, MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuickAction, type QuickActionType } from "@/hooks/useRealActionExecution";
 import type { Anomaly, AnomalyStatus } from "./audit/types";
 
 // ── Context-specific actions per anomaly category ──
@@ -77,6 +78,18 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
             whatItDoes: "Une campagne de relance en 3 étapes (email J+0, SMS J+3, email J+7) sera planifiée pour les prospects sélectionnés. Vous pourrez annuler à tout moment.",
             icon: Calendar, actionType: "schedule_campaign", confirmation_required: true,
           },
+          {
+            id: "whatsapp_relance", label: "Relance WhatsApp",
+            description: "Ouvrir WhatsApp avec un message pré-rempli",
+            whatItDoes: `WhatsApp sera ouvert avec un message de relance personnalisé pour le premier contact avec numéro de téléphone. Idéal pour les prospects qui ne répondent pas aux emails (taux de lecture SMS/WhatsApp : 98%).`,
+            icon: MessageCircle, actionType: "open_whatsapp", confirmation_required: false,
+          },
+          {
+            id: "log_phone_calls", label: "Créer rappels d'appel",
+            description: "Planifier des appels de suivi",
+            whatItDoes: `Un rappel d'appel sera créé dans l'historique de chaque contact concerné. Vous retrouverez ces tâches dans le suivi de chaque fiche contact.`,
+            icon: Phone, actionType: "log_phone_call", confirmation_required: false,
+          },
         );
       }
       if (anomaly.id.includes("triple-relance")) {
@@ -123,6 +136,18 @@ function getContextActions(anomaly: Anomaly): ContextAction[] {
           description: "Ajouter une tâche de relance comptable",
           whatItDoes: "Une tâche sera ajoutée à votre suivi pour rappeler de vérifier l'état des paiements. Pas de communication envoyée aux stagiaires.",
           icon: ListTodo, actionType: "create_task", confirmation_required: false,
+        },
+        {
+          id: "whatsapp_payment", label: "Relance WhatsApp",
+          description: "Contacter par WhatsApp pour le paiement",
+          whatItDoes: "WhatsApp sera ouvert avec un message de rappel de paiement pour le premier contact concerné.",
+          icon: MessageCircle, actionType: "open_whatsapp", confirmation_required: false,
+        },
+        {
+          id: "log_payment_call", label: "Planifier appels",
+          description: "Créer des rappels d'appel pour relance",
+          whatItDoes: `Des rappels d'appel seront créés pour les ${anomaly.affected_count} stagiaire(s) avec paiement en retard.`,
+          icon: Phone, actionType: "log_phone_call", confirmation_required: false,
         },
       );
       break;
@@ -354,6 +379,7 @@ export default function AnomalyActionModal({
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
   const navigate = useNavigate();
   const { records, loading: recordsLoading } = useAffectedRecordDetails(anomaly);
+  const quickAction = useQuickAction();
 
   if (!anomaly) return null;
 
@@ -363,44 +389,49 @@ export default function AnomalyActionModal({
   const StatusIcon = sCfg.icon;
   const sevCfg = severityLabels[anomaly.severity] || severityLabels.medium;
 
-  const handleExecute = (action: ContextAction) => {
-    // Navigation actions → use query params to navigate to the correct section
-    if (action.navigateTo) {
-      onExecuteAction(
-        anomaly.id,
-        action.actionType,
-        { label: action.label, description: action.description, affected_count: anomaly.affected_count, navigated_to: action.navigateTo },
-        anomaly.affected_records,
-        anomaly.title
-      );
-      onOpenChange(false);
-      // Use search params for SPA internal navigation
-      navigate(`/?section=${action.navigateTo}`);
-      return;
-    }
+  const executeRealAction = async (action: ContextAction) => {
+    // Map modal action types to real execution types
+    const typeMap: Record<string, QuickActionType> = {
+      open_filtered_view: "open_filtered_view",
+      create_task: "create_tasks",
+      send_email: "send_email",
+      send_sms: "send_sms",
+      open_whatsapp: "open_whatsapp",
+      log_phone_call: "log_phone_call",
+      schedule_campaign: "send_email",
+      schedule_session_suggestion: "create_tasks",
+      bulk_update: "create_tasks",
+    };
+    
+    const realType = typeMap[action.actionType] || "create_tasks";
+    
+    await quickAction.mutateAsync({
+      anomaly,
+      actionType: realType,
+      navigateFn: (path) => { onOpenChange(false); navigate(path); },
+    });
 
+    // Also log via the legacy system
+    onExecuteAction(
+      anomaly.id,
+      action.actionType,
+      { label: action.label, description: action.description, affected_count: anomaly.affected_count, real_execution: true },
+      anomaly.affected_records,
+      anomaly.title
+    );
+  };
+
+  const handleExecute = (action: ContextAction) => {
     if (action.confirmation_required) {
       setConfirmAction(action);
     } else {
-      onExecuteAction(
-        anomaly.id,
-        action.actionType,
-        { label: action.label, description: action.description, affected_count: anomaly.affected_count },
-        anomaly.affected_records,
-        anomaly.title
-      );
+      executeRealAction(action);
     }
   };
 
   const handleConfirm = () => {
     if (!confirmAction) return;
-    onExecuteAction(
-      anomaly.id,
-      confirmAction.actionType,
-      { label: confirmAction.label, description: confirmAction.description, affected_count: anomaly.affected_count },
-      anomaly.affected_records,
-      anomaly.title
-    );
+    executeRealAction(confirmAction);
     setConfirmAction(null);
   };
 
