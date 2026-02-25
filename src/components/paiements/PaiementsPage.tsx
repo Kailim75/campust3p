@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -35,7 +35,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureWithDetails } from "@/hooks/useFactures";
+import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureWithDetails, useBulkEmitFactures } from "@/hooks/useFactures";
 import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
@@ -77,6 +77,19 @@ export function PaiementsPage() {
 
   const { data: factures = [], isLoading } = useFactures();
   const { data: stats } = useFacturesStats();
+  const bulkEmit = useBulkEmitFactures();
+
+  const brouillonCount = factures.filter(f => f.statut === "brouillon").length;
+
+  const handleBulkEmit = () => {
+    const brouillons = factures.filter(f => f.statut === "brouillon");
+    if (brouillons.length === 0) {
+      toast.info("Aucune facture brouillon à émettre");
+      return;
+    }
+    if (!confirm(`Émettre ${brouillons.length} facture(s) brouillon ? Cette action est irréversible.`)) return;
+    bulkEmit.mutate(brouillons.map(f => f.id));
+  };
 
   // Filtered factures
   const filteredFactures = useMemo(() => {
@@ -426,6 +439,20 @@ export function PaiementsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Bulk emit brouillons */}
+            {brouillonCount > 0 && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-9"
+                onClick={handleBulkEmit}
+                disabled={bulkEmit.isPending}
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                {bulkEmit.isPending ? "Émission..." : `Émettre ${brouillonCount} brouillon${brouillonCount > 1 ? "s" : ""}`}
+              </Button>
+            )}
 
             {/* Results count */}
             <div className="ml-auto text-sm text-muted-foreground">

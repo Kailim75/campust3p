@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Types for factures (manually defined since types.ts hasn't updated yet)
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -261,6 +262,36 @@ export function useDeleteFacture() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+    },
+  });
+}
+
+// Bulk emit draft factures
+export function useBulkEmitFactures() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const now = new Date().toISOString().split("T")[0];
+      const results = [];
+      for (const id of ids) {
+        const { data, error } = await supabase
+          .from("factures")
+          .update({ statut: "emise" as any, date_emission: now })
+          .eq("id", id)
+          .eq("statut", "brouillon" as any)
+          .select("id")
+          .single();
+        if (!error && data) results.push(data);
+      }
+      return results;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      toast.success(`${data.length} facture(s) émise(s) avec succès`);
+    },
+    onError: () => {
+      toast.error("Erreur lors de l'émission des factures");
     },
   });
 }
