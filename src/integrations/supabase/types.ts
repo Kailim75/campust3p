@@ -6462,7 +6462,7 @@ export type Database = {
         | "Formation continue Taxi"
         | "Formation continue VTC"
         | "Mobilité Taxi"
-      mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf"
+      mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf" | "alma"
       mode_versement: "especes" | "cb" | "virement" | "alma" | "cpf"
       niveau_conduite: "debutant" | "intermediaire" | "avance" | "pret_examen"
       partner_category:
@@ -6750,7 +6750,7 @@ export const Constants = {
         "Formation continue VTC",
         "Mobilité Taxi",
       ],
-      mode_paiement: ["cb", "virement", "cheque", "especes", "cpf"],
+      mode_paiement: ["cb", "virement", "cheque", "especes", "cpf", "alma"],
       mode_versement: ["especes", "cb", "virement", "alma", "cpf"],
       niveau_conduite: ["debutant", "intermediaire", "avance", "pret_examen"],
       partner_category: [
