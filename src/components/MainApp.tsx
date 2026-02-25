@@ -4,14 +4,17 @@ import Index from "@/pages/Index";
 import { Loader2 } from "lucide-react";
 import { LegalDocumentAcceptanceModal } from "@/components/legal/LegalDocumentAcceptanceModal";
 import { useLegalDocuments } from "@/hooks/useLegalDocuments";
+import { useCentres } from "@/hooks/useCentres";
+import { OnboardingWizard } from "@/components/onboarding/wizard/OnboardingWizard";
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
   const { hasPendingDocuments, isLoading: docsLoading } = useLegalDocuments();
+  const { data: centres, isLoading: centresLoading } = useCentres();
   const showLegalModal = hasPendingDocuments;
 
   // Loading state
-  if (isLoading || docsLoading) {
+  if (isLoading || docsLoading || centresLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -34,6 +37,11 @@ export function MainApp() {
         )}
       </>
     );
+  }
+
+  // Onboarding: si l'utilisateur n'a aucun centre, afficher le wizard
+  if (!isSuperAdmin && (!centres || centres.length === 0)) {
+    return <OnboardingWizard />;
   }
 
   // Centre Mode (default)

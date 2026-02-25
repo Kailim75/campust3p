@@ -114,6 +114,12 @@ export function useOnboardingSubmit() {
         }
       }
 
+      // 5. Marquer l'onboarding comme terminé
+      await supabase
+        .from("centres")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("id", centre.id);
+
       toast.success("Centre configuré avec succès !");
       
     } catch (error: any) {
