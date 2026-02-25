@@ -44,39 +44,26 @@ export function usePredictiveAnalysis() {
   }) => {
     setIsAnalyzing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Non authentifié");
+      const { data, error } = await supabase.functions.invoke("ia-predictive-analysis", {
+        body: context,
+      });
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const resp = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/ia-predictive-analysis`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(context),
-        }
-      );
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Erreur serveur" }));
-        if (resp.status === 429) {
+      if (error) {
+        const msg = error.message || "Erreur lors de l'analyse";
+        if (msg.includes("429")) {
           toast.error("Limite de requêtes IA atteinte, réessayez plus tard");
           return null;
         }
-        if (resp.status === 402) {
+        if (msg.includes("402")) {
           toast.error("Crédits IA insuffisants");
           return null;
         }
-        throw new Error(err.error || "Erreur lors de l'analyse");
+        throw new Error(msg);
       }
 
-      const result = await resp.json();
-      setAnalysis(result);
+      setAnalysis(data);
       toast.success("Analyse prédictive terminée");
-      return result;
+      return data;
     } catch (e) {
       console.error("Predictive analysis error:", e);
       toast.error(e instanceof Error ? e.message : "Erreur inconnue");
