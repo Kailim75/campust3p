@@ -55,6 +55,7 @@ interface Props {
   chartData: { date: string; global: number; sante: number; commercial: number; financier: number }[];
   recommendations: Recommendation[];
   anomalies?: Anomaly[];
+  onSelectAnomaly?: (anomaly: Anomaly) => void;
 }
 
 export default function IADirectorDashboard({
@@ -65,6 +66,7 @@ export default function IADirectorDashboard({
   chartData,
   recommendations,
   anomalies = [],
+  onSelectAnomaly,
 }: Props) {
   const [viewMode, setViewMode] = useState<"executive" | "analytical">("executive");
   const { data: projectionData, isLoading: projLoading } = useFinancialProjections(scorings);
@@ -137,7 +139,11 @@ export default function IADirectorDashboard({
           <CardContent>
             <div className="space-y-2">
               {top3Actions.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
+                <div
+                  key={a.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-card border hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group"
+                  onClick={() => onSelectAnomaly?.(a)}
+                >
                   <span className="text-lg font-bold text-primary w-7 text-center">#{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
@@ -152,6 +158,18 @@ export default function IADirectorDashboard({
                       {a.impact_estime_euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€
                     </span>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectAnomaly?.(a);
+                    }}
+                  >
+                    <Target className="h-3 w-3" />
+                    Agir
+                  </Button>
                 </div>
               ))}
             </div>
