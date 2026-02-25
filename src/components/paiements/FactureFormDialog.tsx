@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import {
   Select,
   SelectContent,
@@ -284,7 +284,7 @@ export function FactureFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la facture" : "Nouvelle facture"}
@@ -292,9 +292,8 @@ export function FactureFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-            <ScrollArea className="flex-1 min-h-0 pr-4">
-              <div className="space-y-4 pb-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-4">
                 {!isEditing && nextNumero && (
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Numéro de facture</p>
@@ -572,8 +571,7 @@ export function FactureFormDialog({
                     </FormItem>
                   )}
                 />
-              </div>
-            </ScrollArea>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
