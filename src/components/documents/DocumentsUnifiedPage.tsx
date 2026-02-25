@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Loader2, Stamp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,11 +127,24 @@ const mockDocuments: Document[] = [
   { id: "5", stagiaire: "Pierre Bernard", type: "Pièce d'identité", status: "valide", dateExpiration: "20/05/2028", dateUpload: "05/01/2026" },
 ];
 
-type ViewMode = "documents" | "signatures";
+type ViewMode = "documents" | "signatures" | "generated";
 
 export function DocumentsUnifiedPage() {
   const [activeView, setActiveView] = useState<ViewMode>("documents");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Document instances from Template Studio
+  const { data: generatedDocs = [], isLoading: loadingGenerated } = useQuery({
+    queryKey: ["document-instances"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("document_instances")
+        .select("*, template_studio_templates(name, type)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Signatures hooks
   const { data: signatures = [], isLoading: loadingSignatures } = useSignatureRequests();
@@ -232,6 +248,15 @@ export function DocumentsUnifiedPage() {
               {signatureStats.enAttente > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {signatureStats.enAttente}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="generated" className="gap-2">
+              <Stamp className="h-4 w-4" />
+              Générés
+              {generatedDocs.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {generatedDocs.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -454,6 +479,62 @@ export function DocumentsUnifiedPage() {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Generated Documents Tab */}
+        <TabsContent value="generated" className="mt-4 space-y-4">
+          {loadingGenerated ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : generatedDocs.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              <Stamp className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Aucun document généré</p>
+              <p className="text-sm mt-1">Utilisez le Template Studio pour générer des documents</p>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Template</TableHead>
+                    <TableHead>Type d'entité</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Créé le</TableHead>
+                    <TableHead>Détails</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {generatedDocs.map((doc: any) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium">
+                        {doc.template_studio_templates?.name || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {doc.entity_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={doc.status === "generated" ? "default" : "secondary"}>
+                          {doc.status === "generated" ? "Généré" : doc.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(doc.created_at).toLocaleDateString("fr-FR", {
+                          day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+                        })}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {doc.metadata?.entity_label || doc.entity_id?.substring(0, 8)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </Card>
