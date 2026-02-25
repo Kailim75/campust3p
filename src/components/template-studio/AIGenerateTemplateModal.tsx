@@ -121,8 +121,7 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
-          <div className="space-y-4 pr-4">
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
           {/* Config */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -181,49 +180,25 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
               {/* Navigation bar */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentIndex <= 0}
-                    onClick={() => setCurrentIndex((i) => i - 1)}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentIndex <= 0} onClick={() => setCurrentIndex((i) => i - 1)}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Badge variant="secondary" className="text-xs px-3">
                     Variation {currentIndex + 1} / {variations.length}
                   </Badge>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentIndex >= variations.length - 1}
-                    onClick={() => setCurrentIndex((i) => i + 1)}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={currentIndex >= variations.length - 1} onClick={() => setCurrentIndex((i) => i + 1)}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDeleteVariation}
-                    className="gap-1 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Supprimer
+                  <Button variant="ghost" size="sm" onClick={handleDeleteVariation} className="gap-1 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" /> Supprimer
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    navigator.clipboard.writeText(currentHtml);
-                    toast.success("HTML copié !");
-                  }} className="gap-1.5">
-                    <Copy className="h-3.5 w-3.5" />
-                    Copier
+                  <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(currentHtml); toast.success("HTML copié !"); }} className="gap-1.5">
+                    <Copy className="h-3.5 w-3.5" /> Copier
                   </Button>
                   <Button size="sm" onClick={handleUse} className="gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Valider cette variation
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Valider cette variation
                   </Button>
                 </div>
               </div>
@@ -265,8 +240,7 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
               </div>
             </div>
           )}
-          </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
