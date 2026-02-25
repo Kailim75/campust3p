@@ -121,7 +121,8 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto space-y-4">
+        <ScrollArea className="flex-1 max-h-[calc(90vh-120px)]">
+          <div className="space-y-4 pr-4">
           {/* Config */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -248,25 +249,24 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
               )}
 
               {/* Preview */}
-              <ScrollArea className="max-h-[400px]">
-                <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
-                  <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      Aperçu — Variation {currentIndex + 1}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {AI_DOCUMENT_TYPES.find(t => t.value === documentType)?.label}
-                    </span>
-                  </div>
-                  <div
-                    className="p-6 prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentHtml) }}
-                  />
+              <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
+                <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                    Aperçu — Variation {currentIndex + 1}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {AI_DOCUMENT_TYPES.find(t => t.value === documentType)?.label}
+                  </span>
                 </div>
-              </ScrollArea>
+                <div
+                  className="p-6 prose prose-sm max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentHtml) }}
+                />
+              </div>
             </div>
           )}
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
