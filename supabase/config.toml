@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.centre-scoring]
 verify_jwt = false
+
+[functions.generate-template-ai]
+verify_jwt = false

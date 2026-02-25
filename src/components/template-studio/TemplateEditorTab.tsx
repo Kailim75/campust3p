@@ -39,9 +39,11 @@ interface Props {
   isCreating: boolean;
   onBack: () => void;
   onGenerate?: (templateId?: string) => void;
+  aiPrefilledBody?: string | null;
+  aiPrefilledType?: string | null;
 }
 
-export default function TemplateEditorTab({ templateId, isCreating, onBack, onGenerate }: Props) {
+export default function TemplateEditorTab({ templateId, isCreating, onBack, onGenerate, aiPrefilledBody, aiPrefilledType }: Props) {
   const { data: template, isLoading } = useStudioTemplate(templateId);
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -73,15 +75,24 @@ export default function TemplateEditorTab({ templateId, isCreating, onBack, onGe
         setComplianceReport(runComplianceCheck(template.template_body, template.type));
       }
     } else if (isCreating) {
-      setName("");
-      setDescription("");
-      setType("autre");
+      // If AI prefilled data is available, use it
+      if (aiPrefilledBody) {
+        setBody(aiPrefilledBody);
+        setType(aiPrefilledType || "autre");
+        setName(TEMPLATE_TYPES.find(t => t.value === aiPrefilledType)?.label || "Template IA");
+        setDescription("Généré par IA — personnalisez avant publication");
+        setEditorTab("preview"); // Show preview immediately
+      } else {
+        setName("");
+        setDescription("");
+        setType("autre");
+        setBody("");
+      }
       setFormat("html");
       setScenario("");
-      setBody("");
       setComplianceReport(null);
     }
-  }, [template, isCreating]);
+  }, [template, isCreating, aiPrefilledBody, aiPrefilledType]);
 
   const handleSave = async () => {
     if (!body.trim()) {
