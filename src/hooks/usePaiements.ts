@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type ModePaiement = "cb" | "virement" | "cheque" | "especes" | "cpf";
+export type ModePaiement = "cb" | "virement" | "cheque" | "especes" | "cpf" | "alma";
 
 export interface Paiement {
   id: string;
