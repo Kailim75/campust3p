@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { InstallPWA } from "./components/pwa/InstallPWA";
 import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
+import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
 import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingButton";
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { CentreProvider } from "@/contexts/CentreContext";
@@ -116,6 +117,7 @@ const App = () => (
             </Suspense>
             <InstallPWA />
             <OfflineIndicator />
+            <ReloadPrompt />
             <AIAssistantFloatingButton />
           </BrowserRouter>
         </AppErrorBoundary>

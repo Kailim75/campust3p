@@ -14,8 +14,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "robots.txt"],
+      selfDestroying: false,
       manifest: {
         name: "T3P Campus CRM",
         short_name: "T3P CRM",
@@ -47,6 +48,8 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MiB
         navigateFallbackDenylist: [/^\/api/, /^\/supabase/],
