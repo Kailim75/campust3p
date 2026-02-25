@@ -34,7 +34,7 @@ import { format } from "date-fns";
 const formSchema = z.object({
   montant: z.coerce.number().min(0.01, "Le montant doit être supérieur à 0"),
   date_paiement: z.string().min(1, "La date est requise"),
-  mode_paiement: z.enum(["cb", "virement", "cheque", "especes", "cpf"]),
+  mode_paiement: z.enum(["cb", "virement", "cheque", "especes", "cpf", "alma"]),
   reference: z.string().optional(),
   commentaires: z.string().optional(),
 });
@@ -54,6 +54,7 @@ const modeOptions: { value: ModePaiement; label: string }[] = [
   { value: "cheque", label: "Chèque" },
   { value: "especes", label: "Espèces" },
   { value: "cpf", label: "CPF" },
+  { value: "alma", label: "Alma (3x/4x)" },
 ];
 
 export function PaiementFormDialog({

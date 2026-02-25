@@ -35,6 +35,7 @@ import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { generateFacturePDF } from "@/lib/pdf-generator";
+import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
@@ -78,6 +79,7 @@ const modeIcons: Record<ModePaiement, React.ReactNode> = {
   cheque: <FileText className="h-4 w-4" />,
   especes: <Banknote className="h-4 w-4" />,
   cpf: <BookOpen className="h-4 w-4" />,
+  alma: <CreditCard className="h-4 w-4" />,
 };
 
 const modeLabels: Record<ModePaiement, string> = {
@@ -86,6 +88,7 @@ const modeLabels: Record<ModePaiement, string> = {
   cheque: "Chèque",
   especes: "Espèces",
   cpf: "CPF",
+  alma: "Alma (3x/4x)",
 };
 
 export function FactureDetailSheet({
@@ -288,6 +291,22 @@ export function FactureDetailSheet({
                     <p className="text-sm text-muted-foreground mb-1">Commentaires</p>
                     <p className="text-sm">{facture.commentaires}</p>
                   </div>
+                )}
+
+                {/* Alma Payment Section */}
+                {montantRestant > 0 && facture.contact && (
+                  <>
+                    <Separator />
+                    <AlmaPaymentSection
+                      factureId={facture.id}
+                      montantRestant={montantRestant}
+                      customerFirstName={facture.contact.prenom}
+                      customerLastName={facture.contact.nom}
+                      customerEmail={facture.contact.email || ""}
+                      customerPhone={facture.contact.telephone || undefined}
+                      numeroFacture={facture.numero_facture}
+                    />
+                  </>
                 )}
 
                 <Separator />

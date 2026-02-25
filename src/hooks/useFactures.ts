@@ -70,40 +70,39 @@ export interface FactureUpdate {
   commentaires?: string | null;
 }
 
-// Fetch all factures with contact and session details
+// Fetch all factures with contact, session details and payment totals in parallel
 export function useFactures() {
   return useQuery({
     queryKey: ["factures"],
     queryFn: async () => {
-      // First fetch factures with contact and session inscription
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select(`
-          *,
-          contact:contacts(id, nom, prenom, email, telephone),
-          session_inscription:session_inscriptions(
-            id,
-            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-          )
-        `)
-        .order("created_at", { ascending: false });
+      // Run both queries in parallel for performance
+      const [facturesRes, paiementsRes] = await Promise.all([
+        supabase
+          .from("factures")
+          .select(`
+            *,
+            contact:contacts(id, nom, prenom, email, telephone),
+            session_inscription:session_inscriptions(
+              id,
+              session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
+            )
+          `)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("paiements")
+          .select("facture_id, montant"),
+      ]);
 
-      if (error) throw error;
+      if (facturesRes.error) throw facturesRes.error;
+      if (paiementsRes.error) throw paiementsRes.error;
 
-      // Fetch all paiements to calculate total paid for each facture
-      const { data: paiements, error: paiementsError } = await supabase
-        .from("paiements")
-        .select("facture_id, montant");
+      // Calculate total paid per facture using a single pass
+      const paiementsMap: Record<string, number> = {};
+      for (const p of paiementsRes.data || []) {
+        paiementsMap[p.facture_id] = (paiementsMap[p.facture_id] || 0) + Number(p.montant);
+      }
 
-      if (paiementsError) throw paiementsError;
-
-      // Calculate total paid per facture
-      const paiementsMap = (paiements || []).reduce((acc, p) => {
-        acc[p.facture_id] = (acc[p.facture_id] || 0) + Number(p.montant);
-        return acc;
-      }, {} as Record<string, number>);
-
-      return (factures || []).map((f) => ({
+      return (facturesRes.data || []).map((f) => ({
         ...f,
         total_paye: paiementsMap[f.id] || 0,
       })) as FactureWithDetails[];
@@ -266,28 +265,26 @@ export function useDeleteFacture() {
   });
 }
 
-// Stats for dashboard
+// Stats for dashboard - derive from useFactures cache when available
 export function useFacturesStats() {
   return useQuery({
     queryKey: ["factures", "stats"],
     queryFn: async () => {
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select("id, montant_total, statut");
+      // Run both queries in parallel
+      const [facturesRes, paiementsRes] = await Promise.all([
+        supabase.from("factures").select("id, montant_total, statut"),
+        supabase.from("paiements").select("montant"),
+      ]);
 
-      if (error) throw error;
+      if (facturesRes.error) throw facturesRes.error;
+      if (paiementsRes.error) throw paiementsRes.error;
 
-      const { data: paiements, error: paiementsError } = await supabase
-        .from("paiements")
-        .select("montant");
+      let total = 0;
+      for (const f of facturesRes.data || []) total += Number(f.montant_total);
+      let paye = 0;
+      for (const p of paiementsRes.data || []) paye += Number(p.montant);
 
-      if (paiementsError) throw paiementsError;
-
-      const total = (factures || []).reduce((acc, f) => acc + Number(f.montant_total), 0);
-      const paye = (paiements || []).reduce((acc, p) => acc + Number(p.montant), 0);
-      const impaye = total - paye;
-
-      return { total, paye, impaye };
+      return { total, paye, impaye: total - paye };
     },
   });
 }
