@@ -6,6 +6,7 @@ import {
   Brain, UserPlus, Zap, Palette,
 } from "lucide-react";
 import { useState } from "react";
+import { useDirectorAlertsStore } from "@/hooks/useDirectorAlerts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -134,6 +135,9 @@ function SidebarContent({
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
                 const showBadge = item.id === "alertes" && highPriorityAlerts > 0;
+                const directorAlerts = useDirectorAlertsStore.getState();
+                const showDirectorBadge = item.id === "ia-director" && (directorAlerts.criticalCount > 0);
+                const badgeCount = showBadge ? highPriorityAlerts : showDirectorBadge ? directorAlerts.criticalCount : 0;
                 
                 return (
                   <button
@@ -143,10 +147,10 @@ function SidebarContent({
                   >
                     <Icon className="h-[17px] w-[17px] flex-shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
-                    {showBadge && (
+                    {(showBadge || showDirectorBadge) && (
                       <span className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold rounded-full text-[9px]"
                         style={{ padding: '1px 5px', right: collapsed ? 2 : 8, top: collapsed ? 2 : 'auto' }}>
-                        {highPriorityAlerts}
+                        {badgeCount}
                       </span>
                     )}
                   </button>

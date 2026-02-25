@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.generate-template-ai]
 verify_jwt = false
+
+[functions.ia-action-plan]
+verify_jwt = false
+
+[functions.ia-predictive-analysis]
+verify_jwt = false
