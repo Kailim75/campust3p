@@ -143,7 +143,7 @@ serve(async (req) => {
   }
 
   try {
-    const { document_type, custom_instructions, centre_info } = await req.json();
+    const { document_type, custom_instructions, centre_info, variation_hint } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -171,6 +171,10 @@ serve(async (req) => {
       ? `\n\nInstructions supplémentaires de l'utilisateur : ${custom_instructions}`
       : "";
 
+    const variationNote = variation_hint
+      ? `\n\nIMPORTANT VARIATION : ${variation_hint} Utilise un style visuel radicalement différent (couleurs, disposition, typographie, bordures, icônes unicode, mise en page).`
+      : "";
+
     const systemPrompt = `Tu es un expert en création de documents professionnels pour les centres de formation professionnelle en France.
 Tu génères exclusivement du HTML avec du CSS inline moderne et élégant.
 
@@ -195,7 +199,7 @@ RÈGLES DE VARIABLES :
 
 IMPORTANT : Retourne UNIQUEMENT le HTML, sans balises \`\`\`html ni explications. Commence directement par <div>.`;
 
-    const userPrompt = `${docConfig.prompt}${centreInfo}${customNote}
+    const userPrompt = `${docConfig.prompt}${centreInfo}${customNote}${variationNote}
 
 Génère le template HTML complet maintenant.`;
 

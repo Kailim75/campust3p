@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, CheckCircle2, Copy } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Sparkles, CheckCircle2, Copy, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useCentreContext } from "@/contexts/CentreContext";
+import { cn } from "@/lib/utils";
 
 const AI_DOCUMENT_TYPES = [
   { value: "programme", label: "Programme de formation" },
@@ -35,13 +38,15 @@ interface Props {
 export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTemplate }: Props) {
   const [documentType, setDocumentType] = useState("programme");
   const [customInstructions, setCustomInstructions] = useState("");
-  const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const [variations, setVariations] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const { currentCentre } = useCentreContext();
 
+  const currentHtml = variations.length > 0 ? variations[currentIndex] : null;
+
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setGeneratedHtml(null);
     try {
       const { data, error } = await supabase.functions.invoke("generate-template-ai", {
         body: {
@@ -53,14 +58,18 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
             nda: currentCentre.nda,
             adresse: currentCentre.adresse_complete,
           } : undefined,
+          variation_hint: variations.length > 0
+            ? `Proposez un design DIFFÉRENT des ${variations.length} version(s) précédente(s). Variez la mise en page, les couleurs, la structure et le style typographique.`
+            : undefined,
         },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setGeneratedHtml(data.html);
-      toast.success("Template généré avec succès !");
+      setVariations((prev) => [...prev, data.html]);
+      setCurrentIndex(variations.length); // point to new one
+      toast.success(`Variation ${variations.length + 1} générée !`);
     } catch (err: any) {
       console.error("[AI Template] Error:", err);
       toast.error("Erreur de génération : " + (err.message || "inconnue"));
@@ -70,18 +79,33 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
   };
 
   const handleUse = () => {
-    if (generatedHtml) {
-      onUseTemplate(generatedHtml, documentType);
+    if (currentHtml) {
+      onUseTemplate(currentHtml, documentType);
       onOpenChange(false);
-      setGeneratedHtml(null);
-      setCustomInstructions("");
+      resetState();
     }
+  };
+
+  const handleDeleteVariation = () => {
+    if (variations.length <= 1) {
+      setVariations([]);
+      setCurrentIndex(0);
+      return;
+    }
+    const newVariations = variations.filter((_, i) => i !== currentIndex);
+    setVariations(newVariations);
+    setCurrentIndex(Math.min(currentIndex, newVariations.length - 1));
+  };
+
+  const resetState = () => {
+    setVariations([]);
+    setCurrentIndex(0);
+    setCustomInstructions("");
   };
 
   const handleClose = () => {
     onOpenChange(false);
-    setGeneratedHtml(null);
-    setCustomInstructions("");
+    resetState();
   };
 
   return (
@@ -93,7 +117,7 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
             Générer un template avec l'IA
           </DialogTitle>
           <DialogDescription>
-            L'IA crée un template professionnel, conforme Qualiopi & DREETS, avec un design moderne prêt à l'emploi.
+            Générez plusieurs variations et choisissez celle qui vous convient le mieux.
           </DialogDescription>
         </DialogHeader>
 
@@ -102,7 +126,7 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Type de document</Label>
-              <Select value={documentType} onValueChange={setDocumentType}>
+              <Select value={documentType} onValueChange={(v) => { setDocumentType(v); resetState(); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {AI_DOCUMENT_TYPES.map((t) => (
@@ -116,59 +140,130 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
               <Textarea
                 value={customInstructions}
                 onChange={(e) => setCustomInstructions(e.target.value)}
-                placeholder="Ex: Ajouter une section sur les conditions d'annulation..."
+                placeholder="Ex: Style épuré et moderne, couleurs bleu marine..."
                 className="h-[72px]"
               />
             </div>
           </div>
 
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="w-full gap-2"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Génération en cours... (10-20s)
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Générer le template
-              </>
-            )}
-          </Button>
+          {/* Generate / Regenerate button */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="flex-1 gap-2"
+              size="lg"
+              variant={variations.length > 0 ? "outline" : "default"}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Génération en cours...
+                </>
+              ) : variations.length > 0 ? (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Générer une nouvelle variation
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Générer le template
+                </>
+              )}
+            </Button>
+          </div>
 
-          {/* Preview */}
-          {generatedHtml && (
+          {/* Variations navigator + preview */}
+          {currentHtml && (
             <div className="space-y-3">
+              {/* Navigation bar */}
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Aperçu du template généré
-                </h3>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentIndex <= 0}
+                    onClick={() => setCurrentIndex((i) => i - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Badge variant="secondary" className="text-xs px-3">
+                    Variation {currentIndex + 1} / {variations.length}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentIndex >= variations.length - 1}
+                    onClick={() => setCurrentIndex((i) => i + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeleteVariation}
+                    className="gap-1 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Supprimer
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => {
-                    navigator.clipboard.writeText(generatedHtml);
+                    navigator.clipboard.writeText(currentHtml);
                     toast.success("HTML copié !");
                   }} className="gap-1.5">
                     <Copy className="h-3.5 w-3.5" />
-                    Copier HTML
+                    Copier
                   </Button>
                   <Button size="sm" onClick={handleUse} className="gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Utiliser ce template
+                    Valider cette variation
                   </Button>
                 </div>
               </div>
-              <div className="border rounded-lg overflow-hidden bg-white">
-                <div
-                  className="p-6 prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(generatedHtml) }}
-                />
-              </div>
+
+              {/* Variation thumbnails */}
+              {variations.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {variations.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={cn(
+                        "flex-shrink-0 w-16 h-16 rounded-md border-2 flex items-center justify-center text-xs font-medium transition-all",
+                        idx === currentIndex
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50"
+                      )}
+                    >
+                      V{idx + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Preview */}
+              <ScrollArea className="max-h-[400px]">
+                <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
+                  <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Aperçu — Variation {currentIndex + 1}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {AI_DOCUMENT_TYPES.find(t => t.value === documentType)?.label}
+                    </span>
+                  </div>
+                  <div
+                    className="p-6 prose prose-sm max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentHtml) }}
+                  />
+                </div>
+              </ScrollArea>
             </div>
           )}
         </div>
