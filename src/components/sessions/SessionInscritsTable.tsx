@@ -778,7 +778,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                               onClick={() => {
                                 const current = examResults[inscrit.contact_id]?.theorie;
                                 const next = current === null ? 'admis' : current === 'admis' ? 'ajourne' : null;
-                                setExamResult({ contactId: inscrit.contact_id, type: 'theorie', value: next });
+                                setExamResult({ contactId: inscrit.contact_id, type: 'theorie', value: next, formationType: inscrit.contact?.formation || session?.formation_type || 'VTC' });
                               }}
                             >
                               {(() => {
@@ -808,7 +808,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                               onClick={() => {
                                 const current = examResults[inscrit.contact_id]?.pratique;
                                 const next = current === null ? 'admis' : current === 'admis' ? 'ajourne' : null;
-                                setExamResult({ contactId: inscrit.contact_id, type: 'pratique', value: next });
+                                setExamResult({ contactId: inscrit.contact_id, type: 'pratique', value: next, formationType: inscrit.contact?.formation || session?.formation_type || 'VTC' });
                               }}
                             >
                               {(() => {
