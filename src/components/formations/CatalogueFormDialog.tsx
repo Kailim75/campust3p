@@ -111,7 +111,7 @@ export function CatalogueFormDialog({
       duree_heures: parseInt(dureeHeures) || 0,
       prix_ht: parseFloat(prixHt) || 0,
       tva_percent: 0,
-      remise_percent: parseFloat(remisePercent) || 0,
+      remise_percent: Math.round(parseFloat(remisePercent) || 0),
       actif,
       prerequis: prerequis.trim() || null,
       objectifs: objectifs.trim() || null,
@@ -246,7 +246,7 @@ export function CatalogueFormDialog({
                 type="number"
                 min="0"
                 max="100"
-                step="0.5"
+                step="1"
                 value={remisePercent}
                 onChange={(e) => setRemisePercent(e.target.value)}
               />
