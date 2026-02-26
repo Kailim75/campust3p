@@ -193,7 +193,7 @@ export function ApprenantDetailSheet({ contactId, open, onOpenChange }: Apprenan
                   <DossierTab contactId={contact.id} formation={contact.formation} />
                 </TabsContent>
                 <TabsContent value="formation" className="mt-0">
-                  <FormationTab contactId={contact.id} />
+                  <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
                 </TabsContent>
                 <TabsContent value="examens" className="mt-0">
                   <ExamensTab contactId={contact.id} formation={contact.formation} />
