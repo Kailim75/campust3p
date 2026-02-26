@@ -421,9 +421,12 @@ export function SendDocumentsToContactDialog({
 
       // 4. Send email if requested - send one email per standard document type for PDF generation
       if (sendEmail && hasEmail) {
-        const standardDocTypes = selectedDocuments.filter(d => 
-          ['convocation', 'convention', 'contrat', 'attestation', 'programme', 'reglement'].includes(d)
-        );
+        // When signature is requested, exclude signable docs from PDF attachment emails
+        const signableTypes = ['contrat', 'convention', 'reglement', 'cgv'];
+        const standardDocTypes = selectedDocuments.filter(d => {
+          if (requestSignature && signableTypes.includes(d)) return false;
+          return ['convocation', 'convention', 'contrat', 'attestation', 'programme', 'reglement'].includes(d);
+        });
         const otherDocTypes = [
           ...selectedDocuments.filter(d => !standardDocTypes.includes(d)),
           ...selectedTextTemplates.map(id => `template:${id}`),
