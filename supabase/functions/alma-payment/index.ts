@@ -53,7 +53,7 @@ serve(async (req) => {
           body: JSON.stringify({
             payment: {
               purchase_amount: params.amount, // en centimes
-              installments_count: params.installments || [3, 4],
+              installments_count: params.installments || [1, 2, 3, 4],
               buyer_billing_address: params.billing_address || undefined,
             },
           }),

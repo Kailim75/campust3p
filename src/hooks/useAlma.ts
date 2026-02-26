@@ -59,7 +59,7 @@ export function useAlmaEligibility(amount: number | null, enabled = true) {
       if (!amount || amount <= 0) return null;
       const result = await callAlma("eligibility", {
         amount: Math.round(amount * 100), // convert to cents
-        installments: [3, 4],
+        installments: [1, 2, 3, 4],
       });
       // Parse eligibility response - Alma returns an array of eligibility results
       const plans = Array.isArray(result) ? result : [result];
