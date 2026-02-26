@@ -5,19 +5,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const ALMA_API_URL = Deno.env.get('ALMA_MODE') === 'live'
-  ? 'https://api.getalma.eu/v1'
-  : 'https://api.sandbox.getalma.eu/v1';
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const ALMA_API_KEY = Deno.env.get('ALMA_API_KEY');
-  const almaMode = Deno.env.get('ALMA_MODE') || 'test';
-  console.log('Alma mode:', almaMode);
-  console.log('Alma API key configured:', !!ALMA_API_KEY, 'length:', ALMA_API_KEY?.length, 'prefix:', ALMA_API_KEY?.substring(0, 8));
+  
+  // Detect mode: check ALMA_MODE first, but if it looks like an API key, auto-detect from key prefix
+  let rawMode = Deno.env.get('ALMA_MODE') || 'test';
+  if (rawMode.startsWith('sk_')) {
+    // ALMA_MODE contains the API key by mistake, auto-detect from the key prefix
+    rawMode = rawMode.startsWith('sk_live_') ? 'live' : 'test';
+  }
+  const almaMode = rawMode;
+  
+  const ALMA_API_URL = almaMode === 'live'
+    ? 'https://api.getalma.eu/v1'
+    : 'https://api.sandbox.getalma.eu/v1';
+  
+  console.log('Alma mode:', almaMode, '| API URL:', ALMA_API_URL);
+  console.log('Alma API key configured:', !!ALMA_API_KEY, 'prefix:', ALMA_API_KEY?.substring(0, 8));
   
   if (!ALMA_API_KEY) {
     return new Response(JSON.stringify({ error: 'ALMA_API_KEY not configured' }), {
