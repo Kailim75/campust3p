@@ -1,17 +1,10 @@
 import { useState } from "react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -104,7 +97,7 @@ export function FactureDetailSheet({
   onOpenChange,
   onEdit,
 }: FactureDetailSheetProps) {
-  const isMobile = useIsMobile();
+  
   const [showPaiementForm, setShowPaiementForm] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
@@ -189,7 +182,7 @@ export function FactureDetailSheet({
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : facture ? (
-        <ScrollArea className={cn(isMobile ? "max-h-[75vh]" : "h-[calc(100vh-140px)]", "pr-4")}>
+        <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-6 py-4">
             {/* Status and financing */}
             <div className="flex items-center gap-2">
@@ -538,27 +531,16 @@ export function FactureDetailSheet({
 
   return (
     <>
-      {isMobile ? (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[92vh] overflow-hidden">
-            <DrawerHeader>
-              <DrawerTitle>{header}</DrawerTitle>
-            </DrawerHeader>
-            <div className="overflow-y-auto px-4 pb-4">
-              {content}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-          <SheetContent className="w-full sm:max-w-lg">
-            <SheetHeader>
-              <SheetTitle>{header}</SheetTitle>
-            </SheetHeader>
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[92vh] overflow-hidden">
+          <DrawerHeader>
+            <DrawerTitle>{header}</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto px-4 pb-4">
             {content}
-          </SheetContent>
-        </Sheet>
-      )}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {factureId && (
         <PaiementFormDialog
