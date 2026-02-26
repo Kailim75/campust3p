@@ -153,17 +153,18 @@ export default function SignaturePage() {
 
       const { error: uploadError } = await supabase.storage
         .from("signatures")
-        .upload(fileName, binaryData, { contentType: "image/png" });
+        .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(fileName);
+      // Store the file path (not a public URL since the bucket is private)
+      const signaturePath = fileName;
 
       // Use Security Definer RPC to update signature
       const { data: result, error: rpcError } = await (supabase as any)
         .rpc("sign_document_public", {
           p_signature_id: sigRequest.id,
-          p_signature_url: urlData.publicUrl,
+          p_signature_url: signaturePath,
           p_user_agent: navigator.userAgent,
         });
 
