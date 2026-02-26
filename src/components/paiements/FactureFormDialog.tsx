@@ -199,7 +199,7 @@ export function FactureFormDialog({
     }
   };
 
-  const calculateLigneTotal = (l: LigneFacture) => l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100);
+  const calculateLigneTotal = (l: LigneFacture) => Math.round(l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100));
   const totalMontant = lignes.reduce((acc, l) => acc + calculateLigneTotal(l), 0);
 
   const onSubmit = async (values: FormValues) => {
@@ -435,7 +435,7 @@ export function FactureFormDialog({
                                   type="number"
                                   min="0"
                                   max="100"
-                                  step="0.5"
+                                  step="1"
                                   className="w-16"
                                   value={ligne.remise_percent}
                                   onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
