@@ -435,7 +435,7 @@ export function FactureFormDialog({
                                   type="number"
                                   min="0"
                                   max="100"
-                                  step="1"
+                                  step="any"
                                   className="w-16"
                                   value={ligne.remise_percent}
                                   onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
