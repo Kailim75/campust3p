@@ -117,7 +117,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   
   // Exam results for all inscrits
   const inscritContactIds = inscrits?.map(i => i.contact_id) || [];
-  const { data: examResults = {} } = useInscritsExamResults(inscritContactIds);
+  const { data: examResults = {}, setResult: setExamResult } = useInscritsExamResults(inscritContactIds);
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
@@ -769,23 +769,65 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      {/* Théorie result */}
+                      {/* Théorie result - clickable cycle: null → admis → ajourne → null */}
                       <TableCell className="hidden lg:table-cell text-center">
-                        {(() => {
-                          const r = examResults[inscrit.contact_id]?.theorie;
-                          if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success mx-auto" />;
-                          if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive mx-auto" />;
-                          return <Clock className="h-3.5 w-3.5 text-muted-foreground mx-auto" />;
-                        })()}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="p-1 rounded hover:bg-muted transition-colors mx-auto flex"
+                              onClick={() => {
+                                const current = examResults[inscrit.contact_id]?.theorie;
+                                const next = current === null ? 'admis' : current === 'admis' ? 'ajourne' : null;
+                                setExamResult({ contactId: inscrit.contact_id, type: 'theorie', value: next });
+                              }}
+                            >
+                              {(() => {
+                                const r = examResults[inscrit.contact_id]?.theorie;
+                                if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success" />;
+                                if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive" />;
+                                return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+                              })()}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {(() => {
+                              const r = examResults[inscrit.contact_id]?.theorie;
+                              if (r === 'admis') return 'Théorie : Admis — Cliquer pour Ajourné';
+                              if (r === 'ajourne') return 'Théorie : Ajourné — Cliquer pour réinitialiser';
+                              return 'Théorie : En attente — Cliquer pour Admis';
+                            })()}
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
-                      {/* Pratique result */}
+                      {/* Pratique result - clickable cycle */}
                       <TableCell className="hidden lg:table-cell text-center">
-                        {(() => {
-                          const r = examResults[inscrit.contact_id]?.pratique;
-                          if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success mx-auto" />;
-                          if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive mx-auto" />;
-                          return <Clock className="h-3.5 w-3.5 text-muted-foreground mx-auto" />;
-                        })()}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="p-1 rounded hover:bg-muted transition-colors mx-auto flex"
+                              onClick={() => {
+                                const current = examResults[inscrit.contact_id]?.pratique;
+                                const next = current === null ? 'admis' : current === 'admis' ? 'ajourne' : null;
+                                setExamResult({ contactId: inscrit.contact_id, type: 'pratique', value: next });
+                              }}
+                            >
+                              {(() => {
+                                const r = examResults[inscrit.contact_id]?.pratique;
+                                if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success" />;
+                                if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive" />;
+                                return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+                              })()}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {(() => {
+                              const r = examResults[inscrit.contact_id]?.pratique;
+                              if (r === 'admis') return 'Pratique : Admis — Cliquer pour Ajourné';
+                              if (r === 'ajourne') return 'Pratique : Ajourné — Cliquer pour réinitialiser';
+                              return 'Pratique : En attente — Cliquer pour Admis';
+                            })()}
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {facture ? (
