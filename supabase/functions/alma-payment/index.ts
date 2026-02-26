@@ -15,6 +15,10 @@ serve(async (req) => {
   }
 
   const ALMA_API_KEY = Deno.env.get('ALMA_API_KEY');
+  const almaMode = Deno.env.get('ALMA_MODE') || 'test';
+  console.log('Alma mode:', almaMode);
+  console.log('Alma API key configured:', !!ALMA_API_KEY, 'length:', ALMA_API_KEY?.length, 'prefix:', ALMA_API_KEY?.substring(0, 8));
+  
   if (!ALMA_API_KEY) {
     return new Response(JSON.stringify({ error: 'ALMA_API_KEY not configured' }), {
       status: 500,
