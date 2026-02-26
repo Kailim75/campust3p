@@ -53,8 +53,6 @@ export function HealthScoreCard() {
   };
 
   const config = levelConfig[level];
-  const circumference = 2 * Math.PI * 40;
-  const offset = circumference - (score / 100) * circumference;
 
   return (
     <div className={cn("rounded-xl border bg-card p-6", config.border)}>
@@ -71,26 +69,26 @@ export function HealthScoreCard() {
       <div className="flex items-center gap-8">
         {/* Score circle */}
         <div className="relative flex-shrink-0">
-          <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90">
+          <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
             <circle
-              cx="50" cy="50" r="40"
+              cx="60" cy="60" r="48"
               fill="none"
-              strokeWidth="8"
+              strokeWidth="10"
               className={config.trackColor}
             />
             <circle
-              cx="50" cy="50" r="40"
+              cx="60" cy="60" r="48"
               fill="none"
-              strokeWidth="8"
+              strokeWidth="10"
               strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
+              strokeDasharray={2 * Math.PI * 48}
+              strokeDashoffset={2 * Math.PI * 48 - (score / 100) * 2 * Math.PI * 48}
               className={cn(config.strokeColor, "transition-all duration-1000")}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn("text-2xl font-bold tabular-nums", config.ring)}>{score}</span>
-            <span className="text-[10px] text-muted-foreground">/100</span>
+            <span className={cn("text-3xl font-bold tabular-nums", config.ring)}>{score}</span>
+            <span className="text-xs text-muted-foreground">/100</span>
           </div>
         </div>
 
@@ -116,7 +114,7 @@ export function HealthScoreCard() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conversion</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-foreground">{data?.tauxRemplissage ?? 0}%</p>
+              <p className={cn("text-lg font-bold tabular-nums", (data?.tauxRemplissage ?? 0) < 40 ? "text-destructive" : (data?.tauxRemplissage ?? 0) < 70 ? "text-warning" : "text-foreground")}>{data?.tauxRemplissage ?? 0}%</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Remplissage</p>
             </div>
             <div className="text-center">

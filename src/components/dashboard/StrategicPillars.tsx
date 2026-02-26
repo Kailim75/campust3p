@@ -141,6 +141,22 @@ export function StrategicPillars({ onNavigate }: StrategicPillarsProps) {
             <p className="text-3xl font-bold tabular-nums text-foreground">{formatEuro(m?.caConfirme ?? 0)}</p>
           </div>
 
+          {/* Progress bar: CA confirmé vs potentiel */}
+          {(m?.caPotentiel ?? 0) > 0 && (
+            <div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Confirmé</span>
+                <span>{Math.round(((m?.caConfirme ?? 0) / (m?.caPotentiel ?? 1)) * 100)}% du potentiel</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-muted/50 overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-success transition-all"
+                  style={{ width: `${Math.min(((m?.caConfirme ?? 0) / (m?.caPotentiel ?? 1)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prévisionnel</p>
