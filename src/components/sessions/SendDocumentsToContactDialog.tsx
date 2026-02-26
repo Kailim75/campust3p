@@ -292,7 +292,7 @@ export function SendDocumentsToContactDialog({
         };
 
         if (['convocation', 'convention', 'contrat', 'attestation', 'programme'].includes(docType)) {
-          generateDocument(docType as DocumentType, contactInfo, sessionDataForDoc);
+          // Document generation handled server-side for email; no local download
         }
 
         await createEnvoi.mutateAsync({
@@ -310,7 +310,7 @@ export function SendDocumentsToContactDialog({
         if (!template) continue;
 
         const doc = generatePdfFromTextTemplate(template);
-        doc.save(`${template.nom}-${contact.nom}-${contact.prenom}.pdf`);
+        // No local download — document sent via email only
 
         await createEnvoi.mutateAsync({
           contact_id: contact.id,
@@ -395,26 +395,18 @@ export function SendDocumentsToContactDialog({
             // Process the DOCX with variable replacement
             const processedBlob = await processDocxWithVariables(templateBlob, variableData);
             
-            // Download the processed file
-            const url = URL.createObjectURL(processedBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${template.nom}-${contact.nom}-${contact.prenom}.docx`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            // Upload processed DOCX to storage instead of downloading locally
+            const docxPath = `envois/${contact.id}/${template.nom}-${contact.nom}-${Date.now()}.docx`;
+            await supabase.storage
+              .from('generated-documents')
+              .upload(docxPath, processedBlob, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
           } catch (error) {
             console.error('Erreur traitement DOCX:', error);
             toast.error(`Erreur traitement ${template.nom}`);
             continue;
           }
         } else {
-          // For non-DOCX files (PDF), download directly
-          await downloadTemplateFile(
-            template.file_path, 
-            `${template.nom}-${contact.nom}-${contact.prenom}.${template.type_fichier}`
-          );
+          // Non-DOCX files: no local download, handled via email
         }
 
         await createEnvoi.mutateAsync({
