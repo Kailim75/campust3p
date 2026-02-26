@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
 import { useContacts } from '@/hooks/useContacts';
 import { useSession } from '@/hooks/useSessions';
+import { useInscritsExamResults } from '@/hooks/useInscritsExamResults';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +23,10 @@ import {
   Award,
   Receipt,
   Plus,
-  Edit
+  Edit,
+  CheckCircle2,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import {
   Table,
@@ -110,6 +114,10 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const bulkCreateEnvois = useBulkCreateDocumentEnvois();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
   const { centreFormation } = useCentreFormation();
+  
+  // Exam results for all inscrits
+  const inscritContactIds = inscrits?.map(i => i.contact_id) || [];
+  const { data: examResults = {} } = useInscritsExamResults(inscritContactIds);
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
@@ -716,6 +724,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead>Nom</TableHead>
                 <TableHead className="hidden sm:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">Statut</TableHead>
+                <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
+                <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -758,6 +768,24 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      {/* Théorie result */}
+                      <TableCell className="hidden lg:table-cell text-center">
+                        {(() => {
+                          const r = examResults[inscrit.contact_id]?.theorie;
+                          if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success mx-auto" />;
+                          if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive mx-auto" />;
+                          return <Clock className="h-3.5 w-3.5 text-muted-foreground mx-auto" />;
+                        })()}
+                      </TableCell>
+                      {/* Pratique result */}
+                      <TableCell className="hidden lg:table-cell text-center">
+                        {(() => {
+                          const r = examResults[inscrit.contact_id]?.pratique;
+                          if (r === 'admis') return <CheckCircle2 className="h-4 w-4 text-success mx-auto" />;
+                          if (r === 'ajourne') return <XCircle className="h-4 w-4 text-destructive mx-auto" />;
+                          return <Clock className="h-3.5 w-3.5 text-muted-foreground mx-auto" />;
+                        })()}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {facture ? (
@@ -915,7 +943,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Aucun stagiaire inscrit
                   </TableCell>
                 </TableRow>
