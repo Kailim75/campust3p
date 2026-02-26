@@ -1097,7 +1097,7 @@ export function getPdfAsBase64(doc: jsPDF): string {
 }
 
 // ==================== DOCUMENT TYPE MAPPING ====================
-export type DocumentType = "convocation" | "attestation" | "programme" | "contrat" | "reglement";
+export type DocumentType = "convocation" | "attestation" | "programme" | "contrat" | "convention" | "reglement";
 
 export function generateDocumentPDF(
   documentType: DocumentType,
@@ -1114,6 +1114,8 @@ export function generateDocumentPDF(
     case "programme":
       return generateProgrammePDF(session, company);
     case "contrat":
+      return generateContratFormationPDF(contact, session, company);
+    case "convention":
       return generateContratFormationPDF(contact, session, company);
     case "reglement":
       return generateReglementInterieurPDF(company);
