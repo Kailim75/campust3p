@@ -15,12 +15,12 @@ import {
   logPdfDiagnostic,
   type ValidatedAttachment
 } from "../_shared/pdf-validator.ts";
+import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // ===============================================
 // CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
-// Adresse unique et verrouillée pour TOUS les envois
 // ===============================================
 const EMAIL_CONFIG = {
   FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
@@ -29,7 +29,6 @@ const EMAIL_CONFIG = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  // IMPORTANT: doit inclure tous les headers envoyés par supabase-js (sinon le navigateur bloque en préflight)
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -50,12 +49,10 @@ interface EmailResult {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Authentication check - require valid JWT
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(
@@ -68,7 +65,6 @@ serve(async (req) => {
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   
-  // Verify the JWT token by getting the user
   const authClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } }
   });
@@ -82,10 +78,8 @@ serve(async (req) => {
     );
   }
   
-  // Use service role key for role check (bypasses RLS)
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
   
-  // Check user has admin or staff role
   const { data: userRole, error: roleError } = await supabaseAdmin
     .from('user_roles')
     .select('role')
@@ -99,13 +93,10 @@ serve(async (req) => {
     );
   }
   
-  // Use service role key for database operations after authentication is verified
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
   const results: EmailResult[] = [];
 
   try {
-    // Check if this is a manual email send request
     const body = await req.json().catch(() => null);
     
     // ========================================
@@ -118,9 +109,8 @@ serve(async (req) => {
       const sessionName = body.sessionName || "";
       const sessionInfo = body.sessionInfo || {};
       const customMessage = body.customMessage || "";
-      const generatePdfAttachments = body.generateAttachments !== false; // Default true
+      const generatePdfAttachments = body.generateAttachments !== false;
       
-      // Fetch centre formation data for PDF header
       let centreData: CompanyInfo | null = null;
       try {
         const { data: centreFormation } = await supabase
@@ -143,7 +133,6 @@ serve(async (req) => {
         console.log("Could not fetch centre formation:", e);
       }
       
-      // Default company info if no centre data
       const company: CompanyInfo = centreData || {
         name: "Ecole T3P Montrouge",
         address: "Montrouge",
@@ -155,7 +144,6 @@ serve(async (req) => {
       
       const bulkResults: EmailResult[] = [];
       
-      // Map document type string to PDF type
       const pdfDocTypes: Record<string, DocumentType> = {
         "Convocation": "convocation",
         "convocation": "convocation",
@@ -179,7 +167,6 @@ serve(async (req) => {
         const recipientName = recipient.name || "";
         const subject = `${documentType} - ${sessionName || 'Ecole T3P Montrouge'}`;
         
-        // Fetch full contact data if contactId provided
         let contactData: ContactInfo | null = null;
         if (recipient.contactId) {
           try {
@@ -208,7 +195,6 @@ serve(async (req) => {
           }
         }
         
-        // Fallback contact info from recipient name
         if (!contactData) {
           const nameParts = recipientName.split(" ");
           contactData = {
@@ -218,7 +204,6 @@ serve(async (req) => {
           };
         }
         
-        // Build session info for PDF
         const sessionDataForPdf: SessionInfo = {
           nom: sessionName || "Formation",
           formation_type: sessionInfo.formation_type || "VTC",
@@ -235,8 +220,6 @@ serve(async (req) => {
           formateur: sessionInfo.formateur || undefined,
         };
         
-        // Generate PDF attachment if document type is supported
-        // VALIDATION STRICTE: aucun envoi avec pièce jointe vide
         let validatedAttachments: ValidatedAttachment[] = [];
         let pdfErrors: string[] = [];
         const pdfType = pdfDocTypes[documentType];
@@ -250,10 +233,8 @@ serve(async (req) => {
             
             const filename = `${documentType.replace(/\s+/g, "_")}-${contactData.nom}-${contactData.prenom}.pdf`;
             
-            // Diagnostic complet
             logPdfDiagnostic(`Génération ${pdfType}`, filename, pdfBase64);
             
-            // Validation stricte
             const { attachment, errors } = validateAttachment(filename, pdfBase64);
             
             if (attachment) {
@@ -269,7 +250,6 @@ serve(async (req) => {
           }
         }
         
-        // BLOCAGE: Si pièce jointe requise mais invalide/absente
         if (requiresAttachment) {
           const sendCheck = canSendEmailWithAttachments(validatedAttachments, 1);
           
@@ -297,28 +277,28 @@ serve(async (req) => {
               error: errorMessage,
             });
             
-            // SKIP cet envoi - ne pas continuer avec pièce jointe vide
             continue;
           }
         }
         
-        const htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">📄 ${documentType}</h2>
-            <p>Bonjour${recipientName ? ` ${recipientName}` : ""},</p>
-            <p>Nous vous adressons le document <strong>${documentType}</strong>${sessionName ? ` concernant votre formation <strong>${sessionName}</strong>` : ""}.</p>
-            ${sessionInfo.date_debut ? `<p><strong>Date de début :</strong> ${new Date(sessionInfo.date_debut).toLocaleDateString("fr-FR")}</p>` : ""}
-            ${sessionInfo.date_fin ? `<p><strong>Date de fin :</strong> ${new Date(sessionInfo.date_fin).toLocaleDateString("fr-FR")}</p>` : ""}
-            ${sessionInfo.lieu ? `<p><strong>Lieu :</strong> ${sessionInfo.lieu}</p>` : ""}
-            ${customMessage ? `<p>${customMessage}</p>` : ""}
-            ${validatedAttachments.length > 0 ? `<p><strong>📎 Pièce jointe :</strong> ${validatedAttachments.map(a => `${a.filename} (${Math.round(a.sizeBytes / 1024)} Ko)`).join(", ")}</p>` : ""}
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #888; font-size: 12px;">
-              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
-              📧 montrouge@ecolet3p.fr
-            </p>
-          </div>
-        `;
+        // Build professional email using shared template
+        const htmlContent = buildEmailHtml({
+          title: `📄 ${documentType}`,
+          recipientName,
+          bodyHtml: `
+            <p style="margin: 0 0 12px 0;">Nous vous adressons le document <strong>${documentType}</strong>${sessionName ? ` concernant votre formation <strong>${sessionName}</strong>` : ""}.</p>
+            ${customMessage ? `<p style="margin: 0 0 12px 0;">${customMessage}</p>` : ""}
+            <p style="margin: 0 0 12px 0;">Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+          `,
+          sessionInfo: sessionInfo.date_debut ? {
+            nom: sessionName,
+            formationType: sessionInfo.formation_type,
+            dateDebut: formatDateFr(sessionInfo.date_debut),
+            dateFin: sessionInfo.date_fin ? formatDateFr(sessionInfo.date_fin) : undefined,
+            lieu: sessionInfo.lieu,
+          } : undefined,
+          attachmentNames: validatedAttachments.map(a => `${a.filename} (${Math.round(a.sizeBytes / 1024)} Ko)`),
+        });
         
         try {
           const emailPayload: any = {
@@ -329,19 +309,18 @@ serve(async (req) => {
             reply_to: EMAIL_CONFIG.REPLY_TO,
           };
           
-          // Add validated attachments only
           if (validatedAttachments.length > 0) {
             emailPayload.attachments = validatedAttachments.map(a => ({
               filename: a.filename,
               content: a.content,
+              content_type: "application/pdf",
             }));
           }
           
           const emailResponse = await resend.emails.send(emailPayload);
           
-          console.log(`[EMAIL-SENT] ${recipient.email}: ${emailResponse.data?.id} (${validatedAttachments.length} pièce(s) jointe(s), ${validatedAttachments.reduce((sum, a) => sum + a.sizeBytes, 0)} bytes total)`);
+          console.log(`[EMAIL-SENT] ${recipient.email}: ${emailResponse.data?.id}`);
           
-          // Log success with attachment info
           await supabase.from("email_logs").insert({
             type: "document_envoi",
             recipient_email: recipient.email,
@@ -415,38 +394,44 @@ serve(async (req) => {
         );
       }
       
-      let finalHtml = htmlContent;
+      let finalHtml = "";
       
       // Build HTML for document_envoi type
       if (body.type === "document_envoi" && documentTypes.length > 0) {
-        finalHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">📄 Documents envoyés</h2>
-            <p>Bonjour${recipientName ? ` ${recipientName}` : ""},</p>
-            <p>Nous vous adressons les documents suivants :</p>
-            <ul>
-              ${documentTypes.map((doc: string) => `<li>${doc}</li>`).join("")}
+        finalHtml = buildEmailHtml({
+          title: "📄 Documents envoyés",
+          recipientName,
+          bodyHtml: `
+            <p style="margin: 0 0 12px 0;">Nous vous adressons les documents suivants :</p>
+            <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+              ${documentTypes.map((doc: string) => `<li style="margin-bottom: 4px;">${doc}</li>`).join("")}
             </ul>
-            ${body.customMessage ? `<p>${body.customMessage}</p>` : ""}
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #888; font-size: 12px;">
-              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR
-            </p>
-          </div>
-        `;
-      }
-      
-      // Build HTML for prospect_email type
-      if (body.type === "prospect_email" && !finalHtml.includes("<")) {
-        finalHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            ${htmlContent}
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #888; font-size: 12px;">
-              Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR
-            </p>
-          </div>
-        `;
+            ${body.customMessage ? `<p style="margin: 0 0 12px 0;">${body.customMessage}</p>` : ""}
+            <p style="margin: 0;">Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+          `,
+        });
+      } else if (body.type === "prospect_email" && !htmlContent.includes("<")) {
+        // Plain text prospect email → wrap in template
+        finalHtml = buildEmailHtml({
+          title: "✉️ Message",
+          recipientName,
+          bodyHtml: `<p style="margin: 0; white-space: pre-line;">${htmlContent}</p>`,
+        });
+      } else if (body.type === "direct_email" || body.to) {
+        // Direct email with custom HTML → wrap in template
+        finalHtml = buildEmailHtml({
+          title: subject.includes("Relance") ? "💰 Relance paiement" : "✉️ Message",
+          accentColor: subject.includes("Relance") ? "#d97706" : "#1B4D3E",
+          recipientName,
+          showGreeting: false,
+          bodyHtml: htmlContent,
+        });
+      } else {
+        finalHtml = buildEmailHtml({
+          title: "✉️ Message",
+          recipientName,
+          bodyHtml: htmlContent,
+        });
       }
       
       try {
@@ -462,7 +447,8 @@ serve(async (req) => {
         if (body.attachments && Array.isArray(body.attachments) && body.attachments.length > 0) {
           emailPayload.attachments = body.attachments.map((att: any) => ({
             filename: att.filename || "document.pdf",
-            content: att.content, // base64 string
+            content: att.content,
+            content_type: att.content_type || "application/pdf",
           }));
           console.log(`[EMAIL] Adding ${body.attachments.length} attachment(s) to single email`);
         }
@@ -471,7 +457,6 @@ serve(async (req) => {
         
         console.log("Manual email sent successfully:", emailResponse);
         
-        // Log to database
         const { error: logError } = await supabase.from("email_logs").insert({
           type: body.type || "manual",
           recipient_email: recipientEmail,
@@ -490,7 +475,6 @@ serve(async (req) => {
       } catch (emailError: any) {
         console.error("Failed to send manual email:", emailError);
         
-        // Log failed email
         const { error: logError2 } = await supabase.from("email_logs").insert({
           type: body.type || "manual",
           recipient_email: recipientEmail,
@@ -516,7 +500,7 @@ serve(async (req) => {
     today.setHours(0, 0, 0, 0);
     
     // ========================================
-    // 1. RELANCES PAIEMENT J-7 (7 jours avant échéance)
+    // 1. RELANCES PAIEMENT J-7
     // ========================================
     console.log("Checking for invoices due in 7 days...");
     
@@ -548,30 +532,34 @@ serve(async (req) => {
         const emailSubject = `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`;
 
         try {
+          const emailHtml = buildEmailHtml({
+            title: "⏰ Rappel de paiement",
+            accentColor: "#d97706",
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            bodyHtml: `
+              <p style="margin: 0 0 12px 0;">Nous vous rappelons que la facture <strong>${invoice.numero_facture}</strong> 
+                 d'un montant de <strong>${Number(invoice.montant_total).toLocaleString("fr-FR")}€</strong> 
+                 arrive à échéance le <strong>${formatDateFr(invoice.date_echeance!)}</strong>.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+                <tr>
+                  <td style="background-color: #fef3c7; border-left: 4px solid #d97706; border-radius: 6px; padding: 14px 18px;">
+                    <p style="margin: 0; font-weight: 700; color: #92400e;">L'échéance est dans 7 jours.</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 12px 0;">Nous vous remercions de bien vouloir procéder au règlement avant cette date.</p>
+              <p style="margin: 0; color: #888;">Si vous avez déjà effectué le paiement, veuillez ignorer ce message.</p>
+            `,
+          });
+
           const emailResponse = await resend.emails.send({
             from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
             reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #f59e0b;">⏰ Rappel de paiement</h2>
-                <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-                <p>Nous vous rappelons que la facture <strong>${invoice.numero_facture}</strong> 
-                   d'un montant de <strong>${Number(invoice.montant_total).toLocaleString("fr-FR")}€</strong> 
-                   arrive à échéance le <strong>${new Date(invoice.date_echeance!).toLocaleDateString("fr-FR")}</strong>.</p>
-                <p style="color: #f59e0b; font-weight: bold;">L'échéance est dans 7 jours.</p>
-                <p>Nous vous remercions de bien vouloir procéder au règlement avant cette date.</p>
-                <p>Si vous avez déjà effectué le paiement, veuillez ignorer ce message.</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="color: #888; font-size: 12px;">
-                  T3P Formation - Centre de formation Taxi, VTC et VMDTR
-                </p>
-              </div>
-            `,
+            html: emailHtml,
           });
 
-          // Log email to database
           await supabase.from("email_logs").insert({
             type: "payment_reminder_j7",
             recipient_email: contact.email,
@@ -596,7 +584,6 @@ serve(async (req) => {
           });
           console.log(`Payment J-7 reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
         } catch (emailError: any) {
-          // Log failed email
           await supabase.from("email_logs").insert({
             type: "payment_reminder_j7",
             recipient_email: contact.email,
@@ -663,35 +650,35 @@ serve(async (req) => {
           if (!contact?.email) continue;
 
           try {
+            const emailHtml = buildEmailHtml({
+              title: "🎓 Rappel de formation — J-7",
+              accentColor: "#2563eb",
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              bodyHtml: `
+                <p style="margin: 0 0 12px 0;">Nous vous rappelons que vous êtes inscrit(e) à la formation suivante :</p>
+                <h3 style="margin: 18px 0 10px 0; color: #333;">Documents à préparer :</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 4px;">Pièce d'identité en cours de validité</li>
+                  <li style="margin-bottom: 4px;">Permis de conduire</li>
+                  <li style="margin-bottom: 4px;">Photo d'identité (si non fournie)</li>
+                </ul>
+                <p style="margin: 16px 0 0 0;">N'hésitez pas à nous contacter si vous avez des questions.</p>
+              `,
+              sessionInfo: {
+                nom: session.nom,
+                formationType: session.formation_type,
+                dateDebut: formatDateFr(session.date_debut),
+                dateFin: formatDateFr(session.date_fin),
+                lieu: session.lieu || undefined,
+              },
+            });
+
             const emailResponse = await resend.emails.send({
               from: EMAIL_CONFIG.FROM,
               to: [contact.email],
               subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
               reply_to: EMAIL_CONFIG.REPLY_TO,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #2563eb;">Votre formation commence dans 7 jours !</h2>
-                  <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-                  <p>Nous vous rappelons que vous êtes inscrit(e) à la formation suivante :</p>
-                  <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h3 style="margin: 0 0 10px 0; color: #1e40af;">${session.nom}</h3>
-                    <p style="margin: 5px 0;"><strong>Type :</strong> ${session.formation_type}</p>
-                    <p style="margin: 5px 0;"><strong>Du :</strong> ${new Date(session.date_debut).toLocaleDateString("fr-FR")} au ${new Date(session.date_fin).toLocaleDateString("fr-FR")}</p>
-                    ${session.lieu ? `<p style="margin: 5px 0;"><strong>Lieu :</strong> ${session.lieu}</p>` : ""}
-                  </div>
-                  <h3>Documents à préparer :</h3>
-                  <ul>
-                    <li>Pièce d'identité en cours de validité</li>
-                    <li>Permis de conduire</li>
-                    <li>Photo d'identité (si non fournie)</li>
-                  </ul>
-                  <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                  <p style="color: #888; font-size: 12px;">
-                    T3P Formation - Centre de formation Taxi, VTC et VMDTR
-                  </p>
-                </div>
-              `,
+              html: emailHtml,
             });
 
             await supabase.from("email_logs").insert({
@@ -767,35 +754,35 @@ serve(async (req) => {
           if (!contact?.email) continue;
 
           try {
+            const emailHtml = buildEmailHtml({
+              title: "🎓 C'est demain !",
+              accentColor: "#059669",
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              bodyHtml: `
+                <p style="margin: 0 0 12px 0;">Nous vous attendons <strong>demain</strong> pour le début de votre formation :</p>
+                <h3 style="margin: 18px 0 10px 0; color: #333;">Rappel des documents obligatoires :</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 4px;">✅ Pièce d'identité en cours de validité</li>
+                  <li style="margin-bottom: 4px;">✅ Permis de conduire</li>
+                  <li style="margin-bottom: 4px;">✅ De quoi prendre des notes</li>
+                </ul>
+                <p style="margin: 16px 0 0 0; color: #059669; font-weight: bold;">Nous avons hâte de vous accueillir !</p>
+              `,
+              sessionInfo: {
+                nom: session.nom,
+                formationType: session.formation_type,
+                dateDebut: formatDateFr(session.date_debut),
+                lieu: session.lieu || undefined,
+                heureDebut: "9h00 (merci d'arriver 15 minutes avant)",
+              },
+            });
+
             const emailResponse = await resend.emails.send({
               from: EMAIL_CONFIG.FROM,
               to: [contact.email],
               subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
               reply_to: EMAIL_CONFIG.REPLY_TO,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #059669;">🎓 Votre formation commence demain !</h2>
-                  <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-                  <p>Nous vous attendons <strong>demain</strong> pour le début de votre formation :</p>
-                  <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
-                    <h3 style="margin: 0 0 10px 0; color: #047857;">${session.nom}</h3>
-                    <p style="margin: 5px 0;"><strong>📅 Date :</strong> ${new Date(session.date_debut).toLocaleDateString("fr-FR")}</p>
-                    ${session.lieu ? `<p style="margin: 5px 0;"><strong>📍 Lieu :</strong> ${session.lieu}</p>` : ""}
-                    <p style="margin: 5px 0;"><strong>⏰ Heure :</strong> 9h00 (merci d'arriver 15 minutes avant)</p>
-                  </div>
-                  <h3>Rappel des documents obligatoires :</h3>
-                  <ul>
-                    <li>✅ Pièce d'identité en cours de validité</li>
-                    <li>✅ Permis de conduire</li>
-                    <li>✅ De quoi prendre des notes</li>
-                  </ul>
-                  <p style="color: #059669; font-weight: bold;">Nous avons hâte de vous accueillir !</p>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                  <p style="color: #888; font-size: 12px;">
-                    T3P Formation - Centre de formation Taxi, VTC et VMDTR
-                  </p>
-                </div>
-              `,
+              html: emailHtml,
             });
 
             await supabase.from("email_logs").insert({
@@ -860,37 +847,40 @@ serve(async (req) => {
         const emailSubject = `Rappel : Votre examen T3P ${examen.type_formation} dans 7 jours`;
 
         try {
+          const emailHtml = buildEmailHtml({
+            title: "📝 Rappel Examen T3P — J-7",
+            accentColor: "#7c3aed",
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            bodyHtml: `
+              <p style="margin: 0 0 12px 0;">Votre examen T3P approche ! Voici les détails :</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+                <tr>
+                  <td style="background-color: #faf5ff; border-left: 4px solid #7c3aed; border-radius: 6px; padding: 18px 20px;">
+                    <p style="margin: 0 0 6px 0; font-weight: 700; color: #6d28d9;">Examen T3P — ${examen.type_formation}</p>
+                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
+                    ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                    ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Centre :</strong> ${examen.centre_examen}</p>` : ""}
+                    <p style="margin: 0; font-size: 13px; color: #555;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative}</p>
+                  </td>
+                </tr>
+              </table>
+              <h3 style="margin: 18px 0 10px 0; color: #333;">Conseils pour réussir :</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 4px;">📖 Révisez les cours théoriques</li>
+                <li style="margin-bottom: 4px;">🆔 N'oubliez pas votre pièce d'identité</li>
+                <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
+                <li style="margin-bottom: 4px;">💤 Reposez-vous bien la veille</li>
+              </ul>
+              <p style="margin: 16px 0 0 0; color: #7c3aed; font-weight: bold;">Bonne chance pour votre examen !</p>
+            `,
+          });
+
           const emailResponse = await resend.emails.send({
             from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
             reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #7c3aed;">📝 Rappel Examen T3P - J-7</h2>
-                <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-                <p>Votre examen T3P approche ! Voici les détails :</p>
-                <div style="background: #faf5ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed;">
-                  <h3 style="margin: 0 0 10px 0; color: #6d28d9;">Examen T3P - ${examen.type_formation}</h3>
-                  <p style="margin: 5px 0;"><strong>📅 Date :</strong> ${new Date(examen.date_examen).toLocaleDateString("fr-FR")}</p>
-                  ${examen.heure_examen ? `<p style="margin: 5px 0;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
-                  ${examen.centre_examen ? `<p style="margin: 5px 0;"><strong>📍 Centre :</strong> ${examen.centre_examen}</p>` : ""}
-                  <p style="margin: 5px 0;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative}</p>
-                </div>
-                <h3>Conseils pour réussir :</h3>
-                <ul>
-                  <li>📖 Révisez les cours théoriques</li>
-                  <li>🆔 N'oubliez pas votre pièce d'identité</li>
-                  <li>⏰ Arrivez 30 minutes avant l'heure</li>
-                  <li>💤 Reposez-vous bien la veille</li>
-                </ul>
-                <p style="color: #7c3aed; font-weight: bold;">Bonne chance pour votre examen !</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="color: #888; font-size: 12px;">
-                  T3P Formation - Centre de formation Taxi, VTC et VMDTR
-                </p>
-              </div>
-            `,
+            html: emailHtml,
           });
 
           await supabase.from("email_logs").insert({
@@ -973,39 +963,42 @@ serve(async (req) => {
         const emailSubject = `Rappel : Votre examen pratique dans 7 jours`;
 
         try {
+          const emailHtml = buildEmailHtml({
+            title: "🚗 Rappel Examen Pratique — J-7",
+            accentColor: "#0891b2",
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            bodyHtml: `
+              <p style="margin: 0 0 12px 0;">Votre examen pratique approche ! Voici les détails :</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+                <tr>
+                  <td style="background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px; padding: 18px 20px;">
+                    <p style="margin: 0 0 6px 0; font-weight: 700; color: #0e7490;">Examen Pratique — ${examen.type_examen}</p>
+                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
+                    ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                    ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
+                    ${examen.adresse_centre ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
+                    ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
+                    <p style="margin: 0; font-size: 13px; color: #555;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative || 1}</p>
+                  </td>
+                </tr>
+              </table>
+              <h3 style="margin: 18px 0 10px 0; color: #333;">À ne pas oublier :</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 4px;">🆔 Pièce d'identité en cours de validité</li>
+                <li style="margin-bottom: 4px;">🪪 Permis de conduire</li>
+                <li style="margin-bottom: 4px;">📄 Attestation T3P</li>
+                <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
+              </ul>
+              <p style="margin: 16px 0 0 0; color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
+            `,
+          });
+
           const emailResponse = await resend.emails.send({
             from: EMAIL_CONFIG.FROM,
             to: [contact.email],
             subject: emailSubject,
             reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #0891b2;">🚗 Rappel Examen Pratique - J-7</h2>
-                <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-                <p>Votre examen pratique approche ! Voici les détails :</p>
-                <div style="background: #ecfeff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0891b2;">
-                  <h3 style="margin: 0 0 10px 0; color: #0e7490;">Examen Pratique - ${examen.type_examen}</h3>
-                  <p style="margin: 5px 0;"><strong>📅 Date :</strong> ${new Date(examen.date_examen).toLocaleDateString("fr-FR")}</p>
-                  ${examen.heure_examen ? `<p style="margin: 5px 0;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
-                  ${examen.centre_examen ? `<p style="margin: 5px 0;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
-                  ${examen.adresse_centre ? `<p style="margin: 5px 0;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
-                  ${vehicule ? `<p style="margin: 5px 0;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
-                  <p style="margin: 5px 0;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative || 1}</p>
-                </div>
-                <h3>À ne pas oublier :</h3>
-                <ul>
-                  <li>🆔 Pièce d'identité en cours de validité</li>
-                  <li>🪪 Permis de conduire</li>
-                  <li>📄 Attestation T3P</li>
-                  <li>⏰ Arrivez 30 minutes avant l'heure</li>
-                </ul>
-                <p style="color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="color: #888; font-size: 12px;">
-                  T3P Formation - Centre de formation Taxi, VTC et VMDTR
-                </p>
-              </div>
-            `,
+            html: emailHtml,
           });
 
           await supabase.from("email_logs").insert({
