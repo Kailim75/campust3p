@@ -104,6 +104,7 @@ export function FactureDetailSheet({
   onOpenChange,
   onEdit,
 }: FactureDetailSheetProps) {
+  const isMobile = useIsMobile();
   const [showPaiementForm, setShowPaiementForm] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
@@ -114,7 +115,6 @@ export function FactureDetailSheet({
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
   const { generateDocument, getCompanyInfo } = useDocumentGenerator();
-
 
   if (!factureId) return null;
 
@@ -181,7 +181,6 @@ export function FactureDetailSheet({
     generateDocument("facture", contactInfo, sessionInfo, factureInfo);
   };
 
-  const isMobile = useIsMobile();
 
   const content = (
     <>
