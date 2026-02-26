@@ -174,9 +174,16 @@ export function StrategicPillars({ onNavigate }: StrategicPillarsProps) {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Taux de remplissage</p>
-            <p className={cn("text-3xl font-bold tabular-nums", `text-${remplissageLevel}`)}>{s?.tauxRemplissage ?? 0}%</p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Taux de remplissage</p>
+              <p className={cn("text-3xl font-bold tabular-nums", `text-${remplissageLevel}`)}>{s?.tauxRemplissage ?? 0}%</p>
+            </div>
+            {(s?.tauxRemplissage ?? 0) < 40 && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-md bg-destructive/10 text-destructive uppercase tracking-wider">
+                Critique
+              </span>
+            )}
           </div>
 
           <div>
@@ -233,7 +240,9 @@ export function StrategicPillars({ onNavigate }: StrategicPillarsProps) {
 
           <div className="p-2 rounded-lg bg-muted/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Source principale</p>
-            <p className="text-sm font-medium text-foreground">{a?.sourcePrincipale ?? "Non défini"}</p>
+            <p className={cn("text-sm font-medium", a?.sourcePrincipale && a.sourcePrincipale !== "Non défini" ? "text-foreground" : "text-muted-foreground italic")}>
+              {a?.sourcePrincipale && a.sourcePrincipale !== "Non défini" ? a.sourcePrincipale : "Aucune source configurée"}
+            </p>
           </div>
         </div>
       </div>
