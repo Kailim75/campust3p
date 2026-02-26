@@ -441,11 +441,27 @@ export function FactureFormDialog({
                                   onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
                                   placeholder="0"
                                 />
-                                <span className="text-xs text-muted-foreground">% remise</span>
+                                <span className="text-xs text-muted-foreground">%</span>
                               </div>
-                              <span className="ml-auto font-medium text-sm">
-                                {formatPrix(calculateLigneTotal(ligne))}
-                              </span>
+                              <div className="flex items-center gap-1 ml-auto">
+                                <span className="text-xs text-muted-foreground">=</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  className="w-24 font-medium"
+                                  value={Math.round(calculateLigneTotal(ligne))}
+                                  onChange={(e) => {
+                                    const prixFinal = parseFloat(e.target.value) || 0;
+                                    const prixBase = ligne.quantite * ligne.prix_unitaire_ht;
+                                    if (prixBase > 0) {
+                                      const newRemise = Math.round(((prixBase - prixFinal) / prixBase) * 10000) / 100;
+                                      updateLigne(ligne.id, "remise_percent", Math.max(0, Math.min(100, newRemise)));
+                                    }
+                                  }}
+                                />
+                                <span className="text-xs text-muted-foreground">€</span>
+                              </div>
                             </div>
                           </div>
                           <Button
