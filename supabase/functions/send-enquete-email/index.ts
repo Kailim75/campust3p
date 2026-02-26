@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { buildEmailHtml } from "../_shared/email-template.ts";
 
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const resend = new Resend(RESEND_API_KEY);
 
-// ===============================================
-// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
-// Adresse unique et verrouillée pour TOUS les envois
-// ===============================================
 const EMAIL_CONFIG = {
   FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
   REPLY_TO: "montrouge@ecolet3p.fr",
@@ -15,8 +12,7 @@ const EMAIL_CONFIG = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface EnqueteEmailRequest {
@@ -28,7 +24,6 @@ interface EnqueteEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -40,122 +35,67 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!RESEND_API_KEY) {
       return new Response(
-        JSON.stringify({
-          error: {
-            message: "RESEND_API_KEY manquante (configuration email)",
-          },
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: { message: "RESEND_API_KEY manquante (configuration email)" } }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Resend keys normally start with "re_". If not, it's almost certainly the wrong secret.
     if (!RESEND_API_KEY.startsWith("re_")) {
       return new Response(
-        JSON.stringify({
-          error: {
-            message:
-              "RESEND_API_KEY invalide (format inattendu). Générez une nouvelle clé API Resend et remplacez le secret.",
-          },
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: { message: "RESEND_API_KEY invalide (format inattendu)." } }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const { to, name, enqueteUrl, type, sessionName }: EnqueteEmailRequest =
-      await req.json();
+    const { to, name, enqueteUrl, type, sessionName }: EnqueteEmailRequest = await req.json();
 
     console.log(`Sending ${type} enquete email to ${to}`);
 
     const isSatisfaction = type === "satisfaction";
+    const sessionInfo = sessionName ? ` pour la session « ${sessionName} »` : "";
 
     const subject = isSatisfaction
       ? "Donnez-nous votre avis sur votre formation"
       : "Formulaire de réclamation - Centre de formation";
 
-    const sessionInfo = sessionName ? ` pour la session "${sessionName}"` : "";
-
-    const htmlContent = isSatisfaction
-      ? `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="utf-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-         </head>
-         <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-           <div style="background: linear-gradient(135deg, #2563eb, #3b82f6); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-             <h1 style="color: white; margin: 0; font-size: 24px;">Votre avis nous intéresse !</h1>
-           </div>
-
-           <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-             <p style="font-size: 16px;">Bonjour <strong>${name}</strong>,</p>
-
-             <p>Nous espérons que votre formation${sessionInfo} s'est bien déroulée.</p>
-
-             <p>Afin d'améliorer continuellement la qualité de nos formations, nous vous invitons à prendre quelques minutes pour remplir notre questionnaire de satisfaction.</p>
-
-             <div style="text-align: center; margin: 30px 0;">
-               <a href="${enqueteUrl}" style="display: inline-block; background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                 Donner mon avis
-               </a>
-             </div>
-
-             <p style="color: #6b7280; font-size: 14px;">Ce lien est personnel et valable pendant 30 jours.</p>
-
-             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
-
-             <p style="color: #6b7280; font-size: 13px;">
-               Votre retour est précieux et nous aide à améliorer nos formations.<br>
-               Merci pour votre confiance.
-             </p>
-           </div>
-         </body>
-         </html>
-       `
-      : `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="utf-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-         </head>
-         <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-           <div style="background: linear-gradient(135deg, #dc2626, #ef4444); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-             <h1 style="color: white; margin: 0; font-size: 24px;">Formulaire de réclamation</h1>
-           </div>
-
-           <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-             <p style="font-size: 16px;">Bonjour <strong>${name}</strong>,</p>
-
-             <p>Vous avez demandé à effectuer une réclamation concernant nos services.</p>
-
-             <p>Nous prenons très au sérieux vos retours et nous nous engageons à traiter votre demande dans les meilleurs délais.</p>
-
-             <div style="text-align: center; margin: 30px 0;">
-               <a href="${enqueteUrl}" style="display: inline-block; background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                 Remplir ma réclamation
-               </a>
-             </div>
-
-             <p style="color: #6b7280; font-size: 14px;">Ce lien est personnel et valable pendant 30 jours.</p>
-
-             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
-
-             <p style="color: #6b7280; font-size: 13px;">
-               Votre réclamation sera traitée avec la plus grande attention.<br>
-               Merci pour votre confiance.
-             </p>
-           </div>
-         </body>
-         </html>
-       `;
+    const htmlContent = buildEmailHtml({
+      title: isSatisfaction ? "⭐ Enquête de satisfaction" : "📋 Formulaire de réclamation",
+      accentColor: isSatisfaction ? "#2563eb" : "#dc2626",
+      recipientName: name,
+      bodyHtml: isSatisfaction
+        ? `
+          <p style="margin: 0 0 12px 0;">Nous espérons que votre formation${sessionInfo} s'est bien déroulée.</p>
+          <p style="margin: 0 0 12px 0;">Afin d'améliorer continuellement la qualité de nos formations, nous vous invitons à prendre quelques minutes pour remplir notre questionnaire de satisfaction.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+            <tr>
+              <td align="center">
+                <a href="${enqueteUrl}" 
+                   style="background: #2563eb; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+                  ⭐ Donner mon avis
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 8px 0; color: #888; font-size: 13px;">Ce lien est personnel et valable pendant 30 jours.</p>
+          <p style="margin: 0; color: #888; font-size: 13px;">Votre retour est précieux et nous aide à améliorer nos formations. Merci pour votre confiance.</p>
+        `
+        : `
+          <p style="margin: 0 0 12px 0;">Vous avez demandé à effectuer une réclamation concernant nos services.</p>
+          <p style="margin: 0 0 12px 0;">Nous prenons très au sérieux vos retours et nous nous engageons à traiter votre demande dans les meilleurs délais.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+            <tr>
+              <td align="center">
+                <a href="${enqueteUrl}" 
+                   style="background: #dc2626; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+                  📋 Remplir ma réclamation
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 8px 0; color: #888; font-size: 13px;">Ce lien est personnel et valable pendant 30 jours.</p>
+          <p style="margin: 0; color: #888; font-size: 13px;">Votre réclamation sera traitée avec la plus grande attention. Merci pour votre confiance.</p>
+        `,
+    });
 
     const emailResponse = await resend.emails.send({
       from: EMAIL_CONFIG.FROM,
@@ -167,8 +107,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Resend response:", emailResponse);
 
-    // IMPORTANT: Resend can return 200 with an `error` payload. We convert that into a non-2xx response
-    // so the frontend can correctly detect and display the failure.
     if ((emailResponse as any)?.error) {
       return new Response(JSON.stringify(emailResponse), {
         status: 502,
@@ -190,4 +128,3 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 serve(handler);
-
