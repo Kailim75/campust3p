@@ -48,10 +48,10 @@ export function PriorityActionsGrouped({ onNavigate, onNavigateWithContact }: Pr
 
   // Urgent
   if (paymentAlerts.filter(a => a.priority === "high").length > 0) {
-    urgentGroups.push({ id: "payments", label: "Paiements en retard", icon: CreditCard, count: paymentAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "paiements" });
+    urgentGroups.push({ id: "payments", label: "Paiements retard", icon: CreditCard, count: paymentAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "paiements" });
   }
   if (rappelAlerts.filter(a => a.priority === "high").length > 0) {
-    urgentGroups.push({ id: "rappels", label: "Rappels en retard", icon: Bell, count: rappelAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "alertes" });
+    urgentGroups.push({ id: "rappels", label: "Rappels retard", icon: Bell, count: rappelAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "alertes" });
   }
   if (documentAlerts.filter(a => a.priority === "high").length > 0) {
     urgentGroups.push({ id: "docs", label: "Dossiers incomplets", icon: FileWarning, count: documentAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "contacts" });
@@ -59,10 +59,10 @@ export function PriorityActionsGrouped({ onNavigate, onNavigateWithContact }: Pr
 
   // Important
   if (sessionAlerts.length > 0) {
-    importantGroups.push({ id: "sessions", label: "Sessions à surveiller", icon: Calendar, count: sessionAlerts.length, level: "important", section: "sessions" });
+    importantGroups.push({ id: "sessions", label: "Sessions à risque", icon: Calendar, count: sessionAlerts.length, level: "important", section: "sessions" });
   }
   if (documentAlerts.filter(a => a.priority === "medium").length > 0) {
-    importantGroups.push({ id: "docs-medium", label: "Documents à valider", icon: FileWarning, count: documentAlerts.filter(a => a.priority === "medium").length, level: "important", section: "contacts" });
+    importantGroups.push({ id: "docs-medium", label: "Docs à valider", icon: FileWarning, count: documentAlerts.filter(a => a.priority === "medium").length, level: "important", section: "contacts" });
   }
 
   // Info
