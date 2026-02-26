@@ -12,6 +12,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ResultatsFormationCard } from "./ResultatsFormationCard";
 
 const PRESENCE_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
   valide: { icon: CheckCircle2, label: "Validé", className: "bg-success/15 text-success" },
@@ -22,9 +23,11 @@ const PRESENCE_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string
 
 interface FormationTabProps {
   contactId: string;
+  contactPrenom?: string;
+  contactEmail?: string;
 }
 
-export function FormationTab({ contactId }: FormationTabProps) {
+export function FormationTab({ contactId, contactPrenom, contactEmail }: FormationTabProps) {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
   const [, setSearchParams] = useSearchParams();
@@ -69,6 +72,13 @@ export function FormationTab({ contactId }: FormationTabProps) {
 
   return (
     <div className="space-y-5">
+      {/* Résultats théorie / pratique */}
+      <ResultatsFormationCard
+        contactId={contactId}
+        contactPrenom={contactPrenom}
+        contactEmail={contactEmail}
+      />
+
       {/* Sessions table */}
       <Card className="overflow-hidden">
         <Table>
