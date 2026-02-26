@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-// ===============================================
-// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
-// Adresse unique et verrouillée pour TOUS les envois
-// ===============================================
 const EMAIL_CONFIG = {
   FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
   REPLY_TO: "montrouge@ecolet3p.fr",
@@ -26,12 +23,10 @@ interface SendSignatureEmailRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Authentication check
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(
@@ -44,7 +39,6 @@ serve(async (req) => {
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   
-  // Verify JWT
   const authClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } }
   });
@@ -67,15 +61,10 @@ serve(async (req) => {
     console.log("Processing signature email request:", body);
 
     if (type === "signature_request" && signatureRequestId) {
-      // Handle signature request
       const { data: signatureRequest, error: fetchError } = await supabase
         .from("signature_requests")
         .select(`
-          id,
-          titre,
-          description,
-          type_document,
-          date_expiration,
+          id, titre, description, type_document, date_expiration,
           contact:contacts(id, nom, prenom, email)
         `)
         .eq("id", signatureRequestId)
@@ -92,53 +81,56 @@ serve(async (req) => {
 
       const signingLink = `${baseUrl}/signature/${signatureRequest.id}`;
       const expirationText = signatureRequest.date_expiration 
-        ? `Ce lien expire le ${new Date(signatureRequest.date_expiration).toLocaleDateString("fr-FR")}.`
+        ? `Ce lien expire le <strong>${formatDateFr(signatureRequest.date_expiration)}</strong>.`
         : "";
+
+      const htmlContent = buildEmailHtml({
+        title: "✍️ Document à signer",
+        accentColor: "#2563eb",
+        recipientName: `${contact.prenom} ${contact.nom}`,
+        bodyHtml: `
+          <p style="margin: 0 0 12px 0;">Vous avez un document à signer électroniquement :</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+            <tr>
+              <td style="background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px; padding: 18px 20px;">
+                <p style="margin: 0 0 6px 0; font-weight: 700; color: #1e40af;">${signatureRequest.titre}</p>
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>Type :</strong> ${signatureRequest.type_document}</p>
+                ${signatureRequest.description ? `<p style="margin: 0; font-size: 13px; color: #555;">${signatureRequest.description}</p>` : ""}
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 16px 0;">Cliquez sur le bouton ci-dessous pour signer le document :</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+            <tr>
+              <td align="center">
+                <a href="${signingLink}" 
+                   style="background: #2563eb; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+                  ✍️ Signer le document
+                </a>
+              </td>
+            </tr>
+          </table>
+          ${expirationText ? `<p style="margin: 12px 0 0 0; color: #888; font-size: 13px;">${expirationText}</p>` : ""}
+          <p style="margin: 12px 0 0 0; color: #888; font-size: 12px;">
+            Ou copiez ce lien dans votre navigateur :<br>
+            <a href="${signingLink}" style="color: #2563eb; word-break: break-all;">${signingLink}</a>
+          </p>
+        `,
+      });
 
       const emailResponse = await resend.emails.send({
         from: EMAIL_CONFIG.FROM,
         to: [contact.email],
         subject: `Document à signer : ${signatureRequest.titre}`,
         reply_to: EMAIL_CONFIG.REPLY_TO,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">📝 Document à signer</h2>
-            <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-            <p>Vous avez un document à signer électroniquement :</p>
-            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
-              <h3 style="margin: 0 0 10px 0; color: #1e40af;">${signatureRequest.titre}</h3>
-              <p style="margin: 5px 0;"><strong>Type :</strong> ${signatureRequest.type_document}</p>
-              ${signatureRequest.description ? `<p style="margin: 5px 0;">${signatureRequest.description}</p>` : ""}
-            </div>
-            <p>Cliquez sur le bouton ci-dessous pour signer le document :</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${signingLink}" 
-                 style="background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                ✍️ Signer le document
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">${expirationText}</p>
-            <p style="color: #666; font-size: 14px;">Ou copiez ce lien dans votre navigateur :<br>
-              <a href="${signingLink}" style="color: #2563eb;">${signingLink}</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #888; font-size: 12px;">
-              T3P Formation - Centre de formation Taxi, VTC et VMDTR
-            </p>
-          </div>
-        `,
+        html: htmlContent,
       });
 
-      // Update signature request status
       await supabase
         .from("signature_requests")
-        .update({
-          statut: "envoye",
-          date_envoi: new Date().toISOString(),
-        })
+        .update({ statut: "envoye", date_envoi: new Date().toISOString() })
         .eq("id", signatureRequestId);
 
-      // Log email
       await supabase.from("email_logs").insert({
         type: "signature_request",
         recipient_email: contact.email,
@@ -154,26 +146,16 @@ serve(async (req) => {
       console.log(`Signature email sent to ${contact.email}`);
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Email envoyé avec succès",
-          resendId: emailResponse.data?.id 
-        }),
+        JSON.stringify({ success: true, message: "Email envoyé avec succès", resendId: emailResponse.data?.id }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
 
     } else if (type === "contrat_location" && contratLocationId) {
-      // Handle contrat location
       const { data: contrat, error: fetchError } = await supabase
         .from("contrats_location")
         .select(`
-          id,
-          numero_contrat,
-          type_contrat,
-          objet_location,
-          date_debut,
-          date_fin,
-          montant_mensuel,
+          id, numero_contrat, type_contrat, objet_location,
+          date_debut, date_fin, montant_mensuel,
           contact:contacts(id, nom, prenom, email),
           vehicule:vehicules(immatriculation, marque, modele)
         `)
@@ -199,52 +181,55 @@ serve(async (req) => {
       };
       const typeContratLabel = typeContratLabels[contrat.type_contrat as string] || "Contrat";
 
+      const htmlContent = buildEmailHtml({
+        title: "📄 Contrat à signer",
+        accentColor: "#059669",
+        recipientName: `${contact.prenom} ${contact.nom}`,
+        bodyHtml: `
+          <p style="margin: 0 0 12px 0;">Veuillez trouver ci-dessous les détails de votre contrat de location à signer :</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+            <tr>
+              <td style="background-color: #ecfdf5; border-left: 4px solid #059669; border-radius: 6px; padding: 18px 20px;">
+                <p style="margin: 0 0 6px 0; font-weight: 700; color: #047857;">${typeContratLabel}</p>
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>N° Contrat :</strong> ${contrat.numero_contrat}</p>
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>Objet :</strong> ${contrat.objet_location}</p>
+                ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Période :</strong> du ${formatDateFr(contrat.date_debut)} au ${formatDateFr(contrat.date_fin)}</p>
+                <p style="margin: 0; font-size: 13px; color: #555;"><strong>💰 Montant mensuel :</strong> ${Number(contrat.montant_mensuel).toLocaleString("fr-FR")}€</p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 16px 0;">Cliquez sur le bouton ci-dessous pour consulter et signer le contrat :</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+            <tr>
+              <td align="center">
+                <a href="${signingLink}" 
+                   style="background: #059669; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+                  ✍️ Signer le contrat
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 12px 0 0 0; color: #888; font-size: 12px;">
+            Ou copiez ce lien dans votre navigateur :<br>
+            <a href="${signingLink}" style="color: #059669; word-break: break-all;">${signingLink}</a>
+          </p>
+        `,
+      });
+
       const emailResponse = await resend.emails.send({
         from: EMAIL_CONFIG.FROM,
         to: [contact.email],
         subject: `Contrat à signer : ${contrat.numero_contrat}`,
         reply_to: EMAIL_CONFIG.REPLY_TO,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #059669;">📄 Contrat à signer</h2>
-            <p>Bonjour ${contact.prenom} ${contact.nom},</p>
-            <p>Veuillez trouver ci-dessous les détails de votre contrat de location à signer :</p>
-            <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
-              <h3 style="margin: 0 0 10px 0; color: #047857;">${typeContratLabel}</h3>
-              <p style="margin: 5px 0;"><strong>N° Contrat :</strong> ${contrat.numero_contrat}</p>
-              <p style="margin: 5px 0;"><strong>Objet :</strong> ${contrat.objet_location}</p>
-              ${vehicule ? `<p style="margin: 5px 0;"><strong>Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
-              <p style="margin: 5px 0;"><strong>Période :</strong> du ${new Date(contrat.date_debut).toLocaleDateString("fr-FR")} au ${new Date(contrat.date_fin).toLocaleDateString("fr-FR")}</p>
-              <p style="margin: 5px 0;"><strong>Montant mensuel :</strong> ${Number(contrat.montant_mensuel).toLocaleString("fr-FR")}€</p>
-            </div>
-            <p>Cliquez sur le bouton ci-dessous pour consulter et signer le contrat :</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${signingLink}" 
-                 style="background: #059669; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                ✍️ Signer le contrat
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">Ou copiez ce lien dans votre navigateur :<br>
-              <a href="${signingLink}" style="color: #059669;">${signingLink}</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #888; font-size: 12px;">
-              T3P Formation - Centre de formation Taxi, VTC et VMDTR
-            </p>
-          </div>
-        `,
+        html: htmlContent,
       });
 
-      // Update contrat status
       await supabase
         .from("contrats_location")
-        .update({
-          statut: "envoye",
-          date_envoi: new Date().toISOString(),
-        })
+        .update({ statut: "envoye", date_envoi: new Date().toISOString() })
         .eq("id", contratLocationId);
 
-      // Log email
       await supabase.from("email_logs").insert({
         type: "contrat_location",
         recipient_email: contact.email,
@@ -260,11 +245,7 @@ serve(async (req) => {
       console.log(`Contract email sent to ${contact.email}`);
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Email envoyé avec succès",
-          resendId: emailResponse.data?.id 
-        }),
+        JSON.stringify({ success: true, message: "Email envoyé avec succès", resendId: emailResponse.data?.id }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
