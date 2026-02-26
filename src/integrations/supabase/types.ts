@@ -6288,6 +6288,35 @@ export type Database = {
           version: number
         }[]
       }
+      get_related_signature_docs: {
+        Args: { p_contact_id: string }
+        Returns: {
+          date_envoi: string
+          date_signature: string
+          document_url: string
+          id: string
+          statut: string
+          titre: string
+          type_document: string
+        }[]
+      }
+      get_signature_request_public: {
+        Args: { p_signature_id: string }
+        Returns: {
+          contact_email: string
+          contact_id: string
+          contact_nom: string
+          contact_prenom: string
+          date_expiration: string
+          description: string
+          document_url: string
+          id: string
+          signature_url: string
+          statut: string
+          titre: string
+          type_document: string
+        }[]
+      }
       get_user_centre_id: { Args: never; Returns: string }
       get_user_role_for_charter: { Args: never; Returns: string }
       has_accepted_current_charter: { Args: never; Returns: boolean }
@@ -6308,6 +6337,10 @@ export type Database = {
         Args: { p_amount: number; p_partner_id: string }
         Returns: boolean
       }
+      refuse_document_public: {
+        Args: { p_commentaires?: string; p_signature_id: string }
+        Returns: Json
+      }
       reserver_creneau: {
         Args: { p_contact_id: string; p_creneau_id: string }
         Returns: Json
@@ -6319,6 +6352,14 @@ export type Database = {
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
+      }
+      sign_document_public: {
+        Args: {
+          p_signature_id: string
+          p_signature_url: string
+          p_user_agent?: string
+        }
+        Returns: Json
       }
       submit_reclamation_with_token: {
         Args: {
