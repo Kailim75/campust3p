@@ -35,6 +35,18 @@ import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCata
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
 import { Loader2, Plus, Trash2, Package } from "lucide-react";
 
+/** Intitulés officiels pour les factures selon la catégorie */
+const INTITULE_FACTURE: Record<string, string> = {
+  "VTC": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
+  "Taxi": "Habilitation pour l'accès à la profession de conducteur de taxi",
+  "VMDTR": "Habilitation pour l'accès à la profession de conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
+};
+
+/** Retourne l'intitulé officiel pour la facture si la catégorie correspond */
+const getDescriptionFacture = (item: CatalogueFormation): string => {
+  return INTITULE_FACTURE[item.categorie] || item.intitule;
+};
+
 interface LigneFacture {
   id: string;
   catalogue_formation_id: string | null;
@@ -167,7 +179,7 @@ export function FactureFormDialog({
     const newLigne: LigneFacture = {
       id: crypto.randomUUID(),
       catalogue_formation_id: item?.id || null,
-      description: item?.intitule || "",
+      description: item ? getDescriptionFacture(item) : "",
       quantite: 1,
       prix_unitaire_ht: prixApresRemiseCatalogue,
       tva_percent: item?.tva_percent || 0,
@@ -191,7 +203,7 @@ export function FactureFormDialog({
       setLignes(lignes.map(l => l.id === ligneId ? {
         ...l,
         catalogue_formation_id: item.id,
-        description: item.intitule,
+        description: getDescriptionFacture(item),
         prix_unitaire_ht: prixApresRemiseCatalogue,
         tva_percent: item.tva_percent,
         remise_percent: 0,
