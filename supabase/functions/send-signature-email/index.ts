@@ -79,7 +79,8 @@ serve(async (req) => {
         throw new Error("Contact email not found");
       }
 
-      const signingLink = `${baseUrl}/signature/${signatureRequest.id}`;
+      const publishedBaseUrl = "https://campust3p.lovable.app";
+      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}`;
       const expirationText = signatureRequest.date_expiration 
         ? `Ce lien expire le <strong>${formatDateFr(signatureRequest.date_expiration)}</strong>.`
         : "";
@@ -172,7 +173,8 @@ serve(async (req) => {
         throw new Error("Contact email not found");
       }
 
-      const signingLink = `${baseUrl}/contrat-signature/${contrat.id}`;
+      const publishedBaseUrl = "https://campust3p.lovable.app";
+      const signingLink = `${publishedBaseUrl}/contrat-signature/${contrat.id}`;
 
       const typeContratLabels: Record<string, string> = {
         vehicule: "Location de véhicule",
