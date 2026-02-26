@@ -419,42 +419,78 @@ export function SendDocumentsToContactDialog({
         });
       }
 
-      // 4. Send email if requested
+      // 4. Send email if requested - send one email per standard document type for PDF generation
       if (sendEmail && hasEmail) {
-        const { error } = await supabase.functions.invoke('send-automated-emails', {
-          body: {
-            type: 'bulk_document',
-            recipients: [{
-              email: contact.email,
-              name: `${contact.prenom} ${contact.nom}`,
-              contactId: contact.id,
-            }],
-            documentTypes: [
-              ...selectedDocuments,
-              ...selectedTextTemplates.map(id => `template:${id}`),
-              ...selectedTemplateFiles.map(id => `file:${id}`),
-            ],
-            sessionName: sessionInfo.nom,
-            sessionInfo: {
-              formation_type: sessionInfo.formation_type,
-              date_debut: sessionInfo.date_debut,
-              date_fin: sessionInfo.date_fin,
-              lieu: sessionInfo.lieu,
-              heure_debut: sessionInfo.heure_debut,
-              heure_fin: sessionInfo.heure_fin,
-              heure_debut_matin: sessionInfo.heure_debut_matin,
-              heure_fin_matin: sessionInfo.heure_fin_matin,
-              heure_debut_aprem: sessionInfo.heure_debut_aprem,
-              heure_fin_aprem: sessionInfo.heure_fin_aprem,
-              duree_heures: sessionInfo.duree_heures,
-              formateur: sessionInfo.formateur || undefined,
-            },
-            customMessage: customMessage || undefined,
-          },
-        });
+        const standardDocTypes = selectedDocuments.filter(d => 
+          ['convocation', 'convention', 'contrat', 'attestation', 'programme', 'reglement'].includes(d)
+        );
+        const otherDocTypes = [
+          ...selectedDocuments.filter(d => !standardDocTypes.includes(d)),
+          ...selectedTextTemplates.map(id => `template:${id}`),
+          ...selectedTemplateFiles.map(id => `file:${id}`),
+        ];
 
-        if (error) {
-          console.error('Erreur envoi email:', error);
+        let emailError = false;
+
+        // Send one email per standard document type so PDF attachment is generated
+        for (const docType of standardDocTypes) {
+          const docLabel = DOCUMENT_OPTIONS.find(d => d.id === docType)?.label || docType;
+          const { error } = await supabase.functions.invoke('send-automated-emails', {
+            body: {
+              type: 'bulk_document',
+              recipients: [{
+                email: contact.email,
+                name: `${contact.prenom} ${contact.nom}`,
+                contactId: contact.id,
+              }],
+              documentType: docLabel,
+              sessionName: sessionInfo.nom,
+              sessionInfo: {
+                formation_type: sessionInfo.formation_type,
+                date_debut: sessionInfo.date_debut,
+                date_fin: sessionInfo.date_fin,
+                lieu: sessionInfo.lieu,
+                heure_debut: sessionInfo.heure_debut,
+                heure_fin: sessionInfo.heure_fin,
+                heure_debut_matin: sessionInfo.heure_debut_matin,
+                heure_fin_matin: sessionInfo.heure_fin_matin,
+                heure_debut_aprem: sessionInfo.heure_debut_aprem,
+                heure_fin_aprem: sessionInfo.heure_fin_aprem,
+                duree_heures: sessionInfo.duree_heures,
+                formateur: sessionInfo.formateur || undefined,
+              },
+              customMessage: customMessage || undefined,
+            },
+          });
+          if (error) emailError = true;
+        }
+
+        // Send remaining non-standard documents in a single email
+        if (otherDocTypes.length > 0) {
+          const { error } = await supabase.functions.invoke('send-automated-emails', {
+            body: {
+              type: 'bulk_document',
+              recipients: [{
+                email: contact.email,
+                name: `${contact.prenom} ${contact.nom}`,
+                contactId: contact.id,
+              }],
+              documentType: 'Document',
+              sessionName: sessionInfo.nom,
+              sessionInfo: {
+                formation_type: sessionInfo.formation_type,
+                date_debut: sessionInfo.date_debut,
+                date_fin: sessionInfo.date_fin,
+                lieu: sessionInfo.lieu,
+              },
+              customMessage: customMessage || undefined,
+              generateAttachments: false,
+            },
+          });
+          if (error) emailError = true;
+        }
+
+        if (emailError) {
           toast.warning('Documents générés mais erreur lors de l\'envoi par email');
         } else {
           toast.success(`${totalSelected} document(s) envoyé(s) à ${contact.prenom} ${contact.nom}`);
