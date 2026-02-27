@@ -12,6 +12,7 @@ import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedCo
 import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { ApprenantsToolbar } from "./ApprenantsToolbar";
 import { ApprenantTableRow } from "./ApprenantTableRow";
@@ -51,6 +52,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     }
   }, [initialContactId, onContactOpened]);
   const [formOpen, setFormOpen] = useState(false);
+  const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -144,6 +146,11 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
         subtitle={`${activeCount} apprenant${activeCount > 1 ? "s" : ""} actifs`}
         addLabel="Nouvel apprenant"
         onAddClick={() => setFormOpen(true)}
+        extraActions={
+          <Button variant="outline" size="sm" onClick={() => setProspectFormOpen(true)}>
+            Nouveau prospect
+          </Button>
+        }
       />
 
       <main className="p-6 space-y-4 animate-fade-in">
@@ -376,6 +383,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
         }}
       />
       <ContactFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <ProspectFormDialog open={prospectFormOpen} onOpenChange={setProspectFormOpen} />
       {editContact && (
         <EditContactFormDialog
           open={!!editContact}
