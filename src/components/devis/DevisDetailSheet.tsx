@@ -75,17 +75,20 @@ export function DevisDetailSheet({
   // Build variables and render template
   const buildDevisVariables = async () => {
     if (!devis) return {};
+    const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+    const fmtE = (n: number) => fmt(n) + " €";
 
     const map: Record<string, string> = {
       date_jour: new Date().toLocaleDateString("fr-FR"),
       numero_devis: devis.numero_devis,
-      montant_total: formatEuro(Number(devis.montant_total)),
-      prix_total: formatEuro(Number(devis.montant_total)),
+      montant_total: fmtE(Number(devis.montant_total)),
+      prix_total: fmtE(Number(devis.montant_total)),
       type_financement: financementLabels[devis.type_financement] || devis.type_financement,
       date_emission: devis.date_emission ? new Date(devis.date_emission).toLocaleDateString("fr-FR") : "",
       date_validite: devis.date_validite ? new Date(devis.date_validite).toLocaleDateString("fr-FR") : "",
       statut_devis: statusConfig[devis.statut]?.label || devis.statut,
       commentaires: devis.commentaires || "",
+      modalites_paiement: devis.type_financement === "cpf" ? "Prise en charge CPF" : "Règlement selon échéancier du contrat",
     };
 
     if (devis.contact) {
@@ -93,14 +96,63 @@ export function DevisDetailSheet({
       map.prenom = devis.contact.prenom || "";
       map.email = devis.contact.email || "";
       map.telephone = (devis.contact as any).telephone || "";
+      // Fetch full contact for address
+      const { data: fullContact } = await supabase.from("contacts").select("rue, code_postal, ville, civilite").eq("id", devis.contact.id).maybeSingle();
+      if (fullContact) {
+        map.civilite = fullContact.civilite || "";
+        map.adresse = [fullContact.rue, fullContact.code_postal, fullContact.ville].filter(Boolean).join(", ");
+        map.adresse_client = map.adresse;
+      }
     }
 
-    // Build lignes table
+    // Session data via inscription
+    if (devis.session_inscription_id) {
+      const { data: inscription } = await supabase
+        .from("session_inscriptions")
+        .select("session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, horaires, lieu)")
+        .eq("id", devis.session_inscription_id)
+        .maybeSingle();
+      const session = (inscription as any)?.session;
+      if (session) {
+        map.session_nom = session.nom || "";
+        map.intitule_formation = session.nom || session.formation_type || "";
+        map.formation_type = session.formation_type || "";
+        map.session_date_debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString("fr-FR") : "";
+        map.session_date_fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString("fr-FR") : "";
+        map.duree_heures = String(session.duree_heures || "");
+        map.horaires = session.horaires || "";
+        map.lieu = session.lieu || "";
+      }
+    }
+
+    // Build lignes table + individual line variables
     if (devis.lignes && devis.lignes.length > 0) {
+      const totalRemise = devis.lignes.reduce((sum, l) => {
+        const brut = l.quantite * Number(l.prix_unitaire_ht);
+        const net = Number(l.montant_ht || brut * (1 - (l.remise_percent || 0) / 100));
+        return sum + (brut - net);
+      }, 0);
+
+      // Single-line variables from first line
+      const firstLine = devis.lignes[0];
+      map.prix_unitaire_ht = fmt(Number(firstLine.prix_unitaire_ht));
+      map.montant_remise = fmt(totalRemise);
+      map.montant_total_ht = fmt(totaux.ht);
+      map.total_ht = fmtE(totaux.ht);
+      map.total_tva = fmtE(totaux.tva);
+      map.total_ttc = fmtE(totaux.ttc);
+      map.tva_percent = String(firstLine.tva_percent || 0);
+      map.remise_percent = String(firstLine.remise_percent || 0);
+
+      // Use first line description as intitule_formation fallback
+      if (!map.intitule_formation) {
+        map.intitule_formation = firstLine.description || "";
+      }
+
       const rows = devis.lignes.map(l =>
-        `<tr><td style="border:1px solid #ddd;padding:6px 10px">${l.description}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:right">${formatEuro(Number(l.prix_unitaire_ht))}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:right">${formatEuro(Number(l.montant_ht || l.quantite * Number(l.prix_unitaire_ht)))}</td></tr>`
+        `<tr><td style="border:1px solid #ddd;padding:6px 10px">${l.description}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:right">${fmtE(Number(l.prix_unitaire_ht))}</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:center">${l.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:6px 10px;text-align:right">${fmtE(Number(l.montant_ht || l.quantite * Number(l.prix_unitaire_ht)))}</td></tr>`
       ).join("");
-      map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:12px 0"><thead><tr style="background:#f8fafc"><th style="border:1px solid #ddd;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#64748b">Description</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#64748b">Qté</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#64748b">P.U. HT</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#64748b">Total HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f1f5f9;font-weight:bold"><td colspan="3" style="border:1px solid #ddd;padding:8px 10px;text-align:right">Total</td><td style="border:1px solid #ddd;padding:8px 10px;text-align:right">${formatEuro(totaux.ht)}</td></tr></tfoot></table>`;
+      map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:12px 0"><thead><tr style="background:#f8fafc"><th style="border:1px solid #ddd;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:#64748b">Description</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#64748b">Qté</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#64748b">P.U. HT</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#64748b">Remise</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:right;font-size:11px;text-transform:uppercase;color:#64748b">Total HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f1f5f9;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px 10px;text-align:right">Total</td><td style="border:1px solid #ddd;padding:8px 10px;text-align:right">${fmtE(totaux.ht)}</td></tr></tfoot></table>`;
     }
 
     // Fetch centre info
@@ -108,6 +160,7 @@ export function DevisDetailSheet({
     if (centre) {
       map.centre_nom = centre.nom_commercial || centre.nom_legal || "";
       map.centre_nom_legal = centre.nom_legal || "";
+      map.centre_nom_commercial = centre.nom_commercial || "";
       map.centre_siret = centre.siret || "";
       map.centre_nda = centre.nda || "";
       map.centre_adresse = centre.adresse_complete || "";
@@ -115,8 +168,29 @@ export function DevisDetailSheet({
       map.centre_telephone = centre.telephone || "";
       map.centre_iban = centre.iban || "";
       map.centre_bic = centre.bic || "";
+      map.centre_forme_juridique = centre.forme_juridique || "";
       map.responsable_nom = centre.responsable_legal_nom || "";
       map.responsable_fonction = centre.responsable_legal_fonction || "";
+      map.centre_qualiopi_numero = centre.qualiopi_numero || "";
+      map.lieu = centre.adresse_complete?.split(",").pop()?.trim() || "";
+
+      // Parse agrements for taxi/vtc/vmdtr
+      if (centre.agrements_autres && Array.isArray(centre.agrements_autres)) {
+        const agrements = centre.agrements_autres as Array<{ nom?: string; numero?: string; date_obtention?: string; date_expiration?: string }>;
+        for (const ag of agrements) {
+          const nom = (ag.nom || "").toLowerCase();
+          if (nom.includes("vtc") || nom.includes("taxi")) {
+            map.agrement_taxi_vtc = ag.numero || "";
+            map.agrement_taxi_vtc_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_taxi_vtc_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
+          }
+          if (nom.includes("vmdtr")) {
+            map.agrement_vmdtr = ag.numero || "";
+            map.agrement_vmdtr_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_vmdtr_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
+          }
+        }
+      }
     }
 
     return map;
