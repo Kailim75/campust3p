@@ -25,6 +25,7 @@ const ENTITY_TYPES = [
   { value: "apprenant", label: "Apprenant", icon: User },
   { value: "session", label: "Session", icon: Calendar },
   { value: "paiement", label: "Paiement / Facture", icon: CreditCard },
+  { value: "devis", label: "Devis", icon: FileText },
   { value: "centre", label: "Centre", icon: Building },
 ] as const;
 
@@ -107,6 +108,17 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
             label: f.numero_facture,
             sublabel: f.contacts ? `${f.contacts.prenom} ${f.contacts.nom} — ${f.montant_total}€` : `${f.montant_total}€`,
           })));
+        } else if (entityType === "devis") {
+          const { data } = await supabase
+            .from("devis")
+            .select("id, numero_devis, montant_total, statut, contact:contacts(nom, prenom)")
+            .or(`numero_devis.ilike.%${search}%`)
+            .limit(10);
+          setResults((data || []).map((d: any) => ({
+            id: d.id,
+            label: d.numero_devis,
+            sublabel: d.contact ? `${d.contact.prenom} ${d.contact.nom} — ${d.montant_total}€` : `${d.montant_total}€`,
+          })));
         } else if (entityType === "centre") {
           const { data } = await supabase
             .from("centre_formation")
@@ -162,6 +174,42 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           map.nom = (data.contacts as any).nom || "";
           map.prenom = (data.contacts as any).prenom || "";
           map.email = (data.contacts as any).email || "";
+        }
+      }
+    } else if (type === "devis") {
+      const { data } = await supabase
+        .from("devis")
+        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville)")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        map.numero_devis = data.numero_devis || "";
+        map.montant_total = Number(data.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
+        map.prix_total = map.montant_total;
+        map.type_financement = data.type_financement || "";
+        map.date_emission = data.date_emission ? new Date(data.date_emission).toLocaleDateString("fr-FR") : "";
+        map.date_validite = data.date_validite ? new Date(data.date_validite).toLocaleDateString("fr-FR") : "";
+        map.statut_devis = data.statut || "";
+        map.commentaires = data.commentaires || "";
+        const contact = (data as any).contact;
+        if (contact) {
+          map.nom = contact.nom || "";
+          map.prenom = contact.prenom || "";
+          map.email = contact.email || "";
+          map.telephone = contact.telephone || "";
+          map.adresse = [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", ");
+        }
+        // Fetch devis lines for table
+        const { data: lignes } = await supabase
+          .from("devis_lignes")
+          .select("*")
+          .eq("devis_id", id)
+          .order("ordre", { ascending: true });
+        if (lignes && lignes.length > 0) {
+          const rows = lignes.map((l: any) =>
+            `<tr><td>${l.description}</td><td style="text-align:center">${l.quantite}</td><td style="text-align:right">${Number(l.prix_unitaire_ht).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</td><td style="text-align:right">${Number(l.montant_ht || l.quantite * l.prix_unitaire_ht).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</td></tr>`
+          ).join("");
+          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left">Description</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center">Qté</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:right">Total HT</th></tr></thead><tbody>${rows}</tbody></table>`;
         }
       }
     }

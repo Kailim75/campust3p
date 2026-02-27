@@ -3,72 +3,41 @@ import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
-  FileText, 
-  MoreHorizontal, 
-  Send, 
-  Loader2, 
-  Filter, 
-  X, 
-  Check, 
-  XCircle,
-  ArrowRight,
-  Eye,
-  Edit,
-  Trash2,
-  FileCheck
+  FileText, MoreHorizontal, Send, Loader2, Filter, X, Check, XCircle,
+  ArrowRight, Eye, Edit, Trash2, FileCheck, TrendingUp, Clock, Euro, BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatEuro } from "@/lib/formatFinancial";
 import { 
-  useDevis, 
-  useDevisStats, 
-  useUpdateDevis, 
-  useDeleteDevis,
-  useConvertDevisToFacture,
-  type DevisStatut 
+  useDevis, useDevisStats, useUpdateDevis, useDeleteDevis,
+  useConvertDevisToFacture, type DevisStatut 
 } from "@/hooks/useDevis";
 import { DevisFormDialog } from "./DevisFormDialog";
 import { DevisDetailSheet } from "./DevisDetailSheet";
 
 const statusConfig: Record<DevisStatut, { label: string; class: string; icon?: any }> = {
-  brouillon: { label: "Brouillon", class: "bg-muted text-muted-foreground" },
+  brouillon: { label: "Brouillon", class: "bg-muted text-muted-foreground", icon: Clock },
   envoye: { label: "Envoyé", class: "bg-info/10 text-info", icon: Send },
-  accepte: { label: "Accepté", class: "bg-success text-success-foreground", icon: Check },
+  accepte: { label: "Accepté", class: "bg-success/10 text-success", icon: Check },
   refuse: { label: "Refusé", class: "bg-destructive/10 text-destructive", icon: XCircle },
-  expire: { label: "Expiré", class: "bg-warning/10 text-warning" },
+  expire: { label: "Expiré", class: "bg-warning/10 text-warning", icon: Clock },
   converti: { label: "Converti", class: "bg-primary/10 text-primary", icon: ArrowRight },
 };
 
@@ -95,38 +64,33 @@ export function DevisPage() {
 
   const filteredDevis = useMemo(() => {
     return devisList.filter((devis) => {
-      if (statutFilter !== "all" && devis.statut !== statutFilter) {
-        return false;
-      }
+      if (statutFilter !== "all" && devis.statut !== statutFilter) return false;
       return true;
     });
   }, [devisList, statutFilter]);
 
   const hasActiveFilters = statutFilter !== "all";
+  const clearFilters = () => setStatutFilter("all");
 
-  const clearFilters = () => {
-    setStatutFilter("all");
-  };
+  // Computed stats
+  const tauxConversion = stats && stats.total > 0
+    ? Math.round(((stats.accepte + stats.converti) / stats.total) * 100)
+    : 0;
+  const montantPipeline = stats?.montantEnvoye || 0;
 
-  const handleOpenDetail = (devisId: string) => {
-    setSelectedDevisId(devisId);
-  };
-
+  const handleOpenDetail = (devisId: string) => setSelectedDevisId(devisId);
   const handleEdit = (devis: any) => {
     setEditingDevis(devis);
     setSelectedDevisId(null);
     setShowDevisForm(true);
   };
-
   const handleUpdateStatut = async (devisId: string, newStatut: DevisStatut) => {
     await updateDevis.mutateAsync({ id: devisId, statut: newStatut });
   };
-
   const handleConvertToFacture = (devisId: string) => {
     setDevisToConvert(devisId);
     setConvertDialogOpen(true);
   };
-
   const confirmConvert = async () => {
     if (devisToConvert) {
       await convertToFacture.mutateAsync(devisToConvert);
@@ -134,7 +98,6 @@ export function DevisPage() {
       setDevisToConvert(null);
     }
   };
-
   const handleDelete = async (devisId: string) => {
     await deleteDevis.mutateAsync(devisId);
   };
@@ -151,35 +114,80 @@ export function DevisPage() {
         }}
       />
 
-      <main className="p-6 animate-fade-in">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-2xl font-display font-bold">{stats?.total || 0}</p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Envoyés</p>
-            <p className="text-2xl font-display font-bold text-info">{stats?.envoye || 0}</p>
-            <p className="text-xs text-muted-foreground">
-              {(stats?.montantEnvoye || 0).toLocaleString("fr-FR")}€
-            </p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Acceptés</p>
-            <p className="text-2xl font-display font-bold text-success">{stats?.accepte || 0}</p>
-            <p className="text-xs text-muted-foreground">
-              {(stats?.montantAccepte || 0).toLocaleString("fr-FR")}€
-            </p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-sm text-muted-foreground">Convertis</p>
-            <p className="text-2xl font-display font-bold text-primary">{stats?.converti || 0}</p>
-          </div>
+      <main className="p-6 animate-fade-in space-y-6">
+        {/* Stats Cards — Premium Design */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-muted/30">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold">{stats?.total || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">Devis total</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-info/5">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-info/10">
+                  <Send className="h-4 w-4 text-info" />
+                </div>
+                <span className="text-lg font-bold text-info">{stats?.envoye || 0}</span>
+              </div>
+              <p className="text-sm font-semibold">{formatEuro(montantPipeline)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Pipeline envoyé</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-success/5">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-success/10">
+                  <Check className="h-4 w-4 text-success" />
+                </div>
+                <span className="text-lg font-bold text-success">{stats?.accepte || 0}</span>
+              </div>
+              <p className="text-sm font-semibold">{formatEuro(stats?.montantAccepte || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Acceptés</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-primary/5">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-primary">{tauxConversion}%</p>
+              <p className="text-xs text-muted-foreground mt-1">Taux de conversion</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-muted/30">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold">{stats?.converti || 0}</span>
+                <span className="text-xs text-muted-foreground">convertis</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-sm text-destructive font-medium">{stats?.refuse || 0}</span>
+                <span className="text-xs text-muted-foreground">refusés</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
-        <div className="card-elevated p-4 mb-4">
+        <div className="card-elevated p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="h-4 w-4" />
@@ -187,7 +195,7 @@ export function DevisPage() {
             </div>
 
             <Select value={statutFilter} onValueChange={setStatutFilter}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="w-[160px] h-9">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -199,20 +207,14 @@ export function DevisPage() {
             </Select>
 
             {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-9 text-muted-foreground hover:text-foreground"
-              >
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4 mr-1" />
                 Réinitialiser
               </Button>
             )}
 
             <div className="ml-auto text-sm text-muted-foreground">
-              {filteredDevis.length} devis
-              {hasActiveFilters && ` sur ${devisList.length}`}
+              {filteredDevis.length} devis{hasActiveFilters && ` sur ${devisList.length}`}
             </div>
           </div>
         </div>
@@ -230,14 +232,10 @@ export function DevisPage() {
                 {hasActiveFilters ? "Aucun devis ne correspond aux filtres" : "Aucun devis"}
               </p>
               {!hasActiveFilters && (
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => {
-                    setEditingDevis(null);
-                    setShowDevisForm(true);
-                  }}
-                >
+                <Button variant="link" className="mt-2" onClick={() => {
+                  setEditingDevis(null);
+                  setShowDevisForm(true);
+                }}>
                   Créer un premier devis
                 </Button>
               )}
@@ -249,7 +247,7 @@ export function DevisPage() {
                   <TableHead className="font-semibold">N° Devis</TableHead>
                   <TableHead className="font-semibold">Client</TableHead>
                   <TableHead className="font-semibold">Financement</TableHead>
-                  <TableHead className="font-semibold">Montant</TableHead>
+                  <TableHead className="font-semibold text-right">Montant</TableHead>
                   <TableHead className="font-semibold">Statut</TableHead>
                   <TableHead className="font-semibold">Validité</TableHead>
                   <TableHead className="text-right font-semibold">Actions</TableHead>
@@ -258,46 +256,33 @@ export function DevisPage() {
               <TableBody>
                 {filteredDevis.map((devis) => {
                   const isExpired = devis.date_validite && isPast(new Date(devis.date_validite)) && devis.statut === "envoye";
+                  const StatusIcon = statusConfig[devis.statut]?.icon;
                   
                   return (
-                    <TableRow
-                      key={devis.id}
-                      className="table-row-hover cursor-pointer"
-                      onClick={() => handleOpenDetail(devis.id)}
-                    >
-                      <TableCell className="font-mono text-sm">
-                        {devis.numero_devis}
-                      </TableCell>
+                    <TableRow key={devis.id} className="table-row-hover cursor-pointer" onClick={() => handleOpenDetail(devis.id)}>
+                      <TableCell className="font-mono text-sm font-medium">{devis.numero_devis}</TableCell>
                       <TableCell className="font-medium text-foreground">
-                        {devis.contact
-                          ? `${devis.contact.prenom} ${devis.contact.nom}`
-                          : "—"}
+                        {devis.contact ? `${devis.contact.prenom} ${devis.contact.nom}` : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn("text-xs", financementLabels[devis.type_financement]?.class)}
-                        >
+                        <Badge variant="secondary" className={cn("text-xs", financementLabels[devis.type_financement]?.class)}>
                           {financementLabels[devis.type_financement]?.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {Number(devis.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                      <TableCell className="font-medium text-right font-mono">
+                        {formatEuro(Number(devis.montant_total))}
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-xs", statusConfig[devis.statut]?.class)}>
+                        <Badge className={cn("text-xs gap-1", statusConfig[devis.statut]?.class)}>
+                          {StatusIcon && <StatusIcon className="h-3 w-3" />}
                           {statusConfig[devis.statut]?.label}
                         </Badge>
                         {isExpired && devis.statut !== "expire" && (
-                          <Badge variant="outline" className="ml-1 text-xs text-warning">
-                            Expiré
-                          </Badge>
+                          <Badge variant="outline" className="ml-1 text-xs text-warning">Expiré</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {devis.date_validite
-                          ? format(new Date(devis.date_validite), "dd/MM/yyyy", { locale: fr })
-                          : "—"}
+                        {devis.date_validite ? format(new Date(devis.date_validite), "dd/MM/yyyy", { locale: fr }) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -307,80 +292,40 @@ export function DevisPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDetail(devis.id);
-                            }}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Voir détails
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetail(devis.id); }}>
+                              <Eye className="h-4 w-4 mr-2" /> Voir détails
                             </DropdownMenuItem>
-                            
                             {devis.statut !== "converti" && (
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(devis);
-                              }}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modifier
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(devis); }}>
+                                <Edit className="h-4 w-4 mr-2" /> Modifier
                               </DropdownMenuItem>
                             )}
-
                             <DropdownMenuSeparator />
-
                             {devis.statut === "brouillon" && (
-                              <DropdownMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleUpdateStatut(devis.id, "envoye");
-                              }}>
-                                <Send className="h-4 w-4 mr-2" />
-                                Marquer envoyé
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUpdateStatut(devis.id, "envoye"); }}>
+                                <Send className="h-4 w-4 mr-2" /> Marquer envoyé
                               </DropdownMenuItem>
                             )}
-
                             {devis.statut === "envoye" && (
                               <>
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateStatut(devis.id, "accepte");
-                                }}>
-                                  <Check className="h-4 w-4 mr-2" />
-                                  Marquer accepté
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUpdateStatut(devis.id, "accepte"); }}>
+                                  <Check className="h-4 w-4 mr-2" /> Marquer accepté
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateStatut(devis.id, "refuse");
-                                }}>
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Marquer refusé
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUpdateStatut(devis.id, "refuse"); }}>
+                                  <XCircle className="h-4 w-4 mr-2" /> Marquer refusé
                                 </DropdownMenuItem>
                               </>
                             )}
-
                             {devis.statut === "accepte" && (
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleConvertToFacture(devis.id);
-                                }}
-                                className="text-primary"
-                              >
-                                <FileCheck className="h-4 w-4 mr-2" />
-                                Convertir en facture
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleConvertToFacture(devis.id); }} className="text-primary">
+                                <FileCheck className="h-4 w-4 mr-2" /> Convertir en facture
                               </DropdownMenuItem>
                             )}
-
                             {devis.statut !== "converti" && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(devis.id);
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Supprimer
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(devis.id); }} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" /> Supprimer
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -396,14 +341,7 @@ export function DevisPage() {
         </div>
       </main>
 
-      {/* Form Dialog */}
-      <DevisFormDialog
-        open={showDevisForm}
-        onOpenChange={setShowDevisForm}
-        devis={editingDevis}
-      />
-
-      {/* Detail Sheet */}
+      <DevisFormDialog open={showDevisForm} onOpenChange={setShowDevisForm} devis={editingDevis} />
       <DevisDetailSheet
         devisId={selectedDevisId}
         open={!!selectedDevisId}
@@ -412,7 +350,6 @@ export function DevisPage() {
         onConvert={handleConvertToFacture}
       />
 
-      {/* Convert Confirmation Dialog */}
       <AlertDialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -424,18 +361,10 @@ export function DevisPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmConvert}
-              disabled={convertToFacture.isPending}
-            >
+            <AlertDialogAction onClick={confirmConvert} disabled={convertToFacture.isPending}>
               {convertToFacture.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Conversion...
-                </>
-              ) : (
-                "Convertir"
-              )}
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Conversion...</>
+              ) : "Convertir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

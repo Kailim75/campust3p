@@ -20,6 +20,7 @@ const AI_DOCUMENT_TYPES = [
   { value: "contrat", label: "Contrat de formation" },
   { value: "convention", label: "Convention de formation" },
   { value: "attestation", label: "Attestation de fin de formation" },
+  { value: "devis", label: "Devis" },
   { value: "invoice", label: "Facture" },
   { value: "convocation", label: "Convocation session" },
   { value: "emargement", label: "Feuille d'émargement" },
