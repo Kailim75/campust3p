@@ -66,7 +66,11 @@ serve(async (req) => {
       }
 
       case 'create_payment': {
-        // Créer un paiement Alma
+        // Créer un paiement Alma avec IPN callback
+        const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+        const ipnUrl = `${SUPABASE_URL}/functions/v1/alma-webhook`;
+        console.log('Alma IPN callback URL:', ipnUrl);
+        
         const response = await fetch(`${ALMA_API_URL}/payments`, {
           method: 'POST',
           headers: almaHeaders,
@@ -76,6 +80,7 @@ serve(async (req) => {
               installments_count: params.installments || 3,
               return_url: params.return_url,
               customer_cancel_url: params.cancel_url,
+              ipn_callback_url: ipnUrl,
               locale: 'fr',
               custom_data: params.custom_data || {},
             },

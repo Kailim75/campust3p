@@ -6,12 +6,14 @@ import { LegalDocumentAcceptanceModal } from "@/components/legal/LegalDocumentAc
 import { useLegalDocuments } from "@/hooks/useLegalDocuments";
 import { useCentres } from "@/hooks/useCentres";
 import { OnboardingWizard } from "@/components/onboarding/wizard/OnboardingWizard";
+import { useAlmaReturnHandler } from "@/hooks/useAlmaReturnHandler";
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
   const { hasPendingDocuments, isLoading: docsLoading } = useLegalDocuments();
   const { data: centres, isLoading: centresLoading } = useCentres();
   const showLegalModal = hasPendingDocuments;
+  useAlmaReturnHandler();
 
   // Loading state
   if (isLoading || docsLoading || centresLoading) {
