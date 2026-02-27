@@ -109,6 +109,40 @@ serve(async (req) => {
 
     console.log('Payment recorded successfully:', newPaiement.id);
 
+    // Get contact name for the notification
+    const { data: facture } = await supabase
+      .from('factures')
+      .select('contact_id, contacts(nom, prenom)')
+      .eq('id', factureId)
+      .single();
+
+    const contactName = facture?.contacts
+      ? `${(facture.contacts as any).prenom} ${(facture.contacts as any).nom}`
+      : 'Client';
+
+    // Create in-app notification for all admin/staff users
+    const { data: adminUsers } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['admin', 'staff']);
+
+    if (adminUsers && adminUsers.length > 0) {
+      const notifications = adminUsers.map((u: any) => ({
+        user_id: u.user_id,
+        type: 'payment_received',
+        title: `💶 Paiement Alma reçu`,
+        message: `${contactName} - ${totalAmount.toLocaleString('fr-FR')}€ (${payment.installments_count}x)`,
+        link: `/factures`,
+        metadata: { facture_id: factureId, alma_payment_id: paymentId, amount: totalAmount },
+      }));
+
+      const { error: notifErr } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notifErr) console.error('Error creating notifications:', notifErr);
+    }
+
     return new Response(JSON.stringify({ 
       status: 'recorded', 
       paiement_id: newPaiement.id,
