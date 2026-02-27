@@ -188,7 +188,7 @@ export function useGenerateEmargements() {
         .from("session_inscriptions")
         .select("contact_id")
         .eq("session_id", sessionId)
-        .in("statut", ["inscrit", "confirme", "present"]);
+        .in("statut", ["inscrit", "confirme", "present", "encours", "valide", "en_attente", "document"]);
 
       if (inscError) throw inscError;
       if (!inscriptions || inscriptions.length === 0) {
