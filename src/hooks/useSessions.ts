@@ -128,15 +128,14 @@ export function useAllSessionInscriptionsCounts() {
     queryKey: ["session_inscriptions", "all_counts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("session_inscriptions")
-        .select("session_id");
+        .from("session_inscription_counts")
+        .select("session_id, inscription_count");
 
       if (error) throw error;
 
-      // Count inscriptions per session
       const counts: Record<string, number> = {};
-      data.forEach((inscription) => {
-        counts[inscription.session_id] = (counts[inscription.session_id] || 0) + 1;
+      (data || []).forEach((row: any) => {
+        counts[row.session_id] = row.inscription_count;
       });
       return counts;
     },

@@ -13,8 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, List, CalendarDays, Download, Kanban, Archive, TrendingUp } from "lucide-react";
+import { Search, Plus, List, CalendarDays, Download, Kanban, Archive, TrendingUp, Link2 } from "lucide-react";
 import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
+import { useReconcileFactures } from "@/hooks/useReconcileFactures";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
 import { useSessionsViewPreferences } from "@/hooks/useSessionsViewPreferences";
@@ -39,6 +40,7 @@ export function SessionsPage() {
   const { data: formateurs = [] } = useFormateursTable();
   const deleteSession = useDeleteSession();
   const createSession = useCreateSession();
+  const reconcileFactures = useReconcileFactures();
   const { updateSessionStatuses } = useAutoUpdateSessionStatus();
   const { exportSessions } = useSessionsExport();
   const { viewMode, groupBy, setViewMode, setGroupBy } = useSessionsViewPreferences();
@@ -253,6 +255,17 @@ export function SessionsPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="shrink-0" 
+                title="Réconcilier factures orphelines"
+                onClick={() => reconcileFactures.mutate()}
+                disabled={reconcileFactures.isPending}
+              >
+                <Link2 className="h-4 w-4" />
+              </Button>
 
               <Button variant="outline" size="icon" className="shrink-0" onClick={() => setArchivedOpen(true)}>
                 <Archive className="h-4 w-4" />
