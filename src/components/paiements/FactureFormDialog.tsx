@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ContactCombobox } from "@/components/ui/contact-combobox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -339,20 +340,17 @@ export function FactureFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Contact *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un contact" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {contacts.map((contact) => (
-                            <SelectItem key={contact.id} value={contact.id}>
-                              {contact.prenom} {contact.nom}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <ContactCombobox
+                        options={contacts.map((c) => ({
+                          value: c.id,
+                          label: `${c.prenom} ${c.nom}`,
+                        }))}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Rechercher un contact..."
+                        searchPlaceholder="Rechercher par nom..."
+                        emptyMessage="Aucun contact trouvé."
+                      />
                       <FormMessage />
                     </FormItem>
                   )}

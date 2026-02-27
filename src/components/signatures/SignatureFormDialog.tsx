@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ContactCombobox } from "@/components/ui/contact-combobox";
 import {
   Dialog,
   DialogContent,
@@ -117,19 +118,18 @@ export function SignatureFormDialog({
               <User className="h-4 w-4" />
               Contact *
             </Label>
-            <Select value={contactId} onValueChange={setContactId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un contact" />
-              </SelectTrigger>
-              <SelectContent>
-                {contacts.map((contact) => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {contact.prenom} {contact.nom}
-                    {contact.email && ` (${contact.email})`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ContactCombobox
+              options={contacts.map((c) => ({
+                value: c.id,
+                label: `${c.prenom} ${c.nom}`,
+                sublabel: c.email || undefined,
+              }))}
+              value={contactId}
+              onValueChange={setContactId}
+              placeholder="Rechercher un contact..."
+              searchPlaceholder="Rechercher par nom..."
+              emptyMessage="Aucun contact trouvé."
+            />
           </div>
 
           {/* Type de document */}

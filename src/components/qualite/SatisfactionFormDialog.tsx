@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ContactCombobox } from "@/components/ui/contact-combobox";
 import {
   Dialog,
   DialogContent,
@@ -95,21 +96,17 @@ export function SatisfactionFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Stagiaire (optionnel)</Label>
-              <Select
+              <ContactCombobox
+                options={contacts.map((c) => ({
+                  value: c.id,
+                  label: `${c.prenom} ${c.nom}`,
+                }))}
                 value={formData.contact_id || ""}
                 onValueChange={(v) => setFormData({ ...formData, contact_id: v || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {contacts.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.prenom} {c.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Rechercher un stagiaire..."
+                searchPlaceholder="Rechercher par nom..."
+                emptyMessage="Aucun contact trouvé."
+              />
             </div>
 
             <div className="space-y-2">
