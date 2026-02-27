@@ -340,21 +340,19 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         </Select>
 
         <div className="flex gap-2">
-          {totalEmargements > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadDocx}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              {publishedTemplate ? "Télécharger (Template)" : "Télécharger DOCX"}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadDocx}
+            disabled={isDownloading || totalEmargements === 0}
+          >
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            {publishedTemplate ? "Télécharger (Template)" : "Télécharger DOCX"}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
