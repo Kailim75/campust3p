@@ -482,18 +482,22 @@ export function generateFacturePDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   
+  // Mapping des intitulés officiels pour les factures
+  const INTITULE_FACTURE_MAP: Record<string, string> = {
+    "VTC": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
+    "Taxi": "Habilitation pour l'accès à la profession de conducteur de taxi",
+    "TAXI": "Habilitation pour l'accès à la profession de conducteur de taxi",
+    "VMDTR": "Habilitation pour l'accès à la profession de conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
+  };
+
   let description = "Formation professionnelle";
   if (session) {
-    const parts = [`Formation: ${session.nom}`];
-    if (session.date_debut && session.date_fin) {
-      try {
-        parts.push(`Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}`);
-      } catch { /* dates invalides, on skip */ }
+    const intituleOfficiel = INTITULE_FACTURE_MAP[session.formation_type || ""];
+    if (intituleOfficiel) {
+      description = intituleOfficiel;
+    } else {
+      description = `Formation: ${session.nom}`;
     }
-    if (session.duree_heures) {
-      parts.push(`Durée: ${session.duree_heures} heures`);
-    }
-    description = parts.join("\n");
   }
   
   const lines = description.split("\n");
