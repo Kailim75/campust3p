@@ -34,6 +34,10 @@ import { toast } from "sonner";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const formationTypes = Constants.public.Enums.formation_type;
 const statutTypes = Constants.public.Enums.contact_statut;
@@ -77,6 +81,23 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const { duplicates, checkDuplicates, clearDuplicates } = useDuplicateCheck();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isEditing = !!contact;
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+
+  // Fetch available sessions (upcoming or in progress)
+  const { data: availableSessions = [] } = useQuery({
+    queryKey: ["available-sessions-for-inscription"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("id, nom, date_debut, date_fin, formation_type")
+        .gte("date_fin", new Date().toISOString().split("T")[0])
+        .eq("archived", false)
+        .order("date_debut", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open && !isEditing,
+  });
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
@@ -135,6 +156,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
     } else {
       // In create mode, start with express form
       setShowCompleteForm(false);
+      setSelectedSessionId("");
       clearDuplicates();
       form.reset({
         civilite: null,
@@ -211,10 +233,31 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
           description: `${values.prenom} ${values.nom} a été mis à jour avec succès.`,
         });
       } else {
-        await createContact.mutateAsync(contactData);
-        toast.success("Contact créé", {
-          description: `${values.prenom} ${values.nom} a été ajouté avec succès.`,
-        });
+        const newContact = await createContact.mutateAsync(contactData);
+        
+        // Auto-inscribe to selected session
+        if (selectedSessionId && selectedSessionId !== "none" && newContact?.id) {
+          const { error: inscError } = await supabase
+            .from("session_inscriptions")
+            .insert({
+              session_id: selectedSessionId,
+              contact_id: newContact.id,
+              statut: "inscrit",
+            });
+          if (inscError) {
+            console.error("Erreur inscription session:", inscError);
+            toast.warning("Contact créé mais l'inscription à la session a échoué.");
+          } else {
+            const sessionName = availableSessions.find(s => s.id === selectedSessionId)?.nom;
+            toast.success("Contact créé et inscrit", {
+              description: `${values.prenom} ${values.nom} a été ajouté et inscrit à ${sessionName || "la session"}.`,
+            });
+          }
+        } else {
+          toast.success("Contact créé", {
+            description: `${values.prenom} ${values.nom} a été ajouté avec succès.`,
+          });
+        }
       }
       onOpenChange(false);
     } catch (error) {
@@ -332,6 +375,33 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                   )}
                 />
               </div>
+
+              {/* Session d'intégration */}
+              {!isEditing && (
+                <div className="pt-2">
+                  <FormItem>
+                    <FormLabel>Inscrire à une session</FormLabel>
+                    <Select
+                      value={selectedSessionId}
+                      onValueChange={setSelectedSessionId}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Aucune session (optionnel)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune session</SelectItem>
+                        {availableSessions.map((session) => (
+                          <SelectItem key={session.id} value={session.id}>
+                            {session.nom} — {session.formation_type} ({session.date_debut ? format(new Date(session.date_debut), "dd/MM/yy", { locale: fr }) : ""})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                </div>
+              )}
             </div>
 
             {/* === ALERTE DOUBLONS === */}
