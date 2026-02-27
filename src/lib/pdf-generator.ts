@@ -207,6 +207,10 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
 
+  // Logo (à droite du header) - ajouté si disponible
+  const logoX = pageWidth - 20 - 28; // 28mm de large max
+  const logoAdded = addLogoImage(doc, company, logoX, 4, 28, 14);
+
   // Nom de l'entreprise en blanc
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
@@ -402,18 +406,35 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 }
 
 // Synchronous helper to add stamp image if already cached
-function addStampImage(doc: jsPDF, company: CompanyInfo, x: number, y: number, maxWidth: number = 40, maxHeight: number = 25): boolean {
+// The stamp is placed with a slight offset to avoid overlapping nearby text
+function addStampImage(doc: jsPDF, company: CompanyInfo, x: number, y: number, maxWidth: number = 35, maxHeight: number = 22): boolean {
   if (!company.signature_cachet_url) return false;
   
   const cachedImage = imageCache.get(company.signature_cachet_url);
   if (!cachedImage) return false;
   
   try {
-    // Add the image to the PDF
+    // Add with reduced opacity effect via slight background
     doc.addImage(cachedImage, 'PNG', x, y, maxWidth, maxHeight);
     return true;
   } catch {
     console.error('Error adding stamp image to PDF');
+    return false;
+  }
+}
+
+// Synchronous helper to add logo image in header if already cached
+function addLogoImage(doc: jsPDF, company: CompanyInfo, x: number, y: number, maxWidth: number = 28, maxHeight: number = 14): boolean {
+  if (!company.logo_url) return false;
+  
+  const cachedImage = imageCache.get(company.logo_url);
+  if (!cachedImage) return false;
+  
+  try {
+    doc.addImage(cachedImage, 'PNG', x, y, maxWidth, maxHeight);
+    return true;
+  } catch {
+    console.error('Error adding logo image to PDF');
     return false;
   }
 }
@@ -705,10 +726,11 @@ export function generateAttestationPDF(
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.text("Le Directeur de l'organisme", pageWidth - 30, yPos, { align: "right" });
   
-  // Add stamp image if available
-  const stampAdded = addStampImage(doc, company, pageWidth - 70, yPos + 5, 40, 25);
+  // Add stamp image below text with proper spacing to avoid overlap
+  yPos += 8;
+  const stampAdded = addStampImage(doc, company, pageWidth - 65, yPos, 35, 22);
   
-  yPos += stampAdded ? 35 : 25;
+  yPos += stampAdded ? 26 : 12;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
@@ -1377,12 +1399,10 @@ export function generateConventionPDF(
   doc.setFontSize(8);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   
-  // Add stamp image if available
-  const stampAdded = addStampImage(doc, company, col1X - 5, yPos + 2, 40, 25);
+  doc.text("(Cachet et signature)", col1X, yPos);
   
-  if (!stampAdded) {
-    doc.text("(Cachet et signature)", col1X, yPos);
-  }
+  // Add stamp image below text with proper spacing
+  const stampAdded = addStampImage(doc, company, col1X, yPos + 4, 35, 22);
   
   doc.text("(Signature précédée de", col2X, yPos);
   doc.text("\"Lu et approuvé, bon pour accord\")", col2X, yPos + 4);
@@ -1925,7 +1945,8 @@ export function generateContratFormationPDF(
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   doc.text("(Cachet et signature)", marginLeft + 4, yPos + 12);
 
-  const stampAdded = addStampImage(doc, company, marginLeft + halfW - 44, yPos + 5, 40, 25);
+  // Stamp placed below the text labels, not overlapping
+  const stampAdded = addStampImage(doc, company, marginLeft + 4, yPos + 15, 35, 20);
 
   // Box droite - Stagiaire
   const rightX = marginLeft + halfW + 10;
@@ -2089,7 +2110,8 @@ export function generateConvocationPDF(
   doc.text("Cordialement,", 20, yPos);
   yPos += 8;
   
-  // Add stamp image if available
+  // Add stamp image below text with proper spacing
+  yPos += 4;
   const stampAdded = addStampImage(doc, company, 20, yPos, 30, 18);
   yPos += stampAdded ? 22 : 5;
   

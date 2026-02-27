@@ -268,6 +268,20 @@ export function addDocumentHeader(
   );
   doc.rect(0, 0, pageWidth, headerHeight, "F");
   
+  // Logo (à droite du header)
+  if (organisme.logoUrl && imageCache.has(organisme.logoUrl)) {
+    try {
+      doc.addImage(
+        imageCache.get(organisme.logoUrl)!,
+        "PNG",
+        pageWidth - DOCUMENT_LAYOUT.marginRight - 28,
+        4,
+        28,
+        14
+      );
+    } catch { /* ignore */ }
+  }
+  
   // Logo ou nom de l'entreprise
   doc.setFontSize(DOCUMENT_FONTS.sizes.title);
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
@@ -619,16 +633,16 @@ export function addSignatureBlock(
     yPos + 24
   );
   
-  // Ajouter le cachet si disponible
+  // Ajouter le cachet si disponible - placé sous le texte pour éviter la superposition
   if (organisme.signatureCachetUrl && imageCache.has(organisme.signatureCachetUrl)) {
     try {
       doc.addImage(
         imageCache.get(organisme.signatureCachetUrl)!,
         "PNG",
-        DOCUMENT_LAYOUT.marginLeft + halfWidth - 45,
-        yPos + 5,
-        40,
-        30
+        DOCUMENT_LAYOUT.marginLeft + 4,
+        yPos + 15,
+        35,
+        20
       );
     } catch {
       // Ignorer si l'image ne peut pas être ajoutée

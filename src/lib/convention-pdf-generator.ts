@@ -32,8 +32,12 @@ import {
 import { 
   DOCUMENT_COLORS,
   DOCUMENT_FONTS,
-  DOCUMENT_LAYOUT 
+  DOCUMENT_LAYOUT,
+  loadImageAsBase64 
 } from "./document-styles";
+
+// Cache local pour les images (logo, cachet)
+const convImageCache: Map<string, string> = new Map();
 
 // Alias pour compatibilité
 const COLORS = {
@@ -113,6 +117,16 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
   // Bandeau vert Forest
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, PAGE_WIDTH, 42, "F");
+
+  // Logo (à droite du header)
+  if (company?.logo_url) {
+    const cachedLogo = convImageCache.get(company.logo_url);
+    if (cachedLogo) {
+      try {
+        doc.addImage(cachedLogo, 'PNG', PAGE_WIDTH - MARGIN_RIGHT - 28, 4, 28, 14);
+      } catch { /* ignore */ }
+    }
+  }
 
   // Logo/Nom
   doc.setFontSize(20);
@@ -666,6 +680,29 @@ export function generateCGVPDF(company?: ConventionCompanyInfo): jsPDF {
   }
 
   return doc;
+}
+
+// ============================================================
+// Preload images for convention documents
+export async function preloadConventionImages(company?: ConventionCompanyInfo): Promise<void> {
+  const promises: Promise<string | null>[] = [];
+  if (company?.logo_url) {
+    promises.push(
+      loadImageAsBase64(company.logo_url).then(b64 => {
+        if (b64) convImageCache.set(company.logo_url!, b64);
+        return b64;
+      })
+    );
+  }
+  if (company?.signature_cachet_url) {
+    promises.push(
+      loadImageAsBase64(company.signature_cachet_url).then(b64 => {
+        if (b64) convImageCache.set(company.signature_cachet_url!, b64);
+        return b64;
+      })
+    );
+  }
+  await Promise.all(promises);
 }
 
 // ============================================================
