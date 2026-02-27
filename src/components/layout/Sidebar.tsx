@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
   Building2, ClipboardList, CalendarClock, BarChart3, Plus, Headphones, User,
   Brain, UserPlus, Zap, Palette, LogOut, GraduationCap, CheckCircle, Workflow,
-  BookOpen, TrendingUp, CalendarDays, AlertTriangle,
+  BookOpen, TrendingUp, CalendarDays, AlertTriangle, Wallet,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDirectorAlertsStore } from "@/hooks/useDirectorAlerts";
@@ -46,6 +46,7 @@ const menuGroups = [
       { id: "alertes", label: "Alertes", icon: AlertTriangle },
       { id: "facturation", label: "Paiements", icon: CreditCard },
       { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
+      { id: "tresorerie", label: "Trésorerie", icon: Wallet },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "documents", label: "Documents", icon: FileText },
       { id: "communications", label: "Communications", icon: Mail },

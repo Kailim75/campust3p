@@ -30,6 +30,7 @@ import { PlanningPage } from "@/components/planning/PlanningPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
+import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
 import RappelsPage from "@/components/rappels/RappelsPage";
 import AgentIAPage from "@/components/agent-ia/AgentIAPage";
 import IADirectorPage from "@/components/ia-director/IADirectorPage";
@@ -189,6 +190,8 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "cockpit-financier":
         return <CockpitFinancierPage />;
+      case "tresorerie":
+        return <TresoreriePage />;
       case "rappels":
         return <RappelsPage />;
       case "rapports":
