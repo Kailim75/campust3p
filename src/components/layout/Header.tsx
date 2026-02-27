@@ -22,10 +22,11 @@ interface HeaderProps {
   activeSection?: string;
   activeTab?: string;
   onNavigate?: (section: string) => void;
+  extraActions?: React.ReactNode;
 }
 
 export function Header({ 
-  title, subtitle, onAddClick, addLabel, activeSection, activeTab, onNavigate,
+  title, subtitle, onAddClick, addLabel, activeSection, activeTab, onNavigate, extraActions,
 }: HeaderProps) {
   const { user, signOut } = useAuth();
 
@@ -65,6 +66,8 @@ export function Header({
           <CentreSwitcher />
           <ThemeToggle />
           <NotificationBell />
+
+          {extraActions}
 
           {onAddClick && (
             <button 
