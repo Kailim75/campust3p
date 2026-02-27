@@ -143,120 +143,143 @@ export function FormationsPage() {
         onAddClick={() => setFormDialogOpen(true)}
       />
 
-      <main className="p-6 animate-fade-in space-y-5">
+      <main className="p-6 animate-fade-in space-y-6">
         {/* Stats */}
         {!isLoading && formations.length > 0 && (
           <CatalogueStatsBar formations={formations} />
         )}
 
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par code ou intitulé..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-9"
-            />
-          </div>
+        {/* Toolbar — clean single-row */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <Input
+                placeholder="Rechercher un article…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-10 bg-card border-border/60 focus-visible:border-primary/30 rounded-lg"
+              />
+            </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="h-9 w-[150px] text-xs">
-                <ArrowUpDown className="h-3 w-3 mr-1.5" />
-                <SelectValue placeholder="Trier par" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nom">Nom A→Z</SelectItem>
-                <SelectItem value="prix-asc">Prix ↑</SelectItem>
-                <SelectItem value="prix-desc">Prix ↓</SelectItem>
-                <SelectItem value="duree">Durée ↓</SelectItem>
-                <SelectItem value="recent">Plus récent</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Sort */}
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="h-9 w-[140px] text-xs bg-card border-border/60 rounded-lg">
+                  <ArrowUpDown className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Trier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nom">Nom A→Z</SelectItem>
+                  <SelectItem value="prix-asc">Prix croissant</SelectItem>
+                  <SelectItem value="prix-desc">Prix décroissant</SelectItem>
+                  <SelectItem value="duree">Durée</SelectItem>
+                  <SelectItem value="recent">Plus récent</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {/* Toggle inactive */}
-            {inactiveCount > 0 && (
-              <Button
-                variant={showInactive ? "outline" : "secondary"}
-                size="sm"
-                className="h-9 text-xs"
-                onClick={() => setShowInactive(!showInactive)}
-              >
-                <EyeOff className="h-3 w-3 mr-1" />
-                {showInactive ? `Masquer inactifs (${inactiveCount})` : `Afficher inactifs (${inactiveCount})`}
-              </Button>
-            )}
+              {/* Toggle inactive */}
+              {inactiveCount > 0 && (
+                <Button
+                  variant={showInactive ? "outline" : "secondary"}
+                  size="sm"
+                  className={cn(
+                    "h-9 text-xs rounded-lg border-border/60",
+                    !showInactive && "bg-warning/10 text-warning border-warning/20 hover:bg-warning/15"
+                  )}
+                  onClick={() => setShowInactive(!showInactive)}
+                >
+                  <EyeOff className="h-3 w-3 mr-1.5" />
+                  {showInactive ? "Masquer inactifs" : "Voir inactifs"}
+                  <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[10px] px-1 rounded-full bg-muted">
+                    {inactiveCount}
+                  </Badge>
+                </Button>
+              )}
 
-            {/* View mode */}
-            <div className="flex border rounded-lg overflow-hidden">
-              <Button
-                variant={viewMode === "cards" ? "default" : "ghost"}
-                size="icon"
-                className="h-9 w-9 rounded-none"
-                onClick={() => setViewMode("cards")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                size="icon"
-                className="h-9 w-9 rounded-none"
-                onClick={() => setViewMode("table")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
+              {/* View mode toggle */}
+              <div className="flex bg-card border border-border/60 rounded-lg overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 rounded-none",
+                    viewMode === "cards" && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                  )}
+                  onClick={() => setViewMode("cards")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 rounded-none",
+                    viewMode === "table" && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                  )}
+                  onClick={() => setViewMode("table")}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Category Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex-wrap h-auto gap-1 p-1 bg-muted/50">
-            {categories.map((cat) => {
-              const count = formations.filter(
-                (f) => (cat === "all" || f.categorie === cat) && (showInactive || f.actif)
-              ).length;
-              return (
-                <TabsTrigger key={cat} value={cat} className="text-xs px-3 py-1.5">
-                  {cat === "all" ? "Tous" : cat}
-                  <Badge variant="secondary" className="ml-1.5 h-4 min-w-4 text-[10px] px-1 rounded-full">
-                    {count}
-                  </Badge>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          {/* Category Tabs — pill style */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="flex-wrap h-auto gap-1.5 p-1.5 bg-muted/40 rounded-xl border border-border/30">
+              {categories.map((cat) => {
+                const count = formations.filter(
+                  (f) => (cat === "all" || f.categorie === cat) && (showInactive || f.actif)
+                ).length;
+                return (
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className={cn(
+                      "text-xs px-3.5 py-2 rounded-lg font-medium",
+                      "data-[state=active]:shadow-sm data-[state=active]:bg-card"
+                    )}
+                  >
+                    {cat === "all" ? "Tous" : cat}
+                    <Badge
+                      variant="secondary"
+                      className="ml-1.5 h-[18px] min-w-[18px] text-[10px] px-1 rounded-full bg-background/80 font-semibold"
+                    >
+                      {count}
+                    </Badge>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-          <TabsContent value={activeTab} className="mt-5">
+          <TabsContent value={activeTab} className="mt-6">
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <Skeleton key={i} className="h-52 rounded-xl" />
+                  <Skeleton key={i} className="h-56 rounded-xl" />
                 ))}
               </div>
             ) : filteredFormations.length === 0 ? (
-              <Card>
-                <CardContent className="py-16 text-center">
-                  <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
-                  <p className="text-muted-foreground font-medium">Aucun article trouvé</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    {search ? "Essayez un autre terme de recherche" : "Commencez par ajouter un article"}
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setFormDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un article
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-dashed border-border/60 bg-muted/20">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/60 mb-4">
+                  <GraduationCap className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <p className="text-foreground font-semibold text-base">Aucun article trouvé</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-xs text-center">
+                  {search ? "Essayez un autre terme de recherche" : "Commencez par ajouter un article au catalogue"}
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-5 rounded-lg"
+                  onClick={() => setFormDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter un article
+                </Button>
+              </div>
             ) : viewMode === "cards" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                 {filteredFormations.map((formation) => (
                   <CatalogueArticleCard
                     key={formation.id}
@@ -390,6 +413,7 @@ export function FormationsPage() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </main>
 
       <CatalogueFormDialog
