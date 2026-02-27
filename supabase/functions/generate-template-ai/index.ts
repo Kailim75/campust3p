@@ -135,6 +135,22 @@ Inclure au minimum 8 articles :
 - Réclamations
 - Entrée en vigueur`,
   },
+  devis: {
+    label: "Devis",
+    prompt: `Génère un devis professionnel pour un centre de formation.
+Design moderne avec :
+- En-tête avec infos organisme (logo, nom, SIRET, NDA, adresse)
+- Zone destinataire (nom, prénom, adresse, email)
+- Numéro de devis et date d'émission
+- Date de validité du devis
+- Tableau des prestations (désignation, quantité, P.U. HT, remise, montant HT)
+- Totaux (Total HT, TVA, Total TTC)
+- Mention "TVA non applicable — art. 293 B du CGI" si applicable
+- Type de financement (personnel, CPF, entreprise, OPCO)
+- Conditions de règlement
+- Espace signature client avec mention "Bon pour accord"
+- Espace signature organisme`,
+  },
 };
 
 serve(async (req) => {
