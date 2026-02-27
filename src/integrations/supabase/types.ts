@@ -6771,6 +6771,7 @@ export type Database = {
         | "test_positionnement"
         | "feuille_emargement"
         | "procedure_reclamation"
+        | "devis"
       type_charge: "fixe" | "variable"
       type_contenu_ressource: "texte" | "liste" | "carte" | "pdf" | "video"
       type_seance_conduite:
@@ -7060,6 +7061,7 @@ export const Constants = {
         "test_positionnement",
         "feuille_emargement",
         "procedure_reclamation",
+        "devis",
       ],
       type_charge: ["fixe", "variable"],
       type_contenu_ressource: ["texte", "liste", "carte", "pdf", "video"],
