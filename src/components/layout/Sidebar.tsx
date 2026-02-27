@@ -33,26 +33,22 @@ const menuGroups = [
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "contacts", label: "Apprenants", icon: Users },
-      { id: "prospects", label: "Prospects", icon: UserPlus },
       { id: "pipeline", label: "Pipeline", icon: ClipboardList },
       { id: "sessions", label: "Sessions", icon: Calendar },
       { id: "formations", label: "Catalogue", icon: GraduationCap },
       { id: "formateurs", label: "Formateurs", icon: User },
-      { id: "planning", label: "Planning", icon: CalendarDays },
       { id: "planning-conduite", label: "Planning Conduite", icon: CalendarClock },
     ],
   },
   {
     label: "Gestion",
     items: [
-      { id: "rappels", label: "Rappels", icon: Bell },
       { id: "alertes", label: "Alertes", icon: AlertTriangle },
       { id: "facturation", label: "Paiements", icon: CreditCard },
       { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "documents", label: "Documents", icon: FileText },
       { id: "communications", label: "Communications", icon: Mail },
-      { id: "rapports", label: "Rapports", icon: BarChart3 },
     ],
   },
   {
