@@ -6159,6 +6159,21 @@ export type Database = {
           },
         ]
       }
+      session_inscription_counts: {
+        Row: {
+          inscription_count: number | null
+          session_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_inscriptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
@@ -6188,6 +6203,25 @@ export type Database = {
           conflict_id: string
           conflict_label: string
           conflict_type: string
+        }[]
+      }
+      check_duplicate_contacts: {
+        Args: {
+          p_date_naissance?: string
+          p_email?: string
+          p_exclude_id?: string
+          p_nom: string
+          p_prenom: string
+        }
+        Returns: {
+          date_naissance: string
+          email: string
+          formation: string
+          id: string
+          match_type: string
+          nom: string
+          prenom: string
+          telephone: string
         }[]
       }
       cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
@@ -6336,6 +6370,16 @@ export type Database = {
       pay_partner_commission: {
         Args: { p_amount: number; p_partner_id: string }
         Returns: boolean
+      }
+      reconcile_factures_inscriptions: {
+        Args: never
+        Returns: {
+          contact_id: string
+          facture_id: string
+          numero_facture: string
+          session_inscription_id: string
+          session_nom: string
+        }[]
       }
       refuse_document_public: {
         Args: { p_commentaires?: string; p_signature_id: string }
