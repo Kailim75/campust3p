@@ -183,14 +183,19 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
         .eq("id", id)
         .maybeSingle();
       if (data) {
+        const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+        const fmtE = (n: number) => fmt(n) + " €";
+        
         map.numero_devis = data.numero_devis || "";
-        map.montant_total = Number(data.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
+        map.montant_total = fmtE(Number(data.montant_total));
         map.prix_total = map.montant_total;
         map.type_financement = data.type_financement || "";
         map.date_emission = data.date_emission ? new Date(data.date_emission).toLocaleDateString("fr-FR") : "";
         map.date_validite = data.date_validite ? new Date(data.date_validite).toLocaleDateString("fr-FR") : "";
         map.statut_devis = data.statut || "";
         map.commentaires = data.commentaires || "";
+        map.modalites_paiement = data.type_financement === "cpf" ? "Prise en charge CPF" : "Règlement selon échéancier du contrat";
+
         const contact = (data as any).contact;
         if (contact) {
           map.nom = contact.nom || "";
@@ -199,6 +204,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           map.telephone = contact.telephone || "";
           map.civilite = contact.civilite || "";
           map.adresse = [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", ");
+          map.adresse_client = map.adresse;
         }
         // Session data via inscription
         const session = (data as any).session_inscription?.session;
@@ -219,14 +225,36 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           .eq("devis_id", id)
           .order("ordre", { ascending: true });
         if (lignes && lignes.length > 0) {
-          const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
           const totalHt = lignes.reduce((sum, l: any) => sum + Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100)), 0);
+          const totalTva = lignes.reduce((sum, l: any) => sum + Number(l.montant_tva || 0), 0);
+          const totalTtc = lignes.reduce((sum, l: any) => sum + Number(l.montant_ttc || totalHt), 0);
+          const totalRemise = lignes.reduce((sum, l: any) => {
+            const brut = l.quantite * l.prix_unitaire_ht;
+            const net = Number(l.montant_ht || brut * (1 - (l.remise_percent || 0) / 100));
+            return sum + (brut - net);
+          }, 0);
+
+          // Single-line variables from first line (for simple templates)
+          const firstLine = lignes[0] as any;
+          map.prix_unitaire_ht = fmt(firstLine.prix_unitaire_ht);
+          map.montant_remise = fmt(totalRemise);
+          map.montant_total_ht = fmt(totalHt);
+          map.total_ht = fmtE(totalHt);
+          map.total_tva = fmtE(totalTva);
+          map.total_ttc = fmtE(totalTtc);
+          map.tva_percent = String(firstLine.tva_percent || 0);
+          map.remise_percent = String(firstLine.remise_percent || 0);
+
+          // Use first line description as intitule_formation fallback
+          if (!map.intitule_formation) {
+            map.intitule_formation = firstLine.description || "";
+          }
+
           const rows = lignes.map((l: any) => {
             const lineHt = Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100));
-            return `<tr><td style="border:1px solid #ddd;padding:8px">${l.description}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(l.prix_unitaire_ht)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(lineHt)}</td></tr>`;
+            return `<tr><td style="border:1px solid #ddd;padding:8px">${l.description}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(l.prix_unitaire_ht)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(lineHt)}</td></tr>`;
           }).join("");
-          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:left">Désignation</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Qté</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Remise</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">Montant HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f5f5f5;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px;text-align:right">Total HT</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(totalHt)}</td></tr></tfoot></table>`;
-          map.total_ht = fmt(totalHt);
+          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:left">Désignation</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Qté</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Remise</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">Montant HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f5f5f5;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px;text-align:right">Total HT</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(totalHt)}</td></tr></tfoot></table>`;
         }
       }
     }
