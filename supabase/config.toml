@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.ia-predictive-analysis]
 verify_jwt = false
+
+[functions.generate-workflow-ai]
+verify_jwt = false

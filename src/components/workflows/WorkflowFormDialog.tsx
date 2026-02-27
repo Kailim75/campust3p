@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, GripVertical, Zap, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Zap, ArrowDown, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
 import { useWorkflows, TRIGGER_TYPES, ACTION_TYPES, WorkflowAction, Workflow } from '@/hooks/useWorkflows';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -30,6 +32,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
   const [triggerConditions, setTriggerConditions] = useState<Record<string, any>>({});
   const [actions, setActions] = useState<WorkflowAction[]>([]);
   const [expandedActions, setExpandedActions] = useState<Set<number>>(new Set());
+  const [generatingEmail, setGeneratingEmail] = useState<number | null>(null);
 
   useEffect(() => {
     if (workflow) {
@@ -99,6 +102,48 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
     setActions(updated);
   };
 
+  const handleGenerateEmailAI = async (index: number) => {
+    if (!triggerType) {
+      toast.error('Sélectionnez d\'abord un déclencheur');
+      return;
+    }
+    setGeneratingEmail(index);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-workflow-ai', {
+        body: {
+          mode: 'generate_email',
+          context: {
+            trigger_type: triggerType,
+            description: description || nom,
+            custom_instructions: actions[index]?.config?.custom_instructions || ''
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const result = data.result;
+      if (result?.subject && result?.content) {
+        const updated = [...actions];
+        updated[index] = {
+          ...updated[index],
+          config: {
+            ...updated[index].config,
+            subject: result.subject,
+            content: result.content
+          }
+        };
+        setActions(updated);
+        toast.success('Contenu email généré par l\'IA');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la génération');
+    } finally {
+      setGeneratingEmail(null);
+    }
+  };
+
   const handleSubmit = () => {
     if (!nom || !triggerType || actions.length === 0) return;
 
@@ -129,14 +174,31 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
       case 'send_email':
         return (
           <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">Contenu email</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                disabled={generatingEmail === index}
+                onClick={(e) => { e.stopPropagation(); handleGenerateEmailAI(index); }}
+              >
+                {generatingEmail === index ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                {generatingEmail === index ? 'Génération...' : 'Générer avec l\'IA'}
+              </Button>
+            </div>
             <div>
-              <Label className="text-xs">Template d'email</Label>
+              <Label className="text-xs">Template d'email existant</Label>
               <Select
                 value={action.config.template_id || ''}
                 onValueChange={(v) => handleActionChange(index, 'template_id', v)}
               >
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Sélectionner un template" />
+                  <SelectValue placeholder="Sélectionner un template (optionnel)" />
                 </SelectTrigger>
                 <SelectContent>
                   {emailTemplates?.map((t) => (
@@ -146,7 +208,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Ou sujet personnalisé</Label>
+              <Label className="text-xs">Sujet personnalisé</Label>
               <Input
                 className="h-9"
                 value={action.config.subject || ''}
@@ -160,7 +222,16 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
                 value={action.config.content || ''}
                 onChange={(e) => handleActionChange(index, 'content', e.target.value)}
                 placeholder="Contenu HTML de l'email"
-                rows={3}
+                rows={4}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Instructions pour l'IA (optionnel)</Label>
+              <Input
+                className="h-9"
+                value={action.config.custom_instructions || ''}
+                onChange={(e) => handleActionChange(index, 'custom_instructions', e.target.value)}
+                placeholder="Ex: Ton formel, mentionner les documents à apporter..."
               />
             </div>
           </div>

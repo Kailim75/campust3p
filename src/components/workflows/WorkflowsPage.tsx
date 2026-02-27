@@ -14,6 +14,7 @@ import {
   History,
   Zap,
   Mail,
+  Sparkles,
   Bell,
   RefreshCw,
   FileText,
@@ -33,6 +34,7 @@ import { useWorkflows, useAllWorkflowExecutions, TRIGGER_TYPES, ACTION_TYPES, WO
 import { WorkflowFormDialog } from './WorkflowFormDialog';
 import { WorkflowExecutionsSheet } from './WorkflowExecutionsSheet';
 import { WorkflowTemplatesDialog } from './WorkflowTemplatesDialog';
+import { WorkflowAIDialog } from './WorkflowAIDialog';
 import { format, isToday, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -70,6 +72,7 @@ export function WorkflowsPage() {
   const executeWorkflow = useExecuteWorkflow();
   const [formOpen, setFormOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [executionsOpen, setExecutionsOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -201,6 +204,10 @@ export function WorkflowsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setAiDialogOpen(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Créer avec l'IA
+          </Button>
           <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
             <LayoutTemplate className="h-4 w-4 mr-2" />
             Templates
@@ -599,6 +606,22 @@ export function WorkflowsPage() {
         open={executionsOpen}
         onOpenChange={setExecutionsOpen}
         workflow={selectedWorkflow}
+      />
+
+      <WorkflowAIDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        onResult={(result) => {
+          setSelectedWorkflow({
+            nom: result.nom,
+            description: result.description,
+            actif: true,
+            trigger_type: result.trigger_type,
+            trigger_conditions: {},
+            actions: result.actions,
+          });
+          setFormOpen(true);
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
