@@ -56,7 +56,6 @@ const menuGroups = [
     label: "Qualité & LMS",
     items: [
       { id: "qualite", label: "Qualité", icon: CheckCircle },
-      { id: "elearning", label: "E-Learning", icon: BookOpen },
       { id: "workflows", label: "Workflows", icon: Workflow },
     ],
   },
