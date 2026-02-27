@@ -289,6 +289,29 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
 
       if (error) throw error;
       setGeneratedInstanceId(instance?.id || null);
+
+      // Also save to contact_documents if we have a contact
+      let contactId: string | null = null;
+      if (entityType === "apprenant") {
+        contactId = selectedEntity.id;
+      } else if (entityType === "devis") {
+        const { data: devisData } = await supabase.from("devis").select("contact_id").eq("id", selectedEntity.id).maybeSingle();
+        contactId = devisData?.contact_id || null;
+      } else if (entityType === "paiement") {
+        const { data: factureData } = await supabase.from("factures").select("contact_id").eq("id", selectedEntity.id).maybeSingle();
+        contactId = factureData?.contact_id || null;
+      }
+
+      if (contactId) {
+        await supabase.from("contact_documents").insert({
+          contact_id: contactId,
+          type_document: template.type || "autre",
+          nom: `${template.name} — ${selectedEntity.label}`,
+          file_path: `generated/${instance?.id || "doc"}_${Date.now()}`,
+          commentaires: `Généré via Template Studio le ${new Date().toLocaleDateString("fr-FR")}`,
+        });
+      }
+
       toast.success("Document généré et enregistré");
     } catch (e: any) {
       console.error("Generation error:", e);

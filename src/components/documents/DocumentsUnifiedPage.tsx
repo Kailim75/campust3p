@@ -9,6 +9,8 @@ import { Loader2, Stamp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import GenerateDocumentModal from "@/components/template-studio/GenerateDocumentModal";
+import type { StudioTemplate } from "@/hooks/useTemplateStudio";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -129,6 +131,22 @@ const mockDocuments: Document[] = [
 
 type ViewMode = "documents" | "signatures" | "generated";
 
+function usePublishedTemplates() {
+  return useQuery({
+    queryKey: ["published-templates-for-docs"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("template_studio_templates")
+        .select("*")
+        .eq("status", "published")
+        .eq("is_active", true)
+        .order("type");
+      if (error) throw error;
+      return (data || []) as StudioTemplate[];
+    },
+  });
+}
+
 export function DocumentsUnifiedPage() {
   const [activeView, setActiveView] = useState<ViewMode>("documents");
   const [searchQuery, setSearchQuery] = useState("");
@@ -158,6 +176,10 @@ export function DocumentsUnifiedPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [signatureStatusFilter, setSignatureStatusFilter] = useState<string>("all");
   const [sendDocsContact, setSendDocsContact] = useState<{ id: string; nom: string; prenom: string } | null>(null);
+
+  // Template Studio generation
+  const { data: publishedTemplates = [] } = usePublishedTemplates();
+  const [generateTemplate, setGenerateTemplate] = useState<StudioTemplate | null>(null);
 
   // Document filtering
   const filteredDocuments = mockDocuments.filter(
@@ -487,6 +509,32 @@ export function DocumentsUnifiedPage() {
 
         {/* Generated Documents Tab */}
         <TabsContent value="generated" className="mt-4 space-y-4">
+          {/* Generate from Template Studio */}
+          {publishedTemplates.length > 0 && (
+            <Card className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Générer un document</p>
+                  <p className="text-xs text-muted-foreground">Choisissez un template publié pour créer un document</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {publishedTemplates.map((t) => (
+                    <Button
+                      key={t.id}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setGenerateTemplate(t)}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {t.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {loadingGenerated ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -495,7 +543,7 @@ export function DocumentsUnifiedPage() {
             <Card className="p-8 text-center text-muted-foreground">
               <Stamp className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">Aucun document généré</p>
-              <p className="text-sm mt-1">Utilisez le Template Studio pour générer des documents</p>
+              <p className="text-sm mt-1">Utilisez les boutons ci-dessus ou le Template Studio pour générer des documents</p>
             </Card>
           ) : (
             <Card>
@@ -588,6 +636,15 @@ export function DocumentsUnifiedPage() {
           contactId={sendDocsContact.id}
           contactNom={sendDocsContact.nom}
           contactPrenom={sendDocsContact.prenom}
+        />
+      )}
+
+      {/* Generate Document from Template Studio */}
+      {generateTemplate && (
+        <GenerateDocumentModal
+          open={!!generateTemplate}
+          onOpenChange={(val) => { if (!val) setGenerateTemplate(null); }}
+          template={generateTemplate}
         />
       )}
     </div>
