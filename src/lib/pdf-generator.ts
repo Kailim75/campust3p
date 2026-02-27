@@ -492,6 +492,29 @@ export function generateFacturePDF(
     } else {
       description = `Formation: ${session.nom}`;
     }
+    
+    // Ajouter dates de formation
+    if (session.date_debut && session.date_fin) {
+      const dateDebut = format(new Date(session.date_debut), "dd/MM/yyyy");
+      const dateFin = format(new Date(session.date_fin), "dd/MM/yyyy");
+      if (dateDebut === dateFin) {
+        description += `\nDate: ${dateDebut}`;
+      } else {
+        description += `\nDu ${dateDebut} au ${dateFin}`;
+      }
+    }
+    
+    // Ajouter horaires de formation
+    if (session.heure_debut_matin && session.heure_fin_matin && session.heure_debut_aprem && session.heure_fin_aprem) {
+      description += `\nHoraires: ${session.heure_debut_matin} - ${session.heure_fin_matin} / ${session.heure_debut_aprem} - ${session.heure_fin_aprem}`;
+    } else if (session.heure_debut && session.heure_fin) {
+      description += `\nHoraires: ${session.heure_debut} - ${session.heure_fin}`;
+    }
+    
+    // Ajouter durée si disponible
+    if (session.duree_heures) {
+      description += `\nDurée: ${session.duree_heures} heures`;
+    }
   }
 
   // Wrap long text and calculate dynamic height
