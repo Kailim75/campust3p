@@ -5810,6 +5810,157 @@ export type Database = {
           },
         ]
       }
+      transactions_bancaires: {
+        Row: {
+          banque: string | null
+          categorie: string | null
+          charge_id: string | null
+          compte: string | null
+          created_at: string
+          created_by: string | null
+          date_operation: string
+          date_valeur: string | null
+          facture_id: string | null
+          id: string
+          import_batch_id: string | null
+          libelle: string
+          montant: number
+          notes: string | null
+          paiement_id: string | null
+          rapproche: boolean
+          reference_bancaire: string | null
+          type_operation: string
+        }
+        Insert: {
+          banque?: string | null
+          categorie?: string | null
+          charge_id?: string | null
+          compte?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_operation: string
+          date_valeur?: string | null
+          facture_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          libelle: string
+          montant: number
+          notes?: string | null
+          paiement_id?: string | null
+          rapproche?: boolean
+          reference_bancaire?: string | null
+          type_operation?: string
+        }
+        Update: {
+          banque?: string | null
+          categorie?: string | null
+          charge_id?: string | null
+          compte?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_operation?: string
+          date_valeur?: string | null
+          facture_id?: string | null
+          id?: string
+          import_batch_id?: string | null
+          libelle?: string
+          montant?: number
+          notes?: string | null
+          paiement_id?: string | null
+          rapproche?: boolean
+          reference_bancaire?: string | null
+          type_operation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_bancaires_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_bancaires_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_bancaires_paiement_id_fkey"
+            columns: ["paiement_id"]
+            isOneToOne: false
+            referencedRelation: "paiements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tresorerie_alertes: {
+        Row: {
+          created_at: string
+          date_alerte: string
+          description: string | null
+          id: string
+          montant_seuil: number | null
+          statut: string
+          titre: string
+          type_alerte: string
+        }
+        Insert: {
+          created_at?: string
+          date_alerte?: string
+          description?: string | null
+          id?: string
+          montant_seuil?: number | null
+          statut?: string
+          titre: string
+          type_alerte: string
+        }
+        Update: {
+          created_at?: string
+          date_alerte?: string
+          description?: string | null
+          id?: string
+          montant_seuil?: number | null
+          statut?: string
+          titre?: string
+          type_alerte?: string
+        }
+        Relationships: []
+      }
+      tresorerie_soldes: {
+        Row: {
+          banque: string | null
+          compte: string | null
+          created_at: string
+          date_solde: string
+          id: string
+          notes: string | null
+          solde_previsionnel: number | null
+          solde_reel: number
+        }
+        Insert: {
+          banque?: string | null
+          compte?: string | null
+          created_at?: string
+          date_solde: string
+          id?: string
+          notes?: string | null
+          solde_previsionnel?: number | null
+          solde_reel?: number
+        }
+        Update: {
+          banque?: string | null
+          compte?: string | null
+          created_at?: string
+          date_solde?: string
+          id?: string
+          notes?: string | null
+          solde_previsionnel?: number | null
+          solde_reel?: number
+        }
+        Relationships: []
+      }
       user_centres: {
         Row: {
           centre_id: string
