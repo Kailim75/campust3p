@@ -144,8 +144,11 @@ export async function loadImageAsBase64(url: string): Promise<string | null> {
   }
   
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) {
+      console.warn(`[DocStyles/Image] Fetch failed for ${url}: ${response.status}`);
+      return await loadImageViaElementDS(url);
+    }
     
     const blob = await response.blob();
     return new Promise((resolve) => {
@@ -159,8 +162,36 @@ export async function loadImageAsBase64(url: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch {
-    return null;
+    console.warn(`[DocStyles/Image] Fetch error, trying canvas fallback for ${url}`);
+    return await loadImageViaElementDS(url);
   }
+}
+
+function loadImageViaElementDS(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const base64 = canvas.toDataURL('image/png');
+          imageCache.set(url, base64);
+          resolve(base64);
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
 }
 
 /**

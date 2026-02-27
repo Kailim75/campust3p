@@ -129,7 +129,7 @@ export function useDocumentGenerator() {
   }, [getCompanyInfo]);
 
   const generateDocument = useCallback(
-    (
+    async (
       type: DocumentType,
       contact: ContactInfo,
       session?: SessionInfo,
@@ -142,6 +142,9 @@ export function useDocumentGenerator() {
           toast.error("Configuration du centre de formation manquante. Allez dans Paramètres pour la configurer.");
           return null;
         }
+
+        // Toujours précharger les images avant de générer le PDF
+        await preloadCompanyImages(company);
 
         let doc;
         let filename: string;
@@ -491,16 +494,17 @@ export function useDocumentGenerator() {
         return;
       }
 
-      let successCount = 0;
-      
-      contacts.forEach((contact) => {
-        const result = generateDocument(type, contact, session);
-        if (result) successCount++;
-      });
-
-      if (successCount > 0) {
-        toast.success(`${successCount} document(s) généré(s)`);
-      }
+      // Pour les autres types de documents (non-attestation), génération async
+      void (async () => {
+        let successCount = 0;
+        for (const contact of contacts) {
+          const result = await generateDocument(type, contact, session);
+          if (result) successCount++;
+        }
+        if (successCount > 0) {
+          toast.success(`${successCount} document(s) généré(s)`);
+        }
+      })();
     },
     [generateDocument, getCompanyInfo, centreFormation]
   );
