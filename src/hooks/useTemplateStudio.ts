@@ -71,6 +71,7 @@ export const TEMPLATE_TYPES = [
   { value: "convocation", label: "Convocation" },
   { value: "reglement_interieur", label: "Règlement intérieur" },
   { value: "procedure_reclamation", label: "Procédure de réclamation" },
+  { value: "devis", label: "Devis" },
   { value: "invoice", label: "Facture" },
   { value: "email", label: "Email" },
   { value: "chef_oeuvre", label: "Chef d'œuvre" },
