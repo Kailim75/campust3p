@@ -473,21 +473,15 @@ export function generateFacturePDF(
   doc.text("Description", 25, yPos + 8);
   doc.text("Montant HT", pageWidth - 25, yPos + 8, { align: "right" });
   
-  // Table content avec fond cream
-  yPos += 12;
-  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.rect(20, yPos, pageWidth - 40, 25, "F");
-  
-  yPos += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  
   // Mapping des intitulés officiels pour les factures
   const INTITULE_FACTURE_MAP: Record<string, string> = {
     "VTC": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
+    "vtc": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
     "Taxi": "Habilitation pour l'accès à la profession de conducteur de taxi",
     "TAXI": "Habilitation pour l'accès à la profession de conducteur de taxi",
+    "taxi": "Habilitation pour l'accès à la profession de conducteur de taxi",
     "VMDTR": "Habilitation pour l'accès à la profession de conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
+    "vmdtr": "Habilitation pour l'accès à la profession de conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
   };
 
   let description = "Formation professionnelle";
@@ -499,10 +493,25 @@ export function generateFacturePDF(
       description = `Formation: ${session.nom}`;
     }
   }
+
+  // Wrap long text and calculate dynamic height
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  const maxTextWidth = pageWidth - 40 - 50; // leave space for amount column
+  const wrappedLines = doc.splitTextToSize(description, maxTextWidth);
+  const lineHeight = 5;
+  const contentHeight = Math.max(20, wrappedLines.length * lineHeight + 10);
+
+  // Table content avec fond cream
+  yPos += 12;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.rect(20, yPos, pageWidth - 40, contentHeight, "F");
   
-  const lines = description.split("\n");
-  lines.forEach((line, i) => {
-    doc.text(line, 25, yPos + (i * 5));
+  yPos += 8;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  
+  wrappedLines.forEach((line: string, i: number) => {
+    doc.text(line, 25, yPos + (i * lineHeight));
   });
   
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -510,7 +519,7 @@ export function generateFacturePDF(
   doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos, { align: "right" });
   
   // Financement info
-  yPos += lines.length * 5 + 12;
+  yPos += wrappedLines.length * lineHeight + 12;
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
