@@ -64,7 +64,7 @@ const menuGroups = [
     items: [
       { id: "ia-director", label: "IA Director", icon: Zap },
       { id: "template-studio", label: "Template Studio", icon: Palette },
-      { id: "agent-ia", label: "Agent IA", icon: Brain },
+      
     ],
   },
 ];
