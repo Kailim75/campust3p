@@ -179,7 +179,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
     } else if (type === "devis") {
       const { data } = await supabase
         .from("devis")
-        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville)")
+        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, horaires, lieu))")
         .eq("id", id)
         .maybeSingle();
       if (data) {
@@ -197,19 +197,36 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           map.prenom = contact.prenom || "";
           map.email = contact.email || "";
           map.telephone = contact.telephone || "";
+          map.civilite = contact.civilite || "";
           map.adresse = [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", ");
         }
-        // Fetch devis lines for table
+        // Session data via inscription
+        const session = (data as any).session_inscription?.session;
+        if (session) {
+          map.session_nom = session.nom || "";
+          map.intitule_formation = session.nom || session.formation_type || "";
+          map.formation_type = session.formation_type || "";
+          map.session_date_debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString("fr-FR") : "";
+          map.session_date_fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString("fr-FR") : "";
+          map.duree_heures = String(session.duree_heures || "");
+          map.horaires = session.horaires || "";
+          map.lieu = session.lieu || "";
+        }
+        // Fetch devis lines
         const { data: lignes } = await supabase
           .from("devis_lignes")
           .select("*")
           .eq("devis_id", id)
           .order("ordre", { ascending: true });
         if (lignes && lignes.length > 0) {
-          const rows = lignes.map((l: any) =>
-            `<tr><td>${l.description}</td><td style="text-align:center">${l.quantite}</td><td style="text-align:right">${Number(l.prix_unitaire_ht).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</td><td style="text-align:right">${Number(l.montant_ht || l.quantite * l.prix_unitaire_ht).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</td></tr>`
-          ).join("");
-          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left">Description</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center">Qté</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:right">Total HT</th></tr></thead><tbody>${rows}</tbody></table>`;
+          const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
+          const totalHt = lignes.reduce((sum, l: any) => sum + Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100)), 0);
+          const rows = lignes.map((l: any) => {
+            const lineHt = Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100));
+            return `<tr><td style="border:1px solid #ddd;padding:8px">${l.description}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(l.prix_unitaire_ht)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(lineHt)}</td></tr>`;
+          }).join("");
+          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:left">Désignation</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Qté</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Remise</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">Montant HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f5f5f5;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px;text-align:right">Total HT</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmt(totalHt)}</td></tr></tfoot></table>`;
+          map.total_ht = fmt(totalHt);
         }
       }
     }
