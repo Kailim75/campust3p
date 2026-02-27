@@ -204,17 +204,20 @@ const Index = () => {
     }
   };
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
     return (
     <div className="h-screen bg-background overflow-hidden">
       <Sidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
         onNewContact={() => setNewContactOpen(true)}
+        onCollapsedChange={setSidebarCollapsed}
       />
       
       <main className={cn(
-        "transition-all duration-300 h-full overflow-auto",
-        isMobile ? "ml-0" : "ml-64"
+        "transition-all duration-200 h-full overflow-auto",
+        isMobile ? "ml-0" : sidebarCollapsed ? "ml-[60px]" : "ml-[240px]"
       )}>
         <NavigationProvider
           activeSection={activeSection}

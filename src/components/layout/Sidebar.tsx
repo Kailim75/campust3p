@@ -3,9 +3,10 @@ import {
   LayoutDashboard, Users, Calendar, FileText, CreditCard, Bell, Settings,
   ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
   Building2, ClipboardList, CalendarClock, BarChart3, Plus, Headphones, User,
-  Brain, UserPlus, Zap, Palette,
+  Brain, UserPlus, Zap, Palette, LogOut, GraduationCap, CheckCircle, Workflow,
+  BookOpen, TrendingUp, CalendarDays, AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDirectorAlertsStore } from "@/hooks/useDirectorAlerts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ interface SidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   onNewContact?: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 const menuGroups = [
@@ -34,6 +36,9 @@ const menuGroups = [
       { id: "prospects", label: "Prospects", icon: UserPlus },
       { id: "pipeline", label: "Pipeline", icon: ClipboardList },
       { id: "sessions", label: "Sessions", icon: Calendar },
+      { id: "formations", label: "Catalogue", icon: GraduationCap },
+      { id: "formateurs", label: "Formateurs", icon: User },
+      { id: "planning", label: "Planning", icon: CalendarDays },
       { id: "planning-conduite", label: "Planning Conduite", icon: CalendarClock },
     ],
   },
@@ -41,11 +46,21 @@ const menuGroups = [
     label: "Gestion",
     items: [
       { id: "rappels", label: "Rappels", icon: Bell },
+      { id: "alertes", label: "Alertes", icon: AlertTriangle },
       { id: "facturation", label: "Paiements", icon: CreditCard },
       { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
       { id: "partenaires", label: "Partenaires", icon: Building2 },
       { id: "documents", label: "Documents", icon: FileText },
-      { id: "settings", label: "Paramètres", icon: Settings },
+      { id: "communications", label: "Communications", icon: Mail },
+      { id: "rapports", label: "Rapports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Qualité & LMS",
+    items: [
+      { id: "qualite", label: "Qualité", icon: CheckCircle },
+      { id: "elearning", label: "E-Learning", icon: BookOpen },
+      { id: "workflows", label: "Workflows", icon: Workflow },
     ],
   },
   {
@@ -68,8 +83,33 @@ function SidebarContent({
   const { data: alerts } = useAllAlerts();
   const highPriorityAlerts = alerts.filter(a => a.priority === "high").length;
   const { canSwitchMode, setMode } = useAdminMode();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
+  const [userRole, setUserRole] = useState<string>("Utilisateur");
+
+  // Fetch user role from database
+  useEffect(() => {
+    if (!user?.id) return;
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .limit(1)
+        .single()
+        .then(({ data }) => {
+          if (data?.role) {
+            const roleLabels: Record<string, string> = {
+              super_admin: "Super Admin",
+              admin: "Administrateur",
+              staff: "Collaborateur",
+              formateur: "Formateur",
+            };
+            setUserRole(roleLabels[data.role] || data.role);
+          }
+        });
+    });
+  }, [user?.id]);
 
   const handleRecentItemClick = (type: string, id: string) => {
     if (type === "contact") onSectionChange("contacts");
@@ -165,14 +205,14 @@ function SidebarContent({
       <div className="px-3 py-3 space-y-0.5 border-t border-white/8">
         <RecentItemsMenu onItemClick={handleRecentItemClick} collapsed={collapsed} />
         
-        <button onClick={() => { localStorage.removeItem("crm-onboarding-completed"); window.location.reload(); }} className="sidebar-item w-full">
-          <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Aide</span>}
+        <button onClick={() => { onSectionChange("settings"); onItemClick?.(); }} className={cn("sidebar-item w-full", activeSection === "settings" && "active")}>
+          <Settings className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Paramètres</span>}
         </button>
         
         <button onClick={() => { window.open("mailto:support@campust3p.fr"); }} className="sidebar-item w-full">
-          <Headphones className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Support</span>}
+          <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Aide & Support</span>}
         </button>
 
         <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className="sidebar-item w-full">
@@ -195,10 +235,19 @@ function SidebarContent({
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="text-white text-xs font-medium truncate">{user?.email || "Utilisateur"}</p>
-              <p className="text-white/40 text-[10px]">Administrateur</p>
+              <p className="text-white/40 text-[10px]">{userRole}</p>
             </div>
           )}
         </div>
+
+        {/* Logout button */}
+        <button 
+          onClick={() => { signOut(); onItemClick?.(); }} 
+          className="sidebar-item w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+        >
+          <LogOut className="h-[17px] w-[17px] flex-shrink-0" />
+          {!collapsed && <span>Se déconnecter</span>}
+        </button>
         
         {setCollapsed && (
           <button onClick={() => setCollapsed(!collapsed)} className="sidebar-item w-full justify-center mt-1 hidden md:flex">
@@ -227,10 +276,15 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ activeSection, onSectionChange, onNewContact }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onNewContact, onCollapsedChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const handleCollapsedChange = (value: boolean) => {
+    setCollapsed(value);
+    onCollapsedChange?.(value);
+  };
 
   if (isMobile) {
     return (
@@ -268,7 +322,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact }: Sideba
       )}
       style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
     >
-      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={collapsed} setCollapsed={setCollapsed} />
+      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
     </aside>
   );
 }
