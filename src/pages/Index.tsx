@@ -180,8 +180,6 @@ const Index = () => {
         return <WorkflowsPage />;
       case "qualite":
         return <QualiteUnifiedPage />;
-      case "elearning":
-        return <LmsAdminPage />;
       case "partenaires":
         return <PartnersPage />;
       case "planning":
