@@ -357,7 +357,7 @@ export default function LandingPage() {
                         <Users className="h-5 w-5 text-emerald-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-white">Nouveau stagiaire inscrit</div>
+                        <div className="text-sm font-medium text-white">Nouveau apprenant inscrit</div>
                         <div className="text-xs text-slate-400">Jean Dupont - Formation VTC</div>
                       </div>
                     </div>

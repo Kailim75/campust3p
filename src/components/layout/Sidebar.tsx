@@ -144,7 +144,7 @@ function SidebarContent({
             className="btn-cta w-full flex items-center justify-center gap-2 h-10 text-[13px]"
           >
             <Plus className="h-4 w-4" />
-            Nouveau stagiaire
+            Nouvel apprenant
           </button>
         </div>
       )}

@@ -142,7 +142,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       <Header
         title="Apprenants"
         subtitle={`${activeCount} apprenant${activeCount > 1 ? "s" : ""} actifs`}
-        addLabel="Nouveau stagiaire"
+        addLabel="Nouvel apprenant"
         onAddClick={() => setFormOpen(true)}
       />
 
@@ -278,7 +278,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                         }
                         action={
                           !search && quickFilter === "all" ? (
-                            <EmptyStateAction label="Nouveau stagiaire" onClick={() => setFormOpen(true)} />
+                            <EmptyStateAction label="Nouvel apprenant" onClick={() => setFormOpen(true)} />
                           ) : undefined
                         }
                         variant="minimal"
@@ -304,7 +304,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               }
               action={
                 !search && quickFilter === "all" ? (
-                  <EmptyStateAction label="Nouveau stagiaire" onClick={() => setFormOpen(true)} />
+                  <EmptyStateAction label="Nouvel apprenant" onClick={() => setFormOpen(true)} />
                 ) : undefined
               }
               variant="minimal"
