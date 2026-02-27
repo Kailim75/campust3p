@@ -28,7 +28,7 @@ interface QuickActionsMenuProps {
 const actions = [
   { 
     id: "contact" as const, 
-    label: "Nouveau stagiaire", 
+    label: "Nouvel apprenant", 
     icon: UserPlus, 
     color: "bg-primary text-primary-foreground hover:bg-primary/90",
     shortcut: "N"
