@@ -198,8 +198,6 @@ const Index = () => {
         return <IADirectorPage />;
       case "template-studio":
         return <TemplateStudioPage />;
-      case "agent-ia":
-        return <AgentIAPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} />;
     }
