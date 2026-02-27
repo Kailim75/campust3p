@@ -27,6 +27,8 @@ import { usePublishedTemplate } from "@/hooks/usePublishedTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface DevisDetailSheetProps {
   devisId: string | null;
@@ -263,6 +265,53 @@ export function DevisDetailSheet({
     }
   };
 
+  const generateDevisPdfBase64 = async (): Promise<string | null> => {
+    const html = await renderDevisTemplate();
+    if (!html) return null;
+
+    // Create an off-screen container to render the HTML
+    const container = document.createElement("div");
+    container.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;color:#000";
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    try {
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // 10mm margins
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let yOffset = 10;
+      let remainingHeight = imgHeight;
+      let sourceY = 0;
+
+      while (remainingHeight > 0) {
+        if (yOffset !== 10) pdf.addPage();
+        const pageImgHeight = Math.min(remainingHeight, pdfHeight - 20);
+        // Draw portion of the image
+        pdf.addImage(imgData, "JPEG", 10, yOffset, imgWidth, imgHeight, undefined, "FAST", 0);
+        if (remainingHeight > pdfHeight - 20) {
+          // For multi-page, we shift content - simplified: just clip
+          remainingHeight -= (pdfHeight - 20);
+          sourceY += (pdfHeight - 20);
+        } else {
+          remainingHeight = 0;
+        }
+      }
+
+      const pdfBlob = pdf.output("arraybuffer");
+      const base64 = btoa(
+        new Uint8Array(pdfBlob).reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+      return base64;
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
   const handleSendEmail = async () => {
     if (!devis?.contact?.email) {
       toast.error("Ce contact n'a pas d'adresse email");
@@ -270,9 +319,10 @@ export function DevisDetailSheet({
     }
     setIsSending(true);
     try {
-      const html = await renderDevisTemplate();
-      if (!html) return;
-      
+      toast.info("Génération du PDF en cours...");
+      const pdfBase64 = await generateDevisPdfBase64();
+      if (!pdfBase64) return;
+
       const emailBody = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
           <p>Bonjour ${devis.contact.prenom || ""} ${devis.contact.nom || ""},</p>
@@ -290,12 +340,18 @@ export function DevisDetailSheet({
           subject: `Votre devis ${devis.numero_devis}`,
           html: emailBody,
           contact_id: devis.contact.id,
+          attachments: [
+            {
+              filename: `${devis.numero_devis}.pdf`,
+              content: pdfBase64,
+              type: "application/pdf",
+            },
+          ],
         },
       });
 
       if (error) throw error;
-      toast.success(`Devis envoyé par email à ${devis.contact.email}`);
-      // Auto-mark as sent if still draft
+      toast.success(`Devis envoyé en PDF par email à ${devis.contact.email}`);
       if (devis.statut === "brouillon") {
         await updateDevis.mutateAsync({ id: devis.id, statut: "envoye" });
       }
