@@ -139,16 +139,15 @@ Inclure au minimum 8 articles :
     label: "Devis",
     prompt: `Génère un devis professionnel pour un centre de formation.
 Design moderne avec :
-- En-tête avec infos organisme (logo, nom, SIRET, NDA, adresse)
-- Zone destinataire (nom, prénom, adresse, email)
-- Numéro de devis et date d'émission
-- Date de validité du devis
-- Tableau des prestations (désignation, quantité, P.U. HT, remise, montant HT)
-- Totaux (Total HT, TVA, Total TTC)
-- Mention "TVA non applicable — art. 293 B du CGI" si applicable
-- Type de financement (personnel, CPF, entreprise, OPCO)
-- Conditions de règlement
-- Espace signature client avec mention "Bon pour accord"
+- En-tête avec infos organisme : {{centre_nom}}, {{centre_siret}}, {{centre_nda}}, {{centre_adresse}}, {{responsable_nom}}
+- Zone destinataire : {{civilite}} {{prenom}} {{nom}}, {{adresse}}, {{email}}, {{telephone}}
+- Numéro de devis : {{numero_devis}}, émis le : {{date_emission}}, valable jusqu'au : {{date_validite}}
+- Section "Détails de la formation" : Session {{session_nom}} du {{session_date_debut}} au {{session_date_fin}}, Durée : {{duree_heures}} heures, Financement : {{type_financement}}
+- Pour le tableau des prestations, utilise UNIQUEMENT la variable {{lignes_devis}} qui sera remplacée automatiquement par un tableau HTML complet avec les lignes, quantités, prix et totaux. NE PAS créer de lignes de tableau manuelles.
+- Après le tableau, afficher : Total HT : {{total_ht}}, Total TTC : {{montant_total}}
+- Mention "TVA non applicable — art. 293 B du CGI"
+- Conditions de règlement et modalités de paiement
+- Espace signature client avec mention "Bon pour accord, date et signature"
 - Espace signature organisme`,
   },
 };
