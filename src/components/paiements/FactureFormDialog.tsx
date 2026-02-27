@@ -33,7 +33,8 @@ import { useContacts } from "@/hooks/useContacts";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
-import { Loader2, Plus, Trash2, Package } from "lucide-react";
+import { Loader2, Plus, Trash2, Package, Gift } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /** Intitulés officiels pour les factures selon la catégorie */
 const INTITULE_FACTURE: Record<string, string> = {
@@ -55,6 +56,7 @@ interface LigneFacture {
   prix_unitaire_ht: number;
   tva_percent: number;
   remise_percent: number;
+  offert: boolean;
 }
 
 const formSchema = z.object({
@@ -167,6 +169,7 @@ export function FactureFormDialog({
         prix_unitaire_ht: l.prix_unitaire_ht,
         tva_percent: l.tva_percent,
         remise_percent: 0,
+        offert: l.prix_unitaire_ht === 0 && l.description.includes("(Offert)"),
       })));
     } else if (!isEditing && !existingLignesLoadedRef.current) {
       existingLignesLoadedRef.current = true;
@@ -184,6 +187,7 @@ export function FactureFormDialog({
       prix_unitaire_ht: prixApresRemiseCatalogue,
       tva_percent: item?.tva_percent || 0,
       remise_percent: 0,
+      offert: false,
     };
     setLignes([...lignes, newLigne]);
   };
@@ -204,11 +208,27 @@ export function FactureFormDialog({
         ...l,
         catalogue_formation_id: item.id,
         description: getDescriptionFacture(item),
-        prix_unitaire_ht: prixApresRemiseCatalogue,
+        prix_unitaire_ht: l.offert ? 0 : prixApresRemiseCatalogue,
         tva_percent: item.tva_percent,
         remise_percent: 0,
+        offert: l.offert,
       } : l));
     }
+  };
+
+  const toggleOffert = (ligneId: string) => {
+    setLignes(lignes.map(l => {
+      if (l.id !== ligneId) return l;
+      const newOffert = !l.offert;
+      if (newOffert) {
+        return { ...l, offert: true, prix_unitaire_ht: 0, remise_percent: 0 };
+      } else {
+        // Restore price from catalogue if available
+        const catalogueItem = l.catalogue_formation_id ? catalogue.find(c => c.id === l.catalogue_formation_id) : null;
+        const restoredPrice = catalogueItem ? catalogueItem.prix_ht * (1 - (catalogueItem.remise_percent || 0) / 100) : 0;
+        return { ...l, offert: false, prix_unitaire_ht: restoredPrice };
+      }
+    }));
   };
 
   const calculateLigneTotal = (l: LigneFacture) => Math.round(l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100));
@@ -241,9 +261,9 @@ export function FactureFormDialog({
           lignes.map((l, idx) => ({
             facture_id: facture.id,
             catalogue_formation_id: l.catalogue_formation_id,
-            description: l.description,
+            description: l.offert && !l.description.includes("(Offert)") ? `${l.description} (Offert)` : l.description,
             quantite: l.quantite,
-            prix_unitaire_ht: l.prix_unitaire_ht,
+            prix_unitaire_ht: l.offert ? 0 : l.prix_unitaire_ht,
             tva_percent: l.tva_percent,
             ordre: idx,
           }))
@@ -268,9 +288,9 @@ export function FactureFormDialog({
           lignes.map((l, idx) => ({
             facture_id: newFacture.id,
             catalogue_formation_id: l.catalogue_formation_id,
-            description: l.description,
+            description: l.offert && !l.description.includes("(Offert)") ? `${l.description} (Offert)` : l.description,
             quantite: l.quantite,
-            prix_unitaire_ht: l.prix_unitaire_ht,
+            prix_unitaire_ht: l.offert ? 0 : l.prix_unitaire_ht,
             tva_percent: l.tva_percent,
             ordre: idx,
           }))
@@ -422,58 +442,77 @@ export function FactureFormDialog({
                               />
                             </div>
                             <div className="flex gap-2 items-center flex-wrap">
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  className="w-16"
-                                  value={ligne.quantite}
-                                  onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
-                                />
-                                <span className="text-xs text-muted-foreground">×</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="w-24"
-                                  value={ligne.prix_unitaire_ht}
-                                  onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
-                                />
-                                <span className="text-xs text-muted-foreground">€</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  step="any"
-                                  className="w-16"
-                                  value={ligne.remise_percent}
-                                  onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
-                                  placeholder="0"
-                                />
-                                <span className="text-xs text-muted-foreground">%</span>
-                              </div>
-                              <div className="flex items-center gap-1 ml-auto">
-                                <span className="text-xs text-muted-foreground">=</span>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="1"
-                                  className="w-24 font-medium"
-                                  value={Math.round(calculateLigneTotal(ligne))}
-                                  onChange={(e) => {
-                                    const prixFinal = parseFloat(e.target.value) || 0;
-                                    const prixBase = ligne.quantite * ligne.prix_unitaire_ht;
-                                    if (prixBase > 0) {
-                                      const newRemise = Math.round(((prixBase - prixFinal) / prixBase) * 10000) / 100;
-                                      updateLigne(ligne.id, "remise_percent", Math.max(0, Math.min(100, newRemise)));
-                                    }
-                                  }}
-                                />
-                                <span className="text-xs text-muted-foreground">€</span>
-                              </div>
+                              <Button
+                                type="button"
+                                variant={ligne.offert ? "default" : "outline"}
+                                size="sm"
+                                className={cn("h-7 text-xs gap-1", ligne.offert && "bg-success hover:bg-success/90 text-success-foreground")}
+                                onClick={() => toggleOffert(ligne.id)}
+                              >
+                                <Gift className="h-3 w-3" />
+                                Offert
+                              </Button>
+                              {!ligne.offert && (
+                                <>
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      className="w-16"
+                                      value={ligne.quantite}
+                                      onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
+                                    />
+                                    <span className="text-xs text-muted-foreground">×</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="w-24"
+                                      value={ligne.prix_unitaire_ht}
+                                      onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
+                                    />
+                                    <span className="text-xs text-muted-foreground">€</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      step="any"
+                                      className="w-16"
+                                      value={ligne.remise_percent}
+                                      onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
+                                      placeholder="0"
+                                    />
+                                    <span className="text-xs text-muted-foreground">%</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 ml-auto">
+                                    <span className="text-xs text-muted-foreground">=</span>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      className="w-24 font-medium"
+                                      value={Math.round(calculateLigneTotal(ligne))}
+                                      onChange={(e) => {
+                                        const prixFinal = parseFloat(e.target.value) || 0;
+                                        const prixBase = ligne.quantite * ligne.prix_unitaire_ht;
+                                        if (prixBase > 0) {
+                                          const newRemise = Math.round(((prixBase - prixFinal) / prixBase) * 10000) / 100;
+                                          updateLigne(ligne.id, "remise_percent", Math.max(0, Math.min(100, newRemise)));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-xs text-muted-foreground">€</span>
+                                  </div>
+                                </>
+                              )}
+                              {ligne.offert && (
+                                <Badge variant="outline" className="bg-success/10 text-success text-xs ml-auto">
+                                  0,00 € — Offert
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           <Button
