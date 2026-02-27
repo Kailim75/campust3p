@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateContact, useUpdateContact, type Contact, type ContactInsert } from "@/hooks/useContacts";
+import { useDuplicateCheck } from "@/hooks/useDuplicateCheck";
+import { DuplicateAlert } from "./DuplicateAlert";
 import { toast } from "sonner";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
@@ -72,6 +74,8 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const [showCompleteForm, setShowCompleteForm] = useState(false);
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
+  const { duplicates, checkDuplicates, clearDuplicates } = useDuplicateCheck();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isEditing = !!contact;
 
   const form = useForm<ContactFormValues>({
@@ -131,6 +135,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
     } else {
       // In create mode, start with express form
       setShowCompleteForm(false);
+      clearDuplicates();
       form.reset({
         civilite: null,
         nom: "",
@@ -155,7 +160,24 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         commentaires: "",
       });
     }
-  }, [contact, form, open]);
+  }, [contact, form, open, clearDuplicates]);
+
+  // Debounced duplicate check when key fields change
+  const triggerDuplicateCheck = useCallback(() => {
+    if (isEditing) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const values = form.getValues();
+      if (values.nom && values.prenom) {
+        checkDuplicates(
+          values.nom,
+          values.prenom,
+          values.email || undefined,
+          values.date_naissance || undefined,
+        );
+      }
+    }, 500);
+  }, [isEditing, form, checkDuplicates]);
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
@@ -261,7 +283,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                     <FormItem>
                       <FormLabel>Prénom *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Prénom" />
+                        <Input {...field} placeholder="Prénom" onChange={(e) => { field.onChange(e); triggerDuplicateCheck(); }} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -274,7 +296,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                     <FormItem>
                       <FormLabel>Nom *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Nom" />
+                        <Input {...field} placeholder="Nom" onChange={(e) => { field.onChange(e); triggerDuplicateCheck(); }} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -290,7 +312,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" placeholder="email@exemple.com" />
+                        <Input {...field} type="email" placeholder="email@exemple.com" onBlur={() => triggerDuplicateCheck()} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -311,6 +333,9 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                 />
               </div>
             </div>
+
+            {/* === ALERTE DOUBLONS === */}
+            {!isEditing && <DuplicateAlert duplicates={duplicates} />}
 
             {/* === TOGGLE POUR FORMULAIRE COMPLET === */}
             {!isEditing && (
