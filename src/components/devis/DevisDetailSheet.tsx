@@ -384,7 +384,7 @@ export function DevisDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-4 sm:p-6">
         {isLoading ? (
           <div className="space-y-4 p-4">
             <Skeleton className="h-8 w-48" />
@@ -416,47 +416,47 @@ export function DevisDetailSheet({
             <div className="mt-6 space-y-6">
               {/* Actions */}
               {devis.statut !== "converti" && (
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => onEdit(devis)}>
-                    <Edit className="h-4 w-4 mr-2" /> Modifier
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  <Button variant="outline" size="sm" onClick={() => onEdit(devis)} className="text-xs sm:text-sm">
+                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Modifier
                   </Button>
 
                   {devis.statut === "brouillon" && (
-                    <Button variant="outline" size="sm" onClick={() => handleUpdateStatut("envoye")}>
-                      <Send className="h-4 w-4 mr-2" /> Marquer envoyé
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateStatut("envoye")} className="text-xs sm:text-sm">
+                      <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Envoyé
                     </Button>
                   )}
 
                   {devis.statut === "envoye" && (
                     <>
-                      <Button variant="outline" size="sm" className="text-success" onClick={() => handleUpdateStatut("accepte")}>
-                        <Check className="h-4 w-4 mr-2" /> Accepté
+                      <Button variant="outline" size="sm" className="text-success text-xs sm:text-sm" onClick={() => handleUpdateStatut("accepte")}>
+                        <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Accepté
                       </Button>
-                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleUpdateStatut("refuse")}>
-                        <XCircle className="h-4 w-4 mr-2" /> Refusé
+                      <Button variant="outline" size="sm" className="text-destructive text-xs sm:text-sm" onClick={() => handleUpdateStatut("refuse")}>
+                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Refusé
                       </Button>
                     </>
                   )}
 
                   {devis.statut === "accepte" && (
-                    <Button size="sm" onClick={() => onConvert(devis.id)}>
-                      <FileCheck className="h-4 w-4 mr-2" /> Convertir en facture
+                    <Button size="sm" onClick={() => onConvert(devis.id)} className="text-xs sm:text-sm">
+                      <FileCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Convertir
                     </Button>
                   )}
                 </div>
               )}
 
               {/* Document Generation Actions */}
-              <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-                <p className="w-full text-xs text-muted-foreground font-medium mb-1">📄 Génération document</p>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 p-2.5 sm:p-3 bg-muted/30 rounded-lg border border-border/50">
+                <p className="w-full text-xs text-muted-foreground font-medium mb-1">📄 Document</p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handlePreview}
                   disabled={isPreviewing || !publishedTemplate}
-                  className="gap-1.5"
+                  className="gap-1 text-xs sm:text-sm"
                 >
-                  {isPreviewing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                  {isPreviewing ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" /> : <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                   Aperçu
                 </Button>
                 <Button
@@ -464,20 +464,21 @@ export function DevisDetailSheet({
                   size="sm"
                   onClick={handlePrint}
                   disabled={isPreviewing || !publishedTemplate}
-                  className="gap-1.5"
+                  className="gap-1 text-xs sm:text-sm"
                 >
-                  <Printer className="h-3.5 w-3.5" />
-                  Imprimer / PDF
+                  <Printer className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span className="hidden sm:inline">Imprimer /</span> PDF
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleDownloadHtml}
                   disabled={isPreviewing || !publishedTemplate}
-                  className="gap-1.5"
+                  className="gap-1 text-xs sm:text-sm"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Télécharger
+                  <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span className="hidden sm:inline">Télécharger</span>
+                  <span className="sm:hidden">DL</span>
                 </Button>
 
                 <DropdownMenu>
@@ -486,27 +487,27 @@ export function DevisDetailSheet({
                       variant="default"
                       size="sm"
                       disabled={isSending}
-                      className="gap-1.5"
+                      className="gap-1 text-xs sm:text-sm"
                     >
-                      {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      {isSending ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" /> : <Send className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
                       Envoyer
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={handleSendEmail} disabled={!devis?.contact?.email}>
                       <Mail className="h-4 w-4 mr-2" />
-                      Envoyer par email
+                      Par email (PDF)
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSendWhatsApp} disabled={!(devis?.contact as any)?.telephone}>
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Envoyer par WhatsApp
+                      Par WhatsApp
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
                 {!publishedTemplate && (
                   <p className="w-full text-xs text-muted-foreground mt-1">
-                    ⚠️ Publiez un template de type "Devis" dans le Template Studio pour activer la génération.
+                    ⚠️ Publiez un template "Devis" dans le Template Studio.
                   </p>
                 )}
               </div>
@@ -563,7 +564,7 @@ export function DevisDetailSheet({
               </div>
 
               {/* Infos */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Financement</p>
                   <p className="font-medium">{financementLabels[devis.type_financement]}</p>
@@ -613,7 +614,7 @@ export function DevisDetailSheet({
 
                 {/* Totaux */}
                 <div className="mt-4 flex justify-end">
-                  <div className="w-64 space-y-2 p-4 bg-muted/50 rounded-lg">
+                  <div className="w-full sm:w-64 space-y-2 p-3 sm:p-4 bg-muted/50 rounded-lg">
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total</span>
                       <span className="text-primary font-mono">{formatEuro(totaux.ht)}</span>

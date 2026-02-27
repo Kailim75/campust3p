@@ -448,12 +448,20 @@ serve(async (req) => {
         
         // Support attachments passed from client (base64 encoded)
         if (body.attachments && Array.isArray(body.attachments) && body.attachments.length > 0) {
-          emailPayload.attachments = body.attachments.map((att: any) => ({
-            filename: att.filename || "document.pdf",
-            content: att.content,
-            content_type: att.content_type || "application/pdf",
-          }));
-          console.log(`[EMAIL] Adding ${body.attachments.length} attachment(s) to single email`);
+          emailPayload.attachments = body.attachments.map((att: any) => {
+            // Decode base64 string to Uint8Array for Resend SDK
+            const binaryStr = atob(att.content);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+              bytes[i] = binaryStr.charCodeAt(i);
+            }
+            return {
+              filename: att.filename || "document.pdf",
+              content: bytes,
+              content_type: att.content_type || att.type || "application/pdf",
+            };
+          });
+          console.log(`[EMAIL] Adding ${body.attachments.length} attachment(s) to single email, sizes: ${emailPayload.attachments.map((a: any) => a.content.length + ' bytes').join(', ')}`);
         }
         
         const emailResponse = await resend.emails.send(emailPayload);
