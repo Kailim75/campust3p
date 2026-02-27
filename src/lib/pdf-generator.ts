@@ -386,8 +386,13 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   }
   
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
+    // Try fetch first
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) {
+      console.warn(`[Logo/Image] Fetch failed for ${url}: ${response.status}`);
+      // Fallback: try loading via Image element (handles CORS differently)
+      return await loadImageViaElement(url);
+    }
     
     const blob = await response.blob();
     return new Promise((resolve) => {
@@ -395,14 +400,53 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
       reader.onloadend = () => {
         const base64 = reader.result as string;
         imageCache.set(url, base64);
+        console.log(`[Logo/Image] Loaded successfully: ${url.substring(0, 60)}...`);
         resolve(base64);
       };
-      reader.onerror = () => resolve(null);
+      reader.onerror = () => {
+        console.warn(`[Logo/Image] FileReader error for ${url}`);
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
-  } catch {
-    return null;
+  } catch (err) {
+    console.warn(`[Logo/Image] Fetch error for ${url}:`, err);
+    // Fallback: try loading via Image element
+    return await loadImageViaElement(url);
   }
+}
+
+// Fallback: load image via HTML Image element + canvas (handles CORS for public URLs)
+function loadImageViaElement(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const base64 = canvas.toDataURL('image/png');
+          imageCache.set(url, base64);
+          console.log(`[Logo/Image] Loaded via canvas fallback: ${url.substring(0, 60)}...`);
+          resolve(base64);
+        } else {
+          resolve(null);
+        }
+      } catch {
+        console.warn(`[Logo/Image] Canvas fallback failed for ${url}`);
+        resolve(null);
+      }
+    };
+    img.onerror = () => {
+      console.warn(`[Logo/Image] Image element load failed for ${url}`);
+      resolve(null);
+    };
+    img.src = url;
+  });
 }
 
 // Synchronous helper to add stamp image if already cached
