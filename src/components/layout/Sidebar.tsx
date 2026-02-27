@@ -24,6 +24,7 @@ interface SidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   onNewContact?: () => void;
+  onNewProspect?: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
@@ -70,7 +71,7 @@ const menuGroups = [
 ];
 
 function SidebarContent({ 
-  activeSection, onSectionChange, onNewContact, collapsed, setCollapsed, onItemClick 
+  activeSection, onSectionChange, onNewContact, onNewProspect, collapsed, setCollapsed, onItemClick 
 }: SidebarProps & { 
   collapsed: boolean; 
   setCollapsed: (v: boolean) => void;
@@ -138,7 +139,7 @@ function SidebarContent({
 
       {/* CTA Button */}
       {!collapsed && (
-        <div className="px-4 pt-4 pb-1">
+        <div className="px-4 pt-4 pb-1 space-y-2">
           <button 
             onClick={() => { onNewContact?.(); onItemClick?.(); }}
             className="btn-cta w-full flex items-center justify-center gap-2 h-10 text-[13px]"
@@ -146,15 +147,30 @@ function SidebarContent({
             <Plus className="h-4 w-4" />
             Nouvel apprenant
           </button>
+          <button 
+            onClick={() => { onNewProspect?.(); onItemClick?.(); }}
+            className="w-full flex items-center justify-center gap-2 h-9 text-[13px] rounded-lg border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            Nouveau prospect
+          </button>
         </div>
       )}
       {collapsed && (
-        <div className="px-2 pt-4 pb-1">
+        <div className="px-2 pt-4 pb-1 space-y-2">
           <button
             onClick={() => { onNewContact?.(); onItemClick?.(); }}
             className="btn-cta w-full flex items-center justify-center h-9 rounded-lg"
+            title="Nouvel apprenant"
           >
             <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { onNewProspect?.(); onItemClick?.(); }}
+            className="w-full flex items-center justify-center h-9 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
+            title="Nouveau prospect"
+          >
+            <UserPlus className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -272,7 +288,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ activeSection, onSectionChange, onNewContact, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewProspect, onCollapsedChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -294,7 +310,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onCollap
             </SheetTrigger>
             <SheetContent side="left" className="w-[260px] p-0 sidebar-dark border-r-0">
               <div className="flex flex-col h-full">
-                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
+                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
@@ -318,7 +334,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onCollap
       )}
       style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
     >
-      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
+      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
     </aside>
   );
 }

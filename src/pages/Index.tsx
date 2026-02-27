@@ -36,6 +36,7 @@ import AgentIAPage from "@/components/agent-ia/AgentIAPage";
 import IADirectorPage from "@/components/ia-director/IADirectorPage";
 import TemplateStudioPage from "@/components/template-studio/TemplateStudioPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ const Index = () => {
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
+  const [newProspectOpen, setNewProspectOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undo);
@@ -211,6 +213,7 @@ const Index = () => {
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
         onNewContact={() => setNewContactOpen(true)}
+        onNewProspect={() => setNewProspectOpen(true)}
         onCollapsedChange={setSidebarCollapsed}
       />
       
@@ -246,6 +249,7 @@ const Index = () => {
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
 
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
+      <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
     </div>
   );
 };
