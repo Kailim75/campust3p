@@ -255,6 +255,26 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       map.centre_code_rncp = centre.code_rncp || "";
       map.centre_code_rs = centre.code_rs || "";
       map.lieu = centre.adresse_complete?.split(",").pop()?.trim() || "";
+
+      // Parse agrements_autres for taxi/vtc/vmdtr numbers
+      if (centre.agrements_autres && Array.isArray(centre.agrements_autres)) {
+        const agrements = centre.agrements_autres as Array<{ nom?: string; numero?: string; date_obtention?: string; date_expiration?: string }>;
+        for (const ag of agrements) {
+          const nom = (ag.nom || "").toLowerCase();
+          if (nom.includes("vtc") || nom.includes("taxi")) {
+            map.agrement_taxi_vtc = ag.numero || "";
+            map.agrement_taxi_vtc_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_taxi_vtc_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
+            map.agrement_taxi_vtc_nom = ag.nom || "";
+          }
+          if (nom.includes("vmdtr")) {
+            map.agrement_vmdtr = ag.numero || "";
+            map.agrement_vmdtr_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_vmdtr_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
+            map.agrement_vmdtr_nom = ag.nom || "";
+          }
+        }
+      }
     }
 
     return map;
