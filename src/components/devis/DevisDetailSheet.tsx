@@ -12,8 +12,12 @@ import {
 } from "@/components/ui/table";
 import { 
   Edit, FileCheck, Send, Check, XCircle, User, Calendar, 
-  Phone, Mail, FileText, Download, Eye, Loader2, Printer
+  Phone, Mail, FileText, Download, Eye, Loader2, Printer,
+  MessageCircle
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -56,6 +60,7 @@ export function DevisDetailSheet({
   const { data: publishedTemplate } = usePublishedTemplate("devis");
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const handleUpdateStatut = async (newStatut: DevisStatut) => {
     if (devisId) {
@@ -258,6 +263,69 @@ export function DevisDetailSheet({
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!devis?.contact?.email) {
+      toast.error("Ce contact n'a pas d'adresse email");
+      return;
+    }
+    setIsSending(true);
+    try {
+      const html = await renderDevisTemplate();
+      if (!html) return;
+      
+      const emailBody = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+          <p>Bonjour ${devis.contact.prenom || ""} ${devis.contact.nom || ""},</p>
+          <p>Veuillez trouver ci-joint votre devis <strong>${devis.numero_devis}</strong> d'un montant de <strong>${Number(devis.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</strong>.</p>
+          <p>Ce devis est valable jusqu'au ${devis.date_validite ? new Date(devis.date_validite).toLocaleDateString("fr-FR") : "—"}.</p>
+          <p>N'hésitez pas à nous contacter pour toute question.</p>
+          <p>Cordialement,<br/>L'équipe École T3P</p>
+        </div>
+      `;
+
+      const { error } = await supabase.functions.invoke("send-automated-emails", {
+        body: {
+          type: "direct_email",
+          to: devis.contact.email,
+          subject: `Votre devis ${devis.numero_devis}`,
+          html: emailBody,
+          contact_id: devis.contact.id,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Devis envoyé par email à ${devis.contact.email}`);
+      // Auto-mark as sent if still draft
+      if (devis.statut === "brouillon") {
+        await updateDevis.mutateAsync({ id: devis.id, statut: "envoye" });
+      }
+    } catch (e: any) {
+      toast.error("Erreur lors de l'envoi par email");
+      console.error(e);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendWhatsApp = () => {
+    const phone = (devis?.contact as any)?.telephone;
+    if (!phone) {
+      toast.error("Ce contact n'a pas de numéro de téléphone");
+      return;
+    }
+    // Clean phone number
+    const cleanPhone = phone.replace(/[\s\-\.]/g, "").replace(/^0/, "33");
+    const message = encodeURIComponent(
+      `Bonjour ${devis?.contact?.prenom || ""} ${devis?.contact?.nom || ""},\n\nVeuillez trouver votre devis ${devis?.numero_devis} d'un montant de ${Number(devis?.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €.\n\nCe devis est valable jusqu'au ${devis?.date_validite ? new Date(devis.date_validite).toLocaleDateString("fr-FR") : "—"}.\n\nCordialement,\nÉcole T3P`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${message}`, "_blank");
+    toast.success("Redirection vers WhatsApp...");
+    // Auto-mark as sent if still draft
+    if (devis?.statut === "brouillon" && devisId) {
+      updateDevis.mutateAsync({ id: devisId, statut: "envoye" });
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
@@ -355,6 +423,31 @@ export function DevisDetailSheet({
                   <Download className="h-3.5 w-3.5" />
                   Télécharger
                 </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={isSending}
+                      className="gap-1.5"
+                    >
+                      {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Envoyer
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleSendEmail} disabled={!devis?.contact?.email}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Envoyer par email
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSendWhatsApp} disabled={!(devis?.contact as any)?.telephone}>
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Envoyer par WhatsApp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {!publishedTemplate && (
                   <p className="w-full text-xs text-muted-foreground mt-1">
                     ⚠️ Publiez un template de type "Devis" dans le Template Studio pour activer la génération.
