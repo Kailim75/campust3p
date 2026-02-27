@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ContactCombobox } from "@/components/ui/contact-combobox";
 import {
   Dialog,
   DialogContent,
@@ -265,18 +266,17 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
 
             <div className="space-y-2">
               <Label htmlFor="contact">Client *</Label>
-              <Select value={contactId} onValueChange={setContactId} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {contacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id}>
-                      {contact.prenom} {contact.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ContactCombobox
+                options={contacts.map((c) => ({
+                  value: c.id,
+                  label: `${c.prenom} ${c.nom}`,
+                }))}
+                value={contactId}
+                onValueChange={setContactId}
+                placeholder="Rechercher un client..."
+                searchPlaceholder="Rechercher par nom..."
+                emptyMessage="Aucun contact trouvé."
+              />
             </div>
 
             <div className="space-y-2">
