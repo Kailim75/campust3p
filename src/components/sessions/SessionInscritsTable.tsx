@@ -577,6 +577,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     { value: 'encours', label: 'En cours', class: 'bg-warning/10 text-warning border-warning/20' },
     { value: 'document', label: 'Document', class: 'bg-info/10 text-info border-info/20' },
     { value: 'complexe', label: 'Complexe', class: 'bg-destructive/10 text-destructive border-destructive/20' },
+    { value: 'annule', label: 'Annulé', class: 'bg-destructive/10 text-destructive border-destructive/20' },
+    { value: 'report', label: 'Report', class: 'bg-muted text-muted-foreground border-muted' },
   ];
 
   const queryClient = useQueryClient();
