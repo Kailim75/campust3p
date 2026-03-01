@@ -238,43 +238,45 @@
 
   /* ── Sidebar Dark Theme ── */
   .sidebar-dark {
-    background: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(224 50% 8%) 100%);
+    background: linear-gradient(175deg, hsl(222 47% 13%) 0%, hsl(225 52% 7%) 100%);
   }
 
   .sidebar-item {
     @apply flex items-center gap-2.5 px-3 rounded-lg transition-all;
-    transition-duration: 120ms;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     font-family: 'Inter', sans-serif;
     font-weight: 500;
-    font-size: 13.5px;
-    height: 40px;
-    margin-bottom: 2px;
+    font-size: 13px;
+    height: 36px;
+    margin-bottom: 1px;
     color: hsl(var(--sidebar-foreground));
   }
 
   .sidebar-item .lucide {
     color: hsl(var(--sidebar-foreground));
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     flex-shrink: 0;
-    opacity: 0.7;
+    opacity: 0.55;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .sidebar-item:hover {
-    background: hsl(var(--sidebar-accent));
-    color: hsl(0 0% 100%);
+    background: hsl(0 0% 100% / 0.06);
+    color: hsl(0 0% 95%);
   }
 
   .sidebar-item:hover .lucide {
-    color: hsl(0 0% 100%);
-    opacity: 1;
+    color: hsl(0 0% 95%);
+    opacity: 0.9;
   }
 
   .sidebar-item.active {
-    background: hsl(var(--sidebar-active));
+    background: hsl(173 58% 39% / 0.12);
     color: hsl(0 0% 100%);
-    border-left: 3px solid hsl(var(--cta));
-    padding-left: 9px;
+    border-left: 2.5px solid hsl(var(--cta));
+    padding-left: 9.5px;
   }
 
   .sidebar-item.active .lucide {
@@ -287,9 +289,33 @@
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     color: hsl(var(--sidebar-foreground));
-    opacity: 0.45;
+    opacity: 0.35;
+  }
+
+  /* Sidebar tooltip for collapsed mode */
+  .sidebar-tooltip {
+    @apply absolute left-full ml-2 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap pointer-events-none opacity-0 z-50;
+    background: hsl(222 47% 18%);
+    color: hsl(0 0% 92%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: opacity 120ms ease-out;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .sidebar-item:hover .sidebar-tooltip {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Sidebar collapsed separator */
+  .sidebar-collapsed-sep {
+    width: 16px;
+    height: 1px;
+    background: hsl(0 0% 100% / 0.08);
+    margin: 8px auto;
   }
 
   /* ── Badges Soft ── */
