@@ -73,6 +73,10 @@ import SessionInscritsTable from "./SessionInscritsTable";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
+import { SessionQualiopiTab } from "./SessionQualiopiTab";
+import { SessionQualiopiBadge } from "./SessionQualiopiBadge";
+import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
+import { Shield } from "lucide-react";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -107,6 +111,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const archiveSession = useArchiveSession();
   const unarchiveSession = useUnarchiveSession();
   const canArchive = useCanArchiveSession(session?.date_fin);
+  const { data: qualiopiScore } = useSessionQualiopi(sessionId);
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -299,6 +304,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       >
                         {statusConfig[session.statut]?.label || session.statut}
                       </Badge>
+                      {qualiopiScore && (
+                        <SessionQualiopiBadge qualiopi={qualiopiScore} />
+                      )}
                       {session.archived && (
                         <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-muted">
                           <Archive className="h-3 w-3 mr-1" />
@@ -328,7 +336,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               </SheetHeader>
 
               <Tabs defaultValue="info" className="mt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="info" className="gap-1">
                     <Info className="h-4 w-4" />
                     Infos
@@ -336,6 +344,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <TabsTrigger value="inscriptions" className="gap-1">
                     <Users className="h-4 w-4" />
                     Inscrits ({inscriptionCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="qualiopi" className="gap-1">
+                    <Shield className="h-4 w-4" />
+                    Qualiopi
                   </TabsTrigger>
                   <TabsTrigger value="emargement" className="gap-1">
                     <ClipboardList className="h-4 w-4" />
@@ -559,6 +571,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 {/* Tab: Inscriptions */}
                 <TabsContent value="inscriptions" className="pt-4">
                   <SessionInscritsTable sessionId={session.id} />
+                </TabsContent>
+
+                {/* Tab: Qualiopi */}
+                <TabsContent value="qualiopi" className="pt-4">
+                  <SessionQualiopiTab sessionId={session.id} />
                 </TabsContent>
 
                 {/* Tab: Émargement */}
