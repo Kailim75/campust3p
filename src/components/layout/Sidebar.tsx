@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 import { 
-  LayoutDashboard, Users, Calendar, FileText, CreditCard, Bell, Settings,
+  LayoutDashboard, Users, Calendar, FileText, CreditCard, Settings,
   ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
-  Building2, ClipboardList, CalendarClock, BarChart3, Plus, Headphones, User,
-  Brain, UserPlus, Zap, Palette, LogOut, GraduationCap, CheckCircle, Workflow,
-  BookOpen, TrendingUp, CalendarDays, AlertTriangle, Wallet,
+  Building2, ClipboardList, CalendarClock, Plus, User,
+  UserPlus, Zap, Palette, LogOut, GraduationCap, CheckCircle, Workflow,
+  AlertTriangle, Wallet,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDirectorAlertsStore } from "@/hooks/useDirectorAlerts";
@@ -19,6 +19,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SidebarProps {
   activeSection: string;
@@ -65,10 +68,22 @@ const menuGroups = [
     items: [
       { id: "ia-director", label: "IA Director", icon: Zap },
       { id: "template-studio", label: "Template Studio", icon: Palette },
-      
     ],
   },
 ];
+
+/** Wraps children in a Tooltip when sidebar is collapsed */
+function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean; label: string; children: React.ReactNode }) {
+  if (!collapsed) return <>{children}</>;
+  return (
+    <Tooltip delayDuration={0}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8} className="bg-[hsl(222_47%_18%)] text-white/90 border-white/10 text-xs font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 function SidebarContent({ 
   activeSection, onSectionChange, onNewContact, onNewProspect, collapsed, setCollapsed, onItemClick 
@@ -84,7 +99,6 @@ function SidebarContent({
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [userRole, setUserRole] = useState<string>("Utilisateur");
 
-  // Fetch user role from database
   useEffect(() => {
     if (!user?.id) return;
     import("@/integrations/supabase/client").then(({ supabase }) => {
@@ -120,69 +134,75 @@ function SidebarContent({
     setShowSwitchDialog(false);
   };
 
-  const userInitials = user?.email ? user.email.substring(0, 2).toUpperCase() : "?";
-
   return (
-    <>
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 border-b border-white/8" style={{ height: '60px' }}>
-        <div className="flex items-center justify-center flex-shrink-0 rounded-full" 
-          style={{ width: 34, height: 34, background: 'hsl(173 58% 39%)' }}>
-          <span className="text-white font-bold text-xs">CF</span>
+    <TooltipProvider>
+      {/* ── Logo ── */}
+      <div className={cn(
+        "flex items-center gap-3 border-b border-white/[0.06] shrink-0",
+        collapsed ? "px-3 justify-center" : "px-5"
+      )} style={{ height: 56 }}>
+        <div className="flex items-center justify-center flex-shrink-0 rounded-xl bg-cta" 
+          style={{ width: 32, height: 32 }}>
+          <span className="text-cta-foreground font-bold text-[11px] tracking-tight">CF</span>
         </div>
         {!collapsed && (
           <div className="animate-fade-in min-w-0">
-            <h1 className="text-white font-semibold text-sm leading-none tracking-tight">CRM Formation</h1>
+            <h1 className="text-white font-semibold text-[13px] leading-none tracking-tight">CRM Formation</h1>
+            <p className="text-white/30 text-[10px] mt-0.5 font-medium">CampusT3P</p>
           </div>
         )}
       </div>
 
-      {/* CTA Button */}
-      {!collapsed && (
-        <div className="px-4 pt-4 pb-1 space-y-2">
-          <button 
-            onClick={() => { onNewContact?.(); onItemClick?.(); }}
-            className="btn-cta w-full flex items-center justify-center gap-2 h-10 text-[13px]"
-          >
-            <Plus className="h-4 w-4" />
-            Nouvel apprenant
-          </button>
-          <button 
-            onClick={() => { onNewProspect?.(); onItemClick?.(); }}
-            className="w-full flex items-center justify-center gap-2 h-9 text-[13px] rounded-lg border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            Nouveau prospect
-          </button>
-        </div>
-      )}
-      {collapsed && (
-        <div className="px-2 pt-4 pb-1 space-y-2">
-          <button
-            onClick={() => { onNewContact?.(); onItemClick?.(); }}
-            className="btn-cta w-full flex items-center justify-center h-9 rounded-lg"
-            title="Nouvel apprenant"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => { onNewProspect?.(); onItemClick?.(); }}
-            className="w-full flex items-center justify-center h-9 rounded-lg border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-            title="Nouveau prospect"
-          >
-            <UserPlus className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+      {/* ── Quick Actions ── */}
+      <div className={cn("shrink-0", collapsed ? "px-2 pt-3 pb-1" : "px-3 pt-3 pb-1")}>
+        {!collapsed ? (
+          <div className="space-y-1.5">
+            <button 
+              onClick={() => { onNewContact?.(); onItemClick?.(); }}
+              className="btn-cta w-full flex items-center justify-center gap-2 h-9 text-[12.5px]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nouvel apprenant
+            </button>
+            <button 
+              onClick={() => { onNewProspect?.(); onItemClick?.(); }}
+              className="w-full flex items-center justify-center gap-2 h-8 text-[12px] rounded-lg border border-white/[0.12] text-white/60 hover:text-white/90 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-150"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Nouveau prospect
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <SidebarTooltipItem collapsed={collapsed} label="Nouvel apprenant">
+              <button
+                onClick={() => { onNewContact?.(); onItemClick?.(); }}
+                className="btn-cta w-full flex items-center justify-center h-8 rounded-lg"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </SidebarTooltipItem>
+            <SidebarTooltipItem collapsed={collapsed} label="Nouveau prospect">
+              <button
+                onClick={() => { onNewProspect?.(); onItemClick?.(); }}
+                className="w-full flex items-center justify-center h-8 rounded-lg border border-white/[0.12] text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-all duration-150"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+              </button>
+            </SidebarTooltipItem>
+          </div>
+        )}
+      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+      {/* ── Navigation ── */}
+      <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto scrollbar-hide">
         {menuGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && group.label && (
-              <p className="sidebar-section-label px-3 mb-2">{group.label}</p>
+              <p className="sidebar-section-label px-3 mb-1.5">{group.label}</p>
             )}
-            <div className="space-y-0.5">
+            {collapsed && <div className="sidebar-collapsed-sep" />}
+            <div className="space-y-px">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
@@ -192,20 +212,25 @@ function SidebarContent({
                 const badgeCount = showBadge ? highPriorityAlerts : showDirectorBadge ? directorAlerts.criticalCount : 0;
                 
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                    className={cn("sidebar-item w-full relative", isActive && "active")}
-                  >
-                    <Icon className="h-[17px] w-[17px] flex-shrink-0" />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                    {(showBadge || showDirectorBadge) && (
-                      <span className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold rounded-full text-[9px]"
-                        style={{ padding: '1px 5px', right: collapsed ? 2 : 8, top: collapsed ? 2 : 'auto' }}>
-                        {badgeCount}
-                      </span>
-                    )}
-                  </button>
+                  <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
+                    <button
+                      onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                      className={cn(
+                        "sidebar-item w-full relative",
+                        isActive && "active",
+                        collapsed && "justify-center px-0"
+                      )}
+                    >
+                      <Icon className="h-[17px] w-[17px] flex-shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      {(showBadge || showDirectorBadge) && (
+                        <span className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold rounded-full text-[9px]"
+                          style={{ padding: '1px 5px', right: collapsed ? 2 : 8, top: collapsed ? 2 : 'auto' }}>
+                          {badgeCount}
+                        </span>
+                      )}
+                    </button>
+                  </SidebarTooltipItem>
                 );
               })}
             </div>
@@ -213,58 +238,83 @@ function SidebarContent({
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-3 space-y-0.5 border-t border-white/8">
+      {/* ── Footer ── */}
+      <div className="px-2 py-2 space-y-px border-t border-white/[0.06] shrink-0">
         <RecentItemsMenu onItemClick={handleRecentItemClick} collapsed={collapsed} />
         
-        <button onClick={() => { onSectionChange("settings"); onItemClick?.(); }} className={cn("sidebar-item w-full", activeSection === "settings" && "active")}>
-          <Settings className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Paramètres</span>}
-        </button>
+        <SidebarTooltipItem collapsed={collapsed} label="Paramètres">
+          <button onClick={() => { onSectionChange("settings"); onItemClick?.(); }} className={cn("sidebar-item w-full", activeSection === "settings" && "active", collapsed && "justify-center px-0")}>
+            <Settings className="h-[17px] w-[17px] flex-shrink-0" />
+            {!collapsed && <span>Paramètres</span>}
+          </button>
+        </SidebarTooltipItem>
         
-        <button onClick={() => { window.open("mailto:support@campust3p.fr"); }} className="sidebar-item w-full">
-          <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Aide & Support</span>}
-        </button>
+        <SidebarTooltipItem collapsed={collapsed} label="Aide & Support">
+          <button onClick={() => { window.open("mailto:support@campust3p.fr"); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
+            <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
+            {!collapsed && <span>Aide & Support</span>}
+          </button>
+        </SidebarTooltipItem>
 
-        <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className="sidebar-item w-full">
-          <ClipboardList className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Espace formateur</span>}
-        </button>
+        <SidebarTooltipItem collapsed={collapsed} label="Espace formateur">
+          <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
+            <ClipboardList className="h-[17px] w-[17px] flex-shrink-0" />
+            {!collapsed && <span>Espace formateur</span>}
+          </button>
+        </SidebarTooltipItem>
         
         {canSwitchMode && (
-          <button onClick={() => setShowSwitchDialog(true)} className="sidebar-item w-full" style={{ border: '1px dashed rgba(255,255,255,0.15)' }}>
-            <Shield className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-medium">Super Admin</span>}
-          </button>
+          <SidebarTooltipItem collapsed={collapsed} label="Super Admin">
+            <button onClick={() => setShowSwitchDialog(true)} className={cn(
+              "sidebar-item w-full border border-dashed border-white/[0.1] hover:border-cta/30 hover:bg-cta/5",
+              collapsed && "justify-center px-0"
+            )}>
+              <Shield className="h-[17px] w-[17px] flex-shrink-0" />
+              {!collapsed && <span className="text-xs font-medium">Super Admin</span>}
+            </button>
+          </SidebarTooltipItem>
         )}
 
-        {/* User profile */}
-        <div className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-center rounded-full bg-white/10" style={{ width: 32, height: 32 }}>
-            <User className="h-4 w-4 text-white/70" />
+        {/* ── User Profile ── */}
+        <div className={cn(
+          "flex items-center gap-2.5 mt-2 rounded-xl transition-colors duration-150",
+          collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
+        )} style={{ background: 'hsl(0 0% 100% / 0.04)' }}>
+          <div className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0" style={{ width: 30, height: 30 }}>
+            <span className="text-cta text-[11px] font-bold">
+              {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
+            </span>
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-white text-xs font-medium truncate">{user?.email || "Utilisateur"}</p>
-              <p className="text-white/40 text-[10px]">{userRole}</p>
+              <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">{user?.email || "Utilisateur"}</p>
+              <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
             </div>
           )}
         </div>
 
-        {/* Logout button */}
-        <button 
-          onClick={() => { signOut(); onItemClick?.(); }} 
-          className="sidebar-item w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-        >
-          <LogOut className="h-[17px] w-[17px] flex-shrink-0" />
-          {!collapsed && <span>Se déconnecter</span>}
-        </button>
+        {/* ── Logout ── */}
+        <SidebarTooltipItem collapsed={collapsed} label="Se déconnecter">
+          <button 
+            onClick={() => { signOut(); onItemClick?.(); }} 
+            className={cn(
+              "sidebar-item w-full text-red-400/70 hover:text-red-300 hover:bg-red-500/8",
+              collapsed && "justify-center px-0"
+            )}
+          >
+            <LogOut className="h-[17px] w-[17px] flex-shrink-0" />
+            {!collapsed && <span>Se déconnecter</span>}
+          </button>
+        </SidebarTooltipItem>
         
+        {/* ── Collapse Toggle ── */}
         {setCollapsed && (
-          <button onClick={() => setCollapsed(!collapsed)} className="sidebar-item w-full justify-center mt-1 hidden md:flex">
+          <button 
+            onClick={() => setCollapsed(!collapsed)} 
+            className="sidebar-item w-full justify-center mt-1 hidden md:flex opacity-50 hover:opacity-100"
+          >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : (
-              <><ChevronLeft className="h-4 w-4" /><span>Réduire</span></>
+              <><ChevronLeft className="h-4 w-4" /><span className="text-[11px]">Réduire</span></>
             )}
           </button>
         )}
@@ -284,7 +334,7 @@ function SidebarContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
 
@@ -315,8 +365,8 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-full" style={{ width: 28, height: 28, background: 'hsl(173 58% 39%)' }}>
-              <span className="text-white font-bold text-[9px]">CF</span>
+            <div className="flex items-center justify-center rounded-xl bg-cta" style={{ width: 28, height: 28 }}>
+              <span className="text-cta-foreground font-bold text-[9px]">CF</span>
             </div>
             <span className="text-foreground font-semibold text-sm">CRM Formation</span>
           </div>
@@ -329,10 +379,10 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-200 flex flex-col sidebar-dark",
-        collapsed ? "w-[60px]" : "w-[240px]"
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 flex flex-col sidebar-dark",
+        collapsed ? "w-[64px]" : "w-[240px]"
       )}
-      style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 24px rgba(0,0,0,0.15)' }}
+      style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 32px rgba(0,0,0,0.2)' }}
     >
       <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
     </aside>
