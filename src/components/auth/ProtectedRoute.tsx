@@ -8,6 +8,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  // TEMPORAIRE : authentification désactivée
+  return <>{children}</>;
+
+  // Code original commenté ci-dessous pour réactivation future
+  /*
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -30,4 +35,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   return <>{children}</>;
+  */
 }
