@@ -576,7 +576,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     { value: 'valide', label: 'Validé', class: 'bg-success/10 text-success border-success/20' },
     { value: 'encours', label: 'En cours', class: 'bg-warning/10 text-warning border-warning/20' },
     { value: 'document', label: 'Document', class: 'bg-info/10 text-info border-info/20' },
-    { value: 'annule', label: 'Annulé', class: 'bg-destructive/10 text-destructive border-destructive/20' },
+    { value: 'complexe', label: 'Complexe', class: 'bg-destructive/10 text-destructive border-destructive/20' },
   ];
 
   const queryClient = useQueryClient();
@@ -723,7 +723,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 </TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead className="hidden sm:table-cell">Statut</TableHead>
+                <TableHead className="hidden sm:table-cell">CMA</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
