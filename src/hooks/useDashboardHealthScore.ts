@@ -80,30 +80,33 @@ export function useDashboardHealthScore() {
       // 4. Count urgences
       const nbUrgences = unpaidCount;
 
-      // Calculate score (weighted)
-      const scoreConversion = Math.min(tauxConversion * 1.5, 25); // max 25
-      const scoreRemplissage = Math.min(tauxRemplissage * 0.35, 25); // max 25
-      const scoreCA = Math.min(caConfirmeVsObjectif * 0.25, 25); // max 25
-      const scoreUrgences = Math.max(25 - nbUrgences * 3, 0); // max 25, -3 per urgency
+      // Calculate score (weighted: Remplissage 30%, Conversion 20%, CA 30%, Urgences 20%)
+      const scoreRemplissage = Math.min(tauxRemplissage * 0.30, 30); // max 30
+      const scoreConversion = Math.min(tauxConversion * 0.20, 20); // max 20 (capped at 100% conv)
+      const scoreCA = Math.min(caConfirmeVsObjectif * 0.30, 30); // max 30
+      const scoreUrgences = Math.max(20 - nbUrgences * 2.5, 0); // max 20, -2.5 per urgency
 
-      const score = Math.round(Math.min(scoreConversion + scoreRemplissage + scoreCA + scoreUrgences, 100));
+      const score = Math.round(Math.min(scoreRemplissage + scoreConversion + scoreCA + scoreUrgences, 100));
 
-      // Generate insights
+      // Generate dynamic insights
       const insights: string[] = [];
       if (sessionsAtRisk > 0) {
         insights.push(`${sessionsAtRisk} session${sessionsAtRisk > 1 ? "s" : ""} sous 40% de remplissage`);
       }
-      if (nbUrgences > 0) {
-        insights.push(`${nbUrgences} facture${nbUrgences > 1 ? "s" : ""} impayée${nbUrgences > 1 ? "s" : ""}`);
-      }
       if (manqueAGagner > 0) {
-        insights.push(`Manque à gagner estimé : ${manqueAGagner.toLocaleString("fr-FR")}€`);
+        insights.push(`Manque à gagner estimé : ${manqueAGagner.toLocaleString("fr-FR")} €`);
+      }
+      if (nbUrgences > 0) {
+        insights.push(`${nbUrgences} action${nbUrgences > 1 ? "s" : ""} urgente${nbUrgences > 1 ? "s" : ""} à traiter`);
       }
       if (tauxConversion < 30) {
         insights.push(`Taux de conversion faible (${tauxConversion}%)`);
       }
+      if (tauxRemplissage < 50) {
+        insights.push(`Remplissage global insuffisant (${tauxRemplissage}%)`);
+      }
       if (insights.length === 0) {
-        insights.push("Tous les indicateurs sont au vert");
+        insights.push("Tous les indicateurs sont au vert ✅");
       }
 
       return {
