@@ -7,6 +7,7 @@ import { HealthScoreCard } from "./HealthScoreCard";
 import { PriorityActionsGrouped } from "./PriorityActionsGrouped";
 import { StrategicPillars } from "./StrategicPillars";
 import { SessionsUpcoming } from "./SessionsUpcoming";
+import { PredictiveScoreCard } from "./PredictiveScoreCard";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -64,6 +65,9 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
             />
           </div>
         </div>
+
+        {/* BLOC 2 — Prédictif 30 jours */}
+        <PredictiveScoreCard onNavigate={handleNavigate} />
 
         {/* BLOC 3 — Pilotage stratégique */}
         <StrategicPillars onNavigate={handleNavigate} />
