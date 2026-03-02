@@ -53,12 +53,13 @@ const sectionConfig: Record<string, { label: string; icon?: string; tabs?: Recor
   settings: { label: "Paramètres" },
   workflows: { label: "Workflows" },
   qualite: { 
-    label: "Qualité",
+    label: "Centre Qualiopi",
     tabs: {
       qualiopi: "Dashboard",
       criteres: "Critères",
       actions: "Actions",
       audits: "Audits",
+      simulation: "Simulation d'audit",
       satisfaction: "Satisfaction",
     }
   },
