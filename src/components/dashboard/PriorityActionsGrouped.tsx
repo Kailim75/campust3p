@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
 import { useAllAlerts } from "@/hooks/useAlerts";
+import { useDashboardActionCounts } from "@/hooks/useDashboardActionCounts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { 
-  AlertCircle, CreditCard, FileWarning, Calendar, Award, Clock, 
-  ChevronRight, CheckCircle2, Bell 
+import {
+  UserX, Bell, FileWarning, Megaphone, CreditCard, UserPlus,
+  ChevronRight, CheckCircle2,
 } from "lucide-react";
 
 interface PriorityActionsGroupedProps {
@@ -12,76 +13,67 @@ interface PriorityActionsGroupedProps {
   onNavigateWithContact?: (section: string, contactId?: string) => void;
 }
 
-interface ActionGroup {
+interface ActionItem {
   id: string;
   label: string;
   icon: React.ElementType;
   count: number;
-  level: "urgent" | "important" | "info";
   section: string;
 }
 
-export function PriorityActionsGrouped({ onNavigate, onNavigateWithContact }: PriorityActionsGroupedProps) {
-  const { data: alerts, isLoading, counts } = useAllAlerts();
+export function PriorityActionsGrouped({ onNavigate }: PriorityActionsGroupedProps) {
+  const { data: alerts, isLoading: alertsLoading, counts } = useAllAlerts();
+  const { data: extra, isLoading: extraLoading } = useDashboardActionCounts();
+
+  const isLoading = alertsLoading || extraLoading;
 
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 h-full">
         <Skeleton className="h-5 w-40 mb-4" />
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-11 w-full" />)}
         </div>
       </div>
     );
   }
 
-  // Group alerts by category and level
-  const paymentAlerts = alerts.filter(a => a.type === "payment");
-  const rappelAlerts = alerts.filter(a => a.type === "rappel");
-  const documentAlerts = alerts.filter(a => a.type === "document" || a.type === "carte_pro" || a.type === "permis");
-  const sessionAlerts = alerts.filter(a => a.type === "session");
-  const examAlerts = alerts.filter(a => a.type === "exam_t3p" || a.type === "exam_pratique");
+  // 🔴 URGENT
+  const prospectRelances = alerts.filter(a => a.type === "rappel" && a.title.includes("prospect") && a.priority === "high").length;
+  const rappelsRetard = alerts.filter(a => a.type === "rappel" && !a.title.includes("prospect") && a.priority === "high").length;
+  const dossiersIncomplets = alerts.filter(a => (a.type === "document" || a.type === "carte_pro" || a.type === "permis") && a.priority === "high").length;
 
-  const urgentGroups: ActionGroup[] = [];
-  const importantGroups: ActionGroup[] = [];
-  const infoGroups: ActionGroup[] = [];
+  const urgentItems: ActionItem[] = [
+    { id: "prospect-relances", label: "Relances prospect en retard", icon: UserX, count: prospectRelances, section: "pipeline" },
+    { id: "rappels-retard", label: "Rappels non effectués", icon: Bell, count: rappelsRetard, section: "alertes" },
+    { id: "dossiers-incomplets", label: "Dossiers incomplets", icon: FileWarning, count: dossiersIncomplets, section: "contacts" },
+  ].filter(item => item.count > 0);
 
-  // Urgent
-  if (paymentAlerts.filter(a => a.priority === "high").length > 0) {
-    urgentGroups.push({ id: "payments", label: "Paiements retard", icon: CreditCard, count: paymentAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "paiements" });
-  }
-  if (rappelAlerts.filter(a => a.priority === "high").length > 0) {
-    urgentGroups.push({ id: "rappels", label: "Rappels retard", icon: Bell, count: rappelAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "alertes" });
-  }
-  if (documentAlerts.filter(a => a.priority === "high").length > 0) {
-    urgentGroups.push({ id: "docs", label: "Dossiers incomplets", icon: FileWarning, count: documentAlerts.filter(a => a.priority === "high").length, level: "urgent", section: "contacts" });
-  }
+  // 🟠 IMPORTANT
+  const sessionsAPromouvoir = extra?.sessionsToPromote ?? 0;
+  const paiementsEnAttente = counts.payments;
 
-  // Important
-  if (sessionAlerts.length > 0) {
-    importantGroups.push({ id: "sessions", label: "Sessions à risque", icon: Calendar, count: sessionAlerts.length, level: "important", section: "sessions" });
-  }
-  if (documentAlerts.filter(a => a.priority === "medium").length > 0) {
-    importantGroups.push({ id: "docs-medium", label: "Docs à valider", icon: FileWarning, count: documentAlerts.filter(a => a.priority === "medium").length, level: "important", section: "contacts" });
-  }
+  const importantItems: ActionItem[] = [
+    { id: "sessions-promouvoir", label: "Sessions à promouvoir", icon: Megaphone, count: sessionsAPromouvoir, section: "sessions" },
+    { id: "paiements-attente", label: "Paiements en attente", icon: CreditCard, count: paiementsEnAttente, section: "paiements" },
+  ].filter(item => item.count > 0);
 
-  // Info
-  if (examAlerts.length > 0) {
-    infoGroups.push({ id: "exams", label: "Examens à venir", icon: Award, count: examAlerts.length, level: "info", section: "alertes" });
-  }
+  // 🔵 INFO
+  const nouvellesInscriptions = extra?.newInscriptions ?? 0;
 
-  const levelConfig = {
-    urgent: { dot: "bg-destructive", text: "text-destructive", label: "Urgent" },
-    important: { dot: "bg-warning", text: "text-warning", label: "Important" },
-    info: { dot: "bg-info", text: "text-info", label: "Info" },
-  };
+  const infoItems: ActionItem[] = [
+    { id: "nouvelles-inscriptions", label: "Nouvelles inscriptions", icon: UserPlus, count: nouvellesInscriptions, section: "sessions" },
+  ].filter(item => item.count > 0);
 
-  const totalCount = alerts.length;
-  const allCategories = [
-    { level: "urgent" as const, groups: urgentGroups },
-    { level: "important" as const, groups: importantGroups },
-    { level: "info" as const, groups: infoGroups },
-  ].filter(c => c.groups.length > 0);
+  const levels = [
+    { key: "urgent", label: "Urgent", dot: "bg-destructive", text: "text-destructive", items: urgentItems },
+    { key: "important", label: "Important", dot: "bg-warning", text: "text-warning", items: importantItems },
+    { key: "info", label: "Information", dot: "bg-info", text: "text-info", items: infoItems },
+  ].filter(l => l.items.length > 0);
+
+  const totalCount = urgentItems.reduce((s, i) => s + i.count, 0)
+    + importantItems.reduce((s, i) => s + i.count, 0)
+    + infoItems.reduce((s, i) => s + i.count, 0);
 
   return (
     <div className="rounded-xl border border-border bg-card p-6 h-full flex flex-col">
@@ -92,7 +84,7 @@ export function PriorityActionsGrouped({ onNavigate, onNavigateWithContact }: Pr
             <Badge variant="secondary" className="text-xs tabular-nums">{totalCount}</Badge>
           )}
         </div>
-        <button 
+        <button
           onClick={() => onNavigate("alertes")}
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
         >
@@ -100,50 +92,47 @@ export function PriorityActionsGrouped({ onNavigate, onNavigateWithContact }: Pr
         </button>
       </div>
 
-      {allCategories.length === 0 ? (
+      {levels.length === 0 ? (
         <div className="flex items-center gap-3 py-6 justify-center flex-1">
           <div className="p-2 rounded-full bg-success/10">
             <CheckCircle2 className="h-5 w-5 text-success" />
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">Tout est en ordre</p>
-            <p className="text-xs text-muted-foreground">Aucune action urgente</p>
+            <p className="text-xs text-muted-foreground">Aucune action en attente</p>
           </div>
         </div>
       ) : (
         <div className="space-y-4 flex-1">
-          {allCategories.map(({ level, groups }) => {
-            const config = levelConfig[level];
-            return (
-              <div key={level}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={cn("w-1.5 h-1.5 rounded-full", config.dot)} />
-                  <span className={cn("text-[10px] font-semibold uppercase tracking-wider", config.text)}>
-                    {config.label}
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {groups.map(group => {
-                    const Icon = group.icon;
-                    return (
-                      <button
-                        key={group.id}
-                        onClick={() => onNavigate(group.section)}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left group/item"
-                      >
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-foreground flex-1 truncate">{group.label}</span>
-                        <Badge variant="outline" className={cn("text-xs tabular-nums", config.text)}>
-                          {group.count}
-                        </Badge>
-                        <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                      </button>
-                    );
-                  })}
-                </div>
+          {levels.map(({ key, label, dot, text, items }) => (
+            <div key={key}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn("w-1.5 h-1.5 rounded-full", dot)} />
+                <span className={cn("text-[10px] font-semibold uppercase tracking-wider", text)}>
+                  {label}
+                </span>
               </div>
-            );
-          })}
+              <div className="space-y-1">
+                {items.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onNavigate(item.section)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left group/item"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm text-foreground flex-1 truncate">{item.label}</span>
+                      <Badge variant="outline" className={cn("text-xs tabular-nums", text)}>
+                        {item.count}
+                      </Badge>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
