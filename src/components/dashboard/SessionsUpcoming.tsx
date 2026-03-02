@@ -88,8 +88,9 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
         <div className="space-y-3">
           {sessions.map(session => {
             const formColor = getFormationColor(session.formation_type);
-            const fillColor = session.fillRate >= 70 ? "bg-success" : session.fillRate >= 40 ? "bg-warning" : "bg-destructive";
-            const fillTextColor = session.fillRate >= 70 ? "text-success" : session.fillRate >= 40 ? "text-warning" : "text-destructive";
+            const isOverCapacity = session.fillRate > 100;
+            const fillColor = isOverCapacity ? "bg-warning" : session.fillRate >= 70 ? "bg-success" : session.fillRate >= 40 ? "bg-warning" : "bg-destructive";
+            const fillTextColor = isOverCapacity ? "text-warning" : session.fillRate >= 70 ? "text-success" : session.fillRate >= 40 ? "text-warning" : "text-destructive";
             const isCritical = session.fillRate < 40;
 
             return (
@@ -101,13 +102,19 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium text-foreground text-sm truncate">{session.nom}</h4>
-                      {session.atRisk && (
+                      {isOverCapacity && (
+                        <Badge variant="outline" className="text-[10px] gap-1 px-1.5 border-warning/40 text-warning">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Capacité dépassée
+                        </Badge>
+                      )}
+                      {session.atRisk && !isOverCapacity && (
                         <Badge variant="destructive" className="text-[10px] gap-1 px-1.5">
                           <AlertTriangle className="h-2.5 w-2.5" />
                           À risque
                         </Badge>
                       )}
-                      {isCritical && !session.atRisk && (
+                      {isCritical && !session.atRisk && !isOverCapacity && (
                         <Badge variant="outline" className="text-[10px] gap-1 px-1.5 border-destructive/40 text-destructive">
                           Critique
                         </Badge>
@@ -141,7 +148,7 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
                 </div>
 
                 {/* Manque à gagner */}
-                {session.manqueAGagner > 0 && (
+                {session.manqueAGagner > 0 && !isOverCapacity && (
                   <div className={cn(
                     "flex items-center justify-between mt-2 pt-2 border-t text-xs",
                     isCritical ? "border-destructive/20" : "border-border/50"

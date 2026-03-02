@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   UserX, Bell, FileWarning, Megaphone, CreditCard, UserPlus,
-  ChevronRight, CheckCircle2,
+  ChevronRight, CheckCircle2, Zap,
 } from "lucide-react";
 
 interface PriorityActionsGroupedProps {
@@ -75,6 +75,8 @@ export function PriorityActionsGrouped({ onNavigate }: PriorityActionsGroupedPro
     + importantItems.reduce((s, i) => s + i.count, 0)
     + infoItems.reduce((s, i) => s + i.count, 0);
 
+  const hasUrgent = urgentItems.length > 0;
+
   return (
     <div className="rounded-xl border border-border bg-card p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -134,6 +136,17 @@ export function PriorityActionsGrouped({ onNavigate }: PriorityActionsGroupedPro
             </div>
           ))}
         </div>
+      )}
+
+      {/* CTA global urgences */}
+      {hasUrgent && (
+        <button
+          onClick={() => onNavigate("alertes")}
+          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-destructive text-destructive-foreground font-semibold text-sm hover:bg-destructive/90 transition-colors"
+        >
+          <Zap className="h-4 w-4" />
+          Traiter toutes les urgences
+        </button>
       )}
     </div>
   );
