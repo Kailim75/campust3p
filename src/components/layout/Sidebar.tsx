@@ -38,6 +38,7 @@ const menuGroups = [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { id: "contacts", label: "Apprenants", icon: Users },
       { id: "pipeline", label: "Pipeline", icon: ClipboardList },
+      { id: "prospects", label: "Prospects", icon: UserPlus },
       { id: "sessions", label: "Sessions", icon: Calendar },
       { id: "formations", label: "Catalogue", icon: GraduationCap },
       { id: "formateurs", label: "Formateurs", icon: User },
