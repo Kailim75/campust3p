@@ -3,14 +3,15 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { FileEdit, CreditCard } from "lucide-react";
+import { FileEdit, CreditCard, BarChart3 } from "lucide-react";
 import { DevisPage } from "@/components/devis/DevisPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { useDevis } from "@/hooks/useDevis";
 import { useFactures } from "@/hooks/useFactures";
 import { FacturationIntelligence } from "./FacturationIntelligence";
+import { AnalyseParSession } from "./AnalyseParSession";
 
-type ViewMode = "devis" | "paiements";
+type ViewMode = "devis" | "paiements" | "analyse";
 
 export function FacturationUnifiedPage() {
   const [activeView, setActiveView] = useState<ViewMode>("paiements");
@@ -92,16 +93,22 @@ export function FacturationUnifiedPage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="analyse" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analyse par session
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="paiements" className="mt-4">
-          {/* Render PaiementsPage without its own header */}
           <PaiementsPageEmbedded />
         </TabsContent>
 
         <TabsContent value="devis" className="mt-4">
-          {/* Render DevisPage without its own header */}
           <DevisPageEmbedded />
+        </TabsContent>
+
+        <TabsContent value="analyse" className="mt-4">
+          <AnalyseParSession />
         </TabsContent>
       </Tabs>
     </div>
