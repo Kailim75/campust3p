@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useDashboardHealthScore } from "@/hooks/useDashboardHealthScore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, AlertTriangle, TrendingDown, CheckCircle2, Zap } from "lucide-react";
+import { Activity, AlertTriangle, TrendingDown, CheckCircle2, Zap, Target, CalendarCheck } from "lucide-react";
 
 export function HealthScoreCard() {
   const { data, isLoading } = useDashboardHealthScore();
@@ -57,6 +57,19 @@ export function HealthScoreCard() {
 
   const config = levelConfig[level];
 
+  // Derive instant answers
+  const caVsObj = data?.caConfirmeVsObjectif ?? 0;
+  const objAnswer = caVsObj >= 80 ? "En bonne voie" : caVsObj >= 50 ? "Effort nécessaire" : "Objectif compromis";
+  const objColor = caVsObj >= 80 ? "text-success" : caVsObj >= 50 ? "text-warning" : "text-destructive";
+
+  const sessionsAtRisk = data?.sessionsAtRisk ?? 0;
+  const sessionAnswer = sessionsAtRisk === 0 ? "Aucune" : `${sessionsAtRisk} session${sessionsAtRisk > 1 ? "s" : ""}`;
+  const sessionColor = sessionsAtRisk === 0 ? "text-success" : "text-destructive";
+
+  const urgences = data?.nbUrgences ?? 0;
+  const urgenceAnswer = urgences === 0 ? "Non" : `${urgences} problème${urgences > 1 ? "s" : ""}`;
+  const urgenceColor = urgences === 0 ? "text-success" : "text-destructive";
+
   const insightIcon = (insight: string) => {
     if (insight.includes("vert") || insight.includes("ordre"))
       return <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-success flex-shrink-0" />;
@@ -69,7 +82,7 @@ export function HealthScoreCard() {
 
   return (
     <div className={cn("rounded-xl border bg-card p-6", config.border)}>
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-4">
         <div className={cn("p-1.5 rounded-lg", config.bg)}>
           <Activity className={cn("h-4 w-4", config.ring)} />
         </div>
@@ -79,10 +92,30 @@ export function HealthScoreCard() {
         </span>
       </div>
 
+      {/* 4 questions — réponses instantanées */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 p-3 rounded-lg bg-muted/30 border border-border/50">
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Santé globale ?</p>
+          <p className={cn("text-sm font-semibold", config.ring)}>{config.label}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Objectif mensuel ?</p>
+          <p className={cn("text-sm font-semibold", objColor)}>{objAnswer}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Sessions à risque ?</p>
+          <p className={cn("text-sm font-semibold", sessionColor)}>{sessionAnswer}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Problème urgent ?</p>
+          <p className={cn("text-sm font-semibold", urgenceColor)}>{urgenceAnswer}</p>
+        </div>
+      </div>
+
       <div className="flex items-center gap-8">
         {/* Score circle */}
         <div className="relative flex-shrink-0">
-          <svg width="130" height="130" viewBox="0 0 130 130" className="-rotate-90">
+          <svg width="120" height="120" viewBox="0 0 130 130" className="-rotate-90">
             <circle
               cx="65" cy="65" r="52"
               fill="none"
@@ -96,12 +129,12 @@ export function HealthScoreCard() {
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 52}
               strokeDashoffset={2 * Math.PI * 52 - (score / 100) * 2 * Math.PI * 52}
-              className={cn(config.strokeColor, "transition-all duration-1000")}
+              className={config.strokeColor}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn("text-4xl font-bold tabular-nums", config.ring)}>{score}</span>
-            <span className="text-xs text-muted-foreground font-medium">/100</span>
+            <span className={cn("text-3xl font-bold tabular-nums", config.ring)}>{score}</span>
+            <span className="text-[10px] text-muted-foreground font-medium">/100</span>
           </div>
         </div>
 
