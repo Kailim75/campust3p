@@ -60,7 +60,7 @@ const menuGroups = [
   {
     label: "Qualité & LMS",
     items: [
-      { id: "qualite", label: "Qualité", icon: CheckCircle },
+      { id: "qualite", label: "Centre Qualiopi", icon: CheckCircle },
       { id: "workflows", label: "Workflows", icon: Workflow },
     ],
   },
