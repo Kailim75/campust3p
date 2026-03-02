@@ -62,10 +62,12 @@ export function PostAssignmentDialog({
           <div className="mx-auto mb-3 p-3 rounded-full bg-success/10 w-fit">
             <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
-          <DialogTitle className="text-xl">Inscription confirmée !</DialogTitle>
+          <DialogTitle className="text-xl">✅ Inscription confirmée !</DialogTitle>
           <DialogDescription className="text-base">
             <span className="font-medium text-foreground">{contactName}</span> est inscrit à{" "}
             <span className="font-medium text-foreground">{sessionName}</span>.
+            <br />
+            <span className="text-sm text-muted-foreground mt-1 block">Prochaine étape : Générer la facture</span>
           </DialogDescription>
         </DialogHeader>
 
