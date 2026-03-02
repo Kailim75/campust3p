@@ -95,6 +95,19 @@ function getScoreBg(score: number) {
   return "bg-destructive";
 }
 
+// ─── FORMATION STYLE ─────────────────────────────────────
+
+const FORMATION_STYLE: Record<string, string> = {
+  TAXI: "bg-accent/10 text-accent border-accent/20",
+  VTC: "bg-primary/10 text-primary border-primary/20",
+  VMDTR: "bg-info/10 text-info border-info/20",
+  "ACC VTC": "bg-accent/10 text-accent border-accent/20",
+  "ACC VTC 75": "bg-accent/10 text-accent border-accent/20",
+  "Formation continue Taxi": "bg-success/10 text-success border-success/20",
+  "Formation continue VTC": "bg-success/10 text-success border-success/20",
+  "Mobilité Taxi": "bg-info/10 text-info border-info/20",
+};
+
 // ─── PIPELINE CARD ───────────────────────────────────────
 
 function StrategicPipelineCard({
@@ -107,36 +120,53 @@ function StrategicPipelineCard({
   onClick: () => void;
 }) {
   const stagnation = getStagnationBadge(item.daysSinceAction);
+  const formationStyle = item.formation ? FORMATION_STYLE[item.formation] : null;
 
   return (
     <Draggable draggableId={item.id} index={index}>
       {(provided, snapshot) => (
-        <Card
+        <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            "p-3 mb-2 cursor-pointer transition-all hover:shadow-md border",
-            snapshot.isDragging && "shadow-lg ring-2 ring-primary/40 rotate-1",
-            item.daysSinceAction >= 5 && "border-destructive/30"
+            "group relative bg-card rounded-lg border p-3 mb-2 cursor-pointer transition-all duration-200",
+            "hover:shadow-[0_2px_12px_-4px_hsl(var(--primary)/0.12)] hover:border-primary/20",
+            snapshot.isDragging && "shadow-xl ring-2 ring-primary/30 rotate-[1deg] scale-[1.02]",
+            item.daysSinceAction >= 5 && "border-destructive/40 bg-destructive/[0.02]"
           )}
         >
-          <div className="flex items-start gap-2.5">
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+          {/* Left accent bar */}
+          <div className={cn(
+            "absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-opacity",
+            item.daysSinceAction >= 5 ? "bg-destructive/60" :
+            item.daysSinceAction >= 3 ? "bg-warning/60" :
+            "bg-primary/20 opacity-0 group-hover:opacity-100"
+          )} />
+
+          <div className="flex items-start gap-3 pl-1">
+            <Avatar className="h-9 w-9 shrink-0 shadow-sm">
+              <AvatarFallback className={cn(
+                "text-[11px] font-bold tracking-tight",
+                formationStyle ? formationStyle.split(" ").find(c => c.startsWith("text-")) + " bg-card border" :
+                "bg-primary/10 text-primary"
+              )}>
                 {`${item.prenom.charAt(0)}${item.nom.charAt(0)}`.toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex items-center justify-between gap-1">
-                <p className="font-medium text-sm truncate text-foreground">
+                <p className="font-semibold text-[13px] truncate text-foreground leading-tight">
                   {item.prenom} {item.nom}
                 </p>
                 {stagnation && (
-                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 shrink-0", stagnation.className)}>
-                    <Clock className="h-2.5 w-2.5 mr-0.5" />
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] px-1.5 py-0 h-4 shrink-0 font-mono font-semibold gap-0.5",
+                    stagnation.className
+                  )}>
+                    <Clock className="h-2.5 w-2.5" />
                     {stagnation.label}
                   </Badge>
                 )}
@@ -144,22 +174,26 @@ function StrategicPipelineCard({
 
               <div className="flex items-center gap-1.5 flex-wrap">
                 {item.formation && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="outline" className={cn(
+                    "text-[10px] px-1.5 py-0 h-[18px] font-medium",
+                    formationStyle || ""
+                  )}>
                     {item.formation}
                   </Badge>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">
                   {formatDistanceToNow(parseISO(item.lastActionDate), { addSuffix: true, locale: fr })}
                 </span>
-              </div>
-
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <DollarSign className="h-2.5 w-2.5" />
-                <span className="tabular-nums">{TARIF_MOYEN.toLocaleString("fr-FR")}€ potentiel</span>
+                <span className="text-[10px] font-medium text-muted-foreground tabular-nums">
+                  {TARIF_MOYEN.toLocaleString("fr-FR")}€
+                </span>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       )}
     </Draggable>
   );
@@ -179,37 +213,47 @@ function StrategicColumn({
   const potentiel = items.length * TARIF_MOYEN;
 
   return (
-    <div className="flex-shrink-0 w-72">
-      <div className="bg-muted/40 rounded-xl p-3 h-full flex flex-col border border-border/50">
-        {/* Header */}
-        <div className={cn("rounded-lg border p-3 mb-3", column.bgClass, column.borderClass)}>
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <div className={cn("w-2.5 h-2.5 rounded-full", column.dotColor)} />
+    <div className="flex-shrink-0 w-[280px]">
+      <div className="rounded-xl h-full flex flex-col">
+        {/* Column Header */}
+        <div className={cn(
+          "rounded-xl border p-3.5 mb-3 transition-all",
+          column.bgClass, column.borderClass
+        )}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className={cn("w-2 h-2 rounded-full ring-2 ring-offset-1 ring-offset-card", column.dotColor, column.dotColor.replace("bg-", "ring-"))} />
               <h3 className="font-semibold text-sm text-foreground">{column.label}</h3>
             </div>
-            <Badge variant="secondary" className="text-xs h-5 min-w-5 justify-center">
+            <span className={cn(
+              "text-xs font-bold tabular-nums px-2 py-0.5 rounded-md",
+              column.bgClass.replace("/10", "/20"),
+              "text-foreground"
+            )}>
               {items.length}
-            </Badge>
+            </span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Potentiel : <span className="font-semibold tabular-nums text-foreground">{potentiel.toLocaleString("fr-FR")}€</span>
-          </p>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <DollarSign className="h-3 w-3" />
+            <span>Potentiel : <span className="font-semibold tabular-nums text-foreground">{potentiel.toLocaleString("fr-FR")}€</span></span>
+          </div>
         </div>
 
-        {/* Droppable */}
+        {/* Droppable area */}
         <Droppable droppableId={column.id}>
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "flex-1 min-h-[200px] rounded-lg transition-colors p-1",
-                snapshot.isDraggingOver && "bg-primary/5 ring-1 ring-primary/20"
+                "flex-1 min-h-[200px] rounded-xl transition-all duration-200 p-1.5",
+                snapshot.isDraggingOver
+                  ? "bg-primary/[0.04] ring-2 ring-primary/15 ring-offset-1"
+                  : "bg-muted/20"
               )}
             >
               <ScrollArea className="h-[calc(100vh-420px)]">
-                <div className="pr-2">
+                <div className="pr-1 space-y-0">
                   {items.map((item, index) => (
                     <StrategicPipelineCard
                       key={item.id}
@@ -222,7 +266,10 @@ function StrategicColumn({
                 </div>
               </ScrollArea>
               {items.length === 0 && (
-                <div className="text-center text-muted-foreground text-xs py-8">Aucun prospect</div>
+                <div className="flex flex-col items-center justify-center text-muted-foreground text-xs py-12 gap-2">
+                  <Users className="h-5 w-5 opacity-30" />
+                  <span>Aucun prospect</span>
+                </div>
               )}
             </div>
           )}
@@ -248,47 +295,54 @@ function AcquisitionScoreCard({
   totalLeads: number;
 }) {
   return (
-    <Card className="border-primary/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
-          <TrendingUp className="h-4 w-4" />
+    <Card className="border-border/50 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <div className="p-1.5 rounded-md bg-primary/10">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+          </div>
           Score Acquisition
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative w-16 h-16">
+        <div className="flex items-center gap-5">
+          <div className="relative w-[72px] h-[72px]">
             <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="hsl(var(--muted))"
-                strokeWidth="3"
+                strokeWidth="2.5"
+                strokeLinecap="round"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="3"
+                strokeWidth="2.5"
+                strokeLinecap="round"
                 strokeDasharray={`${score}, 100`}
-                className={getScoreColor(score)}
+                className={cn(getScoreColor(score), "transition-all duration-700")}
               />
             </svg>
-            <span className={cn("absolute inset-0 flex items-center justify-center text-lg font-bold", getScoreColor(score))}>
-              {score}
-            </span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={cn("text-xl font-bold leading-none tabular-nums", getScoreColor(score))}>
+                {score}
+              </span>
+              <span className="text-[8px] text-muted-foreground font-medium">/100</span>
+            </div>
           </div>
-          <div className="flex-1 space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Taux conversion</span>
-              <span className="font-semibold tabular-nums">{tauxConversion}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Leads actifs</span>
-              <span className="font-semibold tabular-nums">{leadsActifs}/{totalLeads}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Leads stagnants</span>
-              <span className={cn("font-semibold tabular-nums", leadsStagnants > 5 && "text-destructive")}>{leadsStagnants}</span>
-            </div>
+          <div className="flex-1 space-y-2">
+            {[
+              { label: "Taux conversion", value: `${tauxConversion}%`, warn: tauxConversion < 40 },
+              { label: "Leads actifs", value: `${leadsActifs}/${totalLeads}`, warn: false },
+              { label: "Leads stagnants", value: `${leadsStagnants}`, warn: leadsStagnants > 5 },
+            ].map((row) => (
+              <div key={row.label} className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">{row.label}</span>
+                <span className={cn("font-semibold tabular-nums", row.warn && "text-destructive")}>
+                  {row.value}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
@@ -309,34 +363,45 @@ function ObjectifCard({
 }) {
   const manquantes = Math.max(0, objectif - inscriptionsActuelles);
   const progressPct = Math.min(100, Math.round((inscriptionsActuelles / objectif) * 100));
+  const isAtteint = manquantes === 0;
 
   return (
-    <Card className="border-accent/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
-          <Target className="h-4 w-4" />
-          Objectif inscriptions 30 jours
+    <Card className="border-border/50 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <div className={cn("p-1.5 rounded-md", isAtteint ? "bg-success/10" : "bg-accent/10")}>
+            <Target className={cn("h-3.5 w-3.5", isAtteint ? "text-success" : "text-accent")} />
+          </div>
+          Objectif 30 jours
         </div>
         <div className="space-y-3">
           <div className="flex items-end justify-between">
-            <div>
-              <span className="text-3xl font-bold text-foreground tabular-nums">{inscriptionsActuelles}</span>
-              <span className="text-lg text-muted-foreground">/{objectif}</span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-3xl font-bold text-foreground tabular-nums leading-none">{inscriptionsActuelles}</span>
+              <span className="text-base text-muted-foreground font-medium">/{objectif}</span>
             </div>
             {manquantes > 0 ? (
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
-                Il manque {manquantes} inscription{manquantes > 1 ? "s" : ""}
+              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px] font-semibold">
+                −{manquantes} manquante{manquantes > 1 ? "s" : ""}
               </Badge>
             ) : (
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-                ✓ Objectif atteint
+              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px] font-semibold">
+                ✓ Atteint
               </Badge>
             )}
           </div>
-          <Progress value={progressPct} className="h-2" />
+          <div className="h-2 rounded-full bg-muted/60 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                isAtteint ? "bg-success" : progressPct > 60 ? "bg-accent" : "bg-warning"
+              )}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
           {manquantes > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Valeur correspondante : <span className="font-semibold text-foreground">{(manquantes * TARIF_MOYEN).toLocaleString("fr-FR")}€</span>
+            <p className="text-[11px] text-muted-foreground">
+              Valeur : <span className="font-semibold text-foreground tabular-nums">{(manquantes * TARIF_MOYEN).toLocaleString("fr-FR")}€</span>
             </p>
           )}
         </div>
@@ -351,26 +416,31 @@ function RecommendationsCard({ recommendations }: { recommendations: { text: str
   if (recommendations.length === 0) return null;
 
   const severityConfig = {
-    critical: { icon: AlertTriangle, className: "text-destructive" },
-    warning: { icon: AlertTriangle, className: "text-warning" },
-    info: { icon: Lightbulb, className: "text-info" },
+    critical: { icon: AlertTriangle, bg: "bg-destructive/8", border: "border-destructive/15", text: "text-destructive" },
+    warning: { icon: AlertTriangle, bg: "bg-warning/8", border: "border-warning/15", text: "text-warning" },
+    info: { icon: Lightbulb, bg: "bg-info/8", border: "border-info/15", text: "text-info" },
   };
 
   return (
-    <Card className="border-accent/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
-          <Lightbulb className="h-4 w-4" />
-          Recommandations Acquisition
+    <Card className="border-border/50 shadow-sm overflow-hidden">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <div className="p-1.5 rounded-md bg-accent/10">
+            <Lightbulb className="h-3.5 w-3.5 text-accent" />
+          </div>
+          Recommandations
         </div>
         <div className="space-y-2">
           {recommendations.slice(0, 3).map((rec, i) => {
             const config = severityConfig[rec.severity];
             const Icon = config.icon;
             return (
-              <div key={i} className="flex items-start gap-2 text-xs">
-                <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", config.className)} />
-                <span className="text-foreground">{rec.text}</span>
+              <div key={i} className={cn(
+                "flex items-start gap-2.5 text-xs p-2.5 rounded-lg border",
+                config.bg, config.border
+              )}>
+                <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", config.text)} />
+                <span className="text-foreground leading-relaxed">{rec.text}</span>
               </div>
             );
           })}
@@ -385,14 +455,16 @@ function RecommendationsCard({ recommendations }: { recommendations: { text: str
 function PredictiveAlert({ show, score }: { show: boolean; score: number }) {
   if (!show) return null;
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3">
-      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-      <div>
-        <p className="text-sm font-semibold text-destructive">
-          🔴 Risque de non-atteinte objectif faute d'acquisition
+    <div className="rounded-xl border border-destructive/20 bg-destructive/[0.04] p-4 flex items-center gap-4 shadow-sm">
+      <div className="p-2 rounded-lg bg-destructive/10">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-foreground">
+          Risque de non-atteinte objectif
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Score acquisition : {score}/100 — Pipeline insuffisant pour couvrir les objectifs mensuels.
+          Score acquisition <span className="font-semibold text-destructive tabular-nums">{score}/100</span> — Pipeline insuffisant pour couvrir les objectifs mensuels.
         </p>
       </div>
     </div>
@@ -640,7 +712,7 @@ export function PipelinePage() {
     <div className="min-h-screen">
       <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />
 
-      <div className="px-6 pt-6 space-y-4">
+      <div className="px-6 pt-6 space-y-5">
         {/* Predictive Alert */}
         <PredictiveAlert show={metrics.showPredictiveAlert} score={metrics.acquisitionScore} />
 
@@ -661,20 +733,21 @@ export function PipelinePage() {
           <RecommendationsCard recommendations={metrics.recommendations} />
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3">
+        {/* Search bar */}
+        <div className="flex items-center gap-3 pt-1">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher..."
+              placeholder="Rechercher un prospect..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9 bg-card"
             />
           </div>
-          <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>{allItems.length} dans le pipeline</span>
+          <div className="flex items-center gap-2 ml-auto text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-lg">
+            <Users className="h-3.5 w-3.5" />
+            <span className="tabular-nums font-medium">{allItems.length}</span>
+            <span>dans le pipeline</span>
           </div>
         </div>
 
