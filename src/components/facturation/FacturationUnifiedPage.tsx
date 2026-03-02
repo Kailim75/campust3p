@@ -8,6 +8,7 @@ import { DevisPage } from "@/components/devis/DevisPage";
 import { PaiementsPage } from "@/components/paiements/PaiementsPage";
 import { useDevis } from "@/hooks/useDevis";
 import { useFactures } from "@/hooks/useFactures";
+import { FacturationIntelligence } from "./FacturationIntelligence";
 
 type ViewMode = "devis" | "paiements";
 
@@ -67,6 +68,9 @@ export function FacturationUnifiedPage() {
           </p>
         </div>
       </div>
+
+      {/* Intelligence prédictive */}
+      <FacturationIntelligence factures={factures} />
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewMode)} className="space-y-4">
         <TabsList>

@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -37,6 +37,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureWithDetails, useBulkEmitFactures } from "@/hooks/useFactures";
+import { isHighRiskFacture, sortByRiskPriority } from "@/components/facturation/FacturationIntelligence";
 import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
@@ -94,7 +95,7 @@ export function PaiementsPage() {
 
   // Filtered factures
   const filteredFactures = useMemo(() => {
-    return factures.filter((facture) => {
+    const filtered = factures.filter((facture) => {
       // Tab filter
       if (activeTab === "en_attente" && !["emise", "partiel", "impayee"].includes(facture.statut)) return false;
       if (activeTab === "soldes" && facture.statut !== "payee") return false;
@@ -122,6 +123,13 @@ export function PaiementsPage() {
       }
       return true;
     });
+
+    // Auto-sort by risk priority when showing all
+    if (activeTab === "tous" && statutFilter === "all") {
+      filtered.sort(sortByRiskPriority);
+    }
+
+    return filtered;
   }, [factures, statutFilter, financementFilter, dateFrom, dateTo, activeTab]);
 
   const hasActiveFilters = statutFilter !== "all" || financementFilter !== "all" || dateFrom || dateTo;
@@ -564,9 +572,17 @@ export function PaiementsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-xs", statusConfig[facture.statut].class)}>
-                          {statusConfig[facture.statut].label}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={cn("text-xs", statusConfig[facture.statut].class)}>
+                            {statusConfig[facture.statut].label}
+                          </Badge>
+                          {isHighRiskFacture(facture) && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 gap-0.5">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              Risque
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {facture.date_echeance
