@@ -27,11 +27,13 @@ import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RappelsTab } from "./tabs/RappelsTab";
-import { WorkflowStepper } from "@/components/workflow/WorkflowStepper";
+import { WorkflowStepper, type StepStatus } from "@/components/workflow/WorkflowStepper";
+import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
 import { PostAssignmentDialog } from "@/components/workflow/PostAssignmentDialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { Contact } from "@/hooks/useContacts";
 
 const FORMATION_COLORS: Record<string, string> = {
@@ -105,10 +107,70 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     ? STATUT_BADGES[contact.statut] || { label: contact.statut, className: "bg-muted" }
     : null;
 
+  // ─── Workflow logic ───
+  const isProspect = contact.statut === "En attente de validation" || !contact.statut;
+  const hasDocuments = workflowData?.hasDocuments ?? false;
+  const hasInscription = workflowData?.hasInscription ?? false;
+  const hasFacture = workflowData?.hasFacture ?? false;
+  const hasPaid = workflowData?.hasPaid ?? false;
+
+  // Compute step statuses
+  function getStepStatus(stepIndex: number): StepStatus {
+    const completions = [!isProspect, isProfileComplete && hasDocuments, hasInscription, hasFacture, hasPaid];
+    if (completions[stepIndex]) return "complete";
+    // Find first incomplete step
+    const firstIncomplete = completions.findIndex((c) => !c);
+    if (stepIndex === firstIncomplete) {
+      // Check for blocked state (profile incomplete = blocked on dossier)
+      if (stepIndex === 1 && !isProfileComplete) return "blocked";
+      return "active";
+    }
+    return "pending";
+  }
+
+  const steps = [
+    { label: "Prospect", status: getStepStatus(0), tooltip: isProspect ? "En attente de conversion" : "Converti en stagiaire" },
+    { label: "Dossier", status: getStepStatus(1), tooltip: getStepStatus(1) === "blocked" ? "Profil incomplet : email, téléphone ou date de naissance manquant" : hasDocuments ? "Dossier complet" : "Documents à ajouter" },
+    { label: "Session", status: getStepStatus(2), tooltip: hasInscription ? "Inscrit à une session" : "Pas encore inscrit" },
+    { label: "Facturé", status: getStepStatus(3), tooltip: hasFacture ? "Facture générée" : "Pas de facture" },
+    { label: "Payé", status: getStepStatus(4), tooltip: hasPaid ? "Paiement reçu" : "En attente de paiement" },
+  ];
+
+  // Determine dynamic CTA step
+  function getCurrentWorkflowStep(): WorkflowStep {
+    if (isProspect) return "convert";
+    if (!isProfileComplete || !hasDocuments) return "complete-profile";
+    if (!hasInscription) return "assign-session";
+    if (!hasFacture) return "generate-invoice";
+    if (!hasPaid) return "record-payment";
+    return "finalized";
+  }
+
+  const currentCTAStep = getCurrentWorkflowStep();
+
+  const handleCTAAction = () => {
+    switch (currentCTAStep) {
+      case "complete-profile":
+        setActiveTab("dossier");
+        break;
+      case "assign-session":
+        setShowAssignDialog(true);
+        break;
+      case "generate-invoice":
+        setActiveTab("paiements");
+        toast.info("💡 Prochaine étape : Générer la facture", { duration: 3000 });
+        break;
+      case "record-payment":
+        setActiveTab("paiements");
+        toast.info("💡 Prochaine étape : Enregistrer le paiement", { duration: 3000 });
+        break;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* ─── HEADER ─── */}
-      <div className="p-5 border-b bg-muted/30 space-y-4">
+      <div className="p-5 border-b bg-muted/30 space-y-3">
         <div className="flex items-start gap-4">
           <Avatar className="h-14 w-14">
             <AvatarFallback className={cn("text-lg font-bold text-primary-foreground", avatarColor)}>
@@ -137,49 +199,16 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
         {/* Workflow Stepper */}
         {workflowData && (
-          <div className="pt-1">
-            <WorkflowStepper steps={[
-              { label: "Profil", isComplete: isProfileComplete, tooltip: isProfileComplete ? "Profil complété" : "Email, téléphone et date de naissance requis" },
-              { label: "Dossier", isComplete: workflowData.hasDocuments, tooltip: workflowData.hasDocuments ? "Documents ajoutés" : "Aucun document" },
-              { label: "Session", isComplete: workflowData.hasInscription, tooltip: workflowData.hasInscription ? "Inscrit à une session" : "Pas encore inscrit" },
-              { label: "Facturé", isComplete: workflowData.hasFacture, tooltip: workflowData.hasFacture ? "Facture créée" : "Pas de facture" },
-              { label: "Payé", isComplete: workflowData.hasPaid, tooltip: workflowData.hasPaid ? "Paiement reçu" : "En attente de paiement" },
-            ]} />
+          <div className="bg-card rounded-xl border p-3 space-y-3">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              🎯 Progression du dossier
+            </p>
+            <WorkflowStepper steps={steps} />
+            <WorkflowDynamicCTA currentStep={currentCTAStep} onAction={handleCTAAction} />
           </div>
         )}
 
-        {/* Assign to session CTA */}
-        {workflowData && !workflowData.hasInscription && (
-          <Button
-            size="sm"
-            className="w-full mt-1"
-            onClick={() => setShowAssignDialog(true)}
-          >
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Assigner à une session
-          </Button>
-        )}
-
-        {/* Contact info + quick actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {contact.telephone && (
-            <Button variant="outline" size="sm" asChild className="text-xs">
-              <a href={`tel:${contact.telephone}`}>
-                <Phone className="h-3.5 w-3.5 mr-1" />
-                {contact.telephone}
-              </a>
-            </Button>
-          )}
-          {contact.email && (
-            <Button variant="outline" size="sm" asChild className="text-xs">
-              <a href={`mailto:${contact.email}`}>
-                <Mail className="h-3.5 w-3.5 mr-1" />
-                {contact.email}
-              </a>
-            </Button>
-          )}
-        </div>
-
+        {/* Quick contact actions */}
         <div className="flex items-center gap-2 flex-wrap">
           {contact.telephone && (
             <Button size="sm" variant="outline" className="text-xs" asChild>
@@ -196,15 +225,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </Button>
           )}
           {contact.telephone && (
-            <Button size="sm" variant="outline" className="text-xs text-green-600 border-green-200 hover:bg-green-50" onClick={() => openWhatsApp(contact.telephone)}>
+            <Button size="sm" variant="outline" className="text-xs text-success border-success/20 hover:bg-success/5" onClick={() => openWhatsApp(contact.telephone)}>
               <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
             </Button>
           )}
           <Button size="sm" variant="outline" className="text-xs" onClick={() => setActiveTab("notes")}>
             <StickyNote className="h-3 w-3 mr-1" /> Note
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs" onClick={() => setActiveTab("dossier")}>
-            <Zap className="h-3 w-3 mr-1" /> Statut
           </Button>
         </div>
       </div>
