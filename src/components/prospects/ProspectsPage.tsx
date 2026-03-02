@@ -30,7 +30,8 @@ import {
   X,
   Eye,
 } from "lucide-react";
-import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
+import { useProspects, useDeleteProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
+import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectsDashboard } from "./ProspectsDashboard";
 import { ProspectsKanban } from "./ProspectsKanban";
@@ -70,7 +71,6 @@ export function ProspectsPage() {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: stats } = useProspectsStats();
   const deleteProspect = useDeleteProspect();
-  const convertProspect = useConvertProspect();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -124,9 +124,6 @@ export function ProspectsPage() {
   };
 
   const confirmConvert = () => {
-    if (selectedProspect) {
-      convertProspect.mutate(selectedProspect);
-    }
     setConvertDialogOpen(false);
     setSelectedProspect(null);
   };
@@ -530,23 +527,11 @@ export function ProspectsPage() {
       </AlertDialog>
 
       {/* Convert Confirmation */}
-      <AlertDialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Convertir en contact ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Le prospect "{selectedProspect?.prenom} {selectedProspect?.nom}" sera converti en contact
-              et pourra être inscrit à une session de formation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmConvert}>
-              Convertir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SmartConversionDialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        prospect={selectedProspect}
+      />
 
       {/* Bulk Delete Confirmation */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>

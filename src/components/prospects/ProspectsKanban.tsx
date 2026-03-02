@@ -26,7 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDeleteProspect, useConvertProspect } from "@/hooks/useProspects";
+import { useDeleteProspect } from "@/hooks/useProspects";
+import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
 
 const COLUMNS: { id: ProspectStatus; label: string; color: string }[] = [
   { id: "nouveau", label: "Nouveau", color: "bg-blue-500" },
@@ -40,7 +41,6 @@ export function ProspectsKanban() {
   const { data: prospects = [], isLoading } = useProspects();
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
-  const convertProspect = useConvertProspect();
   
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -87,9 +87,6 @@ export function ProspectsKanban() {
   };
 
   const confirmConvert = () => {
-    if (selectedProspect) {
-      convertProspect.mutate(selectedProspect);
-    }
     setConvertDialogOpen(false);
     setSelectedProspect(null);
   };
@@ -256,23 +253,11 @@ export function ProspectsKanban() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Convertir en contact ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Le prospect "{selectedProspect?.prenom} {selectedProspect?.nom}" sera converti en contact.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmConvert}>
-              <UserCheck className="h-4 w-4 mr-2" />
-              Convertir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SmartConversionDialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        prospect={selectedProspect}
+      />
     </>
   );
 }

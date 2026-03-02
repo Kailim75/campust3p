@@ -52,11 +52,9 @@ import { useDeleteProspect, useUpdateProspect, type Prospect, type ProspectStatu
 import { useProspectHistorique, type ProspectHistoriqueType } from "@/hooks/useProspectHistorique";
 import { ProspectHistoriqueDialog } from "./ProspectHistoriqueDialog";
 import { ProspectSendEmailDialog } from "./ProspectSendEmailDialog";
-import { ProspectConvertDialog } from "./ProspectConvertDialog";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectRappelDialog } from "./ProspectRappelDialog";
-import { PostConversionDialog } from "@/components/workflow/PostConversionDialog";
-import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
+import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
 
 const STATUS_LABELS: Record<ProspectStatus, string> = {
   nouveau: "Nouveau",
@@ -104,8 +102,6 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [rappelDialogOpen, setRappelDialogOpen] = useState(false);
-  const [postConversion, setPostConversion] = useState<{ contactId: string; contactName: string } | null>(null);
-  const [assignSessionFromConversion, setAssignSessionFromConversion] = useState<{ contactId: string; contactName: string } | null>(null);
 
   const deleteProspect = useDeleteProspect();
   const updateProspect = useUpdateProspect();
@@ -479,48 +475,11 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
         }}
       />
 
-      <ProspectConvertDialog
+      <SmartConversionDialog
         open={convertDialogOpen}
         onOpenChange={setConvertDialogOpen}
         prospect={prospect}
-        onConversionSuccess={(contactId, contactName) => {
-          setPostConversion({ contactId, contactName });
-        }}
-      />
-
-      <PostConversionDialog
-        open={!!postConversion}
-        onOpenChange={(open) => !open && setPostConversion(null)}
-        contactId={postConversion?.contactId || ""}
-        contactName={postConversion?.contactName || ""}
-        onAssignSession={() => {
-          if (postConversion) {
-            setAssignSessionFromConversion({
-              contactId: postConversion.contactId,
-              contactName: postConversion.contactName,
-            });
-          }
-          setPostConversion(null);
-        }}
-        onPlanRappel={() => {
-          setPostConversion(null);
-          toast.info("Ouvrez la fiche du stagiaire pour planifier un rappel");
-        }}
-        onCreateFacture={() => {
-          setPostConversion(null);
-          toast.info("Ouvrez la fiche du stagiaire pour créer une facture");
-        }}
-      />
-
-      <SessionAssignDialog
-        open={!!assignSessionFromConversion}
-        onOpenChange={(open) => !open && setAssignSessionFromConversion(null)}
-        contactId={assignSessionFromConversion?.contactId || ""}
-        contactName={assignSessionFromConversion?.contactName || ""}
-        onSuccess={() => {
-          setAssignSessionFromConversion(null);
-          toast.success("Inscription confirmée !");
-        }}
+        onReturnDashboard={() => onOpenChange(false)}
       />
 
       <ProspectFormDialog
