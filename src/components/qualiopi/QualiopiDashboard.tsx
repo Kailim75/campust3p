@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   CheckCircle2, Clock, Target, Calendar, AlertTriangle, Loader2, 
-  ChevronRight, FileDown, FileText, Shield, TrendingUp, 
-  AlertCircle, Star, Award, BarChart3, FolderDown
+  FileDown, FileText, Shield, TrendingUp, 
+  AlertCircle, Star, FolderDown, Zap, BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -19,6 +19,7 @@ import { generateQualiopiSynthesisPDF } from '@/lib/qualiopi-pdf-generator';
 import { generateQualiopiAuditPDF } from '@/lib/qualiopi-audit-pdf-generator';
 import { toast } from 'sonner';
 import QualiopiTrendChart from './QualiopiTrendChart';
+import QualiopiSessionsNonConformes from './QualiopiSessionsNonConformes';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 
@@ -30,6 +31,12 @@ const CRITERES_LABELS: Record<number, string> = {
   5: 'Qualification des personnels',
   6: 'Environnement professionnel',
   7: 'Recueil des appréciations'
+};
+
+const SEVERITY_CONFIG = {
+  critique: { bg: 'bg-destructive/5 border-destructive/20', icon: AlertTriangle, iconColor: 'text-destructive', badge: 'destructive' as const },
+  important: { bg: 'bg-yellow-500/5 border-yellow-500/20', icon: AlertCircle, iconColor: 'text-yellow-600', badge: 'secondary' as const },
+  amelioration: { bg: 'bg-primary/5 border-primary/20', icon: TrendingUp, iconColor: 'text-primary', badge: 'outline' as const },
 };
 
 export default function QualiopiDashboard() {
@@ -160,6 +167,11 @@ export default function QualiopiDashboard() {
     ? 'from-yellow-500/10 to-amber-500/5 border-yellow-500/20'
     : 'from-red-500/10 to-rose-500/5 border-red-500/20';
 
+  // Group alertes by severity
+  const alertesCritiques = centreData?.alertes.filter(a => a.severity === 'critique') || [];
+  const alertesImportantes = centreData?.alertes.filter(a => a.severity === 'important') || [];
+  const alertesAmelioration = centreData?.alertes.filter(a => a.severity === 'amelioration') || [];
+
   return (
     <div className="space-y-6">
       {/* Header with badge + exports */}
@@ -171,19 +183,22 @@ export default function QualiopiDashboard() {
               <span className="font-semibold text-green-700 text-sm">Qualiopi Ready</span>
             </div>
           )}
+          <Badge variant="outline" className="text-xs">
+            Score recalculé en temps réel
+          </Badge>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={handleExportPDF} variant="outline" size="sm" className="gap-2">
             <FileDown className="h-4 w-4" />
             Synthèse PDF
           </Button>
           <Button onClick={handleExportAuditPDF} size="sm" className="gap-2">
             <FileText className="h-4 w-4" />
-            Rapport d'audit
+            📂 Export dossier audit
           </Button>
           <Button onClick={() => openTab('simulation')} variant="outline" size="sm" className="gap-2">
             <Target className="h-4 w-4" />
-            Simuler un audit
+            🎯 Préparer audit
           </Button>
         </div>
       </div>
@@ -216,37 +231,24 @@ export default function QualiopiDashboard() {
             {/* Score details */}
             <div className="flex-1 space-y-4">
               <div>
-                <h3 className="text-lg font-bold">Score Conformité Qualiopi</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold">Score Conformité Dynamique</h3>
+                  <Zap className="h-4 w-4 text-primary" />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {centreData?.isQualiopiReady 
-                    ? '✅ Prêt pour audit — Tous les indicateurs clés sont au vert'
+                    ? '✅ Prêt pour audit — Connecté automatiquement à vos sessions et documents'
                     : centreData?.scoreLevel === 'warning'
-                    ? '⚠️ Des points à sécuriser avant l\'audit'
-                    : '🔴 Actions correctives urgentes nécessaires'}
+                    ? '⚠️ Des points à sécuriser — Score basé sur données réelles'
+                    : '🔴 Actions correctives urgentes — Consultez les alertes ci-dessous'}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <ScoreDetailItem
-                  label="Docs obligatoires"
-                  value={centreData?.pctDocsObligatoires || 0}
-                  weight="30%"
-                />
-                <ScoreDetailItem
-                  label="Satisfaction"
-                  value={centreData?.pctSessionsSatisfaction || 0}
-                  weight="30%"
-                />
-                <ScoreDetailItem
-                  label="Dossiers complets"
-                  value={centreData?.pctDossiersComplets || 0}
-                  weight="25%"
-                />
-                <ScoreDetailItem
-                  label="Enquêtes à froid"
-                  value={centreData?.pctEnquetesFroid || 0}
-                  weight="15%"
-                />
+                <ScoreDetailItem label="Docs obligatoires" value={centreData?.pctDocsObligatoires || 0} weight="30%" />
+                <ScoreDetailItem label="Satisfaction" value={centreData?.pctSessionsSatisfaction || 0} weight="30%" />
+                <ScoreDetailItem label="Dossiers complets" value={centreData?.pctDossiersComplets || 0} weight="25%" />
+                <ScoreDetailItem label="Enquêtes à froid" value={centreData?.pctEnquetesFroid || 0} weight="15%" />
               </div>
             </div>
           </div>
@@ -284,13 +286,20 @@ export default function QualiopiDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actions en cours</CardTitle>
-            <Clock className="h-4 w-4 text-orange-500" />
+            <CardTitle className="text-sm font-medium">Sessions conformes</CardTitle>
+            <BarChart3 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{actionsEnCours}</div>
+            <div className="text-2xl font-bold">
+              {centreData?.sessionsCompletes || 0}/{centreData?.totalSessions || 0}
+            </div>
+            <Progress 
+              value={centreData && centreData.totalSessions > 0 
+                ? Math.round((centreData.sessionsCompletes / centreData.totalSessions) * 100) : 0} 
+              className="mt-2" 
+            />
             <p className="text-xs text-muted-foreground mt-1">
-              Actions d'amélioration à traiter
+              {centreData?.sessionsNonConformes.length || 0} avec problème(s)
             </p>
           </CardContent>
         </Card>
@@ -317,47 +326,39 @@ export default function QualiopiDashboard() {
         </Card>
       </div>
 
-      {/* Alertes Qualité */}
+      {/* Alertes Qualité Priorisées */}
       {centreData && centreData.alertes.length > 0 && (
-        <Card className="border-destructive/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Alertes Qualité
-              <Badge variant="destructive" className="ml-2">{centreData.alertes.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {centreData.alertes.map(alerte => (
-                <div
-                  key={alerte.id}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border",
-                    alerte.type === 'error' ? 'bg-destructive/5 border-destructive/20' :
-                    alerte.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' :
-                    'bg-primary/5 border-primary/20'
-                  )}
-                >
-                  {alerte.type === 'error' ? (
-                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-                  ) : alerte.type === 'warning' ? (
-                    <AlertCircle className="h-4 w-4 text-yellow-600 shrink-0" />
-                  ) : (
-                    <TrendingUp className="h-4 w-4 text-primary shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{alerte.titre}</p>
-                    <p className="text-xs text-muted-foreground">{alerte.description}</p>
-                  </div>
-                  {alerte.count && (
-                    <Badge variant="outline" className="shrink-0">{alerte.count}</Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          {/* Critiques */}
+          {alertesCritiques.length > 0 && (
+            <AlertesGroup
+              titre="🔴 Critique — Bloque audit"
+              alertes={alertesCritiques}
+              severity="critique"
+            />
+          )}
+          {/* Importantes */}
+          {alertesImportantes.length > 0 && (
+            <AlertesGroup
+              titre="🟠 Important"
+              alertes={alertesImportantes}
+              severity="important"
+            />
+          )}
+          {/* Amélioration */}
+          {alertesAmelioration.length > 0 && (
+            <AlertesGroup
+              titre="🔵 Amélioration"
+              alertes={alertesAmelioration}
+              severity="amelioration"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Sessions non conformes */}
+      {centreData && centreData.sessionsNonConformes.length > 0 && (
+        <QualiopiSessionsNonConformes sessions={centreData.sessionsNonConformes} maxItems={8} />
       )}
 
       {/* Preuves auto-reliées */}
@@ -396,6 +397,9 @@ export default function QualiopiDashboard() {
               const tauxCritere = indicateursCritere.length > 0
                 ? Math.round((conformesCritere / indicateursCritere.length) * 100) : 0;
 
+              // Check if any alerte targets this critere
+              const hasAlerte = centreData?.alertes.some(a => a.critere === critere && a.severity === 'critique');
+
               return (
                 <Button
                   key={critere}
@@ -406,6 +410,7 @@ export default function QualiopiDashboard() {
                   <div className="w-full space-y-2 p-3 text-left">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
+                        {hasAlerte && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                         <span className="font-medium shrink-0">Critère {critere}</span>
                         <span className="text-sm text-muted-foreground truncate">
                           {CRITERES_LABELS[critere]}
@@ -420,7 +425,6 @@ export default function QualiopiDashboard() {
                             ({partielsCritere} partiel{partielsCritere > 1 ? 's' : ''})
                           </span>
                         )}
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
                     <Progress 
@@ -440,7 +444,7 @@ export default function QualiopiDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <Clock className="h-5 w-5 text-orange-500" />
               Actions prioritaires
             </CardTitle>
           </CardHeader>
@@ -475,6 +479,47 @@ export default function QualiopiDashboard() {
         </Card>
       )}
     </div>
+  );
+}
+
+function AlertesGroup({ titre, alertes, severity }: { 
+  titre: string; 
+  alertes: { id: string; titre: string; description: string; count?: number; critere?: number }[]; 
+  severity: 'critique' | 'important' | 'amelioration' 
+}) {
+  const config = SEVERITY_CONFIG[severity];
+  const Icon = config.icon;
+
+  return (
+    <Card className={cn("border", config.bg.split(' ')[1])}>
+      <CardHeader className="pb-2 pt-4">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          {titre}
+          <Badge variant={config.badge}>{alertes.length}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pb-4">
+        <div className="space-y-1.5">
+          {alertes.map(alerte => (
+            <div key={alerte.id} className={cn("flex items-center gap-3 p-2.5 rounded-lg", config.bg.split(' ')[0])}>
+              <Icon className={cn("h-4 w-4 shrink-0", config.iconColor)} />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{alerte.titre}</p>
+                <p className="text-xs text-muted-foreground">{alerte.description}</p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {alerte.critere && (
+                  <Badge variant="outline" className="text-xs">C{alerte.critere}</Badge>
+                )}
+                {alerte.count && (
+                  <Badge variant={config.badge} className="text-xs">{alerte.count}</Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

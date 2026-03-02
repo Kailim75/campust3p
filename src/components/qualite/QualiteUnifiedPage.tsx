@@ -112,7 +112,7 @@ export function QualiteUnifiedPage() {
           </TabsTrigger>
           <TabsTrigger value="simulation" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Simulation</span>
+            <span className="hidden sm:inline">Prépa Audit</span>
           </TabsTrigger>
           <TabsTrigger value="satisfaction" className="flex items-center gap-2">
             <Star className="h-4 w-4" />

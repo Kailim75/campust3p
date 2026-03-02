@@ -4,10 +4,11 @@ import { useQualiopiActions } from '@/hooks/useQualiopiActions';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Target, CheckCircle2, AlertTriangle, XCircle, FileText, TrendingUp, ShieldAlert } from 'lucide-react';
+import { Loader2, Target, CheckCircle2, AlertTriangle, XCircle, FileText, TrendingUp, ShieldAlert, Zap, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public',
@@ -25,6 +26,7 @@ interface AuditFinding {
   titre: string;
   description: string;
   severity: 'low' | 'medium' | 'high';
+  actionRecommandee?: string;
 }
 
 export default function QualiopiSimulation() {
@@ -41,10 +43,9 @@ export default function QualiopiSimulation() {
     );
   }
 
-  // Generate findings based on rules
+  // Generate findings based on real data
   const findings: AuditFinding[] = [];
 
-  // Points forts
   const conformesByCritere = [1, 2, 3, 4, 5, 6, 7].map(c => {
     const inds = indicateurs?.filter(i => i.critere === c) || [];
     const conformes = inds.filter(i => i.statut === 'conforme').length;
@@ -52,81 +53,51 @@ export default function QualiopiSimulation() {
     return { critere: c, taux, conformes, total: inds.length };
   });
 
+  // Points forts
   conformesByCritere.filter(c => c.taux === 100).forEach(c => {
-    findings.push({
-      type: 'force',
-      critere: c.critere,
-      titre: `Critère ${c.critere} — ${CRITERES_LABELS[c.critere]}`,
-      description: `Tous les indicateurs sont conformes (${c.conformes}/${c.total})`,
-      severity: 'low',
-    });
+    findings.push({ type: 'force', critere: c.critere, titre: `Critère ${c.critere} — ${CRITERES_LABELS[c.critere]}`, description: `Tous les indicateurs conformes (${c.conformes}/${c.total})`, severity: 'low' });
   });
-
   if (centreData && centreData.avgSatisfaction >= 4) {
-    findings.push({
-      type: 'force',
-      titre: 'Satisfaction élevée',
-      description: `Note moyenne de satisfaction : ${centreData.avgSatisfaction}/5`,
-      severity: 'low',
-    });
+    findings.push({ type: 'force', titre: 'Satisfaction élevée', description: `Moyenne ${centreData.avgSatisfaction}/5 — Objectif atteint`, severity: 'low' });
   }
-
   if (centreData && centreData.pctDocsObligatoires >= 90) {
-    findings.push({
-      type: 'force',
-      titre: 'Documentation solide',
-      description: `${centreData.pctDocsObligatoires}% des documents obligatoires sont en place`,
-      severity: 'low',
-    });
+    findings.push({ type: 'force', titre: 'Documentation solide', description: `${centreData.pctDocsObligatoires}% des documents obligatoires en place`, severity: 'low' });
+  }
+  if (centreData && centreData.sessionsCompletes > 0) {
+    findings.push({ type: 'force', titre: `${centreData.sessionsCompletes} session(s) 100% conforme(s)`, description: 'Dossiers complets avec tous les documents requis', severity: 'low' });
   }
 
   // Points faibles
   conformesByCritere.filter(c => c.taux > 0 && c.taux < 80).forEach(c => {
-    findings.push({
-      type: 'faiblesse',
-      critere: c.critere,
-      titre: `Critère ${c.critere} — ${CRITERES_LABELS[c.critere]}`,
-      description: `Seulement ${c.taux}% de conformité (${c.conformes}/${c.total})`,
-      severity: c.taux < 50 ? 'high' : 'medium',
-    });
+    findings.push({ type: 'faiblesse', critere: c.critere, titre: `Critère ${c.critere} — ${CRITERES_LABELS[c.critere]}`, description: `${c.taux}% de conformité (${c.conformes}/${c.total})`, severity: c.taux < 50 ? 'high' : 'medium' });
   });
-
   if (centreData && centreData.tauxSatisfaction < 80) {
-    findings.push({
-      type: 'faiblesse',
-      titre: 'Couverture satisfaction insuffisante',
-      description: `Seulement ${centreData.tauxSatisfaction}% des sessions terminées ont une enquête satisfaction`,
-      severity: 'high',
-    });
+    findings.push({ type: 'faiblesse', titre: 'Couverture satisfaction insuffisante', description: `${centreData.tauxSatisfaction}% des sessions terminées avec enquête`, severity: 'high', actionRecommandee: 'Envoyer enquêtes aux sessions terminées' });
   }
 
-  // Documents manquants
+  // Documents manquants — connecté aux sessions réelles
   conformesByCritere.filter(c => c.taux === 0 && c.total > 0).forEach(c => {
-    findings.push({
-      type: 'manquant',
-      critere: c.critere,
-      titre: `Critère ${c.critere} — ${CRITERES_LABELS[c.critere]}`,
-      description: `Aucun indicateur conforme sur ${c.total}`,
-      severity: 'high',
-    });
+    findings.push({ type: 'manquant', critere: c.critere, titre: `Critère ${c.critere} — Aucun conforme`, description: `0/${c.total} indicateurs — Risque majeur en audit`, severity: 'high' });
   });
-
-  if (centreData && centreData.totalEmargements === 0 && centreData.totalSessions > 0) {
-    findings.push({
-      type: 'manquant',
-      titre: 'Aucune feuille d\'émargement',
-      description: 'Les feuilles d\'émargement sont obligatoires pour chaque session',
-      severity: 'high',
-    });
+  if (centreData) {
+    const sessionsSansProg = centreData.sessionsConformite.filter(s => !s.hasProgramme);
+    if (sessionsSansProg.length > 0) {
+      findings.push({ type: 'manquant', critere: 1, titre: `${sessionsSansProg.length} session(s) sans programme`, description: 'Programme de formation obligatoire (Critère 1)', severity: 'high', actionRecommandee: 'Associer programmes via le catalogue' });
+    }
+    const sessionsSansEmarg = centreData.sessionsConformite.filter(s => !s.hasEmargement && s.statut !== 'a_venir');
+    if (sessionsSansEmarg.length > 0) {
+      findings.push({ type: 'manquant', critere: 4, titre: `${sessionsSansEmarg.length} session(s) sans émargement`, description: 'Feuille d\'émargement obligatoire (Critère 4)', severity: 'high', actionRecommandee: 'Générer les feuilles d\'émargement' });
+    }
+    const sessionsSansConv = centreData.sessionsConformite.filter(s => !s.hasConvention && s.nbInscrits > 0);
+    if (sessionsSansConv.length > 0) {
+      findings.push({ type: 'manquant', titre: `${sessionsSansConv.length} session(s) sans convention/contrat`, description: 'Document contractuel obligatoire', severity: 'high', actionRecommandee: 'Envoyer conventions depuis fiches apprenants' });
+    }
   }
-
+  if (centreData && centreData.totalEmargements === 0 && centreData.totalSessions > 0) {
+    findings.push({ type: 'manquant', titre: 'Aucune feuille d\'émargement', description: 'Les émargements sont obligatoires pour chaque session', severity: 'high' });
+  }
   if (centreData && centreData.tauxEnquetesFroid === 0 && centreData.sessionsTerminees > 0) {
-    findings.push({
-      type: 'manquant',
-      titre: 'Enquêtes à froid inexistantes',
-      description: 'Aucune enquête de satisfaction à froid réalisée',
-      severity: 'medium',
-    });
+    findings.push({ type: 'manquant', titre: 'Enquêtes à froid inexistantes', description: 'Aucune enquête J+30 réalisée', severity: 'medium' });
   }
 
   // Risques majeurs
@@ -134,32 +105,14 @@ export default function QualiopiSimulation() {
     a.statut !== 'terminee' && a.statut !== 'annulee' && 
     a.date_echeance && new Date(a.date_echeance) < new Date()
   ).length || 0;
-
   if (actionsRetard > 0) {
-    findings.push({
-      type: 'risque',
-      titre: `${actionsRetard} action(s) corrective(s) en retard`,
-      description: 'Les actions correctives non traitées dans les délais constituent un risque majeur en audit',
-      severity: 'high',
-    });
+    findings.push({ type: 'risque', titre: `${actionsRetard} action(s) corrective(s) en retard`, description: 'Risque majeur en audit — Actions non traitées dans les délais', severity: 'high' });
   }
-
   if (centreData && centreData.scoreConformite < 50) {
-    findings.push({
-      type: 'risque',
-      titre: 'Score conformité critique',
-      description: `Score actuel : ${centreData.scoreConformite}/100 — Risque élevé de non-conformité lors d'un audit`,
-      severity: 'high',
-    });
+    findings.push({ type: 'risque', titre: 'Score conformité critique', description: `${centreData.scoreConformite}/100 — Risque élevé de non-conformité`, severity: 'high' });
   }
-
   if (!centreFormation?.qualiopi_numero) {
-    findings.push({
-      type: 'risque',
-      titre: 'Numéro Qualiopi non renseigné',
-      description: 'Le numéro de certification Qualiopi n\'est pas renseigné dans les paramètres du centre',
-      severity: 'medium',
-    });
+    findings.push({ type: 'risque', titre: 'N° Qualiopi non renseigné', description: 'Numéro de certification absent des paramètres', severity: 'medium' });
   }
 
   const forces = findings.filter(f => f.type === 'force');
@@ -193,13 +146,19 @@ export default function QualiopiSimulation() {
               )} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold">
-                {verdict === 'favorable' ? '✅ Avis favorable — Prêt pour audit' :
-                 verdict === 'reserve' ? '⚠️ Avis avec réserves — Points à sécuriser' :
-                 '🔴 Avis défavorable — Actions correctives urgentes'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold">
+                  {verdict === 'favorable' ? '✅ Prêt pour audit' :
+                   verdict === 'reserve' ? '⚠️ Points à sécuriser' :
+                   '🔴 Actions correctives urgentes'}
+                </h3>
+                <Badge variant="outline" className="text-xs">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Basé sur données réelles
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Score global : {globalScore}/100 • {forces.length} point(s) fort(s) • {risques.length} risque(s) identifié(s)
+                {forces.length} point(s) fort(s) • {risques.length + manquants.length} risque(s) • {faiblesses.length} point(s) faible(s)
               </p>
             </div>
             <div className="text-right">
@@ -216,49 +175,98 @@ export default function QualiopiSimulation() {
         </CardContent>
       </Card>
 
+      {/* Plan d'action immédiat — Top 5 critiques */}
+      {(risques.length > 0 || manquants.filter(m => m.severity === 'high').length > 0) && (
+        <Card className="border-destructive/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
+              🎯 Plan d'action immédiat
+              <Badge variant="destructive">{Math.min(5, risques.length + manquants.filter(m => m.severity === 'high').length)}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[...risques, ...manquants.filter(m => m.severity === 'high')].slice(0, 5).map((finding, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                  <span className="font-bold text-destructive text-sm shrink-0 mt-0.5">#{idx + 1}</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{finding.titre}</p>
+                    <p className="text-xs text-muted-foreground">{finding.description}</p>
+                    {finding.actionRecommandee && (
+                      <p className="text-xs text-primary font-medium mt-1">→ {finding.actionRecommandee}</p>
+                    )}
+                  </div>
+                  {finding.critere && (
+                    <Badge variant="outline" className="text-xs shrink-0">C{finding.critere}</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sessions à risque */}
+      {centreData && centreData.sessionsNonConformes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ClipboardList className="h-5 w-5 text-orange-500" />
+              Sessions à risque pour l'audit
+              <Badge variant="secondary">{centreData.sessionsNonConformes.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {centreData.sessionsNonConformes.slice(0, 5).map(session => (
+                <div key={session.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{session.nom}</p>
+                      <Badge variant="outline" className="text-xs">{session.formation_type}</Badge>
+                    </div>
+                    <div className="flex gap-1.5 mt-1 flex-wrap">
+                      {session.problemes.map((p, i) => (
+                        <span key={i} className="text-xs text-destructive">• {p}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <Badge variant={session.nbProblemes >= 3 ? 'destructive' : 'secondary'} className="text-xs">
+                      {session.nbProblemes} pb
+                    </Badge>
+                    {session.actionRecommandee && (
+                      <p className="text-xs text-primary mt-1">→ {session.actionRecommandee}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Résumé par catégorie */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} label="Points forts" count={forces.length} color="green" />
-        <SummaryCard icon={<AlertTriangle className="h-5 w-5 text-yellow-500" />} label="Points faibles" count={faiblesses.length} color="yellow" />
-        <SummaryCard icon={<FileText className="h-5 w-5 text-orange-500" />} label="Docs manquants" count={manquants.length} color="orange" />
-        <SummaryCard icon={<ShieldAlert className="h-5 w-5 text-destructive" />} label="Risques majeurs" count={risques.length} color="red" />
+        <SummaryCard icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} label="Points forts" count={forces.length} />
+        <SummaryCard icon={<AlertTriangle className="h-5 w-5 text-yellow-500" />} label="Points faibles" count={faiblesses.length} />
+        <SummaryCard icon={<FileText className="h-5 w-5 text-orange-500" />} label="Docs manquants" count={manquants.length} />
+        <SummaryCard icon={<ShieldAlert className="h-5 w-5 text-destructive" />} label="Risques majeurs" count={risques.length} />
       </div>
 
       {/* Détail par section */}
       {risques.length > 0 && (
-        <FindingsSection
-          title="🔴 Risques majeurs"
-          findings={risques}
-          borderColor="border-destructive/30"
-          bgColor="bg-destructive/5"
-        />
+        <FindingsSection title="🔴 Risques majeurs" findings={risques} borderColor="border-destructive/30" bgColor="bg-destructive/5" />
       )}
-
       {manquants.length > 0 && (
-        <FindingsSection
-          title="📋 Documents manquants"
-          findings={manquants}
-          borderColor="border-orange-500/30"
-          bgColor="bg-orange-500/5"
-        />
+        <FindingsSection title="📋 Documents manquants" findings={manquants} borderColor="border-orange-500/30" bgColor="bg-orange-500/5" />
       )}
-
       {faiblesses.length > 0 && (
-        <FindingsSection
-          title="⚠️ Points faibles"
-          findings={faiblesses}
-          borderColor="border-yellow-500/30"
-          bgColor="bg-yellow-500/5"
-        />
+        <FindingsSection title="⚠️ Points faibles" findings={faiblesses} borderColor="border-yellow-500/30" bgColor="bg-yellow-500/5" />
       )}
-
       {forces.length > 0 && (
-        <FindingsSection
-          title="✅ Points forts"
-          findings={forces}
-          borderColor="border-green-500/30"
-          bgColor="bg-green-500/5"
-        />
+        <FindingsSection title="✅ Points forts" findings={forces} borderColor="border-green-500/30" bgColor="bg-green-500/5" />
       )}
 
       {/* Barème par critère */}
@@ -289,7 +297,7 @@ export default function QualiopiSimulation() {
   );
 }
 
-function SummaryCard({ icon, label, count, color }: { icon: React.ReactNode; label: string; count: number; color: string }) {
+function SummaryCard({ icon, label, count }: { icon: React.ReactNode; label: string; count: number }) {
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
@@ -322,14 +330,22 @@ function FindingsSection({ title, findings, borderColor, bgColor }: {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{finding.titre}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{finding.description}</p>
+                  {finding.actionRecommandee && (
+                    <p className="text-xs text-primary font-medium mt-1">→ {finding.actionRecommandee}</p>
+                  )}
                 </div>
-                <Badge variant={
-                  finding.severity === 'high' ? 'destructive' :
-                  finding.severity === 'medium' ? 'secondary' : 'outline'
-                } className="shrink-0 text-xs">
-                  {finding.severity === 'high' ? 'Critique' :
-                   finding.severity === 'medium' ? 'Important' : 'Mineur'}
-                </Badge>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {finding.critere && (
+                    <Badge variant="outline" className="text-xs">C{finding.critere}</Badge>
+                  )}
+                  <Badge variant={
+                    finding.severity === 'high' ? 'destructive' :
+                    finding.severity === 'medium' ? 'secondary' : 'outline'
+                  } className="text-xs">
+                    {finding.severity === 'high' ? 'Critique' :
+                     finding.severity === 'medium' ? 'Important' : 'Mineur'}
+                  </Badge>
+                </div>
               </div>
             </div>
           ))}
