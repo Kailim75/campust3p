@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useDashboardHealthScore } from "@/hooks/useDashboardHealthScore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, AlertTriangle, TrendingDown, CheckCircle2, Zap, Target, CalendarCheck } from "lucide-react";
+import { Activity, AlertTriangle, TrendingDown, CheckCircle2, Zap } from "lucide-react";
 
 export function HealthScoreCard() {
   const { data, isLoading } = useDashboardHealthScore();
@@ -34,6 +34,7 @@ export function HealthScoreCard() {
       trackColor: "stroke-success/20",
       strokeColor: "stroke-success",
       emoji: "🟢",
+      cardBg: "",
     },
     warning: {
       ring: "text-warning",
@@ -43,6 +44,7 @@ export function HealthScoreCard() {
       trackColor: "stroke-warning/20",
       strokeColor: "stroke-warning",
       emoji: "🟡",
+      cardBg: score < 60 ? "bg-warning/[0.04]" : "",
     },
     critical: {
       ring: "text-destructive",
@@ -52,6 +54,7 @@ export function HealthScoreCard() {
       trackColor: "stroke-destructive/20",
       strokeColor: "stroke-destructive",
       emoji: "🔴",
+      cardBg: "bg-destructive/[0.04]",
     },
   };
 
@@ -70,24 +73,42 @@ export function HealthScoreCard() {
   const urgenceAnswer = urgences === 0 ? "Non" : `${urgences} problème${urgences > 1 ? "s" : ""}`;
   const urgenceColor = urgences === 0 ? "text-success" : "text-destructive";
 
+  // Condensed critical insight
+  const buildCriticalInsight = (insight: string) => {
+    // Detect patterns like "X sessions sous 40%" + "Manque à gagner"
+    if (insight.includes("Manque à gagner")) {
+      const amount = insight.match(/[\d\s]+€/)?.[0]?.trim();
+      return amount ? `Risque ${amount}` : insight;
+    }
+    return insight;
+  };
+
   const insightIcon = (insight: string) => {
     if (insight.includes("vert") || insight.includes("ordre"))
       return <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-success flex-shrink-0" />;
-    if (insight.includes("Manque"))
+    if (insight.includes("Risque") || insight.includes("Manque"))
       return <TrendingDown className="h-3.5 w-3.5 mt-0.5 text-destructive flex-shrink-0" />;
     if (insight.includes("urgent") || insight.includes("impayée"))
       return <Zap className="h-3.5 w-3.5 mt-0.5 text-destructive flex-shrink-0" />;
     return <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-warning flex-shrink-0" />;
   };
 
+  const isCriticalInsight = (insight: string) =>
+    insight.includes("Manque") || insight.includes("Risque") || insight.includes("urgent") || insight.includes("impayée") || insight.includes("sous 40%");
+
   return (
-    <div className={cn("rounded-xl border bg-card p-6", config.border)}>
+    <div className={cn("rounded-xl border bg-card p-6", config.border, config.cardBg)}>
       <div className="flex items-center gap-2 mb-4">
         <div className={cn("p-1.5 rounded-lg", config.bg)}>
           <Activity className={cn("h-4 w-4", config.ring)} />
         </div>
         <h2 className="font-display font-semibold text-foreground">Score Santé du Centre</h2>
-        <span className={cn("ml-auto text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5", config.bg, config.ring)}>
+        <span className={cn(
+          "ml-auto text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5",
+          config.bg, config.ring,
+          score < 60 && "ring-1 ring-warning/30"
+        )}>
+          {score < 60 && <AlertTriangle className="h-3 w-3" />}
           {config.emoji} {config.label}
         </span>
       </div>
@@ -113,9 +134,9 @@ export function HealthScoreCard() {
       </div>
 
       <div className="flex items-center gap-8">
-        {/* Score circle */}
+        {/* Score circle — 40% larger */}
         <div className="relative flex-shrink-0">
-          <svg width="120" height="120" viewBox="0 0 130 130" className="-rotate-90">
+          <svg width="168" height="168" viewBox="0 0 130 130" className="-rotate-90">
             <circle
               cx="65" cy="65" r="52"
               fill="none"
@@ -133,44 +154,52 @@ export function HealthScoreCard() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn("text-3xl font-bold tabular-nums", config.ring)}>{score}</span>
-            <span className="text-[10px] text-muted-foreground font-medium">/100</span>
+            {score < 60 && <AlertTriangle className={cn("h-4 w-4 mb-0.5", config.ring)} />}
+            <span className={cn("text-[2.75rem] font-bold tabular-nums leading-none", config.ring)}>{score}</span>
+            <span className="text-xs text-muted-foreground font-medium">/100</span>
           </div>
         </div>
 
         {/* Insights + Metrics */}
         <div className="flex-1 space-y-3">
-          {/* Dynamic insights */}
+          {/* Dynamic insights — condensed */}
           <div className="space-y-1.5">
-            {data?.insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                {insightIcon(insight)}
-                <span className="text-muted-foreground leading-tight">{insight}</span>
-              </div>
-            ))}
+            {data?.insights.map((insight, i) => {
+              const condensed = buildCriticalInsight(insight);
+              const critical = isCriticalInsight(insight);
+              return (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  {insightIcon(condensed)}
+                  <span className={cn(
+                    "leading-tight",
+                    critical ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}>{condensed}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Mini metrics bar */}
           <div className="flex gap-4 pt-3 mt-1 border-t border-border">
             <div className="text-center flex-1">
-              <p className={cn("text-lg font-bold tabular-nums", (data?.tauxRemplissage ?? 0) < 40 ? "text-destructive" : (data?.tauxRemplissage ?? 0) < 70 ? "text-warning" : "text-foreground")}>
+              <p className={cn("text-base font-bold tabular-nums", (data?.tauxRemplissage ?? 0) < 40 ? "text-destructive" : (data?.tauxRemplissage ?? 0) < 70 ? "text-warning" : "text-foreground")}>
                 {data?.tauxRemplissage ?? 0}%
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Remplissage</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Remplissage</p>
             </div>
             <div className="text-center flex-1">
-              <p className="text-lg font-bold tabular-nums text-foreground">{data?.tauxConversion ?? 0}%</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conversion</p>
+              <p className="text-base font-bold tabular-nums text-foreground">{data?.tauxConversion ?? 0}%</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Conversion</p>
             </div>
             <div className="text-center flex-1">
-              <p className="text-lg font-bold tabular-nums text-foreground">{data?.caConfirmeVsObjectif ?? 0}%</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CA vs obj.</p>
+              <p className="text-base font-bold tabular-nums text-foreground">{data?.caConfirmeVsObjectif ?? 0}%</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">CA vs obj.</p>
             </div>
             <div className="text-center flex-1">
-              <p className={cn("text-lg font-bold tabular-nums", (data?.nbUrgences ?? 0) > 0 ? "text-destructive" : "text-foreground")}>
+              <p className={cn("text-base font-bold tabular-nums", (data?.nbUrgences ?? 0) > 0 ? "text-destructive" : "text-foreground")}>
                 {data?.nbUrgences ?? 0}
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Urgences</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Urgences</p>
             </div>
           </div>
         </div>
