@@ -8,7 +8,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { fr } from "date-fns/locale";
 import { Session, useUpdateSession, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { toast } from "sonner";
-import { getFormationColor } from "@/constants/formationColors";
+import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
 interface SessionCalendarProps {
   sessions: Session[];
@@ -280,21 +280,18 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
           })}
         </div>
 
-        {/* Legend */}
+        {/* Dynamic Legend */}
         <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-4 text-xs">
           <span className="text-muted-foreground font-medium">Légende:</span>
-          {Object.entries({
-            TAXI: "Taxi",
-            VTC: "VTC",
-            VMDTR: "VMDTR",
-            "ACC VTC": "ACC VTC",
-            "Formation continue Taxi": "Continue Taxi"
-          }).map(([type, label]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <div className={cn("w-3 h-3 rounded", getFormationColor(type).dot)} />
-              <span className="text-muted-foreground">{label}</span>
-            </div>
-          ))}
+          {(() => {
+            const typesInView = [...new Set(sessions.map(s => s.formation_type))].sort();
+            return typesInView.map((type) => (
+              <div key={type} className="flex items-center gap-1.5">
+                <div className={cn("w-3 h-3 rounded", getFormationColor(type).dot)} />
+                <span className="text-muted-foreground">{getFormationLabel(type)}</span>
+              </div>
+            ));
+          })()}
           <span className="text-muted-foreground ml-auto">
             💡 Glissez-déposez pour reprogrammer
           </span>

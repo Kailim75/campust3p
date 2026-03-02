@@ -3,38 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X, RotateCcw } from "lucide-react";
-import { Formateur } from "@/hooks/useFormateurs";
-
-export interface SessionFilters {
-  search: string;
-  status: string;
-  formationType: string;
-  formateurId: string;
-  lieu: string;
-  dateStart: string;
-  dateEnd: string;
-}
-
-interface SessionsAdvancedFiltersProps {
-  filters: SessionFilters;
-  onFiltersChange: (filters: SessionFilters) => void;
-  formateurs: Formateur[];
-  lieux: string[];
-  formationTypes: string[];
-}
+import { Filter, RotateCcw } from "lucide-react";
+import type { Formateur } from "@/hooks/useFormateurs";
+import type { SessionFilters } from "@/hooks/useSessionsFilters";
 
 const statusOptions = [
   { value: "all", label: "Tous les statuts" },
@@ -45,12 +22,16 @@ const statusOptions = [
   { value: "complet", label: "Complet" },
 ];
 
+interface SessionsAdvancedFiltersProps {
+  filters: SessionFilters;
+  onFiltersChange: (filters: SessionFilters) => void;
+  formateurs: Formateur[];
+  lieux: string[];
+  formationTypes: string[];
+}
+
 export function SessionsAdvancedFilters({
-  filters,
-  onFiltersChange,
-  formateurs,
-  lieux,
-  formationTypes,
+  filters, onFiltersChange, formateurs, lieux, formationTypes,
 }: SessionsAdvancedFiltersProps) {
   const [open, setOpen] = useState(false);
 
@@ -65,17 +46,18 @@ export function SessionsAdvancedFilters({
 
   const resetFilters = () => {
     onFiltersChange({
-      search: filters.search,
+      ...filters,
       status: "all",
       formationType: "all",
       formateurId: "all",
       lieu: "all",
       dateStart: "",
       dateEnd: "",
+      criticalOnly: false,
     });
   };
 
-  const updateFilter = (key: keyof SessionFilters, value: string) => {
+  const updateFilter = (key: keyof SessionFilters, value: string | boolean) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 
@@ -107,57 +89,35 @@ export function SessionsAdvancedFilters({
             )}
           </div>
 
-          {/* Statut */}
           <div className="space-y-2">
             <Label>Statut</Label>
-            <Select
-              value={filters.status}
-              onValueChange={(v) => updateFilter("status", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Type de formation */}
           <div className="space-y-2">
             <Label>Type de formation</Label>
-            <Select
-              value={filters.formationType}
-              onValueChange={(v) => updateFilter("formationType", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={filters.formationType} onValueChange={(v) => updateFilter("formationType", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les formations</SelectItem>
                 {formationTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Formateur */}
           <div className="space-y-2">
             <Label>Formateur</Label>
-            <Select
-              value={filters.formateurId}
-              onValueChange={(v) => updateFilter("formateurId", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={filters.formateurId} onValueChange={(v) => updateFilter("formateurId", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les formateurs</SelectItem>
                 {formateurs.filter(f => f.actif).map((formateur) => (
@@ -169,43 +129,24 @@ export function SessionsAdvancedFilters({
             </Select>
           </div>
 
-          {/* Lieu */}
           <div className="space-y-2">
             <Label>Lieu</Label>
-            <Select
-              value={filters.lieu}
-              onValueChange={(v) => updateFilter("lieu", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={filters.lieu} onValueChange={(v) => updateFilter("lieu", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les lieux</SelectItem>
                 {lieux.map((lieu) => (
-                  <SelectItem key={lieu} value={lieu}>
-                    {lieu}
-                  </SelectItem>
+                  <SelectItem key={lieu} value={lieu}>{lieu}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Période */}
           <div className="space-y-2">
             <Label>Période</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="date"
-                placeholder="Du"
-                value={filters.dateStart}
-                onChange={(e) => updateFilter("dateStart", e.target.value)}
-              />
-              <Input
-                type="date"
-                placeholder="Au"
-                value={filters.dateEnd}
-                onChange={(e) => updateFilter("dateEnd", e.target.value)}
-              />
+              <Input type="date" placeholder="Du" value={filters.dateStart} onChange={(e) => updateFilter("dateStart", e.target.value)} />
+              <Input type="date" placeholder="Au" value={filters.dateEnd} onChange={(e) => updateFilter("dateEnd", e.target.value)} />
             </div>
           </div>
         </div>

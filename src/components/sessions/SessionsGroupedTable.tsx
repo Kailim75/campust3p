@@ -327,12 +327,19 @@ export function SessionsGroupedTable({
                     <Badge variant="secondary" className="ml-2">
                       {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
                     </Badge>
-                    {/* Group CA sécurisé */}
-                    {Object.keys(financials).length > 0 && (
-                      <span className="text-xs text-success ml-auto mr-4">
-                        CA : {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} €
+                    {/* Group summary — always visible */}
+                    <span className="text-xs text-muted-foreground ml-auto mr-4 flex items-center gap-3">
+                      <span>
+                        {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
+                        {' / '}
+                        {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
                       </span>
-                    )}
+                      {Object.keys(financials).length > 0 && (
+                        <span className="text-success font-medium">
+                          {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>

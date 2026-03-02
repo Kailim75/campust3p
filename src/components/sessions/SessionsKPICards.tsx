@@ -12,9 +12,11 @@ interface SessionsKPICardsProps {
   sessions: Session[];
   inscriptionsCounts: Record<string, number>;
   financials?: Record<string, SessionFinancialData>;
+  criticalOnly?: boolean;
+  onToggleCritical?: () => void;
 }
 
-export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {} }: SessionsKPICardsProps) {
+export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}, criticalOnly, onToggleCritical }: SessionsKPICardsProps) {
   const today = new Date();
 
   // Sessions à venir / en cours
@@ -169,6 +171,19 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
                     Remplissage &lt;50% et démarrage &lt;14j : {sessionsCritiques.map(s => s.nom).join(', ')}
                   </p>
                 </div>
+                {onToggleCritical && (
+                  <button
+                    onClick={onToggleCritical}
+                    className={cn(
+                      "shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                      criticalOnly
+                        ? "bg-destructive text-destructive-foreground"
+                        : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                    )}
+                  >
+                    {criticalOnly ? "Tout afficher" : "Filtrer critiques"}
+                  </button>
+                )}
               </div>
             </CardContent>
           </Card>
