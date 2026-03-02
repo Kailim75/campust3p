@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Flame, ToggleLeft, ToggleRight } from "lucide-react";
+import { Search, Flame, ToggleLeft, ToggleRight, Copy } from "lucide-react";
 
 interface ApprenantsToolbarProps {
   search: string;
@@ -15,6 +15,7 @@ interface ApprenantsToolbarProps {
   onExpertModeToggle: () => void;
   filteredCount: number;
   criticalCount: number;
+  onOpenDuplicates?: () => void;
 }
 
 export function ApprenantsToolbar({
@@ -28,6 +29,7 @@ export function ApprenantsToolbar({
   onExpertModeToggle,
   filteredCount,
   criticalCount,
+  onOpenDuplicates,
 }: ApprenantsToolbarProps) {
   return (
     <div className="space-y-3">
@@ -52,6 +54,17 @@ export function ApprenantsToolbar({
             <SelectItem value="VMDTR">VMDTR</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Duplicates button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenDuplicates}
+          className="h-10 rounded-xl gap-2"
+        >
+          <Copy className="h-4 w-4" />
+          Doublons
+        </Button>
 
         {/* Expert mode toggle */}
         <Button

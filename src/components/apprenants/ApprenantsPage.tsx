@@ -16,6 +16,7 @@ import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { ApprenantsToolbar } from "./ApprenantsToolbar";
 import { ApprenantTableRow } from "./ApprenantTableRow";
+import { DuplicatesDialog } from "./DuplicatesDialog";
 import { differenceInDays } from "date-fns";
 import { openWhatsApp } from "@/lib/phone-utils";
 
@@ -56,6 +57,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
   const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   const toggleExpertMode = useCallback(() => {
     setExpertMode((prev) => {
@@ -165,6 +167,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           onExpertModeToggle={toggleExpertMode}
           filteredCount={filtered.length}
           criticalCount={criticalCount}
+          onOpenDuplicates={() => setDuplicatesOpen(true)}
         />
 
         {/* Bulk actions bar (expert mode) */}
@@ -391,6 +394,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           contact={editContact}
         />
       )}
+      <DuplicatesDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} />
     </div>
   );
 }
