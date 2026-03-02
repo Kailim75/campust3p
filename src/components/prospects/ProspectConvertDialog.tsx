@@ -73,12 +73,14 @@ interface ProspectConvertDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prospect: Prospect | null;
+  onConversionSuccess?: (contactId: string, contactName: string) => void;
 }
 
 export function ProspectConvertDialog({
   open,
   onOpenChange,
   prospect,
+  onConversionSuccess,
 }: ProspectConvertDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
@@ -191,7 +193,9 @@ export function ProspectConvertDialog({
           : undefined,
       });
 
+      const createdName = `${values.prenom} ${values.nom}`;
       onOpenChange(false);
+      onConversionSuccess?.(contact.id, createdName);
     } catch (error) {
       console.error("Error converting prospect:", error);
       toast.error("Erreur lors de la conversion");

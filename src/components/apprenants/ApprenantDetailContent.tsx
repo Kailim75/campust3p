@@ -27,6 +27,11 @@ import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RappelsTab } from "./tabs/RappelsTab";
+import { WorkflowStepper } from "@/components/workflow/WorkflowStepper";
+import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
+import { PostAssignmentDialog } from "@/components/workflow/PostAssignmentDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { Contact } from "@/hooks/useContacts";
 
 const FORMATION_COLORS: Record<string, string> = {
@@ -56,6 +61,28 @@ interface ApprenantDetailContentProps {
 
 export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
   const [activeTab, setActiveTab] = useState("dossier");
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
+
+  // Fetch workflow data for stepper
+  const { data: workflowData } = useQuery({
+    queryKey: ["apprenant-workflow", contact?.id],
+    queryFn: async () => {
+      if (!contact) return null;
+      const [inscRes, docRes, factRes] = await Promise.all([
+        supabase.from("session_inscriptions").select("id").eq("contact_id", contact.id).limit(1),
+        supabase.from("contact_documents").select("id").eq("contact_id", contact.id).limit(1),
+        supabase.from("factures").select("id, statut").eq("contact_id", contact.id),
+      ]);
+      const inscriptions = inscRes.data || [];
+      const documents = docRes.data || [];
+      const factures = factRes.data || [];
+      const hasPaid = factures.some((f: any) => f.statut === "payee" || f.statut === "partiel");
+      return { hasInscription: inscriptions.length > 0, hasDocuments: documents.length > 0, hasFacture: factures.length > 0, hasPaid };
+    },
+    enabled: !!contact?.id,
+    staleTime: 30_000,
+  });
 
   if (isLoading || !contact) {
     return (
@@ -66,6 +93,9 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       </div>
     );
   }
+
+  const contactName = `${contact.prenom} ${contact.nom}`;
+  const isProfileComplete = !!(contact.email && contact.telephone && contact.date_naissance);
 
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
   const avatarColor = contact.formation
@@ -104,6 +134,31 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </div>
           </div>
         </div>
+
+        {/* Workflow Stepper */}
+        {workflowData && (
+          <div className="pt-1">
+            <WorkflowStepper steps={[
+              { label: "Profil", isComplete: isProfileComplete, tooltip: isProfileComplete ? "Profil complété" : "Email, téléphone et date de naissance requis" },
+              { label: "Dossier", isComplete: workflowData.hasDocuments, tooltip: workflowData.hasDocuments ? "Documents ajoutés" : "Aucun document" },
+              { label: "Session", isComplete: workflowData.hasInscription, tooltip: workflowData.hasInscription ? "Inscrit à une session" : "Pas encore inscrit" },
+              { label: "Facturé", isComplete: workflowData.hasFacture, tooltip: workflowData.hasFacture ? "Facture créée" : "Pas de facture" },
+              { label: "Payé", isComplete: workflowData.hasPaid, tooltip: workflowData.hasPaid ? "Paiement reçu" : "En attente de paiement" },
+            ]} />
+          </div>
+        )}
+
+        {/* Assign to session CTA */}
+        {workflowData && !workflowData.hasInscription && (
+          <Button
+            size="sm"
+            className="w-full mt-1"
+            onClick={() => setShowAssignDialog(true)}
+          >
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Assigner à une session
+          </Button>
+        )}
 
         {/* Contact info + quick actions */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -201,6 +256,36 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Workflow Dialogs */}
+      <SessionAssignDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        contactId={contact.id}
+        contactName={contactName}
+        contactFormation={contact.formation}
+        onSuccess={(sessionId, sessionName) => {
+          setPostAssignment({ sessionId, sessionName });
+        }}
+      />
+
+      <PostAssignmentDialog
+        open={!!postAssignment}
+        onOpenChange={(open) => !open && setPostAssignment(null)}
+        contactName={contactName}
+        sessionName={postAssignment?.sessionName || ""}
+        onGenerateFacture={() => {
+          setPostAssignment(null);
+          setActiveTab("paiements");
+        }}
+        onAddDocuments={() => {
+          setPostAssignment(null);
+          setActiveTab("dossier");
+        }}
+        onReturnDashboard={() => {
+          setPostAssignment(null);
+        }}
+      />
     </div>
   );
 }
