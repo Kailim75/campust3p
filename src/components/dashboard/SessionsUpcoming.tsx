@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Users, ChevronRight, AlertTriangle } from "lucide-react";
+import { Calendar, Users, ChevronRight, AlertTriangle, TrendingDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO } from "date-fns";
@@ -19,9 +19,12 @@ interface EnrichedSession {
   places_totales: number;
   formation_type: string;
   statut: string;
+  prix_ht: number;
+  prix: number;
   filled: number;
   fillRate: number;
   atRisk: boolean;
+  manqueAGagner: number;
 }
 
 export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
@@ -32,7 +35,7 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
       const todayStr = today.toISOString().split("T")[0];
 
       const [sessionsRes, inscriptionsRes] = await Promise.all([
-        supabase.from("sessions").select("id, nom, date_debut, places_totales, formation_type, statut")
+        supabase.from("sessions").select("id, nom, date_debut, places_totales, formation_type, statut, prix_ht, prix")
           .eq("archived", false).gte("date_fin", todayStr).order("date_debut", { ascending: true }).limit(5),
         supabase.from("session_inscriptions").select("session_id"),
       ]);
@@ -49,7 +52,9 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
         const fillRate = places > 0 ? Math.round((filled / places) * 100) : 0;
         const daysUntil = differenceInDays(parseISO(s.date_debut), today);
         const atRisk = fillRate < 50 && daysUntil <= 14;
-        return { ...s, filled, fillRate, atRisk };
+        const prixUnit = s.prix_ht || s.prix || 0;
+        const manqueAGagner = Math.max((places - filled) * prixUnit, 0);
+        return { ...s, prix_ht: s.prix_ht || 0, prix: s.prix || 0, filled, fillRate, atRisk, manqueAGagner };
       });
     },
     staleTime: 2 * 60 * 1000,
@@ -85,17 +90,26 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
             const formColor = getFormationColor(session.formation_type);
             const fillColor = session.fillRate >= 70 ? "bg-success" : session.fillRate >= 40 ? "bg-warning" : "bg-destructive";
             const fillTextColor = session.fillRate >= 70 ? "text-success" : session.fillRate >= 40 ? "text-warning" : "text-destructive";
+            const isCritical = session.fillRate < 40;
 
             return (
-              <div key={session.id} className={cn("p-4 rounded-lg border", formColor.bg, formColor.border)}>
+              <div key={session.id} className={cn(
+                "p-4 rounded-lg border transition-all",
+                isCritical ? "bg-destructive/5 border-destructive/30 ring-1 ring-destructive/10" : `${formColor.bg} ${formColor.border}`
+              )}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium text-foreground text-sm truncate">{session.nom}</h4>
                       {session.atRisk && (
                         <Badge variant="destructive" className="text-[10px] gap-1 px-1.5">
                           <AlertTriangle className="h-2.5 w-2.5" />
                           À risque
+                        </Badge>
+                      )}
+                      {isCritical && !session.atRisk && (
+                        <Badge variant="outline" className="text-[10px] gap-1 px-1.5 border-destructive/40 text-destructive">
+                          Critique
                         </Badge>
                       )}
                     </div>
@@ -111,17 +125,36 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
                     <span className={cn("text-lg font-bold tabular-nums", fillTextColor)}>{session.fillRate}%</span>
-                    <p className="text-[10px] text-muted-foreground">{session.filled}/{session.places_totales}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-1">
+                      <Users className="h-2.5 w-2.5" />
+                      {session.filled}/{session.places_totales}
+                    </p>
                   </div>
                 </div>
 
                 {/* Fill bar */}
-                <div className="w-full h-2 rounded-full bg-muted/50 overflow-hidden">
+                <div className="w-full h-2.5 rounded-full bg-muted/50 overflow-hidden">
                   <div 
                     className={cn("h-full rounded-full transition-all", fillColor)}
                     style={{ width: `${Math.min(session.fillRate, 100)}%` }}
                   />
                 </div>
+
+                {/* Manque à gagner */}
+                {session.manqueAGagner > 0 && (
+                  <div className={cn(
+                    "flex items-center justify-between mt-2 pt-2 border-t text-xs",
+                    isCritical ? "border-destructive/20" : "border-border/50"
+                  )}>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <TrendingDown className="h-3 w-3" />
+                      Manque à gagner
+                    </span>
+                    <span className={cn("font-semibold tabular-nums", isCritical ? "text-destructive" : "text-warning")}>
+                      - {session.manqueAGagner.toLocaleString('fr-FR')} €
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
