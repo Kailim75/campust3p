@@ -2,138 +2,114 @@ import { useState, useMemo, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Header } from "@/components/layout/Header";
 import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
-import { useFormateurs } from "@/hooks/useFormateurs";
+import { useProspects, useUpdateProspect, type Prospect } from "@/hooks/useProspects";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Search, Users, Filter, Plus, Globe, Phone, UserCheck, Handshake } from "lucide-react";
+  Search, Users, Target, TrendingUp, AlertTriangle, Lightbulb, Clock, DollarSign, ArrowRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { differenceInDays, parseISO } from "date-fns";
-import { formatDistanceToNow } from "date-fns";
+import { differenceInDays, parseISO, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// ─── PIPELINE COLUMNS ────────────────────────────────────
+// ─── CONSTANTS ───────────────────────────────────────────
+
+const TARIF_MOYEN = 990; // €
+const OBJECTIF_INSCRIPTIONS_MENSUEL = 15;
+
+// ─── STRATEGIC COLUMNS ──────────────────────────────────
 
 const PIPELINE_COLUMNS = [
-  { id: "nouveau_lead", label: "Nouveau lead", statut: "En attente de validation", color: "bg-muted-foreground" },
-  { id: "contacte", label: "Contacté", statut: "En attente de validation", color: "bg-info" },
-  { id: "en_formation", label: "En formation", statut: "En formation théorique", color: "bg-primary" },
-  { id: "examen_theorique", label: "Examen T3P", statut: "Examen T3P programmé", color: "bg-accent" },
-  { id: "t3p_obtenu", label: "T3P Obtenu", statut: "T3P obtenu", color: "bg-success" },
-  { id: "formation_pratique", label: "Formation pratique", statut: "En formation pratique", color: "bg-info" },
-  { id: "diplome", label: "Diplômé", statut: "Bravo", color: "bg-success" },
-  { id: "abandonne", label: "Abandonné", statut: "Abandonné", color: "bg-destructive" },
+  { id: "nouveau_lead", label: "Nouveau lead", emoji: "🟦", bgClass: "bg-info/10", borderClass: "border-info/30", dotColor: "bg-info" },
+  { id: "a_relancer", label: "À relancer", emoji: "🟨", bgClass: "bg-warning/10", borderClass: "border-warning/30", dotColor: "bg-warning" },
+  { id: "inscrit", label: "Inscrit", emoji: "🟩", bgClass: "bg-success/10", borderClass: "border-success/30", dotColor: "bg-success" },
+  { id: "perdu", label: "Perdu", emoji: "⬛", bgClass: "bg-muted/20", borderClass: "border-muted-foreground/20", dotColor: "bg-muted-foreground" },
 ];
 
-// Map DB statuts to pipeline column IDs
-const STATUT_TO_COLUMN: Record<string, string> = {
-  "En attente de validation": "nouveau_lead",
-  "En formation théorique": "en_formation",
-  "Examen T3P programmé": "examen_theorique",
-  "T3P obtenu": "t3p_obtenu",
-  "En formation pratique": "formation_pratique",
-  "Examen pratique programmé": "formation_pratique",
-  "Client": "diplome",
-  "Bravo": "diplome",
-  "Abandonné": "abandonne",
-};
+// ─── TYPES ───────────────────────────────────────────────
 
-// ─── FORMATION BADGES ────────────────────────────────────
+interface PipelineItem {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  formation: string | null;
+  source: string | null;
+  columnId: string;
+  lastActionDate: string;
+  daysSinceAction: number;
+  type: "prospect" | "contact";
+  originalProspect?: Prospect;
+  originalContact?: Contact;
+}
 
-const FORMATION_CONFIG: Record<string, { label: string; className: string; color: string }> = {
-  TAXI: { label: "Taxi", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
-  VTC: { label: "VTC", className: "bg-primary/15 text-primary border-primary/20", color: "bg-primary" },
-  VMDTR: { label: "VMDTR", className: "bg-info/15 text-info border-info/20", color: "bg-info" },
-  "ACC VTC": { label: "ACC VTC", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
-  "ACC VTC 75": { label: "ACC VTC 75", className: "bg-accent/15 text-accent border-accent/20", color: "bg-accent" },
-  "Formation continue Taxi": { label: "FC Taxi", className: "bg-success/15 text-success border-success/20", color: "bg-success" },
-  "Formation continue VTC": { label: "FC VTC", className: "bg-success/15 text-success border-success/20", color: "bg-success" },
-  "Mobilité Taxi": { label: "Mobilité", className: "bg-info/15 text-info border-info/20", color: "bg-info" },
-};
+// ─── HELPERS ─────────────────────────────────────────────
 
-// Source lead icons
-const SOURCE_ICONS: Record<string, { icon: typeof Globe; label: string }> = {
-  site_web: { icon: Globe, label: "Site web" },
-  bouche_a_oreille: { icon: UserCheck, label: "Recommandation" },
-  partenaire: { icon: Handshake, label: "Partenaire" },
-  reseaux_sociaux: { icon: Globe, label: "Réseaux sociaux" },
-  publicite: { icon: Globe, label: "Publicité" },
-  salon: { icon: Users, label: "Salon" },
-  autre: { icon: Phone, label: "Autre" },
-};
+function classifyProspect(p: Prospect): string {
+  if (p.statut === "perdu") return "perdu";
+  if (p.statut === "converti") return "inscrit";
+  if (p.statut === "nouveau") {
+    const days = differenceInDays(new Date(), parseISO(p.created_at));
+    return days > 3 ? "a_relancer" : "nouveau_lead";
+  }
+  // contacte / relance
+  const days = differenceInDays(new Date(), parseISO(p.updated_at));
+  return days > 3 ? "a_relancer" : "nouveau_lead";
+}
 
-// ─── DOCS PROGRESS HOOK ─────────────────────────────────
+function classifyContact(c: Contact): string {
+  const statut = c.statut || "En attente de validation";
+  if (statut === "Abandonné") return "perdu";
+  if (statut === "En attente de validation") {
+    const days = differenceInDays(new Date(), parseISO(c.updated_at));
+    return days > 3 ? "a_relancer" : "nouveau_lead";
+  }
+  // All other statuses = inscrit
+  return "inscrit";
+}
 
-function useContactDocsCounts(contactIds: string[]) {
-  return useQuery({
-    queryKey: ["pipeline-docs-counts", contactIds.length],
-    queryFn: async () => {
-      if (contactIds.length === 0) return new Map<string, number>();
-      const { data } = await supabase
-        .from("contact_documents")
-        .select("contact_id")
-        .in("contact_id", contactIds);
+function getStagnationBadge(days: number) {
+  if (days >= 5) return { label: `${days}j`, className: "bg-destructive/15 text-destructive border-destructive/20" };
+  if (days >= 3) return { label: `${days}j`, className: "bg-warning/15 text-warning border-warning/20" };
+  return null;
+}
 
-      const counts = new Map<string, number>();
-      (data || []).forEach((d) => {
-        counts.set(d.contact_id, (counts.get(d.contact_id) || 0) + 1);
-      });
-      return counts;
-    },
-    enabled: contactIds.length > 0,
-  });
+function getScoreColor(score: number) {
+  if (score >= 75) return "text-success";
+  if (score >= 50) return "text-warning";
+  return "text-destructive";
+}
+
+function getScoreBg(score: number) {
+  if (score >= 75) return "bg-success";
+  if (score >= 50) return "bg-warning";
+  return "bg-destructive";
 }
 
 // ─── PIPELINE CARD ───────────────────────────────────────
 
-function PipelineCard({
-  contact,
+function StrategicPipelineCard({
+  item,
   index,
   onClick,
-  docCount,
 }: {
-  contact: Contact;
+  item: PipelineItem;
   index: number;
   onClick: () => void;
-  docCount: number;
 }) {
-  const formation = contact.formation ? FORMATION_CONFIG[contact.formation] : null;
-  const source = contact.source ? SOURCE_ICONS[contact.source] || SOURCE_ICONS.autre : null;
-  const SourceIcon = source?.icon || Globe;
-
-  const totalRequiredDocs = 7;
-  const progressPct = Math.round((docCount / totalRequiredDocs) * 100);
-  const progressColor =
-    progressPct < 50 ? "bg-destructive" : progressPct < 80 ? "bg-accent" : "bg-success";
-
-  const timeAgo = formatDistanceToNow(parseISO(contact.created_at), { addSuffix: false, locale: fr });
+  const stagnation = getStagnationBadge(item.daysSinceAction);
 
   return (
-    <Draggable draggableId={contact.id} index={index}>
+    <Draggable draggableId={item.id} index={index}>
       {(provided, snapshot) => (
         <Card
           ref={provided.innerRef}
@@ -142,55 +118,45 @@ function PipelineCard({
           onClick={onClick}
           className={cn(
             "p-3 mb-2 cursor-pointer transition-all hover:shadow-md border",
-            snapshot.isDragging && "shadow-lg ring-2 ring-primary/40 rotate-1"
+            snapshot.isDragging && "shadow-lg ring-2 ring-primary/40 rotate-1",
+            item.daysSinceAction >= 5 && "border-destructive/30"
           )}
         >
           <div className="flex items-start gap-2.5">
-            {/* Avatar initiales */}
-            <Avatar className="h-9 w-9 shrink-0">
-              <AvatarFallback
-                className={cn(
-                  "text-xs font-semibold text-primary-foreground",
-                  formation?.color || "bg-primary"
-                )}
-              >
-                {`${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase()}
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+                {`${item.prenom.charAt(0)}${item.nom.charAt(0)}`.toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 min-w-0 space-y-1.5">
-              {/* Name */}
-              <p className="font-medium text-sm truncate text-foreground">
-                {contact.prenom} {contact.nom}
-              </p>
-
-              {/* Badges row */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {formation && (
-                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", formation.className)}>
-                    {formation.label}
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center justify-between gap-1">
+                <p className="font-medium text-sm truncate text-foreground">
+                  {item.prenom} {item.nom}
+                </p>
+                {stagnation && (
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 shrink-0", stagnation.className)}>
+                    <Clock className="h-2.5 w-2.5 mr-0.5" />
+                    {stagnation.label}
                   </Badge>
                 )}
-                {source && (
-                  <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {item.formation && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {item.formation}
+                  </Badge>
                 )}
+                <span className="text-[10px] text-muted-foreground">
+                  {formatDistanceToNow(parseISO(item.lastActionDate), { addSuffix: true, locale: fr })}
+                </span>
               </div>
 
-              {/* Progress bar documents */}
-              <div className="space-y-0.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">{docCount}/{totalRequiredDocs} docs</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full transition-all", progressColor)}
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
-                  />
-                </div>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <DollarSign className="h-2.5 w-2.5" />
+                <span className="tabular-nums">{TARIF_MOYEN.toLocaleString("fr-FR")}€ potentiel</span>
               </div>
-
-              {/* Time */}
-              <p className="text-[10px] text-muted-foreground">il y a {timeAgo}</p>
             </div>
           </div>
         </Card>
@@ -201,36 +167,34 @@ function PipelineCard({
 
 // ─── PIPELINE COLUMN ─────────────────────────────────────
 
-function PipelineColumn({
+function StrategicColumn({
   column,
-  contacts,
+  items,
   onCardClick,
-  docCounts,
-  onAddClick,
 }: {
   column: (typeof PIPELINE_COLUMNS)[0];
-  contacts: Contact[];
-  onCardClick: (c: Contact) => void;
-  docCounts: Map<string, number>;
-  onAddClick: () => void;
+  items: PipelineItem[];
+  onCardClick: (item: PipelineItem) => void;
 }) {
+  const potentiel = items.length * TARIF_MOYEN;
+
   return (
     <div className="flex-shrink-0 w-72">
       <div className="bg-muted/40 rounded-xl p-3 h-full flex flex-col border border-border/50">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <div className={cn("w-2.5 h-2.5 rounded-full", column.color)} />
-            <h3 className="font-semibold text-sm text-foreground">{column.label}</h3>
-          </div>
-          <div className="flex items-center gap-1">
+        <div className={cn("rounded-lg border p-3 mb-3", column.bgClass, column.borderClass)}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <div className={cn("w-2.5 h-2.5 rounded-full", column.dotColor)} />
+              <h3 className="font-semibold text-sm text-foreground">{column.label}</h3>
+            </div>
             <Badge variant="secondary" className="text-xs h-5 min-w-5 justify-center">
-              {contacts.length}
+              {items.length}
             </Badge>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddClick}>
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            Potentiel : <span className="font-semibold tabular-nums text-foreground">{potentiel.toLocaleString("fr-FR")}€</span>
+          </p>
         </div>
 
         {/* Droppable */}
@@ -244,20 +208,22 @@ function PipelineColumn({
                 snapshot.isDraggingOver && "bg-primary/5 ring-1 ring-primary/20"
               )}
             >
-              <ScrollArea className="h-[calc(100vh-280px)]">
+              <ScrollArea className="h-[calc(100vh-420px)]">
                 <div className="pr-2">
-                  {contacts.map((contact, index) => (
-                    <PipelineCard
-                      key={contact.id}
-                      contact={contact}
+                  {items.map((item, index) => (
+                    <StrategicPipelineCard
+                      key={item.id}
+                      item={item}
                       index={index}
-                      onClick={() => onCardClick(contact)}
-                      docCount={docCounts.get(contact.id) || 0}
+                      onClick={() => onCardClick(item)}
                     />
                   ))}
                   {provided.placeholder}
                 </div>
               </ScrollArea>
+              {items.length === 0 && (
+                <div className="text-center text-muted-foreground text-xs py-8">Aucun prospect</div>
+              )}
             </div>
           )}
         </Droppable>
@@ -266,207 +232,405 @@ function PipelineColumn({
   );
 }
 
-// ─── QUICK ADD DIALOG ────────────────────────────────────
+// ─── ACQUISITION SCORE ───────────────────────────────────
 
-function QuickAddDialog({
-  open,
-  onOpenChange,
-  defaultColumn,
+function AcquisitionScoreCard({
+  score,
+  tauxConversion,
+  leadsActifs,
+  leadsStagnants,
+  totalLeads,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  defaultColumn: string;
+  score: number;
+  tauxConversion: number;
+  leadsActifs: number;
+  leadsStagnants: number;
+  totalLeads: number;
 }) {
-  const queryClient = useQueryClient();
-  const [form, setForm] = useState({
-    prenom: "",
-    nom: "",
-    telephone: "",
-    formation: "" as string,
-    source: "site_web" as string,
-  });
-
-  const createContact = useMutation({
-    mutationFn: async () => {
-      const col = PIPELINE_COLUMNS.find((c) => c.id === defaultColumn);
-      const { error } = await supabase.from("contacts").insert({
-        prenom: form.prenom,
-        nom: form.nom,
-        telephone: form.telephone || null,
-        formation: (form.formation || null) as any,
-        source: form.source as any,
-        statut: (col?.statut || "En attente de validation") as any,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      toast.success("Apprenant ajouté");
-      onOpenChange(false);
-      setForm({ prenom: "", nom: "", telephone: "", formation: "", source: "site_web" });
-    },
-    onError: () => toast.error("Erreur lors de l'ajout"),
-  });
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Ajout rapide</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Prénom *</Label>
-              <Input value={form.prenom} onChange={(e) => setForm((p) => ({ ...p, prenom: e.target.value }))} />
+    <Card className="border-primary/20">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+          <TrendingUp className="h-4 w-4" />
+          Score Acquisition
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="relative w-16 h-16">
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="hsl(var(--muted))"
+                strokeWidth="3"
+              />
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeDasharray={`${score}, 100`}
+                className={getScoreColor(score)}
+              />
+            </svg>
+            <span className={cn("absolute inset-0 flex items-center justify-center text-lg font-bold", getScoreColor(score))}>
+              {score}
+            </span>
+          </div>
+          <div className="flex-1 space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Taux conversion</span>
+              <span className="font-semibold tabular-nums">{tauxConversion}%</span>
             </div>
-            <div>
-              <Label>Nom *</Label>
-              <Input value={form.nom} onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))} />
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Leads actifs</span>
+              <span className="font-semibold tabular-nums">{leadsActifs}/{totalLeads}</span>
             </div>
-          </div>
-          <div>
-            <Label>Téléphone</Label>
-            <Input value={form.telephone} onChange={(e) => setForm((p) => ({ ...p, telephone: e.target.value }))} />
-          </div>
-          <div>
-            <Label>Formation</Label>
-            <Select value={form.formation} onValueChange={(v) => setForm((p) => ({ ...p, formation: v }))}>
-              <SelectTrigger><SelectValue placeholder="Type de formation" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TAXI">Taxi Initial</SelectItem>
-                <SelectItem value="VTC">VTC</SelectItem>
-                <SelectItem value="VMDTR">VMDTR</SelectItem>
-                <SelectItem value="Formation continue Taxi">Recyclage Taxi</SelectItem>
-                <SelectItem value="Formation continue VTC">Recyclage VTC</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Source</Label>
-            <Select value={form.source} onValueChange={(v) => setForm((p) => ({ ...p, source: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="site_web">🌐 Site web</SelectItem>
-                <SelectItem value="bouche_a_oreille">👥 Recommandation</SelectItem>
-                <SelectItem value="partenaire">🤝 Partenaire</SelectItem>
-                <SelectItem value="autre">📞 Autre</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Leads stagnants</span>
+              <span className={cn("font-semibold tabular-nums", leadsStagnants > 5 && "text-destructive")}>{leadsStagnants}</span>
+            </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button
-            disabled={!form.prenom || !form.nom || createContact.isPending}
-            onClick={() => createContact.mutate()}
-          >
-            {createContact.isPending ? "Ajout..." : "Ajouter"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── 30-DAY OBJECTIVE ────────────────────────────────────
+
+function ObjectifCard({
+  inscriptionsActuelles,
+  objectif,
+  manqueAGagner,
+}: {
+  inscriptionsActuelles: number;
+  objectif: number;
+  manqueAGagner: number;
+}) {
+  const manquantes = Math.max(0, objectif - inscriptionsActuelles);
+  const progressPct = Math.min(100, Math.round((inscriptionsActuelles / objectif) * 100));
+
+  return (
+    <Card className="border-accent/20">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+          <Target className="h-4 w-4" />
+          Objectif inscriptions 30 jours
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-end justify-between">
+            <div>
+              <span className="text-3xl font-bold text-foreground tabular-nums">{inscriptionsActuelles}</span>
+              <span className="text-lg text-muted-foreground">/{objectif}</span>
+            </div>
+            {manquantes > 0 ? (
+              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
+                Il manque {manquantes} inscription{manquantes > 1 ? "s" : ""}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
+                ✓ Objectif atteint
+              </Badge>
+            )}
+          </div>
+          <Progress value={progressPct} className="h-2" />
+          {manquantes > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Valeur correspondante : <span className="font-semibold text-foreground">{(manquantes * TARIF_MOYEN).toLocaleString("fr-FR")}€</span>
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── RECOMMENDATIONS ─────────────────────────────────────
+
+function RecommendationsCard({ recommendations }: { recommendations: { text: string; severity: "critical" | "warning" | "info" }[] }) {
+  if (recommendations.length === 0) return null;
+
+  const severityConfig = {
+    critical: { icon: AlertTriangle, className: "text-destructive" },
+    warning: { icon: AlertTriangle, className: "text-warning" },
+    info: { icon: Lightbulb, className: "text-info" },
+  };
+
+  return (
+    <Card className="border-accent/20">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+          <Lightbulb className="h-4 w-4" />
+          Recommandations Acquisition
+        </div>
+        <div className="space-y-2">
+          {recommendations.slice(0, 3).map((rec, i) => {
+            const config = severityConfig[rec.severity];
+            const Icon = config.icon;
+            return (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", config.className)} />
+                <span className="text-foreground">{rec.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── PREDICTIVE ALERT ────────────────────────────────────
+
+function PredictiveAlert({ show, score }: { show: boolean; score: number }) {
+  if (!show) return null;
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3">
+      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+      <div>
+        <p className="text-sm font-semibold text-destructive">
+          🔴 Risque de non-atteinte objectif faute d'acquisition
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Score acquisition : {score}/100 — Pipeline insuffisant pour couvrir les objectifs mensuels.
+        </p>
+      </div>
+    </div>
   );
 }
 
 // ─── MAIN PIPELINE PAGE ──────────────────────────────────
 
 export function PipelinePage() {
-  const { data: contacts, isLoading } = useContacts();
+  const { data: contacts = [], isLoading: contactsLoading } = useContacts();
+  const { data: prospects = [], isLoading: prospectsLoading } = useProspects();
   const updateContact = useUpdateContact();
+  const updateProspect = useUpdateProspect();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [formationFilter, setFormationFilter] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState("all");
-
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [quickAddColumn, setQuickAddColumn] = useState("nouveau_lead");
 
-  // Doc counts
-  const contactIds = useMemo(() => (contacts || []).map((c) => c.id), [contacts]);
-  const { data: docCounts } = useContactDocsCounts(contactIds);
+  const isLoading = contactsLoading || prospectsLoading;
 
-  // Group contacts by column
-  const groupedContacts = useMemo(() => {
-    if (!contacts) return {} as Record<string, Contact[]>;
+  // Build unified pipeline items
+  const allItems = useMemo((): PipelineItem[] => {
+    const items: PipelineItem[] = [];
+    const convertedProspectContactIds = new Set(
+      prospects.filter(p => p.converted_contact_id).map(p => p.converted_contact_id!)
+    );
 
-    const filtered = contacts.filter((c) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        `${c.prenom} ${c.nom}`.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFormation = formationFilter === "all" || c.formation === formationFilter;
-      const matchesSource = sourceFilter === "all" || c.source === sourceFilter;
-      return matchesSearch && matchesFormation && matchesSource;
+    // Add prospects (not yet converted)
+    prospects.forEach((p) => {
+      if (p.converted_contact_id) return; // Skip converted
+      const daysSince = differenceInDays(new Date(), parseISO(p.updated_at));
+      items.push({
+        id: `prospect-${p.id}`,
+        prenom: p.prenom,
+        nom: p.nom,
+        email: p.email,
+        telephone: p.telephone,
+        formation: p.formation_souhaitee,
+        source: p.source,
+        columnId: classifyProspect(p),
+        lastActionDate: p.updated_at,
+        daysSinceAction: daysSince,
+        type: "prospect",
+        originalProspect: p,
+      });
     });
 
-    const groups: Record<string, Contact[]> = {};
+    // Add contacts (not from converted prospects to avoid dupes)
+    contacts.forEach((c) => {
+      if (convertedProspectContactIds.has(c.id)) {
+        // This contact came from a prospect, classify as inscrit
+        const daysSince = differenceInDays(new Date(), parseISO(c.updated_at));
+        items.push({
+          id: `contact-${c.id}`,
+          prenom: c.prenom,
+          nom: c.nom,
+          email: c.email,
+          telephone: c.telephone,
+          formation: c.formation,
+          source: c.source,
+          columnId: "inscrit",
+          lastActionDate: c.updated_at,
+          daysSinceAction: daysSince,
+          type: "contact",
+          originalContact: c,
+        });
+        return;
+      }
+      const daysSince = differenceInDays(new Date(), parseISO(c.updated_at));
+      items.push({
+        id: `contact-${c.id}`,
+        prenom: c.prenom,
+        nom: c.nom,
+        email: c.email,
+        telephone: c.telephone,
+        formation: c.formation,
+        source: c.source,
+        columnId: classifyContact(c),
+        lastActionDate: c.updated_at,
+        daysSinceAction: daysSince,
+        type: "contact",
+        originalContact: c,
+      });
+    });
+
+    return items;
+  }, [contacts, prospects]);
+
+  // Filter & group
+  const grouped = useMemo(() => {
+    const filtered = allItems.filter((item) => {
+      if (!searchQuery) return true;
+      return `${item.prenom} ${item.nom}`.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
+    const groups: Record<string, PipelineItem[]> = {};
     PIPELINE_COLUMNS.forEach((col) => (groups[col.id] = []));
-
-    filtered.forEach((c) => {
-      const colId = STATUT_TO_COLUMN[c.statut || "En attente de validation"] || "nouveau_lead";
-      groups[colId]?.push(c);
+    filtered.forEach((item) => {
+      groups[item.columnId]?.push(item);
     });
+
+    // Sort: stagnant first
+    Object.values(groups).forEach((arr) => arr.sort((a, b) => b.daysSinceAction - a.daysSinceAction));
 
     return groups;
-  }, [contacts, searchQuery, formationFilter, sourceFilter]);
+  }, [allItems, searchQuery]);
 
-  // Drag & drop
+  // ─── METRICS ───────────────────────────────────────────
+
+  const metrics = useMemo(() => {
+    const nouveaux = grouped.nouveau_lead?.length || 0;
+    const aRelancer = grouped.a_relancer?.length || 0;
+    const inscrits = grouped.inscrit?.length || 0;
+    const perdus = grouped.perdu?.length || 0;
+    const totalLeads = nouveaux + aRelancer;
+    const totalAll = nouveaux + aRelancer + inscrits + perdus;
+
+    const tauxConversion = totalAll > 0 ? Math.round((inscrits / totalAll) * 100) : 0;
+
+    const stagnants = allItems.filter((i) => (i.columnId === "nouveau_lead" || i.columnId === "a_relancer") && i.daysSinceAction >= 3);
+    const leadsActifs = totalLeads - stagnants.length;
+
+    const stagnationPenalty = totalLeads > 0 ? Math.round((stagnants.length / totalLeads) * 100) : 0;
+    const ratioActifs = totalLeads > 0 ? Math.round((leadsActifs / Math.max(totalLeads, 1)) * 100) : 0;
+
+    const acquisitionScore = Math.max(0, Math.min(100, Math.round(
+      0.5 * Math.min(tauxConversion * 2, 100) +
+      0.3 * ratioActifs +
+      0.2 * (100 - stagnationPenalty)
+    )));
+
+    const manquantes = Math.max(0, OBJECTIF_INSCRIPTIONS_MENSUEL - inscrits);
+
+    // Recommendations
+    const recommendations: { text: string; severity: "critical" | "warning" | "info" }[] = [];
+
+    if (stagnants.length > 0) {
+      const potentiel = stagnants.length * TARIF_MOYEN;
+      recommendations.push({
+        text: `Relancer ${stagnants.length} prospect${stagnants.length > 1 ? "s" : ""} inactif${stagnants.length > 1 ? "s" : ""} (potentiel ${potentiel.toLocaleString("fr-FR")}€)`,
+        severity: stagnants.length > 5 ? "critical" : "warning",
+      });
+    }
+
+    if (tauxConversion < 50) {
+      recommendations.push({
+        text: `Améliorer taux de conversion (actuel ${tauxConversion}%)`,
+        severity: tauxConversion < 30 ? "critical" : "warning",
+      });
+    }
+
+    if (manquantes > 0 && totalLeads < manquantes * 2) {
+      recommendations.push({
+        text: `Pipeline insuffisant pour atteindre l'objectif (${totalLeads} leads pour ${manquantes} inscriptions manquantes)`,
+        severity: "critical",
+      });
+    }
+
+    if (recommendations.length === 0 && inscrits > 0) {
+      recommendations.push({
+        text: `${inscrits} inscriptions confirmées ce mois — bonne dynamique`,
+        severity: "info",
+      });
+    }
+
+    const showPredictiveAlert = acquisitionScore < 50 && manquantes > 3;
+
+    return {
+      tauxConversion,
+      leadsActifs,
+      leadsStagnants: stagnants.length,
+      totalLeads,
+      acquisitionScore,
+      inscrits,
+      manquantes,
+      recommendations,
+      showPredictiveAlert,
+    };
+  }, [grouped, allItems]);
+
+  // ─── DRAG & DROP ───────────────────────────────────────
+
   const handleDragEnd = useCallback(
     (result: DropResult) => {
       const { destination, draggableId } = result;
       if (!destination) return;
 
-      const column = PIPELINE_COLUMNS.find((col) => col.id === destination.droppableId);
-      if (!column) return;
+      const newColumnId = destination.droppableId;
+      const [type, rawId] = draggableId.split("-") as [string, string];
+      const realId = draggableId.substring(type.length + 1);
 
-      updateContact.mutate({
-        id: draggableId,
-        updates: { statut: column.statut as any },
-      });
+      if (type === "prospect") {
+        let newStatut: string = "nouveau";
+        if (newColumnId === "a_relancer") newStatut = "relance";
+        else if (newColumnId === "inscrit") newStatut = "converti";
+        else if (newColumnId === "perdu") newStatut = "perdu";
 
-      // Auto-génération token enquête satisfaction quand diplômé
-      if (column.id === "diplome") {
-        const contact = contacts?.find((c) => c.id === draggableId);
-        if (contact) {
-          supabase
-            .from("enquete_tokens")
-            .insert({
-              contact_id: draggableId,
-              type: "satisfaction",
-            })
-            .select("token")
-            .single()
-            .then(({ data: tokenData }) => {
-              if (tokenData) {
-                toast.success(
-                  `📋 Enquête satisfaction générée pour ${contact.prenom} ${contact.nom}`,
-                  { description: "Vous pouvez l'envoyer depuis l'onglet Communications" }
-                );
-              }
-            });
-        }
+        updateProspect.mutate({ id: realId, updates: { statut: newStatut as any } });
+        toast.success(`Prospect déplacé vers "${PIPELINE_COLUMNS.find(c => c.id === newColumnId)?.label}"`);
+      } else {
+        let newStatut = "En attente de validation";
+        if (newColumnId === "a_relancer") newStatut = "En attente de validation";
+        else if (newColumnId === "inscrit") newStatut = "En formation théorique";
+        else if (newColumnId === "perdu") newStatut = "Abandonné";
+
+        updateContact.mutate({ id: realId, updates: { statut: newStatut as any } });
+        toast.success(`Apprenant déplacé vers "${PIPELINE_COLUMNS.find(c => c.id === newColumnId)?.label}"`);
       }
     },
-    [updateContact, contacts]
+    [updateContact, updateProspect]
   );
 
-  const handleAddClick = (columnId: string) => {
-    setQuickAddColumn(columnId);
-    setQuickAddOpen(true);
+  // ─── CARD CLICK ────────────────────────────────────────
+
+  const handleCardClick = (item: PipelineItem) => {
+    if (item.type === "contact" && item.originalContact) {
+      setSelectedContactId(item.originalContact.id);
+      setDetailOpen(true);
+    }
   };
+
+  // ─── RENDER ────────────────────────────────────────────
 
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <Header title="Pipeline" subtitle="Suivi des apprenants" />
-        <div className="flex gap-4 p-6 overflow-x-auto">
-          {PIPELINE_COLUMNS.map((col) => (
-            <div key={col.id} className="flex-shrink-0 w-72">
-              <Skeleton className="h-[500px] rounded-xl" />
-            </div>
-          ))}
+        <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <div className="flex gap-4">
+            {PIPELINE_COLUMNS.map((col) => (
+              <Skeleton key={col.id} className="h-[400px] w-72" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -474,84 +638,66 @@ export function PipelinePage() {
 
   return (
     <div className="min-h-screen">
-      <Header title="Pipeline" subtitle="Glissez-déposez pour changer le statut" />
+      <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />
 
-      {/* Filters */}
-      <div className="px-6 pt-6 pb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un apprenant..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+      <div className="px-6 pt-6 space-y-4">
+        {/* Predictive Alert */}
+        <PredictiveAlert show={metrics.showPredictiveAlert} score={metrics.acquisitionScore} />
+
+        {/* Strategic KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <AcquisitionScoreCard
+            score={metrics.acquisitionScore}
+            tauxConversion={metrics.tauxConversion}
+            leadsActifs={metrics.leadsActifs}
+            leadsStagnants={metrics.leadsStagnants}
+            totalLeads={metrics.totalLeads}
           />
+          <ObjectifCard
+            inscriptionsActuelles={metrics.inscrits}
+            objectif={OBJECTIF_INSCRIPTIONS_MENSUEL}
+            manqueAGagner={metrics.manquantes * TARIF_MOYEN}
+          />
+          <RecommendationsCard recommendations={metrics.recommendations} />
         </div>
 
-        <Select value={formationFilter} onValueChange={setFormationFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Formation" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes</SelectItem>
-            <SelectItem value="TAXI">Taxi</SelectItem>
-            <SelectItem value="VTC">VTC</SelectItem>
-            <SelectItem value="VMDTR">VMDTR</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes sources</SelectItem>
-            <SelectItem value="site_web">Site web</SelectItem>
-            <SelectItem value="bouche_a_oreille">Recommandation</SelectItem>
-            <SelectItem value="partenaire">Partenaire</SelectItem>
-            <SelectItem value="autre">Autre</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{contacts?.length || 0} apprenants</span>
+        {/* Search */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>{allItems.length} dans le pipeline</span>
+          </div>
         </div>
-      </div>
 
-      {/* Kanban Board */}
-      <div className="px-6 pb-6">
+        {/* Kanban Board */}
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-4 overflow-x-auto pb-6">
             {PIPELINE_COLUMNS.map((column) => (
-              <PipelineColumn
+              <StrategicColumn
                 key={column.id}
                 column={column}
-                contacts={groupedContacts[column.id] || []}
-                onCardClick={(c) => {
-                  setSelectedContact(c);
-                  setDetailOpen(true);
-                }}
-                docCounts={docCounts || new Map()}
-                onAddClick={() => handleAddClick(column.id)}
+                items={grouped[column.id] || []}
+                onCardClick={handleCardClick}
               />
             ))}
           </div>
         </DragDropContext>
       </div>
 
-      {/* Apprenant Detail Sheet */}
+      {/* Detail Sheet */}
       <ApprenantDetailSheet
-        contactId={selectedContact?.id || null}
+        contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-      />
-
-      {/* Quick Add Dialog */}
-      <QuickAddDialog
-        open={quickAddOpen}
-        onOpenChange={setQuickAddOpen}
-        defaultColumn={quickAddColumn}
       />
     </div>
   );
