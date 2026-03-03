@@ -191,6 +191,69 @@ export type Database = {
         }
         Relationships: []
       }
+      blockage_logs: {
+        Row: {
+          centre_id: string | null
+          code: string
+          detected_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          impact_score: number | null
+          justification: string | null
+          message: string
+          resolution_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          centre_id?: string | null
+          code: string
+          detected_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          impact_score?: number | null
+          justification?: string | null
+          message: string
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+        }
+        Update: {
+          centre_id?: string | null
+          code?: string
+          detected_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          impact_score?: number | null
+          justification?: string | null
+          message?: string
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockage_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blockage_logs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_previsionnel: {
         Row: {
           annee: number
