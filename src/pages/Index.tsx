@@ -9,6 +9,8 @@ import { OnboardingTour, useOnboarding } from "@/components/onboarding/Onboardin
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
+import { BlockageBanner } from "@/components/blockage/BlockageBanner";
+import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
 import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
@@ -48,6 +50,7 @@ const Index = () => {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
+  const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undo);
@@ -99,8 +102,13 @@ const Index = () => {
   // Listen for navigate-to-alerts event from ProactiveAlertsToast
   useEffect(() => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
+    const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
     window.addEventListener('navigate-to-alerts', handleNavigateToAlerts);
-    return () => window.removeEventListener('navigate-to-alerts', handleNavigateToAlerts);
+    window.addEventListener('open-blockage-panel', handleOpenBlockagePanel);
+    return () => {
+      window.removeEventListener('navigate-to-alerts', handleNavigateToAlerts);
+      window.removeEventListener('open-blockage-panel', handleOpenBlockagePanel);
+    };
   }, []);
 
   // Global keyboard shortcuts
@@ -218,20 +226,29 @@ const Index = () => {
       />
       
       <main className={cn(
-        "transition-all duration-200 h-full overflow-auto",
+        "transition-all duration-200 h-full overflow-auto flex flex-col",
         isMobile ? "ml-0" : sidebarCollapsed ? "ml-[60px]" : "ml-[240px]"
       )}>
-        <NavigationProvider
-          activeSection={activeSection}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onNavigate={setActiveSection}
-        >
-          <PageTransition transitionKey={activeSection}>
-            {renderContent()}
-          </PageTransition>
-        </NavigationProvider>
+        <BlockageBanner onOpenPanel={() => setBlockagePanelOpen(true)} />
+        <div className="flex-1 overflow-auto">
+          <NavigationProvider
+            activeSection={activeSection}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onNavigate={setActiveSection}
+          >
+            <PageTransition transitionKey={activeSection}>
+              {renderContent()}
+            </PageTransition>
+          </NavigationProvider>
+        </div>
       </main>
+
+      <BlockagePanel
+        open={blockagePanelOpen}
+        onOpenChange={setBlockagePanelOpen}
+        onNavigate={setActiveSection}
+      />
 
       {/* Quick Actions FAB */}
       <QuickActionsMenu onAction={handleQuickAction} />
