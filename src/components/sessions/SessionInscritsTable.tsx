@@ -91,8 +91,10 @@ import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processor';
 import { useEmailComposer } from '@/hooks/useEmailComposer';
 import { EmailComposerModal } from '@/components/email/EmailComposerModal';
+import { SessionDocumentsSendModal } from './SessionDocumentsSendModal';
 import type { EmailRecipient } from '@/components/email/EmailComposerModal';
 import type { Contact } from '@/hooks/useContacts';
+import type { CompanyInfo, AgrementsAutre } from '@/lib/pdf-generator';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -128,7 +130,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Bulk send email dialog
+  // Bulk doc send modal
+  const [docSendModalOpen, setDocSendModalOpen] = useState(false);
+  const [docSendSelectedIds, setDocSendSelectedIds] = useState<string[] | undefined>(undefined);
+  
+  // Legacy bulk send email dialog (kept for backward compat)
   const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
   const [bulkEmailType, setBulkEmailType] = useState('');
   const [bulkEmailMessage, setBulkEmailMessage] = useState('');
@@ -240,6 +246,25 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     duree_heures: session.duree_heures || 35,
     prix: session.prix ? Number(session.prix) : undefined,
   } : null;
+
+  // Build CompanyInfo for document generation
+  const companyInfo: CompanyInfo | undefined = centreFormation ? {
+    name: centreFormation.nom_commercial || centreFormation.nom_legal,
+    address: centreFormation.adresse_complete,
+    phone: centreFormation.telephone,
+    email: centreFormation.email,
+    siret: centreFormation.siret,
+    nda: centreFormation.nda,
+    logo_url: centreFormation.logo_url || undefined,
+    signature_cachet_url: centreFormation.signature_cachet_url || undefined,
+    qualiopi_numero: centreFormation.qualiopi_numero || undefined,
+    qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || undefined,
+    qualiopi_date_expiration: centreFormation.qualiopi_date_expiration || undefined,
+    agrement_prefecture: centreFormation.agrement_prefecture || undefined,
+    agrement_prefecture_date: centreFormation.agrement_prefecture_date || undefined,
+    code_rncp: centreFormation.code_rncp || undefined,
+    code_rs: centreFormation.code_rs || undefined,
+  } : undefined;
 
   // Générer un document pour un seul stagiaire
   const handleGenerateSingleDocument = (type: DocumentType, contact: any) => {
@@ -729,11 +754,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={() => setBulkEmailDialogOpen(true)}
+            onClick={() => {
+              setDocSendSelectedIds(undefined); // all
+              setDocSendModalOpen(true);
+            }}
             disabled={emailsCount === 0}
           >
             <Mail className="h-4 w-4 mr-2" />
-            Envoyer par email ({emailsCount})
+            Envoyer documents ({emailsCount})
           </Button>
         </div>
       )}
@@ -752,6 +780,17 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           <Button size="sm" variant="outline" onClick={() => setDialogEnvoi(true)} disabled={isEnvoi}>
             <Send className="h-3 w-3 mr-1" />
             Tracer envoi
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setDocSendSelectedIds(selectedIds);
+              setDocSendModalOpen(true);
+            }}
+          >
+            <FileDown className="h-3 w-3 mr-1" />
+            Envoyer documents
           </Button>
           {/* Bulk email actions via EmailComposer */}
           <DropdownMenu>
@@ -1403,6 +1442,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             duree_heures: session.duree_heures || 35,
             prix: session.prix ? Number(session.prix) : undefined,
           }}
+        />
+      )}
+
+      {/* Document Send Modal */}
+      {session && sessionInfo && (
+        <SessionDocumentsSendModal
+          open={docSendModalOpen}
+          onOpenChange={setDocSendModalOpen}
+          inscrits={(inscrits || []).map(i => ({
+            contact_id: i.contact_id,
+            contact: i.contact as any,
+          }))}
+          sessionInfo={sessionInfo}
+          sessionName={session.nom}
+          company={companyInfo}
+          selectedIds={docSendSelectedIds}
+          openComposer={openComposer}
         />
       )}
 

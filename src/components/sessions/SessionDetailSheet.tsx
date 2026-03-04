@@ -79,8 +79,11 @@ import { SessionQualiopiBadge } from "./SessionQualiopiBadge";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionQuickActions } from "./SessionQuickActions";
 import { SessionParcoursTab } from "./SessionParcoursTab";
+import { SessionDocumentsSendModal } from "./SessionDocumentsSendModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
+import type { CompanyInfo, AgrementsAutre } from "@/lib/pdf-generator";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -111,6 +114,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
+  const [docSendModalOpen, setDocSendModalOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
@@ -118,6 +122,26 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const unarchiveSession = useUnarchiveSession();
   const canArchive = useCanArchiveSession(session?.date_fin);
   const { data: qualiopiScore } = useSessionQualiopi(sessionId);
+  const { centreFormation } = useCentreFormation();
+
+  // Build CompanyInfo for document generation
+  const companyInfo: CompanyInfo | undefined = centreFormation ? {
+    name: centreFormation.nom_commercial || centreFormation.nom_legal,
+    address: centreFormation.adresse_complete,
+    phone: centreFormation.telephone,
+    email: centreFormation.email,
+    siret: centreFormation.siret,
+    nda: centreFormation.nda,
+    logo_url: centreFormation.logo_url || undefined,
+    signature_cachet_url: centreFormation.signature_cachet_url || undefined,
+    qualiopi_numero: centreFormation.qualiopi_numero || undefined,
+    qualiopi_date_obtention: centreFormation.qualiopi_date_obtention || undefined,
+    qualiopi_date_expiration: centreFormation.qualiopi_date_expiration || undefined,
+    agrement_prefecture: centreFormation.agrement_prefecture || undefined,
+    agrement_prefecture_date: centreFormation.agrement_prefecture_date || undefined,
+    code_rncp: centreFormation.code_rncp || undefined,
+    code_rs: centreFormation.code_rs || undefined,
+  } : undefined;
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -344,7 +368,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 <SessionQuickActions
                   inscriptionCount={inscriptionCount}
                   archived={session.archived}
-                  onSendDocuments={() => setActiveTab("info")}
+                  onSendDocuments={() => setDocSendModalOpen(true)}
                   onSendEmail={() => {
                     // Open email composer with all inscribed contacts
                     const recipients = inscriptions
@@ -705,6 +729,22 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           open={closeDialogOpen}
           onOpenChange={setCloseDialogOpen}
           onSuccess={() => onOpenChange(false)}
+        />
+      )}
+
+      {/* Document Send Modal */}
+      {session && sessionInfo && (
+        <SessionDocumentsSendModal
+          open={docSendModalOpen}
+          onOpenChange={setDocSendModalOpen}
+          inscrits={(inscriptions || []).map((i) => ({
+            contact_id: i.contact_id,
+            contact: i.contacts as any,
+          }))}
+          sessionInfo={sessionInfo}
+          sessionName={session.nom}
+          company={companyInfo}
+          openComposer={openComposer}
         />
       )}
 

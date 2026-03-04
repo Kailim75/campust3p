@@ -24,7 +24,11 @@ export type ActionCategory =
   | "examen_theorie_echoue"
   | "examen_pratique_reussi"
   | "examen_pratique_echoue"
-  | "session_email";
+  | "session_email"
+  | "session_envoi_convocation"
+  | "session_envoi_programme"
+  | "session_envoi_attestation"
+  | "session_envoi_pack";
 
 interface ActionMeta {
   label: string;
@@ -53,6 +57,10 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   examen_pratique_reussi:      { label: "Examen: pratique réussie",      canal: "Email",     modele: "Pratique réussie" },
   examen_pratique_echoue:      { label: "Examen: pratique échouée",      canal: "Email",     modele: "Pratique échouée" },
   session_email:               { label: "Session: email",                canal: "Email" },
+  session_envoi_convocation:   { label: "Convocation envoyée",          canal: "Email",     modele: "Convocation session" },
+  session_envoi_programme:     { label: "Programme envoyé",              canal: "Email",     modele: "Programme session" },
+  session_envoi_attestation:   { label: "Attestation envoyée",           canal: "Email",     modele: "Attestation session" },
+  session_envoi_pack:          { label: "Pack envoyé",                   canal: "Email",     modele: "Pack session" },
 };
 
 function buildAutoNoteTitle(category: ActionCategory): string {
