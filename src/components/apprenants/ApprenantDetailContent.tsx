@@ -149,7 +149,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
   const tabs = [
     { value: "resume", icon: LayoutDashboard, label: "Résumé" },
-    { value: "dossier", icon: FolderOpen, label: "Profil" },
+    { value: "dossier", icon: FolderOpen, label: "Identité" },
     { value: "formation", icon: GraduationCap, label: "Formation" },
     { value: "cma", icon: FileCheck, label: "CMA" },
     { value: "examens", icon: Award, label: "Examens" },
