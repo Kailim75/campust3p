@@ -56,7 +56,7 @@ const alertCards = [
   { key: "sessionsAtRisk", label: "Sessions à risque", icon: AlertTriangle, section: "sessions", variant: "warning" as const },
   { key: "latePayments", label: "Paiements en retard", icon: CreditCard, section: "finances", variant: "destructive" as const },
   { key: "pendingInvoices", label: "Factures en attente", icon: Calendar, section: "finances", variant: "muted" as const },
-  { key: "newProspects", label: "Prospects à traiter", icon: UserPlus, section: "prospects", variant: "primary" as const },
+  { key: "newProspects", label: "Prospects à relancer", icon: UserPlus, section: "prospects", variant: "primary" as const },
 ] as const;
 
 const variantStyles = {
@@ -105,7 +105,7 @@ export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
                 )}>
                   <Icon className={cn("h-4 w-4", hasAlert ? variantStyles[card.variant] : "text-muted-foreground/50")} />
                 </div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{card.label}</span>
+                <span className="text-xs font-medium text-muted-foreground">{card.label}</span>
               </div>
               {hasAlert && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>

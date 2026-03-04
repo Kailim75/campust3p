@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
+  MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -18,6 +19,9 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SidebarProps {
   activeSection: string;
@@ -35,6 +39,14 @@ const menuItems = [
   { id: "formations", label: "Catalogue", icon: GraduationCap },
   { id: "finances", label: "Finances", icon: CreditCard },
   { id: "automations", label: "Automations", icon: Zap },
+];
+
+const moreMenuItems = [
+  { id: "formateurs", label: "Formateurs", icon: UserCog },
+  { id: "planning-conduite", label: "Planning conduite", icon: Car },
+  { id: "alertes", label: "Alertes", icon: Bell },
+  { id: "qualite", label: "Qualité", icon: Award },
+  { id: "partenaires", label: "Partenaires", icon: Handshake },
 ];
 
 /** Wraps children in a Tooltip when sidebar is collapsed */
@@ -181,6 +193,56 @@ function SidebarContent({
             );
           })}
         </div>
+
+        {/* ── More section ── */}
+        {!collapsed ? (
+          <Collapsible className="mt-2">
+            <CollapsibleTrigger className="sidebar-item w-full text-white/40 hover:text-white/70">
+              <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+              <span className="truncate">Plus</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-px mt-px">
+              {moreMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                    className={cn("sidebar-item w-full relative pl-8", isActive && "active")}
+                  >
+                    <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                    <span className="truncate text-[12px]">{item.label}</span>
+                  </button>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
+        ) : (
+          <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
+            <Collapsible className="mt-2">
+              <CollapsibleTrigger className="sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70">
+                <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-px mt-px">
+                {moreMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
+                      <button
+                        onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                        className={cn("sidebar-item w-full justify-center px-0", isActive && "active")}
+                      >
+                        <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                      </button>
+                    </SidebarTooltipItem>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarTooltipItem>
+        )}
       </nav>
 
       {/* ── Footer ── */}

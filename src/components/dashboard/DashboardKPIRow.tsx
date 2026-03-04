@@ -85,7 +85,7 @@ export function DashboardKPIRow({ onNavigate }: DashboardKPIRowProps) {
               <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
                 <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{kpi.label}</span>
+              <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.format(value as number)}</p>
           </button>
