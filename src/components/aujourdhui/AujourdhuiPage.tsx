@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
-  CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check,
+  CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check, Bot,
+  Filter,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
@@ -25,23 +27,16 @@ import {
   createAutoNote, deleteAutoNote, fetchTodayAutoNotes,
   isHandledToday, type ActionCategory,
 } from "@/lib/aujourdhui-actions";
+import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
 import type { Prospect } from "@/hooks/useProspects";
-
-// ─── CMA required docs ───
-const CMA_REQUIRED_DOCS = ["cni", "photo", "attestation_domicile", "permis_b"];
-
-const DOC_LABELS: Record<string, string> = {
-  cni: "Pièce d'identité",
-  photo: "Photo d'identité",
-  attestation_domicile: "Justificatif domicile",
-  permis_b: "Permis",
-};
 
 // Keywords used to detect if an action category was already done today
 const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
 const RDV_KEYWORDS = ["confirmation RDV", "Prospect:", "Marqué comme traité"];
 const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
+
+type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
 function useAujourdhuiData() {
   return useQuery({
@@ -76,7 +71,6 @@ function useAujourdhuiData() {
       // Contact name map for journal
       const contactNameMap = new Map<string, string>();
       contacts.forEach((c: any) => contactNameMap.set(c.id, `${c.prenom} ${c.nom}`));
-      // Also add prospect names
       prospects.forEach((p: any) => {
         contactNameMap.set(p.id, `${p.prenom} ${p.nom}`);
       });
@@ -124,7 +118,17 @@ function useAujourdhuiData() {
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c) };
+          // Determine CMA sub-category heuristically
+          const statStr = String(c.statut || "").toLowerCase();
+          const cmaCategory: CmaFilter =
+            statStr.includes("rejet") || statStr.includes("complex") ? "rejete" :
+            statStr.includes("en cours") || statStr.includes("document") || statStr.includes("en formation") ? "en_cours" :
+            "docs_manquants";
+          // Find last CMA [AUTO] note from todayNotes
+          const lastCmaNote = todayNotes
+            .filter(n => n.contact_id === c.id && n.titre.includes("CMA"))
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || null;
+          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c), cmaCategory, lastCmaNote };
         })
         .filter(c => c.missingDocs.length > 0)
         .sort((a, b) => b.missingDocs.length - a.missingDocs.length);
@@ -201,6 +205,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [showHandled, setShowHandled] = useState(false);
+  const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
@@ -210,7 +215,6 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const logAction = useCallback(async (contactId: string, category: ActionCategory, extra?: string) => {
     const result = await createAutoNote(contactId, category, extra);
     if (result) {
-      const undoTimeout = setTimeout(() => {}, 0); // placeholder
       toast.success("Action enregistrée", {
         description: "Note ajoutée à la fiche",
         action: {
@@ -266,7 +270,15 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const hiddenCount = (rawCma.length - rawCma.filter(c => c._isActive).length) + (rawCritiques.length - rawCritiques.filter(c => c._isActive).length);
 
   // Anti-double-relance: filter handled items
-  const cmaItems = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS))).slice(0, 10);
+  const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)));
+  // Apply CMA sub-filter
+  const cmaItems = (cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter)).slice(0, 15);
+  // CMA sub-filter counts
+  const cmaCountAll = filteredCma.length;
+  const cmaCountDocs = filteredCma.filter(c => c.cmaCategory === "docs_manquants").length;
+  const cmaCountRejete = filteredCma.filter(c => c.cmaCategory === "rejete").length;
+  const cmaCountEnCours = filteredCma.filter(c => c.cmaCategory === "en_cours").length;
+
   const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS))).slice(0, 10);
   const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
   const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
@@ -281,8 +293,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
   // ─── Action handlers with auto-logging ───
   const handleCmaRelanceDocs = (item: any) => {
-    logAction(item.id, "cma_relance_docs", `Docs manquants: ${item.missingDocs.map((d: string) => DOC_LABELS[d] || d).join(", ")}`);
-    window.open(`mailto:${item.email}?subject=Documents CMA manquants&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour compléter votre dossier CMA :%0A${item.missingDocs.map((d: string) => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+    const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
+    logAction(item.id, "cma_relance_docs", `Docs manquants: ${missingList}`);
+    window.open(`mailto:${item.email}?subject=Documents CMA manquants&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour compléter votre dossier CMA :%0A${item.missingDocs.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
   };
 
   const handleCmaWhatsApp = (item: any) => {
@@ -315,13 +328,19 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   };
 
   const handleCritiqueDemanderDocs = (item: any) => {
-    logAction(item.id, "apprenant_demander_docs", `Docs manquants: ${item.missingCMA.map((d: string) => DOC_LABELS[d] || d).join(", ")}`);
-    window.open(`mailto:${item.email}?subject=Documents manquants — Urgent&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour votre dossier :%0A${item.missingCMA.map((d: string) => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de les transmettre en urgence.%0A%0ACordialement,%0AT3P Campus`);
+    const missingList = item.missingCMA.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
+    logAction(item.id, "apprenant_demander_docs", `Docs manquants: ${missingList}`);
+    window.open(`mailto:${item.email}?subject=Documents manquants — Urgent&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour votre dossier :%0A${item.missingCMA.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de les transmettre en urgence.%0A%0ACordialement,%0AT3P Campus`);
   };
 
   const handleCritiqueRelancePaiement = (item: any) => {
     logAction(item.id, "apprenant_relance_paiement");
     window.open(`mailto:${item.email}?subject=Rappel de paiement&body=Bonjour ${item.prenom},%0A%0ANous vous rappelons qu'un paiement est en attente pour votre formation.%0A%0AMerci de régulariser votre situation.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  // Check if CMA relance already done today for a specific contact
+  const isCmaRelancedToday = (contactId: string) => {
+    return todayNotes.some(n => n.contact_id === contactId && (n.titre.includes("CMA") && n.titre.includes("[AUTO]")));
   };
 
   // ─── Mark done button ───
@@ -335,6 +354,13 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
       <Check className="h-3 w-3 mr-1" /> Fait
     </Button>
   );
+
+  const CMA_FILTER_OPTIONS: { value: CmaFilter; label: string; count: number }[] = [
+    { value: "all", label: "Tous", count: cmaCountAll },
+    { value: "docs_manquants", label: "Docs manquants", count: cmaCountDocs },
+    { value: "rejete", label: "Rejeté", count: cmaCountRejete },
+    { value: "en_cours", label: "En cours", count: cmaCountEnCours },
+  ];
 
   return (
     <div className="space-y-6">
@@ -373,48 +399,98 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">CMA à traiter</h3>
-                  <p className="text-[11px] text-muted-foreground">{cmaItems.length} dossier{cmaItems.length > 1 ? "s" : ""} incomplet{cmaItems.length > 1 ? "s" : ""}</p>
+                  <p className="text-[11px] text-muted-foreground">{cmaCountAll} dossier{cmaCountAll > 1 ? "s" : ""} incomplet{cmaCountAll > 1 ? "s" : ""}</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaItems.length}</Badge>
+              <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaCountAll}</Badge>
             </div>
+
+            {/* CMA sub-filters */}
+            <div className="px-5 py-2 border-b bg-muted/10 flex items-center gap-1 overflow-x-auto">
+              <Filter className="h-3 w-3 text-muted-foreground shrink-0 mr-1" />
+              {CMA_FILTER_OPTIONS.map(opt => (
+                <Button
+                  key={opt.value}
+                  variant={cmaFilter === opt.value ? "default" : "ghost"}
+                  size="sm"
+                  className="h-6 text-[10px] px-2 gap-1 shrink-0"
+                  onClick={() => setCmaFilter(opt.value)}
+                >
+                  {opt.label}
+                  <span className="opacity-60">({opt.count})</span>
+                </Button>
+              ))}
+            </div>
+
             <div className="divide-y max-h-80 overflow-y-auto">
               {cmaItems.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground text-sm">
                   <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                  Tous les dossiers CMA sont complets
+                  {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dossier dans cette catégorie"}
                 </div>
-              ) : cmaItems.map((item) => (
-                <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                      {item.prenom} {item.nom}
-                      <ExternalLink className="h-3 w-3 opacity-40" />
-                    </button>
-                    {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {item.missingDocs.map((d: string) => (
-                      <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                        ✗ {DOC_LABELS[d] || d}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-1.5">
-                    {item.email && (
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCmaRelanceDocs(item)}>
-                        <Mail className="h-3 w-3 mr-1" /> Relance docs
-                      </Button>
+              ) : cmaItems.map((item) => {
+                const relancedToday = isCmaRelancedToday(item.id);
+                return (
+                  <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                        {item.prenom} {item.nom}
+                        <ExternalLink className="h-3 w-3 opacity-40" />
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                        <Badge variant="outline" className="text-[9px] bg-muted text-muted-foreground">
+                          {item.docCount}/{CMA_REQUIRED_DOCS.length}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {item.missingDocs.map((d: string) => (
+                        <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                          ✗ {CMA_DOC_LABELS[d] || d}
+                        </Badge>
+                      ))}
+                    </div>
+                    {/* Last relance indicator */}
+                    {item.lastCmaNote && (
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Bot className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground">
+                          Dernière relance : {format(parseISO(item.lastCmaNote.created_at), "HH:mm", { locale: fr })}
+                        </span>
+                      </div>
                     )}
-                    {item.telephone && (
-                      <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleCmaWhatsApp(item)}>
-                        <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-                      </Button>
-                    )}
-                    <MarkDoneBtn contactId={item.id} bloc="CMA" />
+                    <div className="flex gap-1.5">
+                      {item.email && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm" variant="outline" className="h-7 text-[10px]"
+                                  disabled={relancedToday}
+                                  onClick={() => handleCmaRelanceDocs(item)}
+                                >
+                                  <Mail className="h-3 w-3 mr-1" /> Relance docs
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {relancedToday && (
+                              <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {item.telephone && (
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleCmaWhatsApp(item)}>
+                          <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+                        </Button>
+                      )}
+                      <MarkDoneBtn contactId={item.id} bloc="CMA" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
 

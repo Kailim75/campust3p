@@ -13,13 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const CMA_REQUIRED_DOCS = ["cni", "photo", "attestation_domicile", "permis_b"];
-const DOC_LABELS: Record<string, string> = {
-  cni: "Pièce d'identité",
-  photo: "Photo d'identité",
-  attestation_domicile: "Justificatif domicile",
-  permis_b: "Permis",
-};
+import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
+const DOC_LABELS = CMA_DOC_LABELS;
 
 interface ResumeTabProps {
   contactId: string;
