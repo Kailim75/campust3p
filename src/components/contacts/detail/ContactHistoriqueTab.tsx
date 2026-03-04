@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,12 +27,15 @@ import {
   Clock,
   Bell,
   BellOff,
+  Bot,
+  Filter,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 type HistoriqueType = "appel" | "email" | "note" | "sms" | "whatsapp" | "reunion";
+type FilterMode = "all" | "auto" | "manual";
 
 interface HistoriqueItem {
   id: string;
@@ -71,6 +75,16 @@ const historiqueTypeConfig: Record<HistoriqueType, { label: string; icon: React.
   reunion: { label: "Réunion", icon: Users, class: "bg-warning/10 text-warning" },
 };
 
+function isAutoNote(titre: string): boolean {
+  return titre.startsWith("[AUTO]");
+}
+
+const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
+  { value: "all", label: "Tout" },
+  { value: "manual", label: "Manuel" },
+  { value: "auto", label: "Auto" },
+];
+
 export function ContactHistoriqueTab({
   historique,
   isLoading,
@@ -80,6 +94,8 @@ export function ContactHistoriqueTab({
   onDelete,
   onUpdateAlert,
 }: ContactHistoriqueTabProps) {
+  const [filter, setFilter] = useState<FilterMode>("all");
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -89,37 +105,80 @@ export function ContactHistoriqueTab({
     );
   }
 
+  const autoCount = historique.filter((i) => isAutoNote(i.titre)).length;
+  const manualCount = historique.length - autoCount;
+
+  const filtered = historique.filter((item) => {
+    if (filter === "auto") return isAutoNote(item.titre);
+    if (filter === "manual") return !isAutoNote(item.titre);
+    return true;
+  });
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        {/* Filter pills */}
+        <div className="flex items-center gap-1">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+          {FILTER_OPTIONS.map((opt) => {
+            const count = opt.value === "all" ? historique.length : opt.value === "auto" ? autoCount : manualCount;
+            return (
+              <Button
+                key={opt.value}
+                variant={filter === opt.value ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs px-2.5 gap-1"
+                onClick={() => setFilter(opt.value)}
+              >
+                {opt.value === "auto" && <Bot className="h-3 w-3" />}
+                {opt.label}
+                <span className="text-[10px] opacity-70">({count})</span>
+              </Button>
+            );
+          })}
+        </div>
+
         <Button size="sm" onClick={onAdd}>
           <Plus className="h-4 w-4 mr-1" />
           Ajouter
         </Button>
       </div>
 
-      {historique.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Aucun échange enregistré</p>
-          <p className="text-xs mt-1">Ajoutez des appels, emails, notes...</p>
+          <p className="text-sm">
+            {filter === "all" ? "Aucun échange enregistré" : filter === "auto" ? "Aucune note automatique" : "Aucune note manuelle"}
+          </p>
+          {filter === "all" && <p className="text-xs mt-1">Ajoutez des appels, emails, notes...</p>}
         </div>
       ) : (
         <ScrollArea className="h-[300px]">
           <div className="space-y-3 pr-3">
-            {historique.map((item) => {
+            {filtered.map((item) => {
               const config = historiqueTypeConfig[item.type];
               const Icon = config.icon;
+              const isAuto = isAutoNote(item.titre);
+              // Strip [AUTO] prefix for display
+              const displayTitle = isAuto ? item.titre.replace(/^\[AUTO\]\s*/, "") : item.titre;
               
               return (
-                <div key={item.id} className="p-3 border rounded-lg space-y-2 group">
+                <div key={item.id} className={cn("p-3 border rounded-lg space-y-2 group", isAuto && "border-primary/20 bg-primary/[0.02]")}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-2">
                       <div className={cn("p-1.5 rounded-md", config.class)}>
                         <Icon className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{item.titre}</p>
+                        <div className="flex items-center gap-1.5">
+                          {isAuto && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-primary/5 text-primary border-primary/15 shrink-0">
+                              <Bot className="h-2.5 w-2.5 mr-0.5" />
+                              AUTO
+                            </Badge>
+                          )}
+                          <p className="font-medium text-sm">{displayTitle}</p>
+                        </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>{config.label}</span>
                           {item.duree_minutes && (
@@ -168,7 +227,7 @@ export function ContactHistoriqueTab({
                     </div>
                   </div>
                   {item.contenu && (
-                    <p className="text-sm text-muted-foreground pl-8">{item.contenu}</p>
+                    <p className={cn("text-sm pl-8", isAuto ? "text-muted-foreground/80 italic text-xs" : "text-muted-foreground")}>{item.contenu}</p>
                   )}
                   
                   {/* Alerte/Rappel Section */}
