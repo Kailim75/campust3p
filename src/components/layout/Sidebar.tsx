@@ -1,17 +1,13 @@
 import { cn } from "@/lib/utils";
 import { 
-  LayoutDashboard, Users, Calendar, FileText, CreditCard, Settings,
-  ChevronLeft, ChevronRight, Menu, Landmark, Mail, HelpCircle, Shield,
-  Building2, ClipboardList, CalendarClock, Plus, User,
-  UserPlus, Zap, Palette, LogOut, GraduationCap, CheckCircle, Workflow,
-  AlertTriangle, Wallet,
+  LayoutDashboard, Users, Calendar, CreditCard, Settings,
+  ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
+  ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useDirectorAlertsStore } from "@/hooks/useDirectorAlerts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAllAlerts } from "@/hooks/useAlerts";
 import { RecentItemsMenu } from "./RecentItemsMenu";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,46 +27,14 @@ interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-const menuGroups = [
-  {
-    label: "Formation",
-    items: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "contacts", label: "Apprenants", icon: Users },
-      { id: "pipeline", label: "Pipeline", icon: ClipboardList },
-      { id: "prospects", label: "Prospects", icon: UserPlus },
-      { id: "sessions", label: "Sessions", icon: Calendar },
-      { id: "formations", label: "Catalogue", icon: GraduationCap },
-      { id: "formateurs", label: "Formateurs", icon: User },
-      { id: "planning-conduite", label: "Planning Conduite", icon: CalendarClock },
-    ],
-  },
-  {
-    label: "Gestion",
-    items: [
-      { id: "alertes", label: "Alertes", icon: AlertTriangle },
-      { id: "facturation", label: "Paiements", icon: CreditCard },
-      { id: "cockpit-financier", label: "Cockpit Financier", icon: Landmark },
-      { id: "tresorerie", label: "Trésorerie", icon: Wallet },
-      { id: "partenaires", label: "Partenaires", icon: Building2 },
-      { id: "documents", label: "Documents", icon: FileText },
-      { id: "communications", label: "Communications", icon: Mail },
-    ],
-  },
-  {
-    label: "Qualité & LMS",
-    items: [
-      { id: "qualite", label: "Centre Qualiopi", icon: CheckCircle },
-      { id: "workflows", label: "Workflows", icon: Workflow },
-    ],
-  },
-  {
-    label: "Intelligence",
-    items: [
-      { id: "ia-director", label: "IA Director", icon: Zap },
-      { id: "template-studio", label: "Template Studio", icon: Palette },
-    ],
-  },
+const menuItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "prospects", label: "Prospects", icon: UserPlus },
+  { id: "contacts", label: "Apprenants", icon: Users },
+  { id: "sessions", label: "Sessions", icon: Calendar },
+  { id: "formations", label: "Catalogue", icon: GraduationCap },
+  { id: "finances", label: "Finances", icon: CreditCard },
+  { id: "automations", label: "Automations", icon: Zap },
 ];
 
 /** Wraps children in a Tooltip when sidebar is collapsed */
@@ -93,8 +57,6 @@ function SidebarContent({
   setCollapsed: (v: boolean) => void;
   onItemClick?: () => void;
 }) {
-  const { data: alerts } = useAllAlerts();
-  const highPriorityAlerts = alerts.filter(a => a.priority === "high").length;
   const { canSwitchMode, setMode } = useAdminMode();
   const { user, signOut } = useAuth();
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
@@ -196,47 +158,29 @@ function SidebarContent({
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto scrollbar-hide">
-        {menuGroups.map((group) => (
-          <div key={group.label}>
-            {!collapsed && group.label && (
-              <p className="sidebar-section-label px-3 mb-1.5">{group.label}</p>
-            )}
-            {collapsed && <div className="sidebar-collapsed-sep" />}
-            <div className="space-y-px">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeSection === item.id;
-                const showBadge = item.id === "alertes" && highPriorityAlerts > 0;
-                const directorAlerts = useDirectorAlertsStore.getState();
-                const showDirectorBadge = item.id === "ia-director" && (directorAlerts.criticalCount > 0);
-                const badgeCount = showBadge ? highPriorityAlerts : showDirectorBadge ? directorAlerts.criticalCount : 0;
-                
-                return (
-                  <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
-                    <button
-                      onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                      className={cn(
-                        "sidebar-item w-full relative",
-                        isActive && "active",
-                        collapsed && "justify-center px-0"
-                      )}
-                    >
-                      <Icon className="h-[17px] w-[17px] flex-shrink-0" />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                      {(showBadge || showDirectorBadge) && (
-                        <span className="absolute flex items-center justify-center bg-destructive text-destructive-foreground font-semibold rounded-full text-[9px]"
-                          style={{ padding: '1px 5px', right: collapsed ? 2 : 8, top: collapsed ? 2 : 'auto' }}>
-                          {badgeCount}
-                        </span>
-                      )}
-                    </button>
-                  </SidebarTooltipItem>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
+        <div className="space-y-px">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
+                <button
+                  onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                  className={cn(
+                    "sidebar-item w-full relative",
+                    isActive && "active",
+                    collapsed && "justify-center px-0"
+                  )}
+                >
+                  <Icon className="h-[17px] w-[17px] flex-shrink-0" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              </SidebarTooltipItem>
+            );
+          })}
+        </div>
       </nav>
 
       {/* ── Footer ── */}
