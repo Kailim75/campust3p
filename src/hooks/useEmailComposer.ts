@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
 import type { ActionCategory } from "@/lib/aujourdhui-actions";
+import type { EmailAttachment } from "@/lib/session-document-helpers";
 
 interface EmailComposerState {
   open: boolean;
@@ -10,6 +11,7 @@ interface EmailComposerState {
   autoNoteCategory?: ActionCategory;
   autoNoteExtra?: string;
   onSuccess?: () => void;
+  attachments?: EmailAttachment[];
 }
 
 const initialState: EmailComposerState = {
@@ -44,6 +46,7 @@ export function useEmailComposer() {
       autoNoteCategory: state.autoNoteCategory,
       autoNoteExtra: state.autoNoteExtra,
       onSuccess: state.onSuccess,
+      attachments: state.attachments,
     },
     openComposer,
     closeComposer,

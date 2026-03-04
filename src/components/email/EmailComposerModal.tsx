@@ -17,7 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Send, Loader2, Sparkles, FileText } from "lucide-react";
+import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, X } from "lucide-react";
+import type { EmailAttachment } from "@/lib/session-document-helpers";
+import { formatFileSize, getAttachmentsTotalSize } from "@/lib/session-document-helpers";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAutoNote, type ActionCategory } from "@/lib/aujourdhui-actions";
@@ -30,6 +32,8 @@ export interface EmailRecipient {
   nom: string;
   /** Per-recipient custom body (used in individual mode for CMA personalization) */
   customBody?: string;
+  /** Per-recipient attachments (personalized docs) */
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailComposerProps {
@@ -41,6 +45,8 @@ export interface EmailComposerProps {
   autoNoteCategory?: ActionCategory;
   autoNoteExtra?: string;
   onSuccess?: () => void;
+  /** Shared attachments for all recipients (generic docs / BCC) */
+  attachments?: EmailAttachment[];
 }
 
 const BULK_WARN_THRESHOLD = 10;
@@ -64,6 +70,7 @@ export function EmailComposerModal({
   autoNoteCategory,
   autoNoteExtra,
   onSuccess,
+  attachments: sharedAttachments,
 }: EmailComposerProps) {
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
@@ -113,7 +120,7 @@ export function EmailComposerModal({
     setBody(replaceTemplateVariables(template.contenu, variables));
   };
 
-  const sendSingleEmail = async (to: string, recipientName: string, htmlBody: string) => {
+  const sendSingleEmail = async (to: string, recipientName: string, htmlBody: string, emailAttachments?: EmailAttachment[]) => {
     const { error } = await supabase.functions.invoke("send-automated-emails", {
       body: {
         to,
@@ -121,6 +128,13 @@ export function EmailComposerModal({
         html: htmlBody,
         type: "crm_composer",
         recipientName,
+        ...(emailAttachments && emailAttachments.length > 0 ? {
+          attachments: emailAttachments.map(a => ({
+            filename: a.filename,
+            content: a.content,
+            type: a.contentType,
+          })),
+        } : {}),
       },
     });
     if (error) throw error;
@@ -157,8 +171,9 @@ export function EmailComposerModal({
         for (let i = 0; i < validRecipients.length; i++) {
           const r = validRecipients[i];
           const emailBody = (r.customBody || body).replace(/\n/g, "<br>");
+          const emailAttachments = r.attachments || sharedAttachments;
           try {
-            await sendSingleEmail(r.email, `${r.prenom} ${r.nom}`, emailBody);
+            await sendSingleEmail(r.email, `${r.prenom} ${r.nom}`, emailBody, emailAttachments);
             successCount++;
             if (autoNoteCategory) {
               await createAutoNote(
@@ -189,8 +204,8 @@ export function EmailComposerModal({
           });
         }
       } else {
-        // BCC mode
         const htmlBody = body.replace(/\n/g, "<br>");
+        const bccAttachments = sharedAttachments;
         const { error } = await supabase.functions.invoke("send-automated-emails", {
           body: {
             to: validRecipients[0].email,
@@ -198,6 +213,13 @@ export function EmailComposerModal({
             subject,
             html: htmlBody,
             type: "crm_composer_bcc",
+            ...(bccAttachments && bccAttachments.length > 0 ? {
+              attachments: bccAttachments.map(a => ({
+                filename: a.filename,
+                content: a.content,
+                type: a.contentType,
+              })),
+            } : {}),
           },
         });
         if (error) throw error;
@@ -376,6 +398,47 @@ export function EmailComposerModal({
                 Variables : {`{{prenom}}`}, {`{{nom}}`}, {`{{formation}}`}, {`{{date}}`}
               </p>
             </div>
+
+            {/* Attachments display */}
+            {(() => {
+              const hasPerRecipient = recipients.some(r => r.attachments && r.attachments.length > 0);
+              const hasShared = sharedAttachments && sharedAttachments.length > 0;
+              if (!hasPerRecipient && !hasShared) return null;
+
+              const displayAttachments = hasShared
+                ? sharedAttachments!
+                : recipients[0]?.attachments || [];
+              const totalSize = getAttachmentsTotalSize(displayAttachments);
+
+              return (
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Pièces jointes
+                    {hasPerRecipient && !hasShared && (
+                      <span className="text-[10px] text-primary font-normal ml-1">(personnalisées par contact)</span>
+                    )}
+                  </Label>
+                  <div className="space-y-1 p-2 border rounded-md bg-muted/30">
+                    {displayAttachments.map((att, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="truncate">{att.filename}</span>
+                        </div>
+                        <span className="text-muted-foreground shrink-0 ml-2">
+                          {formatFileSize(Math.ceil(att.content.length * 0.75))}
+                        </span>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Total : {formatFileSize(totalSize)}
+                      {hasPerRecipient && !hasShared && ` × ${recipients.length} contacts`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Progress */}
             {sending && (
