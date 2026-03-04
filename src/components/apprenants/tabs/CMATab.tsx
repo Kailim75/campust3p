@@ -1,27 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  CheckCircle2, Circle, XCircle, Upload, Send, Mail, FileText,
+  CheckCircle2, Circle, Upload, Send, Mail, FileText, Clock, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContactDocuments } from "@/hooks/useContactDocuments";
+import { useContactHistorique } from "@/hooks/useContactHistorique";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-
-// CMA required documents
-const CMA_PIECES = [
-  { type: "cni", label: "Pièce d'identité (recto/verso)" },
-  { type: "permis_b", label: "Permis de conduire (recto/verso)" },
-  { type: "attestation_domicile", label: "Justificatif de domicile < 3 mois" },
-  { type: "photo", label: "Photo d'identité" },
-];
+import { CMA_PIECES, CMA_DOC_LABELS } from "@/lib/cma-constants";
+import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 
 interface CMATabProps {
   contactId: string;
@@ -32,6 +28,7 @@ interface CMATabProps {
 
 export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CMATabProps) {
   const { data: documents = [], isLoading } = useContactDocuments(contactId);
+  const { data: historique = [] } = useContactHistorique(contactId);
   const queryClient = useQueryClient();
 
   const docsMap = useMemo(() => {
@@ -51,8 +48,25 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
   }));
 
   const receivedCount = pieces.filter(p => p.received).length;
-  const progressPct = Math.round((receivedCount / pieces.length) * 100);
+  const totalPieces = pieces.length;
+  const progressPct = Math.round((receivedCount / totalPieces) * 100);
   const missingPieces = pieces.filter(p => !p.received);
+
+  // Last CMA relance from [AUTO] notes
+  const lastRelance = useMemo(() => {
+    const cmaAutoNotes = historique
+      .filter((h: any) => h.titre?.startsWith("[AUTO]") && h.titre?.includes("CMA"))
+      .sort((a: any, b: any) => new Date(b.date_echange).getTime() - new Date(a.date_echange).getTime());
+    return cmaAutoNotes[0] || null;
+  }, [historique]);
+
+  const alreadyRelancedToday = lastRelance && isToday(new Date(lastRelance.date_echange));
+
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["contact-historique", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
+  }, [queryClient, contactId]);
 
   // Mark doc as received (create placeholder)
   const markReceived = useMutation({
@@ -67,14 +81,51 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
+      invalidate();
       toast.success("Document marqué comme reçu");
     },
   });
 
-  // Build email body for missing docs
-  const missingDocsEmailBody = missingPieces.map(p => `- ${p.label}`).join('%0A');
-  const emailHref = `mailto:${contactEmail || ''}?subject=Documents CMA manquants — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0APour compléter votre dossier CMA, il nous manque les documents suivants :%0A%0A${missingDocsEmailBody}%0A%0AMerci de nous les transmettre dans les meilleurs délais.%0A%0ACordialement,%0AT3P Campus`;
+  // Action handlers with auto-note
+  const handleRelanceDocs = async () => {
+    const missingList = missingPieces.map(p => CMA_DOC_LABELS[p.type] || p.label).join(", ");
+    const result = await createAutoNote(contactId, "cma_relance_docs", `Docs manquants: ${missingList}`);
+    if (result) {
+      toast.success("Relance enregistrée", {
+        action: {
+          label: "Annuler",
+          onClick: async () => {
+            await deleteAutoNote(result.id);
+            invalidate();
+            toast.info("Action annulée");
+          },
+        },
+        duration: 10000,
+      });
+      invalidate();
+    }
+    const emailBody = missingPieces.map(p => `- ${p.label}`).join('%0A');
+    window.open(`mailto:${contactEmail || ''}?subject=Documents CMA manquants — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0APour compléter votre dossier CMA, il nous manque les documents suivants :%0A%0A${emailBody}%0A%0AMerci de nous les transmettre dans les meilleurs délais.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  const handleRelanceCMA = async () => {
+    const result = await createAutoNote(contactId, "cma_relance", `${missingPieces.length} pièce(s) manquante(s)`);
+    if (result) {
+      toast.success("Relance CMA enregistrée", {
+        action: {
+          label: "Annuler",
+          onClick: async () => {
+            await deleteAutoNote(result.id);
+            invalidate();
+            toast.info("Action annulée");
+          },
+        },
+        duration: 10000,
+      });
+      invalidate();
+    }
+    window.open(`mailto:${contactEmail || ''}?subject=Relance dossier CMA — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0ANous revenons vers vous concernant votre dossier CMA. Il manque encore ${missingPieces.length} document(s).%0A%0AMerci de les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+  };
 
   if (isLoading) return <Skeleton className="h-[300px] rounded-xl" />;
 
@@ -86,7 +137,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
           <div>
             <p className="text-sm font-semibold text-foreground">Dossier CMA</p>
             <p className="text-xs text-muted-foreground">
-              {receivedCount}/{pieces.length} pièces reçues
+              {receivedCount}/{totalPieces} pièces reçues
             </p>
           </div>
           <Badge variant="outline" className={cn(
@@ -100,23 +151,84 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
         <Progress value={progressPct} className="h-2" />
       </Card>
 
+      {/* Last relance info */}
+      {lastRelance && (
+        <div className="flex items-center gap-2 px-1">
+          <Bot className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            Dernière relance : {format(new Date(lastRelance.date_echange), "dd/MM à HH:mm", { locale: fr })}
+          </span>
+          {alreadyRelancedToday && (
+            <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20">
+              Déjà relancé aujourd'hui
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* Quick actions */}
       {missingPieces.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {contactEmail && (
-            <Button size="sm" variant="outline" className="text-xs" asChild>
-              <a href={emailHref}>
-                <Mail className="h-3 w-3 mr-1" /> Email docs manquants
-              </a>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      disabled={!!alreadyRelancedToday}
+                      onClick={handleRelanceDocs}
+                    >
+                      <Mail className="h-3 w-3 mr-1" /> Relance docs ({missingPieces.length})
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {alreadyRelancedToday && (
+                  <TooltipContent>
+                    <p>Déjà relancé aujourd'hui</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
           {contactEmail && (
-            <Button size="sm" variant="outline" className="text-xs" asChild>
-              <a href={`mailto:${contactEmail}?subject=Relance dossier CMA — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0ANous revenons vers vous concernant votre dossier CMA. Il manque encore ${missingPieces.length} document(s).%0A%0AMerci de les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`}>
-                <Send className="h-3 w-3 mr-1" /> Relance CMA
-              </a>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      disabled={!!alreadyRelancedToday}
+                      onClick={handleRelanceCMA}
+                    >
+                      <Send className="h-3 w-3 mr-1" /> Relance CMA
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {alreadyRelancedToday && (
+                  <TooltipContent>
+                    <p>Déjà relancé aujourd'hui</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
+        </div>
+      )}
+
+      {/* Missing docs chips */}
+      {missingPieces.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          <span className="text-xs text-muted-foreground mr-1">Manquants :</span>
+          {missingPieces.map(p => (
+            <Badge key={p.type} variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
+              ✗ {CMA_DOC_LABELS[p.type] || p.label}
+            </Badge>
+          ))}
         </div>
       )}
 
@@ -168,7 +280,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
       <Card className="p-4 bg-muted/30">
         <p className="text-xs text-muted-foreground">
           <FileText className="h-3 w-3 inline mr-1" />
-          Le statut CMA est déterminé automatiquement par la complétude des pièces obligatoires.
+          Le statut CMA est déterminé automatiquement par la complétude des {totalPieces} pièces obligatoires.
           {progressPct === 100 
             ? " Le dossier est complet et prêt pour soumission."
             : ` Il manque ${missingPieces.length} pièce(s) obligatoire(s).`
