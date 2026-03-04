@@ -12,31 +12,19 @@ import { NavigationProvider } from "@/contexts/NavigationContext";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
-import { ContactsUnifiedPage } from "@/components/contacts/ContactsUnifiedPage";
 import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
 import { ProspectsPage } from "@/components/prospects/ProspectsPage";
 import { SessionsPage } from "@/components/sessions/SessionsPage";
-import { FormateursPage } from "@/components/formateurs/FormateursPage";
-import { DocumentsUnifiedPage } from "@/components/documents/DocumentsUnifiedPage";
-import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
-import { AlertesPage } from "@/components/alertes/AlertesPage";
+import { FinancesPage } from "@/components/finances/FinancesPage";
+import { AutomationsPage } from "@/components/automations/AutomationsPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
+import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
-import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
-import { LmsAdminPage } from "@/components/lms/LmsAdminPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
-import { RapportsPage } from "@/components/rapports/RapportsPage";
-import { PlanningPage } from "@/components/planning/PlanningPage";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
+import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
-import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
-import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
-import RappelsPage from "@/components/rappels/RappelsPage";
-import AgentIAPage from "@/components/agent-ia/AgentIAPage";
-import IADirectorPage from "@/components/ia-director/IADirectorPage";
-import TemplateStudioPage from "@/components/template-studio/TemplateStudioPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -170,46 +158,31 @@ const Index = () => {
         return <FormationsPage />;
       case "sessions":
         return <SessionsPage />;
-      case "pipeline":
-        return <PipelinePage />;
       case "prospects":
         return <ProspectsPage />;
-      case "formateurs":
-        return <FormateursPage />;
-      case "documents":
-        return <DocumentsUnifiedPage />;
-      case "facturation":
-        return <FacturationUnifiedPage />;
-      case "communications":
-        return <CommunicationsPage />;
-      case "alertes":
-        return <AlertesPage />;
+      case "finances":
+        return <FinancesPage />;
+      case "automations":
+        return <AutomationsPage />;
       case "settings":
         return <SettingsPage />;
-      case "workflows":
-        return <WorkflowsPage />;
+      // Legacy routes still accessible via deep-links or internal navigation
+      case "pipeline":
+        return <PipelinePage />;
+      case "formateurs":
+        return <FormateursPage />;
+      case "alertes":
+        return <AlertesPage />;
       case "qualite":
         return <QualiteUnifiedPage />;
       case "partenaires":
         return <PartnersPage />;
-      case "planning":
-        return <PlanningPage />;
       case "planning-conduite":
         return <PlanningConduitePage />;
-      case "cockpit-financier":
-        return <CockpitFinancierPage />;
-      case "tresorerie":
-        return <TresoreriePage />;
-      case "rappels":
-        return <RappelsPage />;
-      case "rapports":
-        return <RapportsPage />;
-      case "ia-director":
-        return <IADirectorPage />;
-      case "template-studio":
-        return <TemplateStudioPage />;
+      case "facturation":
+        return <FinancesPage />;
       default:
-        return <Dashboard onNavigate={setActiveSection} />;
+        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
     }
   };
 
