@@ -2,7 +2,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Flame, ToggleLeft, ToggleRight, Copy } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Search, Flame, ToggleLeft, ToggleRight, Copy, Settings2 } from "lucide-react";
+import { getRecentDaysThreshold, setRecentDaysThreshold } from "@/lib/apprenant-active";
+import { useState } from "react";
 
 interface ApprenantsToolbarProps {
   search: string;
@@ -142,6 +145,32 @@ export function ApprenantsToolbar({
         <span className="ml-auto text-xs text-muted-foreground">
           {filteredCount} apprenant{filteredCount > 1 ? "s" : ""} affiché{filteredCount > 1 ? "s" : ""}
         </span>
+
+        {/* Recent days threshold */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center">
+              <Select
+                value={String(getRecentDaysThreshold())}
+                onValueChange={(v) => {
+                  setRecentDaysThreshold(Number(v) as 30 | 60 | 90);
+                  window.location.reload();
+                }}
+              >
+                <SelectTrigger className="h-7 w-[90px] text-[10px] rounded-lg border-dashed">
+                  <Settings2 className="h-3 w-3 mr-1 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 jours</SelectItem>
+                  <SelectItem value="60">60 jours</SelectItem>
+                  <SelectItem value="90">90 jours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs">Seuil "activité récente"</TooltipContent>
+        </Tooltip>
 
         {expertMode && (
           <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px]">
