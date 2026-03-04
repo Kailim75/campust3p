@@ -1,214 +1,80 @@
-import { useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Clock, XCircle, FileWarning, Upload, Send } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useContactDocuments } from "@/hooks/useContactDocuments";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Mail, Phone, MapPin, Calendar, User, Car, Hash } from "lucide-react";
+import { useContact } from "@/hooks/useContact";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-// Required docs per formation type
-const COMMON_DOCS = [
-  { type: "cni", label: "Pièce d'identité" },
-  { type: "photo", label: "Photo d'identité" },
-  { type: "attestation_domicile", label: "Justificatif de domicile" },
-  { type: "permis_b", label: "Permis" },
-];
-
-const STATUT_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string; badgeClass: string }> = {
-  valide: { icon: CheckCircle2, color: "text-success", label: "Validé", badgeClass: "bg-success/15 text-success" },
-  recu: { icon: Clock, color: "text-info", label: "Reçu", badgeClass: "bg-info/15 text-info" },
-  attendu: { icon: FileWarning, color: "text-muted-foreground", label: "Attendu", badgeClass: "bg-muted text-muted-foreground" },
-  refuse: { icon: XCircle, color: "text-destructive", label: "Refusé", badgeClass: "bg-destructive/15 text-destructive" },
-};
 
 interface DossierTabProps {
   contactId: string;
   formation: string | null;
 }
 
-export function DossierTab({ contactId, formation }: DossierTabProps) {
-  const { data: documents = [] } = useContactDocuments(contactId);
-  const queryClient = useQueryClient();
+function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3.5 py-2.5 group">
+      <div className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground mt-0.5 shrink-0 group-hover:bg-primary/5 group-hover:text-primary transition-colors duration-150">
+        <Icon className="h-4 w-4" strokeWidth={1.5} />
+      </div>
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-medium mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+}
 
-  const requiredDocs = useMemo(() => {
-    return [...COMMON_DOCS];
-  }, []);
+export function DossierTab({ contactId }: DossierTabProps) {
+  const { data: contact, isLoading } = useContact(contactId);
 
-  // Map existing docs by type
-  const docsMap = useMemo(() => {
-    const map = new Map<string, { statut: string; date?: string; id: string }>();
-    documents.forEach((d: any) => {
-      // Keep the most recent doc of each type
-      if (!map.has(d.type_document) || d.type_document) {
-        map.set(d.type_document, {
-          statut: d.type_document ? "recu" : "attendu", // simplified - real status from DB
-          date: d.created_at,
-          id: d.id,
-        });
-      }
-    });
-    return map;
-  }, [documents]);
+  if (isLoading || !contact) return <Skeleton className="h-[300px] rounded-xl" />;
 
-  const validated = requiredDocs.filter((d) => docsMap.has(d.type)).length;
-  const progressPct = requiredDocs.length > 0 ? Math.round((validated / requiredDocs.length) * 100) : 0;
+  const fullAddress = [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", ");
+  const birthInfo = [
+    contact.date_naissance ? format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr }) : null,
+    contact.ville_naissance,
+    contact.pays_naissance,
+  ].filter(Boolean).join(", ");
 
-  const updateDocStatut = useMutation({
-    mutationFn: async ({ docId, statut }: { docId: string; statut: string }) => {
-      const { error } = await supabase
-        .from("contact_documents")
-        .update({ commentaires: `Statut: ${statut}` })
-        .eq("id", docId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact_documents", contactId] });
-      toast.success("Document mis à jour");
-    },
-  });
+  const civiliteLabel = contact.civilite === "Monsieur" ? "M." : contact.civilite === "Madame" ? "Mme" : null;
+  const fullName = [civiliteLabel, contact.prenom, contact.nom].filter(Boolean).join(" ");
+  const nomNaissance = contact.nom_naissance ? `Née ${contact.nom_naissance}` : null;
 
-  // Mark a missing document as "received" by creating a placeholder entry
-  const markAsReceived = useMutation({
-    mutationFn: async ({ typeDocument, label }: { typeDocument: string; label: string }) => {
-      const { error } = await supabase
-        .from("contact_documents")
-        .insert({
-          contact_id: contactId,
-          type_document: typeDocument,
-          nom: label,
-          file_path: `manual/${typeDocument}_${Date.now()}`,
-          commentaires: "Statut: recu — marqué manuellement",
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact_documents", contactId] });
-      toast.success("Document marqué comme reçu");
-    },
-    onError: () => toast.error("Erreur lors de la mise à jour"),
-  });
-
-  // Send a reminder for a missing document
-  const sendRappel = useMutation({
-    mutationFn: async ({ typeDocument, label }: { typeDocument: string; label: string }) => {
-      const { error } = await supabase
-        .from("contact_historique")
-        .insert({
-          contact_id: contactId,
-          type: "note",
-          titre: `Rappel document : ${label}`,
-          contenu: `Rappel envoyé pour le document manquant : ${label} (${typeDocument})`,
-          date_echange: new Date().toISOString(),
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact_historique", contactId] });
-      toast.success("Rappel enregistré dans l'historique");
-    },
-    onError: () => toast.error("Erreur lors de l'envoi du rappel"),
-  });
+  const permisInfo = contact.numero_permis
+    ? `${contact.numero_permis}${contact.prefecture_permis ? ` (${contact.prefecture_permis})` : ""}${
+        contact.date_delivrance_permis
+          ? ` — Délivré le ${format(new Date(contact.date_delivrance_permis), "dd/MM/yyyy", { locale: fr })}`
+          : ""
+      }`
+    : null;
 
   return (
-    <div className="space-y-5">
-      {/* Summary banner */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-foreground">
-            {validated} / {requiredDocs.length} documents validés
-          </p>
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-xs",
-              progressPct >= 80 ? "bg-success/15 text-success" : progressPct >= 50 ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive"
-            )}
-          >
-            {progressPct}%
-          </Badge>
-        </div>
-        <Progress value={progressPct} className="h-2" />
+    <div className="space-y-6">
+      {/* Identité */}
+      <Card className="p-4 space-y-1">
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Identité</h3>
+        <InfoRow icon={User} label="Nom complet" value={fullName} />
+        {nomNaissance && <InfoRow icon={User} label="Nom de naissance" value={nomNaissance} />}
+        <InfoRow icon={Calendar} label="Naissance" value={birthInfo} />
+        {contact.custom_id && <InfoRow icon={Hash} label="ID personnalisé" value={contact.custom_id} />}
       </Card>
 
-      {/* Document checklist */}
-      <div className="space-y-2">
-        {requiredDocs.map((doc) => {
-          const existing = docsMap.get(doc.type);
-          const statut = existing ? "recu" : "attendu";
-          const config = STATUT_CONFIG[statut];
-          const Icon = config.icon;
+      {/* Coordonnées */}
+      <Card className="p-4 space-y-1">
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Coordonnées</h3>
+        <InfoRow icon={Phone} label="Téléphone" value={contact.telephone} />
+        <InfoRow icon={Mail} label="Email" value={contact.email} />
+        <InfoRow icon={MapPin} label="Adresse" value={fullAddress} />
+      </Card>
 
-          return (
-            <div
-              key={doc.type}
-              className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
-            >
-              <Icon className={cn("h-4 w-4 shrink-0", config.color)} />
-              <span className="flex-1 text-sm font-medium text-foreground">{doc.label}</span>
-              <Badge variant="outline" className={cn("text-[10px]", config.badgeClass)}>
-                {config.label}
-              </Badge>
-              {existing?.date && (
-                <span className="text-[10px] text-muted-foreground">
-                  {format(parseISO(existing.date), "dd/MM/yy", { locale: fr })}
-                </span>
-              )}
-              <div className="flex gap-1">
-                {statut === "attendu" && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[10px] text-success border-success/30"
-                      disabled={markAsReceived.isPending}
-                      onClick={() => markAsReceived.mutate({ typeDocument: doc.type, label: doc.label })}
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      {markAsReceived.isPending ? "..." : "Reçu"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-[10px]"
-                      disabled={sendRappel.isPending}
-                      onClick={() => sendRappel.mutate({ typeDocument: doc.type, label: doc.label })}
-                    >
-                      <Send className="h-3 w-3 mr-1" />
-                      {sendRappel.isPending ? "..." : "Rappel"}
-                    </Button>
-                  </>
-                )}
-                {statut === "recu" && existing && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[10px] text-success border-success/30"
-                      onClick={() => updateDocStatut.mutate({ docId: existing.id, statut: "valide" })}
-                    >
-                      Valider
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[10px] text-destructive border-destructive/30"
-                      onClick={() => updateDocStatut.mutate({ docId: existing.id, statut: "refuse" })}
-                    >
-                      Refuser
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Permis */}
+      {permisInfo && (
+        <Card className="p-4 space-y-1">
+          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Permis de conduire</h3>
+          <InfoRow icon={Car} label="Permis" value={permisInfo} />
+        </Card>
+      )}
     </div>
   );
 }
