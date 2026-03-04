@@ -40,6 +40,7 @@ import {
   CreditCard,
   Archive,
   ArchiveRestore,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
@@ -76,7 +77,10 @@ import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import { SessionQualiopiTab } from "./SessionQualiopiTab";
 import { SessionQualiopiBadge } from "./SessionQualiopiBadge";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
-import { Shield } from "lucide-react";
+import { SessionQuickActions } from "./SessionQuickActions";
+import { SessionParcoursTab } from "./SessionParcoursTab";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -102,9 +106,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const { data: formateur } = useFormateur(session?.formateur_id ?? null);
   const addInscription = useAddInscription();
   const removeInscription = useRemoveInscription();
+  const { composerProps, openComposer } = useEmailComposer();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("info");
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
@@ -333,25 +339,81 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   </div>
                   <SheetSizeSelector size={size} onSizeChange={setSize} />
                 </div>
+
+                {/* Quick Actions Bar */}
+                <SessionQuickActions
+                  inscriptionCount={inscriptionCount}
+                  archived={session.archived}
+                  onSendDocuments={() => setActiveTab("info")}
+                  onSendEmail={() => {
+                    // Open email composer with all inscribed contacts
+                    const recipients = inscriptions
+                      ?.filter((i) => {
+                        const c = i.contacts as any;
+                        return c?.email;
+                      })
+                      .map((i) => {
+                        const c = i.contacts as any;
+                        return {
+                          id: i.contact_id,
+                          email: c.email,
+                          prenom: c.prenom || "",
+                          nom: c.nom || "",
+                        };
+                      }) || [];
+                    if (recipients.length === 0) {
+                      toast.error("Aucun inscrit avec email");
+                      return;
+                    }
+                    openComposer({
+                      recipients,
+                      defaultSubject: `${session.nom} — Information`,
+                      defaultBody: `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nBien cordialement,\nL'équipe pédagogique`,
+                      autoNoteCategory: "session_email",
+                    });
+                  }}
+                  onManageExams={() => setActiveTab("parcours")}
+                  onExport={() => {
+                    // Simple CSV export of inscrits
+                    if (!inscriptions?.length) return;
+                    const rows = inscriptions.map((i) => {
+                      const c = i.contacts as any;
+                      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].join(",");
+                    });
+                    const csv = ["Prénom,Nom,Email,Téléphone,Statut", ...rows].join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `inscrits_${session.nom.replace(/\s/g, "_")}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("Liste exportée");
+                  }}
+                />
               </SheetHeader>
 
-              <Tabs defaultValue="info" className="mt-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="info" className="gap-1">
-                    <Info className="h-4 w-4" />
-                    Infos
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="info" className="gap-1 text-xs px-1">
+                    <Info className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Infos</span>
                   </TabsTrigger>
-                  <TabsTrigger value="inscriptions" className="gap-1">
-                    <Users className="h-4 w-4" />
-                    Inscrits ({inscriptionCount})
+                  <TabsTrigger value="inscriptions" className="gap-1 text-xs px-1">
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Inscrits</span> ({inscriptionCount})
                   </TabsTrigger>
-                  <TabsTrigger value="qualiopi" className="gap-1">
-                    <Shield className="h-4 w-4" />
-                    Qualiopi
+                  <TabsTrigger value="parcours" className="gap-1 text-xs px-1">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Parcours</span>
                   </TabsTrigger>
-                  <TabsTrigger value="emargement" className="gap-1">
-                    <ClipboardList className="h-4 w-4" />
-                    Émargement
+                  <TabsTrigger value="qualiopi" className="gap-1 text-xs px-1">
+                    <Shield className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Qualiopi</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="emargement" className="gap-1 text-xs px-1">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Émarg.</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -573,6 +635,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <SessionInscritsTable sessionId={session.id} />
                 </TabsContent>
 
+                {/* Tab: Parcours / Examens */}
+                <TabsContent value="parcours" className="pt-4">
+                  <SessionParcoursTab sessionId={session.id} />
+                </TabsContent>
+
                 {/* Tab: Qualiopi */}
                 <TabsContent value="qualiopi" className="pt-4">
                   <SessionQualiopiTab sessionId={session.id} />
@@ -640,6 +707,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           onSuccess={() => onOpenChange(false)}
         />
       )}
+
+      <EmailComposerModal {...composerProps} />
     </>
   );
 }
