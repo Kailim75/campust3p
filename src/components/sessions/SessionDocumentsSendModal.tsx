@@ -253,7 +253,7 @@ export function SessionDocumentsSendModal({
         defaultSubject,
         defaultBody,
         autoNoteCategory: ACTION_CATEGORY_MAP[docType],
-        autoNoteExtra: `Session: ${sessionName}`,
+        autoNoteExtra: `${label} — Session: ${sessionName}`,
         attachments: isGeneric ? sharedAttachments : undefined,
       });
     } catch (err: any) {

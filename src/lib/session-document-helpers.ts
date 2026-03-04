@@ -41,6 +41,23 @@ function jspdfToBase64(doc: any): string {
   return btoa(binary);
 }
 
+function buildSafeFilename(parts: string[]): string {
+  return parts
+    .filter(Boolean)
+    .map(p => p.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ-]/g, "_"))
+    .join("_");
+}
+
+function formatDateCompact(dateStr?: string): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2, "0")}${String(d.getMonth() + 1).padStart(2, "0")}${d.getFullYear()}`;
+  } catch {
+    return "";
+  }
+}
+
 export async function generateAttachmentsForContact(
   type: SessionDocumentType,
   contact: ContactInfo,
@@ -49,12 +66,14 @@ export async function generateAttachmentsForContact(
 ): Promise<EmailAttachment[]> {
   await preloadCompanyImages(company);
   const attachments: EmailAttachment[] = [];
-  const safeName = `${contact.nom}_${contact.prenom}`.replace(/\s+/g, "_");
+  const datePart = formatDateCompact(session.date_debut);
+  const namePart = buildSafeFilename([contact.nom, contact.prenom]);
+  const sessionPart = datePart || buildSafeFilename([session.formation_type || "Formation"]);
 
   if (type === "convocation" || type === "pack") {
     const doc = generateConvocationPDF(contact, session, company);
     attachments.push({
-      filename: `Convocation_${safeName}.pdf`,
+      filename: `Convocation_${namePart}_${sessionPart}.pdf`,
       content: jspdfToBase64(doc),
       contentType: "application/pdf",
     });
@@ -63,7 +82,7 @@ export async function generateAttachmentsForContact(
   if (type === "programme" || type === "pack") {
     const doc = generateProgrammePDF(session, company);
     attachments.push({
-      filename: `Programme_${session.formation_type || "Formation"}.pdf`,
+      filename: `Programme_${session.formation_type || "Formation"}_${datePart}.pdf`,
       content: jspdfToBase64(doc),
       contentType: "application/pdf",
     });
@@ -72,7 +91,7 @@ export async function generateAttachmentsForContact(
   if (type === "attestation") {
     const doc = generateAttestationPDF(contact, session, company);
     attachments.push({
-      filename: `Attestation_${safeName}.pdf`,
+      filename: `Attestation_${namePart}_${sessionPart}.pdf`,
       content: jspdfToBase64(doc),
       contentType: "application/pdf",
     });
