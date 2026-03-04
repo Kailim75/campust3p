@@ -371,7 +371,11 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
     openComposer({
-      recipients: selected.map(s => ({ id: s.id, email: s.email, prenom: s.prenom, nom: s.nom })),
+      recipients: selected.map(s => {
+        const missingLabels = (s.missingDocs || []).map((d: string) => CMA_DOC_LABELS[d] || d);
+        const customBody = `Bonjour ${s.prenom},\n\nPour compléter votre dossier CMA, il nous manque les documents suivants :\n\n${missingLabels.map((l: string) => `- ${l}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`;
+        return { id: s.id, email: s.email, prenom: s.prenom, nom: s.nom, customBody };
+      }),
       defaultSubject: "Documents CMA manquants",
       defaultBody: "Bonjour,\n\nIl manque des documents pour compléter votre dossier CMA.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
       autoNoteCategory: "cma_relance_docs",

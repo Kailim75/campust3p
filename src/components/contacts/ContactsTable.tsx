@@ -28,6 +28,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText, Users } from "lucide-react";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
@@ -83,6 +85,7 @@ export function ContactsTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEnrollOpen, setBulkEnrollOpen] = useState(false);
   const [bulkSendDocsOpen, setBulkSendDocsOpen] = useState(false);
+  const { composerProps, openComposer } = useEmailComposer();
   
   // Call log state
   const [callLogOpen, setCallLogOpen] = useState(false);
@@ -304,6 +307,11 @@ export function ContactsTable() {
                     onClick={() => handleContactClick(contact)}
                     onEnroll={() => handleEnrollClick(contact)}
                     onCall={() => handleCallClick(contact)}
+                    onEmail={contact.email ? () => openComposer({
+                      recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                      defaultSubject: "",
+                      defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+                    }) : undefined}
                     isSelected={selectedIds.has(contact.id)}
                   />
                 ))}
@@ -466,7 +474,11 @@ export function ContactsTable() {
                                 className="h-8 w-8"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`mailto:${contact.email}`, '_blank');
+                                  openComposer({
+                                    recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                                    defaultSubject: "",
+                                    defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+                                  });
                                 }}
                               >
                                 <Mail className="h-4 w-4" />
@@ -570,6 +582,7 @@ export function ContactsTable() {
           onOpenChange={setCallLogOpen}
         />
       )}
+      <EmailComposerModal {...composerProps} />
     </>
   );
 }

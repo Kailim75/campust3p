@@ -51,7 +51,8 @@ import { openWhatsApp } from "@/lib/phone-utils";
 import { useDeleteProspect, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
 import { useProspectHistorique, type ProspectHistoriqueType } from "@/hooks/useProspectHistorique";
 import { ProspectHistoriqueDialog } from "./ProspectHistoriqueDialog";
-import { ProspectSendEmailDialog } from "./ProspectSendEmailDialog";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectRappelDialog } from "./ProspectRappelDialog";
 import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
@@ -98,7 +99,7 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
   const { size, setSize, sizeClass } = useSheetSize("prospect");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [historiqueDialogOpen, setHistoriqueDialogOpen] = useState(false);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const { composerProps, openComposer } = useEmailComposer();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [rappelDialogOpen, setRappelDialogOpen] = useState(false);
@@ -215,7 +216,11 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
                 <Button
                   variant="default"
                   size="sm"
-                  onClick={() => setEmailDialogOpen(true)}
+                  onClick={() => openComposer({
+                    recipients: [{ id: prospect.id, email: prospect.email!, prenom: prospect.prenom, nom: prospect.nom }],
+                    defaultSubject: `Votre projet de formation ${prospect.formation_souhaitee || ""}`.trim(),
+                    defaultBody: `Bonjour ${prospect.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+                  })}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Envoyer un email
@@ -463,17 +468,7 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
         prospectName={`${prospect.prenom} ${prospect.nom}`}
       />
 
-      <ProspectSendEmailDialog
-        open={emailDialogOpen}
-        onOpenChange={setEmailDialogOpen}
-        prospect={{
-          id: prospect.id,
-          prenom: prospect.prenom,
-          nom: prospect.nom,
-          email: prospect.email,
-          formation_souhaitee: prospect.formation_souhaitee,
-        }}
-      />
+      <EmailComposerModal {...composerProps} />
 
       <SmartConversionDialog
         open={convertDialogOpen}

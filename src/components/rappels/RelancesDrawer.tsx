@@ -21,6 +21,8 @@ import { format, parseISO, differenceInDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 
 interface RelanceItem {
   id: string;
@@ -64,6 +66,7 @@ function generateMessage(item: RelanceItem): string {
 
 export function RelancesDrawer({ open, onOpenChange, rappels, financials }: RelancesDrawerProps) {
   const updateAlert = useUpdateHistoriqueAlert();
+  const { composerProps, openComposer } = useEmailComposer();
   const [treatedIds, setTreatedIds] = useState<Set<string>>(new Set());
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
 
@@ -142,7 +145,13 @@ export function RelancesDrawer({ open, onOpenChange, rappels, financials }: Rela
   const handleEmail = (item: RelanceItem) => {
     const msg = editedMessages[item.id] || generateMessage(item);
     const subject = `Relance paiement - Facture ${item.factureNumero}`;
-    window.open(`mailto:${item.contactEmail || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}`);
+    openComposer({
+      recipients: [{ id: item.contact_id, email: item.contactEmail || "", prenom: item.contactPrenom, nom: item.contactNom }],
+      defaultSubject: subject,
+      defaultBody: msg,
+      autoNoteCategory: "apprenant_relance_paiement",
+      autoNoteExtra: `Facture ${item.factureNumero}`,
+    });
   };
 
   const handleCopy = (item: RelanceItem) => {
@@ -227,6 +236,7 @@ export function RelancesDrawer({ open, onOpenChange, rappels, financials }: Rela
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
         <SheetHeader className="p-6 pb-4 border-b">
@@ -290,5 +300,7 @@ export function RelancesDrawer({ open, onOpenChange, rappels, financials }: Rela
         </ScrollArea>
       </SheetContent>
     </Sheet>
+    <EmailComposerModal {...composerProps} />
+    </>
   );
 }
