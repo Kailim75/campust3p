@@ -11,6 +11,9 @@ interface ApprenantsToolbarProps {
   onFormationFilterChange: (value: string) => void;
   quickFilter: string;
   onQuickFilterChange: (value: string) => void;
+  activityFilter: "actifs" | "tous" | "inactifs";
+  onActivityFilterChange: (value: "actifs" | "tous" | "inactifs") => void;
+  activityCounts: { actifs: number; inactifs: number; tous: number };
   expertMode: boolean;
   onExpertModeToggle: () => void;
   filteredCount: number;
@@ -25,6 +28,9 @@ export function ApprenantsToolbar({
   onFormationFilterChange,
   quickFilter,
   onQuickFilterChange,
+  activityFilter,
+  onActivityFilterChange,
+  activityCounts,
   expertMode,
   onExpertModeToggle,
   filteredCount,
@@ -78,10 +84,31 @@ export function ApprenantsToolbar({
         </Button>
       </div>
 
-      {/* Quick filters row */}
+      {/* Activity filter row */}
       <div className="flex items-center gap-2 flex-wrap">
+        {([
+          { value: "actifs" as const, label: "Actifs", count: activityCounts.actifs },
+          { value: "tous" as const, label: "Tous", count: activityCounts.tous },
+          { value: "inactifs" as const, label: "Inactifs", count: activityCounts.inactifs },
+        ]).map((f) => (
+          <Button
+            key={f.value}
+            variant={activityFilter === f.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => onActivityFilterChange(f.value)}
+            className="h-8 rounded-lg text-xs gap-1.5"
+          >
+            {f.label}
+            <Badge variant="secondary" className="h-5 min-w-5 text-[10px] px-1.5">
+              {f.count}
+            </Badge>
+          </Button>
+        ))}
+
+        <div className="w-px h-5 bg-border mx-1" />
+
         {[
-          { value: "all", label: "Tous" },
+          { value: "all", label: "Tous statuts" },
           { value: "retard", label: "Paiement en retard" },
           { value: "dossier", label: "Dossier incomplet" },
           { value: "session14", label: "Session < 14j" },
