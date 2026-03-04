@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
@@ -10,21 +10,38 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
-import { ProspectSendEmailDialog } from "@/components/prospects/ProspectSendEmailDialog";
+import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
-  UserCheck, CreditCard, FolderOpen, ChevronRight, CheckCircle2,
-  ExternalLink,
+  CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
-import { format, isPast, isToday, differenceInDays, parseISO, startOfDay, endOfDay, addDays } from "date-fns";
+import { format, isPast, isToday, differenceInDays, parseISO, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+import {
+  createAutoNote, deleteAutoNote, fetchTodayAutoNotes,
+  isHandledToday, type ActionCategory,
+} from "@/lib/aujourdhui-actions";
 import type { Prospect } from "@/hooks/useProspects";
 
 // ─── CMA required docs ───
 const CMA_REQUIRED_DOCS = ["cni", "photo", "attestation_domicile", "permis_b"];
+
+const DOC_LABELS: Record<string, string> = {
+  cni: "Pièce d'identité",
+  photo: "Photo d'identité",
+  attestation_domicile: "Justificatif domicile",
+  permis_b: "Permis",
+};
+
+// Keywords used to detect if an action category was already done today
+const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
+const RDV_KEYWORDS = ["confirmation RDV", "Prospect:", "Marqué comme traité"];
+const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
+const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
 
 function useAujourdhuiData() {
   return useQuery({
@@ -35,7 +52,7 @@ function useAujourdhuiData() {
 
       const [
         contactsRes, docsRes, facturesRes, paiementsRes,
-        prospectsRes, sessionsRes, inscriptionsRes, rappelsRes
+        prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
       ] = await Promise.all([
         supabase.from("contacts").select("id, nom, prenom, formation, statut, email, telephone, updated_at").eq("archived", false),
         supabase.from("contact_documents").select("contact_id, type_document"),
@@ -45,6 +62,7 @@ function useAujourdhuiData() {
         supabase.from("sessions").select("id, nom, date_debut, date_fin, statut").eq("archived", false).lte("date_debut", in14Days).gte("date_fin", todayStr),
         supabase.from("session_inscriptions").select("contact_id, session_id"),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
+        fetchTodayAutoNotes(),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -52,30 +70,33 @@ function useAujourdhuiData() {
       const factures = facturesRes.data || [];
       const paiements = paiementsRes.data || [];
       const prospects = (prospectsRes.data || []) as Prospect[];
-      const sessions = sessionsRes.data || [];
       const inscriptions = inscriptionsRes.data || [];
       const rappels = rappelsRes.data || [];
 
-      // Build docs map per contact
+      // Contact name map for journal
+      const contactNameMap = new Map<string, string>();
+      contacts.forEach((c: any) => contactNameMap.set(c.id, `${c.prenom} ${c.nom}`));
+      // Also add prospect names
+      prospects.forEach((p: any) => {
+        contactNameMap.set(p.id, `${p.prenom} ${p.nom}`);
+      });
+
+      // Build docs map
       const docsMap = new Map<string, Set<string>>();
       docs.forEach((d: any) => {
         if (!docsMap.has(d.contact_id)) docsMap.set(d.contact_id, new Set());
         docsMap.get(d.contact_id)!.add(d.type_document);
       });
 
-      // Build paiements map per facture
+      // Build paiements map
       const paiementsMap = new Map<string, number>();
       paiements.forEach((p: any) => {
         paiementsMap.set(p.facture_id, (paiementsMap.get(p.facture_id) || 0) + Number(p.montant || 0));
       });
 
-      // Build inscriptions set
       const inscribedContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
-
-      // Build active session contact set
       const activeSessionContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
 
-      // Build facture map per contact for active check
       const contactHasOpenFacture = new Set<string>();
       factures.forEach((f: any) => {
         if (f.statut !== "payee" && f.statut !== "annulee") {
@@ -83,23 +104,21 @@ function useAujourdhuiData() {
         }
       });
 
-      // Active rappels per contact
       const contactHasRappel = new Set(rappels.map((r: any) => r.contact_id));
-
-      // isActive check using existing signals
       const thirtyDaysAgo = addDays(new Date(), -30).toISOString();
+
       const isContactActive = (c: any) => {
         if (activeSessionContactIds.has(c.id)) return true;
         if (contactHasOpenFacture.has(c.id)) return true;
         if (contactHasRappel.has(c.id)) return true;
         const contactDocs = docsMap.get(c.id) || new Set();
         const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-        if (missingDocs.length > 0 && missingDocs.length < CMA_REQUIRED_DOCS.length) return true; // has some docs but not all
+        if (missingDocs.length > 0 && missingDocs.length < CMA_REQUIRED_DOCS.length) return true;
         if (c.updated_at && c.updated_at >= thirtyDaysAgo) return true;
         return false;
       };
 
-      // ─── Bloc A: CMA à traiter ───
+      // ─── Bloc A: CMA ───
       const cmaItems = contacts
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation")
         .map(c => {
@@ -110,12 +129,12 @@ function useAujourdhuiData() {
         .filter(c => c.missingDocs.length > 0)
         .sort((a, b) => b.missingDocs.length - a.missingDocs.length);
 
-      // ─── Bloc B: RDV du jour (prospects with date_prochaine_relance = today) ───
+      // ─── Bloc B: RDV ───
       const rdvToday = prospects
         .filter(p => p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)))
         .slice(0, 10);
 
-      // ─── Bloc C: Relances à faire ───
+      // ─── Bloc C: Relances ───
       const relances = prospects
         .filter(p => {
           if (p.statut === "relance") return true;
@@ -129,44 +148,39 @@ function useAujourdhuiData() {
         })
         .slice(0, 10);
 
-      // ─── Bloc D: Apprenants critiques ───
+      // ─── Bloc D: Critiques ───
       const critiques = contacts
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation")
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-          
-          // Check unpaid factures
           const contactFactures = factures.filter((f: any) => f.contact_id === c.id);
-          const hasUnpaid = contactFactures.some((f: any) => {
-            if (f.statut === "payee") return false;
-            const paid = paiementsMap.get(f.id) || 0;
-            return paid < Number(f.montant_total || 0);
-          });
-
-          const hasLatePayment = contactFactures.some((f: any) => 
+          const hasLatePayment = contactFactures.some((f: any) =>
             f.statut === "emise" && f.date_echeance && f.date_echeance < todayStr
           );
-
-          // Session < 14 days + dossier incomplet
           const isInscribed = inscribedContactIds.has(c.id);
-          const sessionSoon = isInscribed; // simplified: if inscribed in upcoming sessions
-
           const reasons: string[] = [];
           if (missingCMA.length > 0) reasons.push("Docs CMA manquants");
           if (hasLatePayment) reasons.push("Paiement en retard");
-          if (sessionSoon && missingCMA.length > 0) reasons.push("Session proche + dossier incomplet");
-
-          return { ...c, reasons, missingCMA, hasLatePayment, hasUnpaid, _isActive: isContactActive(c) };
+          if (isInscribed && missingCMA.length > 0) reasons.push("Session proche + dossier incomplet");
+          return { ...c, reasons, missingCMA, hasLatePayment, _isActive: isContactActive(c) };
         })
         .filter(c => c.reasons.length > 0)
         .sort((a, b) => b.reasons.length - a.reasons.length);
+
+      // Journal entries from today's auto notes
+      const journalEntries = todayNotes.map(n => ({
+        ...n,
+        contactName: contactNameMap.get(n.contact_id) || "Contact",
+      }));
 
       return {
         cmaItems,
         rdvToday,
         relances,
         critiques,
+        todayNotes,
+        journalEntries,
         totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length,
       };
     },
@@ -174,24 +188,51 @@ function useAujourdhuiData() {
   });
 }
 
-const DOC_LABELS: Record<string, string> = {
-  cni: "Pièce d'identité",
-  photo: "Photo d'identité",
-  attestation_domicile: "Justificatif domicile",
-  permis_b: "Permis",
-};
-
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
 }
 
 export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const { data, isLoading } = useAujourdhuiData();
+  const queryClient = useQueryClient();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [contactDetailOpen, setContactDetailOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [showHandled, setShowHandled] = useState(false);
+
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
+    queryClient.invalidateQueries({ queryKey: ["contact-historique"] });
+  }, [queryClient]);
+
+  const logAction = useCallback(async (contactId: string, category: ActionCategory, extra?: string) => {
+    const result = await createAutoNote(contactId, category, extra);
+    if (result) {
+      const undoTimeout = setTimeout(() => {}, 0); // placeholder
+      toast.success("Action enregistrée", {
+        description: "Note ajoutée à la fiche",
+        action: {
+          label: "Annuler",
+          onClick: async () => {
+            const deleted = await deleteAutoNote(result.id);
+            if (deleted) {
+              toast.info("Action annulée");
+              invalidate();
+            }
+          },
+        },
+        duration: 10000,
+      });
+      invalidate();
+    }
+    return result;
+  }, [invalidate]);
+
+  const markDone = useCallback(async (contactId: string, blocLabel: string) => {
+    await logAction(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
+  }, [logAction]);
 
   const openContact = (id: string) => {
     setSelectedContactId(id);
@@ -214,249 +255,340 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     );
   }
 
-  const { cmaItems: rawCma = [], rdvToday = [], relances = [], critiques: rawCritiques = [] } = data || {};
+  const {
+    cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
+    critiques: rawCritiques = [], todayNotes = [], journalEntries = [],
+  } = data || {};
 
-  // Apply active filter to CMA and critiques blocs
-  const cmaItems = (includeInactive ? rawCma : rawCma.filter(c => c._isActive)).slice(0, 10);
-  const critiques = (includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive)).slice(0, 10);
-  const hiddenCma = rawCma.length - (includeInactive ? rawCma : rawCma.filter(c => c._isActive)).length;
-  const hiddenCritiques = rawCritiques.length - (includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive)).length;
+  // Active filter for CMA/critiques
+  const activeCma = includeInactive ? rawCma : rawCma.filter(c => c._isActive);
+  const activeCritiques = includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive);
+  const hiddenCount = (rawCma.length - rawCma.filter(c => c._isActive).length) + (rawCritiques.length - rawCritiques.filter(c => c._isActive).length);
+
+  // Anti-double-relance: filter handled items
+  const cmaItems = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS))).slice(0, 10);
+  const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS))).slice(0, 10);
+  const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
+  const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
+
+  const handledCmaCount = activeCma.length - (showHandled ? 0 : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)).length);
+  const handledRdvCount = rawRdv.length - (showHandled ? 0 : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS)).length);
+  const handledRelanceCount = rawRelances.length - (showHandled ? 0 : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS)).length);
+  const handledCritiqueCount = activeCritiques.length - (showHandled ? 0 : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS)).length);
+  const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
+
   const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length;
+
+  // ─── Action handlers with auto-logging ───
+  const handleCmaRelanceDocs = (item: any) => {
+    logAction(item.id, "cma_relance_docs", `Docs manquants: ${item.missingDocs.map((d: string) => DOC_LABELS[d] || d).join(", ")}`);
+    window.open(`mailto:${item.email}?subject=Documents CMA manquants&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour compléter votre dossier CMA :%0A${item.missingDocs.map((d: string) => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  const handleCmaWhatsApp = (item: any) => {
+    logAction(item.id, "apprenant_whatsapp");
+    openWhatsApp(item.telephone);
+  };
+
+  const handleRdvConfirm = (p: any) => {
+    logAction(p.id, "prospect_confirmation_rdv", `Date: ${p.date_prochaine_relance || "aujourd'hui"}`);
+    window.open(`mailto:${p.email}?subject=Confirmation de votre rendez-vous&body=Bonjour ${p.prenom},%0A%0ANous confirmons votre rendez-vous prévu aujourd'hui.%0A%0AÀ très bientôt !%0AT3P Campus`);
+  };
+
+  const handleRdvAppel = (p: any) => {
+    logAction(p.id, "prospect_appel");
+  };
+
+  const handleRdvWhatsApp = (p: any) => {
+    logAction(p.id, "prospect_relance_whatsapp");
+    openWhatsApp(p.telephone);
+  };
+
+  const handleRelanceEmail = (p: any) => {
+    logAction(p.id, "prospect_relance", `Formation: ${p.formation_souhaitee || ""}`);
+    window.open(`mailto:${p.email}?subject=Votre projet de formation ${p.formation_souhaitee || ''}&body=Bonjour ${p.prenom},%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0AN'hésitez pas à nous contacter pour en discuter.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  const handleRelanceWhatsApp = (p: any) => {
+    logAction(p.id, "prospect_relance_whatsapp");
+    openWhatsApp(p.telephone);
+  };
+
+  const handleCritiqueDemanderDocs = (item: any) => {
+    logAction(item.id, "apprenant_demander_docs", `Docs manquants: ${item.missingCMA.map((d: string) => DOC_LABELS[d] || d).join(", ")}`);
+    window.open(`mailto:${item.email}?subject=Documents manquants — Urgent&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour votre dossier :%0A${item.missingCMA.map((d: string) => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de les transmettre en urgence.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  const handleCritiqueRelancePaiement = (item: any) => {
+    logAction(item.id, "apprenant_relance_paiement");
+    window.open(`mailto:${item.email}?subject=Rappel de paiement&body=Bonjour ${item.prenom},%0A%0ANous vous rappelons qu'un paiement est en attente pour votre formation.%0A%0AMerci de régulariser votre situation.%0A%0ACordialement,%0AT3P Campus`);
+  };
+
+  // ─── Mark done button ───
+  const MarkDoneBtn = ({ contactId, bloc }: { contactId: string; bloc: string }) => (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 text-[10px] text-muted-foreground hover:text-success"
+      onClick={(e) => { e.stopPropagation(); markDone(contactId, bloc); }}
+    >
+      <Check className="h-3 w-3 mr-1" /> Fait
+    </Button>
+  );
 
   return (
     <div className="space-y-6">
-      <Header title="Aujourd'hui" subtitle={`${totalActions} actions à traiter`} />
+      <Header title="Aujourd'hui" subtitle={`${totalActions} action${totalActions > 1 ? "s" : ""} à traiter`} />
 
-      {/* Toggle inactifs */}
-      <div className="px-8 flex items-center justify-end gap-2">
-        <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
-        <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
-          Inclure inactifs
-          {(hiddenCma + hiddenCritiques) > 0 && !includeInactive && (
-            <span className="ml-1 text-muted-foreground/60">({hiddenCma + hiddenCritiques} masqués)</span>
-          )}
-        </Label>
+      {/* Toggles */}
+      <div className="px-8 flex items-center justify-end gap-4">
+        <div className="flex items-center gap-2">
+          <Switch id="show-handled" checked={showHandled} onCheckedChange={setShowHandled} />
+          <Label htmlFor="show-handled" className="text-xs text-muted-foreground cursor-pointer">
+            Afficher traités
+            {totalHandled > 0 && !showHandled && (
+              <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
+            )}
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+          <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
+            Inclure inactifs
+            {hiddenCount > 0 && !includeInactive && (
+              <span className="ml-1 text-muted-foreground/60">({hiddenCount} masqués)</span>
+            )}
+          </Label>
+        </div>
       </div>
 
-      <div className="px-8 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* ─── BLOC A: CMA à traiter ─── */}
-        <Card className="p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileCheck className="h-4 w-4 text-primary" />
+      <div className="px-8 pb-8 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* ─── BLOC A: CMA à traiter ─── */}
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileCheck className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">CMA à traiter</h3>
+                  <p className="text-[11px] text-muted-foreground">{cmaItems.length} dossier{cmaItems.length > 1 ? "s" : ""} incomplet{cmaItems.length > 1 ? "s" : ""}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">CMA à traiter</h3>
-                <p className="text-[11px] text-muted-foreground">{cmaItems.length} dossier{cmaItems.length > 1 ? "s" : ""} incomplet{cmaItems.length > 1 ? "s" : ""}</p>
-              </div>
+              <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaItems.length}</Badge>
             </div>
-            <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaItems.length}</Badge>
-          </div>
-          <div className="divide-y max-h-80 overflow-y-auto">
-            {cmaItems.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                Tous les dossiers CMA sont complets
-              </div>
-            ) : cmaItems.map((item) => (
-              <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                <div className="flex items-center justify-between mb-1.5">
-                  <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                    {item.prenom} {item.nom}
-                    <ExternalLink className="h-3 w-3 opacity-40" />
-                  </button>
-                  {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+            <div className="divide-y max-h-80 overflow-y-auto">
+              {cmaItems.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                  Tous les dossiers CMA sont complets
                 </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {item.missingDocs.map(d => (
-                    <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                      ✗ {DOC_LABELS[d] || d}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  {item.email && (
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => window.open(`mailto:${item.email}?subject=Documents CMA manquants&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour compléter votre dossier CMA :%0A${item.missingDocs.map(d => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`)}>
-                      <Mail className="h-3 w-3 mr-1" /> Relance docs
-                    </Button>
-                  )}
-                  {item.telephone && (
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => openWhatsApp(item.telephone)}>
-                      <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ─── BLOC B: RDV du jour ─── */}
-        <Card className="p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-warning" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">RDV du jour</h3>
-                <p className="text-[11px] text-muted-foreground">{rdvToday.length} rendez-vous prévus</p>
-              </div>
-            </div>
-            <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{rdvToday.length}</Badge>
-          </div>
-          <div className="divide-y max-h-80 overflow-y-auto">
-            {rdvToday.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                Aucun RDV prévu aujourd'hui
-              </div>
-            ) : rdvToday.map((p) => (
-              <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                <div className="flex items-center justify-between mb-1.5">
-                  <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                    {p.prenom} {p.nom}
-                    <ExternalLink className="h-3 w-3 opacity-40" />
-                  </button>
-                  <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning">Aujourd'hui</Badge>
-                </div>
-                {p.formation_souhaitee && (
-                  <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>
-                )}
-                <div className="flex gap-1.5">
-                  {p.email && (
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => window.open(`mailto:${p.email}?subject=Confirmation de votre rendez-vous&body=Bonjour ${p.prenom},%0A%0ANous confirmons votre rendez-vous prévu aujourd'hui.%0A%0AÀ très bientôt !%0AT3P Campus`)}>
-                      <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
-                    </Button>
-                  )}
-                  {p.telephone && (
-                    <>
-                      <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
-                        <a href={`tel:${p.telephone}`}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
+              ) : cmaItems.map((item) => (
+                <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      {item.prenom} {item.nom}
+                      <ExternalLink className="h-3 w-3 opacity-40" />
+                    </button>
+                    {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {item.missingDocs.map((d: string) => (
+                      <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                        ✗ {DOC_LABELS[d] || d}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5">
+                    {item.email && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCmaRelanceDocs(item)}>
+                        <Mail className="h-3 w-3 mr-1" /> Relance docs
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => openWhatsApp(p.telephone)}>
-                        <SiWhatsapp className="h-3 w-3" />
+                    )}
+                    {item.telephone && (
+                      <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleCmaWhatsApp(item)}>
+                        <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                       </Button>
-                    </>
-                  )}
+                    )}
+                    <MarkDoneBtn contactId={item.id} bloc="CMA" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ─── BLOC C: Relances à faire ─── */}
-        <Card className="p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-accent" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Relances à faire</h3>
-                <p className="text-[11px] text-muted-foreground">{relances.length} prospect{relances.length > 1 ? "s" : ""} en attente</p>
-              </div>
+              ))}
             </div>
-            <Badge variant="outline" className="text-xs bg-accent/10 text-accent">{relances.length}</Badge>
-          </div>
-          <div className="divide-y max-h-80 overflow-y-auto">
-            {relances.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                Toutes les relances sont à jour
-              </div>
-            ) : relances.map((p) => (
-              <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                <div className="flex items-center justify-between mb-1.5">
-                  <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                    {p.prenom} {p.nom}
-                    <ExternalLink className="h-3 w-3 opacity-40" />
-                  </button>
-                  {p.date_prochaine_relance && (
-                    <Badge variant="outline" className={cn(
-                      "text-[10px]",
-                      isPast(parseISO(p.date_prochaine_relance)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                    )}>
-                      {isPast(parseISO(p.date_prochaine_relance))
-                        ? `${Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))}j retard`
-                        : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
-                      }
-                    </Badge>
-                  )}
-                </div>
-                {p.formation_souhaitee && (
-                  <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>
-                )}
-                <div className="flex gap-1.5">
-                  {p.email && (
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => window.open(`mailto:${p.email}?subject=Votre projet de formation ${p.formation_souhaitee || ''}&body=Bonjour ${p.prenom},%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0AN'hésitez pas à nous contacter pour en discuter.%0A%0ACordialement,%0AT3P Campus`)}>
-                      <Mail className="h-3 w-3 mr-1" /> Relancer
-                    </Button>
-                  )}
-                  {p.telephone && (
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => openWhatsApp(p.telephone)}>
-                      <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+          </Card>
 
-        {/* ─── BLOC D: Apprenants critiques ─── */}
-        <Card className="p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+          {/* ─── BLOC B: RDV du jour ─── */}
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">RDV du jour</h3>
+                  <p className="text-[11px] text-muted-foreground">{rdvToday.length} rendez-vous prévus</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Apprenants critiques</h3>
-                <p className="text-[11px] text-muted-foreground">{critiques.length} action{critiques.length > 1 ? "s" : ""} requise{critiques.length > 1 ? "s" : ""}</p>
-              </div>
+              <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{rdvToday.length}</Badge>
             </div>
-            <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{critiques.length}</Badge>
-          </div>
-          <div className="divide-y max-h-80 overflow-y-auto">
-            {critiques.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                Aucun apprenant en situation critique
+            <div className="divide-y max-h-80 overflow-y-auto">
+              {rdvToday.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  Aucun RDV prévu aujourd'hui
+                </div>
+              ) : rdvToday.map((p) => (
+                <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      {p.prenom} {p.nom}
+                      <ExternalLink className="h-3 w-3 opacity-40" />
+                    </button>
+                    <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning">Aujourd'hui</Badge>
+                  </div>
+                  {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>}
+                  <div className="flex gap-1.5">
+                    {p.email && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRdvConfirm(p)}>
+                        <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
+                      </Button>
+                    )}
+                    {p.telephone && (
+                      <>
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
+                          <a href={`tel:${p.telephone}`} onClick={() => handleRdvAppel(p)}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRdvWhatsApp(p)}>
+                          <SiWhatsapp className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                    <MarkDoneBtn contactId={p.id} bloc="RDV" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* ─── BLOC C: Relances à faire ─── */}
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-accent" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Relances à faire</h3>
+                  <p className="text-[11px] text-muted-foreground">{relances.length} prospect{relances.length > 1 ? "s" : ""} en attente</p>
+                </div>
               </div>
-            ) : critiques.map((item) => (
-              <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                <div className="flex items-center justify-between mb-1.5">
-                  <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                    {item.prenom} {item.nom}
-                    <ExternalLink className="h-3 w-3 opacity-40" />
-                  </button>
-                  {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+              <Badge variant="outline" className="text-xs bg-accent/10 text-accent">{relances.length}</Badge>
+            </div>
+            <div className="divide-y max-h-80 overflow-y-auto">
+              {relances.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                  Toutes les relances sont à jour
                 </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {item.reasons.map((r, i) => (
-                    <Badge key={i} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                      {r}
-                    </Badge>
-                  ))}
+              ) : relances.map((p) => (
+                <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      {p.prenom} {p.nom}
+                      <ExternalLink className="h-3 w-3 opacity-40" />
+                    </button>
+                    {p.date_prochaine_relance && (
+                      <Badge variant="outline" className={cn(
+                        "text-[10px]",
+                        isPast(parseISO(p.date_prochaine_relance)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                      )}>
+                        {isPast(parseISO(p.date_prochaine_relance))
+                          ? `${Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))}j retard`
+                          : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
+                        }
+                      </Badge>
+                    )}
+                  </div>
+                  {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>}
+                  <div className="flex gap-1.5">
+                    {p.email && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRelanceEmail(p)}>
+                        <Mail className="h-3 w-3 mr-1" /> Relancer
+                      </Button>
+                    )}
+                    {p.telephone && (
+                      <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
+                        <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+                      </Button>
+                    )}
+                    <MarkDoneBtn contactId={p.id} bloc="Relance" />
+                  </div>
                 </div>
-                <div className="flex gap-1.5">
-                  {item.missingCMA.length > 0 && item.email && (
-                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => window.open(`mailto:${item.email}?subject=Documents manquants — Urgent&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour votre dossier :%0A${item.missingCMA.map(d => `- ${DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de les transmettre en urgence.%0A%0ACordialement,%0AT3P Campus`)}>
-                      <FolderOpen className="h-3 w-3 mr-1" /> Demander docs
-                    </Button>
-                  )}
-                  {item.hasLatePayment && item.email && (
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive border-destructive/20" onClick={() => window.open(`mailto:${item.email}?subject=Rappel de paiement&body=Bonjour ${item.prenom},%0A%0ANous vous rappelons qu'un paiement est en attente pour votre formation.%0A%0AMerci de régulariser votre situation.%0A%0ACordialement,%0AT3P Campus`)}>
-                      <CreditCard className="h-3 w-3 mr-1" /> Relance paiement
-                    </Button>
-                  )}
+              ))}
+            </div>
+          </Card>
+
+          {/* ─── BLOC D: Apprenants critiques ─── */}
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Apprenants critiques</h3>
+                  <p className="text-[11px] text-muted-foreground">{critiques.length} action{critiques.length > 1 ? "s" : ""} requise{critiques.length > 1 ? "s" : ""}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{critiques.length}</Badge>
+            </div>
+            <div className="divide-y max-h-80 overflow-y-auto">
+              {critiques.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                  Aucun apprenant en situation critique
+                </div>
+              ) : critiques.map((item) => (
+                <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      {item.prenom} {item.nom}
+                      <ExternalLink className="h-3 w-3 opacity-40" />
+                    </button>
+                    {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {item.reasons.map((r: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                        {r}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5">
+                    {item.missingCMA.length > 0 && item.email && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCritiqueDemanderDocs(item)}>
+                        <FolderOpen className="h-3 w-3 mr-1" /> Demander docs
+                      </Button>
+                    )}
+                    {item.hasLatePayment && item.email && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive border-destructive/20" onClick={() => handleCritiqueRelancePaiement(item)}>
+                        <CreditCard className="h-3 w-3 mr-1" /> Relance paiement
+                      </Button>
+                    )}
+                    <MarkDoneBtn contactId={item.id} bloc="Critique" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ─── Journal d'actions ─── */}
+        <ActionJournal
+          entries={journalEntries}
+          onOpenContact={openContact}
+        />
       </div>
 
       {/* Detail sheets */}
