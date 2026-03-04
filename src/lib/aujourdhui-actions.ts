@@ -120,6 +120,39 @@ export async function fetchTodayAutoNotes(): Promise<
   return (data || []) as Array<{ id: string; contact_id: string; titre: string; created_at: string }>;
 }
 
+/**
+ * Fetch the most recent [AUTO] note for a set of contact IDs (any date).
+ * Used when no action was taken today to show the last known action.
+ */
+export async function fetchRecentAutoNotes(contactIds: string[]): Promise<
+  Array<{ id: string; contact_id: string; titre: string; created_at: string }>
+> {
+  if (contactIds.length === 0) return [];
+  // Fetch latest note per contact — we get a reasonable batch and deduplicate client-side
+  const { data, error } = await supabase
+    .from("contact_historique")
+    .select("id, contact_id, titre, created_at")
+    .in("contact_id", contactIds)
+    .like("titre", "[AUTO]%")
+    .order("date_echange", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("Failed to fetch recent auto notes:", error);
+    return [];
+  }
+  // Deduplicate: keep only the most recent per contact_id
+  const seen = new Set<string>();
+  const deduped: Array<{ id: string; contact_id: string; titre: string; created_at: string }> = [];
+  for (const note of (data || [])) {
+    if (!seen.has(note.contact_id)) {
+      seen.add(note.contact_id);
+      deduped.push(note as any);
+    }
+  }
+  return deduped;
+}
+
 export function isHandledToday(
   contactId: string,
   todayNotes: Array<{ contact_id: string; titre: string }>,

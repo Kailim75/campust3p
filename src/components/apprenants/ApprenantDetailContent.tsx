@@ -295,11 +295,25 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
                   <><CheckCircle2 className="h-3 w-3 mr-1" />OK</>
                 )}
               </Badge>
-              {/* Urgency badge */}
-              <Badge variant="outline" className={cn("text-[10px]", urgency.className)}>
-                <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
-                {urgency.label}
-              </Badge>
+              {/* Urgency badge with reasons tooltip */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className={cn("text-[10px] cursor-help", urgency.className)}>
+                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
+                      {urgency.label}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[220px]">
+                    <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
+                    {urgency.reasons.length > 0 && (
+                      <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
+                        {urgency.reasons.map((r: string, i: number) => <li key={i}>• {r}</li>)}
+                      </ul>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
