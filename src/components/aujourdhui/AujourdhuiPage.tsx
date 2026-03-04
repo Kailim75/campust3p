@@ -523,7 +523,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   <div className="flex justify-center gap-2">
                     {onNavigate && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => onNavigate("prospects")}>
+                        <Button size="sm" variant="outline" className="text-xs" onClick={() => { onNavigate("prospects-agenda"); }}>
                           <CalendarCheck className="h-3 w-3 mr-1" /> Planifier un RDV
                         </Button>
                         <Button size="sm" variant="ghost" className="text-xs" onClick={() => onNavigate("prospects")}>

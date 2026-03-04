@@ -86,6 +86,7 @@ const Index = () => {
   useEffect(() => {
     const redirects: Record<string, { section: string; tab?: string }> = {
       pipeline: { section: "prospects", tab: "pipeline" },
+      "prospects-agenda": { section: "prospects", tab: "agenda" },
     };
     const redirect = redirects[activeSection];
     if (redirect) {

@@ -89,11 +89,12 @@ export function ProspectsPage() {
   const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
   const isMobile = useIsMobile();
 
-  // Support tab navigation from legacy routes
+  // Support tab navigation from legacy routes or deep links
   const nav = useNavigation();
   useEffect(() => {
-    if (nav.activeTab === "pipeline") {
-      setActiveView("pipeline");
+    const validTabs = ["list", "kanban", "dashboard", "pipeline", "agenda"];
+    if (nav.activeTab && validTabs.includes(nav.activeTab)) {
+      setActiveView(nav.activeTab as typeof activeView);
       nav.setActiveTab(undefined);
     }
   }, [nav.activeTab]);
