@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
   LayoutList,
   Kanban,
   BarChart3,
+  GitBranch,
   X,
   Eye,
 } from "lucide-react";
@@ -34,6 +35,8 @@ import { useProspects, useDeleteProspect, useProspectsStats, type ProspectStatus
 import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectsDashboard } from "./ProspectsDashboard";
+import { PipelinePage } from "@/components/pipeline/PipelinePage";
+import { useNavigation } from "@/contexts/NavigationContext";
 import { ProspectsKanban } from "./ProspectsKanban";
 import { ProspectDetailSheet } from "./ProspectDetailSheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -78,12 +81,21 @@ export function ProspectsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
-  const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard">("list");
+  const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard" | "pipeline">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
   const isMobile = useIsMobile();
+
+  // Support tab navigation from legacy routes
+  const nav = useNavigation();
+  useEffect(() => {
+    if (nav.activeTab === "pipeline") {
+      setActiveView("pipeline");
+      nav.setActiveTab(undefined);
+    }
+  }, [nav.activeTab]);
 
   const handleViewDetail = (prospect: Prospect) => {
     setViewingProspect(prospect);
@@ -198,6 +210,10 @@ export function ProspectsPage() {
               <Kanban className="h-4 w-4" />
               Kanban
             </TabsTrigger>
+            <TabsTrigger value="pipeline" className="gap-2">
+              <GitBranch className="h-4 w-4" />
+              Pipeline
+            </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -217,6 +233,11 @@ export function ProspectsPage() {
         {/* Kanban Tab */}
         <TabsContent value="kanban" className="mt-6">
           <ProspectsKanban />
+        </TabsContent>
+
+        {/* Pipeline Tab */}
+        <TabsContent value="pipeline" className="mt-6">
+          <PipelinePage embedded />
         </TabsContent>
 
         {/* List Tab */}

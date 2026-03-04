@@ -5,7 +5,6 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
 import { DashboardKPIRow } from "./DashboardKPIRow";
 import { DashboardAlertsRow } from "./DashboardAlertsRow";
-import { SessionsUpcoming } from "./SessionsUpcoming";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
@@ -34,11 +33,11 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4">
+      <div className="px-8 pt-8 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground">Vue d'ensemble de votre centre</p>
+            <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble de votre centre</p>
           </div>
           <button
             onClick={() => setExpressOpen(true)}
@@ -50,15 +49,12 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
         </div>
       </div>
 
-      <main className="px-6 pb-6 space-y-6">
-        {/* Row 1 — KPIs */}
+      <main className="px-8 pb-8 pt-6 space-y-6">
+        {/* Row 1 — 4 KPIs */}
         <DashboardKPIRow onNavigate={handleNavigate} />
 
-        {/* Row 2 — Alerts & Actions */}
+        {/* Row 2 — 4 Alerts / Actions */}
         <DashboardAlertsRow onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
-
-        {/* Row 3 — Sessions à venir */}
-        <SessionsUpcoming onClick={() => handleNavigate("sessions")} />
       </main>
 
       {/* Dialogs */}
