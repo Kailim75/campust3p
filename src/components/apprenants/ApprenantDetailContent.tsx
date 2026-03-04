@@ -5,23 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Phone,
-  Mail,
-  StickyNote,
-  Zap,
-  FolderOpen,
-  GraduationCap,
-  Award,
-  CreditCard,
-  MessageCircle,
-  FileText,
-  Bell,
+  Phone, Mail, StickyNote, FolderOpen, GraduationCap, Award,
+  CreditCard, MessageCircle, FileText, Bell, LayoutDashboard, FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { SiWhatsapp } from "react-icons/si";
+import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
 import { FormationTab } from "./tabs/FormationTab";
+import { CMATab } from "./tabs/CMATab";
 import { ExamensTab } from "./tabs/ExamensTab";
 import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
@@ -31,7 +24,7 @@ import { WorkflowStepper, type StepStatus } from "@/components/workflow/Workflow
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
 import { PostAssignmentDialog } from "@/components/workflow/PostAssignmentDialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Contact } from "@/hooks/useContacts";
@@ -62,7 +55,7 @@ interface ApprenantDetailContentProps {
 }
 
 export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
-  const [activeTab, setActiveTab] = useState("dossier");
+  const [activeTab, setActiveTab] = useState("resume");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
 
@@ -98,14 +91,9 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
   const contactName = `${contact.prenom} ${contact.nom}`;
   const isProfileComplete = !!(contact.email && contact.telephone && contact.date_naissance);
-
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
-  const avatarColor = contact.formation
-    ? FORMATION_COLORS[contact.formation] || "bg-primary"
-    : "bg-primary";
-  const statutBadge = contact.statut
-    ? STATUT_BADGES[contact.statut] || { label: contact.statut, className: "bg-muted" }
-    : null;
+  const avatarColor = contact.formation ? FORMATION_COLORS[contact.formation] || "bg-primary" : "bg-primary";
+  const statutBadge = contact.statut ? STATUT_BADGES[contact.statut] || { label: contact.statut, className: "bg-muted" } : null;
 
   // ─── Workflow logic ───
   const isProspect = contact.statut === "En attente de validation" || !contact.statut;
@@ -114,14 +102,11 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const hasFacture = workflowData?.hasFacture ?? false;
   const hasPaid = workflowData?.hasPaid ?? false;
 
-  // Compute step statuses
   function getStepStatus(stepIndex: number): StepStatus {
     const completions = [!isProspect, isProfileComplete && hasDocuments, hasInscription, hasFacture, hasPaid];
     if (completions[stepIndex]) return "complete";
-    // Find first incomplete step
     const firstIncomplete = completions.findIndex((c) => !c);
     if (stepIndex === firstIncomplete) {
-      // Check for blocked state (profile incomplete = blocked on dossier)
       if (stepIndex === 1 && !isProfileComplete) return "blocked";
       return "active";
     }
@@ -130,13 +115,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
   const steps = [
     { label: "Prospect", status: getStepStatus(0), tooltip: isProspect ? "En attente de conversion" : "Converti en stagiaire" },
-    { label: "Dossier", status: getStepStatus(1), tooltip: getStepStatus(1) === "blocked" ? "Profil incomplet : email, téléphone ou date de naissance manquant" : hasDocuments ? "Dossier complet" : "Documents à ajouter" },
+    { label: "Dossier", status: getStepStatus(1), tooltip: getStepStatus(1) === "blocked" ? "Profil incomplet" : hasDocuments ? "Dossier complet" : "Documents à ajouter" },
     { label: "Session", status: getStepStatus(2), tooltip: hasInscription ? "Inscrit à une session" : "Pas encore inscrit" },
     { label: "Facturé", status: getStepStatus(3), tooltip: hasFacture ? "Facture générée" : "Pas de facture" },
     { label: "Payé", status: getStepStatus(4), tooltip: hasPaid ? "Paiement reçu" : "En attente de paiement" },
   ];
 
-  // Determine dynamic CTA step
   function getCurrentWorkflowStep(): WorkflowStep {
     if (isProspect) return "convert";
     if (!isProfileComplete || !hasDocuments) return "complete-profile";
@@ -150,12 +134,8 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
   const handleCTAAction = () => {
     switch (currentCTAStep) {
-      case "complete-profile":
-        setActiveTab("dossier");
-        break;
-      case "assign-session":
-        setShowAssignDialog(true);
-        break;
+      case "complete-profile": setActiveTab("dossier"); break;
+      case "assign-session": setShowAssignDialog(true); break;
       case "generate-invoice":
         setActiveTab("paiements");
         toast.info("💡 Prochaine étape : Générer la facture", { duration: 3000 });
@@ -167,6 +147,18 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     }
   };
 
+  const tabs = [
+    { value: "resume", icon: LayoutDashboard, label: "Résumé" },
+    { value: "dossier", icon: FolderOpen, label: "Profil" },
+    { value: "formation", icon: GraduationCap, label: "Formation" },
+    { value: "cma", icon: FileCheck, label: "CMA" },
+    { value: "examens", icon: Award, label: "Examens" },
+    { value: "paiements", icon: CreditCard, label: "Paiements" },
+    { value: "communications", icon: MessageCircle, label: "Suivi" },
+    { value: "notes", icon: FileText, label: "Notes" },
+    { value: "rappels", icon: Bell, label: "Rappels" },
+  ];
+
   return (
     <div className="flex flex-col h-full">
       {/* ─── HEADER ─── */}
@@ -177,7 +169,6 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
               {initials}
             </AvatarFallback>
           </Avatar>
-
           <div className="flex-1 min-w-0 space-y-1">
             <h2 className="text-xl font-display font-bold text-foreground truncate">
               {contact.prenom} {contact.nom}
@@ -200,7 +191,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         {/* Workflow Stepper */}
         {workflowData && (
           <div className="bg-card rounded-xl border p-3 space-y-3">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            <p className="text-[11px] font-semibold text-muted-foreground">
               🎯 Progression du dossier
             </p>
             <WorkflowStepper steps={steps} />
@@ -238,15 +229,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       {/* ─── TABS ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="mx-5 mt-3 mb-0 justify-start bg-transparent gap-1 p-0 h-auto flex-wrap">
-          {[
-            { value: "dossier", icon: FolderOpen, label: "Dossier" },
-            { value: "formation", icon: GraduationCap, label: "Formation" },
-            { value: "examens", icon: Award, label: "Examens" },
-            { value: "paiements", icon: CreditCard, label: "Paiements" },
-            { value: "communications", icon: MessageCircle, label: "Communications" },
-            { value: "notes", icon: FileText, label: "Notes" },
-            { value: "rappels", icon: Bell, label: "Rappels" },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
@@ -259,11 +242,17 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         </TabsList>
 
         <div className="flex-1 overflow-auto p-5">
+          <TabsContent value="resume" className="mt-0">
+            <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
+          </TabsContent>
           <TabsContent value="dossier" className="mt-0">
             <DossierTab contactId={contact.id} formation={contact.formation} />
           </TabsContent>
           <TabsContent value="formation" className="mt-0">
             <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
+          </TabsContent>
+          <TabsContent value="cma" className="mt-0">
+            <CMATab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email} formation={contact.formation} />
           </TabsContent>
           <TabsContent value="examens" className="mt-0">
             <ExamensTab contactId={contact.id} formation={contact.formation} />
@@ -290,27 +279,16 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         contactId={contact.id}
         contactName={contactName}
         contactFormation={contact.formation}
-        onSuccess={(sessionId, sessionName) => {
-          setPostAssignment({ sessionId, sessionName });
-        }}
+        onSuccess={(sessionId, sessionName) => setPostAssignment({ sessionId, sessionName })}
       />
-
       <PostAssignmentDialog
         open={!!postAssignment}
         onOpenChange={(open) => !open && setPostAssignment(null)}
         contactName={contactName}
         sessionName={postAssignment?.sessionName || ""}
-        onGenerateFacture={() => {
-          setPostAssignment(null);
-          setActiveTab("paiements");
-        }}
-        onAddDocuments={() => {
-          setPostAssignment(null);
-          setActiveTab("dossier");
-        }}
-        onReturnDashboard={() => {
-          setPostAssignment(null);
-        }}
+        onGenerateFacture={() => { setPostAssignment(null); setActiveTab("paiements"); }}
+        onAddDocuments={() => { setPostAssignment(null); setActiveTab("dossier"); }}
+        onReturnDashboard={() => setPostAssignment(null)}
       />
     </div>
   );

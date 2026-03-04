@@ -33,6 +33,7 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList },
   { id: "prospects", label: "Prospects", icon: UserPlus },
   { id: "contacts", label: "Apprenants", icon: Users },
   { id: "sessions", label: "Sessions", icon: Calendar },

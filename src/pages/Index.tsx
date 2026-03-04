@@ -12,6 +12,7 @@ import { NavigationProvider } from "@/contexts/NavigationContext";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import { AujourdhuiPage } from "@/components/aujourdhui/AujourdhuiPage";
 import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
 import { FormationsPage } from "@/components/formations/FormationsPage";
 import { ProspectsPage } from "@/components/prospects/ProspectsPage";
@@ -22,7 +23,6 @@ import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
-// PipelinePage is now embedded in ProspectsPage
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
@@ -159,6 +159,8 @@ const Index = () => {
     switch (activeSection) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
+      case "aujourdhui":
+        return <AujourdhuiPage onNavigate={setActiveSection} />;
       case "contacts":
         return <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
       case "formations":
