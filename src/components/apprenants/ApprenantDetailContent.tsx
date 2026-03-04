@@ -34,6 +34,7 @@ import { format, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
+import { computeContactUrgency } from "@/lib/urgency-utils";
 import type { Contact } from "@/hooks/useContacts";
 
 const FORMATION_COLORS: Record<string, string> = {
@@ -226,6 +227,13 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const lastAutoNote = cockpitData?.lastAutoNote;
   const hasActionRequired = cmaMissing > 0 || restantDu > 0 || !hasInscription;
 
+  // Urgency computation
+  const urgency = computeContactUrgency({
+    missingCMACount: cmaMissing,
+    hasLatePayment: restantDu > 0,
+    hasSessionSoon: hasInscription,
+  });
+
   // Compute overall dossier progress
   const progressItems = [
     isProfileComplete,
@@ -286,6 +294,11 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
                 ) : (
                   <><CheckCircle2 className="h-3 w-3 mr-1" />OK</>
                 )}
+              </Badge>
+              {/* Urgency badge */}
+              <Badge variant="outline" className={cn("text-[10px]", urgency.className)}>
+                <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
+                {urgency.label}
               </Badge>
             </div>
           </div>
