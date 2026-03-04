@@ -390,10 +390,14 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </Button>
           )}
           {contact.email && (
-            <Button size="sm" variant="outline" className="text-xs" asChild>
-              <a href={`mailto:${contact.email}`}>
-                <Mail className="h-3 w-3 mr-1" /> Email
-              </a>
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={() => openComposer({
+                recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                defaultSubject: "",
+                defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+              })}
+            >
+              <Mail className="h-3 w-3 mr-1" /> Email
             </Button>
           )}
           {contact.telephone && (

@@ -24,6 +24,8 @@ import {
   createAutoNote, deleteAutoNote, fetchTodayAutoNotes,
   isHandledToday, isProspectRdv, type ActionCategory,
 } from "@/lib/aujourdhui-actions";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 
 interface ProspectsAgendaProps {
   onViewDetail: (prospect: Prospect) => void;
@@ -155,24 +157,50 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
   }, [updateProspect]);
 
   // ─── Action handlers ───
+  const { composerProps, openComposer } = useEmailComposer();
+
   const handleConfirmRdv = (p: Prospect) => {
-    logAction(p.id, "prospect_confirmation_rdv", `Date: ${p.date_prochaine_relance || "aujourd'hui"}`);
-    window.open(`mailto:${p.email}?subject=Confirmation de votre rendez-vous&body=Bonjour ${p.prenom},%0A%0ANous confirmons votre rendez-vous prévu le ${p.date_prochaine_relance ? format(parseISO(p.date_prochaine_relance), "dd/MM/yyyy", { locale: fr }) : "aujourd'hui"}.%0A%0AÀ très bientôt !%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email || "", prenom: p.prenom, nom: p.nom }],
+      defaultSubject: "Confirmation de votre rendez-vous",
+      defaultBody: `Bonjour ${p.prenom},\n\nNous confirmons votre rendez-vous prévu le ${p.date_prochaine_relance ? format(parseISO(p.date_prochaine_relance), "dd/MM/yyyy", { locale: fr }) : "aujourd'hui"}.\n\nÀ très bientôt !\nT3P Campus`,
+      autoNoteCategory: "prospect_confirmation_rdv",
+      autoNoteExtra: `Date: ${p.date_prochaine_relance || "aujourd'hui"}`,
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today-auto-notes"] }),
+    });
   };
 
   const handleRelanceJ1 = (p: Prospect) => {
-    logAction(p.id, "prospect_relance_j1", `Date: ${p.date_prochaine_relance || ""}`);
-    window.open(`mailto:${p.email}?subject=Rappel — votre rendez-vous demain&body=Bonjour ${p.prenom},%0A%0ANous vous rappelons votre rendez-vous prévu demain.%0A%0AÀ bientôt !%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email || "", prenom: p.prenom, nom: p.nom }],
+      defaultSubject: "Rappel — votre rendez-vous demain",
+      defaultBody: `Bonjour ${p.prenom},\n\nNous vous rappelons votre rendez-vous prévu demain.\n\nÀ bientôt !\nT3P Campus`,
+      autoNoteCategory: "prospect_relance_j1",
+      autoNoteExtra: `Date: ${p.date_prochaine_relance || ""}`,
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today-auto-notes"] }),
+    });
   };
 
   const handleRdvManque = (p: Prospect) => {
-    logAction(p.id, "prospect_rdv_manque", `Date initiale: ${p.date_prochaine_relance || ""}`);
-    window.open(`mailto:${p.email}?subject=Votre rendez-vous manqué&body=Bonjour ${p.prenom},%0A%0ANous avons constaté que vous n'avez pas pu honorer votre rendez-vous.%0ANous restons disponibles pour reprogrammer un créneau.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email || "", prenom: p.prenom, nom: p.nom }],
+      defaultSubject: "Votre rendez-vous manqué",
+      defaultBody: `Bonjour ${p.prenom},\n\nNous avons constaté que vous n'avez pas pu honorer votre rendez-vous.\nNous restons disponibles pour reprogrammer un créneau.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "prospect_rdv_manque",
+      autoNoteExtra: `Date initiale: ${p.date_prochaine_relance || ""}`,
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today-auto-notes"] }),
+    });
   };
 
   const handleRelanceEmail = (p: Prospect) => {
-    logAction(p.id, "prospect_relance", `Formation: ${p.formation_souhaitee || ""}`);
-    window.open(`mailto:${p.email}?subject=Votre projet de formation ${p.formation_souhaitee || ''}&body=Bonjour ${p.prenom},%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email || "", prenom: p.prenom, nom: p.nom }],
+      defaultSubject: `Votre projet de formation ${p.formation_souhaitee || ''}`,
+      defaultBody: `Bonjour ${p.prenom},\n\nNous revenons vers vous concernant votre projet de formation.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "prospect_relance",
+      autoNoteExtra: `Formation: ${p.formation_souhaitee || ""}`,
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today-auto-notes"] }),
+    });
   };
 
   const handleWhatsApp = (p: Prospect) => {
@@ -288,6 +316,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
           <p className="text-sm font-medium">Aucun prospect à relancer</p>
         </div>
       )}
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }
