@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
@@ -15,7 +16,7 @@ import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
   CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check, Bot,
-  Filter, CalendarCheck, RotateCcw,
+  Filter, CalendarCheck, RotateCcw, ListChecks,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ import {
   isHandledToday, isProspectRdv, type ActionCategory,
 } from "@/lib/aujourdhui-actions";
 import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
+import { computeContactUrgency, computeProspectUrgency, type UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
 
 // Keywords used to detect if an action category was already done today
@@ -37,6 +39,34 @@ const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
 
 type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
+
+// ─── Urgency Dot component ───
+function UrgencyDot({ urgency }: { urgency: UrgencyInfo }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className={cn("inline-block h-2 w-2 rounded-full shrink-0", urgency.dotClassName)} />
+        </TooltipTrigger>
+        <TooltipContent><p>Urgence : {urgency.label}</p></TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// ─── Last action mini-timeline ───
+function LastActionLine({ notes, contactId }: { notes: Array<{ contact_id: string; titre: string; created_at: string }>; contactId: string }) {
+  const last = notes.find(n => n.contact_id === contactId);
+  if (!last) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
+      <span className="text-[10px] text-muted-foreground truncate">
+        {last.titre.replace("[AUTO] ", "")} — {format(parseISO(last.created_at), "HH:mm")}
+      </span>
+    </div>
+  );
+}
 
 function useAujourdhuiData() {
   return useQuery({
@@ -92,9 +122,13 @@ function useAujourdhuiData() {
       const activeSessionContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
 
       const contactHasOpenFacture = new Set<string>();
+      const contactHasLatePayment = new Set<string>();
       factures.forEach((f: any) => {
         if (f.statut !== "payee" && f.statut !== "annulee") {
           contactHasOpenFacture.add(f.contact_id);
+          if (f.date_echeance && f.date_echeance < todayStr) {
+            contactHasLatePayment.add(f.contact_id);
+          }
         }
       });
 
@@ -118,22 +152,35 @@ function useAujourdhuiData() {
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-          // Determine CMA sub-category heuristically
           const statStr = String(c.statut || "").toLowerCase();
           const cmaCategory: CmaFilter =
             statStr.includes("rejet") || statStr.includes("complex") ? "rejete" :
             statStr.includes("en cours") || statStr.includes("document") || statStr.includes("en formation") ? "en_cours" :
             "docs_manquants";
-          // Find last CMA [AUTO] note from todayNotes
           const lastCmaNote = todayNotes
             .filter(n => n.contact_id === c.id && n.titre.includes("CMA"))
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || null;
-          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c), cmaCategory, lastCmaNote };
+
+          const urgency = computeContactUrgency({
+            missingCMACount: missingDocs.length,
+            hasLatePayment: contactHasLatePayment.has(c.id),
+            hasSessionSoon: activeSessionContactIds.has(c.id),
+            cmaRejected: cmaCategory === "rejete",
+          });
+
+          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c), cmaCategory, lastCmaNote, urgency };
         })
         .filter(c => c.missingDocs.length > 0)
-        .sort((a, b) => b.missingDocs.length - a.missingDocs.length);
+        .sort((a, b) => {
+          // Sort by urgency first (elevee > moyenne > faible), then by missing docs count
+          const urgencyOrder = { elevee: 0, moyenne: 1, faible: 2 };
+          const ua = urgencyOrder[a.urgency.level];
+          const ub = urgencyOrder[b.urgency.level];
+          if (ua !== ub) return ua - ub;
+          return b.missingDocs.length - a.missingDocs.length;
+        });
 
-      // ─── Bloc B: RDV du jour (only true RDVs) ───
+      // ─── Bloc B: RDV du jour ───
       const allTodayProspects = prospects
         .filter(p => p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)));
       const rdvToday = allTodayProspects.filter(p => isProspectRdv(p)).slice(0, 10);
@@ -141,11 +188,8 @@ function useAujourdhuiData() {
       // ─── Bloc C: Relances ───
       const relances = prospects
         .filter(p => {
-          // Today non-RDV prospects
           if (p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)) && !isProspectRdv(p)) return true;
-          // Overdue
           if (p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance)) && !isToday(parseISO(p.date_prochaine_relance))) return true;
-          // Status relance
           if (p.statut === "relance" && !p.date_prochaine_relance) return true;
           return false;
         })
@@ -171,10 +215,23 @@ function useAujourdhuiData() {
           if (missingCMA.length > 0) reasons.push("Docs CMA manquants");
           if (hasLatePayment) reasons.push("Paiement en retard");
           if (isInscribed && missingCMA.length > 0) reasons.push("Session proche + dossier incomplet");
-          return { ...c, reasons, missingCMA, hasLatePayment, _isActive: isContactActive(c) };
+
+          const urgency = computeContactUrgency({
+            missingCMACount: missingCMA.length,
+            hasLatePayment,
+            hasSessionSoon: isInscribed,
+          });
+
+          return { ...c, reasons, missingCMA, hasLatePayment, _isActive: isContactActive(c), urgency };
         })
         .filter(c => c.reasons.length > 0)
-        .sort((a, b) => b.reasons.length - a.reasons.length);
+        .sort((a, b) => {
+          const urgencyOrder = { elevee: 0, moyenne: 1, faible: 2 };
+          const ua = urgencyOrder[a.urgency.level];
+          const ub = urgencyOrder[b.urgency.level];
+          if (ua !== ub) return ua - ub;
+          return b.reasons.length - a.reasons.length;
+        });
 
       // Journal entries from today's auto notes
       const journalEntries = todayNotes.map(n => ({
@@ -211,6 +268,27 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [showHandled, setShowHandled] = useState(false);
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
 
+  // ─── Bulk selection state ───
+  const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
+  const [bulkRelanceSelected, setBulkRelanceSelected] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  const toggleBulkCma = (id: string) => {
+    setBulkCmaSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleBulkRelance = (id: string) => {
+    setBulkRelanceSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
     queryClient.invalidateQueries({ queryKey: ["contact-historique"] });
@@ -241,6 +319,48 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const markDone = useCallback(async (contactId: string, blocLabel: string) => {
     await logAction(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
   }, [logAction]);
+
+  // ─── Bulk action handlers ───
+  const handleBulkCmaRelance = useCallback(async (items: any[]) => {
+    const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
+    if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
+    setBulkProcessing(true);
+    let count = 0;
+    for (const item of selected) {
+      const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
+      await createAutoNote(item.id, "cma_relance_docs", `Docs manquants: ${missingList} (bulk)`);
+      count++;
+    }
+    setBulkProcessing(false);
+    setBulkCmaSelected(new Set());
+    invalidate();
+    toast.success(`${count} relance${count > 1 ? "s" : ""} CMA enregistrée${count > 1 ? "s" : ""}`, {
+      description: "Notes [AUTO] créées pour chaque apprenant",
+    });
+    // Open mailto for first selected as template
+    const first = selected[0];
+    if (first?.email) {
+      window.open(`mailto:${selected.map(s => s.email).join(",")}?subject=Documents CMA manquants&body=Bonjour,%0A%0AIl manque des documents pour compléter votre dossier CMA.%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+    }
+  }, [bulkCmaSelected, invalidate]);
+
+  const handleBulkRelance = useCallback(async (items: any[]) => {
+    const selected = items.filter(i => bulkRelanceSelected.has(i.id) && i.email);
+    if (selected.length === 0) { toast.error("Aucun prospect sélectionné avec email"); return; }
+    setBulkProcessing(true);
+    let count = 0;
+    for (const item of selected) {
+      await createAutoNote(item.id, "prospect_relance", `Formation: ${item.formation_souhaitee || ""} (bulk)`);
+      count++;
+    }
+    setBulkProcessing(false);
+    setBulkRelanceSelected(new Set());
+    invalidate();
+    toast.success(`${count} relance${count > 1 ? "s" : ""} enregistrée${count > 1 ? "s" : ""}`, {
+      description: "Notes [AUTO] créées pour chaque prospect",
+    });
+    window.open(`mailto:${selected.map(s => s.email).join(",")}?subject=Votre projet de formation&body=Bonjour,%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0ACordialement,%0AT3P Campus`);
+  }, [bulkRelanceSelected, invalidate]);
 
   const openContact = (id: string) => {
     setSelectedContactId(id);
@@ -409,7 +529,21 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   <p className="text-[11px] text-muted-foreground">{cmaCountAll} dossier{cmaCountAll > 1 ? "s" : ""} incomplet{cmaCountAll > 1 ? "s" : ""}</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaCountAll}</Badge>
+              <div className="flex items-center gap-2">
+                {bulkCmaSelected.size > 0 && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 text-[10px] gap-1"
+                    disabled={bulkProcessing}
+                    onClick={() => handleBulkCmaRelance(cmaItems)}
+                  >
+                    <ListChecks className="h-3 w-3" />
+                    Relancer {bulkCmaSelected.size} sélectionné{bulkCmaSelected.size > 1 ? "s" : ""}
+                  </Button>
+                )}
+                <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaCountAll}</Badge>
+              </div>
             </div>
 
             {/* CMA sub-filters */}
@@ -440,10 +574,18 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                 return (
                   <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
                     <div className="flex items-center justify-between mb-1.5">
-                      <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                        {item.prenom} {item.nom}
-                        <ExternalLink className="h-3 w-3 opacity-40" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkCmaSelected.has(item.id)}
+                          onCheckedChange={() => toggleBulkCma(item.id)}
+                          className="h-3.5 w-3.5"
+                        />
+                        <UrgencyDot urgency={item.urgency} />
+                        <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                          {item.prenom} {item.nom}
+                          <ExternalLink className="h-3 w-3 opacity-40" />
+                        </button>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
                         <Badge variant="outline" className="text-[9px] bg-muted text-muted-foreground">
@@ -451,23 +593,27 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className="flex flex-wrap gap-1 mb-2 pl-8">
                       {item.missingDocs.map((d: string) => (
                         <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
                           ✗ {CMA_DOC_LABELS[d] || d}
                         </Badge>
                       ))}
                     </div>
-                    {/* Last relance indicator */}
-                    {item.lastCmaNote && (
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Bot className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">
-                          Dernière relance : {format(parseISO(item.lastCmaNote.created_at), "HH:mm", { locale: fr })}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex gap-1.5">
+                    {/* Last action timeline */}
+                    <div className="pl-8">
+                      {item.lastCmaNote ? (
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Bot className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">
+                            Dernière relance : {format(parseISO(item.lastCmaNote.created_at), "HH:mm", { locale: fr })}
+                          </span>
+                        </div>
+                      ) : (
+                        <LastActionLine notes={todayNotes} contactId={item.id} />
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 pl-8">
                       {item.email && (
                         <TooltipProvider>
                           <Tooltip>
@@ -549,7 +695,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                       </div>
                       {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
                     </div>
-                    <div className="flex gap-1.5">
+                    <LastActionLine notes={todayNotes} contactId={p.id} />
+                    <div className="flex gap-1.5 mt-1">
                       {p.email && (
                         <TooltipProvider>
                           <Tooltip>
@@ -594,7 +741,21 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   <p className="text-[11px] text-muted-foreground">{relances.length} prospect{relances.length > 1 ? "s" : ""} en attente</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs bg-accent/10 text-accent">{relances.length}</Badge>
+              <div className="flex items-center gap-2">
+                {bulkRelanceSelected.size > 0 && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 text-[10px] gap-1"
+                    disabled={bulkProcessing}
+                    onClick={() => handleBulkRelance(relances)}
+                  >
+                    <ListChecks className="h-3 w-3" />
+                    Relancer {bulkRelanceSelected.size}
+                  </Button>
+                )}
+                <Badge variant="outline" className="text-xs bg-accent/10 text-accent">{relances.length}</Badge>
+              </div>
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {relances.length === 0 ? (
@@ -602,41 +763,58 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
                   Toutes les relances sont à jour
                 </div>
-              ) : relances.map((p) => (
-                <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                      {p.prenom} {p.nom}
-                      <ExternalLink className="h-3 w-3 opacity-40" />
-                    </button>
-                    {p.date_prochaine_relance && (
-                      <Badge variant="outline" className={cn(
-                        "text-[10px]",
-                        isPast(parseISO(p.date_prochaine_relance)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                      )}>
-                        {isPast(parseISO(p.date_prochaine_relance))
-                          ? `${Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))}j retard`
-                          : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
-                        }
-                      </Badge>
-                    )}
+              ) : relances.map((p) => {
+                const daysLate = p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance))
+                  ? Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))
+                  : 0;
+                const urgency = computeProspectUrgency({ daysLate });
+                return (
+                  <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkRelanceSelected.has(p.id)}
+                          onCheckedChange={() => toggleBulkRelance(p.id)}
+                          className="h-3.5 w-3.5"
+                        />
+                        <UrgencyDot urgency={urgency} />
+                        <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                          {p.prenom} {p.nom}
+                          <ExternalLink className="h-3 w-3 opacity-40" />
+                        </button>
+                      </div>
+                      {p.date_prochaine_relance && (
+                        <Badge variant="outline" className={cn(
+                          "text-[10px]",
+                          isPast(parseISO(p.date_prochaine_relance)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                        )}>
+                          {isPast(parseISO(p.date_prochaine_relance))
+                            ? `${daysLate}j retard`
+                            : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
+                          }
+                        </Badge>
+                      )}
+                    </div>
+                    {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-1 pl-8">{p.formation_souhaitee}</p>}
+                    <div className="pl-8">
+                      <LastActionLine notes={todayNotes} contactId={p.id} />
+                    </div>
+                    <div className="flex gap-1.5 mt-1 pl-8">
+                      {p.email && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRelanceEmail(p)}>
+                          <Mail className="h-3 w-3 mr-1" /> Relancer
+                        </Button>
+                      )}
+                      {p.telephone && (
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
+                          <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+                        </Button>
+                      )}
+                      <MarkDoneBtn contactId={p.id} bloc="Relance" />
+                    </div>
                   </div>
-                  {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>}
-                  <div className="flex gap-1.5">
-                    {p.email && (
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRelanceEmail(p)}>
-                        <Mail className="h-3 w-3 mr-1" /> Relancer
-                      </Button>
-                    )}
-                    {p.telephone && (
-                      <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
-                        <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-                      </Button>
-                    )}
-                    <MarkDoneBtn contactId={p.id} bloc="Relance" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
 
@@ -663,10 +841,13 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               ) : critiques.map((item) => (
                 <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
                   <div className="flex items-center justify-between mb-1.5">
-                    <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                      {item.prenom} {item.nom}
-                      <ExternalLink className="h-3 w-3 opacity-40" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <UrgencyDot urgency={item.urgency} />
+                      <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                        {item.prenom} {item.nom}
+                        <ExternalLink className="h-3 w-3 opacity-40" />
+                      </button>
+                    </div>
                     {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
                   </div>
                   <div className="flex flex-wrap gap-1 mb-2">
@@ -676,7 +857,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex gap-1.5">
+                  <LastActionLine notes={todayNotes} contactId={item.id} />
+                  <div className="flex gap-1.5 mt-1">
                     {item.missingCMA.length > 0 && item.email && (
                       <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCritiqueDemanderDocs(item)}>
                         <FolderOpen className="h-3 w-3 mr-1" /> Demander docs
