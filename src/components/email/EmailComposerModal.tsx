@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from "@/components/ui/sheet";
@@ -17,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, X } from "lucide-react";
+import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, X, ShieldAlert } from "lucide-react";
 import type { EmailAttachment } from "@/lib/session-document-helpers";
-import { formatFileSize, getAttachmentsTotalSize } from "@/lib/session-document-helpers";
+import { formatFileSize, getAttachmentsTotalSize, isAttachmentTooLarge } from "@/lib/session-document-helpers";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAutoNote, type ActionCategory } from "@/lib/aujourdhui-actions";
@@ -83,6 +84,13 @@ export function EmailComposerModal({
 
   const isBulk = recipients.length > 1;
   const hasCustomBodies = recipients.some(r => r.customBody);
+  const hasPersonalizedAttachments = recipients.some(r => r.attachments && r.attachments.length > 0);
+
+  // Force individual mode when attachments are personalized (convocation/attestation)
+  const forcedIndividual = hasPersonalizedAttachments;
+
+  // Effective bulk mode (respect forced individual)
+  const effectiveBulkMode = forcedIndividual ? "individual" : bulkMode;
 
   // Reset form when opening
   useEffect(() => {
@@ -164,14 +172,22 @@ export function EmailComposerModal({
     setSending(true);
     setProgress(0);
 
+    const buildNoteDetail = (mode: string, nbPJ: number) => {
+      const parts = [autoNoteExtra || ""];
+      parts.push(`Mode: ${mode}`);
+      if (nbPJ > 0) parts.push(`${nbPJ} PJ`);
+      return parts.filter(Boolean).join(" — ");
+    };
+
     try {
-      if (!isBulk || bulkMode === "individual") {
+      if (!isBulk || effectiveBulkMode === "individual") {
         let successCount = 0;
         let failCount = 0;
         for (let i = 0; i < validRecipients.length; i++) {
           const r = validRecipients[i];
           const emailBody = (r.customBody || body).replace(/\n/g, "<br>");
           const emailAttachments = r.attachments || sharedAttachments;
+          const nbPJ = emailAttachments?.length || 0;
           try {
             await sendSingleEmail(r.email, `${r.prenom} ${r.nom}`, emailBody, emailAttachments);
             successCount++;
@@ -179,7 +195,7 @@ export function EmailComposerModal({
               await createAutoNote(
                 r.id,
                 autoNoteCategory,
-                `${autoNoteExtra || ""} — Email envoyé`.trim()
+                `${buildNoteDetail("Individuel", nbPJ)} — Envoyé ✓`
               );
             }
           } catch (err: any) {
@@ -189,7 +205,7 @@ export function EmailComposerModal({
               await createAutoNote(
                 r.id,
                 autoNoteCategory,
-                `${autoNoteExtra || ""} — ÉCHEC: ${err.message || "erreur"}`.trim()
+                `${buildNoteDetail("Individuel", nbPJ)} — ÉCHEC: ${err.message || "erreur"}`
               );
             }
           }
@@ -206,6 +222,7 @@ export function EmailComposerModal({
       } else {
         const htmlBody = body.replace(/\n/g, "<br>");
         const bccAttachments = sharedAttachments;
+        const nbPJ = bccAttachments?.length || 0;
         const { error } = await supabase.functions.invoke("send-automated-emails", {
           body: {
             to: validRecipients[0].email,
@@ -229,7 +246,7 @@ export function EmailComposerModal({
             await createAutoNote(
               r.id,
               autoNoteCategory,
-              `${autoNoteExtra || ""} — Email envoyé (BCC)`.trim()
+              `${buildNoteDetail("BCC", nbPJ)} — Envoyé ✓`
             );
           }
         }
@@ -299,22 +316,28 @@ export function EmailComposerModal({
                     <Switch
                       checked={bulkMode === "bcc"}
                       onCheckedChange={(v) => setBulkMode(v ? "bcc" : "individual")}
-                      disabled={hasCustomBodies}
+                      disabled={hasCustomBodies || forcedIndividual}
                     />
                     <span className="text-xs text-muted-foreground">BCC groupé</span>
                   </div>
                 </div>
-                {bulkMode === "individual" && hasCustomBodies && (
+                {forcedIndividual && (
+                  <div className="flex items-center gap-1.5 text-xs text-warning">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    <span>Documents personnalisés → mode Individuel obligatoire</span>
+                  </div>
+                )}
+                {effectiveBulkMode === "individual" && hasCustomBodies && !forcedIndividual && (
                   <p className="text-[10px] text-primary font-medium">
                     ✨ Contenu personnalisé par destinataire activé
                   </p>
                 )}
-                {bulkMode === "individual" && !hasCustomBodies && (
+                {effectiveBulkMode === "individual" && !hasCustomBodies && !forcedIndividual && (
                   <p className="text-[10px] text-muted-foreground">
                     Chaque destinataire reçoit un email individuel. Plus sûr RGPD.
                   </p>
                 )}
-                {bulkMode === "bcc" && (
+                {effectiveBulkMode === "bcc" && (
                   <p className="text-[10px] text-muted-foreground">
                     Un seul email envoyé, tous en copie cachée (BCC). Pas de personnalisation.
                   </p>
@@ -409,6 +432,7 @@ export function EmailComposerModal({
                 ? sharedAttachments!
                 : recipients[0]?.attachments || [];
               const totalSize = getAttachmentsTotalSize(displayAttachments);
+              const tooLarge = isAttachmentTooLarge(displayAttachments);
 
               return (
                 <div className="space-y-1.5">
@@ -419,7 +443,10 @@ export function EmailComposerModal({
                       <span className="text-[10px] text-primary font-normal ml-1">(personnalisées par contact)</span>
                     )}
                   </Label>
-                  <div className="space-y-1 p-2 border rounded-md bg-muted/30">
+                  <div className={cn(
+                    "space-y-1 p-2 border rounded-md",
+                    tooLarge ? "bg-destructive/5 border-destructive/30" : "bg-muted/30"
+                  )}>
                     {displayAttachments.map((att, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
@@ -431,10 +458,23 @@ export function EmailComposerModal({
                         </span>
                       </div>
                     ))}
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Total : {formatFileSize(totalSize)}
-                      {hasPerRecipient && !hasShared && ` × ${recipients.length} contacts`}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[10px] text-muted-foreground">
+                        Total : {formatFileSize(totalSize)}
+                        {hasPerRecipient && !hasShared && ` × ${recipients.length} contacts`}
+                      </p>
+                      {tooLarge && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          &gt; 5 Mo
+                        </Badge>
+                      )}
+                    </div>
+                    {tooLarge && (
+                      <div className="flex items-center gap-1.5 text-destructive text-xs mt-1">
+                        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                        <span>PJ trop volumineuses — l'envoi pourrait échouer. Préférez le mode individuel.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -482,9 +522,9 @@ export function EmailComposerModal({
               <div className="space-y-3">
                 <div className="text-sm space-y-1">
                   <p><strong>Destinataires :</strong> {validCount} contact{validCount > 1 ? "s" : ""}</p>
-                  <p><strong>Mode :</strong> {bulkMode === "individual" ? "Emails individuels" : "BCC groupé"}</p>
+                  <p><strong>Mode :</strong> {effectiveBulkMode === "individual" ? "Emails individuels" : "BCC groupé"}</p>
                   <p><strong>Objet :</strong> {subject}</p>
-                  {hasCustomBodies && bulkMode === "individual" && (
+                  {hasCustomBodies && effectiveBulkMode === "individual" && (
                     <p className="text-primary text-xs">✨ Contenu personnalisé par destinataire</p>
                   )}
                 </div>
