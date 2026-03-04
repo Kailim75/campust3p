@@ -22,7 +22,7 @@ import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AlertesPage } from "@/components/alertes/AlertesPage";
 import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
-import { PipelinePage } from "@/components/pipeline/PipelinePage";
+// PipelinePage is now embedded in ProspectsPage
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
@@ -82,9 +82,12 @@ const Index = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Reset tab when section changes
+  // Redirect legacy routes to parent hubs
   useEffect(() => {
-    setActiveTab(undefined);
+    if (activeSection === "pipeline") {
+      setActiveSection("prospects");
+      setActiveTab("pipeline");
+    }
   }, [activeSection]);
 
   // Listen for navigate-to-alerts event from ProactiveAlertsToast
@@ -166,9 +169,7 @@ const Index = () => {
         return <AutomationsPage />;
       case "settings":
         return <SettingsPage />;
-      // Legacy routes still accessible via deep-links or internal navigation
-      case "pipeline":
-        return <PipelinePage />;
+      // pipeline is redirected via useEffect above
       case "formateurs":
         return <FormateursPage />;
       case "alertes":

@@ -473,7 +473,7 @@ function PredictiveAlert({ show, score }: { show: boolean; score: number }) {
 
 // ─── MAIN PIPELINE PAGE ──────────────────────────────────
 
-export function PipelinePage() {
+export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: prospects = [], isLoading: prospectsLoading } = useProspects();
   const updateContact = useUpdateContact();
@@ -690,9 +690,9 @@ export function PipelinePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />
-        <div className="p-6 space-y-4">
+      <div className={embedded ? "" : "min-h-screen"}>
+        {!embedded && <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />}
+        <div className={embedded ? "space-y-4" : "p-6 space-y-4"}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Skeleton className="h-32" />
             <Skeleton className="h-32" />
@@ -709,10 +709,10 @@ export function PipelinePage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />
+    <div className={embedded ? "" : "min-h-screen"}>
+      {!embedded && <Header title="Pipeline Stratégique" subtitle="Pilotage acquisition & conversion" />}
 
-      <div className="px-6 pt-6 space-y-5">
+      <div className={embedded ? "space-y-5" : "px-6 pt-6 space-y-5"}>
         {/* Predictive Alert */}
         <PredictiveAlert show={metrics.showPredictiveAlert} score={metrics.acquisitionScore} />
 

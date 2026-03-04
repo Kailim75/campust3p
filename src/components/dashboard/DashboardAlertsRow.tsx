@@ -53,21 +53,28 @@ function useAlertsData() {
 }
 
 const alertCards = [
-  { key: "sessionsAtRisk", label: "Sessions à risque", icon: AlertTriangle, section: "sessions", color: "text-warning" },
-  { key: "latePayments", label: "Paiements en retard", icon: CreditCard, section: "finances", color: "text-destructive" },
-  { key: "pendingInvoices", label: "Factures en attente", icon: Calendar, section: "finances", color: "text-muted-foreground" },
-  { key: "newProspects", label: "Prospects à traiter", icon: UserPlus, section: "prospects", color: "text-primary" },
+  { key: "sessionsAtRisk", label: "Sessions à risque", icon: AlertTriangle, section: "sessions", variant: "warning" as const },
+  { key: "latePayments", label: "Paiements en retard", icon: CreditCard, section: "finances", variant: "destructive" as const },
+  { key: "pendingInvoices", label: "Factures en attente", icon: Calendar, section: "finances", variant: "muted" as const },
+  { key: "newProspects", label: "Prospects à traiter", icon: UserPlus, section: "prospects", variant: "primary" as const },
 ] as const;
+
+const variantStyles = {
+  warning: "text-warning",
+  destructive: "text-destructive",
+  muted: "text-muted-foreground",
+  primary: "text-primary",
+};
 
 export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
   const { data, isLoading } = useAlertsData();
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-5">
-            <Skeleton className="h-4 w-24 mb-3" />
+          <div key={i} className="rounded-xl border border-border bg-card p-6">
+            <Skeleton className="h-4 w-24 mb-4" />
             <Skeleton className="h-8 w-16" />
           </div>
         ))}
@@ -76,7 +83,7 @@ export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
       {alertCards.map((card) => {
         const Icon = card.icon;
         const value = data?.[card.key as keyof typeof data] ?? 0;
@@ -86,18 +93,26 @@ export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
             key={card.key}
             onClick={() => onNavigate(card.section)}
             className={cn(
-              "rounded-xl border bg-card p-5 text-left transition-all group",
-              hasAlert ? "border-border hover:border-primary/30 hover:shadow-sm" : "border-border/60 opacity-60"
+              "rounded-xl border bg-card p-6 text-left transition-all group",
+              hasAlert ? "border-border hover:border-primary/30 hover:shadow-sm" : "border-border/50"
             )}
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Icon className={cn("h-4 w-4", hasAlert ? card.color : "text-muted-foreground")} />
-                <span className="text-xs font-medium text-muted-foreground">{card.label}</span>
+                <div className={cn(
+                  "flex items-center justify-center h-8 w-8 rounded-lg",
+                  hasAlert ? "bg-muted" : "bg-muted/50"
+                )}>
+                  <Icon className={cn("h-4 w-4", hasAlert ? variantStyles[card.variant] : "text-muted-foreground/50")} />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{card.label}</span>
               </div>
               {hasAlert && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className={cn("text-2xl font-bold", hasAlert ? "text-foreground" : "text-muted-foreground")}>{value}</p>
+            <p className={cn(
+              "text-3xl font-bold tracking-tight",
+              hasAlert ? "text-foreground" : "text-muted-foreground/40"
+            )}>{value}</p>
           </button>
         );
       })}
