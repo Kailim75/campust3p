@@ -18,6 +18,8 @@ import { format, parseISO, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CMA_PIECES, CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 
 interface CMATabProps {
   contactId: string;
@@ -30,6 +32,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
   const { data: documents = [], isLoading } = useContactDocuments(contactId);
   const { data: historique = [] } = useContactHistorique(contactId);
   const queryClient = useQueryClient();
+  const { composerProps, openComposer } = useEmailComposer();
 
   const docsMap = useMemo(() => {
     const map = new Map<string, { id: string; date: string; commentaires: string | null }>();
@@ -89,42 +92,25 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
   // Action handlers with auto-note
   const handleRelanceDocs = async () => {
     const missingList = missingPieces.map(p => CMA_DOC_LABELS[p.type] || p.label).join(", ");
-    const result = await createAutoNote(contactId, "cma_relance_docs", `Docs manquants: ${missingList}`);
-    if (result) {
-      toast.success("Relance enregistrée", {
-        action: {
-          label: "Annuler",
-          onClick: async () => {
-            await deleteAutoNote(result.id);
-            invalidate();
-            toast.info("Action annulée");
-          },
-        },
-        duration: 10000,
-      });
-      invalidate();
-    }
-    const emailBody = missingPieces.map(p => `- ${p.label}`).join('%0A');
-    window.open(`mailto:${contactEmail || ''}?subject=Documents CMA manquants — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0APour compléter votre dossier CMA, il nous manque les documents suivants :%0A%0A${emailBody}%0A%0AMerci de nous les transmettre dans les meilleurs délais.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: contactId, email: contactEmail || "", prenom: contactPrenom, nom: "" }],
+      defaultSubject: `Documents CMA manquants — ${contactPrenom}`,
+      defaultBody: `Bonjour ${contactPrenom},\n\nPour compléter votre dossier CMA, il nous manque les documents suivants :\n\n${missingPieces.map(p => `- ${p.label}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "cma_relance_docs",
+      autoNoteExtra: `Docs manquants: ${missingList}`,
+      onSuccess: invalidate,
+    });
   };
 
   const handleRelanceCMA = async () => {
-    const result = await createAutoNote(contactId, "cma_relance", `${missingPieces.length} pièce(s) manquante(s)`);
-    if (result) {
-      toast.success("Relance CMA enregistrée", {
-        action: {
-          label: "Annuler",
-          onClick: async () => {
-            await deleteAutoNote(result.id);
-            invalidate();
-            toast.info("Action annulée");
-          },
-        },
-        duration: 10000,
-      });
-      invalidate();
-    }
-    window.open(`mailto:${contactEmail || ''}?subject=Relance dossier CMA — ${contactPrenom}&body=Bonjour ${contactPrenom},%0A%0ANous revenons vers vous concernant votre dossier CMA. Il manque encore ${missingPieces.length} document(s).%0A%0AMerci de les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: contactId, email: contactEmail || "", prenom: contactPrenom, nom: "" }],
+      defaultSubject: `Relance dossier CMA — ${contactPrenom}`,
+      defaultBody: `Bonjour ${contactPrenom},\n\nNous revenons vers vous concernant votre dossier CMA. Il manque encore ${missingPieces.length} document(s).\n\nMerci de les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "cma_relance",
+      autoNoteExtra: `${missingPieces.length} pièce(s) manquante(s)`,
+      onSuccess: invalidate,
+    });
   };
 
   if (isLoading) return <Skeleton className="h-[300px] rounded-xl" />;
@@ -287,6 +273,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
           }
         </p>
       </Card>
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }

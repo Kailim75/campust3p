@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
 import { useDeleteContact, type Contact } from "@/hooks/useContacts";
 import { toast } from "sonner";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,6 +109,7 @@ function useContactInscriptions(contactId: string | null) {
 }
 
 export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: ContactDetailSheetProps) {
+  const composerActions = useEmailComposer();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [historiqueDialogOpen, setHistoriqueDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -233,7 +236,11 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
                     variant="outline"
                     size="sm"
                     className="h-9 text-xs font-medium"
-                    onClick={() => window.open(`mailto:${contact.email}`, "_blank")}
+                    onClick={() => composerActions.openComposer({
+                      recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                      defaultSubject: "",
+                      defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+                    })}
                   >
                     <Mail className="h-3.5 w-3.5 mr-1.5" />
                     Email
@@ -420,6 +427,7 @@ export function ContactDetailSheet({ contactId, open, onOpenChange, onEdit }: Co
             }}
           />
         )}
+      <EmailComposerModal {...composerActions.composerProps} />
       </SheetContent>
     </Sheet>
   );

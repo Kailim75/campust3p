@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
@@ -302,6 +304,7 @@ interface AujourdhuiPageProps {
 export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const { data, isLoading } = useAujourdhuiData();
   const queryClient = useQueryClient();
+  const { composerProps, openComposer } = useEmailComposer();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [contactDetailOpen, setContactDetailOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
@@ -314,7 +317,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
   const [bulkRelanceSelected, setBulkRelanceSelected] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [bulkEmailMode, setBulkEmailMode] = useState<"bcc" | "individual">("individual");
+  // bulkEmailMode removed — handled inside EmailComposerModal
 
   const toggleBulkCma = (id: string) => {
     setBulkCmaSelected(prev => {
@@ -363,73 +366,32 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     await logAction(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
   }, [logAction]);
 
-  const BULK_WARN_THRESHOLD = 10;
-
-  const openBulkEmails = (emails: string[], subject: string, body: string, mode: "bcc" | "individual") => {
-    if (mode === "individual") {
-      // Open individual draft per contact
-      emails.forEach(email => {
-        window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-      });
-    } else {
-      // BCC mode: single email, all in BCC
-      window.open(`mailto:?bcc=${emails.join(",")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    }
-  };
-
-  // ─── Bulk action handlers ───
-  const handleBulkCmaRelance = useCallback(async (items: any[]) => {
+  // ─── Bulk action handlers (now open EmailComposerModal) ───
+  const handleBulkCmaRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
-    if (selected.length > BULK_WARN_THRESHOLD) {
-      toast.warning(`⚠️ ${selected.length} destinataires sélectionnés — vérifiez avant d'envoyer`, { duration: 5000 });
-    }
-    setBulkProcessing(true);
-    let count = 0;
-    for (const item of selected) {
-      const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
-      await createAutoNote(item.id, "cma_relance_docs", `Docs manquants: ${missingList} (bulk ${bulkEmailMode})`);
-      count++;
-    }
-    setBulkProcessing(false);
-    setBulkCmaSelected(new Set());
-    invalidate();
-    toast.success(`${count} relance${count > 1 ? "s" : ""} CMA enregistrée${count > 1 ? "s" : ""}`, {
-      description: `Notes [AUTO] créées · Mode: ${bulkEmailMode === "bcc" ? "BCC groupé" : "individuels"}`,
+    openComposer({
+      recipients: selected.map(s => ({ id: s.id, email: s.email, prenom: s.prenom, nom: s.nom })),
+      defaultSubject: "Documents CMA manquants",
+      defaultBody: "Bonjour,\n\nIl manque des documents pour compléter votre dossier CMA.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
+      autoNoteCategory: "cma_relance_docs",
+      autoNoteExtra: "Docs manquants (bulk)",
+      onSuccess: () => { setBulkCmaSelected(new Set()); invalidate(); },
     });
-    openBulkEmails(
-      selected.map(s => s.email),
-      "Documents CMA manquants",
-      "Bonjour,\n\nIl manque des documents pour compléter votre dossier CMA.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
-      bulkEmailMode,
-    );
-  }, [bulkCmaSelected, bulkEmailMode, invalidate]);
+  }, [bulkCmaSelected, invalidate, openComposer]);
 
-  const handleBulkRelance = useCallback(async (items: any[]) => {
+  const handleBulkRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkRelanceSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun prospect sélectionné avec email"); return; }
-    if (selected.length > BULK_WARN_THRESHOLD) {
-      toast.warning(`⚠️ ${selected.length} destinataires sélectionnés — vérifiez avant d'envoyer`, { duration: 5000 });
-    }
-    setBulkProcessing(true);
-    let count = 0;
-    for (const item of selected) {
-      await createAutoNote(item.id, "prospect_relance", `Formation: ${item.formation_souhaitee || ""} (bulk ${bulkEmailMode})`);
-      count++;
-    }
-    setBulkProcessing(false);
-    setBulkRelanceSelected(new Set());
-    invalidate();
-    toast.success(`${count} relance${count > 1 ? "s" : ""} enregistrée${count > 1 ? "s" : ""}`, {
-      description: `Notes [AUTO] créées · Mode: ${bulkEmailMode === "bcc" ? "BCC groupé" : "individuels"}`,
+    openComposer({
+      recipients: selected.map(s => ({ id: s.id, email: s.email, prenom: s.prenom, nom: s.nom })),
+      defaultSubject: "Votre projet de formation",
+      defaultBody: "Bonjour,\n\nNous revenons vers vous concernant votre projet de formation.\n\nCordialement,\nT3P Campus",
+      autoNoteCategory: "prospect_relance",
+      autoNoteExtra: "Formation (bulk)",
+      onSuccess: () => { setBulkRelanceSelected(new Set()); invalidate(); },
     });
-    openBulkEmails(
-      selected.map(s => s.email),
-      "Votre projet de formation",
-      "Bonjour,\n\nNous revenons vers vous concernant votre projet de formation.\n\nCordialement,\nT3P Campus",
-      bulkEmailMode,
-    );
-  }, [bulkRelanceSelected, bulkEmailMode, invalidate]);
+  }, [bulkRelanceSelected, invalidate, openComposer]);
 
   const openContact = (id: string) => {
     setSelectedContactId(id);
@@ -484,11 +446,17 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
   const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length;
 
-  // ─── Action handlers with auto-logging ───
+  // ─── Action handlers with EmailComposerModal ───
   const handleCmaRelanceDocs = (item: any) => {
     const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
-    logAction(item.id, "cma_relance_docs", `Docs manquants: ${missingList}`);
-    window.open(`mailto:${item.email}?subject=Documents CMA manquants&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour compléter votre dossier CMA :%0A${item.missingDocs.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
+      defaultSubject: "Documents CMA manquants",
+      defaultBody: `Bonjour ${item.prenom},\n\nIl manque les documents suivants pour compléter votre dossier CMA :\n${item.missingDocs.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('\n')}\n\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "cma_relance_docs",
+      autoNoteExtra: `Docs manquants: ${missingList}`,
+      onSuccess: invalidate,
+    });
   };
 
   const handleCmaWhatsApp = (item: any) => {
@@ -497,8 +465,14 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   };
 
   const handleRdvConfirm = (p: any) => {
-    logAction(p.id, "prospect_confirmation_rdv", `Date: ${p.date_prochaine_relance || "aujourd'hui"}`);
-    window.open(`mailto:${p.email}?subject=Confirmation de votre rendez-vous&body=Bonjour ${p.prenom},%0A%0ANous confirmons votre rendez-vous prévu aujourd'hui.%0A%0AÀ très bientôt !%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email, prenom: p.prenom, nom: p.nom }],
+      defaultSubject: "Confirmation de votre rendez-vous",
+      defaultBody: `Bonjour ${p.prenom},\n\nNous confirmons votre rendez-vous prévu aujourd'hui.\n\nÀ très bientôt !\nT3P Campus`,
+      autoNoteCategory: "prospect_confirmation_rdv",
+      autoNoteExtra: `Date: ${p.date_prochaine_relance || "aujourd'hui"}`,
+      onSuccess: invalidate,
+    });
   };
 
   const handleRdvAppel = (p: any) => {
@@ -514,8 +488,14 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   };
 
   const handleRelanceEmail = (p: any) => {
-    logAction(p.id, "prospect_relance", `Formation: ${p.formation_souhaitee || ""}`);
-    window.open(`mailto:${p.email}?subject=Votre projet de formation ${p.formation_souhaitee || ''}&body=Bonjour ${p.prenom},%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0AN'hésitez pas à nous contacter pour en discuter.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: p.id, email: p.email, prenom: p.prenom, nom: p.nom }],
+      defaultSubject: `Votre projet de formation ${p.formation_souhaitee || ''}`,
+      defaultBody: `Bonjour ${p.prenom},\n\nNous revenons vers vous concernant votre projet de formation.\n\nN'hésitez pas à nous contacter pour en discuter.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "prospect_relance",
+      autoNoteExtra: `Formation: ${p.formation_souhaitee || ""}`,
+      onSuccess: invalidate,
+    });
   };
 
   const handleRelanceWhatsApp = (p: any) => {
@@ -525,13 +505,24 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
   const handleCritiqueDemanderDocs = (item: any) => {
     const missingList = item.missingCMA.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
-    logAction(item.id, "apprenant_demander_docs", `Docs manquants: ${missingList}`);
-    window.open(`mailto:${item.email}?subject=Documents manquants — Urgent&body=Bonjour ${item.prenom},%0A%0AIl manque les documents suivants pour votre dossier :%0A${item.missingCMA.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('%0A')}%0A%0AMerci de les transmettre en urgence.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
+      defaultSubject: "Documents manquants — Urgent",
+      defaultBody: `Bonjour ${item.prenom},\n\nIl manque les documents suivants pour votre dossier :\n${item.missingCMA.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('\n')}\n\nMerci de les transmettre en urgence.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "apprenant_demander_docs",
+      autoNoteExtra: `Docs manquants: ${missingList}`,
+      onSuccess: invalidate,
+    });
   };
 
   const handleCritiqueRelancePaiement = (item: any) => {
-    logAction(item.id, "apprenant_relance_paiement");
-    window.open(`mailto:${item.email}?subject=Rappel de paiement&body=Bonjour ${item.prenom},%0A%0ANous vous rappelons qu'un paiement est en attente pour votre formation.%0A%0AMerci de régulariser votre situation.%0A%0ACordialement,%0AT3P Campus`);
+    openComposer({
+      recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
+      defaultSubject: "Rappel de paiement",
+      defaultBody: `Bonjour ${item.prenom},\n\nNous vous rappelons qu'un paiement est en attente pour votre formation.\n\nMerci de régulariser votre situation.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "apprenant_relance_paiement",
+      onSuccess: invalidate,
+    });
   };
 
   // Check if CMA relance already done today for a specific contact
@@ -601,16 +592,6 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               <div className="flex items-center gap-2">
                 {bulkCmaSelected.size > 0 && (
                   <div className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-0.5 border rounded-md overflow-hidden">
-                      <button
-                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "individual" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
-                        onClick={() => setBulkEmailMode("individual")}
-                      >Individuels</button>
-                      <button
-                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "bcc" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
-                        onClick={() => setBulkEmailMode("bcc")}
-                      >BCC</button>
-                    </div>
                     <Button
                       size="sm"
                       variant="default"
@@ -828,16 +809,6 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               <div className="flex items-center gap-2">
                 {bulkRelanceSelected.size > 0 && (
                   <div className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-0.5 border rounded-md overflow-hidden">
-                      <button
-                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "individual" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
-                        onClick={() => setBulkEmailMode("individual")}
-                      >Individuels</button>
-                      <button
-                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "bcc" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
-                        onClick={() => setBulkEmailMode("bcc")}
-                      >BCC</button>
-                    </div>
                     <Button
                       size="sm"
                       variant="default"
@@ -986,6 +957,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
       {/* Detail sheets */}
       <ApprenantDetailSheet contactId={selectedContactId} open={contactDetailOpen} onOpenChange={setContactDetailOpen} />
       <ProspectDetailSheet prospect={selectedProspect} open={prospectDetailOpen} onOpenChange={setProspectDetailOpen} />
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }

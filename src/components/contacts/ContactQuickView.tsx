@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -35,6 +35,8 @@ import { useDeleteContact, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,6 +120,7 @@ export function ContactQuickView({
   onEdit,
   onOpenFullView 
 }: ContactQuickViewProps) {
+  const composerActions = useEmailComposer();
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
@@ -235,7 +238,11 @@ export function ContactQuickView({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`mailto:${contact.email}`, "_blank")}
+                    onClick={() => composerActions.openComposer({
+                      recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                      defaultSubject: "",
+                      defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+                    })}
                   >
                     <Mail className="h-4 w-4 mr-1" />
                     Email
@@ -448,7 +455,8 @@ export function ContactQuickView({
               open={callLogOpen}
               onOpenChange={setCallLogOpen}
             />
-          </>
+        <EmailComposerModal {...composerActions.composerProps} />
+        </>
         )}
       </SheetContent>
     </Sheet>
