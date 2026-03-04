@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Calendar, Clock, AlertTriangle, CheckCircle2, Phone, Mail,
-  ExternalLink, Check, Bot, CalendarCheck, RotateCcw,
+  ExternalLink, Check, Bot, CalendarCheck, RotateCcw, CalendarPlus,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
-import { useProspects, type Prospect } from "@/hooks/useProspects";
+import { useProspects, useUpdateProspect, type Prospect } from "@/hooks/useProspects";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { format, parseISO, isPast, isToday, isTomorrow, endOfWeek, differenceInDays } from "date-fns";
@@ -50,6 +52,8 @@ const GROUP_CONFIG: Record<AgendaGroup, { label: string; icon: typeof Calendar; 
 const RELANCE_KEYWORDS = ["Relance prospect", "Relance", "Marqué comme traité"];
 const RDV_KEYWORDS = ["RDV", "Confirmation"];
 
+type TypeFilter = "all" | "rdv" | "relance";
+
 export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: todayNotes = [] } = useQuery({
@@ -58,7 +62,9 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
     staleTime: 30_000,
   });
   const queryClient = useQueryClient();
+  const updateProspect = useUpdateProspect();
   const [showHandled, setShowHandled] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-today-notes"] });
@@ -135,10 +141,18 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
     return groups;
   }, [prospects, todayNotes]);
 
-  // Count handled items for toggle label
-  const totalHandled = useMemo(() => {
-    return Object.values(grouped).flat().filter(p => p._anyHandled).length;
-  }, [grouped]);
+  // Counts for filters
+  const allFlat = useMemo(() => Object.values(grouped).flat(), [grouped]);
+  const totalHandled = useMemo(() => allFlat.filter(p => p._anyHandled).length, [allFlat]);
+  const rdvCount = useMemo(() => allFlat.filter(p => p._isRdv).length, [allFlat]);
+  const relanceCount = useMemo(() => allFlat.filter(p => !p._isRdv).length, [allFlat]);
+
+  const handleScheduleDate = useCallback((prospectId: string, date: Date) => {
+    updateProspect.mutate(
+      { id: prospectId, updates: { date_prochaine_relance: date.toISOString().split("T")[0] } },
+      { onSuccess: () => toast.success("Date planifiée") }
+    );
+  }, [updateProspect]);
 
   // ─── Action handlers ───
   const handleConfirmRdv = (p: Prospect) => {
@@ -186,8 +200,27 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
 
   return (
     <div className="space-y-5">
-      {/* Toggle traités */}
-      <div className="flex items-center justify-end">
+      {/* Toolbar: type filter + toggle */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-1">
+          {([
+            { value: "all" as TypeFilter, label: "Tous", count: rdvCount + relanceCount },
+            { value: "rdv" as TypeFilter, label: "RDV", count: rdvCount, icon: CalendarCheck },
+            { value: "relance" as TypeFilter, label: "Relances", count: relanceCount, icon: RotateCcw },
+          ]).map(opt => (
+            <Button
+              key={opt.value}
+              variant={typeFilter === opt.value ? "default" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2.5 gap-1"
+              onClick={() => setTypeFilter(opt.value)}
+            >
+              {opt.icon && <opt.icon className="h-3 w-3" />}
+              {opt.label}
+              <span className="opacity-60">({opt.count})</span>
+            </Button>
+          ))}
+        </div>
         <div className="flex items-center gap-2">
           <Switch id="show-handled-agenda" checked={showHandled} onCheckedChange={setShowHandled} />
           <Label htmlFor="show-handled-agenda" className="text-xs text-muted-foreground cursor-pointer">
@@ -200,7 +233,11 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
       </div>
 
       {orderedGroups.map(groupKey => {
-        const allItems = grouped[groupKey];
+        const allItemsRaw = grouped[groupKey];
+        // Apply type filter
+        const allItems = typeFilter === "all" ? allItemsRaw
+          : typeFilter === "rdv" ? allItemsRaw.filter(p => p._isRdv)
+          : allItemsRaw.filter(p => !p._isRdv);
         // Filter out handled items from today/overdue unless toggle is on
         const items = showHandled
           ? allItems
@@ -237,6 +274,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
                   onWhatsApp={handleWhatsApp}
                   onAppel={handleAppel}
                   onMarkDone={handleMarkDone}
+                  onSchedule={handleScheduleDate}
                 />
               ))}
             </div>
@@ -267,12 +305,13 @@ interface AgendaCardProps {
   onWhatsApp: (p: Prospect) => void;
   onAppel: (p: Prospect) => void;
   onMarkDone: (p: EnrichedProspect, bloc: string) => void;
+  onSchedule: (prospectId: string, date: Date) => void;
 }
 
 function AgendaCard({
   prospect: p, groupKey,
   onViewDetail, onConfirmRdv, onRelanceJ1, onRdvManque, onRelanceEmail,
-  onWhatsApp, onAppel, onMarkDone,
+  onWhatsApp, onAppel, onMarkDone, onSchedule,
 }: AgendaCardProps) {
   const daysLate = p.date_prochaine_relance && groupKey === "overdue"
     ? Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))
@@ -403,6 +442,25 @@ function AgendaCard({
               <SiWhatsapp className="h-3 w-3" />
             </Button>
           </>
+        )}
+        {groupKey === "unscheduled" && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="h-7 text-[10px] text-primary border-primary/30">
+                <CalendarPlus className="h-3 w-3 mr-1" /> Planifier
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={undefined}
+                onSelect={(date) => { if (date) onSchedule(p.id, date); }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         )}
         <Button
           size="sm" variant="ghost"
