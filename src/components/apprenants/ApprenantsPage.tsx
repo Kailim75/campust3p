@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
+import { isActiveApprenant } from "@/lib/apprenant-active";
 import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
@@ -41,6 +42,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
   const [search, setSearch] = useState("");
   const [formationFilter, setFormationFilter] = useState("all");
   const [quickFilter, setQuickFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState<"actifs" | "tous" | "inactifs">("actifs");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -84,9 +86,25 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     }).length;
   }, [contacts]);
 
+  // Activity counts
+  const activityCounts = useMemo(() => {
+    if (!contacts) return { actifs: 0, inactifs: 0, tous: 0 };
+    let actifs = 0;
+    let inactifs = 0;
+    contacts.forEach(c => {
+      if (isActiveApprenant(c)) actifs++;
+      else inactifs++;
+    });
+    return { actifs, inactifs, tous: contacts.length };
+  }, [contacts]);
+
   const filtered = useMemo(() => {
     if (!contacts) return [];
     return contacts.filter((c) => {
+      // Activity filter
+      if (activityFilter === "actifs" && !isActiveApprenant(c)) return false;
+      if (activityFilter === "inactifs" && isActiveApprenant(c)) return false;
+
       // Text search
       const matchesSearch =
         !search ||
@@ -117,7 +135,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
 
       return matchesSearch && matchesFormation && matchesQuick;
     });
-  }, [contacts, search, formationFilter, quickFilter]);
+  }, [contacts, search, formationFilter, quickFilter, activityFilter]);
 
   const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0;
@@ -163,6 +181,9 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           onFormationFilterChange={setFormationFilter}
           quickFilter={quickFilter}
           onQuickFilterChange={setQuickFilter}
+          activityFilter={activityFilter}
+          onActivityFilterChange={setActivityFilter}
+          activityCounts={activityCounts}
           expertMode={expertMode}
           onExpertModeToggle={toggleExpertMode}
           filteredCount={filtered.length}

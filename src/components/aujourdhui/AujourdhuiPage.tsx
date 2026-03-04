@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 import { ProspectSendEmailDialog } from "@/components/prospects/ProspectSendEmailDialog";
@@ -70,17 +72,43 @@ function useAujourdhuiData() {
       // Build inscriptions set
       const inscribedContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
 
+      // Build active session contact set
+      const activeSessionContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
+
+      // Build facture map per contact for active check
+      const contactHasOpenFacture = new Set<string>();
+      factures.forEach((f: any) => {
+        if (f.statut !== "payee" && f.statut !== "annulee") {
+          contactHasOpenFacture.add(f.contact_id);
+        }
+      });
+
+      // Active rappels per contact
+      const contactHasRappel = new Set(rappels.map((r: any) => r.contact_id));
+
+      // isActive check using existing signals
+      const thirtyDaysAgo = addDays(new Date(), -30).toISOString();
+      const isContactActive = (c: any) => {
+        if (activeSessionContactIds.has(c.id)) return true;
+        if (contactHasOpenFacture.has(c.id)) return true;
+        if (contactHasRappel.has(c.id)) return true;
+        const contactDocs = docsMap.get(c.id) || new Set();
+        const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
+        if (missingDocs.length > 0 && missingDocs.length < CMA_REQUIRED_DOCS.length) return true; // has some docs but not all
+        if (c.updated_at && c.updated_at >= thirtyDaysAgo) return true;
+        return false;
+      };
+
       // ─── Bloc A: CMA à traiter ───
       const cmaItems = contacts
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation")
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-          return { ...c, missingDocs, docCount: contactDocs.size };
+          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c) };
         })
         .filter(c => c.missingDocs.length > 0)
-        .sort((a, b) => b.missingDocs.length - a.missingDocs.length)
-        .slice(0, 10);
+        .sort((a, b) => b.missingDocs.length - a.missingDocs.length);
 
       // ─── Bloc B: RDV du jour (prospects with date_prochaine_relance = today) ───
       const rdvToday = prospects
@@ -129,11 +157,10 @@ function useAujourdhuiData() {
           if (hasLatePayment) reasons.push("Paiement en retard");
           if (sessionSoon && missingCMA.length > 0) reasons.push("Session proche + dossier incomplet");
 
-          return { ...c, reasons, missingCMA, hasLatePayment, hasUnpaid };
+          return { ...c, reasons, missingCMA, hasLatePayment, hasUnpaid, _isActive: isContactActive(c) };
         })
         .filter(c => c.reasons.length > 0)
-        .sort((a, b) => b.reasons.length - a.reasons.length)
-        .slice(0, 10);
+        .sort((a, b) => b.reasons.length - a.reasons.length);
 
       return {
         cmaItems,
@@ -164,6 +191,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [contactDetailOpen, setContactDetailOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   const openContact = (id: string) => {
     setSelectedContactId(id);
@@ -186,11 +214,29 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     );
   }
 
-  const { cmaItems = [], rdvToday = [], relances = [], critiques = [] } = data || {};
+  const { cmaItems: rawCma = [], rdvToday = [], relances = [], critiques: rawCritiques = [] } = data || {};
+
+  // Apply active filter to CMA and critiques blocs
+  const cmaItems = (includeInactive ? rawCma : rawCma.filter(c => c._isActive)).slice(0, 10);
+  const critiques = (includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive)).slice(0, 10);
+  const hiddenCma = rawCma.length - (includeInactive ? rawCma : rawCma.filter(c => c._isActive)).length;
+  const hiddenCritiques = rawCritiques.length - (includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive)).length;
+  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length;
 
   return (
     <div className="space-y-6">
-      <Header title="Aujourd'hui" subtitle={`${data?.totalActions || 0} actions à traiter`} />
+      <Header title="Aujourd'hui" subtitle={`${totalActions} actions à traiter`} />
+
+      {/* Toggle inactifs */}
+      <div className="px-8 flex items-center justify-end gap-2">
+        <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+        <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
+          Inclure inactifs
+          {(hiddenCma + hiddenCritiques) > 0 && !includeInactive && (
+            <span className="ml-1 text-muted-foreground/60">({hiddenCma + hiddenCritiques} masqués)</span>
+          )}
+        </Label>
+      </div>
 
       <div className="px-8 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* ─── BLOC A: CMA à traiter ─── */}
