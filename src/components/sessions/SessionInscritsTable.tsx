@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
 import { useContacts } from '@/hooks/useContacts';
@@ -26,7 +26,8 @@ import {
   Edit,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Table,
@@ -88,6 +89,9 @@ import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
 import { fetchContactsDocumentData } from '@/lib/documents/fetchContactDocumentData';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processor';
+import { useEmailComposer } from '@/hooks/useEmailComposer';
+import { EmailComposerModal } from '@/components/email/EmailComposerModal';
+import type { EmailRecipient } from '@/components/email/EmailComposerModal';
 import type { Contact } from '@/hooks/useContacts';
 
 interface SessionInscritsTableProps {
@@ -114,6 +118,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const bulkCreateEnvois = useBulkCreateDocumentEnvois();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
   const { centreFormation } = useCentreFormation();
+  const { composerProps, openComposer } = useEmailComposer();
   
   // Exam results for all inscrits
   const inscritContactIds = inscrits?.map(i => i.contact_id) || [];
@@ -160,6 +165,39 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [contactFormOpen, setContactFormOpen] = useState(false);
+
+  // Compute urgency for each inscrit
+  const getUrgency = (inscrit: any) => {
+    const reasons: string[] = [];
+    const facture = getFactureForContact(inscrit.contact_id);
+    const exam = examResults[inscrit.contact_id];
+    
+    // CMA not validated
+    if (inscrit.statut === 'document' || inscrit.statut === 'complexe') {
+      reasons.push("CMA incomplet");
+    }
+    
+    // Payment issue
+    if (facture && facture.statut === 'impayee') {
+      reasons.push("Facture impayée");
+    }
+    
+    // Exam failed
+    if (exam?.theorie === 'ajourne') reasons.push("Théorie échouée");
+    if (exam?.pratique === 'ajourne') reasons.push("Pratique échouée");
+    
+    // No exam result yet
+    if (!exam?.theorie && !exam?.pratique) {
+      // Only flag if session is ending soon or ended
+      if (session?.date_fin && new Date(session.date_fin) <= new Date()) {
+        reasons.push("Résultats non saisis");
+      }
+    }
+
+    if (reasons.length >= 2) return { level: "red" as const, reasons };
+    if (reasons.length === 1) return { level: "yellow" as const, reasons };
+    return { level: "green" as const, reasons: ["OK"] };
+  };
   
   // Helper to get facture for a contact
   const getFactureForContact = (contactId: string): FactureWithDetails | undefined => {
@@ -572,6 +610,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     }
   };
 
+  // Get selected recipients with email for bulk email actions
+  const getSelectedRecipients = (): EmailRecipient[] => {
+    const selected = inscrits?.filter(
+      i => selectedIds.includes(i.contact_id) && i.contact?.email
+    ) || [];
+    if (selected.length === 0) {
+      toast.error("Aucun contact sélectionné avec email");
+      return [];
+    }
+    return selected.map(i => ({
+      id: i.contact_id,
+      email: i.contact!.email!,
+      prenom: i.contact!.prenom || "",
+      nom: i.contact!.nom || "",
+    }));
+  };
+
   const inscriptionStatuts = [
     { value: 'valide', label: 'Validé', class: 'bg-success/10 text-success border-success/20' },
     { value: 'encours', label: 'En cours', class: 'bg-warning/10 text-warning border-warning/20' },
@@ -698,6 +753,88 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
             <Send className="h-3 w-3 mr-1" />
             Tracer envoi
           </Button>
+          {/* Bulk email actions via EmailComposer */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Mail className="h-3 w-3 mr-1" />
+                Actions email
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => {
+                const recipients = getSelectedRecipients();
+                if (!recipients.length) return;
+                openComposer({
+                  recipients,
+                  defaultSubject: `Convocation — ${session?.nom || "Session"}`,
+                  defaultBody: `Bonjour {{prenom}},\n\nVous êtes convoqué(e) à la session "${session?.nom || ""}".\n\nBien cordialement,\nL'équipe pédagogique`,
+                  autoNoteCategory: "session_convocation",
+                });
+              }}>
+                <Send className="h-4 w-4 mr-2" />
+                Envoyer Convocation
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const recipients = getSelectedRecipients();
+                if (!recipients.length) return;
+                openComposer({
+                  recipients,
+                  defaultSubject: `Dossier CMA — Documents manquants`,
+                  defaultBody: `Bonjour {{prenom}},\n\nNous vous rappelons que votre dossier CMA est incomplet. Merci de nous transmettre les documents manquants dans les meilleurs délais.\n\nBien cordialement,\nL'équipe administrative`,
+                  autoNoteCategory: "session_relance_cma",
+                });
+              }}>
+                <FileText className="h-4 w-4 mr-2" />
+                Relancer CMA
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => {
+                const admisTheorie = inscrits?.filter(
+                  i => selectedIds.includes(i.contact_id) && examResults[i.contact_id]?.theorie === 'admis' && i.contact?.email
+                ) || [];
+                if (!admisTheorie.length) { toast.error("Aucun sélectionné admis en théorie"); return; }
+                const recs: EmailRecipient[] = admisTheorie.map(i => ({
+                  id: i.contact_id,
+                  email: i.contact!.email!,
+                  prenom: i.contact!.prenom || "",
+                  nom: i.contact!.nom || "",
+                  customBody: `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nBien cordialement,\nL'équipe pédagogique`,
+                }));
+                openComposer({
+                  recipients: recs,
+                  defaultSubject: "🎉 Félicitations — Examen théorique réussi !",
+                  defaultBody: "Contenu personnalisé par apprenant",
+                  autoNoteCategory: "examen_theorie_reussi",
+                });
+              }}>
+                <Award className="h-4 w-4 mr-2" />
+                Félicitations théorie
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const admisPratique = inscrits?.filter(
+                  i => selectedIds.includes(i.contact_id) && examResults[i.contact_id]?.pratique === 'admis' && i.contact?.email
+                ) || [];
+                if (!admisPratique.length) { toast.error("Aucun sélectionné admis en pratique"); return; }
+                const recs: EmailRecipient[] = admisPratique.map(i => ({
+                  id: i.contact_id,
+                  email: i.contact!.email!,
+                  prenom: i.contact!.prenom || "",
+                  nom: i.contact!.nom || "",
+                  customBody: `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant entreprendre les démarches pour votre carte professionnelle.\n\nBien cordialement,\nL'équipe pédagogique`,
+                }));
+                openComposer({
+                  recipients: recs,
+                  defaultSubject: "🎉 Félicitations — Examen pratique réussi + Carte Pro",
+                  defaultBody: "Contenu personnalisé par apprenant",
+                  autoNoteCategory: "examen_pratique_reussi",
+                });
+              }}>
+                <Award className="h-4 w-4 mr-2" />
+                Félicitations pratique + Carte Pro
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
 
@@ -724,11 +861,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                   />
                 </TableHead>
                 <TableHead>Nom</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">CMA</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
+                <TableHead className="hidden lg:table-cell w-10 text-center">⚡</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -737,6 +874,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 inscrits.map(inscrit => {
                   const facture = getFactureForContact(inscrit.contact_id);
                   const paidPercent = facture ? (facture.total_paye / Number(facture.montant_total)) * 100 : 0;
+                  const urgency = getUrgency(inscrit);
                   
                   return (
                     <TableRow key={inscrit.id}>
@@ -748,9 +886,6 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                       </TableCell>
                       <TableCell className="font-medium">
                         {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {inscrit.contact?.email}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Select
@@ -870,6 +1005,20 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                      {/* Urgency dot */}
+                      <TableCell className="hidden lg:table-cell text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${
+                              urgency.level === 'red' ? 'bg-destructive' :
+                              urgency.level === 'yellow' ? 'bg-warning' : 'bg-success'
+                            }`} />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">{urgency.reasons.join(', ')}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -1256,6 +1405,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           }}
         />
       )}
+
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }

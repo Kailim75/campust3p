@@ -17,7 +17,14 @@ export type ActionCategory =
   | "apprenant_relance_paiement"
   | "apprenant_whatsapp"
   | "apprenant_appel"
-  | "marquer_fait";
+  | "marquer_fait"
+  | "session_convocation"
+  | "session_relance_cma"
+  | "examen_theorie_reussi"
+  | "examen_theorie_echoue"
+  | "examen_pratique_reussi"
+  | "examen_pratique_echoue"
+  | "session_email";
 
 interface ActionMeta {
   label: string;
@@ -39,6 +46,13 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   apprenant_whatsapp:          { label: "Apprenant: contact",           canal: "WhatsApp" },
   apprenant_appel:             { label: "Apprenant: appel",             canal: "Téléphone" },
   marquer_fait:                { label: "Marqué comme traité",           canal: "—" },
+  session_convocation:         { label: "Session: convocation",          canal: "Email",     modele: "Convocation session" },
+  session_relance_cma:         { label: "Session: relance CMA",          canal: "Email",     modele: "Relance CMA session" },
+  examen_theorie_reussi:       { label: "Examen: théorie réussie",       canal: "Email",     modele: "Théorie réussie" },
+  examen_theorie_echoue:       { label: "Examen: théorie échouée",       canal: "Email",     modele: "Théorie échouée" },
+  examen_pratique_reussi:      { label: "Examen: pratique réussie",      canal: "Email",     modele: "Pratique réussie" },
+  examen_pratique_echoue:      { label: "Examen: pratique échouée",      canal: "Email",     modele: "Pratique échouée" },
+  session_email:               { label: "Session: email",                canal: "Email" },
 };
 
 function buildAutoNoteTitle(category: ActionCategory): string {
