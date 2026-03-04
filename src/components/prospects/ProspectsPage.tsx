@@ -36,6 +36,7 @@ import { SmartConversionDialog } from "@/components/workflow/SmartConversionDial
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { ProspectsDashboard } from "./ProspectsDashboard";
 import { PipelinePage } from "@/components/pipeline/PipelinePage";
+import { ProspectsAgenda } from "./ProspectsAgenda";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { ProspectsKanban } from "./ProspectsKanban";
 import { ProspectDetailSheet } from "./ProspectDetailSheet";
@@ -81,7 +82,7 @@ export function ProspectsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
-  const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard" | "pipeline">("list");
+  const [activeView, setActiveView] = useState<"list" | "kanban" | "dashboard" | "pipeline" | "agenda">("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -218,6 +219,10 @@ export function ProspectsPage() {
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="agenda" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Agenda
+            </TabsTrigger>
           </TabsList>
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -238,6 +243,11 @@ export function ProspectsPage() {
         {/* Pipeline Tab */}
         <TabsContent value="pipeline" className="mt-6">
           <PipelinePage embedded />
+        </TabsContent>
+
+        {/* Agenda Tab */}
+        <TabsContent value="agenda" className="mt-6">
+          <ProspectsAgenda onViewDetail={handleViewDetail} />
         </TabsContent>
 
         {/* List Tab */}
