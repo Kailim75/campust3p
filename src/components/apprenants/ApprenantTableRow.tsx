@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Phone, MessageCircle, FileText, CreditCard } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Phone, MessageCircle, FileText, CreditCard, Info } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { cn } from "@/lib/utils";
 import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getActiveReasons, getActiveReasonLabel, isActiveApprenant } from "@/lib/apprenant-active";
 
 const FORMATION_BADGE: Record<string, string> = {
   TAXI: "badge-soft badge-soft-blue",
@@ -67,6 +69,8 @@ export function ApprenantTableRow({
   const formationClass = contact.formation
     ? FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray"
     : "";
+  const activeReasons = getActiveReasons(contact);
+  const active = activeReasons.length > 0;
 
   const sessionLabel = contact.sessionName
     ? contact.sessionDateDebut
@@ -97,7 +101,7 @@ export function ApprenantTableRow({
 
       {/* Apprenant */}
       <TableCell className="py-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs font-semibold bg-primary/8 text-foreground">
               {initials}
@@ -106,6 +110,21 @@ export function ApprenantTableRow({
           <span className="font-medium text-sm text-foreground truncate max-w-[180px]">
             {contact.prenom} {contact.nom}
           </span>
+          {active && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 cursor-help">
+                  <Info className="h-2.5 w-2.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs max-w-52">
+                <p className="font-medium mb-0.5">Actif car :</p>
+                <ul className="list-disc pl-3 space-y-0">
+                  {activeReasons.map(r => <li key={r}>{getActiveReasonLabel(r)}</li>)}
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </TableCell>
 
