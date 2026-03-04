@@ -35,6 +35,8 @@ import { fr } from "date-fns/locale";
 import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { computeContactUrgency } from "@/lib/urgency-utils";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 
 const FORMATION_COLORS: Record<string, string> = {
@@ -67,6 +69,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
   const queryClient = useQueryClient();
+  const { composerProps, openComposer } = useEmailComposer();
 
   // Fetch cockpit data (workflow + CMA + paiements + rappels + auto notes)
   const { data: cockpitData } = useQuery({
@@ -519,6 +522,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         onAddDocuments={() => { setPostAssignment(null); setActiveTab("dossier"); }}
         onReturnDashboard={() => setPostAssignment(null)}
       />
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }
