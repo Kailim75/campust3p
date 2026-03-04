@@ -82,11 +82,15 @@ const Index = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Redirect legacy routes to parent hubs
+  // Redirect legacy routes to parent hubs (no re-render loop, preserves history)
   useEffect(() => {
-    if (activeSection === "pipeline") {
-      setActiveSection("prospects");
-      setActiveTab("pipeline");
+    const redirects: Record<string, { section: string; tab?: string }> = {
+      pipeline: { section: "prospects", tab: "pipeline" },
+    };
+    const redirect = redirects[activeSection];
+    if (redirect) {
+      setActiveSection(redirect.section);
+      if (redirect.tab) setActiveTab(redirect.tab);
     }
   }, [activeSection]);
 
