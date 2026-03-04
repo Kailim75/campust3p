@@ -2,8 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// ─── Auto-note format ───
-// [AUTO] 04/03/2026 21:18 — CMA: relance docs envoyée (Email) — modèle: "CMA docs manquants"
+// ─── Auto-note format (compact) ───
+// Titre:   [AUTO] CMA: relance docs
+// Contenu: Canal: Email · Modèle: "CMA docs manquants"
+// (la date est portée par date_echange, pas dupliquée dans le titre)
 
 export type ActionCategory =
   | "cma_relance_docs"
@@ -18,23 +20,37 @@ export type ActionCategory =
   | "apprenant_appel"
   | "marquer_fait";
 
-const ACTION_LABELS: Record<ActionCategory, string> = {
-  cma_relance_docs: "CMA: relance docs envoyée (Email) — modèle: \"CMA docs manquants\"",
-  cma_relance: "CMA: relance envoyée",
-  prospect_confirmation_rdv: "Prospect: confirmation RDV (Email)",
-  prospect_relance: "Relance prospect (Email)",
-  prospect_relance_whatsapp: "Relance prospect (WhatsApp)",
-  prospect_appel: "Prospect: appel effectué",
-  apprenant_demander_docs: "Apprenant: demande docs envoyée (Email)",
-  apprenant_relance_paiement: "Apprenant: relance paiement envoyée (Email)",
-  apprenant_whatsapp: "Apprenant: contact WhatsApp",
-  apprenant_appel: "Apprenant: appel effectué",
-  marquer_fait: "Marqué comme traité",
+interface ActionMeta {
+  label: string;
+  canal: "Email" | "WhatsApp" | "Téléphone" | "—";
+  modele?: string;
+}
+
+const ACTION_META: Record<ActionCategory, ActionMeta> = {
+  cma_relance_docs:        { label: "CMA: relance docs",          canal: "Email",     modele: "CMA docs manquants" },
+  cma_relance:             { label: "CMA: relance",               canal: "Email" },
+  prospect_confirmation_rdv: { label: "Prospect: confirmation RDV", canal: "Email",   modele: "Confirmation RDV" },
+  prospect_relance:        { label: "Relance prospect",            canal: "Email",     modele: "Relance prospect" },
+  prospect_relance_whatsapp: { label: "Relance prospect",          canal: "WhatsApp" },
+  prospect_appel:          { label: "Prospect: appel",             canal: "Téléphone" },
+  apprenant_demander_docs: { label: "Apprenant: demande docs",     canal: "Email",     modele: "Demande docs apprenant" },
+  apprenant_relance_paiement: { label: "Apprenant: relance paiement", canal: "Email", modele: "Relance paiement" },
+  apprenant_whatsapp:      { label: "Apprenant: contact",          canal: "WhatsApp" },
+  apprenant_appel:         { label: "Apprenant: appel",            canal: "Téléphone" },
+  marquer_fait:            { label: "Marqué comme traité",          canal: "—" },
 };
 
 function buildAutoNoteTitle(category: ActionCategory): string {
-  const now = format(new Date(), "dd/MM/yyyy HH:mm");
-  return `[AUTO] ${now} — ${ACTION_LABELS[category]}`;
+  return `[AUTO] ${ACTION_META[category].label}`;
+}
+
+function buildAutoNoteContenu(category: ActionCategory, extra?: string): string {
+  const meta = ACTION_META[category];
+  const parts: string[] = [];
+  if (meta.canal !== "—") parts.push(`Canal: ${meta.canal}`);
+  if (meta.modele) parts.push(`Modèle: "${meta.modele}"`);
+  if (extra) parts.push(extra);
+  return parts.join(" · ") || "";
 }
 
 export interface AutoNoteResult {
@@ -52,7 +68,7 @@ export async function createAutoNote(
   extra?: string
 ): Promise<AutoNoteResult | null> {
   const titre = buildAutoNoteTitle(category);
-  const contenu = extra || null;
+  const contenu = buildAutoNoteContenu(category, extra) || null;
 
   const { data, error } = await supabase
     .from("contact_historique")

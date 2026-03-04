@@ -34,9 +34,10 @@ export function ActionJournal({ entries, onOpenContact }: ActionJournalProps) {
       </div>
       <div className="divide-y max-h-60 overflow-y-auto">
         {entries.map((entry) => {
-          // Extract the action part after "[AUTO] DD/MM/YYYY HH:MM — "
-          const actionMatch = entry.titre.match(/\[AUTO\]\s*\d{2}\/\d{2}\/\d{4}\s*\d{2}:\d{2}\s*—\s*(.*)/);
-          const actionLabel = actionMatch ? actionMatch[1] : entry.titre;
+          // Handle both compact "[AUTO] Label" and legacy "[AUTO] DD/MM/YYYY HH:MM — Label"
+          const legacyMatch = entry.titre.match(/\[AUTO\]\s*\d{2}\/\d{2}\/\d{4}\s*\d{2}:\d{2}\s*—\s*(.*)/);
+          const compactMatch = entry.titre.match(/^\[AUTO\]\s*(.*)/);
+          const actionLabel = legacyMatch ? legacyMatch[1] : compactMatch ? compactMatch[1] : entry.titre;
           const timeMatch = entry.titre.match(/(\d{2}:\d{2})/);
           const time = timeMatch ? timeMatch[1] : format(parseISO(entry.created_at), "HH:mm");
 
