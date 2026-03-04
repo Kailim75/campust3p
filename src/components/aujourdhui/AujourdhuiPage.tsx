@@ -15,7 +15,7 @@ import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
   CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check, Bot,
-  Filter,
+  Filter, CalendarCheck, RotateCcw,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
@@ -25,14 +25,14 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   createAutoNote, deleteAutoNote, fetchTodayAutoNotes,
-  isHandledToday, type ActionCategory,
+  isHandledToday, isProspectRdv, type ActionCategory,
 } from "@/lib/aujourdhui-actions";
 import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
 import type { Prospect } from "@/hooks/useProspects";
 
 // Keywords used to detect if an action category was already done today
 const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
-const RDV_KEYWORDS = ["confirmation RDV", "Prospect:", "Marqué comme traité"];
+const RDV_KEYWORDS = ["RDV", "Confirmation", "Marqué comme traité"];
 const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
 
@@ -133,16 +133,20 @@ function useAujourdhuiData() {
         .filter(c => c.missingDocs.length > 0)
         .sort((a, b) => b.missingDocs.length - a.missingDocs.length);
 
-      // ─── Bloc B: RDV ───
-      const rdvToday = prospects
-        .filter(p => p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)))
-        .slice(0, 10);
+      // ─── Bloc B: RDV du jour (only true RDVs) ───
+      const allTodayProspects = prospects
+        .filter(p => p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)));
+      const rdvToday = allTodayProspects.filter(p => isProspectRdv(p)).slice(0, 10);
 
       // ─── Bloc C: Relances ───
       const relances = prospects
         .filter(p => {
-          if (p.statut === "relance") return true;
+          // Today non-RDV prospects
+          if (p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)) && !isProspectRdv(p)) return true;
+          // Overdue
           if (p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance)) && !isToday(parseISO(p.date_prochaine_relance))) return true;
+          // Status relance
+          if (p.statut === "relance" && !p.date_prochaine_relance) return true;
           return false;
         })
         .sort((a, b) => {
@@ -311,6 +315,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const handleRdvAppel = (p: any) => {
     logAction(p.id, "prospect_appel");
   };
+
+  const isRdvHandledToday = (contactId: string) =>
+    isHandledToday(contactId, todayNotes, ["RDV", "Confirmation"]);
 
   const handleRdvWhatsApp = (p: any) => {
     logAction(p.id, "prospect_relance_whatsapp");
@@ -499,7 +506,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-warning" />
+                  <CalendarCheck className="h-4 w-4 text-warning" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">RDV du jour</h3>
@@ -510,40 +517,68 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {rdvToday.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  Aucun RDV prévu aujourd'hui
-                </div>
-              ) : rdvToday.map((p) => (
-                <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                      {p.prenom} {p.nom}
-                      <ExternalLink className="h-3 w-3 opacity-40" />
-                    </button>
-                    <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning">Aujourd'hui</Badge>
-                  </div>
-                  {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-2">{p.formation_souhaitee}</p>}
-                  <div className="flex gap-1.5">
-                    {p.email && (
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRdvConfirm(p)}>
-                        <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
-                      </Button>
-                    )}
-                    {p.telephone && (
+                <div className="p-6 text-center space-y-3">
+                  <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
+                  <div className="flex justify-center gap-2">
+                    {onNavigate && (
                       <>
-                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
-                          <a href={`tel:${p.telephone}`} onClick={() => handleRdvAppel(p)}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
+                        <Button size="sm" variant="outline" className="text-xs" onClick={() => onNavigate("prospects")}>
+                          <CalendarCheck className="h-3 w-3 mr-1" /> Planifier un RDV
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRdvWhatsApp(p)}>
-                          <SiWhatsapp className="h-3 w-3" />
+                        <Button size="sm" variant="ghost" className="text-xs" onClick={() => onNavigate("prospects")}>
+                          <RotateCcw className="h-3 w-3 mr-1" /> Relancer prospects
                         </Button>
                       </>
                     )}
-                    <MarkDoneBtn contactId={p.id} bloc="RDV" />
                   </div>
                 </div>
-              ))}
+              ) : rdvToday.map((p) => {
+                const handledToday = isRdvHandledToday(p.id);
+                return (
+                  <div key={p.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => openProspect(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                          {p.prenom} {p.nom}
+                          <ExternalLink className="h-3 w-3 opacity-40" />
+                        </button>
+                        <Badge variant="outline" className="text-[9px] bg-warning/15 text-warning border-warning/30">
+                          <CalendarCheck className="h-2.5 w-2.5 mr-0.5" /> RDV
+                        </Badge>
+                      </div>
+                      {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
+                    </div>
+                    <div className="flex gap-1.5">
+                      {p.email && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={handledToday} onClick={() => handleRdvConfirm(p)}>
+                                  <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {handledToday && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {p.telephone && (
+                        <>
+                          <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
+                            <a href={`tel:${p.telephone}`} onClick={() => handleRdvAppel(p)}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRdvWhatsApp(p)}>
+                            <SiWhatsapp className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                      <MarkDoneBtn contactId={p.id} bloc="RDV" />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 

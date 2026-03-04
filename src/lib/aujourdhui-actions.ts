@@ -1,16 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
 // ─── Auto-note format (compact) ───
 // Titre:   [AUTO] CMA: relance docs
 // Contenu: Canal: Email · Modèle: "CMA docs manquants"
-// (la date est portée par date_echange, pas dupliquée dans le titre)
 
 export type ActionCategory =
   | "cma_relance_docs"
   | "cma_relance"
   | "prospect_confirmation_rdv"
+  | "prospect_relance_j1"
+  | "prospect_rdv_manque"
   | "prospect_relance"
   | "prospect_relance_whatsapp"
   | "prospect_appel"
@@ -27,17 +26,19 @@ interface ActionMeta {
 }
 
 const ACTION_META: Record<ActionCategory, ActionMeta> = {
-  cma_relance_docs:        { label: "CMA: relance docs",          canal: "Email",     modele: "CMA docs manquants" },
-  cma_relance:             { label: "CMA: relance",               canal: "Email" },
-  prospect_confirmation_rdv: { label: "Prospect: confirmation RDV", canal: "Email",   modele: "Confirmation RDV" },
-  prospect_relance:        { label: "Relance prospect",            canal: "Email",     modele: "Relance prospect" },
-  prospect_relance_whatsapp: { label: "Relance prospect",          canal: "WhatsApp" },
-  prospect_appel:          { label: "Prospect: appel",             canal: "Téléphone" },
-  apprenant_demander_docs: { label: "Apprenant: demande docs",     canal: "Email",     modele: "Demande docs apprenant" },
-  apprenant_relance_paiement: { label: "Apprenant: relance paiement", canal: "Email", modele: "Relance paiement" },
-  apprenant_whatsapp:      { label: "Apprenant: contact",          canal: "WhatsApp" },
-  apprenant_appel:         { label: "Apprenant: appel",            canal: "Téléphone" },
-  marquer_fait:            { label: "Marqué comme traité",          canal: "—" },
+  cma_relance_docs:            { label: "CMA: relance docs",            canal: "Email",     modele: "CMA docs manquants" },
+  cma_relance:                 { label: "CMA: relance",                 canal: "Email" },
+  prospect_confirmation_rdv:   { label: "RDV — Confirmation",           canal: "Email",     modele: "Confirmation RDV" },
+  prospect_relance_j1:         { label: "RDV — Relance J-1",            canal: "Email",     modele: "Relance J-1" },
+  prospect_rdv_manque:         { label: "RDV — RDV manqué",             canal: "Email",     modele: "RDV manqué" },
+  prospect_relance:            { label: "Relance prospect",             canal: "Email",     modele: "Relance prospect" },
+  prospect_relance_whatsapp:   { label: "Relance prospect",             canal: "WhatsApp" },
+  prospect_appel:              { label: "Prospect: appel",              canal: "Téléphone" },
+  apprenant_demander_docs:     { label: "Apprenant: demande docs",      canal: "Email",     modele: "Demande docs apprenant" },
+  apprenant_relance_paiement:  { label: "Apprenant: relance paiement",  canal: "Email",     modele: "Relance paiement" },
+  apprenant_whatsapp:          { label: "Apprenant: contact",           canal: "WhatsApp" },
+  apprenant_appel:             { label: "Apprenant: appel",             canal: "Téléphone" },
+  marquer_fait:                { label: "Marqué comme traité",           canal: "—" },
 };
 
 function buildAutoNoteTitle(category: ActionCategory): string {
@@ -58,10 +59,6 @@ export interface AutoNoteResult {
   contact_id: string;
 }
 
-/**
- * Create an [AUTO] note on a contact's historique.
- * Returns the created note id for undo.
- */
 export async function createAutoNote(
   contactId: string,
   category: ActionCategory,
@@ -90,9 +87,6 @@ export async function createAutoNote(
   return data as AutoNoteResult;
 }
 
-/**
- * Delete an auto note (for undo).
- */
 export async function deleteAutoNote(noteId: string): Promise<boolean> {
   const { error } = await supabase
     .from("contact_historique")
@@ -106,9 +100,6 @@ export async function deleteAutoNote(noteId: string): Promise<boolean> {
   return true;
 }
 
-/**
- * Fetch today's [AUTO] notes to detect already-handled items.
- */
 export async function fetchTodayAutoNotes(): Promise<
   Array<{ id: string; contact_id: string; titre: string; created_at: string }>
 > {
@@ -129,9 +120,6 @@ export async function fetchTodayAutoNotes(): Promise<
   return (data || []) as Array<{ id: string; contact_id: string; titre: string; created_at: string }>;
 }
 
-/**
- * Check if a contact has been handled today for a given category keyword.
- */
 export function isHandledToday(
   contactId: string,
   todayNotes: Array<{ contact_id: string; titre: string }>,
@@ -142,4 +130,12 @@ export function isHandledToday(
       n.contact_id === contactId &&
       categoryKeywords.some((kw) => n.titre.includes(kw))
   );
+}
+
+/**
+ * Classify a prospect as RDV or Relance based on notes/description content.
+ */
+export function isProspectRdv(prospect: { notes: string | null; date_prochaine_relance: string | null }): boolean {
+  const text = (prospect.notes || "").toLowerCase();
+  return text.includes("rdv") || text.includes("rendez-vous") || text.includes("rendez vous");
 }
