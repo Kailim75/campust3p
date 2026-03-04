@@ -1,8 +1,10 @@
-import { useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Calendar, Clock, AlertTriangle, CheckCircle2, Phone, Mail,
@@ -27,14 +29,26 @@ interface ProspectsAgendaProps {
 
 type AgendaGroup = "overdue" | "today" | "tomorrow" | "week" | "later" | "unscheduled";
 
-const GROUP_CONFIG: Record<AgendaGroup, { label: string; icon: typeof Calendar; color: string }> = {
-  overdue:     { label: "En retard",    icon: AlertTriangle, color: "text-destructive" },
-  today:       { label: "Aujourd'hui",  icon: Clock,         color: "text-warning" },
-  tomorrow:    { label: "Demain",       icon: Calendar,      color: "text-info" },
-  week:        { label: "Cette semaine", icon: Calendar,     color: "text-primary" },
-  later:       { label: "Plus tard",    icon: Calendar,      color: "text-muted-foreground" },
-  unscheduled: { label: "Non planifié", icon: Calendar,      color: "text-muted-foreground/50" },
+interface EnrichedProspect extends Prospect {
+  _isRdv: boolean;
+  _lastNoteTime: string | null;
+  _lastNoteTitle: string | null;
+  _relanceHandled: boolean;
+  _rdvHandled: boolean;
+  _anyHandled: boolean;
+}
+
+const GROUP_CONFIG: Record<AgendaGroup, { label: string; icon: typeof Calendar; color: string; emptyLabel: string }> = {
+  overdue:     { label: "En retard",     icon: AlertTriangle, color: "text-destructive",        emptyLabel: "Aucun retard" },
+  today:       { label: "Aujourd'hui",   icon: Clock,         color: "text-warning",             emptyLabel: "Rien prévu aujourd'hui" },
+  tomorrow:    { label: "Demain",        icon: Calendar,      color: "text-info",                emptyLabel: "" },
+  week:        { label: "Cette semaine", icon: Calendar,      color: "text-primary",             emptyLabel: "" },
+  later:       { label: "Plus tard",     icon: Calendar,      color: "text-muted-foreground",    emptyLabel: "" },
+  unscheduled: { label: "Non planifié",  icon: Calendar,      color: "text-muted-foreground/50", emptyLabel: "" },
 };
+
+const RELANCE_KEYWORDS = ["Relance prospect", "Relance", "Marqué comme traité"];
+const RDV_KEYWORDS = ["RDV", "Confirmation"];
 
 export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
   const { data: prospects = [], isLoading } = useProspects();
@@ -44,6 +58,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
     staleTime: 30_000,
   });
   const queryClient = useQueryClient();
+  const [showHandled, setShowHandled] = useState(false);
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-today-notes"] });
@@ -72,7 +87,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
 
   const grouped = useMemo(() => {
     const active = prospects.filter(p => p.statut !== "converti" && p.statut !== "perdu");
-    const groups: Record<AgendaGroup, Array<Prospect & { _isRdv: boolean; _lastNote: string | null }>> = {
+    const groups: Record<AgendaGroup, EnrichedProspect[]> = {
       overdue: [], today: [], tomorrow: [], week: [], later: [], unscheduled: [],
     };
 
@@ -81,12 +96,22 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
 
     active.forEach(p => {
       const isRdv = isProspectRdv(p);
-      // Find last [AUTO] note for this prospect
-      const lastNote = todayNotes
-        .filter(n => n.contact_id === p.id)
-        .map(n => n.created_at)[0] || null;
+      const prospectNotes = todayNotes.filter(n => n.contact_id === p.id);
+      const lastNote = prospectNotes[0] || null;
 
-      const enriched = { ...p, _isRdv: isRdv, _lastNote: lastNote };
+      const relanceHandled = isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS);
+      const rdvHandled = isHandledToday(p.id, todayNotes, RDV_KEYWORDS);
+      const anyHandled = prospectNotes.length > 0;
+
+      const enriched: EnrichedProspect = {
+        ...p,
+        _isRdv: isRdv,
+        _lastNoteTime: lastNote?.created_at || null,
+        _lastNoteTitle: lastNote?.titre?.replace("[AUTO] ", "") || null,
+        _relanceHandled: relanceHandled,
+        _rdvHandled: rdvHandled,
+        _anyHandled: anyHandled,
+      };
 
       if (!p.date_prochaine_relance) {
         groups.unscheduled.push(enriched);
@@ -100,6 +125,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
       else groups.later.push(enriched);
     });
 
+    // Stable sort: overdue → oldest first, rest → date ascending
     Object.values(groups).forEach(g => g.sort((a, b) => {
       const da = a.date_prochaine_relance ? new Date(a.date_prochaine_relance).getTime() : Infinity;
       const db = b.date_prochaine_relance ? new Date(b.date_prochaine_relance).getTime() : Infinity;
@@ -109,9 +135,12 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
     return groups;
   }, [prospects, todayNotes]);
 
-  const isRdvHandledToday = (id: string) =>
-    isHandledToday(id, todayNotes, ["RDV", "Confirmation"]);
+  // Count handled items for toggle label
+  const totalHandled = useMemo(() => {
+    return Object.values(grouped).flat().filter(p => p._anyHandled).length;
+  }, [grouped]);
 
+  // ─── Action handlers ───
   const handleConfirmRdv = (p: Prospect) => {
     logAction(p.id, "prospect_confirmation_rdv", `Date: ${p.date_prochaine_relance || "aujourd'hui"}`);
     window.open(`mailto:${p.email}?subject=Confirmation de votre rendez-vous&body=Bonjour ${p.prenom},%0A%0ANous confirmons votre rendez-vous prévu le ${p.date_prochaine_relance ? format(parseISO(p.date_prochaine_relance), "dd/MM/yyyy", { locale: fr }) : "aujourd'hui"}.%0A%0AÀ très bientôt !%0AT3P Campus`);
@@ -141,7 +170,7 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
     logAction(p.id, "prospect_appel");
   };
 
-  const handleMarkDone = async (p: Prospect, bloc: string) => {
+  const handleMarkDone = async (p: EnrichedProspect, bloc: string) => {
     await logAction(p.id, "marquer_fait", `Bloc: ${bloc}`);
   };
 
@@ -157,11 +186,30 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
 
   return (
     <div className="space-y-5">
+      {/* Toggle traités */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-2">
+          <Switch id="show-handled-agenda" checked={showHandled} onCheckedChange={setShowHandled} />
+          <Label htmlFor="show-handled-agenda" className="text-xs text-muted-foreground cursor-pointer">
+            Afficher traités
+            {totalHandled > 0 && !showHandled && (
+              <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
+            )}
+          </Label>
+        </div>
+      </div>
+
       {orderedGroups.map(groupKey => {
-        const items = grouped[groupKey];
-        if (items.length === 0) return null;
+        const allItems = grouped[groupKey];
+        // Filter out handled items from today/overdue unless toggle is on
+        const items = showHandled
+          ? allItems
+          : allItems.filter(p => !p._anyHandled || groupKey === "tomorrow" || groupKey === "week" || groupKey === "later" || groupKey === "unscheduled");
+
+        if (items.length === 0 && allItems.length === 0) return null;
         const config = GROUP_CONFIG[groupKey];
         const Icon = config.icon;
+        const hiddenCount = allItems.length - items.length;
 
         return (
           <div key={groupKey}>
@@ -169,129 +217,28 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
               <Icon className={cn("h-4 w-4", config.color)} />
               <h3 className="text-sm font-semibold text-foreground">{config.label}</h3>
               <Badge variant="outline" className="text-[10px]">{items.length}</Badge>
+              {hiddenCount > 0 && !showHandled && (
+                <span className="text-[10px] text-muted-foreground/50">+{hiddenCount} traité{hiddenCount > 1 ? "s" : ""}</span>
+              )}
             </div>
             <div className="space-y-2">
-              {items.slice(0, 15).map(p => {
-                const handledToday = isRdvHandledToday(p.id);
-
-                return (
-                  <Card key={p.id} className={cn(
-                    "p-3 hover:bg-muted/20 transition-colors",
-                    groupKey === "overdue" && "border-destructive/30 bg-destructive/5",
-                    groupKey === "today" && "border-warning/30 bg-warning/5",
-                  )}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => onViewDetail(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                          {p.prenom} {p.nom}
-                          <ExternalLink className="h-3 w-3 opacity-40" />
-                        </button>
-                        {/* RDV vs Relance badge */}
-                        {p._isRdv ? (
-                          <Badge variant="outline" className="text-[9px] bg-warning/15 text-warning border-warning/30">
-                            <CalendarCheck className="h-2.5 w-2.5 mr-0.5" /> RDV
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] bg-accent/15 text-accent border-accent/30">
-                            <RotateCcw className="h-2.5 w-2.5 mr-0.5" /> Relance
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
-                        {p.date_prochaine_relance && (
-                          <span className={cn(
-                            "text-[10px]",
-                            groupKey === "overdue" ? "text-destructive font-medium" : "text-muted-foreground"
-                          )}>
-                            {groupKey === "overdue"
-                              ? `${Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))}j retard`
-                              : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
-                            }
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Last contact indicator */}
-                    {p._lastNote && (
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Bot className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">
-                          Dernier contact : aujourd'hui {format(parseISO(p._lastNote), "HH:mm", { locale: fr })}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex gap-1.5 flex-wrap">
-                      {p._isRdv ? (
-                        /* RDV-specific CTAs */
-                        <>
-                          {p.email && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>
-                                    <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={handledToday} onClick={() => handleConfirmRdv(p)}>
-                                      <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                {handledToday && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {p.email && groupKey === "tomorrow" && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>
-                                    <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={handledToday} onClick={() => handleRelanceJ1(p)}>
-                                      <Clock className="h-3 w-3 mr-1" /> Relance J-1
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                {handledToday && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {p.email && groupKey === "overdue" && (
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive border-destructive/20" onClick={() => handleRdvManque(p)}>
-                              <AlertTriangle className="h-3 w-3 mr-1" /> RDV manqué
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        /* Relance CTAs */
-                        <>
-                          {p.email && (
-                            <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRelanceEmail(p)}>
-                              <Mail className="h-3 w-3 mr-1" /> Relancer
-                            </Button>
-                          )}
-                        </>
-                      )}
-                      {p.telephone && (
-                        <>
-                          <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
-                            <a href={`tel:${p.telephone}`} onClick={() => handleAppel(p)}><Phone className="h-3 w-3" /></a>
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleWhatsApp(p)}>
-                            <SiWhatsapp className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        size="sm" variant="ghost"
-                        className="h-7 text-[10px] text-muted-foreground hover:text-success"
-                        onClick={() => handleMarkDone(p, groupKey)}
-                      >
-                        <Check className="h-3 w-3 mr-1" /> Fait
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
+              {items.length === 0 ? (
+                <p className="text-xs text-muted-foreground pl-6 py-2">Tous les éléments ont été traités ✓</p>
+              ) : items.slice(0, 20).map(p => (
+                <AgendaCard
+                  key={p.id}
+                  prospect={p}
+                  groupKey={groupKey}
+                  onViewDetail={onViewDetail}
+                  onConfirmRdv={handleConfirmRdv}
+                  onRelanceJ1={handleRelanceJ1}
+                  onRdvManque={handleRdvManque}
+                  onRelanceEmail={handleRelanceEmail}
+                  onWhatsApp={handleWhatsApp}
+                  onAppel={handleAppel}
+                  onMarkDone={handleMarkDone}
+                />
+              ))}
             </div>
           </div>
         );
@@ -304,5 +251,167 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Card sub-component ───
+
+interface AgendaCardProps {
+  prospect: EnrichedProspect;
+  groupKey: AgendaGroup;
+  onViewDetail: (p: Prospect) => void;
+  onConfirmRdv: (p: Prospect) => void;
+  onRelanceJ1: (p: Prospect) => void;
+  onRdvManque: (p: Prospect) => void;
+  onRelanceEmail: (p: Prospect) => void;
+  onWhatsApp: (p: Prospect) => void;
+  onAppel: (p: Prospect) => void;
+  onMarkDone: (p: EnrichedProspect, bloc: string) => void;
+}
+
+function AgendaCard({
+  prospect: p, groupKey,
+  onViewDetail, onConfirmRdv, onRelanceJ1, onRdvManque, onRelanceEmail,
+  onWhatsApp, onAppel, onMarkDone,
+}: AgendaCardProps) {
+  const daysLate = p.date_prochaine_relance && groupKey === "overdue"
+    ? Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))
+    : 0;
+
+  const dateDisplay = useMemo(() => {
+    if (!p.date_prochaine_relance) return null;
+    const d = parseISO(p.date_prochaine_relance);
+    if (groupKey === "overdue") return `En retard de ${daysLate}j — ${format(d, "EEEE dd MMM", { locale: fr })}`;
+    if (groupKey === "today") return `Aujourd'hui — ${format(d, "HH:mm", { locale: fr }) !== "00:00" ? format(d, "HH:mm") : ""}`;
+    return format(d, "EEEE dd MMM", { locale: fr });
+  }, [p.date_prochaine_relance, groupKey, daysLate]);
+
+  return (
+    <Card className={cn(
+      "p-3 hover:bg-muted/20 transition-colors",
+      groupKey === "overdue" && "border-destructive/30 bg-destructive/5",
+      groupKey === "today" && "border-warning/30 bg-warning/5",
+      p._anyHandled && "opacity-60",
+    )}>
+      {/* Row 1: Name + type + date */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => onViewDetail(p)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1 truncate">
+            {p.prenom} {p.nom}
+            <ExternalLink className="h-3 w-3 opacity-40 shrink-0" />
+          </button>
+          {p._isRdv ? (
+            <Badge variant="outline" className="text-[9px] bg-warning/15 text-warning border-warning/30 shrink-0">
+              <CalendarCheck className="h-2.5 w-2.5 mr-0.5" /> RDV
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[9px] bg-accent/15 text-accent border-accent/30 shrink-0">
+              <RotateCcw className="h-2.5 w-2.5 mr-0.5" /> Relance
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
+        </div>
+      </div>
+
+      {/* Row 2: Date/time display */}
+      {dateDisplay && (
+        <div className="flex items-center gap-1.5 mb-1.5 pl-0.5">
+          <Calendar className={cn("h-3 w-3 shrink-0", groupKey === "overdue" ? "text-destructive" : "text-muted-foreground")} />
+          <span className={cn(
+            "text-[11px] capitalize",
+            groupKey === "overdue" ? "text-destructive font-medium" : "text-muted-foreground"
+          )}>
+            {dateDisplay}
+          </span>
+        </div>
+      )}
+
+      {/* Row 3: Last action indicator */}
+      {p._lastNoteTime && (
+        <div className="flex items-center gap-1.5 mb-1.5 pl-0.5">
+          <Bot className="h-3 w-3 text-primary/60 shrink-0" />
+          <span className="text-[10px] text-muted-foreground">
+            Dernière action : {p._lastNoteTitle} — {format(parseISO(p._lastNoteTime), "HH:mm", { locale: fr })}
+          </span>
+        </div>
+      )}
+
+      {/* Row 4: CTAs */}
+      <div className="flex gap-1.5 flex-wrap">
+        {p._isRdv ? (
+          <>
+            {p.email && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={p._rdvHandled} onClick={() => onConfirmRdv(p)}>
+                        <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {p._rdvHandled && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {p.email && groupKey === "tomorrow" && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={p._rdvHandled} onClick={() => onRelanceJ1(p)}>
+                        <Clock className="h-3 w-3 mr-1" /> Relance J-1
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {p._rdvHandled && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {p.email && groupKey === "overdue" && (
+              <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive border-destructive/20" onClick={() => onRdvManque(p)}>
+                <AlertTriangle className="h-3 w-3 mr-1" /> RDV manqué
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            {p.email && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={p._relanceHandled} onClick={() => onRelanceEmail(p)}>
+                        <Mail className="h-3 w-3 mr-1" /> Relancer
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {p._relanceHandled && <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </>
+        )}
+        {p.telephone && (
+          <>
+            <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
+              <a href={`tel:${p.telephone}`} onClick={() => onAppel(p)}><Phone className="h-3 w-3" /></a>
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => onWhatsApp(p)}>
+              <SiWhatsapp className="h-3 w-3" />
+            </Button>
+          </>
+        )}
+        <Button
+          size="sm" variant="ghost"
+          className="h-7 text-[10px] text-muted-foreground hover:text-success"
+          onClick={(e) => { e.stopPropagation(); onMarkDone(p, groupKey); }}
+        >
+          <Check className="h-3 w-3 mr-1" /> Fait
+        </Button>
+      </div>
+    </Card>
   );
 }
