@@ -25,7 +25,7 @@ import { format, isPast, isToday, differenceInDays, parseISO, addDays } from "da
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  createAutoNote, deleteAutoNote, fetchTodayAutoNotes,
+  createAutoNote, deleteAutoNote, fetchTodayAutoNotes, fetchRecentAutoNotes,
   isHandledToday, isProspectRdv, type ActionCategory,
 } from "@/lib/aujourdhui-actions";
 import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
@@ -40,7 +40,7 @@ const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme tr
 
 type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
-// ─── Urgency Dot component ───
+// ─── Urgency Dot component with reasons ───
 function UrgencyDot({ urgency }: { urgency: UrgencyInfo }) {
   return (
     <TooltipProvider>
@@ -48,24 +48,53 @@ function UrgencyDot({ urgency }: { urgency: UrgencyInfo }) {
         <TooltipTrigger asChild>
           <span className={cn("inline-block h-2 w-2 rounded-full shrink-0", urgency.dotClassName)} />
         </TooltipTrigger>
-        <TooltipContent><p>Urgence : {urgency.label}</p></TooltipContent>
+        <TooltipContent side="top" className="max-w-[220px]">
+          <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
+          {urgency.reasons.length > 0 && (
+            <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
+              {urgency.reasons.map((r, i) => <li key={i}>• {r}</li>)}
+            </ul>
+          )}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
 
-// ─── Last action mini-timeline ───
-function LastActionLine({ notes, contactId }: { notes: Array<{ contact_id: string; titre: string; created_at: string }>; contactId: string }) {
-  const last = notes.find(n => n.contact_id === contactId);
-  if (!last) return null;
-  return (
-    <div className="flex items-center gap-1.5 mt-1">
-      <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
-      <span className="text-[10px] text-muted-foreground truncate">
-        {last.titre.replace("[AUTO] ", "")} — {format(parseISO(last.created_at), "HH:mm")}
-      </span>
-    </div>
-  );
+// ─── Last action mini-timeline (today + fallback to recent) ───
+function LastActionLine({
+  todayNotes, recentNotes, contactId,
+}: {
+  todayNotes: Array<{ contact_id: string; titre: string; created_at: string }>;
+  recentNotes: Array<{ contact_id: string; titre: string; created_at: string }>;
+  contactId: string;
+}) {
+  const todayNote = todayNotes.find(n => n.contact_id === contactId);
+  if (todayNote) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
+        <span className="text-[10px] text-muted-foreground truncate">
+          {todayNote.titre.replace("[AUTO] ", "")} — {format(parseISO(todayNote.created_at), "HH:mm")}
+        </span>
+      </div>
+    );
+  }
+  const recentNote = recentNotes.find(n => n.contact_id === contactId);
+  if (recentNote) {
+    const noteDate = parseISO(recentNote.created_at);
+    const days = differenceInDays(new Date(), noteDate);
+    const dateLabel = days === 1 ? "hier" : days < 7 ? `il y a ${days}j` : format(noteDate, "dd/MM");
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        <Bot className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+        <span className="text-[10px] text-muted-foreground/70 truncate">
+          {recentNote.titre.replace("[AUTO] ", "")} — {dateLabel}
+        </span>
+      </div>
+    );
+  }
+  return null;
 }
 
 function useAujourdhuiData() {
@@ -239,12 +268,25 @@ function useAujourdhuiData() {
         contactName: contactNameMap.get(n.contact_id) || "Contact",
       }));
 
+      // Fetch recent (past) auto notes for contacts/prospects that have no today notes
+      const allContactIds = [
+        ...cmaItems.map(c => c.id),
+        ...rdvToday.map(p => p.id),
+        ...relances.map(p => p.id),
+        ...critiques.map(c => c.id),
+      ];
+      const contactsWithoutTodayNote = allContactIds.filter(
+        id => !todayNotes.some(n => n.contact_id === id)
+      );
+      const recentNotes = await fetchRecentAutoNotes(contactsWithoutTodayNote);
+
       return {
         cmaItems,
         rdvToday,
         relances,
         critiques,
         todayNotes,
+        recentNotes,
         journalEntries,
         totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length,
       };
@@ -272,6 +314,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
   const [bulkRelanceSelected, setBulkRelanceSelected] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkEmailMode, setBulkEmailMode] = useState<"bcc" | "individual">("individual");
 
   const toggleBulkCma = (id: string) => {
     setBulkCmaSelected(prev => {
@@ -320,47 +363,73 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     await logAction(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
   }, [logAction]);
 
+  const BULK_WARN_THRESHOLD = 10;
+
+  const openBulkEmails = (emails: string[], subject: string, body: string, mode: "bcc" | "individual") => {
+    if (mode === "individual") {
+      // Open individual draft per contact
+      emails.forEach(email => {
+        window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+      });
+    } else {
+      // BCC mode: single email, all in BCC
+      window.open(`mailto:?bcc=${emails.join(",")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    }
+  };
+
   // ─── Bulk action handlers ───
   const handleBulkCmaRelance = useCallback(async (items: any[]) => {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
+    if (selected.length > BULK_WARN_THRESHOLD) {
+      toast.warning(`⚠️ ${selected.length} destinataires sélectionnés — vérifiez avant d'envoyer`, { duration: 5000 });
+    }
     setBulkProcessing(true);
     let count = 0;
     for (const item of selected) {
       const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
-      await createAutoNote(item.id, "cma_relance_docs", `Docs manquants: ${missingList} (bulk)`);
+      await createAutoNote(item.id, "cma_relance_docs", `Docs manquants: ${missingList} (bulk ${bulkEmailMode})`);
       count++;
     }
     setBulkProcessing(false);
     setBulkCmaSelected(new Set());
     invalidate();
     toast.success(`${count} relance${count > 1 ? "s" : ""} CMA enregistrée${count > 1 ? "s" : ""}`, {
-      description: "Notes [AUTO] créées pour chaque apprenant",
+      description: `Notes [AUTO] créées · Mode: ${bulkEmailMode === "bcc" ? "BCC groupé" : "individuels"}`,
     });
-    // Open mailto for first selected as template
-    const first = selected[0];
-    if (first?.email) {
-      window.open(`mailto:${selected.map(s => s.email).join(",")}?subject=Documents CMA manquants&body=Bonjour,%0A%0AIl manque des documents pour compléter votre dossier CMA.%0AMerci de nous les transmettre rapidement.%0A%0ACordialement,%0AT3P Campus`);
-    }
-  }, [bulkCmaSelected, invalidate]);
+    openBulkEmails(
+      selected.map(s => s.email),
+      "Documents CMA manquants",
+      "Bonjour,\n\nIl manque des documents pour compléter votre dossier CMA.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
+      bulkEmailMode,
+    );
+  }, [bulkCmaSelected, bulkEmailMode, invalidate]);
 
   const handleBulkRelance = useCallback(async (items: any[]) => {
     const selected = items.filter(i => bulkRelanceSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun prospect sélectionné avec email"); return; }
+    if (selected.length > BULK_WARN_THRESHOLD) {
+      toast.warning(`⚠️ ${selected.length} destinataires sélectionnés — vérifiez avant d'envoyer`, { duration: 5000 });
+    }
     setBulkProcessing(true);
     let count = 0;
     for (const item of selected) {
-      await createAutoNote(item.id, "prospect_relance", `Formation: ${item.formation_souhaitee || ""} (bulk)`);
+      await createAutoNote(item.id, "prospect_relance", `Formation: ${item.formation_souhaitee || ""} (bulk ${bulkEmailMode})`);
       count++;
     }
     setBulkProcessing(false);
     setBulkRelanceSelected(new Set());
     invalidate();
     toast.success(`${count} relance${count > 1 ? "s" : ""} enregistrée${count > 1 ? "s" : ""}`, {
-      description: "Notes [AUTO] créées pour chaque prospect",
+      description: `Notes [AUTO] créées · Mode: ${bulkEmailMode === "bcc" ? "BCC groupé" : "individuels"}`,
     });
-    window.open(`mailto:${selected.map(s => s.email).join(",")}?subject=Votre projet de formation&body=Bonjour,%0A%0ANous revenons vers vous concernant votre projet de formation.%0A%0ACordialement,%0AT3P Campus`);
-  }, [bulkRelanceSelected, invalidate]);
+    openBulkEmails(
+      selected.map(s => s.email),
+      "Votre projet de formation",
+      "Bonjour,\n\nNous revenons vers vous concernant votre projet de formation.\n\nCordialement,\nT3P Campus",
+      bulkEmailMode,
+    );
+  }, [bulkRelanceSelected, bulkEmailMode, invalidate]);
 
   const openContact = (id: string) => {
     setSelectedContactId(id);
@@ -385,7 +454,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
   const {
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
-    critiques: rawCritiques = [], todayNotes = [], journalEntries = [],
+    critiques: rawCritiques = [], todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
 
   // Active filter for CMA/critiques
@@ -531,16 +600,31 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               </div>
               <div className="flex items-center gap-2">
                 {bulkCmaSelected.size > 0 && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="h-7 text-[10px] gap-1"
-                    disabled={bulkProcessing}
-                    onClick={() => handleBulkCmaRelance(cmaItems)}
-                  >
-                    <ListChecks className="h-3 w-3" />
-                    Relancer {bulkCmaSelected.size} sélectionné{bulkCmaSelected.size > 1 ? "s" : ""}
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-0.5 border rounded-md overflow-hidden">
+                      <button
+                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "individual" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
+                        onClick={() => setBulkEmailMode("individual")}
+                      >Individuels</button>
+                      <button
+                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "bcc" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
+                        onClick={() => setBulkEmailMode("bcc")}
+                      >BCC</button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 text-[10px] gap-1"
+                      disabled={bulkProcessing}
+                      onClick={() => handleBulkCmaRelance(cmaItems)}
+                    >
+                      <ListChecks className="h-3 w-3" />
+                      Relancer {bulkCmaSelected.size}
+                    </Button>
+                    {bulkCmaSelected.size > 10 && (
+                      <span className="text-[9px] text-warning font-medium">⚠️ {bulkCmaSelected.size} dest.</span>
+                    )}
+                  </div>
                 )}
                 <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{cmaCountAll}</Badge>
               </div>
@@ -610,7 +694,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                           </span>
                         </div>
                       ) : (
-                        <LastActionLine notes={todayNotes} contactId={item.id} />
+                        <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.id} />
                       )}
                     </div>
                     <div className="flex gap-1.5 pl-8">
@@ -695,7 +779,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                       </div>
                       {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
                     </div>
-                    <LastActionLine notes={todayNotes} contactId={p.id} />
+                    <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={p.id} />
                     <div className="flex gap-1.5 mt-1">
                       {p.email && (
                         <TooltipProvider>
@@ -743,16 +827,31 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               </div>
               <div className="flex items-center gap-2">
                 {bulkRelanceSelected.size > 0 && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="h-7 text-[10px] gap-1"
-                    disabled={bulkProcessing}
-                    onClick={() => handleBulkRelance(relances)}
-                  >
-                    <ListChecks className="h-3 w-3" />
-                    Relancer {bulkRelanceSelected.size}
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-0.5 border rounded-md overflow-hidden">
+                      <button
+                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "individual" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
+                        onClick={() => setBulkEmailMode("individual")}
+                      >Individuels</button>
+                      <button
+                        className={cn("px-2 py-1 text-[9px] transition-colors", bulkEmailMode === "bcc" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}
+                        onClick={() => setBulkEmailMode("bcc")}
+                      >BCC</button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 text-[10px] gap-1"
+                      disabled={bulkProcessing}
+                      onClick={() => handleBulkRelance(relances)}
+                    >
+                      <ListChecks className="h-3 w-3" />
+                      Relancer {bulkRelanceSelected.size}
+                    </Button>
+                    {bulkRelanceSelected.size > 10 && (
+                      <span className="text-[9px] text-warning font-medium">⚠️ {bulkRelanceSelected.size} dest.</span>
+                    )}
+                  </div>
                 )}
                 <Badge variant="outline" className="text-xs bg-accent/10 text-accent">{relances.length}</Badge>
               </div>
@@ -797,7 +896,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                     </div>
                     {p.formation_souhaitee && <p className="text-xs text-muted-foreground mb-1 pl-8">{p.formation_souhaitee}</p>}
                     <div className="pl-8">
-                      <LastActionLine notes={todayNotes} contactId={p.id} />
+                      <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={p.id} />
                     </div>
                     <div className="flex gap-1.5 mt-1 pl-8">
                       {p.email && (
@@ -857,7 +956,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                       </Badge>
                     ))}
                   </div>
-                  <LastActionLine notes={todayNotes} contactId={item.id} />
+                  <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.id} />
                   <div className="flex gap-1.5 mt-1">
                     {item.missingCMA.length > 0 && item.email && (
                       <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCritiqueDemanderDocs(item)}>
