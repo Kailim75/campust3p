@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getTrackFromFormationType } from "@/lib/formation-track";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
@@ -147,9 +148,10 @@ export function useCreateSession() {
 
   return useMutation({
     mutationFn: async (session: SessionInsert) => {
+      const track = getTrackFromFormationType(session.formation_type);
       const { data, error } = await supabase
         .from("sessions")
-        .insert(session)
+        .insert({ ...session, track } as any)
         .select()
         .single();
 

@@ -159,12 +159,15 @@ export function ProspectConvertDialog({
 
       // Enroll in session if requested
       if (values.enrollInSession && values.sessionId && contact) {
+        // Fetch session track for snapshot
+        const { data: sessData } = await supabase.from("sessions").select("track").eq("id", values.sessionId).single();
         const { error: inscriptionError } = await supabase
           .from("session_inscriptions")
           .insert({
             session_id: values.sessionId,
             contact_id: contact.id,
             statut: "inscrit",
+            track: (sessData as any)?.track || "initial",
           });
 
         if (inscriptionError) {
