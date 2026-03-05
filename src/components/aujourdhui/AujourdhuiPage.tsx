@@ -18,7 +18,7 @@ import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
   CheckCircle2, ExternalLink, CreditCard, FolderOpen, Check, Bot,
-  Filter, CalendarCheck, RotateCcw, ListChecks,
+  Filter, CalendarCheck, RotateCcw, ListChecks, Shield,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
@@ -117,7 +117,7 @@ function useAujourdhuiData() {
         supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance"),
         supabase.from("paiements").select("facture_id, montant"),
         supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
-        supabase.from("sessions").select("id, nom, date_debut, date_fin, statut").eq("archived", false).lte("date_debut", in14Days).gte("date_fin", todayStr),
+        supabase.from("sessions").select("id, nom, date_debut, date_fin, statut, formateur_id, objectifs, prerequis, lieu, duree_heures").eq("archived", false).neq("statut", "annulee"),
         supabase.from("session_inscriptions").select("contact_id, session_id"),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
@@ -292,6 +292,24 @@ function useAujourdhuiData() {
         .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id))
         .map((c: any) => ({ ...c }));
 
+      // ─── Bloc F: Qualiopi à régulariser (sessions with missing qualiopi items) ───
+      const sessions = sessionsRes.data || [];
+      const qualiopiSessions = sessions
+        .filter((s: any) => s.statut !== "annulee" && s.statut !== "terminee")
+        .map((s: any) => {
+          const issues: string[] = [];
+          if (!s.formateur_id) issues.push("Formateur non assigné");
+          if (!s.objectifs || !s.objectifs.trim()) issues.push("Objectifs manquants");
+          if (!s.lieu && !s.adresse_ville) issues.push("Lieu non renseigné");
+          if (!s.duree_heures || s.duree_heures <= 0) issues.push("Durée non renseignée");
+          // Count inscriptions for this session
+          const sessionInscrits = inscriptions.filter((i: any) => i.session_id === s.id).length;
+          return { ...s, issues, inscriptionCount: sessionInscrits };
+        })
+        .filter((s: any) => s.issues.length > 0)
+        .sort((a: any, b: any) => b.issues.length - a.issues.length)
+        .slice(0, 5);
+
       // Fetch recent (past) auto notes for contacts/prospects that have no today notes
       const allContactIds = [
         ...cmaItems.map(c => c.id),
@@ -311,6 +329,7 @@ function useAujourdhuiData() {
         relances,
         critiques,
         carteProItems,
+        qualiopiSessions,
         todayNotes,
         recentNotes,
         journalEntries,
@@ -445,6 +464,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const {
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
     critiques: rawCritiques = [], carteProItems: rawCartePro = [],
+    qualiopiSessions = [],
     todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
 
@@ -1061,6 +1081,52 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   </div>
                 );
               })}
+            </div>
+          </Card>
+        )}
+
+        {/* ─── BLOC F: Qualiopi à régulariser ─── */}
+        {qualiopiSessions.length > 0 && (
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Qualiopi à régulariser</h3>
+                  <p className="text-[11px] text-muted-foreground">{qualiopiSessions.length} session{qualiopiSessions.length > 1 ? "s" : ""} avec critères manquants</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{qualiopiSessions.length}</Badge>
+            </div>
+            <div className="divide-y max-h-60 overflow-y-auto">
+              {qualiopiSessions.map((s: any) => (
+                <div key={s.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium">{s.nom}</span>
+                    <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning">
+                      {s.issues.length} critère{s.issues.length > 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {s.issues.map((issue: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                        {issue}
+                      </Badge>
+                    ))}
+                  </div>
+                  {onNavigate && (
+                    <Button
+                      size="sm" variant="outline"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={() => onNavigate(`session-qualiopi-${s.id}`)}
+                    >
+                      <Shield className="h-3 w-3" /> Ouvrir Qualiopi
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </Card>
         )}

@@ -81,6 +81,7 @@ import { SessionQuickActions } from "./SessionQuickActions";
 import { SessionParcoursTab } from "./SessionParcoursTab";
 import { SessionDocumentsSendModal } from "./SessionDocumentsSendModal";
 import { PackAuditModal } from "./PackAuditModal";
+import { SessionClosureWizard } from "./SessionClosureWizard";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
@@ -117,6 +118,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [activeTab, setActiveTab] = useState("info");
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
+  const [closureWizardOpen, setClosureWizardOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
@@ -370,9 +372,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 <SessionQuickActions
                   inscriptionCount={inscriptionCount}
                   archived={session.archived}
+                  isTerminee={session.statut === "terminee"}
                   onSendDocuments={() => setDocSendModalOpen(true)}
                   onSendEmail={() => {
-                    // Open email composer with all inscribed contacts
                     const recipients = inscriptions
                       ?.filter((i) => {
                         const c = i.contacts as any;
@@ -400,7 +402,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   }}
                   onManageExams={() => setActiveTab("parcours")}
                   onExport={() => {
-                    // Simple CSV export of inscrits
                     if (!inscriptions?.length) return;
                     const rows = inscriptions.map((i) => {
                       const c = i.contacts as any;
@@ -417,6 +418,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     toast.success("Liste exportée");
                   }}
                   onPackAudit={() => setPackAuditOpen(true)}
+                  onCloseSession={() => setClosureWizardOpen(true)}
                 />
               </SheetHeader>
 
@@ -669,7 +671,38 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Qualiopi */}
                 <TabsContent value="qualiopi" className="pt-4">
-                  <SessionQualiopiTab sessionId={session.id} />
+                  <SessionQualiopiTab
+                    sessionId={session.id}
+                    hasCatalogueFormation={!!session.catalogue_formation_id}
+                    isTerminee={session.statut === "terminee"}
+                    inscriptionCount={inscriptionCount}
+                    onAssignFormateur={() => onEdit(session)}
+                    onSendDocuments={(scope) => {
+                      setDocSendModalOpen(true);
+                    }}
+                    onSendEmail={(template) => {
+                      const recipients = inscriptions
+                        ?.filter((i) => { const c = i.contacts as any; return c?.email; })
+                        .map((i) => { const c = i.contacts as any; return { id: i.contact_id, email: c.email, prenom: c.prenom || "", nom: c.nom || "" }; }) || [];
+                      if (recipients.length === 0) { toast.error("Aucun inscrit avec email"); return; }
+                      openComposer({
+                        recipients,
+                        defaultSubject: template === "satisfaction"
+                          ? `${session.nom} — Enquête de satisfaction`
+                          : `${session.nom} — Information`,
+                        defaultBody: template === "satisfaction"
+                          ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
+                          : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\nÉcole T3P Montrouge`,
+                        autoNoteCategory: "session_email",
+                      });
+                    }}
+                    onEditSession={() => onEdit(session)}
+                    onOpenEmargement={() => setActiveTab("emargement")}
+                    onImportFromCatalogue={(field) => {
+                      toast.info(`Importation des ${field} depuis le catalogue — Modifiez la session`);
+                      onEdit(session);
+                    }}
+                  />
                 </TabsContent>
 
                 {/* Tab: Émargement */}
@@ -758,6 +791,35 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           open={packAuditOpen}
           onOpenChange={setPackAuditOpen}
           sessionId={sessionId}
+        />
+      )}
+
+      {session && (
+        <SessionClosureWizard
+          open={closureWizardOpen}
+          onOpenChange={setClosureWizardOpen}
+          sessionId={session.id}
+          onSendDocuments={(scope) => {
+            setClosureWizardOpen(false);
+            setDocSendModalOpen(true);
+          }}
+          onSendEmail={(template) => {
+            const recipients = inscriptions
+              ?.filter((i) => { const c = i.contacts as any; return c?.email; })
+              .map((i) => { const c = i.contacts as any; return { id: i.contact_id, email: c.email, prenom: c.prenom || "", nom: c.nom || "" }; }) || [];
+            if (recipients.length === 0) { toast.error("Aucun inscrit avec email"); return; }
+            setClosureWizardOpen(false);
+            openComposer({
+              recipients,
+              defaultSubject: `${session.nom} — Enquête de satisfaction`,
+              defaultBody: `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`,
+              autoNoteCategory: "session_email",
+            });
+          }}
+          onOpenPackAudit={() => {
+            setClosureWizardOpen(false);
+            setPackAuditOpen(true);
+          }}
         />
       )}
     </>

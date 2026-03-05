@@ -3,17 +3,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   CheckCircle2,
   XCircle,
@@ -29,12 +33,40 @@ import {
   Eye,
   Send,
   RefreshCw,
+  Zap,
+  UserPlus,
+  FileSignature,
+  Award,
+  Download,
+  Pencil,
+  MapPin,
+  Clock,
+  Play,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessionQualiopi, type QualiopiCriterion } from "@/hooks/useSessionQualiopi";
+import {
+  computeQualiopiActions,
+  getTopActions,
+  getCTAsForCriterion,
+  CTA_LABELS,
+  type QualiopiAction,
+  type QualiopiActionType,
+} from "@/lib/qualio-actions";
+import { toast } from "sonner";
 
-interface SessionQualiopiTabProps {
+export interface SessionQualiopiTabProps {
   sessionId: string;
+  hasCatalogueFormation?: boolean;
+  isTerminee?: boolean;
+  inscriptionCount?: number;
+  onAssignFormateur?: () => void;
+  onSendDocuments?: (scope?: string) => void;
+  onSendEmail?: (template?: string) => void;
+  onEditSession?: () => void;
+  onOpenEmargement?: () => void;
+  onImportFromCatalogue?: (field: "objectifs" | "prerequis") => void;
 }
 
 const categoryConfig: Record<string, { label: string; icon: React.ElementType }> = {
@@ -51,7 +83,55 @@ const statusIcons: Record<string, { icon: React.ElementType; class: string; labe
   na: { icon: MinusCircle, class: "text-muted-foreground", label: "N/A" },
 };
 
-function CriterionRow({ criterion }: { criterion: QualiopiCriterion }) {
+const ACTION_ICONS: Record<string, React.ElementType> = {
+  UserPlus, Send, FileSignature, Award, Star, RefreshCw, Download, Pencil, ClipboardList, MapPin, Clock,
+};
+
+function ActionPlanCard({
+  action,
+  onExecute,
+}: {
+  action: QualiopiAction;
+  onExecute: (type: QualiopiActionType) => void;
+}) {
+  const Icon = ACTION_ICONS[action.icon] || Zap;
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors">
+      <div className={cn(
+        "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+        action.ctaVariant === "primary" ? "bg-primary/10" : "bg-muted",
+      )}>
+        <Icon className={cn("h-4 w-4", action.ctaVariant === "primary" ? "text-primary" : "text-muted-foreground")} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{action.label}</p>
+        <p className="text-xs text-muted-foreground">{action.description}</p>
+        <Badge variant="outline" className="text-[9px] mt-1 bg-primary/5 text-primary border-primary/20">
+          {action.impact}
+        </Badge>
+      </div>
+      <Button
+        size="sm"
+        variant={action.ctaVariant === "primary" ? "default" : "outline"}
+        className="h-7 text-xs shrink-0"
+        onClick={() => onExecute(action.type)}
+      >
+        <Play className="h-3 w-3 mr-1" />
+        Go
+      </Button>
+    </div>
+  );
+}
+
+function CriterionRow({
+  criterion,
+  ctaTypes,
+  onExecute,
+}: {
+  criterion: QualiopiCriterion;
+  ctaTypes: QualiopiActionType[];
+  onExecute: (type: QualiopiActionType) => void;
+}) {
   const statusInfo = statusIcons[criterion.status];
   const StatusIcon = statusInfo.icon;
 
@@ -82,49 +162,57 @@ function CriterionRow({ criterion }: { criterion: QualiopiCriterion }) {
             {criterion.detail}
           </p>
         )}
-      </div>
-      <div className="shrink-0">
-        {criterion.status === "non_conforme" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-destructive hover:text-destructive">
-                <Send className="h-3 w-3" />
-                Générer
+        {/* Business CTAs */}
+        {ctaTypes.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {ctaTypes.map((type, i) => (
+              <Button
+                key={type}
+                variant={i === 0 ? "default" : "outline"}
+                size="sm"
+                className="h-6 text-[10px] px-2 gap-1"
+                onClick={() => onExecute(type)}
+              >
+                {CTA_LABELS[type]}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Générer ou envoyer ce document</TooltipContent>
-          </Tooltip>
-        )}
-        {criterion.status === "partiel" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-warning hover:text-warning">
-                <Eye className="h-3 w-3" />
-                Manquants
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Voir les éléments manquants</TooltipContent>
-          </Tooltip>
-        )}
-        {criterion.status === "conforme" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-success hover:text-success">
-                <Eye className="h-3 w-3" />
-                Détail
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Voir le détail</TooltipContent>
-          </Tooltip>
+            ))}
+          </div>
         )}
       </div>
+      {criterion.status === "conforme" && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-success hover:text-success">
+              <Eye className="h-3 w-3" />
+              Détail
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Voir le détail</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
 
-export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
+export function SessionQualiopiTab({
+  sessionId,
+  hasCatalogueFormation = false,
+  isTerminee = false,
+  inscriptionCount = 0,
+  onAssignFormateur,
+  onSendDocuments,
+  onSendEmail,
+  onEditSession,
+  onOpenEmargement,
+  onImportFromCatalogue,
+}: SessionQualiopiTabProps) {
   const { data: qualiopi, isLoading } = useSessionQualiopi(sessionId);
   const [showAlertesDialog, setShowAlertesDialog] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<QualiopiActionType>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [showManualInput, setShowManualInput] = useState<"objectifs" | "prerequis" | null>(null);
+  const [manualText, setManualText] = useState("");
 
   if (isLoading) {
     return (
@@ -145,25 +233,102 @@ export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Shield className="h-10 w-10 text-muted-foreground/40 mb-3" />
         <p className="text-sm text-muted-foreground">Aucune donnée Qualiopi disponible</p>
-        <p className="text-xs text-muted-foreground mt-1">Les critères seront calculés automatiquement à partir des données de la session.</p>
+        <p className="text-xs text-muted-foreground mt-1">Les critères seront calculés automatiquement.</p>
       </div>
     );
   }
 
+  const allActions = computeQualiopiActions({
+    criteria: qualiopi.criteria,
+    hasCatalogueFormation,
+    inscriptionCount,
+    isTerminee,
+  });
+  const topActions = getTopActions(allActions, 3);
+
   const progressBg = qualiopi.score >= 80 ? "hsl(var(--success))" : qualiopi.score >= 50 ? "hsl(var(--warning))" : "hsl(var(--destructive))";
   const isAuditReady = qualiopi.score >= 80;
 
-  // Counters
   const preuvesOk = qualiopi.criteria.filter(c => c.status === "conforme").length;
   const preuvesManquantes = qualiopi.criteria.filter(c => c.status === "non_conforme").length;
   const preuvesPartielles = qualiopi.criteria.filter(c => c.status === "partiel").length;
 
-  // Group by category
   const grouped = qualiopi.criteria.reduce((acc, c) => {
     if (!acc[c.category]) acc[c.category] = [];
     acc[c.category].push(c);
     return acc;
   }, {} as Record<string, QualiopiCriterion[]>);
+
+  const handleExecuteAction = (type: QualiopiActionType) => {
+    switch (type) {
+      case "assigner_formateur":
+        onEditSession?.();
+        toast.info("Modifiez la session pour assigner un formateur");
+        break;
+      case "envoyer_convocations":
+        onSendDocuments?.("convocation");
+        break;
+      case "envoyer_conventions":
+        onSendDocuments?.("convention");
+        break;
+      case "emettre_attestations":
+        onSendDocuments?.("attestation");
+        break;
+      case "envoyer_satisfaction":
+      case "relancer_satisfaction":
+        onSendEmail?.("satisfaction");
+        break;
+      case "importer_objectifs":
+        onImportFromCatalogue?.("objectifs");
+        break;
+      case "importer_prerequis":
+        onImportFromCatalogue?.("prerequis");
+        break;
+      case "renseigner_objectifs":
+        setShowManualInput("objectifs");
+        setManualText("");
+        break;
+      case "renseigner_prerequis":
+        setShowManualInput("prerequis");
+        setManualText("");
+        break;
+      case "creer_emargement":
+        onOpenEmargement?.();
+        break;
+      case "renseigner_lieu":
+      case "renseigner_duree":
+        onEditSession?.();
+        toast.info("Modifiez la session pour renseigner cette information");
+        break;
+    }
+  };
+
+  const handleOpenBulk = () => {
+    setBulkSelected(new Set(allActions.map(a => a.type)));
+    setShowBulkDialog(true);
+  };
+
+  const handleBulkExecute = async () => {
+    setBulkRunning(true);
+    const selected = allActions.filter(a => bulkSelected.has(a.type));
+    for (let i = 0; i < selected.length; i++) {
+      toast.info(`Étape ${i + 1}/${selected.length} : ${selected[i].label}`);
+      handleExecuteAction(selected[i].type);
+      // Small delay between actions
+      await new Promise(r => setTimeout(r, 500));
+    }
+    setBulkRunning(false);
+    setShowBulkDialog(false);
+    toast.success(`${selected.length} action(s) lancée(s)`);
+  };
+
+  const handleSaveManual = () => {
+    if (!manualText.trim()) return;
+    // Trigger edit session with the text - the parent will handle saving
+    onEditSession?.();
+    toast.info(`Modifiez la session pour sauvegarder les ${showManualInput === "objectifs" ? "objectifs" : "prérequis"}`);
+    setShowManualInput(null);
+  };
 
   return (
     <div className="space-y-5">
@@ -200,7 +365,6 @@ export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
           </div>
         </div>
 
-        {/* Score bar */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-baseline">
             <span className="text-xs text-muted-foreground">Complétion</span>
@@ -222,6 +386,38 @@ export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
           </p>
         </div>
       </div>
+
+      {/* ═══ A) Plan d'action (top 3) ═══ */}
+      {topActions.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-semibold">Plan d'action ({topActions.length})</h4>
+            </div>
+            {allActions.length > 0 && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-7 text-xs gap-1.5"
+                onClick={handleOpenBulk}
+              >
+                <ShieldCheck className="h-3 w-3" />
+                Mettre en conformité ({allActions.length})
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {topActions.map(action => (
+              <ActionPlanCard
+                key={action.type}
+                action={action}
+                onExecute={handleExecuteAction}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 3 compteurs */}
       <div className="grid grid-cols-3 gap-3">
@@ -312,9 +508,17 @@ export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
               </Badge>
             </div>
             <div className="space-y-1.5">
-              {criteria.map(c => (
-                <CriterionRow key={c.id} criterion={c} />
-              ))}
+              {criteria.map(c => {
+                const ctaTypes = getCTAsForCriterion(c.id, c.status, { hasCatalogueFormation, isTerminee });
+                return (
+                  <CriterionRow
+                    key={c.id}
+                    criterion={c}
+                    ctaTypes={ctaTypes}
+                    onExecute={handleExecuteAction}
+                  />
+                );
+              })}
             </div>
           </div>
         );
@@ -337,6 +541,98 @@ export function SessionQualiopiTab({ sessionId }: SessionQualiopiTabProps) {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ C) Bulk compliance modal ═══ */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Mettre en conformité
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Sélectionnez les actions à lancer. Elles s'exécuteront étape par étape.
+          </p>
+          <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+            {allActions.map((action, i) => (
+              <div key={action.type} className="flex items-center gap-3 p-2 rounded-lg border">
+                <Checkbox
+                  checked={bulkSelected.has(action.type)}
+                  onCheckedChange={(checked) => {
+                    setBulkSelected(prev => {
+                      const next = new Set(prev);
+                      checked ? next.add(action.type) : next.delete(action.type);
+                      return next;
+                    });
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[9px] bg-muted">{i + 1}</Badge>
+                    <span className="text-sm font-medium">{action.label}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                </div>
+                <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary shrink-0">
+                  {action.impact}
+                </Badge>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              disabled={bulkSelected.size === 0 || bulkRunning}
+              onClick={handleBulkExecute}
+            >
+              {bulkRunning ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> En cours...</>
+              ) : (
+                <>Lancer {bulkSelected.size} action(s)</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual input dialog for objectifs/prérequis */}
+      <Dialog open={!!showManualInput} onOpenChange={(open) => !open && setShowManualInput(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {showManualInput === "objectifs" ? "Renseigner les objectifs pédagogiques" : "Renseigner les prérequis"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-sm">
+              {showManualInput === "objectifs"
+                ? "Décrivez les objectifs pédagogiques de cette formation"
+                : "Décrivez les prérequis pour cette formation"}
+            </Label>
+            <Textarea
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              placeholder={showManualInput === "objectifs"
+                ? "Ex: À l'issue de la formation, le stagiaire sera capable de..."
+                : "Ex: Être titulaire du permis de conduire catégorie B..."}
+              rows={5}
+            />
+            <p className="text-xs text-muted-foreground">
+              💡 Pour sauvegarder, modifiez la session via le formulaire d'édition.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowManualInput(null)}>Annuler</Button>
+            <Button onClick={handleSaveManual}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Modifier la session
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
