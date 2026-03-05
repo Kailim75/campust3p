@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { getUserCentreId } from "@/utils/getCentreId";
 import {
   Dialog,
@@ -19,22 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  UserCheck,
-  GraduationCap,
-  Calendar,
-  Users,
-  Loader2,
-  CheckCircle2,
-  Sparkles,
-  ArrowRight,
-  FileText,
-  Eye,
-  LayoutDashboard,
-  ChevronLeft,
+  UserCheck, GraduationCap, Calendar, Users, Loader2,
+  CheckCircle2, Sparkles, ArrowRight, FileText, Eye,
+  LayoutDashboard, ChevronLeft, AlertTriangle, Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { type Prospect } from "@/hooks/useProspects";
+import { useDuplicateCheck, type DuplicateContact } from "@/hooks/useDuplicateCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -55,7 +47,7 @@ const FINANCEMENT_OPTIONS = [
   { value: "autre", label: "Autre" },
 ];
 
-type Step = "recommend" | "confirm" | "success";
+type Step = "dedup" | "recommend" | "confirm" | "success";
 
 interface SmartConversionDialogProps {
   open: boolean;
@@ -72,7 +64,7 @@ export function SmartConversionDialog({
   onViewFiche,
   onReturnDashboard,
 }: SmartConversionDialogProps) {
-  const [step, setStep] = useState<Step>("recommend");
+  const [step, setStep] = useState<Step>("dedup");
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,16 +73,26 @@ export function SmartConversionDialog({
   const [creerFacture, setCreerFacture] = useState(true);
   const [createdContactId, setCreatedContactId] = useState<string | null>(null);
   const [createdSessionName, setCreatedSessionName] = useState("");
+  const [linkedContactId, setLinkedContactId] = useState<string | null>(null);
 
   const { data: sessions = [], isLoading } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
+  const { duplicates, isChecking, checkDuplicates, clearDuplicates } = useDuplicateCheck();
   const queryClient = useQueryClient();
 
-  // Reset state when dialog opens
+  // Run dedup check when dialog opens
+  useEffect(() => {
+    if (open && prospect) {
+      checkDuplicates(prospect.nom, prospect.prenom, prospect.email || undefined);
+      setStep("dedup");
+      setLinkedContactId(null);
+    }
+  }, [open, prospect]);
+
   const handleOpenChange = (o: boolean) => {
     if (!o) {
       setTimeout(() => {
-        setStep("recommend");
+        setStep("dedup");
         setSelectedSession(null);
         setShowAllSessions(false);
         setIsSubmitting(false);
@@ -98,9 +100,43 @@ export function SmartConversionDialog({
         setGenererConvention(true);
         setCreerFacture(true);
         setCreatedContactId(null);
+        setLinkedContactId(null);
+        clearDuplicates();
       }, 200);
     }
     onOpenChange(o);
+  };
+
+  // Skip dedup step if no duplicates found
+  useEffect(() => {
+    if (step === "dedup" && !isChecking && duplicates.length === 0 && open && prospect) {
+      setStep("recommend");
+    }
+  }, [step, isChecking, duplicates, open, prospect]);
+
+  const handleLinkExisting = async (contactId: string) => {
+    if (!prospect) return;
+    setIsSubmitting(true);
+    try {
+      // Link prospect to existing contact
+      await supabase
+        .from("prospects")
+        .update({ statut: "converti", converted_contact_id: contactId } as any)
+        .eq("id", prospect.id);
+
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Prospect associé au contact existant");
+      handleOpenChange(false);
+    } catch {
+      toast.error("Erreur lors de l'association");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSkipDedup = () => {
+    setStep("recommend");
   };
 
   // Compute ranked sessions
@@ -118,7 +154,6 @@ export function SmartConversionDialog({
         const filled = inscriptionsCounts[s.id] || 0;
         const fillRate = s.places_totales > 0 ? Math.round((filled / s.places_totales) * 100) : 0;
         const matchesFormation = prospect.formation_souhaitee && s.formation_type === prospect.formation_souhaitee;
-        // Score: formation match + fill priority (higher fill = higher priority to fill)
         const score = (matchesFormation ? 100 : 0) + fillRate;
         return { ...s, filled, fillRate, matchesFormation, score };
       })
@@ -203,6 +238,26 @@ export function SmartConversionDialog({
         .update({ statut: "converti", converted_contact_id: contact.id })
         .eq("id", prospect.id);
 
+      // 5. Try auto-generate Convention + Convocation (non-blocking)
+      try {
+        const { triggerAutoGeneration } = await import("@/lib/auto-generate-documents");
+        // Find inscription id
+        const { data: inscData } = await supabase
+          .from("session_inscriptions")
+          .select("id")
+          .eq("contact_id", contact.id)
+          .eq("session_id", selectedSession.id)
+          .single();
+        if (inscData) {
+          triggerAutoGeneration({
+            contactId: contact.id,
+            sessionId: selectedSession.id,
+            inscriptionId: inscData.id,
+            track: (selectedSession.track || "initial") as any,
+          }).catch(console.error);
+        }
+      } catch { /* auto-gen is best-effort */ }
+
       // Invalidate
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
@@ -228,6 +283,69 @@ export function SmartConversionDialog({
         "overflow-hidden transition-all",
         step === "success" ? "max-w-sm" : "max-w-md"
       )}>
+        {/* ─── STEP 0: DEDUP CHECK ─── */}
+        {step === "dedup" && (
+          <>
+            <DialogHeader className="text-center pb-1">
+              <DialogTitle className="text-lg flex items-center justify-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                Doublons potentiels détectés
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                {duplicates.length} contact(s) similaire(s) trouvé(s) pour {prospect.prenom} {prospect.nom}
+              </DialogDescription>
+            </DialogHeader>
+
+            {isChecking ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+                {duplicates.map((dup) => (
+                  <div key={dup.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{dup.prenom} {dup.nom}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          {dup.email && <span>{dup.email}</span>}
+                          {dup.telephone && <span>• {dup.telephone}</span>}
+                        </div>
+                        {dup.formation && (
+                          <Badge variant="outline" className="mt-1 text-xs">{dup.formation}</Badge>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {dup.match_type === "email" ? "Email" : dup.match_type === "nom_prenom_naissance" ? "Nom+Date" : "Nom+Prénom"}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSubmitting}
+                      onClick={() => handleLinkExisting(dup.id)}
+                    >
+                      <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                      Associer à ce contact
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3">
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSkipDedup}>
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Créer un nouveau contact
+              </Button>
+            </div>
+          </>
+        )}
+
         {/* ─── SCREEN 1: RECOMMENDATION ─── */}
         {step === "recommend" && (
           <>
@@ -272,9 +390,7 @@ export function SmartConversionDialog({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground text-base">
-                          {recommended.nom}
-                        </h3>
+                        <h3 className="font-semibold text-foreground text-base">{recommended.nom}</h3>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <Badge variant="outline" className={cn("text-xs", getFormationColor(recommended.formation_type).badge)}>
                             {getFormationLabel(recommended.formation_type)}
@@ -291,7 +407,6 @@ export function SmartConversionDialog({
                           </span>
                         </div>
 
-                        {/* Fill bar */}
                         <div className="mt-3">
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-muted-foreground">Remplissage</span>
@@ -323,36 +438,20 @@ export function SmartConversionDialog({
                   </button>
                 </div>
 
-                {/* Primary CTA */}
-                <Button
-                  size="lg"
-                  className="w-full text-base h-12"
-                  onClick={handleSelectRecommended}
-                >
+                <Button size="lg" className="w-full text-base h-12" onClick={handleSelectRecommended}>
                   <ArrowRight className="h-5 w-5 mr-2" />
                   Assigner à cette session
                 </Button>
 
-                {/* Secondary */}
                 {otherSessions.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full text-muted-foreground text-sm"
-                    onClick={() => setShowAllSessions(true)}
-                  >
+                  <Button variant="ghost" className="w-full text-muted-foreground text-sm" onClick={() => setShowAllSessions(true)}>
                     Choisir une autre session ({otherSessions.length} disponible{otherSessions.length > 1 ? "s" : ""})
                   </Button>
                 )}
               </div>
             ) : (
-              /* All sessions list */
               <div className="space-y-2 pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground mb-1"
-                  onClick={() => setShowAllSessions(false)}
-                >
+                <Button variant="ghost" size="sm" className="text-muted-foreground mb-1" onClick={() => setShowAllSessions(false)}>
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Retour à la recommandation
                 </Button>
@@ -405,12 +504,7 @@ export function SmartConversionDialog({
         {step === "confirm" && selectedSession && (
           <>
             <DialogHeader className="pb-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-fit text-muted-foreground -ml-2 mb-1"
-                onClick={() => setStep("recommend")}
-              >
+              <Button variant="ghost" size="sm" className="w-fit text-muted-foreground -ml-2 mb-1" onClick={() => setStep("recommend")}>
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Retour
               </Button>
@@ -423,7 +517,6 @@ export function SmartConversionDialog({
             </DialogHeader>
 
             <div className="space-y-5 pt-3">
-              {/* Financement */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Mode de financement</label>
                 <Select value={financement} onValueChange={setFinancement}>
@@ -438,7 +531,6 @@ export function SmartConversionDialog({
                 </Select>
               </div>
 
-              {/* Tarif (read-only) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Tarif</label>
                 <div className="h-10 px-3 rounded-md border bg-muted/30 flex items-center text-sm font-medium tabular-nums">
@@ -446,31 +538,18 @@ export function SmartConversionDialog({
                 </div>
               </div>
 
-              {/* Checkboxes */}
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <Checkbox
-                    checked={genererConvention}
-                    onCheckedChange={(c) => setGenererConvention(!!c)}
-                  />
-                  <span className="text-sm">Générer la convention</span>
+                  <Checkbox checked={genererConvention} onCheckedChange={(c) => setGenererConvention(!!c)} />
+                  <span className="text-sm">Générer Convention + Convocation</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <Checkbox
-                    checked={creerFacture}
-                    onCheckedChange={(c) => setCreerFacture(!!c)}
-                  />
+                  <Checkbox checked={creerFacture} onCheckedChange={(c) => setCreerFacture(!!c)} />
                   <span className="text-sm">Créer la facture brouillon</span>
                 </label>
               </div>
 
-              {/* Confirm button */}
-              <Button
-                size="lg"
-                className="w-full text-base h-12"
-                onClick={handleConfirm}
-                disabled={isSubmitting}
-              >
+              <Button size="lg" className="w-full text-base h-12" onClick={handleConfirm} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -497,46 +576,26 @@ export function SmartConversionDialog({
             <p className="text-sm text-muted-foreground mb-1">
               Session : <span className="font-medium text-foreground">{createdSessionName}</span>
             </p>
-            {creerFacture && (
+            {genererConvention && (
               <p className="text-xs text-muted-foreground">
-                Prochaine étape : Finaliser la facture
+                Convention et convocation en cours de génération
               </p>
             )}
 
             <div className="space-y-2 mt-6">
               {creerFacture && (
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    handleOpenChange(false);
-                    toast.info("Ouvrez la fiche apprenant pour finaliser la facture");
-                  }}
-                >
+                <Button className="w-full" onClick={() => { handleOpenChange(false); toast.info("Ouvrez la fiche apprenant pour finaliser la facture"); }}>
                   <FileText className="h-4 w-4 mr-2" />
                   Générer la facture
                 </Button>
               )}
               {createdContactId && onViewFiche && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    handleOpenChange(false);
-                    onViewFiche(createdContactId);
-                  }}
-                >
+                <Button variant="outline" className="w-full" onClick={() => { handleOpenChange(false); onViewFiche(createdContactId); }}>
                   <Eye className="h-4 w-4 mr-2" />
                   Voir la fiche apprenant
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                className="w-full text-muted-foreground"
-                onClick={() => {
-                  handleOpenChange(false);
-                  onReturnDashboard?.();
-                }}
-              >
+              <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => { handleOpenChange(false); onReturnDashboard?.(); }}>
                 <LayoutDashboard className="h-4 w-4 mr-2" />
                 Retour au dashboard
               </Button>
