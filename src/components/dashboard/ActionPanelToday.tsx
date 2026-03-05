@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowRight, Phone, FileText, UserX, MessageCircle, CheckCircle2, CalendarClock, Clock, Filter } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ArrowRight, Phone, FileText, UserX, MessageCircle, CheckCircle2, CalendarClock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { addDays, nextMonday, format } from "date-fns";
 
 interface Props {
   onNavigate: (section: string, params?: Record<string, string>) => void;
@@ -28,10 +29,16 @@ const typeConfig: Record<ActionItem["type"], { icon: typeof Phone; color: string
 type TimeFilter = "all" | "late" | "today" | "week";
 type TypeFilter = "all" | "prospect" | "facture" | "apprenant";
 
+const RESCHEDULE_PRESETS = [
+  { label: "Demain", getDate: () => format(addDays(new Date(), 1), "yyyy-MM-dd") },
+  { label: "Dans 3 jours", getDate: () => format(addDays(new Date(), 3), "yyyy-MM-dd") },
+  { label: "Semaine prochaine", getDate: () => format(nextMonday(new Date()), "yyyy-MM-dd") },
+];
+
 function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (item: ActionItem) => void }) {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
-  const [rescheduleNote, setRescheduleNote] = useState("");
+  const [rescheduleNote, setRescheduleNote] = useState("Relance replanifiée depuis dashboard");
   const queryClient = useQueryClient();
 
   const handleWhatsApp = (e: React.MouseEvent) => {
@@ -56,7 +63,6 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Log the action
       await supabase.from("action_logs").insert({
         user_id: user.id,
         action_type: "reschedule",
@@ -67,7 +73,6 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
         metadata: { new_date: rescheduleDate },
       });
 
-      // Update prospect date if applicable
       if (item.type === "prospect") {
         await supabase.from("prospects").update({ date_prochaine_relance: rescheduleDate }).eq("id", item.entityId);
       }
@@ -75,7 +80,7 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
       toast.success("Replanifié avec succès");
       setRescheduleOpen(false);
       setRescheduleDate("");
-      setRescheduleNote("");
+      setRescheduleNote("Relance replanifiée depuis dashboard");
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
       toast.error("Erreur lors de la replanification");
@@ -115,7 +120,13 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">Marquer fait</TooltipContent>
       </Tooltip>
-      <Popover open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+      <Popover open={rescheduleOpen} onOpenChange={(open) => {
+        setRescheduleOpen(open);
+        if (open) {
+          setRescheduleDate("");
+          setRescheduleNote("Relance replanifiée depuis dashboard");
+        }
+      }}>
         <Tooltip>
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
@@ -131,6 +142,23 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
         </Tooltip>
         <PopoverContent className="w-64 p-3" align="end" onClick={e => e.stopPropagation()}>
           <p className="text-xs font-medium mb-2">Replanifier</p>
+          {/* Presets */}
+          <div className="flex gap-1.5 mb-2">
+            {RESCHEDULE_PRESETS.map(p => (
+              <button
+                key={p.label}
+                onClick={() => setRescheduleDate(p.getDate())}
+                className={cn(
+                  "px-2 py-1 rounded text-[11px] font-medium transition-colors",
+                  rescheduleDate === p.getDate()
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <Input
             type="date"
             value={rescheduleDate}
@@ -170,23 +198,29 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
   const { data: items, isLoading } = useTodayActions();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  const handleMarkDone = async (item: ActionItem) => {
+  const handleMarkDone = useCallback(async (item: ActionItem) => {
+    // Optimistic: hide immediately
+    setDismissedIds(prev => new Set(prev).add(item.id));
+
+    let logId: string | null = null;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) throw new Error("No user");
 
-      await supabase.from("action_logs").insert({
+      const { data: logData } = await supabase.from("action_logs").insert({
         user_id: user.id,
         action_type: "mark_done",
         entity_type: item.type,
         entity_id: item.entityId,
         label: item.label,
         metadata: { reason: item.reason },
-      });
+      }).select("id").single();
 
-      // Auto-log in contact_historique if applicable
+      logId = logData?.id ?? null;
+
       if (item.type === "prospect" || item.type === "apprenant") {
         await supabase.from("contact_historique").insert({
           contact_id: item.entityId,
@@ -195,15 +229,40 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
           date_echange: new Date().toISOString().split("T")[0],
           contenu: `Action "${item.reason}" traitée`,
           created_by: user.id,
-        }).then(() => {});
+        });
       }
 
-      toast.success("Action marquée comme faite");
+      toast.success("Marqué comme fait", {
+        duration: 10000,
+        action: {
+          label: "Annuler",
+          onClick: async () => {
+            // Rollback
+            setDismissedIds(prev => {
+              const next = new Set(prev);
+              next.delete(item.id);
+              return next;
+            });
+            if (logId) {
+              await supabase.from("action_logs").delete().eq("id", logId);
+            }
+            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            toast.info("Action annulée");
+          },
+        },
+      });
+
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
+      // Rollback on error
+      setDismissedIds(prev => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
       toast.error("Erreur");
     }
-  };
+  }, [queryClient]);
 
   if (isLoading) {
     return (
@@ -214,11 +273,10 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
     );
   }
 
-  // Apply filters
-  let filtered = items || [];
+  // Apply filters + dismiss
+  let filtered = (items || []).filter(i => !dismissedIds.has(i.id));
   if (timeFilter === "late") filtered = filtered.filter(i => (i.retardDays ?? 0) > 0);
   else if (timeFilter === "today") filtered = filtered.filter(i => (i.retardDays ?? 0) === 0);
-  else if (timeFilter === "week") filtered = filtered; // all items are within scope
   if (typeFilter !== "all") filtered = filtered.filter(i => i.type === typeFilter);
 
   const grouped = {

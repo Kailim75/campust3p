@@ -36,6 +36,7 @@ const FlyersPDFPage = lazy(() => import("./pages/FlyersPDFPage"));
 const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
 const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
+const ActionLogs = lazy(() => import("./pages/ActionLogs"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LazyFallback = () => (
@@ -77,6 +78,11 @@ const App = () => (
                 <Route path="/flyer-vmdtr" element={<FlyerVMDTRPage />} />
                 <Route path="/flyers-pdf" element={<FlyersPDFPage />} />
                 <Route path="/reserver/:token" element={<ReserverConduite />} />
+                <Route path="/actions" element={
+                  <ProtectedRoute>
+                    <ActionLogs />
+                  </ProtectedRoute>
+                } />
                 <Route path="/formateur" element={
                   <ProtectedRoute>
                     <FormateurPortal />
