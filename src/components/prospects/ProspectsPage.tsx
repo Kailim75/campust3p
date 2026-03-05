@@ -175,12 +175,10 @@ export function ProspectsPage() {
       const matchesStatus = statusFilter === "all" || prospect.statut === statusFilter;
       return matchesSearch && matchesStatus;
     }).sort((a, b) => {
-      // Sort by urgency: overdue first, then soonest next_action_at
-      if (a.next_action_at && b.next_action_at) {
-        return new Date(a.next_action_at).getTime() - new Date(b.next_action_at).getTime();
-      }
-      if (a.next_action_at) return -1;
-      if (b.next_action_at) return 1;
+      // Sort by urgency: next_action_at asc (overdue first), nulls last
+      const aTime = a.next_action_at ? new Date(a.next_action_at).getTime() : Infinity;
+      const bTime = b.next_action_at ? new Date(b.next_action_at).getTime() : Infinity;
+      if (aTime !== bTime) return aTime - bTime;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [quickFiltered, search, statusFilter]);
