@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { GraduationCap, CalendarCheck } from "lucide-react";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isToday, isPast, parseISO } from "date-fns";
+import { formatEur } from "@/lib/format-currency";
+import { cn } from "@/lib/utils";
 
 function useTodayActionCount() {
   return useQuery({
@@ -66,6 +68,19 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
   const { data: userRole } = useCurrentUserRole();
   const { data: diagnostic } = useBlockageDiagnostic();
 
+  // Sticky mini-summary
+  const kpiRef = useRef<HTMLDivElement>(null);
+  const [showMiniSummary, setShowMiniSummary] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowMiniSummary(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
+    );
+    if (kpiRef.current) observer.observe(kpiRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const isAdminOrStaff = userRole === "admin" || userRole === "staff" || userRole === "super_admin";
 
   const handleNavigate = (section: string, params?: Record<string, string>) => {
@@ -83,55 +98,92 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-8 pt-8 pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble de votre centre</p>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-display font-bold text-foreground">Tableau de bord</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">Vue d'ensemble de votre centre</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <DashboardPeriodPicker />
+              <button
+                onClick={() => onNavigate?.("aujourdhui")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              >
+                <CalendarCheck className="h-4 w-4" />
+                Voir Aujourd'hui
+                {(todayCount ?? 0) > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[10px] font-bold">
+                    {todayCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setExpressOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sidebar text-sidebar-foreground hover:opacity-90 transition-opacity text-sm font-medium"
+              >
+                <GraduationCap className="h-4 w-4" />
+                Inscription Express
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <DashboardPeriodPicker />
+
+          {/* Admin diagnostic chip */}
+          {isAdminOrStaff && diagnostic && diagnostic.counts.total > 0 && (
             <button
-              onClick={() => onNavigate?.("aujourdhui")}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              onClick={() => onNavigate?.("alertes")}
+              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground"
             >
-              <CalendarCheck className="h-4 w-4" />
-              Voir Aujourd'hui
-              {(todayCount ?? 0) > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[10px] font-bold">
-                  {todayCount}
-                </span>
-              )}
+              <ShieldAlert className="h-3.5 w-3.5" />
+              Diagnostic (admin)
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {diagnostic.counts.total}
+              </Badge>
             </button>
-            <button
-              onClick={() => setExpressOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sidebar text-sidebar-foreground hover:opacity-90 transition-opacity text-sm font-medium"
-            >
-              <GraduationCap className="h-4 w-4" />
-              Inscription Express
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Admin diagnostic chip */}
-        {isAdminOrStaff && diagnostic && diagnostic.counts.total > 0 && (
-          <button
-            onClick={() => onNavigate?.("alertes")}
-            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground"
-          >
-            <ShieldAlert className="h-3.5 w-3.5" />
-            Diagnostic (admin)
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-              {diagnostic.counts.total}
-            </Badge>
-          </button>
-        )}
+        {/* Mini KPI Summary (appears when KPI rows scroll out) */}
+        <div className={cn(
+          "overflow-hidden transition-all duration-300 border-t border-border/30",
+          showMiniSummary ? "max-h-12 opacity-100" : "max-h-0 opacity-0"
+        )}>
+          <div className="px-8 py-2 flex items-center gap-6 text-xs">
+            <span className="text-muted-foreground font-medium">Résumé</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Encaissements</span>
+              <span className="font-semibold text-foreground">{formatEur(metrics?.encaissements ?? 0)}</span>
+            </span>
+            <span className="text-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Factures</span>
+              <span className="font-semibold text-foreground">{metrics?.facturesEnAttente ?? 0}</span>
+            </span>
+            <span className="text-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Sessions à risque</span>
+              <span className={cn(
+                "font-semibold",
+                (metrics?.sessionsRisque ?? 0) > 0 ? "text-warning" : "text-foreground"
+              )}>{metrics?.sessionsRisque ?? 0}</span>
+            </span>
+            <span className="text-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Retards</span>
+              <span className={cn(
+                "font-semibold",
+                (metrics?.paiementsRetard ?? 0) > 0 ? "text-destructive" : "text-foreground"
+              )}>{metrics?.paiementsRetard ?? 0}</span>
+            </span>
+          </div>
+        </div>
       </div>
 
       <main className="px-8 pb-8 pt-6 space-y-6">
         {/* Row 1 — Pilotage KPIs */}
-        <div>
+        <div ref={kpiRef}>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pilotage</h2>
           <DashboardPilotageRow metrics={metrics} isLoading={metricsLoading} onNavigate={handleNavigate} />
         </div>

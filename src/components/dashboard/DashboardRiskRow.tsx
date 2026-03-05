@@ -57,7 +57,7 @@ export function DashboardRiskRow({ metrics, isLoading, onNavigate }: Props) {
       onClick: () => onNavigate("contacts", { filter: "admin_blockers" }),
       badges: [
         dossiersInitial > 0 && { label: `Initial : ${dossiersInitial} CMA`, track: "initial" },
-        dossiersContinu > 0 && { label: `Continue : ${dossiersContinu} Carte Pro`, track: "continuing" },
+        dossiersContinu > 0 && { label: `Formation continue : ${dossiersContinu} Carte Pro`, track: "continuing" },
       ].filter(Boolean) as { label: string; track: string }[],
     },
     {
