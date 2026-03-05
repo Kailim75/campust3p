@@ -24,6 +24,8 @@ export type ActionCategory =
   | "examen_theorie_echoue"
   | "examen_pratique_reussi"
   | "examen_pratique_echoue"
+  | "carte_pro_envoyee"
+  | "carte_pro_relance"
   | "session_email"
   | "session_envoi_convocation"
   | "session_envoi_programme"
@@ -56,6 +58,8 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   examen_theorie_echoue:       { label: "Examen: théorie échouée",       canal: "Email",     modele: "Théorie échouée" },
   examen_pratique_reussi:      { label: "Examen: pratique réussie",      canal: "Email",     modele: "Pratique réussie" },
   examen_pratique_echoue:      { label: "Examen: pratique échouée",      canal: "Email",     modele: "Pratique échouée" },
+  carte_pro_envoyee:           { label: "Carte Pro: démarches envoyées", canal: "Email",     modele: "Démarches carte pro" },
+  carte_pro_relance:           { label: "Carte Pro: relance",            canal: "Email",     modele: "Relance carte pro" },
   session_email:               { label: "Session: email",                canal: "Email" },
   session_envoi_convocation:   { label: "Convocation envoyée",          canal: "Email",     modele: "Convocation session" },
   session_envoi_programme:     { label: "Programme envoyé",              canal: "Email",     modele: "Programme session" },

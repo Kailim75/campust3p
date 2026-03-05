@@ -39,6 +39,7 @@ const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
 const RDV_KEYWORDS = ["RDV", "Confirmation", "Marqué comme traité"];
 const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
+const CARTE_PRO_KEYWORDS = ["Carte Pro"];
 
 type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
@@ -109,6 +110,7 @@ function useAujourdhuiData() {
       const [
         contactsRes, docsRes, facturesRes, paiementsRes,
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
+        examensPratiqueRes,
       ] = await Promise.all([
         supabase.from("contacts").select("id, nom, prenom, formation, statut, email, telephone, updated_at").eq("archived", false),
         supabase.from("contact_documents").select("contact_id, type_document"),
@@ -119,6 +121,7 @@ function useAujourdhuiData() {
         supabase.from("session_inscriptions").select("contact_id, session_id"),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
+        supabase.from("examens_pratique").select("contact_id, resultat").eq("resultat", "admis"),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -270,12 +273,32 @@ function useAujourdhuiData() {
         contactName: contactNameMap.get(n.contact_id) || "Contact",
       }));
 
+      // ─── Bloc E: Carte Pro (pratique réussie sans note carte_pro) ───
+      const pratiqueAdmisIds = new Set(
+        (examensPratiqueRes.data || []).map((e: any) => e.contact_id)
+      );
+      // Get all [AUTO] notes containing "Carte Pro" for these contacts
+      const carteProNotesRes = pratiqueAdmisIds.size > 0
+        ? await supabase
+            .from("contact_historique")
+            .select("contact_id")
+            .in("contact_id", Array.from(pratiqueAdmisIds))
+            .like("titre", "%Carte Pro%")
+        : { data: [] };
+      const carteProSentIds = new Set(
+        (carteProNotesRes.data || []).map((n: any) => n.contact_id)
+      );
+      const carteProItems = contacts
+        .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id))
+        .map((c: any) => ({ ...c }));
+
       // Fetch recent (past) auto notes for contacts/prospects that have no today notes
       const allContactIds = [
         ...cmaItems.map(c => c.id),
         ...rdvToday.map(p => p.id),
         ...relances.map(p => p.id),
         ...critiques.map(c => c.id),
+        ...carteProItems.map((c: any) => c.id),
       ];
       const contactsWithoutTodayNote = allContactIds.filter(
         id => !todayNotes.some(n => n.contact_id === id)
@@ -287,10 +310,11 @@ function useAujourdhuiData() {
         rdvToday,
         relances,
         critiques,
+        carteProItems,
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length,
       };
     },
     staleTime: 30_000,
@@ -420,7 +444,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
   const {
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
-    critiques: rawCritiques = [], todayNotes = [], recentNotes = [], journalEntries = [],
+    critiques: rawCritiques = [], carteProItems: rawCartePro = [],
+    todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
 
   // Active filter for CMA/critiques
@@ -441,6 +466,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS))).slice(0, 10);
   const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
   const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
+  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledToday(c.id, todayNotes, CARTE_PRO_KEYWORDS))).slice(0, 10);
 
   const handledCmaCount = activeCma.length - (showHandled ? 0 : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)).length);
   const handledRdvCount = rawRdv.length - (showHandled ? 0 : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS)).length);
@@ -448,7 +474,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const handledCritiqueCount = activeCritiques.length - (showHandled ? 0 : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS)).length);
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
 
-  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length;
+  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length + cartePro.length;
 
   // ─── Action handlers with EmailComposerModal ───
   const handleCmaRelanceDocs = (item: any) => {
@@ -527,6 +553,20 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
       autoNoteCategory: "apprenant_relance_paiement",
       onSuccess: invalidate,
     });
+  };
+
+  const handleCarteProEmail = (item: any) => {
+    openComposer({
+      recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
+      defaultSubject: "Démarches Carte Professionnelle — Examen pratique réussi",
+      defaultBody: `Bonjour ${item.prenom},\n\nSuite à votre réussite à l'examen pratique, vous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite\n- Pièce d'identité en cours de validité\n- Justificatif de domicile de moins de 3 mois\n- 2 photos d'identité\n- Permis de conduire\n\nDélai moyen : 2 à 4 semaines.\n\nCordialement,\nÉcole T3P Montrouge`,
+      autoNoteCategory: "carte_pro_envoyee",
+      onSuccess: invalidate,
+    });
+  };
+
+  const handleCarteProMarkDone = async (item: any) => {
+    await logAction(item.id, "carte_pro_envoyee", "Marqué manuellement");
   };
 
   // Check if CMA relance already done today for a specific contact
@@ -951,7 +991,80 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
           </Card>
         </div>
 
-        {/* ─── Journal d'actions ─── */}
+        {/* ─── BLOC E: Carte Pro à envoyer ─── */}
+        {cartePro.length > 0 && (
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <CreditCard className="h-4 w-4 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Carte Pro à envoyer</h3>
+                  <p className="text-[11px] text-muted-foreground">{cartePro.length} apprenant{cartePro.length > 1 ? "s" : ""} — pratique réussie</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{cartePro.length}</Badge>
+            </div>
+            <div className="divide-y max-h-80 overflow-y-auto">
+              {cartePro.map((item: any) => {
+                const carteProDoneToday = isHandledToday(item.id, todayNotes, CARTE_PRO_KEYWORDS);
+                return (
+                  <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => openContact(item.id)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                          {item.prenom} {item.nom}
+                          <ExternalLink className="h-3 w-3 opacity-40" />
+                        </button>
+                      </div>
+                      {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                    </div>
+                    <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.id} />
+                    <div className="flex gap-1.5 mt-1">
+                      {item.email && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm" variant="outline" className="h-7 text-[10px] border-warning text-warning hover:bg-warning/10"
+                                  disabled={carteProDoneToday}
+                                  onClick={() => handleCarteProEmail(item)}
+                                >
+                                  <Mail className="h-3 w-3 mr-1" /> Envoyer démarches
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {carteProDoneToday && <TooltipContent><p>Déjà envoyé aujourd'hui</p></TooltipContent>}
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                size="sm" variant="ghost" className="h-7 text-[10px] text-muted-foreground"
+                                disabled={carteProDoneToday}
+                                onClick={() => handleCarteProMarkDone(item)}
+                              >
+                                <Check className="h-3 w-3 mr-1" /> Marquer envoyé
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {carteProDoneToday && <TooltipContent><p>Déjà fait aujourd'hui</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <MarkDoneBtn contactId={item.id} bloc="Carte Pro" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
         <ActionJournal
           entries={journalEntries}
           onOpenContact={openContact}

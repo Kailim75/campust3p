@@ -25,14 +25,14 @@ import {
 import {
   CheckCircle2,
   XCircle,
-  Clock,
   GraduationCap,
   Car,
   Send,
   RotateCcw,
   Loader2,
   Lock,
-  Eye,
+  CreditCard,
+  Check,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
@@ -40,7 +40,11 @@ import { useSession, useSessions, useAddInscription } from "@/hooks/useSessions"
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
+import { createAutoNote, fetchTodayAutoNotes, isHandledToday } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const CARTE_PRO_KEYWORDS = ["Carte Pro"];
 
 interface SessionParcoursTabProps {
   sessionId: string;
@@ -51,9 +55,17 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   const { data: session } = useSession(sessionId);
   const { data: allSessions } = useSessions();
   const addInscription = useAddInscription();
+  const queryClient = useQueryClient();
   const contactIds = useMemo(() => inscrits?.map((i) => i.contact_id) || [], [inscrits]);
   const { data: examResults = {}, setResult: setExamResult } = useInscritsExamResults(contactIds);
   const { composerProps, openComposer } = useEmailComposer();
+
+  // Fetch today's auto notes for anti-double
+  const { data: todayNotes = [] } = useQuery({
+    queryKey: ["today-auto-notes-parcours"],
+    queryFn: fetchTodayAutoNotes,
+    staleTime: 30_000,
+  });
 
   const [reprogramDialogOpen, setReprogramDialogOpen] = useState(false);
   const [reprogramTarget, setReprogramTarget] = useState<{
@@ -64,7 +76,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [showLockedDialog, setShowLockedDialog] = useState(false);
 
-  // Compute théorie counters (unchanged)
+  // Compute théorie counters
   const theorieStats = useMemo(() => {
     const stats = { pending: 0, admis: 0, ajourne: 0 };
     contactIds.forEach((id) => {
@@ -108,6 +120,10 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     );
   }, [allSessions, session, sessionId]);
 
+  const invalidateNotes = () => {
+    queryClient.invalidateQueries({ queryKey: ["today-auto-notes-parcours"] });
+  };
+
   const handleReprogrammer = (
     contactId: string,
     contactName: string,
@@ -143,9 +159,11 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
             },
           ],
           defaultSubject: isTheorie
-            ? `Reprogrammation examen théorique — ${targetSession?.nom || ""}`
-            : `Reprogrammation examen pratique — ${targetSession?.nom || ""}`,
-          defaultBody: `Bonjour ${inscrit.contact.prenom},\n\nSuite à votre examen ${isTheorie ? "théorique" : "pratique"}, vous avez été inscrit(e) à la session "${targetSession?.nom || ""}".\n\nNous vous communiquerons les détails de votre nouvelle session prochainement.\n\nBien cordialement,\nL'équipe pédagogique`,
+            ? "Examen théorique — On repart ensemble sur la prochaine date"
+            : "Examen pratique — Nouvelle programmation + plan d'action",
+          defaultBody: isTheorie
+            ? `Bonjour ${inscrit.contact.prenom},\n\nNous avons bien noté le résultat de votre examen théorique. Rien d'anormal : beaucoup l'obtiennent en 2e tentative.\n\n👉 Prochaine étape : vous êtes inscrit(e) à la session "${targetSession?.nom || ""}" et nous allons revoir ensemble les points qui posent difficulté.\n\nRépondez simplement à ce message avec vos disponibilités, ou dites "OK" et je vous envoie une date.\n\nCordialement,\nÉcole T3P Montrouge`
+            : `Bonjour ${inscrit.contact.prenom},\n\nMerci pour votre passage à l'examen pratique. Ce résultat ne remet pas en cause votre réussite future : on va ajuster et repartir rapidement.\n\n👉 Prochaine étape : vous êtes inscrit(e) à la session "${targetSession?.nom || ""}" et on cale un entraînement ciblé sur les points à améliorer.\n\nDites-moi vos disponibilités (2 créneaux) et je m'occupe du reste.\n\nCordialement,\nÉcole T3P Montrouge`,
           autoNoteCategory: isTheorie ? "examen_theorie_echoue" : "examen_pratique_echoue",
           autoNoteExtra: `Reprogrammé → ${targetSession?.nom || ""}`,
         });
@@ -157,6 +175,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     }
   };
 
+  // ─── Email handlers ───
   const handleSendFelicitations = (
     contactId: string,
     contact: any,
@@ -180,10 +199,68 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         ? "🎉 Félicitations — Examen théorique réussi !"
         : "🎉 Félicitations — Examen pratique réussi !",
       defaultBody: isTheorie
-        ? `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique. Nous allons vous programmer une session dans les meilleurs délais.\n\nBien cordialement,\nL'équipe pédagogique`
-        : `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant entreprendre les démarches pour obtenir votre carte professionnelle auprès de votre préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite (ci-jointe)\n- Pièce d'identité\n- Justificatif de domicile\n- Photo d'identité\n- Permis de conduire\n\nN'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nL'équipe pédagogique`,
+        ? `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique. Nous allons vous programmer une session dans les meilleurs délais.\n\nBien cordialement,\nÉcole T3P Montrouge`
+        : `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant entreprendre les démarches pour obtenir votre carte professionnelle auprès de votre préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite (ci-jointe)\n- Pièce d'identité\n- Justificatif de domicile\n- Photo d'identité\n- Permis de conduire\n\nN'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nÉcole T3P Montrouge`,
       autoNoteCategory: isTheorie ? "examen_theorie_reussi" : "examen_pratique_reussi",
+      onSuccess: invalidateNotes,
     });
+  };
+
+  const handleSendEncouragement = (
+    contactId: string,
+    contact: any,
+    type: "theorie" | "pratique"
+  ) => {
+    if (!contact?.email) {
+      toast.error("Cet apprenant n'a pas d'email");
+      return;
+    }
+    const isTheorie = type === "theorie";
+    openComposer({
+      recipients: [
+        {
+          id: contactId,
+          email: contact.email,
+          prenom: contact.prenom || "",
+          nom: contact.nom || "",
+        },
+      ],
+      defaultSubject: isTheorie
+        ? "Examen théorique — On repart ensemble sur la prochaine date"
+        : "Examen pratique — Nouvelle programmation + plan d'action",
+      defaultBody: isTheorie
+        ? `Bonjour ${contact.prenom},\n\nNous avons bien noté le résultat de votre examen théorique. Rien d'anormal : beaucoup l'obtiennent en 2e tentative.\n\n👉 Prochaine étape : je vous propose de vous reprogrammer sur une nouvelle session et de revoir les points qui posent difficulté.\n\nRépondez simplement à ce message avec vos disponibilités, ou dites "OK" et je vous envoie une date.\n\nCordialement,\nÉcole T3P Montrouge`
+        : `Bonjour ${contact.prenom},\n\nMerci pour votre passage à l'examen pratique. Ce résultat ne remet pas en cause votre réussite future : on va ajuster et repartir rapidement.\n\n👉 Prochaine étape : je vous reprogramme sur une nouvelle date et on cale un entraînement ciblé sur les points à améliorer.\n\nDites-moi vos disponibilités (2 créneaux) et je m'occupe du reste.\n\nCordialement,\nÉcole T3P Montrouge`,
+      autoNoteCategory: isTheorie ? "examen_theorie_echoue" : "examen_pratique_echoue",
+      onSuccess: invalidateNotes,
+    });
+  };
+
+  const handleSendCartePro = (contactId: string, contact: any) => {
+    if (!contact?.email) {
+      toast.error("Cet apprenant n'a pas d'email");
+      return;
+    }
+    openComposer({
+      recipients: [
+        {
+          id: contactId,
+          email: contact.email,
+          prenom: contact.prenom || "",
+          nom: contact.nom || "",
+        },
+      ],
+      defaultSubject: "Démarches Carte Professionnelle — Examen pratique réussi",
+      defaultBody: `Bonjour ${contact.prenom},\n\nSuite à votre réussite à l'examen pratique, vous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite (ci-jointe)\n- Pièce d'identité en cours de validité\n- Justificatif de domicile de moins de 3 mois\n- 2 photos d'identité\n- Permis de conduire\n\nDélai moyen : 2 à 4 semaines.\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,\nÉcole T3P Montrouge`,
+      autoNoteCategory: "carte_pro_envoyee",
+      onSuccess: invalidateNotes,
+    });
+  };
+
+  const handleMarkCarteProDone = async (contactId: string, contactName: string) => {
+    await createAutoNote(contactId, "carte_pro_envoyee", "Marqué manuellement");
+    toast.success(`Carte Pro marquée envoyée pour ${contactName}`);
+    invalidateNotes();
   };
 
   const handleBulkFelicitations = (type: "theorie" | "pratique") => {
@@ -202,8 +279,8 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
       prenom: i.contact!.prenom || "",
       nom: i.contact!.nom || "",
       customBody: isTheorie
-        ? `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique.\n\nBien cordialement,\nL'équipe pédagogique`
-        : `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nBien cordialement,\nL'équipe pédagogique`,
+        ? `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique.\n\nBien cordialement,\nÉcole T3P Montrouge`
+        : `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nBien cordialement,\nÉcole T3P Montrouge`,
     }));
     openComposer({
       recipients,
@@ -212,6 +289,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         : "🎉 Félicitations — Examen pratique réussi !",
       defaultBody: "Contenu personnalisé par apprenant",
       autoNoteCategory: isTheorie ? "examen_theorie_reussi" : "examen_pratique_reussi",
+      onSuccess: invalidateNotes,
     });
   };
 
@@ -231,6 +309,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     );
   }
 
+  // ─── Théorie block ───
   const renderTheorieBlock = () => {
     const pendingInscrits = inscrits?.filter(
       (i) => !examResults[i.contact_id]?.theorie
@@ -279,22 +358,23 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
             </div>
           </div>
 
-          {renderStudentList(pendingInscrits, "theorie", "pending")}
-          {renderStudentList(admisInscrits, "theorie", "admis")}
-          {renderStudentList(ajourneInscrits, "theorie", "ajourne")}
+          {renderPendingList(pendingInscrits, "theorie")}
+          {renderAdmisList(admisInscrits, "theorie")}
+          {renderAjourneList(ajourneInscrits, "theorie")}
         </CardContent>
       </Card>
     );
   };
 
+  // ─── Pratique block ───
   const renderPratiqueBlock = () => {
     const eligibleInscrits = inscrits?.filter(
       (i) => pratiqueEligibleIds.includes(i.contact_id)
     );
-    const lockedInscrits = inscrits?.filter(
+    const lockedInscritsLocal = inscrits?.filter(
       (i) => pratiqueLockedIds.includes(i.contact_id)
     );
-    const lockedCount = lockedInscrits?.length || 0;
+    const lockedCount = lockedInscritsLocal?.length || 0;
 
     const pendingInscrits = eligibleInscrits?.filter(
       (i) => !examResults[i.contact_id]?.pratique
@@ -370,155 +450,205 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
             </div>
           )}
 
-          {renderStudentList(pendingInscrits, "pratique", "pending")}
-          {renderStudentList(admisInscrits, "pratique", "admis")}
-          {renderStudentList(ajourneInscrits, "pratique", "ajourne")}
+          {renderPendingList(pendingInscrits, "pratique")}
+          {renderAdmisList(admisInscrits, "pratique")}
+          {renderAjourneList(ajourneInscrits, "pratique")}
         </CardContent>
       </Card>
     );
   };
 
-  const renderStudentList = (
+  // ─── Pending list ───
+  const renderPendingList = (
     students: typeof inscrits | undefined,
-    type: "theorie" | "pratique",
-    status: "pending" | "admis" | "ajourne"
+    type: "theorie" | "pratique"
   ) => {
     if (!students?.length) return null;
-
-    if (status === "pending") {
-      return (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            À traiter ({students.length})
-          </p>
-          <div className="space-y-1.5">
-            {students.map((inscrit) => (
-              <div
-                key={inscrit.contact_id}
-                className="flex items-center justify-between p-2 rounded-lg border bg-background hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                      {`${inscrit.contact?.prenom?.[0] || ""}${inscrit.contact?.nom?.[0] || ""}`.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm">
-                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                  </span>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-[10px] px-2 border-success text-success hover:bg-success/10"
-                    onClick={() => {
-                      setExamResult({
-                        contactId: inscrit.contact_id,
-                        type,
-                        value: "admis",
-                        formationType:
-                          inscrit.contact?.formation ||
-                          session?.formation_type ||
-                          "VTC",
-                      });
-                      if (type === "theorie") {
-                        toast.success(
-                          `${inscrit.contact?.prenom} ${inscrit.contact?.nom} → Déplacé vers Pratique`
-                        );
-                      }
-                    }}
-                  >
-                    <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                    Réussi
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-[10px] px-2 border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() =>
-                      setExamResult({
-                        contactId: inscrit.contact_id,
-                        type,
-                        value: "ajourne",
-                        formationType:
-                          inscrit.contact?.formation ||
-                          session?.formation_type ||
-                          "VTC",
-                      })
-                    }
-                  >
-                    <XCircle className="h-3 w-3 mr-0.5" />
-                    Échoué
-                  </Button>
-                </div>
+    return (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          À traiter ({students.length})
+        </p>
+        <div className="space-y-1.5">
+          {students.map((inscrit) => (
+            <div
+              key={inscrit.contact_id}
+              className="flex items-center justify-between p-2 rounded-lg border bg-background hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                    {`${inscrit.contact?.prenom?.[0] || ""}${inscrit.contact?.nom?.[0] || ""}`.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm">
+                  {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                </span>
               </div>
-            ))}
-          </div>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 border-success text-success hover:bg-success/10"
+                  onClick={() => {
+                    setExamResult({
+                      contactId: inscrit.contact_id,
+                      type,
+                      value: "admis",
+                      formationType:
+                        inscrit.contact?.formation ||
+                        session?.formation_type ||
+                        "VTC",
+                    });
+                    if (type === "theorie") {
+                      toast.success(
+                        `${inscrit.contact?.prenom} ${inscrit.contact?.nom} → Déplacé vers Pratique`
+                      );
+                    }
+                  }}
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                  Réussi
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() =>
+                    setExamResult({
+                      contactId: inscrit.contact_id,
+                      type,
+                      value: "ajourne",
+                      formationType:
+                        inscrit.contact?.formation ||
+                        session?.formation_type ||
+                        "VTC",
+                    })
+                  }
+                >
+                  <XCircle className="h-3 w-3 mr-0.5" />
+                  Échoué
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-      );
-    }
+      </div>
+    );
+  };
 
-    if (status === "admis") {
-      return (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-success uppercase tracking-wide">
-            Réussi ({students.length})
-          </p>
-          <div className="space-y-1.5">
-            {students.map((inscrit) => (
+  // ─── Admis list with smart CTAs ───
+  const renderAdmisList = (
+    students: typeof inscrits | undefined,
+    type: "theorie" | "pratique"
+  ) => {
+    if (!students?.length) return null;
+    return (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-success uppercase tracking-wide">
+          Réussi ({students.length})
+        </p>
+        <div className="space-y-1.5">
+          {students.map((inscrit) => {
+            const carteProSent = isHandledToday(inscrit.contact_id, todayNotes, CARTE_PRO_KEYWORDS);
+            return (
               <div
                 key={inscrit.contact_id}
-                className="flex items-center justify-between p-2 rounded-lg border border-success/20 bg-success/5"
+                className="flex flex-col p-2 rounded-lg border border-success/20 bg-success/5 gap-1.5"
               >
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span className="text-sm">
-                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                  </span>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 text-[10px] px-2 text-primary"
-                    onClick={() =>
-                      handleSendFelicitations(
-                        inscrit.contact_id,
-                        inscrit.contact,
-                        type
-                      )
-                    }
-                  >
-                    <Send className="h-3 w-3 mr-0.5" />
-                    Féliciter
-                  </Button>
-                  {type === "theorie" && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span className="text-sm">
+                      {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                    </span>
+                  </div>
+                  <div className="flex gap-1 flex-wrap justify-end">
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-[10px] px-2 text-info"
+                      className="h-6 text-[10px] px-2 text-primary"
                       onClick={() =>
-                        handleReprogrammer(
+                        handleSendFelicitations(
                           inscrit.contact_id,
-                          `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
-                          "pratique"
+                          inscrit.contact,
+                          type
                         )
                       }
                     >
-                      <Car className="h-3 w-3 mr-0.5" />
-                      → Pratique
+                      <Send className="h-3 w-3 mr-0.5" />
+                      Féliciter
                     </Button>
-                  )}
+                    {type === "theorie" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] px-2 text-info"
+                        onClick={() =>
+                          handleReprogrammer(
+                            inscrit.contact_id,
+                            `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                            "pratique"
+                          )
+                        }
+                      >
+                        <Car className="h-3 w-3 mr-0.5" />
+                        Programmer pratique
+                      </Button>
+                    )}
+                    {type === "pratique" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px] px-2 text-warning"
+                          onClick={() => handleSendCartePro(inscrit.contact_id, inscrit.contact)}
+                        >
+                          <CreditCard className="h-3 w-3 mr-0.5" />
+                          Démarches Carte Pro
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 text-[10px] px-2 text-muted-foreground"
+                                  disabled={carteProSent}
+                                  onClick={() => handleMarkCarteProDone(
+                                    inscrit.contact_id,
+                                    `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`
+                                  )}
+                                >
+                                  <Check className="h-3 w-3 mr-0.5" />
+                                  {carteProSent ? "Envoyé ✓" : "Marquer envoyé"}
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {carteProSent && (
+                              <TooltipContent>Déjà marqué aujourd'hui</TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      );
-    }
+      </div>
+    );
+  };
 
-    // ajourne
+  // ─── Ajourné list with smart CTAs ───
+  const renderAjourneList = (
+    students: typeof inscrits | undefined,
+    type: "theorie" | "pratique"
+  ) => {
+    if (!students?.length) return null;
     return (
       <div className="space-y-1">
         <p className="text-xs font-semibold text-destructive uppercase tracking-wide">
@@ -528,29 +658,50 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           {students.map((inscrit) => (
             <div
               key={inscrit.contact_id}
-              className="flex items-center justify-between p-2 rounded-lg border border-destructive/20 bg-destructive/5"
+              className="flex flex-col p-2 rounded-lg border border-destructive/20 bg-destructive/5 gap-1.5"
             >
-              <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-destructive" />
-                <span className="text-sm">
-                  {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm">
+                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                  </span>
+                </div>
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-warning"
+                    onClick={() =>
+                      handleReprogrammer(
+                        inscrit.contact_id,
+                        `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                        type
+                      )
+                    }
+                  >
+                    <RotateCcw className="h-3 w-3 mr-0.5" />
+                    Reprogrammer
+                  </Button>
+                  {inscrit.contact?.email && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[10px] px-2 text-primary"
+                      onClick={() =>
+                        handleSendEncouragement(
+                          inscrit.contact_id,
+                          inscrit.contact,
+                          type
+                        )
+                      }
+                    >
+                      <Send className="h-3 w-3 mr-0.5" />
+                      Encourager
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 text-[10px] px-2 text-warning"
-                onClick={() =>
-                  handleReprogrammer(
-                    inscrit.contact_id,
-                    `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
-                    type
-                  )
-                }
-              >
-                <RotateCcw className="h-3 w-3 mr-0.5" />
-                Reprogrammer
-              </Button>
             </div>
           ))}
         </div>
