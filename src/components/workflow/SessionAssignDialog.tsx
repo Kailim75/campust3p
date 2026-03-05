@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { triggerAutoGeneration } from "@/lib/auto-generate-documents";
+import { getTrackFromFormationType } from "@/lib/formation-track";
 import {
   Dialog,
   DialogContent,
@@ -68,13 +70,15 @@ export function SessionAssignDialog({
   const handleAssign = async (session: typeof availableSessions[0]) => {
     setIsAssigning(true);
     try {
-      const { error } = await supabase
+      const { data: inscData, error } = await supabase
         .from("session_inscriptions")
         .insert({
           session_id: session.id,
           contact_id: contactId,
           statut: "inscrit",
-        });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
@@ -85,6 +89,20 @@ export function SessionAssignDialog({
       toast.success(`${contactName} inscrit à "${session.nom}"`);
       onOpenChange(false);
       onSuccess?.(session.id, session.nom);
+
+      // Auto-generate documents in background (non-blocking)
+      const track = getTrackFromFormationType(session.formation_type);
+      triggerAutoGeneration({
+        contactId,
+        sessionId: session.id,
+        inscriptionId: inscData?.id,
+        track: track === "continuing" ? "continuing" : "initial",
+      }).then((result) => {
+        if (result.generated > 0) {
+          toast.info(`${result.generated} document(s) auto-généré(s)`, { duration: 4000 });
+          queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
+        }
+      });
     } catch (error: any) {
       if (error.code === "23505") {
         toast.error("Ce stagiaire est déjà inscrit à cette session");

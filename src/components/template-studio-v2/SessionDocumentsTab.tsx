@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Session Documents Tab — Shows pack-recommended templates + generation
+// Session Documents Tab — Pack-aware generation + batch + anti-duplicate
 // ═══════════════════════════════════════════════════════════════
 
 import { useState } from "react";
@@ -7,20 +7,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
-  FileText, Download, Loader2, CheckCircle2, XCircle, RefreshCw, Package,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  FileText, Download, Loader2, CheckCircle2, XCircle, RefreshCw, Package, MoreVertical, Clock,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
-  useDocumentPacks, useGeneratedDocuments, useGenerateDocument, useDownloadGeneratedDoc,
-  useTemplatesV2, buildVariablesForGeneration,
+  useDocumentPacks, useGeneratedDocuments, useGenerateDocument,
+  useGeneratePackDocuments, useDownloadGeneratedDoc,
+  buildVariablesForGeneration,
   type TrackScope, type GeneratedDocument,
 } from "@/hooks/useTemplateStudioV2";
 import { toast } from "sonner";
 
 interface Props {
   sessionId: string;
-  sessionTrack?: string; // 'initial' | 'continuing'
+  sessionTrack?: string;
   contactId?: string;
 }
 
@@ -28,25 +35,18 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
   const trackScope: TrackScope = sessionTrack === "continuing" ? "continuing" : "initial";
   const { data: packs } = useDocumentPacks(trackScope);
   const { data: generatedDocs } = useGeneratedDocuments({ sessionId, contactId });
-  const { data: publishedTemplates } = useTemplatesV2({ status: "published" });
   const generateDoc = useGenerateDocument();
+  const generatePack = useGeneratePackDocuments();
   const downloadDoc = useDownloadGeneratedDoc();
   const [generating, setGenerating] = useState<string | null>(null);
 
-  // Get relevant pack
   const activePack = packs?.find((p) => p.is_default && (p.track_scope === trackScope || p.track_scope === "both"));
+  const packTemplates = activePack?.items?.filter((i) => i.template?.status === "published") || [];
 
-  // Build list of templates to show (from pack or fallback to published templates matching track)
-  const packTemplates = activePack?.items?.map((i) => i.template).filter(Boolean) || [];
-  const displayTemplates = packTemplates.length > 0
-    ? packTemplates
-    : (publishedTemplates || []).filter(
-        (t) => t.track_scope === trackScope || t.track_scope === "both"
-      );
-
-  const getDocStatus = (templateId: string) => {
-    return generatedDocs?.find((d) => d.template_id === templateId);
-  };
+  const ungeneratedCount = packTemplates.filter((item) => {
+    const existing = generatedDocs?.find((d) => d.template_id === item.template_id && d.status === "generated");
+    return !existing;
+  }).length;
 
   const handleGenerate = async (templateId: string) => {
     setGenerating(templateId);
@@ -56,34 +56,70 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
         sessionId,
       });
       await generateDoc.mutateAsync({ templateId, sessionId, contactId, variables });
-    } catch (err) {
-      // Error handled by mutation
+      toast.success("Document généré");
+    } catch {
+      // handled
     } finally {
       setGenerating(null);
     }
   };
 
+  const handleGenerateAll = async () => {
+    if (!activePack) return;
+    await generatePack.mutateAsync({
+      pack: activePack,
+      contactId,
+      sessionId,
+    });
+  };
+
   return (
     <div className="space-y-4">
-      {/* Pack Info */}
+      {/* Pack Info + Generate All */}
       {activePack && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-          <Package className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{activePack.name}</span>
-          <Badge variant="outline" className="text-xs ml-auto">
-            {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
-          </Badge>
+        <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{activePack.name}</span>
+            <Badge variant="outline" className="text-xs">
+              {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
+            </Badge>
+          </div>
+          {packTemplates.length > 0 && (
+            <Button
+              size="sm"
+              className="gap-1.5 text-xs"
+              disabled={generatePack.isPending || ungeneratedCount === 0}
+              onClick={handleGenerateAll}
+            >
+              {generatePack.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Package className="h-3.5 w-3.5" />
+              )}
+              {ungeneratedCount === 0
+                ? "Tout généré ✓"
+                : `Générer tout (${ungeneratedCount})`}
+            </Button>
+          )}
         </div>
       )}
 
-      {/* Template List with generation status */}
+      {generatePack.isPending && (
+        <div className="space-y-1">
+          <Progress value={undefined} className="h-1.5 animate-pulse" />
+          <p className="text-xs text-muted-foreground text-center">Génération en cours…</p>
+        </div>
+      )}
+
+      {/* Template List */}
       <Card>
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm">Documents recommandés</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="max-h-[400px]">
-            {displayTemplates.length === 0 ? (
+            {packTemplates.length === 0 ? (
               <div className="flex flex-col items-center py-8">
                 <FileText className="h-8 w-8 text-muted-foreground/30 mb-2" />
                 <p className="text-sm text-muted-foreground">Aucun template recommandé pour ce parcours</p>
@@ -91,45 +127,55 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
               </div>
             ) : (
               <div className="divide-y">
-                {displayTemplates.map((tmpl: any) => {
-                  const existing = getDocStatus(tmpl.id);
+                {packTemplates.map((item: any) => {
+                  const tmpl = item.template!;
+                  const existingGenerated = generatedDocs?.find(
+                    (d) => d.template_id === tmpl.id && d.status === "generated"
+                  );
+                  const isAlreadyGenerated = !!existingGenerated;
                   const isGenerating = generating === tmpl.id;
+
                   return (
                     <div key={tmpl.id} className="flex items-center gap-3 p-3 hover:bg-muted/30">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className={cn("p-1 rounded", isAlreadyGenerated ? "text-success" : "text-muted-foreground")}>
+                        {isAlreadyGenerated ? <CheckCircle2 className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{tmpl.name}</p>
-                        <p className="text-xs text-muted-foreground">{tmpl.type}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>{tmpl.type}</span>
+                          {item.auto_generate && (
+                            <Badge variant="outline" className="text-[10px] h-4 text-primary/60">Auto</Badge>
+                          )}
+                          {isAlreadyGenerated && (
+                            <span className="text-success">
+                              — {format(new Date(existingGenerated.created_at), "dd/MM/yyyy", { locale: fr })}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {/* Status */}
-                      {existing ? (
-                        <div className="flex items-center gap-2">
-                          {existing.status === "generated" ? (
-                            <Badge className="text-xs bg-green-500/10 text-green-600 gap-1">
-                              <CheckCircle2 className="h-3 w-3" />Généré
-                            </Badge>
-                          ) : existing.status === "failed" ? (
-                            <Badge variant="destructive" className="text-xs gap-1">
-                              <XCircle className="h-3 w-3" />Erreur
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">En cours...</Badge>
-                          )}
-                          {existing.status === "generated" && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadDoc.mutate(existing)}>
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs gap-1"
-                            onClick={() => handleGenerate(tmpl.id)}
-                            disabled={isGenerating}
-                          >
-                            <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
-                            Regénérer
+
+                      {isAlreadyGenerated ? (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs text-success bg-success/10 border-success/20 gap-1">
+                            <CheckCircle2 className="h-3 w-3" />Déjà généré
+                          </Badge>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadDoc.mutate(existingGenerated)}>
+                            <Download className="h-3.5 w-3.5" />
                           </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleGenerate(tmpl.id)} disabled={isGenerating}>
+                                <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                                Regénérer (nouvelle version)
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       ) : (
                         <Button
@@ -152,11 +198,11 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
         </CardContent>
       </Card>
 
-      {/* Previously Generated Documents */}
+      {/* Generated docs history */}
       {generatedDocs && generatedDocs.length > 0 && (
         <Card>
           <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm">Documents générés ({generatedDocs.length})</CardTitle>
+            <CardTitle className="text-sm">Historique ({generatedDocs.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="max-h-[300px]">
@@ -165,7 +211,7 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
                   <div key={doc.id} className="flex items-center gap-3 p-3">
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{doc.file_name || doc.template?.name || "Document"}</p>
+                      <p className="text-sm truncate">{doc.file_name || (doc as any).template?.name || "Document"}</p>
                       <p className="text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleString("fr-FR")}</p>
                     </div>
                     <Badge
