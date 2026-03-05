@@ -42,14 +42,6 @@ export function useSessionInscrits(sessionId: string) {
   // Ajouter plusieurs stagiaires avec génération auto de factures
   const ajouterMultiples = useMutation({
     mutationFn: async ({ contactIds, sessionPrix = 0, sessionNom = '', autoCreateFacture = true }: AjouterMultiplesParams) => {
-      // Fetch session track
-      const { data: sessionData } = await supabase
-        .from('sessions')
-        .select('track')
-        .eq('id', sessionId)
-        .single();
-      const sessionTrack = (sessionData as any)?.track || 'initial';
-
       // Vérifier doublons
       const existants = inscrits?.map(i => i.contact_id) || [];
       const nouveaux = contactIds.filter(id => !existants.includes(id));
@@ -58,11 +50,11 @@ export function useSessionInscrits(sessionId: string) {
         throw new Error('Ces stagiaires sont déjà inscrits');
       }
 
+      // Track is now auto-set by DB trigger (snapshot_inscription_track)
       const inscriptions = nouveaux.map(contact_id => ({
         session_id: sessionId,
         contact_id,
         statut: 'inscrit',
-        track: sessionTrack,
       }));
 
       const { data: insertedInscriptions, error } = await supabase

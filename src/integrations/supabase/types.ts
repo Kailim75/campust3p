@@ -366,6 +366,7 @@ export type Database = {
           public_concerne: string | null
           references_reglementaires: string | null
           remise_percent: number
+          track: Database["public"]["Enums"]["formation_track"]
           tva_percent: number
           type_formation: string
           updated_at: string
@@ -391,6 +392,7 @@ export type Database = {
           public_concerne?: string | null
           references_reglementaires?: string | null
           remise_percent?: number
+          track?: Database["public"]["Enums"]["formation_track"]
           tva_percent?: number
           type_formation?: string
           updated_at?: string
@@ -416,6 +418,7 @@ export type Database = {
           public_concerne?: string | null
           references_reglementaires?: string | null
           remise_percent?: number
+          track?: Database["public"]["Enums"]["formation_track"]
           tva_percent?: number
           type_formation?: string
           updated_at?: string
