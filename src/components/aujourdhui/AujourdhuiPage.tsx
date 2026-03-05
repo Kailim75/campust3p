@@ -223,16 +223,19 @@ function useAujourdhuiData() {
       const rdvToday = allTodayProspects.filter(p => isProspectRdv(p)).slice(0, 10);
 
       // ─── Bloc C: Relances ───
+      // Primary: use next_action_at (new relance engine)
+      // Fallback: date_prochaine_relance (legacy)
       const relances = prospects
         .filter(p => {
-          if (p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance)) && !isProspectRdv(p)) return true;
-          if (p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance)) && !isToday(parseISO(p.date_prochaine_relance))) return true;
-          if (p.statut === "relance" && !p.date_prochaine_relance) return true;
+          const actionDate = (p as any).next_action_at || p.date_prochaine_relance;
+          if (actionDate && isToday(parseISO(actionDate)) && !isProspectRdv(p)) return true;
+          if (actionDate && isPast(parseISO(actionDate)) && !isToday(parseISO(actionDate))) return true;
+          if (p.statut === "relance" && !actionDate) return true;
           return false;
         })
         .sort((a, b) => {
-          const da = a.date_prochaine_relance ? new Date(a.date_prochaine_relance).getTime() : Infinity;
-          const db = b.date_prochaine_relance ? new Date(b.date_prochaine_relance).getTime() : Infinity;
+          const da = ((a as any).next_action_at || a.date_prochaine_relance) ? new Date(((a as any).next_action_at || a.date_prochaine_relance)!).getTime() : Infinity;
+          const db = ((b as any).next_action_at || b.date_prochaine_relance) ? new Date(((b as any).next_action_at || b.date_prochaine_relance)!).getTime() : Infinity;
           return da - db;
         })
         .slice(0, 10);
@@ -938,8 +941,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   Toutes les relances sont à jour
                 </div>
               ) : relances.map((p) => {
-                const daysLate = p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance))
-                  ? Math.abs(differenceInDays(parseISO(p.date_prochaine_relance), new Date()))
+                const actionDate = (p as any).next_action_at || p.date_prochaine_relance;
+                const daysLate = actionDate && isPast(parseISO(actionDate))
+                  ? Math.abs(differenceInDays(parseISO(actionDate), new Date()))
                   : 0;
                 const urgency = computeProspectUrgency({ daysLate });
                 return (
@@ -957,14 +961,14 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                           <ExternalLink className="h-3 w-3 opacity-40" />
                         </button>
                       </div>
-                      {p.date_prochaine_relance && (
+                      {actionDate && (
                         <Badge variant="outline" className={cn(
                           "text-[10px]",
-                          isPast(parseISO(p.date_prochaine_relance)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                          isPast(parseISO(actionDate)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
                         )}>
-                          {isPast(parseISO(p.date_prochaine_relance))
+                          {isPast(parseISO(actionDate))
                             ? `${daysLate}j retard`
-                            : format(parseISO(p.date_prochaine_relance), "dd/MM", { locale: fr })
+                            : format(parseISO(actionDate), "dd/MM", { locale: fr })
                           }
                         </Badge>
                       )}
