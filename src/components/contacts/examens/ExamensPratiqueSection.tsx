@@ -24,7 +24,7 @@ import {
   Trash2,
   Car,
   ClipboardList,
-  User,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -36,6 +36,7 @@ import {
   type ExamenPratique,
 } from "@/hooks/useExamensPratique";
 import { useContactFichesPratique } from "@/hooks/useFichesPratique";
+import { useContactExamensT3P } from "@/hooks/useExamensT3P";
 import { ExamenPratiqueEnhancedFormDialog } from "./ExamenPratiqueEnhancedFormDialog";
 import { GrilleEvaluationDialog } from "./GrilleEvaluationDialog";
 
@@ -51,7 +52,12 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
 
   const { data: examens = [], isLoading } = useContactExamens(contactId);
   const { data: fiches = [] } = useContactFichesPratique(contactId);
+  const { data: examensT3P = [], isLoading: isLoadingT3P } = useContactExamensT3P(contactId);
   const deleteMutation = useDeleteExamenPratique();
+
+  // Check théorie status — latest result
+  const lastTheorieResult = examensT3P.length > 0 ? examensT3P[0]?.resultat : null;
+  const theorieReussie = lastTheorieResult === "admis";
 
   const handleDelete = async (examen: ExamenPratique) => {
     await deleteMutation.mutateAsync({
@@ -61,9 +67,55 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
     });
   };
 
-  // Get the first active fiche
   const activeFiche = fiches.find((f) => f.statut !== "reussi") || fiches[0];
   const attempts = examens.length;
+
+  if (isLoading || isLoadingT3P) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
+  // Locked state: théorie not passed
+  if (!theorieReussie) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Examens Pratiques
+            </h3>
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+            <Lock className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium text-sm text-foreground">
+              Pratique verrouillée
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              La pratique se débloque après réussite de la théorie.
+              {lastTheorieResult === "ajourne" && (
+                <span className="block mt-1 text-destructive">
+                  Dernier résultat théorie : Échoué
+                </span>
+              )}
+              {!lastTheorieResult && (
+                <span className="block mt-1">
+                  Aucun résultat théorique enregistré.
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -95,12 +147,7 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
         </div>
       )}
 
-      {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      ) : examens.length === 0 ? (
+      {examens.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <Car className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <p className="font-medium">Aucun examen pratique</p>
