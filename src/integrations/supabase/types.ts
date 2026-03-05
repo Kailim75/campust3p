@@ -1108,6 +1108,8 @@ export type Database = {
           rue: string | null
           source: string | null
           statut: Database["public"]["Enums"]["contact_statut"] | null
+          statut_apprenant: Database["public"]["Enums"]["statut_apprenant"]
+          statut_cma: Database["public"]["Enums"]["statut_cma"]
           telephone: string | null
           uid: string | null
           updated_at: string
@@ -1146,6 +1148,8 @@ export type Database = {
           rue?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["contact_statut"] | null
+          statut_apprenant?: Database["public"]["Enums"]["statut_apprenant"]
+          statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
           uid?: string | null
           updated_at?: string
@@ -1184,6 +1188,8 @@ export type Database = {
           rue?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["contact_statut"] | null
+          statut_apprenant?: Database["public"]["Enums"]["statut_apprenant"]
+          statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
           uid?: string | null
           updated_at?: string
@@ -6793,6 +6799,8 @@ export type Database = {
         | "terminee"
         | "annulee"
         | "complet"
+      statut_apprenant: "actif" | "diplome" | "abandon" | "archive"
+      statut_cma: "docs_manquants" | "en_cours" | "valide" | "rejete"
       statut_reservation_conduite:
         | "confirmee"
         | "annulee_eleve"
@@ -7080,6 +7088,8 @@ export const Constants = {
       ],
       prospect_status: ["nouveau", "contacte", "relance", "converti", "perdu"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
+      statut_apprenant: ["actif", "diplome", "abandon", "archive"],
+      statut_cma: ["docs_manquants", "en_cours", "valide", "rejete"],
       statut_reservation_conduite: [
         "confirmee",
         "annulee_eleve",

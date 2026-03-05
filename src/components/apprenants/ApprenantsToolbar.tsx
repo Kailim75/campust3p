@@ -14,9 +14,9 @@ interface ApprenantsToolbarProps {
   onFormationFilterChange: (value: string) => void;
   quickFilter: string;
   onQuickFilterChange: (value: string) => void;
-  activityFilter: "actifs" | "tous" | "inactifs";
-  onActivityFilterChange: (value: "actifs" | "tous" | "inactifs") => void;
-  activityCounts: { actifs: number; inactifs: number; tous: number };
+  activityFilter: "actifs" | "tous" | "inactifs" | "termines";
+  onActivityFilterChange: (value: "actifs" | "tous" | "inactifs" | "termines") => void;
+  activityCounts: { actifs: number; inactifs: number; tous: number; termines: number };
   expertMode: boolean;
   onExpertModeToggle: () => void;
   filteredCount: number;
@@ -93,6 +93,7 @@ export function ApprenantsToolbar({
           { value: "actifs" as const, label: "Actifs", count: activityCounts.actifs },
           { value: "tous" as const, label: "Tous", count: activityCounts.tous },
           { value: "inactifs" as const, label: "Inactifs", count: activityCounts.inactifs },
+          { value: "termines" as const, label: "Terminés", count: activityCounts.termines },
         ]).map((f) => (
           <Button
             key={f.value}

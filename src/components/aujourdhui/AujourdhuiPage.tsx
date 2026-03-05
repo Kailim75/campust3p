@@ -112,7 +112,7 @@ function useAujourdhuiData() {
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
         examensPratiqueRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, email, telephone, updated_at").eq("archived", false),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, email, telephone, updated_at").eq("archived", false),
         supabase.from("contact_documents").select("contact_id, type_document"),
         supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance"),
         supabase.from("paiements").select("facture_id, montant"),
@@ -181,8 +181,10 @@ function useAujourdhuiData() {
       };
 
       // ─── Bloc A: CMA ───
+      // Exclude terminated contacts (diplome/abandon/archive)
+      const terminatedStatuses = ['diplome', 'abandon', 'archive'];
       const cmaItems = contacts
-        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation")
+        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
@@ -236,7 +238,7 @@ function useAujourdhuiData() {
 
       // ─── Bloc D: Critiques ───
       const critiques = contacts
-        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation")
+        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));

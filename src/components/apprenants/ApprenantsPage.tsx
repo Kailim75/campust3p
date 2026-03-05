@@ -6,10 +6,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send } from "lucide-react";
+import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send, GraduationCap, XCircle, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
-import { isActiveApprenant } from "@/lib/apprenant-active";
+import { isActiveApprenant, isTerminated, type StatutApprenant } from "@/lib/apprenant-active";
+import { useUpdateContact } from "@/hooks/useContacts";
 import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
@@ -20,6 +21,7 @@ import { ApprenantTableRow } from "./ApprenantTableRow";
 import { DuplicatesDialog } from "./DuplicatesDialog";
 import { differenceInDays } from "date-fns";
 import { openWhatsApp } from "@/lib/phone-utils";
+import { toast } from "sonner";
 
 // Local storage key for expert mode
 const EXPERT_MODE_KEY = "apprenants_expert_mode";
@@ -39,10 +41,11 @@ interface ApprenantsPageProps {
 
 export function ApprenantsPage({ initialContactId, onContactOpened }: ApprenantsPageProps = {}) {
   const { data: contacts, isLoading } = useEnrichedContacts();
+  const updateContact = useUpdateContact();
   const [search, setSearch] = useState("");
   const [formationFilter, setFormationFilter] = useState("all");
   const [quickFilter, setQuickFilter] = useState("all");
-  const [activityFilter, setActivityFilter] = useState<"actifs" | "tous" | "inactifs">("actifs");
+  const [activityFilter, setActivityFilter] = useState<"actifs" | "tous" | "inactifs" | "termines">("actifs");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -86,24 +89,50 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     }).length;
   }, [contacts]);
 
-  // Activity counts
+  // Activity counts — uses official statut_apprenant
   const activityCounts = useMemo(() => {
-    if (!contacts) return { actifs: 0, inactifs: 0, tous: 0 };
+    if (!contacts) return { actifs: 0, inactifs: 0, tous: 0, termines: 0 };
     let actifs = 0;
     let inactifs = 0;
+    let termines = 0;
     contacts.forEach(c => {
+      if (isTerminated(c as any)) { termines++; return; }
       if (isActiveApprenant(c)) actifs++;
       else inactifs++;
     });
-    return { actifs, inactifs, tous: contacts.length };
+    return { actifs, inactifs, tous: contacts.length, termines };
   }, [contacts]);
+
+  // Bulk status change handler
+  const handleBulkStatusChange = useCallback(async (newStatus: StatutApprenant) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
+    try {
+      await Promise.all(ids.map(id =>
+        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
+      ));
+      toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Erreur lors de la mise à jour");
+    }
+  }, [selectedIds, updateContact]);
 
   const filtered = useMemo(() => {
     if (!contacts) return [];
     return contacts.filter((c) => {
-      // Activity filter
-      if (activityFilter === "actifs" && !isActiveApprenant(c)) return false;
-      if (activityFilter === "inactifs" && isActiveApprenant(c)) return false;
+      // Activity filter — uses official statut_apprenant
+      if (activityFilter === "termines") {
+        if (!isTerminated(c as any)) return false;
+      } else if (activityFilter === "actifs") {
+        if (isTerminated(c as any)) return false;
+        if (!isActiveApprenant(c)) return false;
+      } else if (activityFilter === "inactifs") {
+        if (isTerminated(c as any)) return false;
+        if (isActiveApprenant(c)) return false;
+      }
+      // "tous" shows everything
 
       // Text search
       const matchesSearch =
@@ -201,17 +230,20 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               Désélectionner
             </Button>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <RefreshCw className="h-3.5 w-3.5" /> Changer statut
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("diplome")}>
+                <GraduationCap className="h-3.5 w-3.5" /> Diplômé
               </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <Send className="h-3.5 w-3.5" /> Envoyer relance
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("abandon")}>
+                <XCircle className="h-3.5 w-3.5" /> Abandon
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("archive")}>
+                <Archive className="h-3.5 w-3.5" /> Archiver
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("actif")}>
+                <RefreshCw className="h-3.5 w-3.5" /> Réactiver
               </Button>
               <Button variant="outline" size="sm" className="text-xs gap-1.5">
                 <Download className="h-3.5 w-3.5" /> Export CSV
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <CheckSquare className="h-3.5 w-3.5" /> Dossier complet
               </Button>
             </div>
           </div>

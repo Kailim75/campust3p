@@ -38,6 +38,8 @@ import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
+import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
+import type { StatutApprenant } from "@/lib/apprenant-active";
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -276,6 +278,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
               {contact.prenom} {contact.nom}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Statut apprenant officiel */}
+              <StatutApprenantDropdown
+                contactId={contact.id}
+                contactName={contactName}
+                currentStatus={(contact as any).statut_apprenant as StatutApprenant ?? "actif"}
+              />
               {statutBadge && (
                 <Badge variant="outline" className={cn("text-xs", statutBadge.className)}>
                   {statutBadge.label}
