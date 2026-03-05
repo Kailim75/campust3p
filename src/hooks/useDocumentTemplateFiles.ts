@@ -274,7 +274,7 @@ export function useGeneratedDocuments(contactId: string | null) {
     queryFn: async () => {
       if (!contactId) return [];
       const { data, error } = await supabase
-        .from("generated_documents")
+        .from("generated_documents_legacy")
         .select(`
           *,
           document_template_files (nom, type_fichier),
@@ -325,7 +325,7 @@ export function useSaveGeneratedDocument() {
 
       // Créer l'entrée dans la base de données
       const { data, error } = await supabase
-        .from("generated_documents")
+        .from("generated_documents_legacy")
         .insert([{
           contact_id: contactId,
           template_file_id: templateFileId || null,
@@ -368,7 +368,7 @@ export function useDeleteGeneratedDocument() {
 
       // Supprimer l'entrée
       const { error } = await supabase
-        .from("generated_documents")
+        .from("generated_documents_legacy")
         .delete()
         .eq("id", id);
 
