@@ -5368,6 +5368,7 @@ export type Database = {
           session_id: string
           statut: string
           statut_paiement: string | null
+          track: Database["public"]["Enums"]["formation_track"]
           updated_at: string
         }
         Insert: {
@@ -5380,6 +5381,7 @@ export type Database = {
           session_id: string
           statut?: string
           statut_paiement?: string | null
+          track?: Database["public"]["Enums"]["formation_track"]
           updated_at?: string
         }
         Update: {
@@ -5392,6 +5394,7 @@ export type Database = {
           session_id?: string
           statut?: string
           statut_paiement?: string | null
+          track?: Database["public"]["Enums"]["formation_track"]
           updated_at?: string
         }
         Relationships: [
@@ -5445,6 +5448,7 @@ export type Database = {
           prix: number | null
           prix_ht: number | null
           statut: Database["public"]["Enums"]["session_status"]
+          track: Database["public"]["Enums"]["formation_track"]
           tva_percent: number | null
           updated_at: string
         }
@@ -5481,6 +5485,7 @@ export type Database = {
           prix?: number | null
           prix_ht?: number | null
           statut?: Database["public"]["Enums"]["session_status"]
+          track?: Database["public"]["Enums"]["formation_track"]
           tva_percent?: number | null
           updated_at?: string
         }
@@ -5517,6 +5522,7 @@ export type Database = {
           prix?: number | null
           prix_ht?: number | null
           statut?: Database["public"]["Enums"]["session_status"]
+          track?: Database["public"]["Enums"]["formation_track"]
           tva_percent?: number | null
           updated_at?: string
         }
@@ -6758,6 +6764,7 @@ export type Database = {
         | "annulee"
       financement_type: "personnel" | "entreprise" | "cpf" | "opco"
       formation_cible_conduite: "taxi_initial" | "vtc" | "vmdtr" | "tous"
+      formation_track: "initial" | "continuing"
       formation_type:
         | "TAXI"
         | "VTC"
@@ -7048,6 +7055,7 @@ export const Constants = {
       ],
       financement_type: ["personnel", "entreprise", "cpf", "opco"],
       formation_cible_conduite: ["taxi_initial", "vtc", "vmdtr", "tous"],
+      formation_track: ["initial", "continuing"],
       formation_type: [
         "TAXI",
         "VTC",

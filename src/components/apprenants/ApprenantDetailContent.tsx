@@ -18,6 +18,7 @@ import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
 import { FormationTab } from "./tabs/FormationTab";
 import { CMATab } from "./tabs/CMATab";
+import { CarteProTab } from "./tabs/CarteProTab";
 import { ExamensTab } from "./tabs/ExamensTab";
 import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
@@ -40,6 +41,8 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
+import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
+import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -72,6 +75,13 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
+  const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
+
+  // Determine track: from active enrollment, fallback to contact.formation
+  const contactTrack: FormationTrack = activeEnrollment?.track
+    ?? getTrackFromFormationType(contact?.formation);
+  const trackBadge = TRACK_BADGES[contactTrack];
+  const isInitial = contactTrack === "initial";
 
   // Fetch cockpit data (workflow + CMA + paiements + rappels + auto notes)
   const { data: cockpitData } = useQuery({
@@ -252,7 +262,10 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const tabs = [
     { value: "resume", icon: LayoutDashboard, label: "Résumé" },
     { value: "dossier", icon: FolderOpen, label: "Identité" },
-    { value: "cma", icon: FileCheck, label: "CMA" },
+    ...(isInitial
+      ? [{ value: "cma", icon: FileCheck, label: "CMA" }]
+      : [{ value: "carte-pro", icon: CreditCard, label: "Carte Pro" }]
+    ),
     { value: "documents", icon: FileText, label: "Documents" },
     { value: "paiements", icon: CreditCard, label: "Paiements" },
     { value: "formation", icon: GraduationCap, label: "Formation" },
@@ -289,6 +302,9 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
                   {statutBadge.label}
                 </Badge>
               )}
+              <Badge variant="outline" className={cn("text-xs", trackBadge.className)}>
+                {trackBadge.label} ({trackBadge.sublabel})
+              </Badge>
               {contact.formation && (
                 <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                   {contact.formation}
@@ -340,21 +356,31 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </div>
           </div>
 
-          {/* CMA */}
-          <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CMA</p>
-            <div className="flex items-center gap-1.5">
-              <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
-                {cmaReceived}/{cmaTotal}
-              </span>
-              {cmaMissing > 0 && (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 bg-warning/10 text-warning border-warning/20">
-                  {cmaMissing} manquant{cmaMissing > 1 ? "s" : ""}
-                </Badge>
-              )}
-              {cmaMissing === 0 && <CheckCircle2 className="h-3 w-3 text-success" />}
-            </div>
-          </button>
+          {/* CMA / Carte Pro indicator */}
+          {isInitial ? (
+            <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CMA</p>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
+                  {cmaReceived}/{cmaTotal}
+                </span>
+                {cmaMissing > 0 && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 bg-warning/10 text-warning border-warning/20">
+                    {cmaMissing} manquant{cmaMissing > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {cmaMissing === 0 && <CheckCircle2 className="h-3 w-3 text-success" />}
+              </div>
+            </button>
+          ) : (
+            <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Carte Pro</p>
+              <div className="flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5 text-accent" />
+                <span className="text-xs font-medium">Formation Continue</span>
+              </div>
+            </button>
+          )}
 
           {/* Next deadline */}
           <div className="bg-card border rounded-lg p-2.5">
@@ -417,8 +443,8 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </Button>
           )}
 
-          {/* Relance CMA (anti-double) */}
-          {cmaMissing > 0 && contact.email && (
+          {/* Relance CMA (anti-double) — only for initial track */}
+          {isInitial && cmaMissing > 0 && contact.email && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -485,9 +511,15 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
           <TabsContent value="dossier" className="mt-0">
             <DossierTab contactId={contact.id} formation={contact.formation} />
           </TabsContent>
-          <TabsContent value="cma" className="mt-0">
-            <CMATab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email} formation={contact.formation} />
-          </TabsContent>
+          {isInitial ? (
+            <TabsContent value="cma" className="mt-0">
+              <CMATab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email} formation={contact.formation} />
+            </TabsContent>
+          ) : (
+            <TabsContent value="carte-pro" className="mt-0">
+              <CarteProTab contactId={contact.id} contactPrenom={contact.prenom} formation={contact.formation} />
+            </TabsContent>
+          )}
           <TabsContent value="documents" className="mt-0">
             <CommunicationsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>

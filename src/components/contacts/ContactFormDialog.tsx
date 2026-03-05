@@ -237,12 +237,15 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         
         // Auto-inscribe to selected session
         if (selectedSessionId && selectedSessionId !== "none" && newContact?.id) {
+          // Fetch session track for snapshot
+          const { data: sessData } = await supabase.from("sessions").select("track").eq("id", selectedSessionId).single();
           const { error: inscError } = await supabase
             .from("session_inscriptions")
             .insert({
               session_id: selectedSessionId,
               contact_id: newContact.id,
               statut: "inscrit",
+              track: (sessData as any)?.track || "initial",
             });
           if (inscError) {
             console.error("Erreur inscription session:", inscError);
