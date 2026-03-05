@@ -86,6 +86,7 @@ import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import type { CompanyInfo, AgrementsAutre } from "@/lib/pdf-generator";
+import { SessionDocumentsTab } from "@/components/template-studio-v2/SessionDocumentsTab";
 
 const statusConfig = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
@@ -422,8 +423,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 />
               </SheetHeader>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-5">
+               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="info" className="gap-1 text-xs px-1">
                     <Info className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Infos</span>
@@ -431,6 +432,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <TabsTrigger value="inscriptions" className="gap-1 text-xs px-1">
                     <Users className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Inscrits</span> ({inscriptionCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="documents" className="gap-1 text-xs px-1">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Docs</span>
                   </TabsTrigger>
                   <TabsTrigger value="parcours" className="gap-1 text-xs px-1">
                     <GraduationCap className="h-3.5 w-3.5" />
@@ -662,6 +667,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 {/* Tab: Inscriptions */}
                 <TabsContent value="inscriptions" className="pt-4">
                   <SessionInscritsTable sessionId={session.id} />
+                </TabsContent>
+
+                {/* Tab: Documents V2 */}
+                <TabsContent value="documents" className="pt-4">
+                  <SessionDocumentsTab sessionId={session.id} sessionTrack={(session as any).track} />
                 </TabsContent>
 
                 {/* Tab: Parcours / Examens */}
