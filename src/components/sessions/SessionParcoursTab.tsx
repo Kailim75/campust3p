@@ -40,11 +40,17 @@ import { useSession, useSessions, useAddInscription } from "@/hooks/useSessions"
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
-import { createAutoNote, fetchTodayAutoNotes, isHandledToday } from "@/lib/aujourdhui-actions";
+import { createAutoNote, fetchTodayAutoNotes, isHandledToday, type ActionCategory } from "@/lib/aujourdhui-actions";
+import { shouldReactivate } from "@/lib/automationRules";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ReactivationDialog } from "@/components/apprenants/ReactivationDialog";
 
 const CARTE_PRO_KEYWORDS = ["Carte Pro"];
+const THEORIE_REUSSI_KEYWORDS = ["théorie réussie"];
+const THEORIE_ECHOUE_KEYWORDS = ["théorie échouée"];
+const PRATIQUE_REUSSI_KEYWORDS = ["pratique réussie"];
+const PRATIQUE_ECHOUE_KEYWORDS = ["pratique échouée"];
 
 interface SessionParcoursTabProps {
   sessionId: string;
@@ -75,6 +81,13 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   } | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [showLockedDialog, setShowLockedDialog] = useState(false);
+  // Reactivation dialog state
+  const [reactivationTarget, setReactivationTarget] = useState<{
+    id: string; prenom: string; nom: string; statut_apprenant: any;
+  } | null>(null);
+  const [pendingReprogramAfterReactivation, setPendingReprogramAfterReactivation] = useState<{
+    contactId: string; contactName: string; type: "theorie" | "pratique";
+  } | null>(null);
 
   // Compute théorie counters
   const theorieStats = useMemo(() => {
@@ -129,6 +142,19 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     contactName: string,
     type: "theorie" | "pratique"
   ) => {
+    // Check if contact needs reactivation
+    const inscrit = inscrits?.find((i) => i.contact_id === contactId);
+    const statutApprenant = (inscrit?.contact as any)?.statut_apprenant;
+    if (shouldReactivate(statutApprenant)) {
+      setReactivationTarget({
+        id: contactId,
+        prenom: inscrit?.contact?.prenom || "",
+        nom: inscrit?.contact?.nom || "",
+        statut_apprenant: statutApprenant,
+      });
+      setPendingReprogramAfterReactivation({ contactId, contactName, type });
+      return;
+    }
     setReprogramTarget({ contactId, contactName, type });
     setSelectedSessionId("");
     setReprogramDialogOpen(true);
@@ -164,8 +190,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           defaultBody: isTheorie
             ? `Bonjour ${inscrit.contact.prenom},\n\nNous avons bien noté le résultat de votre examen théorique. Rien d'anormal : beaucoup l'obtiennent en 2e tentative.\n\n👉 Prochaine étape : vous êtes inscrit(e) à la session "${targetSession?.nom || ""}" et nous allons revoir ensemble les points qui posent difficulté.\n\nRépondez simplement à ce message avec vos disponibilités, ou dites "OK" et je vous envoie une date.\n\nCordialement,\nÉcole T3P Montrouge`
             : `Bonjour ${inscrit.contact.prenom},\n\nMerci pour votre passage à l'examen pratique. Ce résultat ne remet pas en cause votre réussite future : on va ajuster et repartir rapidement.\n\n👉 Prochaine étape : vous êtes inscrit(e) à la session "${targetSession?.nom || ""}" et on cale un entraînement ciblé sur les points à améliorer.\n\nDites-moi vos disponibilités (2 créneaux) et je m'occupe du reste.\n\nCordialement,\nÉcole T3P Montrouge`,
-          autoNoteCategory: isTheorie ? "examen_theorie_echoue" : "examen_pratique_echoue",
+          autoNoteCategory: isTheorie ? "theorie_reprogrammee" : "pratique_reprogrammee",
           autoNoteExtra: `Reprogrammé → ${targetSession?.nom || ""}`,
+          onSuccess: invalidateNotes,
         });
       }
 
@@ -551,6 +578,11 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         <div className="space-y-1.5">
           {students.map((inscrit) => {
             const carteProSent = isHandledToday(inscrit.contact_id, todayNotes, CARTE_PRO_KEYWORDS);
+            const feliciteSent = isHandledToday(
+              inscrit.contact_id,
+              todayNotes,
+              type === "theorie" ? THEORIE_REUSSI_KEYWORDS : PRATIQUE_REUSSI_KEYWORDS
+            );
             return (
               <div
                 key={inscrit.contact_id}
@@ -564,21 +596,33 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                     </span>
                   </div>
                   <div className="flex gap-1 flex-wrap justify-end">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-[10px] px-2 text-primary"
-                      onClick={() =>
-                        handleSendFelicitations(
-                          inscrit.contact_id,
-                          inscrit.contact,
-                          type
-                        )
-                      }
-                    >
-                      <Send className="h-3 w-3 mr-0.5" />
-                      Féliciter
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 text-[10px] px-2 text-primary"
+                              disabled={feliciteSent}
+                              onClick={() =>
+                                handleSendFelicitations(
+                                  inscrit.contact_id,
+                                  inscrit.contact,
+                                  type
+                                )
+                              }
+                            >
+                              <Send className="h-3 w-3 mr-0.5" />
+                              {feliciteSent ? "Envoyé ✓" : "Féliciter"}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {feliciteSent && (
+                          <TooltipContent>Déjà fait aujourd'hui</TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                     {type === "theorie" && (
                       <Button
                         size="sm"
@@ -655,7 +699,13 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           Échoué ({students.length})
         </p>
         <div className="space-y-1.5">
-          {students.map((inscrit) => (
+          {students.map((inscrit) => {
+            const encourageSent = isHandledToday(
+              inscrit.contact_id,
+              todayNotes,
+              type === "theorie" ? THEORIE_ECHOUE_KEYWORDS : PRATIQUE_ECHOUE_KEYWORDS
+            );
+            return (
             <div
               key={inscrit.contact_id}
               className="flex flex-col p-2 rounded-lg border border-destructive/20 bg-destructive/5 gap-1.5"
@@ -684,26 +734,39 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                     Reprogrammer
                   </Button>
                   {inscrit.contact?.email && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-[10px] px-2 text-primary"
-                      onClick={() =>
-                        handleSendEncouragement(
-                          inscrit.contact_id,
-                          inscrit.contact,
-                          type
-                        )
-                      }
-                    >
-                      <Send className="h-3 w-3 mr-0.5" />
-                      Encourager
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 text-[10px] px-2 text-primary"
+                              disabled={encourageSent}
+                              onClick={() =>
+                                handleSendEncouragement(
+                                  inscrit.contact_id,
+                                  inscrit.contact,
+                                  type
+                                )
+                              }
+                            >
+                              <Send className="h-3 w-3 mr-0.5" />
+                              {encourageSent ? "Envoyé ✓" : "Encourager"}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {encourageSent && (
+                          <TooltipContent>Déjà fait aujourd'hui</TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -810,6 +873,30 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
       </Dialog>
 
       <EmailComposerModal {...composerProps} />
+
+      {/* Reactivation dialog for terminated students */}
+      {reactivationTarget && (
+        <ReactivationDialog
+          open={!!reactivationTarget}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReactivationTarget(null);
+              setPendingReprogramAfterReactivation(null);
+            }
+          }}
+          contact={reactivationTarget}
+          onReactivated={() => {
+            setReactivationTarget(null);
+            if (pendingReprogramAfterReactivation) {
+              const { contactId, contactName, type } = pendingReprogramAfterReactivation;
+              setPendingReprogramAfterReactivation(null);
+              setReprogramTarget({ contactId, contactName, type });
+              setSelectedSessionId("");
+              setReprogramDialogOpen(true);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

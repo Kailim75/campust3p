@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type ActionCategory =
   | "cma_relance_docs"
   | "cma_relance"
+  | "cma_rejete_email"
   | "prospect_confirmation_rdv"
   | "prospect_relance_j1"
   | "prospect_rdv_manque"
@@ -17,6 +18,7 @@ export type ActionCategory =
   | "apprenant_relance_paiement"
   | "apprenant_whatsapp"
   | "apprenant_appel"
+  | "apprenant_reactive"
   | "marquer_fait"
   | "session_convocation"
   | "session_relance_cma"
@@ -24,8 +26,12 @@ export type ActionCategory =
   | "examen_theorie_echoue"
   | "examen_pratique_reussi"
   | "examen_pratique_echoue"
+  | "theorie_reprogrammee"
+  | "pratique_programmee"
+  | "pratique_reprogrammee"
   | "carte_pro_envoyee"
   | "carte_pro_relance"
+  | "carte_pro_demarches_envoyees"
   | "session_email"
   | "session_envoi_convocation"
   | "session_envoi_programme"
@@ -41,6 +47,7 @@ interface ActionMeta {
 const ACTION_META: Record<ActionCategory, ActionMeta> = {
   cma_relance_docs:            { label: "CMA: relance docs",            canal: "Email",     modele: "CMA docs manquants" },
   cma_relance:                 { label: "CMA: relance",                 canal: "Email" },
+  cma_rejete_email:            { label: "CMA: dossier rejeté",          canal: "Email",     modele: "CMA rejeté" },
   prospect_confirmation_rdv:   { label: "RDV — Confirmation",           canal: "Email",     modele: "Confirmation RDV" },
   prospect_relance_j1:         { label: "RDV — Relance J-1",            canal: "Email",     modele: "Relance J-1" },
   prospect_rdv_manque:         { label: "RDV — RDV manqué",             canal: "Email",     modele: "RDV manqué" },
@@ -51,6 +58,7 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   apprenant_relance_paiement:  { label: "Apprenant: relance paiement",  canal: "Email",     modele: "Relance paiement" },
   apprenant_whatsapp:          { label: "Apprenant: contact",           canal: "WhatsApp" },
   apprenant_appel:             { label: "Apprenant: appel",             canal: "Téléphone" },
+  apprenant_reactive:          { label: "Apprenant: réactivé",          canal: "—" },
   marquer_fait:                { label: "Marqué comme traité",           canal: "—" },
   session_convocation:         { label: "Session: convocation",          canal: "Email",     modele: "Convocation session" },
   session_relance_cma:         { label: "Session: relance CMA",          canal: "Email",     modele: "Relance CMA session" },
@@ -58,8 +66,12 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   examen_theorie_echoue:       { label: "Examen: théorie échouée",       canal: "Email",     modele: "Théorie échouée" },
   examen_pratique_reussi:      { label: "Examen: pratique réussie",      canal: "Email",     modele: "Pratique réussie" },
   examen_pratique_echoue:      { label: "Examen: pratique échouée",      canal: "Email",     modele: "Pratique échouée" },
+  theorie_reprogrammee:        { label: "Théorie: reprogrammée",         canal: "Email",     modele: "Reprogrammation théorie" },
+  pratique_programmee:         { label: "Pratique: programmée",           canal: "Email",     modele: "Programmation pratique" },
+  pratique_reprogrammee:       { label: "Pratique: reprogrammée",        canal: "Email",     modele: "Reprogrammation pratique" },
   carte_pro_envoyee:           { label: "Carte Pro: démarches envoyées", canal: "Email",     modele: "Démarches carte pro" },
   carte_pro_relance:           { label: "Carte Pro: relance",            canal: "Email",     modele: "Relance carte pro" },
+  carte_pro_demarches_envoyees:{ label: "Carte Pro: démarches envoyées", canal: "Email",     modele: "Démarches carte pro" },
   session_email:               { label: "Session: email",                canal: "Email" },
   session_envoi_convocation:   { label: "Convocation envoyée",          canal: "Email",     modele: "Convocation session" },
   session_envoi_programme:     { label: "Programme envoyé",              canal: "Email",     modele: "Programme session" },
