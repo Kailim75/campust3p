@@ -26,6 +26,7 @@ import { PartnersPage } from "@/components/partners/PartnersPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
+import TemplateStudioV2Page from "@/components/template-studio-v2/TemplateStudioV2Page";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -201,6 +202,8 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "security":
         return <SecurityStatusPage />;
+      case "template-studio":
+        return <TemplateStudioV2Page />;
       case "facturation":
         return <FinancesPage />;
       default:
