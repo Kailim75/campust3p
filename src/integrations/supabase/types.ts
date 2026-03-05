@@ -4967,6 +4967,7 @@ export type Database = {
       }
       prospects: {
         Row: {
+          assigned_to: string | null
           centre_id: string
           converted_contact_id: string | null
           created_at: string
@@ -4976,6 +4977,9 @@ export type Database = {
           formation_souhaitee: string | null
           id: string
           is_active: boolean
+          last_contacted_at: string | null
+          next_action_at: string | null
+          next_action_type: string | null
           nom: string
           notes: string | null
           prenom: string
@@ -4986,6 +4990,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           centre_id: string
           converted_contact_id?: string | null
           created_at?: string
@@ -4995,6 +5000,9 @@ export type Database = {
           formation_souhaitee?: string | null
           id?: string
           is_active?: boolean
+          last_contacted_at?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
           nom: string
           notes?: string | null
           prenom: string
@@ -5005,6 +5013,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           centre_id?: string
           converted_contact_id?: string | null
           created_at?: string
@@ -5014,6 +5023,9 @@ export type Database = {
           formation_souhaitee?: string | null
           id?: string
           is_active?: boolean
+          last_contacted_at?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
           nom?: string
           notes?: string | null
           prenom?: string

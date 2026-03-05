@@ -19,6 +19,10 @@ export interface Prospect {
   converted_contact_id: string | null;
   is_active: boolean;
   date_prochaine_relance: string | null;
+  next_action_at: string | null;
+  next_action_type: string | null;
+  assigned_to: string | null;
+  last_contacted_at: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -74,18 +78,45 @@ export function useProspectsStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prospects")
-        .select("statut, formation_souhaitee")
+        .select("statut, formation_souhaitee, next_action_at")
         .eq("is_active", true);
 
       if (error) throw error;
 
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+      const weekEnd = new Date(todayStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      const active = data.filter((p: any) => p.statut !== "converti" && p.statut !== "perdu");
+
+      const overdue = active.filter((p: any) => p.next_action_at && new Date(p.next_action_at) < now).length;
+      const today = active.filter((p: any) => {
+        if (!p.next_action_at) return false;
+        const d = new Date(p.next_action_at);
+        return d >= todayStart && d < todayEnd;
+      }).length;
+      const week = active.filter((p: any) => {
+        if (!p.next_action_at) return false;
+        const d = new Date(p.next_action_at);
+        return d >= todayStart && d < weekEnd;
+      }).length;
+      const nouveaux = active.filter((p: any) => !p.next_action_at && p.statut === "nouveau").length;
+
       const stats = {
         total: data.length,
-        nouveau: data.filter((p) => p.statut === "nouveau").length,
-        contacte: data.filter((p) => p.statut === "contacte").length,
-        relance: data.filter((p) => p.statut === "relance").length,
-        converti: data.filter((p) => p.statut === "converti").length,
-        perdu: data.filter((p) => p.statut === "perdu").length,
+        nouveau: data.filter((p: any) => p.statut === "nouveau").length,
+        contacte: data.filter((p: any) => p.statut === "contacte").length,
+        relance: data.filter((p: any) => p.statut === "relance").length,
+        converti: data.filter((p: any) => p.statut === "converti").length,
+        perdu: data.filter((p: any) => p.statut === "perdu").length,
+        // New relance KPIs
+        overdue,
+        today,
+        week,
+        nouveaux,
       };
 
       return stats;
