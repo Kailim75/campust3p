@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_prospects_centre_next_action ON public.prospects (centre_id, next_action_at);
