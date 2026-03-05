@@ -3271,6 +3271,42 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          centre_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          phone: string | null
+          source: string | null
+          volume: string | null
+        }
+        Insert: {
+          centre_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          source?: string | null
+          volume?: string | null
+        }
+        Update: {
+          centre_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          source?: string | null
+          volume?: string | null
+        }
+        Relationships: []
+      }
       legal_mentions: {
         Row: {
           activated_at: string | null

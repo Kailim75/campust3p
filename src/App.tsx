@@ -24,6 +24,7 @@ const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
 const SignaturePage = lazy(() => import("./pages/SignaturePage"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const Presentation = lazy(() => import("./pages/Presentation"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
 const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/certificat" element={<VerifyCertificate />} />
                 <Route path="/install" element={<Install />} />
                 <Route path="/landing" element={<LandingPage />} />
+                <Route path="/presentation" element={<Presentation />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/mentions-legales" element={<MentionsLegales />} />
                 <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
