@@ -4757,7 +4757,7 @@ export type Database = {
       }
       prospects: {
         Row: {
-          centre_id: string | null
+          centre_id: string
           converted_contact_id: string | null
           created_at: string
           created_by: string | null
@@ -4776,7 +4776,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          centre_id?: string | null
+          centre_id: string
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -4795,7 +4795,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          centre_id?: string | null
+          centre_id?: string
           converted_contact_id?: string | null
           created_at?: string
           created_by?: string | null
