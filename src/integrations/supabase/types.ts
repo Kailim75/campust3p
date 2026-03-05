@@ -17,6 +17,7 @@ export type Database = {
       action_logs: {
         Row: {
           action_type: string
+          centre_id: string | null
           created_at: string
           entity_id: string
           entity_type: string
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           action_type: string
+          centre_id?: string | null
           created_at?: string
           entity_id: string
           entity_type: string
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           action_type?: string
+          centre_id?: string | null
           created_at?: string
           entity_id?: string
           entity_type?: string
@@ -185,6 +188,7 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          centre_id: string
           changed_fields: string[] | null
           created_at: string
           id: string
@@ -199,6 +203,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          centre_id: string
           changed_fields?: string[] | null
           created_at?: string
           id?: string
@@ -213,6 +218,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          centre_id?: string
           changed_fields?: string[] | null
           created_at?: string
           id?: string
