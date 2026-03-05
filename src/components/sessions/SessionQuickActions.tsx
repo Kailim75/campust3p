@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Mail, FileDown, GraduationCap, Download, Shield } from "lucide-react";
+import { Mail, FileDown, GraduationCap, Download, Shield, CheckCircle2 } from "lucide-react";
 
 interface SessionQuickActionsProps {
   onSendDocuments: () => void;
@@ -7,8 +7,10 @@ interface SessionQuickActionsProps {
   onManageExams: () => void;
   onExport: () => void;
   onPackAudit?: () => void;
+  onCloseSession?: () => void;
   inscriptionCount: number;
   archived?: boolean;
+  isTerminee?: boolean;
 }
 
 export function SessionQuickActions({
@@ -17,8 +19,10 @@ export function SessionQuickActions({
   onManageExams,
   onExport,
   onPackAudit,
+  onCloseSession,
   inscriptionCount,
   archived,
+  isTerminee,
 }: SessionQuickActionsProps) {
   if (archived) return null;
 
@@ -74,6 +78,18 @@ export function SessionQuickActions({
         >
           <Shield className="h-3.5 w-3.5" />
           Pack Audit
+        </Button>
+      )}
+      {onCloseSession && !isTerminee && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-success/30 text-success hover:bg-success/5"
+          onClick={onCloseSession}
+          disabled={inscriptionCount === 0}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Clôturer
         </Button>
       )}
     </div>
