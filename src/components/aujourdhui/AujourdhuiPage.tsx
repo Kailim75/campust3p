@@ -110,9 +110,9 @@ function useAujourdhuiData() {
       const [
         contactsRes, docsRes, facturesRes, paiementsRes,
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
-        examensPratiqueRes,
+        examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, email, telephone, updated_at").eq("archived", false),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false),
         supabase.from("contact_documents").select("contact_id, type_document"),
         supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance"),
         supabase.from("paiements").select("facture_id, montant"),
@@ -121,7 +121,8 @@ function useAujourdhuiData() {
         supabase.from("session_inscriptions").select("contact_id, session_id"),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
-        supabase.from("examens_pratique").select("contact_id, resultat").eq("resultat", "admis"),
+        supabase.from("examens_pratique").select("contact_id, resultat"),
+        supabase.from("examens_t3p").select("contact_id, resultat"),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -276,8 +277,10 @@ function useAujourdhuiData() {
       }));
 
       // ─── Bloc E: Carte Pro (pratique réussie sans note carte_pro) ───
+      const allPratiqueResults = (examensPratiqueRes.data || []) as Array<{ contact_id: string; resultat: string }>;
+      const allTheorieResults = (examensTheorieRes.data || []) as Array<{ contact_id: string; resultat: string }>;
       const pratiqueAdmisIds = new Set(
-        (examensPratiqueRes.data || []).map((e: any) => e.contact_id)
+        allPratiqueResults.filter((e) => e.resultat === "admis").map((e) => e.contact_id)
       );
       // Get all [AUTO] notes containing "Carte Pro" for these contacts
       const carteProNotesRes = pratiqueAdmisIds.size > 0
@@ -291,8 +294,40 @@ function useAujourdhuiData() {
         (carteProNotesRes.data || []).map((n: any) => n.contact_id)
       );
       const carteProItems = contacts
-        .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id))
+        .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id) && !terminatedStatuses.includes(c.statut_apprenant || ''))
         .map((c: any) => ({ ...c }));
+
+      // ─── Bloc G: À reprogrammer (théorie/pratique échouée sans reprogrammation) ───
+      const theorieEchoueIds = new Set(
+        allTheorieResults.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
+      );
+      const pratiqueEchoueIds = new Set(
+        allPratiqueResults.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
+      );
+      // Check for reprogrammation notes
+      const echoueContactIds = [...new Set([...theorieEchoueIds, ...pratiqueEchoueIds])];
+      const reprogNotesRes = echoueContactIds.length > 0
+        ? await supabase
+            .from("contact_historique")
+            .select("contact_id, titre")
+            .in("contact_id", echoueContactIds)
+            .like("titre", "%[AUTO]%rogramm%")
+        : { data: [] };
+      const reprogrammedIds = new Set(
+        (reprogNotesRes.data || []).map((n: any) => n.contact_id)
+      );
+      const reprogramItems = contacts
+        .filter((c: any) => !terminatedStatuses.includes(c.statut_apprenant || '') && !reprogrammedIds.has(c.id))
+        .flatMap((c: any) => {
+          const items: Array<{ id: string; contactId: string; prenom: string; nom: string; email: string | null; formation: string | null; type: string; label: string }> = [];
+          if (theorieEchoueIds.has(c.id)) {
+            items.push({ id: `reprog-t-${c.id}`, contactId: c.id, prenom: c.prenom, nom: c.nom, email: c.email, formation: c.formation, type: "theorie", label: "À reprogrammer (Théorie)" });
+          }
+          if (pratiqueEchoueIds.has(c.id)) {
+            items.push({ id: `reprog-p-${c.id}`, contactId: c.id, prenom: c.prenom, nom: c.nom, email: c.email, formation: c.formation, type: "pratique", label: "À reprogrammer (Pratique)" });
+          }
+          return items;
+        });
 
       // ─── Bloc F: Qualiopi à régulariser (sessions with missing qualiopi items) ───
       const sessions = sessionsRes.data || [];
@@ -304,7 +339,6 @@ function useAujourdhuiData() {
           if (!s.objectifs || !s.objectifs.trim()) issues.push("Objectifs manquants");
           if (!s.lieu && !s.adresse_ville) issues.push("Lieu non renseigné");
           if (!s.duree_heures || s.duree_heures <= 0) issues.push("Durée non renseignée");
-          // Count inscriptions for this session
           const sessionInscrits = inscriptions.filter((i: any) => i.session_id === s.id).length;
           return { ...s, issues, inscriptionCount: sessionInscrits };
         })
@@ -319,6 +353,7 @@ function useAujourdhuiData() {
         ...relances.map(p => p.id),
         ...critiques.map(c => c.id),
         ...carteProItems.map((c: any) => c.id),
+        ...reprogramItems.map((r: any) => r.contactId),
       ];
       const contactsWithoutTodayNote = allContactIds.filter(
         id => !todayNotes.some(n => n.contact_id === id)
@@ -331,11 +366,12 @@ function useAujourdhuiData() {
         relances,
         critiques,
         carteProItems,
+        reprogramItems,
         qualiopiSessions,
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length,
       };
     },
     staleTime: 30_000,
@@ -466,6 +502,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const {
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
     critiques: rawCritiques = [], carteProItems: rawCartePro = [],
+    reprogramItems: rawReprogram = [],
     qualiopiSessions = [],
     todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
@@ -496,7 +533,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const handledCritiqueCount = activeCritiques.length - (showHandled ? 0 : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS)).length);
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
 
-  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length + cartePro.length;
+  const reprogramItems = rawReprogram;
+  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length;
 
   // ─── Action handlers with EmailComposerModal ───
   const handleCmaRelanceDocs = (item: any) => {
@@ -1012,6 +1050,47 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
           </Card>
         </div>
+
+        {/* ─── BLOC G: À reprogrammer ─── */}
+        {reprogramItems.length > 0 && (
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <RotateCcw className="h-4 w-4 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">À reprogrammer</h3>
+                  <p className="text-[11px] text-muted-foreground">{reprogramItems.length} examen{reprogramItems.length > 1 ? "s" : ""} échoué{reprogramItems.length > 1 ? "s" : ""}</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{reprogramItems.length}</Badge>
+            </div>
+            <div className="divide-y max-h-60 overflow-y-auto">
+              {reprogramItems.map((item: any) => (
+                <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("inline-block h-2 w-2 rounded-full shrink-0", item.type === "pratique" ? "bg-destructive" : "bg-warning")} />
+                      <button onClick={() => openContact(item.contactId)} className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+                        {item.prenom} {item.nom}
+                        <ExternalLink className="h-3 w-3 opacity-40" />
+                      </button>
+                    </div>
+                    <Badge variant="outline" className={cn("text-[9px]", item.type === "pratique" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
+                      {item.label}
+                    </Badge>
+                  </div>
+                  {item.formation && <p className="text-[10px] text-muted-foreground mb-1">{item.formation}</p>}
+                  <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.contactId} />
+                  <div className="flex gap-1.5 mt-1">
+                    <MarkDoneBtn contactId={item.contactId} bloc="Reprogrammation" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* ─── BLOC E: Carte Pro à envoyer ─── */}
         {cartePro.length > 0 && (
