@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getTrackFromFormationType } from "@/lib/formation-track";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export function CatalogueFormDialog({
   const [description, setDescription] = useState("");
   const [categorie, setCategorie] = useState("Autre");
   const [typeFormation, setTypeFormation] = useState("initiale");
+  const [track, setTrack] = useState<"initial" | "continuing">("initial");
   const [dureeHeures, setDureeHeures] = useState("14");
   const [prixHt, setPrixHt] = useState("0");
   const [tvaPercent, setTvaPercent] = useState("0");
@@ -72,6 +74,7 @@ export function CatalogueFormDialog({
       setDescription(formation.description || "");
       setCategorie(formation.categorie);
       setTypeFormation(formation.type_formation);
+      setTrack((formation as any).track || "initial");
       setDureeHeures(formation.duree_heures.toString());
       setPrixHt(formation.prix_ht.toString());
       setTvaPercent(formation.tva_percent.toString());
@@ -90,6 +93,7 @@ export function CatalogueFormDialog({
     setDescription("");
     setCategorie("Autre");
     setTypeFormation("initiale");
+    setTrack("initial");
     setDureeHeures("14");
     setPrixHt("0");
     setTvaPercent("0");
@@ -117,10 +121,13 @@ export function CatalogueFormDialog({
       objectifs: objectifs.trim() || null,
     };
 
+    // Add track field (may not be in TS types yet)
+    const dataWithTrack = { ...data, track } as any;
+
     if (isEditing) {
-      await updateFormation.mutateAsync({ id: formation.id, ...data });
+      await updateFormation.mutateAsync({ id: formation.id, ...dataWithTrack });
     } else {
-      await createFormation.mutateAsync(data);
+      await createFormation.mutateAsync(dataWithTrack);
     }
 
     onOpenChange(false);
@@ -199,10 +206,17 @@ export function CatalogueFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="typeFormation">Type</Label>
-              <Select value={typeFormation} onValueChange={setTypeFormation}>
+              <Select value={typeFormation} onValueChange={(v) => {
+                setTypeFormation(v);
+                // Auto-suggest track based on type (user can override)
+                if (!isEditing) {
+                  const inferred = ["continue", "mobilite"].includes(v) ? "continuing" : "initial";
+                  setTrack(inferred);
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -212,6 +226,20 @@ export function CatalogueFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parcours</Label>
+              <Select value={track} onValueChange={(v) => setTrack(v as "initial" | "continuing")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="initial">Parcours Initial (CMA)</SelectItem>
+                  <SelectItem value="continuing">Formation Continue (Carte Pro)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">Détermine les exigences documentaires</p>
             </div>
 
             <div className="space-y-2">
