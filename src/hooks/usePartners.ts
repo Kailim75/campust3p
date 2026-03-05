@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 // Legacy category type (for backwards compatibility)
 export type PartnerCategory = "assurance" | "comptable" | "medecin" | "banque" | "vehicule" | "autre";
@@ -141,9 +142,10 @@ export function useCreatePartner() {
 
   return useMutation({
     mutationFn: async (partner: PartnerInsert) => {
+      const centreId = partner.centre_id || await getUserCentreId();
       const { data, error } = await supabase
         .from("partners")
-        .insert(partner)
+        .insert({ ...partner, centre_id: centreId } as any)
         .select()
         .single();
 

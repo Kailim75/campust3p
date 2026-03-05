@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 export type Contact = Tables<"contacts">;
 export type ContactInsert = TablesInsert<"contacts">;
@@ -73,10 +74,11 @@ export function useCreateContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (contact: ContactInsert) => {
+    mutationFn: async (contact: Omit<ContactInsert, 'centre_id'> & { centre_id?: string }) => {
+      const centreId = contact.centre_id || await getUserCentreId();
       const { data, error } = await supabase
         .from("contacts")
-        .insert(contact)
+        .insert({ ...contact, centre_id: centreId } as ContactInsert)
         .select()
         .single();
 

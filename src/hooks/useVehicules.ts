@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 export interface Vehicule {
   id: string;
@@ -76,9 +77,10 @@ export function useCreateVehicule() {
 
   return useMutation({
     mutationFn: async (vehicule: VehiculeInsert) => {
+      const centreId = await getUserCentreId();
       const { data, error } = await supabase
         .from("vehicules")
-        .insert(vehicule)
+        .insert({ ...vehicule, centre_id: centreId } as any)
         .select()
         .single();
 

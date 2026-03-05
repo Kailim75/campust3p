@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 export type DevisStatut = "brouillon" | "envoye" | "accepte" | "refuse" | "expire" | "converti";
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -173,9 +174,10 @@ export function useCreateDevis() {
 
   return useMutation({
     mutationFn: async (devis: DevisInsert) => {
+      const centreId = await getUserCentreId();
       const { data, error } = await supabase
         .from("devis")
-        .insert(devis)
+        .insert({ ...devis, centre_id: centreId } as any)
         .select()
         .single();
 
@@ -319,9 +321,11 @@ export function useConvertDevisToFacture() {
       if (numError) throw numError;
 
       // 3. Créer la facture
+      const centreId = await getUserCentreId();
       const { data: facture, error: factureError } = await supabase
         .from("factures")
         .insert({
+          centre_id: centreId,
           numero_facture: numeroFacture,
           contact_id: devis.contact_id,
           session_inscription_id: devis.session_inscription_id,

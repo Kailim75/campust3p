@@ -37,6 +37,7 @@ const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
 const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LazyFallback = () => (
@@ -62,6 +63,7 @@ const App = () => (
             <Suspense fallback={<LazyFallback />}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/enquete/:token" element={<Enquete />} />
                 <Route path="/signature/:id" element={<SignaturePage />} />
                 <Route path="/apprenants/portail" element={<LearnerPortal />} />

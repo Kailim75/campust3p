@@ -201,7 +201,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
   const onSubmit = async (values: SessionFormValues) => {
     try {
-      const sessionData: SessionInsert = {
+      const sessionData: Omit<SessionInsert, 'centre_id'> = {
         nom: values.nom,
         formation_type: values.formation_type,
         date_debut: values.date_debut,

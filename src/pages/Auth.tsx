@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const authSchema = z.object({
@@ -134,7 +135,31 @@ export default function Auth() {
             </form>
           </Form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              className="text-sm text-primary hover:underline"
+              onClick={async () => {
+                const email = form.getValues("email");
+                if (!email) {
+                  toast.error("Veuillez saisir votre email d'abord");
+                  return;
+                }
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (error) {
+                  toast.error(error.message);
+                } else {
+                  toast.success("Email de réinitialisation envoyé. Vérifiez votre boîte mail.");
+                }
+              }}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Contactez un administrateur pour créer un compte.
           </p>
         </div>
