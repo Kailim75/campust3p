@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Mail, FileDown, GraduationCap, Download } from "lucide-react";
+import { Mail, FileDown, GraduationCap, Download, Shield } from "lucide-react";
 
 interface SessionQuickActionsProps {
   onSendDocuments: () => void;
   onSendEmail: () => void;
   onManageExams: () => void;
   onExport: () => void;
+  onPackAudit?: () => void;
   inscriptionCount: number;
   archived?: boolean;
 }
@@ -15,6 +16,7 @@ export function SessionQuickActions({
   onSendEmail,
   onManageExams,
   onExport,
+  onPackAudit,
   inscriptionCount,
   archived,
 }: SessionQuickActionsProps) {
@@ -62,6 +64,18 @@ export function SessionQuickActions({
         <Download className="h-3.5 w-3.5" />
         Exporter
       </Button>
+      {onPackAudit && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+          onClick={onPackAudit}
+          disabled={inscriptionCount === 0}
+        >
+          <Shield className="h-3.5 w-3.5" />
+          Pack Audit
+        </Button>
+      )}
     </div>
   );
 }

@@ -80,6 +80,7 @@ import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionQuickActions } from "./SessionQuickActions";
 import { SessionParcoursTab } from "./SessionParcoursTab";
 import { SessionDocumentsSendModal } from "./SessionDocumentsSendModal";
+import { PackAuditModal } from "./PackAuditModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
@@ -115,6 +116,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
+  const [packAuditOpen, setPackAuditOpen] = useState(false);
   const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
@@ -414,6 +416,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     URL.revokeObjectURL(url);
                     toast.success("Liste exportée");
                   }}
+                  onPackAudit={() => setPackAuditOpen(true)}
                 />
               </SheetHeader>
 
@@ -749,6 +752,14 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
       )}
 
       <EmailComposerModal {...composerProps} />
+
+      {sessionId && (
+        <PackAuditModal
+          open={packAuditOpen}
+          onOpenChange={setPackAuditOpen}
+          sessionId={sessionId}
+        />
+      )}
     </>
   );
 }
