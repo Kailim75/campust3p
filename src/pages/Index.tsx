@@ -156,10 +156,21 @@ const Index = () => {
     setSelectedContactId(null);
   };
 
+  // Navigate with query params (from dashboard KPIs)
+  const handleNavigateWithParams = (section: string, params: Record<string, string>) => {
+    setActiveSection(section);
+    if (params.tab) setActiveTab(params.tab);
+    // Store other params in URL for the target page to pick up
+    const next = new URLSearchParams(searchParams);
+    next.set("section", section);
+    Object.entries(params).forEach(([k, v]) => next.set(k, v));
+    setSearchParams(next, { replace: true });
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
+        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
       case "aujourdhui":
         return <AujourdhuiPage onNavigate={setActiveSection} />;
       case "contacts":

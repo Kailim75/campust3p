@@ -1,13 +1,22 @@
 import React, { useState } from "react";
 import { useNoShowDetection } from "@/hooks/useNoShowDetection";
-import { GraduationCap, CalendarCheck, ArrowRight } from "lucide-react";
+import { GraduationCap, CalendarCheck } from "lucide-react";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
-import { DashboardKPIRow } from "./DashboardKPIRow";
-import { DashboardAlertsRow } from "./DashboardAlertsRow";
+import { DashboardPeriodPicker } from "./DashboardPeriodPicker";
+import { DashboardPilotageRow } from "./DashboardPilotageRow";
+import { DashboardRiskRow } from "./DashboardRiskRow";
+import { ActionPanelToday } from "./ActionPanelToday";
+import { ActionPanelSessions } from "./ActionPanelSessions";
+import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { useCurrentUserRole } from "@/hooks/useUsers";
+import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
+import { ShieldAlert } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, isPast, isToday, parseISO } from "date-fns";
+import { isToday, isPast, parseISO } from "date-fns";
 
 function useTodayActionCount() {
   return useQuery({
@@ -23,8 +32,6 @@ function useTodayActionCount() {
       const prospects = prospectsRes.data || [];
       const rdvToday = prospects.filter(p => p.date_prochaine_relance && isToday(parseISO(p.date_prochaine_relance))).length;
       const relances = prospects.filter(p => p.statut === "relance" || (p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance)) && !isToday(parseISO(p.date_prochaine_relance)))).length;
-      
-      // Simplified CMA count
       const CMA_DOCS = ["cni", "photo", "attestation_domicile", "permis_b"];
       const docsMap = new Map<string, Set<string>>();
       (docsRes.data || []).forEach((d: any) => {
@@ -36,8 +43,7 @@ function useTodayActionCount() {
         const docs = docsMap.get(c.id) || new Set();
         return CMA_DOCS.some(d => !docs.has(d));
       }).length;
-
-      return rdvToday + relances + Math.min(cma, 10); // cap CMA for sanity
+      return rdvToday + relances + Math.min(cma, 10);
     },
     staleTime: 60_000,
   });
@@ -46,26 +52,33 @@ function useTodayActionCount() {
 interface DashboardProps {
   onNavigate?: (section: string) => void;
   onNavigateWithContact?: (section: string, contactId?: string) => void;
+  onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
 }
 
-export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps) {
+export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithParams }: DashboardProps) {
   useNoShowDetection();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [expressOpen, setExpressOpen] = useState(false);
   const { data: todayCount } = useTodayActionCount();
+  const { period } = useDashboardPeriodV2();
+  const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics(period);
+  const { data: userRole } = useCurrentUserRole();
+  const { data: diagnostic } = useBlockageDiagnostic();
 
-  const handleNavigate = (section: string) => {
-    onNavigate?.(section);
+  const isAdminOrStaff = userRole === "admin" || userRole === "staff" || userRole === "super_admin";
+
+  const handleNavigate = (section: string, params?: Record<string, string>) => {
+    if (params && onNavigateWithParams) {
+      onNavigateWithParams(section, params);
+    } else {
+      onNavigate?.(section);
+    }
   };
 
-  const handleNavigateWithContact = (section: string, contactId?: string) => {
-    if (contactId) {
-      setSelectedContactId(contactId);
-      setDetailOpen(true);
-    } else {
-      onNavigateWithContact?.(section, contactId);
-    }
+  const handleOpenContact = (contactId: string) => {
+    setSelectedContactId(contactId);
+    setDetailOpen(true);
   };
 
   return (
@@ -78,6 +91,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
             <p className="text-sm text-muted-foreground mt-1">Vue d'ensemble de votre centre</p>
           </div>
           <div className="flex items-center gap-3">
+            <DashboardPeriodPicker />
             <button
               onClick={() => onNavigate?.("aujourdhui")}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
@@ -99,14 +113,40 @@ export function Dashboard({ onNavigate, onNavigateWithContact }: DashboardProps)
             </button>
           </div>
         </div>
+
+        {/* Admin diagnostic chip */}
+        {isAdminOrStaff && diagnostic && diagnostic.counts.total > 0 && (
+          <button
+            onClick={() => onNavigate?.("alertes")}
+            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            Diagnostic (admin)
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+              {diagnostic.counts.total}
+            </Badge>
+          </button>
+        )}
       </div>
 
       <main className="px-8 pb-8 pt-6 space-y-6">
-        {/* Row 1 — 4 KPIs */}
-        <DashboardKPIRow onNavigate={handleNavigate} />
+        {/* Row 1 — Pilotage KPIs */}
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pilotage</h2>
+          <DashboardPilotageRow metrics={metrics} isLoading={metricsLoading} onNavigate={handleNavigate} />
+        </div>
 
-        {/* Row 2 — 4 Alerts / Actions */}
-        <DashboardAlertsRow onNavigate={handleNavigate} onNavigateWithContact={handleNavigateWithContact} />
+        {/* Row 2 — Risk & Quality KPIs */}
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risque & Qualité</h2>
+          <DashboardRiskRow metrics={metrics} isLoading={metricsLoading} onNavigate={handleNavigate} />
+        </div>
+
+        {/* Row 3 — Action Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ActionPanelToday onNavigate={handleNavigate} onOpenContact={handleOpenContact} />
+          <ActionPanelSessions onNavigate={handleNavigate} />
+        </div>
       </main>
 
       {/* Dialogs */}
