@@ -6406,6 +6406,10 @@ export type Database = {
     }
     Functions: {
       accept_charter: { Args: { p_charter_id: string }; Returns: boolean }
+      admin_recalc_track_for_catalogue: {
+        Args: { p_catalogue_id: string; p_recalc_inscriptions?: boolean }
+        Returns: Json
+      }
       annuler_reservation_public: {
         Args: { p_motif?: string; p_reservation_id: string; p_token: string }
         Returns: Json

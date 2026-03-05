@@ -2,6 +2,35 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export function useRecalcTrackForCatalogue() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ catalogueId, recalcInscriptions = true }: { catalogueId: string; recalcInscriptions?: boolean }) => {
+      const { data, error } = await supabase.rpc("admin_recalc_track_for_catalogue", {
+        p_catalogue_id: catalogueId,
+        p_recalc_inscriptions: recalcInscriptions,
+      });
+      if (error) throw error;
+      return data as { success: boolean; track: string; updated_sessions: number; updated_inscriptions: number; error?: string };
+    },
+    onSuccess: (data) => {
+      if (data?.success) {
+        toast.success(
+          `Recalcul terminé : ${data.updated_sessions} session(s) et ${data.updated_inscriptions} inscription(s) mises à jour`
+        );
+        queryClient.invalidateQueries({ queryKey: ["catalogue-formations"] });
+      } else {
+        toast.error(data?.error || "Erreur lors du recalcul");
+      }
+    },
+    onError: (error: any) => {
+      console.error("Error recalculating track:", error);
+      toast.error("Erreur lors du recalcul du parcours");
+    },
+  });
+}
+
 export interface CatalogueFormation {
   id: string;
   code: string;
@@ -16,6 +45,7 @@ export interface CatalogueFormation {
   actif: boolean;
   prerequis: string | null;
   objectifs: string | null;
+  track: "initial" | "continuing";
   created_at: string;
   updated_at: string;
 }
