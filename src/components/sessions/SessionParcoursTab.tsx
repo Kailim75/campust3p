@@ -17,6 +17,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   CheckCircle2,
   XCircle,
   Clock,
@@ -25,6 +31,8 @@ import {
   Send,
   RotateCcw,
   Loader2,
+  Lock,
+  Eye,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
@@ -54,8 +62,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     type: "theorie" | "pratique";
   } | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [showLockedDialog, setShowLockedDialog] = useState(false);
 
-  // Compute counters
+  // Compute théorie counters (unchanged)
   const theorieStats = useMemo(() => {
     const stats = { pending: 0, admis: 0, ajourne: 0 };
     contactIds.forEach((id) => {
@@ -67,16 +76,25 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     return stats;
   }, [contactIds, examResults]);
 
+  // Compute pratique counters — ONLY for théorie-admis students
+  const pratiqueEligibleIds = useMemo(() => {
+    return contactIds.filter((id) => examResults[id]?.theorie === "admis");
+  }, [contactIds, examResults]);
+
+  const pratiqueLockedIds = useMemo(() => {
+    return contactIds.filter((id) => examResults[id]?.theorie !== "admis");
+  }, [contactIds, examResults]);
+
   const pratiqueStats = useMemo(() => {
     const stats = { pending: 0, admis: 0, ajourne: 0 };
-    contactIds.forEach((id) => {
+    pratiqueEligibleIds.forEach((id) => {
       const r = examResults[id]?.pratique;
       if (r === "admis") stats.admis++;
       else if (r === "ajourne") stats.ajourne++;
       else stats.pending++;
     });
     return stats;
-  }, [contactIds, examResults]);
+  }, [pratiqueEligibleIds, examResults]);
 
   // Future sessions (same formation type)
   const futureSessions = useMemo(() => {
@@ -112,7 +130,6 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         `${reprogramTarget.contactName} inscrit à ${targetSession?.nom || "la session"}`
       );
 
-      // Send email notification
       const inscrit = inscrits?.find((i) => i.contact_id === reprogramTarget.contactId);
       if (inscrit?.contact?.email) {
         const isTheorie = reprogramTarget.type === "theorie";
@@ -170,8 +187,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   };
 
   const handleBulkFelicitations = (type: "theorie" | "pratique") => {
+    const sourceIds = type === "pratique" ? pratiqueEligibleIds : contactIds;
     const admisInscrits = inscrits?.filter(
-      (i) => examResults[i.contact_id]?.[type] === "admis" && i.contact?.email
+      (i) => sourceIds.includes(i.contact_id) && examResults[i.contact_id]?.[type] === "admis" && i.contact?.email
     );
     if (!admisInscrits?.length) {
       toast.error("Aucun apprenant admis avec email");
@@ -213,20 +231,15 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     );
   }
 
-  const renderExamBlock = (
-    type: "theorie" | "pratique",
-    stats: { pending: number; admis: number; ajourne: number },
-    icon: React.ReactNode,
-    title: string
-  ) => {
+  const renderTheorieBlock = () => {
     const pendingInscrits = inscrits?.filter(
-      (i) => !examResults[i.contact_id]?.[type]
+      (i) => !examResults[i.contact_id]?.theorie
     );
     const admisInscrits = inscrits?.filter(
-      (i) => examResults[i.contact_id]?.[type] === "admis"
+      (i) => examResults[i.contact_id]?.theorie === "admis"
     );
     const ajourneInscrits = inscrits?.filter(
-      (i) => examResults[i.contact_id]?.[type] === "ajourne"
+      (i) => examResults[i.contact_id]?.theorie === "ajourne"
     );
 
     return (
@@ -234,222 +247,365 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {icon}
-              {title}
+              <GraduationCap className="h-4 w-4 text-info" />
+              Théorie
             </div>
-            {stats.admis > 0 && (
+            {theorieStats.admis > 0 && (
               <Button
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
-                onClick={() => handleBulkFelicitations(type)}
+                onClick={() => handleBulkFelicitations("theorie")}
               >
                 <Send className="h-3 w-3" />
-                Féliciter ({stats.admis})
+                Féliciter ({theorieStats.admis})
               </Button>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Counters */}
           <div className="grid grid-cols-3 gap-2">
             <div className="text-center p-2 rounded-lg bg-muted/50">
-              <p className="text-lg font-bold text-muted-foreground">{stats.pending}</p>
+              <p className="text-lg font-bold text-muted-foreground">{theorieStats.pending}</p>
               <p className="text-[10px] text-muted-foreground">En attente</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-success/10">
-              <p className="text-lg font-bold text-success">{stats.admis}</p>
+              <p className="text-lg font-bold text-success">{theorieStats.admis}</p>
               <p className="text-[10px] text-success">Réussi</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-destructive/10">
-              <p className="text-lg font-bold text-destructive">{stats.ajourne}</p>
+              <p className="text-lg font-bold text-destructive">{theorieStats.ajourne}</p>
               <p className="text-[10px] text-destructive">Échoué</p>
             </div>
           </div>
 
-          {/* Pending list */}
-          {(pendingInscrits?.length ?? 0) > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                À traiter ({pendingInscrits?.length})
-              </p>
-              <div className="space-y-1.5">
-                {pendingInscrits?.map((inscrit) => (
-                  <div
-                    key={inscrit.contact_id}
-                    className="flex items-center justify-between p-2 rounded-lg border bg-background hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                          {`${inscrit.contact?.prenom?.[0] || ""}${inscrit.contact?.nom?.[0] || ""}`.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">
-                        {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                      </span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-[10px] px-2 border-success text-success hover:bg-success/10"
-                        onClick={() =>
-                          setExamResult({
-                            contactId: inscrit.contact_id,
-                            type,
-                            value: "admis",
-                            formationType:
-                              inscrit.contact?.formation ||
-                              session?.formation_type ||
-                              "VTC",
-                          })
-                        }
-                      >
-                        <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                        Réussi
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-[10px] px-2 border-destructive text-destructive hover:bg-destructive/10"
-                        onClick={() =>
-                          setExamResult({
-                            contactId: inscrit.contact_id,
-                            type,
-                            value: "ajourne",
-                            formationType:
-                              inscrit.contact?.formation ||
-                              session?.formation_type ||
-                              "VTC",
-                          })
-                        }
-                      >
-                        <XCircle className="h-3 w-3 mr-0.5" />
-                        Échoué
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Admis list */}
-          {(admisInscrits?.length ?? 0) > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-success uppercase tracking-wide">
-                Réussi ({admisInscrits?.length})
-              </p>
-              <div className="space-y-1.5">
-                {admisInscrits?.map((inscrit) => (
-                  <div
-                    key={inscrit.contact_id}
-                    className="flex items-center justify-between p-2 rounded-lg border border-success/20 bg-success/5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-success" />
-                      <span className="text-sm">
-                        {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                      </span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[10px] px-2 text-primary"
-                        onClick={() =>
-                          handleSendFelicitations(
-                            inscrit.contact_id,
-                            inscrit.contact,
-                            type
-                          )
-                        }
-                      >
-                        <Send className="h-3 w-3 mr-0.5" />
-                        Féliciter
-                      </Button>
-                      {type === "theorie" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] px-2 text-info"
-                          onClick={() =>
-                            handleReprogrammer(
-                              inscrit.contact_id,
-                              `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
-                              "pratique"
-                            )
-                          }
-                        >
-                          <Car className="h-3 w-3 mr-0.5" />
-                          → Pratique
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Ajourné list */}
-          {(ajourneInscrits?.length ?? 0) > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-destructive uppercase tracking-wide">
-                Échoué ({ajourneInscrits?.length})
-              </p>
-              <div className="space-y-1.5">
-                {ajourneInscrits?.map((inscrit) => (
-                  <div
-                    key={inscrit.contact_id}
-                    className="flex items-center justify-between p-2 rounded-lg border border-destructive/20 bg-destructive/5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-destructive" />
-                      <span className="text-sm">
-                        {inscrit.contact?.prenom} {inscrit.contact?.nom}
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-[10px] px-2 text-warning"
-                      onClick={() =>
-                        handleReprogrammer(
-                          inscrit.contact_id,
-                          `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
-                          type
-                        )
-                      }
-                    >
-                      <RotateCcw className="h-3 w-3 mr-0.5" />
-                      Reprogrammer
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderStudentList(pendingInscrits, "theorie", "pending")}
+          {renderStudentList(admisInscrits, "theorie", "admis")}
+          {renderStudentList(ajourneInscrits, "theorie", "ajourne")}
         </CardContent>
       </Card>
     );
   };
 
+  const renderPratiqueBlock = () => {
+    const eligibleInscrits = inscrits?.filter(
+      (i) => pratiqueEligibleIds.includes(i.contact_id)
+    );
+    const lockedInscrits = inscrits?.filter(
+      (i) => pratiqueLockedIds.includes(i.contact_id)
+    );
+    const lockedCount = lockedInscrits?.length || 0;
+
+    const pendingInscrits = eligibleInscrits?.filter(
+      (i) => !examResults[i.contact_id]?.pratique
+    );
+    const admisInscrits = eligibleInscrits?.filter(
+      (i) => examResults[i.contact_id]?.pratique === "admis"
+    );
+    const ajourneInscrits = eligibleInscrits?.filter(
+      (i) => examResults[i.contact_id]?.pratique === "ajourne"
+    );
+
+    return (
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Car className="h-4 w-4 text-warning" />
+              Pratique
+              {lockedCount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] px-2 gap-1 text-muted-foreground"
+                        onClick={() => setShowLockedDialog(true)}
+                      >
+                        <Lock className="h-3 w-3" />
+                        {lockedCount} verrouillé{lockedCount > 1 ? "s" : ""}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Théorie non validée — non éligibles à la pratique
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            {pratiqueStats.admis > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
+                onClick={() => handleBulkFelicitations("pratique")}
+              >
+                <Send className="h-3 w-3" />
+                Féliciter ({pratiqueStats.admis})
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center p-2 rounded-lg bg-muted/50">
+              <p className="text-lg font-bold text-muted-foreground">{pratiqueStats.pending}</p>
+              <p className="text-[10px] text-muted-foreground">En attente</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-success/10">
+              <p className="text-lg font-bold text-success">{pratiqueStats.admis}</p>
+              <p className="text-[10px] text-success">Réussi</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-destructive/10">
+              <p className="text-lg font-bold text-destructive">{pratiqueStats.ajourne}</p>
+              <p className="text-[10px] text-destructive">Échoué</p>
+            </div>
+          </div>
+
+          {(eligibleInscrits?.length ?? 0) === 0 && lockedCount > 0 && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-muted-foreground border text-sm">
+              <Lock className="h-4 w-4 shrink-0" />
+              Aucun apprenant éligible — {lockedCount} en attente de la théorie
+            </div>
+          )}
+
+          {renderStudentList(pendingInscrits, "pratique", "pending")}
+          {renderStudentList(admisInscrits, "pratique", "admis")}
+          {renderStudentList(ajourneInscrits, "pratique", "ajourne")}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderStudentList = (
+    students: typeof inscrits | undefined,
+    type: "theorie" | "pratique",
+    status: "pending" | "admis" | "ajourne"
+  ) => {
+    if (!students?.length) return null;
+
+    if (status === "pending") {
+      return (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            À traiter ({students.length})
+          </p>
+          <div className="space-y-1.5">
+            {students.map((inscrit) => (
+              <div
+                key={inscrit.contact_id}
+                className="flex items-center justify-between p-2 rounded-lg border bg-background hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                      {`${inscrit.contact?.prenom?.[0] || ""}${inscrit.contact?.nom?.[0] || ""}`.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm">
+                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[10px] px-2 border-success text-success hover:bg-success/10"
+                    onClick={() => {
+                      setExamResult({
+                        contactId: inscrit.contact_id,
+                        type,
+                        value: "admis",
+                        formationType:
+                          inscrit.contact?.formation ||
+                          session?.formation_type ||
+                          "VTC",
+                      });
+                      if (type === "theorie") {
+                        toast.success(
+                          `${inscrit.contact?.prenom} ${inscrit.contact?.nom} → Déplacé vers Pratique`
+                        );
+                      }
+                    }}
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                    Réussi
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[10px] px-2 border-destructive text-destructive hover:bg-destructive/10"
+                    onClick={() =>
+                      setExamResult({
+                        contactId: inscrit.contact_id,
+                        type,
+                        value: "ajourne",
+                        formationType:
+                          inscrit.contact?.formation ||
+                          session?.formation_type ||
+                          "VTC",
+                      })
+                    }
+                  >
+                    <XCircle className="h-3 w-3 mr-0.5" />
+                    Échoué
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (status === "admis") {
+      return (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-success uppercase tracking-wide">
+            Réussi ({students.length})
+          </p>
+          <div className="space-y-1.5">
+            {students.map((inscrit) => (
+              <div
+                key={inscrit.contact_id}
+                className="flex items-center justify-between p-2 rounded-lg border border-success/20 bg-success/5"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span className="text-sm">
+                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-primary"
+                    onClick={() =>
+                      handleSendFelicitations(
+                        inscrit.contact_id,
+                        inscrit.contact,
+                        type
+                      )
+                    }
+                  >
+                    <Send className="h-3 w-3 mr-0.5" />
+                    Féliciter
+                  </Button>
+                  {type === "theorie" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[10px] px-2 text-info"
+                      onClick={() =>
+                        handleReprogrammer(
+                          inscrit.contact_id,
+                          `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                          "pratique"
+                        )
+                      }
+                    >
+                      <Car className="h-3 w-3 mr-0.5" />
+                      → Pratique
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ajourne
+    return (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-destructive uppercase tracking-wide">
+          Échoué ({students.length})
+        </p>
+        <div className="space-y-1.5">
+          {students.map((inscrit) => (
+            <div
+              key={inscrit.contact_id}
+              className="flex items-center justify-between p-2 rounded-lg border border-destructive/20 bg-destructive/5"
+            >
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span className="text-sm">
+                  {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 text-[10px] px-2 text-warning"
+                onClick={() =>
+                  handleReprogrammer(
+                    inscrit.contact_id,
+                    `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                    type
+                  )
+                }
+              >
+                <RotateCcw className="h-3 w-3 mr-0.5" />
+                Reprogrammer
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const lockedInscrits = inscrits?.filter(
+    (i) => pratiqueLockedIds.includes(i.contact_id)
+  );
+
   return (
     <div className="space-y-4">
-      {renderExamBlock(
-        "theorie",
-        theorieStats,
-        <GraduationCap className="h-4 w-4 text-info" />,
-        "Théorie"
-      )}
-      {renderExamBlock(
-        "pratique",
-        pratiqueStats,
-        <Car className="h-4 w-4 text-warning" />,
-        "Pratique"
-      )}
+      {renderTheorieBlock()}
+      {renderPratiqueBlock()}
+
+      {/* Locked students dialog */}
+      <Dialog open={showLockedDialog} onOpenChange={setShowLockedDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Apprenants verrouillés ({lockedInscrits?.length || 0})
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mb-3">
+            Ces apprenants doivent d'abord réussir la théorie pour accéder à la pratique.
+          </p>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {lockedInscrits?.map((inscrit) => {
+              const theorieResult = examResults[inscrit.contact_id]?.theorie;
+              return (
+                <div
+                  key={inscrit.contact_id}
+                  className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                >
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                        {`${inscrit.contact?.prenom?.[0] || ""}${inscrit.contact?.nom?.[0] || ""}`.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">
+                      {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {theorieResult === "ajourne" ? "Échoué" : "En attente"}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reprogrammation dialog */}
       <Dialog open={reprogramDialogOpen} onOpenChange={setReprogramDialogOpen}>
