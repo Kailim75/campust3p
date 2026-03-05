@@ -1,4 +1,4 @@
-import { Calendar, ArrowRight, AlertTriangle, FileText, UserX } from "lucide-react";
+import { Calendar, ArrowRight, AlertTriangle, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -19,13 +19,30 @@ function FallbackTopFactures({ onNavigate }: Props) {
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (!factures || factures.length === 0) return null;
 
+  const oldest = Math.max(...factures.map(f => f.ageDays));
+
   return (
     <div className="mt-4 pt-4 border-t border-border/50">
-      <div className="flex items-center gap-2 mb-3">
-        <FileText className="h-3.5 w-3.5 text-warning" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Top factures en attente
-        </span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-3.5 w-3.5 text-warning" />
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Top factures en attente
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {oldest > 0 && (
+            <span className="text-[10px] text-destructive font-medium">
+              Plus ancien : {oldest}j
+            </span>
+          )}
+          <button
+            onClick={() => onNavigate("finances", { tab: "factures" })}
+            className="text-[11px] text-primary hover:underline font-medium"
+          >
+            Tout voir →
+          </button>
+        </div>
       </div>
       <div className="space-y-1">
         {factures.map(f => (
@@ -47,12 +64,6 @@ function FallbackTopFactures({ onNavigate }: Props) {
           </button>
         ))}
       </div>
-      <button
-        onClick={() => onNavigate("finances", { tab: "factures" })}
-        className="text-xs text-primary hover:underline mt-1 ml-3"
-      >
-        Voir toutes les factures →
-      </button>
     </div>
   );
 }
@@ -153,7 +164,6 @@ export function ActionPanelSessions({ onNavigate }: Props) {
         </button>
       )}
 
-      {/* Fallback widget when few sessions */}
       {fewSessions && <FallbackTopFactures onNavigate={onNavigate} />}
 
       {fewSessions && !isEmpty && (
