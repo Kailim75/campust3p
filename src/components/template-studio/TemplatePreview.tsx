@@ -2,6 +2,7 @@
 // Template Preview — Renders template_body with variable replacement
 // ═══════════════════════════════════════════════════════════════
 
+import { forwardRef } from "react";
 import DOMPurify from "dompurify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
@@ -61,7 +62,7 @@ interface Props {
   customData?: Record<string, string>;
 }
 
-export default function TemplatePreview({ body, customData }: Props) {
+const TemplatePreview = forwardRef<HTMLDivElement, Props>(function TemplatePreview({ body, customData }, ref) {
   if (!body.trim()) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -77,7 +78,7 @@ export default function TemplatePreview({ body, customData }: Props) {
 
   return (
     <ScrollArea className="max-h-[500px]">
-      <div className="border rounded-lg bg-white dark:bg-card">
+      <div ref={ref} className="border rounded-lg bg-white dark:bg-card">
         {/* Header bar */}
         <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
@@ -94,6 +95,7 @@ export default function TemplatePreview({ body, customData }: Props) {
       </div>
     </ScrollArea>
   );
-}
+});
 
+export default TemplatePreview;
 export { SAMPLE_DATA, renderTemplate };
