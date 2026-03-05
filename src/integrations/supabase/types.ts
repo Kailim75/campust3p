@@ -1868,6 +1868,102 @@ export type Database = {
           },
         ]
       }
+      document_pack_items: {
+        Row: {
+          auto_generate: boolean | null
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          pack_id: string
+          sort_order: number | null
+          template_id: string
+        }
+        Insert: {
+          auto_generate?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          pack_id: string
+          sort_order?: number | null
+          template_id: string
+        }
+        Update: {
+          auto_generate?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          pack_id?: string
+          sort_order?: number | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pack_items_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "document_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pack_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_packs: {
+        Row: {
+          applies_to: Database["public"]["Enums"]["template_applies_to"]
+          centre_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          track_scope: Database["public"]["Enums"]["template_track_scope"]
+          updated_at: string | null
+        }
+        Insert: {
+          applies_to?: Database["public"]["Enums"]["template_applies_to"]
+          centre_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          track_scope?: Database["public"]["Enums"]["template_track_scope"]
+          updated_at?: string | null
+        }
+        Update: {
+          applies_to?: Database["public"]["Enums"]["template_applies_to"]
+          centre_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          track_scope?: Database["public"]["Enums"]["template_track_scope"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_packs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_packs_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_template_files: {
         Row: {
           actif: boolean | null
@@ -3014,7 +3110,7 @@ export type Database = {
         }
         Relationships: []
       }
-      generated_documents: {
+      generated_documents_legacy: {
         Row: {
           contact_id: string
           created_at: string
@@ -3087,6 +3183,120 @@ export type Database = {
             columns: ["template_text_id"]
             isOneToOne: false
             referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_documents_v2: {
+        Row: {
+          centre_id: string
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          file_name: string | null
+          file_path: string | null
+          file_type: string | null
+          id: string
+          inscription_id: string | null
+          pack_id: string | null
+          session_id: string | null
+          status: Database["public"]["Enums"]["generated_doc_status"] | null
+          template_id: string
+          template_version_id: string | null
+          variables_snapshot: Json | null
+        }
+        Insert: {
+          centre_id: string
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          inscription_id?: string | null
+          pack_id?: string | null
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["generated_doc_status"] | null
+          template_id: string
+          template_version_id?: string | null
+          variables_snapshot?: Json | null
+        }
+        Update: {
+          centre_id?: string
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          inscription_id?: string | null
+          pack_id?: string | null
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["generated_doc_status"] | null
+          template_id?: string
+          template_version_id?: string | null
+          variables_snapshot?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_v2_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_inscription_id_fkey"
+            columns: ["inscription_id"]
+            isOneToOne: false
+            referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "document_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -5807,8 +6017,102 @@ export type Database = {
           },
         ]
       }
+      template_audit_log: {
+        Row: {
+          action: string
+          centre_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          generated_document_id: string | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          template_id: string | null
+          version_id: string | null
+        }
+        Insert: {
+          action: string
+          centre_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          generated_document_id?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          template_id?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          action?: string
+          centre_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          generated_document_id?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          template_id?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_audit_log_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "template_studio_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_audit_log_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_studio_templates: {
         Row: {
+          applies_to: Database["public"]["Enums"]["template_applies_to"] | null
+          category: Database["public"]["Enums"]["template_category"] | null
           centre_id: string | null
           compliance_report_json: Json | null
           compliance_score: number | null
@@ -5817,6 +6121,7 @@ export type Database = {
           compliance_validated_by: string | null
           created_at: string
           created_by: string | null
+          current_version_id: string | null
           description: string | null
           format: Database["public"]["Enums"]["template_format"]
           id: string
@@ -5825,12 +6130,17 @@ export type Database = {
           scenario: string | null
           status: Database["public"]["Enums"]["template_status"]
           template_body: string
+          track_scope:
+            | Database["public"]["Enums"]["template_track_scope"]
+            | null
           type: Database["public"]["Enums"]["template_type"]
           updated_at: string
           variables_schema: Json | null
           version: number
         }
         Insert: {
+          applies_to?: Database["public"]["Enums"]["template_applies_to"] | null
+          category?: Database["public"]["Enums"]["template_category"] | null
           centre_id?: string | null
           compliance_report_json?: Json | null
           compliance_score?: number | null
@@ -5839,6 +6149,7 @@ export type Database = {
           compliance_validated_by?: string | null
           created_at?: string
           created_by?: string | null
+          current_version_id?: string | null
           description?: string | null
           format?: Database["public"]["Enums"]["template_format"]
           id?: string
@@ -5847,12 +6158,17 @@ export type Database = {
           scenario?: string | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body?: string
+          track_scope?:
+            | Database["public"]["Enums"]["template_track_scope"]
+            | null
           type?: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           variables_schema?: Json | null
           version?: number
         }
         Update: {
+          applies_to?: Database["public"]["Enums"]["template_applies_to"] | null
+          category?: Database["public"]["Enums"]["template_category"] | null
           centre_id?: string | null
           compliance_report_json?: Json | null
           compliance_score?: number | null
@@ -5861,6 +6177,7 @@ export type Database = {
           compliance_validated_by?: string | null
           created_at?: string
           created_by?: string | null
+          current_version_id?: string | null
           description?: string | null
           format?: Database["public"]["Enums"]["template_format"]
           id?: string
@@ -5869,6 +6186,9 @@ export type Database = {
           scenario?: string | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body?: string
+          track_scope?:
+            | Database["public"]["Enums"]["template_track_scope"]
+            | null
           type?: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           variables_schema?: Json | null
@@ -5894,12 +6214,15 @@ export type Database = {
       template_versions: {
         Row: {
           centre_id: string | null
+          changelog: string | null
           compliance_report_json: Json | null
           compliance_score: number | null
           compliance_tags: Json | null
           created_at: string
           created_by: string | null
+          css: string | null
           id: string
+          is_published: boolean | null
           status: Database["public"]["Enums"]["template_status"]
           template_body: string
           template_id: string
@@ -5908,12 +6231,15 @@ export type Database = {
         }
         Insert: {
           centre_id?: string | null
+          changelog?: string | null
           compliance_report_json?: Json | null
           compliance_score?: number | null
           compliance_tags?: Json | null
           created_at?: string
           created_by?: string | null
+          css?: string | null
           id?: string
+          is_published?: boolean | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body: string
           template_id: string
@@ -5922,12 +6248,15 @@ export type Database = {
         }
         Update: {
           centre_id?: string | null
+          changelog?: string | null
           compliance_report_json?: Json | null
           compliance_score?: number | null
           compliance_tags?: Json | null
           created_at?: string
           created_by?: string | null
+          css?: string | null
           id?: string
+          is_published?: boolean | null
           status?: Database["public"]["Enums"]["template_status"]
           template_body?: string
           template_id?: string
@@ -6901,6 +7230,7 @@ export type Database = {
         | "Formation continue Taxi"
         | "Formation continue VTC"
         | "Mobilité Taxi"
+      generated_doc_status: "queued" | "generated" | "failed"
       mode_paiement: "cb" | "virement" | "cheque" | "especes" | "cpf" | "alma"
       mode_versement: "especes" | "cb" | "virement" | "alma" | "cpf"
       niveau_conduite: "debutant" | "intermediaire" | "avance" | "pret_examen"
@@ -6941,6 +7271,8 @@ export type Database = {
         | "annulee_formateur"
         | "no_show"
         | "realisee"
+      template_applies_to: "contact" | "session" | "inscription"
+      template_category: "finance" | "formation" | "admin" | "qualite"
       template_entity_type:
         | "prospect"
         | "stagiaire"
@@ -6956,6 +7288,7 @@ export type Database = {
         | "published"
         | "inactive"
         | "archived"
+      template_track_scope: "initial" | "continuing" | "both"
       template_type:
         | "invoice"
         | "email"
@@ -7193,6 +7526,7 @@ export const Constants = {
         "Formation continue VTC",
         "Mobilité Taxi",
       ],
+      generated_doc_status: ["queued", "generated", "failed"],
       mode_paiement: ["cb", "virement", "cheque", "especes", "cpf", "alma"],
       mode_versement: ["especes", "cb", "virement", "alma", "cpf"],
       niveau_conduite: ["debutant", "intermediaire", "avance", "pret_examen"],
@@ -7232,6 +7566,8 @@ export const Constants = {
         "no_show",
         "realisee",
       ],
+      template_applies_to: ["contact", "session", "inscription"],
+      template_category: ["finance", "formation", "admin", "qualite"],
       template_entity_type: [
         "prospect",
         "stagiaire",
@@ -7249,6 +7585,7 @@ export const Constants = {
         "inactive",
         "archived",
       ],
+      template_track_scope: ["initial", "continuing", "both"],
       template_type: [
         "invoice",
         "email",
