@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Save, Send, Eye, Code, History, Loader2, ArrowLeft,
+  Save, Send, Eye, Code, History, Loader2, ArrowLeft, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -118,6 +118,12 @@ export function TemplateEditorV2({ templateId, isCreating, onBack }: Props) {
   const insertVariable = (varName: string) => {
     setBody((prev) => prev + `{{${varName}}}`);
   };
+
+  // Detect unresolved variables in the template body
+  const allKnownVars = new Set(VARIABLE_GROUPS.flatMap((g) => g.vars));
+  const usedVars = [...body.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
+  const unresolvedVars = usedVars.filter((v) => !allKnownVars.has(v));
+  const uniqueUnresolved = [...new Set(unresolvedVars)];
 
   if (isLoading && !isCreating) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -251,6 +257,32 @@ export function TemplateEditorV2({ templateId, isCreating, onBack }: Props) {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          {/* Variable warnings */}
+          {uniqueUnresolved.length > 0 && (
+            <Card className="border-warning/30 bg-warning/5 mt-3">
+              <CardContent className="p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-warning">
+                      {uniqueUnresolved.length} variable(s) non reconnue(s)
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {uniqueUnresolved.map((v) => (
+                        <Badge key={v} variant="outline" className="text-[10px] font-mono text-warning border-warning/30">
+                          {`{{${v}}}`}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      Ces variables ne seront pas remplacées lors de la génération.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

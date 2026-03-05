@@ -24,6 +24,7 @@ import { PaiementsTab } from "./tabs/PaiementsTab";
 import { CommunicationsTab } from "./tabs/CommunicationsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RappelsTab } from "./tabs/RappelsTab";
+import { DocumentsTab } from "./tabs/DocumentsTab";
 import { WorkflowStepper, type StepStatus } from "@/components/workflow/WorkflowStepper";
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
@@ -538,7 +539,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </TabsContent>
           )}
           <TabsContent value="documents" className="mt-0">
-            <CommunicationsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
+            <DocumentsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
           <TabsContent value="paiements" className="mt-0">
             <PaiementsTab contactId={contact.id} />
