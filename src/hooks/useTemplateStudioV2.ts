@@ -559,9 +559,155 @@ export function useGenerateDocument() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["generated-docs-v2"] });
-      toast.success("Document généré avec succès");
     },
     onError: (e: Error) => toast.error(`Erreur: ${e.message}`),
+  });
+}
+
+// ── Batch generate all pack documents ──
+
+export function useGeneratePackDocuments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      pack: DocumentPack;
+      contactId?: string;
+      sessionId?: string;
+      inscriptionId?: string;
+      /** If set, only generate templates with auto_generate=true */
+      autoOnly?: boolean;
+    }): Promise<{ total: number; succeeded: number; failed: number }> => {
+      const items = (params.pack.items || []).filter((i) => {
+        if (!i.template || i.template.status !== "published") return false;
+        if (params.autoOnly && !i.auto_generate) return false;
+        return true;
+      });
+
+      if (items.length === 0) return { total: 0, succeeded: 0, failed: 0 };
+
+      const variables = await buildVariablesForGeneration({
+        contactId: params.contactId,
+        sessionId: params.sessionId,
+      });
+
+      let succeeded = 0;
+      let failed = 0;
+
+      // Sequential generation to avoid overwhelming the browser
+      for (const item of items) {
+        try {
+          // Check for existing generated doc (anti-duplicate)
+          const { data: existing } = await (supabase as any)
+            .from("generated_documents_v2")
+            .select("id, status")
+            .eq("template_id", item.template_id)
+            .eq("contact_id", params.contactId || "")
+            .eq("status", "generated")
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            succeeded++; // Already exists, skip
+            continue;
+          }
+
+          // Get template
+          const { data: tmpl } = await (supabase as any)
+            .from("template_studio_templates")
+            .select("*, current_version_id")
+            .eq("id", item.template_id)
+            .single();
+          if (!tmpl) { failed++; continue; }
+
+          const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
+
+          const { data: doc, error: docErr } = await (supabase as any)
+            .from("generated_documents_v2")
+            .insert({
+              template_id: item.template_id,
+              template_version_id: tmpl.current_version_id,
+              contact_id: params.contactId || null,
+              session_id: params.sessionId || null,
+              inscription_id: params.inscriptionId || null,
+              file_name: `${tmpl.name.replace(/\s+/g, "_")}.pdf`,
+              status: "queued",
+              variables_snapshot: variables,
+            })
+            .select()
+            .single();
+          if (docErr) { failed++; continue; }
+
+          // Generate PDF
+          const { default: jsPDF } = await import("jspdf");
+          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = rendered;
+          tempDiv.style.cssText = "font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;max-width:170mm;padding:0;color:#000;";
+          document.body.appendChild(tempDiv);
+
+          try {
+            const { default: html2canvas } = await import("html2canvas");
+            const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL("image/png");
+            const imgWidth = 170;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let position = 15;
+            let remainingHeight = imgHeight;
+            const pageHeight = 277;
+            pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+            remainingHeight -= pageHeight;
+            while (remainingHeight > 0) {
+              pdf.addPage();
+              position = position - pageHeight;
+              pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+              remainingHeight -= pageHeight;
+            }
+          } finally {
+            document.body.removeChild(tempDiv);
+          }
+
+          const pdfBlob = pdf.output("blob");
+          const centreId = doc.centre_id;
+          const filePath = `centre/${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
+
+          const { error: upErr } = await supabase.storage
+            .from("generated-docs")
+            .upload(filePath, pdfBlob, { contentType: "application/pdf" });
+
+          if (upErr) {
+            await (supabase as any).from("generated_documents_v2").update({ status: "failed", error_message: upErr.message }).eq("id", doc.id);
+            failed++;
+            continue;
+          }
+
+          await (supabase as any).from("generated_documents_v2").update({ status: "generated", file_path: filePath }).eq("id", doc.id);
+
+          // Audit
+          await (supabase as any).from("template_audit_log").insert({
+            template_id: item.template_id,
+            generated_document_id: doc.id,
+            action: "generated",
+            contact_id: params.contactId || null,
+            session_id: params.sessionId || null,
+            metadata: { file_name: doc.file_name, batch: true, auto: !!params.autoOnly },
+          });
+
+          succeeded++;
+        } catch {
+          failed++;
+        }
+      }
+
+      return { total: items.length, succeeded, failed };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["generated-docs-v2"] });
+      if (result.total > 0) {
+        toast.success(`${result.succeeded}/${result.total} document(s) généré(s)`, {
+          description: result.failed > 0 ? `${result.failed} échec(s)` : undefined,
+        });
+      }
+    },
+    onError: (e: Error) => toast.error(`Erreur batch: ${e.message}`),
   });
 }
 

@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   FileText, Download, RefreshCw, FolderOpen, AlertCircle,
-  CheckCircle2, Clock, XCircle, File, Loader2,
+  CheckCircle2, Clock, XCircle, File, Loader2, Package, MoreVertical,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -19,6 +23,7 @@ import { ContactDocumentsTab } from "@/components/contacts/detail/ContactDocumen
 import {
   useGeneratedDocuments,
   useGenerateDocument,
+  useGeneratePackDocuments,
   useDownloadGeneratedDoc,
   useDocumentPacks,
   buildVariablesForGeneration,
@@ -26,7 +31,6 @@ import {
   type TrackScope,
 } from "@/hooks/useTemplateStudioV2";
 
-// ── Document types for contact documents (unchanged) ──
 const DOCUMENT_TYPES = [
   { value: "cni", label: "CNI" },
   { value: "permis", label: "Permis" },
@@ -37,7 +41,6 @@ const DOCUMENT_TYPES = [
   { value: "autre", label: "Autre" },
 ];
 
-// ── Status config ──
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
   generated: { label: "Généré", icon: CheckCircle2, className: "text-success bg-success/10 border-success/20" },
   queued: { label: "En cours…", icon: Clock, className: "text-warning bg-warning/10 border-warning/20" },
@@ -55,17 +58,10 @@ interface DocumentsTabProps {
 export function DocumentsTab({ contactId }: DocumentsTabProps) {
   const [subTab, setSubTab] = useState("generated");
   const { data: enrollment } = useActiveEnrollment(contactId);
-
-  // Map FormationTrack → TrackScope
   const trackScope: TrackScope = enrollment?.track === "continuing" ? "continuing" : "initial";
 
-  // Fetch generated documents for this contact
   const { data: generatedDocs = [], isLoading: loadingGenerated } = useGeneratedDocuments({ contactId });
-
-  // Fetch packs matching track
   const { data: packs = [], isLoading: loadingPacks } = useDocumentPacks(trackScope);
-
-  // Fetch contact documents (uploaded)
   const { data: uploadedDocs = [], isLoading: loadingUploaded } = useQuery({
     queryKey: ["contact-documents", contactId],
     queryFn: async () => {
@@ -81,38 +77,49 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
   });
 
   const generateDoc = useGenerateDocument();
+  const generatePack = useGeneratePackDocuments();
   const downloadDoc = useDownloadGeneratedDoc();
 
-  // Get the default pack for this track
   const defaultPack = packs.find((p) => p.is_default) || packs[0];
-
-  // Get available templates from pack
   const packTemplates = defaultPack?.items?.filter((i) => i.template?.status === "published") || [];
 
-  const handleGenerate = async (templateId: string, sessionId?: string) => {
+  // Count how many templates still need generation
+  const ungeneratedCount = packTemplates.filter((item) => {
+    const existing = generatedDocs.find((d) => d.template_id === item.template_id && d.status === "generated");
+    return !existing;
+  }).length;
+
+  const handleGenerate = async (templateId: string) => {
     try {
       const variables = await buildVariablesForGeneration({
         contactId,
-        sessionId: sessionId || enrollment?.session_id,
+        sessionId: enrollment?.session_id,
       });
       await generateDoc.mutateAsync({
         templateId,
         contactId,
-        sessionId: sessionId || enrollment?.session_id,
+        sessionId: enrollment?.session_id,
         inscriptionId: enrollment?.id,
         variables,
       });
+      toast.success("Document généré");
     } catch {
-      // error handled by mutation
+      // handled by mutation
     }
+  };
+
+  const handleGenerateAll = async () => {
+    if (!defaultPack) return;
+    await generatePack.mutateAsync({
+      pack: defaultPack,
+      contactId,
+      sessionId: enrollment?.session_id,
+      inscriptionId: enrollment?.id,
+    });
   };
 
   const handleDownload = async (doc: GeneratedDocument) => {
     await downloadDoc.mutateAsync(doc);
-  };
-
-  const handleRegenerate = async (doc: GeneratedDocument) => {
-    await handleGenerate(doc.template_id);
   };
 
   const handleUploadDownload = async (filePath: string, filename: string) => {
@@ -156,15 +163,42 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
           </TabsTrigger>
         </TabsList>
 
-        {/* ── Generated Documents ── */}
         <TabsContent value="generated" className="mt-4 space-y-4">
-          {/* Pack info */}
+          {/* Pack header with "Generate all" */}
           {defaultPack && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline" className="text-xs">
-                {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
-              </Badge>
-              <span>Pack : {defaultPack.name}</span>
+            <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{defaultPack.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
+                </Badge>
+              </div>
+              {packTemplates.length > 0 && (
+                <Button
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  disabled={generatePack.isPending || ungeneratedCount === 0}
+                  onClick={handleGenerateAll}
+                >
+                  {generatePack.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Package className="h-3.5 w-3.5" />
+                  )}
+                  {ungeneratedCount === 0
+                    ? "Tout généré ✓"
+                    : `Générer tout le pack (${ungeneratedCount})`}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Progress bar during batch */}
+          {generatePack.isPending && (
+            <div className="space-y-1">
+              <Progress value={undefined} className="h-1.5 animate-pulse" />
+              <p className="text-xs text-muted-foreground text-center">Génération en cours…</p>
             </div>
           )}
 
@@ -176,7 +210,6 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
             </div>
           ) : (
             <>
-              {/* Templates available for generation */}
               {packTemplates.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -185,8 +218,12 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                   <div className="grid gap-2">
                     {packTemplates.map((item) => {
                       const tmpl = item.template!;
-                      const existing = generatedDocs.filter((d) => d.template_id === tmpl.id);
-                      const lastGenerated = existing[0];
+                      const existingGenerated = generatedDocs.find(
+                        (d) => d.template_id === tmpl.id && d.status === "generated"
+                      );
+                      const existingAny = generatedDocs.filter((d) => d.template_id === tmpl.id);
+                      const lastDoc = existingAny[0];
+                      const isAlreadyGenerated = !!existingGenerated;
                       const isGenerating = generateDoc.isPending;
 
                       return (
@@ -194,18 +231,32 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                           <CardContent className="p-3">
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                <div className="p-1.5 rounded-md bg-primary/10">
-                                  <FileText className="h-4 w-4 text-primary" />
+                                <div className={cn(
+                                  "p-1.5 rounded-md",
+                                  isAlreadyGenerated ? "bg-success/10" : "bg-primary/10"
+                                )}>
+                                  {isAlreadyGenerated
+                                    ? <CheckCircle2 className="h-4 w-4 text-success" />
+                                    : <FileText className="h-4 w-4 text-primary" />
+                                  }
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-sm truncate">{tmpl.name}</p>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    {lastGenerated ? (
+                                    {isAlreadyGenerated ? (
                                       <>
-                                        <StatusBadge status={lastGenerated.status} />
+                                        <Badge variant="outline" className="text-[10px] h-4 gap-0.5 text-success bg-success/10 border-success/20">
+                                          <CheckCircle2 className="h-2.5 w-2.5" />
+                                          Déjà généré
+                                        </Badge>
                                         <span>
-                                          {format(new Date(lastGenerated.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
+                                          {format(new Date(existingGenerated.created_at), "dd MMM yyyy", { locale: fr })}
                                         </span>
+                                      </>
+                                    ) : lastDoc ? (
+                                      <>
+                                        <StatusBadge status={lastDoc.status} />
+                                        <span>{format(new Date(lastDoc.created_at), "dd MMM yyyy", { locale: fr })}</span>
                                       </>
                                     ) : (
                                       <span className="italic">Jamais généré</span>
@@ -213,42 +264,64 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                                     {item.is_required && (
                                       <Badge variant="outline" className="text-[10px] h-4">Requis</Badge>
                                     )}
+                                    {item.auto_generate && (
+                                      <Badge variant="outline" className="text-[10px] h-4 text-primary/60">Auto</Badge>
+                                    )}
                                   </div>
-                                  {lastGenerated?.status === "failed" && lastGenerated.error_message && (
+                                  {lastDoc?.status === "failed" && lastDoc.error_message && (
                                     <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                                       <AlertCircle className="h-3 w-3" />
-                                      {lastGenerated.error_message}
+                                      {lastDoc.error_message}
                                     </p>
                                   )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
-                                {lastGenerated?.status === "generated" && (
+                                {isAlreadyGenerated ? (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 text-xs gap-1"
+                                      onClick={() => handleDownload(existingGenerated)}
+                                    >
+                                      <Download className="h-3.5 w-3.5" />
+                                      Télécharger
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                          <MoreVertical className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                          onClick={() => handleGenerate(tmpl.id)}
+                                          disabled={isGenerating}
+                                        >
+                                          <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                                          Regénérer (nouvelle version)
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </>
+                                ) : (
                                   <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleDownload(lastGenerated)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    disabled={isGenerating}
+                                    onClick={() => handleGenerate(tmpl.id)}
                                   >
-                                    <Download className="h-4 w-4" />
+                                    {isGenerating ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : lastDoc?.status === "failed" ? (
+                                      <><RefreshCw className="h-3.5 w-3.5 mr-1" />Réessayer</>
+                                    ) : (
+                                      <>Générer</>
+                                    )}
                                   </Button>
-                                )
-                                }
-                                <Button
-                                  variant={lastGenerated ? "ghost" : "outline"}
-                                  size="sm"
-                                  className="h-8 text-xs"
-                                  disabled={isGenerating}
-                                  onClick={() => handleGenerate(tmpl.id)}
-                                >
-                                  {isGenerating ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : lastGenerated ? (
-                                    <><RefreshCw className="h-3.5 w-3.5 mr-1" />Regénérer</>
-                                  ) : (
-                                    <>Générer</>
-                                  )}
-                                </Button>
+                                )}
                               </div>
                             </div>
                           </CardContent>
@@ -259,11 +332,10 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                 </div>
               )}
 
-              {/* Generated docs history */}
               {generatedDocs.length > 0 && (
                 <div className="space-y-2 mt-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Historique des documents ({generatedDocs.length})
+                    Historique ({generatedDocs.length})
                   </p>
                   <div className="grid gap-2">
                     {generatedDocs.map((doc) => (
@@ -271,7 +343,7 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                         key={doc.id}
                         doc={doc}
                         onDownload={handleDownload}
-                        onRegenerate={handleRegenerate}
+                        onRegenerate={() => handleGenerate(doc.template_id)}
                         isRegenerating={generateDoc.isPending}
                       />
                     ))}
@@ -279,7 +351,6 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                 </div>
               )}
 
-              {/* Empty state */}
               {generatedDocs.length === 0 && packTemplates.length === 0 && (
                 <EmptyGeneratedDocs />
               )}
@@ -287,7 +358,6 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
           )}
         </TabsContent>
 
-        {/* ── Uploaded Documents ── */}
         <TabsContent value="uploaded" className="mt-4">
           <ContactDocumentsTab
             documents={uploadedDocs as any}
@@ -317,14 +387,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function GeneratedDocRow({
-  doc,
-  onDownload,
-  onRegenerate,
-  isRegenerating,
+  doc, onDownload, onRegenerate, isRegenerating,
 }: {
   doc: GeneratedDocument;
   onDownload: (doc: GeneratedDocument) => void;
-  onRegenerate: (doc: GeneratedDocument) => void;
+  onRegenerate: () => void;
   isRegenerating: boolean;
 }) {
   const templateName = (doc as any).template?.name || doc.file_name || "Document";
@@ -350,15 +417,19 @@ function GeneratedDocRow({
           </Button>
         )}
         {(doc.status === "failed" || doc.status === "generated") && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={isRegenerating}
-            onClick={() => onRegenerate(doc)}
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", isRegenerating && "animate-spin")} />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onRegenerate} disabled={isRegenerating}>
+                <RefreshCw className={cn("h-3.5 w-3.5 mr-2", isRegenerating && "animate-spin")} />
+                Regénérer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </div>
