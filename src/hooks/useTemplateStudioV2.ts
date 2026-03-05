@@ -12,6 +12,7 @@ export type TrackScope = "initial" | "continuing" | "both";
 export type TemplateCategory = "finance" | "formation" | "admin" | "qualite";
 export type TemplateAppliesTo = "contact" | "session" | "inscription";
 export type GeneratedDocStatus = "queued" | "generated" | "failed";
+export type DocFilterStatus = "all" | "queued" | "failed" | "generated";
 
 export interface TemplateV2 {
   id: string;
@@ -117,6 +118,16 @@ export const APPLIES_TO_OPTIONS: { value: TemplateAppliesTo; label: string }[] =
   { value: "inscription", label: "Inscription" },
 ];
 
+export const DOC_FILTER_OPTIONS: { value: DocFilterStatus; label: string }[] = [
+  { value: "all", label: "Tous" },
+  { value: "queued", label: "En attente" },
+  { value: "failed", label: "Échecs" },
+  { value: "generated", label: "Générés" },
+];
+
+/** Stale queued threshold in minutes */
+const STALE_QUEUED_MINUTES = 15;
+
 // ── Template Queries ──
 
 export function useTemplatesV2(filters?: { type?: string; status?: string; track_scope?: TrackScope; category?: TemplateCategory }) {
@@ -190,7 +201,6 @@ export function useCreateTemplateV2() {
         .single();
       if (error) throw error;
 
-      // Log audit
       await (supabase as any).from("template_audit_log").insert({
         template_id: data.id,
         action: "created",
@@ -245,7 +255,6 @@ export function usePublishTemplateV2() {
       const { data: { user } } = await supabase.auth.getUser();
       const newVersion = template.version + (template.status === "published" ? 1 : 0);
 
-      // Create a version snapshot
       const { data: ver, error: verErr } = await (supabase as any)
         .from("template_versions")
         .insert({
@@ -267,14 +276,12 @@ export function usePublishTemplateV2() {
         .single();
       if (verErr) throw verErr;
 
-      // Mark previous versions as not published
       await (supabase as any)
         .from("template_versions")
         .update({ is_published: false })
         .eq("template_id", template.id)
         .neq("id", ver.id);
 
-      // Update template
       const { data, error } = await (supabase as any)
         .from("template_studio_templates")
         .update({
@@ -289,7 +296,6 @@ export function usePublishTemplateV2() {
         .single();
       if (error) throw error;
 
-      // Audit
       await (supabase as any).from("template_audit_log").insert({
         template_id: template.id,
         version_id: ver.id,
@@ -367,7 +373,7 @@ export function useDocumentPacks(trackScope?: TrackScope) {
     queryFn: async () => {
       let query = (supabase as any)
         .from("document_packs")
-        .select("*, document_pack_items(*, template:template_studio_templates(id, name, type, status, track_scope, category))")
+        .select("*, document_pack_items(*, template:template_studio_templates(id, name, type, status, track_scope, category, template_body))")
         .order("created_at", { ascending: false });
 
       if (trackScope && trackScope !== "both") {
@@ -441,7 +447,30 @@ export function useGeneratedDocuments(opts?: { contactId?: string; sessionId?: s
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as GeneratedDocument[];
+
+      // Mark stale queued as failed
+      const docs = (data || []) as GeneratedDocument[];
+      const staleThreshold = Date.now() - STALE_QUEUED_MINUTES * 60 * 1000;
+      const staleIds: string[] = [];
+
+      for (const doc of docs) {
+        if (doc.status === "queued" && new Date(doc.created_at).getTime() < staleThreshold) {
+          doc.status = "failed";
+          doc.error_message = `Timeout: bloqué en file d'attente > ${STALE_QUEUED_MINUTES} min`;
+          staleIds.push(doc.id);
+        }
+      }
+
+      // Update stale docs in background (fire-and-forget)
+      if (staleIds.length > 0) {
+        (supabase as any)
+          .from("generated_documents_v2")
+          .update({ status: "failed", error_message: `Timeout: bloqué en file d'attente > ${STALE_QUEUED_MINUTES} min` })
+          .in("id", staleIds)
+          .then(() => {});
+      }
+
+      return docs;
     },
     enabled: !!(opts?.contactId || opts?.sessionId),
   });
@@ -456,6 +485,8 @@ export function useGenerateDocument() {
       sessionId?: string;
       inscriptionId?: string;
       variables: Record<string, string>;
+      /** If set, missing fields were acknowledged */
+      missingFields?: string[];
     }) => {
       // Get the template
       const { data: tmpl } = await (supabase as any)
@@ -489,7 +520,6 @@ export function useGenerateDocument() {
       const { default: jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-      // Parse HTML and render to PDF
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = rendered;
       tempDiv.style.cssText = "font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;max-width:170mm;padding:0;color:#000;";
@@ -501,16 +531,14 @@ export function useGenerateDocument() {
         const imgData = canvas.toDataURL("image/png");
         const imgWidth = 170;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
+
         let position = 15;
         let remainingHeight = imgHeight;
         const pageHeight = 277;
 
-        // First page
         pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
         remainingHeight -= pageHeight;
 
-        // Additional pages
         while (remainingHeight > 0) {
           pdf.addPage();
           position = position - pageHeight;
@@ -523,7 +551,6 @@ export function useGenerateDocument() {
 
       const pdfBlob = pdf.output("blob");
 
-      // Upload to storage
       const centreId = doc.centre_id;
       const filePath = `centre/${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
 
@@ -536,7 +563,6 @@ export function useGenerateDocument() {
         throw upErr;
       }
 
-      // Update record
       const { data: updated, error: updErr } = await (supabase as any)
         .from("generated_documents_v2")
         .update({ status: "generated", file_path: filePath })
@@ -545,14 +571,17 @@ export function useGenerateDocument() {
         .single();
       if (updErr) throw updErr;
 
-      // Audit
+      // Audit (include missing_fields if any)
       await (supabase as any).from("template_audit_log").insert({
         template_id: params.templateId,
         generated_document_id: doc.id,
         action: "generated",
         contact_id: params.contactId || null,
         session_id: params.sessionId || null,
-        metadata: { file_name: doc.file_name },
+        metadata: {
+          file_name: doc.file_name,
+          ...(params.missingFields?.length ? { missing_fields: params.missingFields } : {}),
+        },
       });
 
       return updated as GeneratedDocument;
@@ -561,6 +590,113 @@ export function useGenerateDocument() {
       qc.invalidateQueries({ queryKey: ["generated-docs-v2"] });
     },
     onError: (e: Error) => toast.error(`Erreur: ${e.message}`),
+  });
+}
+
+// ── Retry all failed documents ──
+
+export function useRetryFailedDocuments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (opts: { contactId?: string; sessionId?: string }) => {
+      let query = (supabase as any)
+        .from("generated_documents_v2")
+        .select("*, template:template_studio_templates(id, name, template_body, current_version_id)")
+        .eq("status", "failed");
+
+      if (opts.contactId) query = query.eq("contact_id", opts.contactId);
+      if (opts.sessionId) query = query.eq("session_id", opts.sessionId);
+
+      const { data: failedDocs, error } = await query;
+      if (error) throw error;
+      if (!failedDocs?.length) return { total: 0, succeeded: 0, failed: 0 };
+
+      const variables = await buildVariablesForGeneration({
+        contactId: opts.contactId,
+        sessionId: opts.sessionId,
+      });
+
+      let succeeded = 0;
+      let failed = 0;
+
+      for (const doc of failedDocs) {
+        try {
+          const tmpl = doc.template;
+          if (!tmpl) { failed++; continue; }
+
+          const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
+
+          // Reset to queued
+          await (supabase as any).from("generated_documents_v2")
+            .update({ status: "queued", error_message: null })
+            .eq("id", doc.id);
+
+          const { default: jsPDF } = await import("jspdf");
+          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = rendered;
+          tempDiv.style.cssText = "font-family:Arial,sans-serif;font-size:11pt;line-height:1.5;max-width:170mm;padding:0;color:#000;";
+          document.body.appendChild(tempDiv);
+
+          try {
+            const { default: html2canvas } = await import("html2canvas");
+            const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL("image/png");
+            const imgWidth = 170;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let position = 15;
+            let remainingHeight = imgHeight;
+            const pageHeight = 277;
+            pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+            remainingHeight -= pageHeight;
+            while (remainingHeight > 0) {
+              pdf.addPage();
+              position = position - pageHeight;
+              pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+              remainingHeight -= pageHeight;
+            }
+          } finally {
+            document.body.removeChild(tempDiv);
+          }
+
+          const pdfBlob = pdf.output("blob");
+          const filePath = `centre/${doc.centre_id}/contacts/${doc.contact_id || "general"}/${doc.id}.pdf`;
+
+          const { error: upErr } = await supabase.storage
+            .from("generated-docs")
+            .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+          if (upErr) {
+            await (supabase as any).from("generated_documents_v2")
+              .update({ status: "failed", error_message: upErr.message })
+              .eq("id", doc.id);
+            failed++;
+            continue;
+          }
+
+          await (supabase as any).from("generated_documents_v2")
+            .update({ status: "generated", file_path: filePath })
+            .eq("id", doc.id);
+
+          succeeded++;
+        } catch {
+          failed++;
+        }
+      }
+
+      return { total: failedDocs.length, succeeded, failed };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["generated-docs-v2"] });
+      if (result.total > 0) {
+        toast.success(`${result.succeeded}/${result.total} relancé(s)`, {
+          description: result.failed > 0 ? `${result.failed} échec(s) restant(s)` : undefined,
+        });
+      } else {
+        toast.info("Aucun document en échec à relancer");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
@@ -574,7 +710,6 @@ export function useGeneratePackDocuments() {
       contactId?: string;
       sessionId?: string;
       inscriptionId?: string;
-      /** If set, only generate templates with auto_generate=true */
       autoOnly?: boolean;
     }): Promise<{ total: number; succeeded: number; failed: number }> => {
       const items = (params.pack.items || []).filter((i) => {
@@ -593,10 +728,8 @@ export function useGeneratePackDocuments() {
       let succeeded = 0;
       let failed = 0;
 
-      // Sequential generation to avoid overwhelming the browser
       for (const item of items) {
         try {
-          // Check for existing generated doc (anti-duplicate)
           const { data: existing } = await (supabase as any)
             .from("generated_documents_v2")
             .select("id, status")
@@ -606,11 +739,10 @@ export function useGeneratePackDocuments() {
             .limit(1);
 
           if (existing && existing.length > 0) {
-            succeeded++; // Already exists, skip
+            succeeded++;
             continue;
           }
 
-          // Get template
           const { data: tmpl } = await (supabase as any)
             .from("template_studio_templates")
             .select("*, current_version_id")
@@ -636,7 +768,6 @@ export function useGeneratePackDocuments() {
             .single();
           if (docErr) { failed++; continue; }
 
-          // Generate PDF
           const { default: jsPDF } = await import("jspdf");
           const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
           const tempDiv = document.createElement("div");
@@ -681,7 +812,6 @@ export function useGeneratePackDocuments() {
 
           await (supabase as any).from("generated_documents_v2").update({ status: "generated", file_path: filePath }).eq("id", doc.id);
 
-          // Audit
           await (supabase as any).from("template_audit_log").insert({
             template_id: item.template_id,
             generated_document_id: doc.id,
@@ -726,7 +856,6 @@ export function useDownloadGeneratedDoc() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Audit
       await (supabase as any).from("template_audit_log").insert({
         template_id: doc.template_id,
         generated_document_id: doc.id,
@@ -758,7 +887,7 @@ export function useTemplateAuditLog(templateId?: string) {
   });
 }
 
-// ── Variable builder (same as template-renderer but consolidated) ──
+// ── Variable builder ──
 
 export async function buildVariablesForGeneration(opts: {
   contactId?: string;
@@ -804,7 +933,6 @@ export async function buildVariablesForGeneration(opts: {
     }
   }
 
-  // Centre info
   const { data: centre } = await supabase.from("centre_formation").select("*").limit(1).maybeSingle();
   if (centre) {
     map.centre_nom = centre.nom_commercial || centre.nom_legal || "";

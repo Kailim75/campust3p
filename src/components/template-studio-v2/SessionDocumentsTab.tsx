@@ -2,7 +2,7 @@
 // Session Documents Tab — Pack-aware generation + batch + anti-duplicate
 // ═══════════════════════════════════════════════════════════════
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,18 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  FileText, Download, Loader2, CheckCircle2, XCircle, RefreshCw, Package, MoreVertical, Clock,
+  FileText, Download, Loader2, CheckCircle2, XCircle, RefreshCw, Package, MoreVertical, Clock, RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   useDocumentPacks, useGeneratedDocuments, useGenerateDocument,
-  useGeneratePackDocuments, useDownloadGeneratedDoc,
-  buildVariablesForGeneration,
-  type TrackScope, type GeneratedDocument,
+  useGeneratePackDocuments, useDownloadGeneratedDoc, useRetryFailedDocuments,
+  buildVariablesForGeneration, DOC_FILTER_OPTIONS,
+  type TrackScope, type GeneratedDocument, type DocFilterStatus,
 } from "@/hooks/useTemplateStudioV2";
+import { MissingFieldsDialog, findMissingVariables } from "@/components/template-studio-v2/MissingFieldsDialog";
 import { toast } from "sonner";
 
 interface Props {
@@ -33,11 +34,17 @@ interface Props {
 
 export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Props) {
   const trackScope: TrackScope = sessionTrack === "continuing" ? "continuing" : "initial";
+  const [filter, setFilter] = useState<DocFilterStatus>("all");
+  const [missingFieldsState, setMissingFieldsState] = useState<{
+    open: boolean; fields: string[]; templateName: string; onConfirm: () => void;
+  } | null>(null);
+
   const { data: packs } = useDocumentPacks(trackScope);
   const { data: generatedDocs } = useGeneratedDocuments({ sessionId, contactId });
   const generateDoc = useGenerateDocument();
   const generatePack = useGeneratePackDocuments();
   const downloadDoc = useDownloadGeneratedDoc();
+  const retryFailed = useRetryFailedDocuments();
   const [generating, setGenerating] = useState<string | null>(null);
 
   const activePack = packs?.find((p) => p.is_default && (p.track_scope === trackScope || p.track_scope === "both"));
@@ -48,13 +55,39 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
     return !existing;
   }).length;
 
-  const handleGenerate = async (templateId: string) => {
+  const failedCount = generatedDocs?.filter((d) => d.status === "failed").length || 0;
+
+  const filteredDocs = useMemo(() => {
+    if (!generatedDocs) return [];
+    if (filter === "all") return generatedDocs;
+    return generatedDocs.filter((d) => d.status === filter);
+  }, [generatedDocs, filter]);
+
+  const handleGenerate = async (templateId: string, templateBody?: string, templateName?: string) => {
     setGenerating(templateId);
     try {
       const variables = await buildVariablesForGeneration({
         contactId: contactId || undefined,
         sessionId,
       });
+
+      if (templateBody) {
+        const missing = findMissingVariables(templateBody, variables);
+        if (missing.length > 0) {
+          setGenerating(null);
+          setMissingFieldsState({
+            open: true,
+            fields: missing,
+            templateName: templateName || "Document",
+            onConfirm: async () => {
+              await generateDoc.mutateAsync({ templateId, sessionId, contactId, variables, missingFields: missing });
+              toast.success("Document généré");
+            },
+          });
+          return;
+        }
+      }
+
       await generateDoc.mutateAsync({ templateId, sessionId, contactId, variables });
       toast.success("Document généré");
     } catch {
@@ -66,16 +99,27 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
 
   const handleGenerateAll = async () => {
     if (!activePack) return;
-    await generatePack.mutateAsync({
-      pack: activePack,
-      contactId,
-      sessionId,
-    });
+    await generatePack.mutateAsync({ pack: activePack, contactId, sessionId });
+  };
+
+  const handleRetryAll = async () => {
+    await retryFailed.mutateAsync({ sessionId, contactId });
   };
 
   return (
     <div className="space-y-4">
-      {/* Pack Info + Generate All */}
+      {missingFieldsState && (
+        <MissingFieldsDialog
+          open={missingFieldsState.open}
+          onOpenChange={(open) => { if (!open) setMissingFieldsState(null); }}
+          missingFields={missingFieldsState.fields}
+          templateName={missingFieldsState.templateName}
+          onConfirm={missingFieldsState.onConfirm}
+          onCancel={() => setMissingFieldsState(null)}
+        />
+      )}
+
+      {/* Pack Info + Generate All + Retry All */}
       {activePack && (
         <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
           <div className="flex items-center gap-2">
@@ -85,30 +129,50 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
               {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
             </Badge>
           </div>
-          {packTemplates.length > 0 && (
-            <Button
-              size="sm"
-              className="gap-1.5 text-xs"
-              disabled={generatePack.isPending || ungeneratedCount === 0}
-              onClick={handleGenerateAll}
-            >
-              {generatePack.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Package className="h-3.5 w-3.5" />
-              )}
-              {ungeneratedCount === 0
-                ? "Tout généré ✓"
-                : `Générer tout (${ungeneratedCount})`}
-            </Button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {failedCount > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                disabled={retryFailed.isPending}
+                onClick={handleRetryAll}
+              >
+                {retryFailed.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
+                )}
+                Relancer échecs ({failedCount})
+              </Button>
+            )}
+            {packTemplates.length > 0 && (
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs"
+                disabled={generatePack.isPending || ungeneratedCount === 0}
+                onClick={handleGenerateAll}
+              >
+                {generatePack.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Package className="h-3.5 w-3.5" />
+                )}
+                {ungeneratedCount === 0
+                  ? "Tout généré ✓"
+                  : `Générer tout (${ungeneratedCount})`}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
-      {generatePack.isPending && (
+      {(generatePack.isPending || retryFailed.isPending) && (
         <div className="space-y-1">
           <Progress value={undefined} className="h-1.5 animate-pulse" />
-          <p className="text-xs text-muted-foreground text-center">Génération en cours…</p>
+          <p className="text-xs text-muted-foreground text-center">
+            {retryFailed.isPending ? "Relance des échecs…" : "Génération en cours…"}
+          </p>
         </div>
       )}
 
@@ -170,7 +234,7 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleGenerate(tmpl.id)} disabled={isGenerating}>
+                              <DropdownMenuItem onClick={() => handleGenerate(tmpl.id, tmpl.template_body, tmpl.name)} disabled={isGenerating}>
                                 <RefreshCw className="h-3.5 w-3.5 mr-2" />
                                 Regénérer (nouvelle version)
                               </DropdownMenuItem>
@@ -182,7 +246,7 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
                           size="sm"
                           variant="outline"
                           className="text-xs gap-1.5"
-                          onClick={() => handleGenerate(tmpl.id)}
+                          onClick={() => handleGenerate(tmpl.id, tmpl.template_body, tmpl.name)}
                           disabled={isGenerating}
                         >
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
@@ -198,21 +262,48 @@ export function SessionDocumentsTab({ sessionId, sessionTrack, contactId }: Prop
         </CardContent>
       </Card>
 
-      {/* Generated docs history */}
+      {/* Generated docs history with filter chips */}
       {generatedDocs && generatedDocs.length > 0 && (
         <Card>
           <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm">Historique ({generatedDocs.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Historique ({filteredDocs.length})</CardTitle>
+              <div className="flex gap-1">
+                {DOC_FILTER_OPTIONS.map((opt) => {
+                  const count = opt.value === "all"
+                    ? generatedDocs.length
+                    : generatedDocs.filter((d) => d.status === opt.value).length;
+                  if (opt.value !== "all" && count === 0) return null;
+                  return (
+                    <Button
+                      key={opt.value}
+                      variant={filter === opt.value ? "default" : "outline"}
+                      size="sm"
+                      className="h-6 text-[10px] px-2"
+                      onClick={() => setFilter(opt.value)}
+                    >
+                      {opt.label}
+                      {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="max-h-[300px]">
               <div className="divide-y">
-                {generatedDocs.map((doc) => (
+                {filteredDocs.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-3 p-3">
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate">{doc.file_name || (doc as any).template?.name || "Document"}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleString("fr-FR")}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleString("fr-FR")}</p>
+                        {doc.status === "failed" && doc.error_message && (
+                          <span className="text-[10px] text-destructive truncate max-w-[200px]">{doc.error_message}</span>
+                        )}
+                      </div>
                     </div>
                     <Badge
                       variant={doc.status === "generated" ? "default" : doc.status === "failed" ? "destructive" : "outline"}

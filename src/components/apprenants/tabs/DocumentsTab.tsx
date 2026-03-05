@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FileText, Download, RefreshCw, FolderOpen, AlertCircle,
-  CheckCircle2, Clock, XCircle, File, Loader2, Package, MoreVertical,
+  CheckCircle2, Clock, XCircle, File, Loader2, Package, MoreVertical, RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -26,10 +26,14 @@ import {
   useGeneratePackDocuments,
   useDownloadGeneratedDoc,
   useDocumentPacks,
+  useRetryFailedDocuments,
   buildVariablesForGeneration,
+  DOC_FILTER_OPTIONS,
   type GeneratedDocument,
   type TrackScope,
+  type DocFilterStatus,
 } from "@/hooks/useTemplateStudioV2";
+import { MissingFieldsDialog, findMissingVariables } from "@/components/template-studio-v2/MissingFieldsDialog";
 
 const DOCUMENT_TYPES = [
   { value: "cni", label: "CNI" },
@@ -57,6 +61,14 @@ interface DocumentsTabProps {
 
 export function DocumentsTab({ contactId }: DocumentsTabProps) {
   const [subTab, setSubTab] = useState("generated");
+  const [filter, setFilter] = useState<DocFilterStatus>("all");
+  const [missingFieldsState, setMissingFieldsState] = useState<{
+    open: boolean;
+    fields: string[];
+    templateName: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   const { data: enrollment } = useActiveEnrollment(contactId);
   const trackScope: TrackScope = enrollment?.track === "continuing" ? "continuing" : "initial";
 
@@ -79,22 +91,55 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
   const generateDoc = useGenerateDocument();
   const generatePack = useGeneratePackDocuments();
   const downloadDoc = useDownloadGeneratedDoc();
+  const retryFailed = useRetryFailedDocuments();
 
   const defaultPack = packs.find((p) => p.is_default) || packs[0];
   const packTemplates = defaultPack?.items?.filter((i) => i.template?.status === "published") || [];
 
-  // Count how many templates still need generation
   const ungeneratedCount = packTemplates.filter((item) => {
     const existing = generatedDocs.find((d) => d.template_id === item.template_id && d.status === "generated");
     return !existing;
   }).length;
 
-  const handleGenerate = async (templateId: string) => {
+  const failedCount = generatedDocs.filter((d) => d.status === "failed").length;
+
+  // Filter docs for history
+  const filteredDocs = useMemo(() => {
+    if (filter === "all") return generatedDocs;
+    return generatedDocs.filter((d) => d.status === filter);
+  }, [generatedDocs, filter]);
+
+  const handleGenerate = async (templateId: string, templateBody?: string, templateName?: string) => {
     try {
       const variables = await buildVariablesForGeneration({
         contactId,
         sessionId: enrollment?.session_id,
       });
+
+      // Check for missing fields
+      if (templateBody) {
+        const missing = findMissingVariables(templateBody, variables);
+        if (missing.length > 0) {
+          setMissingFieldsState({
+            open: true,
+            fields: missing,
+            templateName: templateName || "Document",
+            onConfirm: async () => {
+              await generateDoc.mutateAsync({
+                templateId,
+                contactId,
+                sessionId: enrollment?.session_id,
+                inscriptionId: enrollment?.id,
+                variables,
+                missingFields: missing,
+              });
+              toast.success("Document généré");
+            },
+          });
+          return;
+        }
+      }
+
       await generateDoc.mutateAsync({
         templateId,
         contactId,
@@ -116,6 +161,10 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
       sessionId: enrollment?.session_id,
       inscriptionId: enrollment?.id,
     });
+  };
+
+  const handleRetryAll = async () => {
+    await retryFailed.mutateAsync({ contactId });
   };
 
   const handleDownload = async (doc: GeneratedDocument) => {
@@ -151,6 +200,20 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
 
   return (
     <div className="space-y-4">
+      {/* Missing fields dialog */}
+      {missingFieldsState && (
+        <MissingFieldsDialog
+          open={missingFieldsState.open}
+          onOpenChange={(open) => {
+            if (!open) setMissingFieldsState(null);
+          }}
+          missingFields={missingFieldsState.fields}
+          templateName={missingFieldsState.templateName}
+          onConfirm={missingFieldsState.onConfirm}
+          onCancel={() => setMissingFieldsState(null)}
+        />
+      )}
+
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="generated" className="gap-1.5 text-xs">
@@ -164,7 +227,7 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
         </TabsList>
 
         <TabsContent value="generated" className="mt-4 space-y-4">
-          {/* Pack header with "Generate all" */}
+          {/* Pack header */}
           {defaultPack && (
             <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
               <div className="flex items-center gap-2">
@@ -174,31 +237,51 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                   {trackScope === "initial" ? "Parcours Initial" : "Formation Continue"}
                 </Badge>
               </div>
-              {packTemplates.length > 0 && (
-                <Button
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  disabled={generatePack.isPending || ungeneratedCount === 0}
-                  onClick={handleGenerateAll}
-                >
-                  {generatePack.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Package className="h-3.5 w-3.5" />
-                  )}
-                  {ungeneratedCount === 0
-                    ? "Tout généré ✓"
-                    : `Générer tout le pack (${ungeneratedCount})`}
-                </Button>
-              )}
+              <div className="flex items-center gap-1.5">
+                {failedCount > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                    disabled={retryFailed.isPending}
+                    onClick={handleRetryAll}
+                  >
+                    {retryFailed.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    )}
+                    Relancer échecs ({failedCount})
+                  </Button>
+                )}
+                {packTemplates.length > 0 && (
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    disabled={generatePack.isPending || ungeneratedCount === 0}
+                    onClick={handleGenerateAll}
+                  >
+                    {generatePack.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Package className="h-3.5 w-3.5" />
+                    )}
+                    {ungeneratedCount === 0
+                      ? "Tout généré ✓"
+                      : `Générer tout le pack (${ungeneratedCount})`}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
           {/* Progress bar during batch */}
-          {generatePack.isPending && (
+          {(generatePack.isPending || retryFailed.isPending) && (
             <div className="space-y-1">
               <Progress value={undefined} className="h-1.5 animate-pulse" />
-              <p className="text-xs text-muted-foreground text-center">Génération en cours…</p>
+              <p className="text-xs text-muted-foreground text-center">
+                {retryFailed.isPending ? "Relance des échecs…" : "Génération en cours…"}
+              </p>
             </div>
           )}
 
@@ -296,7 +379,7 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem
-                                          onClick={() => handleGenerate(tmpl.id)}
+                                          onClick={() => handleGenerate(tmpl.id, (tmpl as any).template_body, tmpl.name)}
                                           disabled={isGenerating}
                                         >
                                           <RefreshCw className="h-3.5 w-3.5 mr-2" />
@@ -311,7 +394,7 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                                     size="sm"
                                     className="h-8 text-xs"
                                     disabled={isGenerating}
-                                    onClick={() => handleGenerate(tmpl.id)}
+                                    onClick={() => handleGenerate(tmpl.id, (tmpl as any).template_body, tmpl.name)}
                                   >
                                     {isGenerating ? (
                                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -332,13 +415,36 @@ export function DocumentsTab({ contactId }: DocumentsTabProps) {
                 </div>
               )}
 
+              {/* Filter chips + History */}
               {generatedDocs.length > 0 && (
                 <div className="space-y-2 mt-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Historique ({generatedDocs.length})
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Historique ({filteredDocs.length})
+                    </p>
+                    <div className="flex gap-1">
+                      {DOC_FILTER_OPTIONS.map((opt) => {
+                        const count = opt.value === "all"
+                          ? generatedDocs.length
+                          : generatedDocs.filter((d) => d.status === opt.value).length;
+                        if (opt.value !== "all" && count === 0) return null;
+                        return (
+                          <Button
+                            key={opt.value}
+                            variant={filter === opt.value ? "default" : "outline"}
+                            size="sm"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => setFilter(opt.value)}
+                          >
+                            {opt.label}
+                            {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="grid gap-2">
-                    {generatedDocs.map((doc) => (
+                    {filteredDocs.map((doc) => (
                       <GeneratedDocRow
                         key={doc.id}
                         doc={doc}
@@ -426,7 +532,7 @@ function GeneratedDocRow({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onRegenerate} disabled={isRegenerating}>
                 <RefreshCw className={cn("h-3.5 w-3.5 mr-2", isRegenerating && "animate-spin")} />
-                Regénérer
+                {doc.status === "failed" ? "Réessayer" : "Regénérer"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
