@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { TRACK_BADGES } from "@/lib/formation-track";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -297,6 +299,21 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                   </FormItem>
                 )}
               />
+              {/* Read-only track indicator */}
+              {watchCatalogueId && (() => {
+                const sel = catalogueFormations.find(f => f.id === watchCatalogueId);
+                const t = (sel as any)?.track || "initial";
+                const badge = TRACK_BADGES[t as keyof typeof TRACK_BADGES];
+                return badge ? (
+                  <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                    <span className="text-xs text-muted-foreground">Parcours :</span>
+                    <Badge variant="outline" className={`text-xs ${badge.className}`}>
+                      {badge.label} ({badge.sublabel})
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground ml-auto">Hérité du catalogue</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <Separator />
