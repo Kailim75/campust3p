@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isToday, isPast, parseISO, addDays, format } from "date-fns";
+import { isToday, isPast, parseISO, addDays, format, differenceInDays } from "date-fns";
 import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
 
 export interface ActionItem {
@@ -11,6 +11,10 @@ export interface ActionItem {
   entityId: string;
   section: string;
   track?: "initial" | "continuing";
+  retardDays?: number;
+  montant?: number;
+  telephone?: string;
+  urgency: number; // lower = more urgent
 }
 
 export interface UpcomingSession {
@@ -22,6 +26,7 @@ export interface UpcomingSession {
   inscrits: number;
   places_totales: number;
   isRisk: boolean;
+  fillPercent: number;
 }
 
 export function useTodayActions() {
@@ -29,10 +34,11 @@ export function useTodayActions() {
     queryKey: ["dashboard", "today-actions"],
     queryFn: async () => {
       const todayStr = new Date().toISOString().split("T")[0];
+      const today = new Date();
 
       const [prospectsRes, facturesRes, inscriptionsRes, docsRes, cartesRes] = await Promise.all([
         supabase.from("prospects")
-          .select("id, nom, prenom, statut, date_prochaine_relance")
+          .select("id, nom, prenom, statut, date_prochaine_relance, telephone")
           .eq("is_active", true)
           .not("statut", "in", '("converti","perdu")')
           .order("date_prochaine_relance", { ascending: true })
@@ -43,7 +49,7 @@ export function useTodayActions() {
           .order("date_echeance", { ascending: true })
           .limit(20),
         supabase.from("session_inscriptions")
-          .select("id, contact_id, track, contact:contacts(id, nom, prenom)")
+          .select("id, contact_id, track, contact:contacts(id, nom, prenom, telephone)")
           .limit(500),
         supabase.from("contact_documents")
           .select("contact_id, type_document"),
@@ -53,7 +59,7 @@ export function useTodayActions() {
 
       const items: ActionItem[] = [];
 
-      // Prospects to call back
+      // Prospects
       const prospects = prospectsRes.data || [];
       prospects.forEach(p => {
         const isDue = p.date_prochaine_relance && (
@@ -61,34 +67,46 @@ export function useTodayActions() {
           isPast(parseISO(p.date_prochaine_relance))
         );
         if (isDue || p.statut === "relance") {
+          const retardDays = p.date_prochaine_relance
+            ? Math.max(0, differenceInDays(today, parseISO(p.date_prochaine_relance)))
+            : 0;
           items.push({
             id: `prospect-${p.id}`,
             type: "prospect",
             label: `${p.prenom || ""} ${p.nom || ""}`.trim(),
-            reason: p.date_prochaine_relance && isPast(parseISO(p.date_prochaine_relance)) && !isToday(parseISO(p.date_prochaine_relance))
-              ? "Relance en retard"
+            reason: retardDays > 0 && !isToday(parseISO(p.date_prochaine_relance!))
+              ? `En retard de ${retardDays}j`
               : "Relance prévue aujourd'hui",
             entityId: p.id,
             section: "prospects",
+            retardDays,
+            telephone: p.telephone || undefined,
+            urgency: retardDays > 0 ? 100 - retardDays : 200,
           });
         }
       });
 
-      // Factures en retard / à relancer
+      // Factures
       const factures = facturesRes.data || [];
       factures.forEach(f => {
         const isLate = f.date_echeance && f.date_echeance < todayStr;
+        const retardDays = isLate
+          ? Math.max(0, differenceInDays(today, new Date(f.date_echeance!)))
+          : 0;
         items.push({
           id: `facture-${f.id}`,
           type: "facture",
           label: f.numero_facture,
-          reason: isLate ? "Échéance dépassée" : "En attente de paiement",
+          reason: isLate ? `Échéance dépassée de ${retardDays}j` : "En attente de paiement",
           entityId: f.id,
           section: "finances",
+          retardDays,
+          montant: f.montant_total,
+          urgency: isLate ? 50 - retardDays : 300,
         });
       });
 
-      // Apprenants with missing docs (track-aware)
+      // Apprenants with missing docs
       const inscriptions = inscriptionsRes.data || [];
       const docsMap = new Map<string, Set<string>>();
       (docsRes.data || []).forEach((d: any) => {
@@ -121,6 +139,8 @@ export function useTodayActions() {
               entityId: cid,
               section: "contacts",
               track: "initial",
+              telephone: contact.telephone || undefined,
+              urgency: 150,
             });
           }
         } else if (insc.track === "continuing") {
@@ -138,10 +158,15 @@ export function useTodayActions() {
               entityId: cid,
               section: "contacts",
               track: "continuing",
+              telephone: contact.telephone || undefined,
+              urgency: 160,
             });
           }
         }
       });
+
+      // Sort by urgency (lower = more urgent)
+      items.sort((a, b) => a.urgency - b.urgency);
 
       return items.slice(0, 10);
     },
@@ -173,16 +198,22 @@ export function useUpcomingSessions() {
       const counts: Record<string, number> = {};
       inscriptions.forEach(i => { counts[i.session_id] = (counts[i.session_id] || 0) + 1; });
 
-      return sessions.map(s => ({
-        id: s.id,
-        nom: s.nom,
-        date_debut: s.date_debut,
-        formation_type: s.formation_type,
-        track: s.track,
-        inscrits: counts[s.id] || 0,
-        places_totales: s.places_totales || 0,
-        isRisk: s.places_totales ? ((counts[s.id] || 0) / s.places_totales) < 0.5 : false,
-      })) as UpcomingSession[];
+      return sessions.map(s => {
+        const inscrits = counts[s.id] || 0;
+        const total = s.places_totales || 0;
+        const fillPercent = total > 0 ? Math.round((inscrits / total) * 100) : 0;
+        return {
+          id: s.id,
+          nom: s.nom,
+          date_debut: s.date_debut,
+          formation_type: s.formation_type,
+          track: s.track,
+          inscrits,
+          places_totales: total,
+          isRisk: total ? fillPercent < 50 : false,
+          fillPercent,
+        };
+      }) as UpcomingSession[];
     },
     staleTime: 60_000,
   });

@@ -9,8 +9,12 @@ export interface DashboardMetrics {
   encaissementsPrev: number;
   facturesEnAttente: number;
   facturesEnAttentePrev: number;
+  facturesEnAttenteMontant: number;
+  facturesEnAttenteAgeDays: number;
   paiementsRetard: number;
   paiementsRetardPrev: number;
+  paiementsRetardMontant: number;
+  paiementsRetardAgeDays: number;
   prospectsRelance: number;
   prospectsRelancePrev: number;
   // Risk
@@ -40,39 +44,30 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
     cartesRes,
     nouveauxProspectsRes,
   ] = await Promise.all([
-    // Encaissements (paiements reçus dans la période)
     supabase.from("paiements")
       .select("montant, date_paiement")
       .gte("date_paiement", fromStr.split("T")[0])
       .lte("date_paiement", toStr.split("T")[0]),
-    // Factures en attente
     supabase.from("factures")
       .select("id, statut, date_echeance, montant_total")
       .in("statut", ["emise", "brouillon"]),
-    // Prospects à relancer
     supabase.from("prospects")
       .select("id, statut, date_prochaine_relance")
       .eq("is_active", true)
       .not("statut", "in", '("converti","perdu")'),
-    // Sessions
     supabase.from("sessions")
       .select("id, places_totales, date_debut, date_fin, statut, track")
       .eq("archived", false)
       .gte("date_fin", todayStr),
-    // Inscriptions for fill-rate calc + track-aware admin
     supabase.from("session_inscriptions")
       .select("id, session_id, contact_id, track"),
-    // Contacts (active, not archived)
     supabase.from("contacts")
       .select("id, archived")
       .eq("archived", false),
-    // CMA docs
     supabase.from("contact_documents")
       .select("contact_id, type_document"),
-    // Cartes pro
     supabase.from("cartes_professionnelles")
       .select("contact_id, statut, date_expiration"),
-    // New prospects in period
     supabase.from("prospects")
       .select("id")
       .gte("created_at", fromStr)
@@ -84,28 +79,43 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
   const prospects = prospectsRes.data || [];
   const sessions = sessionsRes.data || [];
   const inscriptions = inscriptionsRes.data || [];
-  const contacts = contactsRes.data || [];
   const docs = docsRes.data || [];
   const cartes = cartesRes.data || [];
 
-  // Encaissements sum
   const encaissements = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
 
   // Factures en attente
-  const facturesEnAttente = factures.filter(f => f.statut === "emise" || f.statut === "brouillon").length;
+  const facturesEnAttenteList = factures.filter(f => f.statut === "emise" || f.statut === "brouillon");
+  const facturesEnAttente = facturesEnAttenteList.length;
+  const facturesEnAttenteMontant = facturesEnAttenteList.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+  
+  // Oldest facture age
+  const today = new Date();
+  let facturesEnAttenteAgeDays = 0;
+  facturesEnAttenteList.forEach(f => {
+    if (f.date_echeance) {
+      const age = Math.floor((today.getTime() - new Date(f.date_echeance).getTime()) / 86400000);
+      if (age > facturesEnAttenteAgeDays) facturesEnAttenteAgeDays = age;
+    }
+  });
 
-  // Paiements en retard (factures émises dont échéance dépassée)
-  const paiementsRetard = factures.filter(f =>
+  // Paiements en retard
+  const paiementsRetardList = factures.filter(f =>
     f.statut === "emise" && f.date_echeance && f.date_echeance < todayStr
-  ).length;
+  );
+  const paiementsRetard = paiementsRetardList.length;
+  const paiementsRetardMontant = paiementsRetardList.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+  let paiementsRetardAgeDays = 0;
+  paiementsRetardList.forEach(f => {
+    const age = Math.floor((today.getTime() - new Date(f.date_echeance!).getTime()) / 86400000);
+    if (age > paiementsRetardAgeDays) paiementsRetardAgeDays = age;
+  });
 
-  // Prospects à relancer (relance due / overdue)
   const prospectsRelance = prospects.filter(p =>
     p.statut === "relance" ||
     (p.date_prochaine_relance && p.date_prochaine_relance <= todayStr)
   ).length;
 
-  // Sessions at risk: < 50% fill and starting within 30 days
   const sessionCounts: Record<string, number> = {};
   inscriptions.forEach(i => {
     sessionCounts[i.session_id] = (sessionCounts[i.session_id] || 0) + 1;
@@ -116,8 +126,6 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
     return (filled / total) < 0.5;
   }).length;
 
-  // Track-aware admin dossiers
-  // Build sets: which contacts have initial inscriptions, which have continuing
   const initialContactIds = new Set<string>();
   const continuingContactIds = new Set<string>();
   inscriptions.forEach(i => {
@@ -125,7 +133,6 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
     else if (i.track === "continuing") continuingContactIds.add(i.contact_id);
   });
 
-  // CMA docs missing for initial contacts
   const docsMap = new Map<string, Set<string>>();
   docs.forEach((d: any) => {
     if (!docsMap.has(d.contact_id)) docsMap.set(d.contact_id, new Set());
@@ -137,7 +144,6 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
     if (CMA_REQUIRED_DOCS.some(d => !contactDocs.has(d))) dossiersInitialManquants++;
   });
 
-  // Carte pro missing/expired for continuing contacts
   const cartesMap = new Map<string, any[]>();
   cartes.forEach((c: any) => {
     if (!cartesMap.has(c.contact_id)) cartesMap.set(c.contact_id, []);
@@ -152,13 +158,16 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
     if (!hasValid) dossiersContinuManquants++;
   });
 
-  // Apprenants critiques = initial missing docs + continuing missing carte
   const apprenantsCritiques = dossiersInitialManquants + dossiersContinuManquants;
 
   return {
     encaissements,
     facturesEnAttente,
+    facturesEnAttenteMontant,
+    facturesEnAttenteAgeDays,
     paiementsRetard,
+    paiementsRetardMontant,
+    paiementsRetardAgeDays,
     prospectsRelance,
     sessionsRisque,
     apprenantsCritiques,
@@ -184,8 +193,12 @@ export function useDashboardMetrics(period: PeriodValue) {
         encaissementsPrev: previous.encaissements,
         facturesEnAttente: current.facturesEnAttente,
         facturesEnAttentePrev: previous.facturesEnAttente,
+        facturesEnAttenteMontant: current.facturesEnAttenteMontant,
+        facturesEnAttenteAgeDays: current.facturesEnAttenteAgeDays,
         paiementsRetard: current.paiementsRetard,
         paiementsRetardPrev: previous.paiementsRetard,
+        paiementsRetardMontant: current.paiementsRetardMontant,
+        paiementsRetardAgeDays: current.paiementsRetardAgeDays,
         prospectsRelance: current.prospectsRelance,
         prospectsRelancePrev: previous.prospectsRelance,
         sessionsRisque: current.sessionsRisque,
