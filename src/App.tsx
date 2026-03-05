@@ -45,7 +45,23 @@ const LazyFallback = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    mutations: {
+      onError: (error: any) => {
+        // Log RLS violations globally
+        if (error?.code === "42501" || error?.message?.includes("row-level security")) {
+          import("@/utils/rlsViolationLogger").then(({ logRlsViolation }) => {
+            logRlsViolation({
+              errorMessage: error.message,
+              route: window.location.pathname,
+            });
+          });
+        }
+      },
+    },
+  },
+});
 
 function SectionRedirect({ section }: { section: string }) {
   const location = useLocation();

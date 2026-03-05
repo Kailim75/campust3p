@@ -25,6 +25,7 @@ import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
 import { PartnersPage } from "@/components/partners/PartnersPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
+import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -198,6 +199,8 @@ const Index = () => {
         return <PartnersPage />;
       case "planning-conduite":
         return <PlanningConduitePage />;
+      case "security":
+        return <SecurityStatusPage />;
       case "facturation":
         return <FinancesPage />;
       default:
