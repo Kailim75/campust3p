@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
-  useCatalogueFormations, useDeleteCatalogueFormation,
+  useCatalogueFormations, useDeleteCatalogueFormation, useRecalcTrackForCatalogue,
   type CatalogueFormation 
 } from "@/hooks/useCatalogueFormations";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
@@ -57,6 +57,7 @@ export function FormationsPage() {
   const { data: formations = [], isLoading } = useCatalogueFormations();
   const { centreFormation } = useCentreFormation();
   const deleteFormation = useDeleteCatalogueFormation();
+  const recalcTrack = useRecalcTrackForCatalogue();
 
   const categories = useMemo(
     () => ["all", ...new Set(formations.map((f) => f.categorie))],
@@ -130,6 +131,12 @@ export function FormationsPage() {
     const filename = `Programme-${formationType}-${formation.duree_heures}h.pdf`;
     downloadPDF(doc, filename);
     toast.success("Programme téléchargé avec succès");
+  };
+
+  const handleRecalcTrack = (formation: CatalogueFormation) => {
+    if (confirm(`Recalculer le parcours « ${formation.track === "initial" ? "Initial" : "Formation continue"} » pour toutes les sessions et inscriptions liées à "${formation.intitule}" ?`)) {
+      recalcTrack.mutate({ catalogueId: formation.id });
+    }
   };
 
   const inactiveCount = formations.filter(f => !f.actif).length;
@@ -288,6 +295,8 @@ export function FormationsPage() {
                     onDelete={(id) => deleteFormation.mutate(id)}
                     onDownloadProgramme={handleDownloadProgramme}
                     canDownloadProgramme={!!getFormationType(formation)}
+                    onRecalcTrack={handleRecalcTrack}
+                    isRecalcPending={recalcTrack.isPending}
                   />
                 ))}
               </div>

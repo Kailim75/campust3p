@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { 
   Clock, Euro, Edit, Trash2, Download, Percent, 
-  Car, Truck, Bike, Briefcase, Package, EyeOff
+  Car, Truck, Bike, Briefcase, Package, EyeOff, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CatalogueFormation } from "@/hooks/useCatalogueFormations";
@@ -24,6 +24,8 @@ interface CatalogueArticleCardProps {
   onDelete: (id: string) => void;
   onDownloadProgramme?: (formation: CatalogueFormation) => void;
   canDownloadProgramme?: boolean;
+  onRecalcTrack?: (formation: CatalogueFormation) => void;
+  isRecalcPending?: boolean;
 }
 
 const typeLabels: Record<string, { label: string; class: string }> = {
@@ -52,6 +54,8 @@ export function CatalogueArticleCard({
   onDelete,
   onDownloadProgramme,
   canDownloadProgramme,
+  onRecalcTrack,
+  isRecalcPending,
 }: CatalogueArticleCardProps) {
   const config = categoryConfig[formation.categorie] || categoryConfig.Autre;
   const typeInfo = typeLabels[formation.type_formation] || typeLabels.autre;
@@ -151,6 +155,19 @@ export function CatalogueArticleCard({
             >
               <Download className="h-3 w-3 mr-1" />
               PDF
+            </Button>
+          )}
+          {onRecalcTrack && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[11px] px-2 text-muted-foreground hover:text-info"
+              onClick={() => onRecalcTrack(formation)}
+              disabled={isRecalcPending}
+              title="Recalculer le parcours pour les sessions liées"
+            >
+              <RefreshCw className={cn("h-3 w-3 mr-1", isRecalcPending && "animate-spin")} />
+              Recalculer
             </Button>
           )}
           <Button
