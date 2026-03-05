@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getActiveReasons, getActiveReasonLabel, isActiveApprenant } from "@/lib/apprenant-active";
+import { getActiveReasons, getActiveReasonLabel, isActiveApprenant, getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
 
 const FORMATION_BADGE: Record<string, string> = {
   TAXI: "badge-soft badge-soft-blue",
@@ -142,9 +142,20 @@ export function ApprenantTableRow({
         </span>
       </TableCell>
 
-      {/* Statut pédagogique */}
+      {/* Statut pédagogique + statut apprenant */}
       <TableCell className="py-2">
-        <span className={pedStatus.className}>{pedStatus.label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={pedStatus.className}>{pedStatus.label}</span>
+          {((contact as any).statut_apprenant as StatutApprenant) && ((contact as any).statut_apprenant as StatutApprenant) !== "actif" && (
+            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", {
+              "bg-success/10 text-success": (contact as any).statut_apprenant === "diplome",
+              "bg-destructive/10 text-destructive": (contact as any).statut_apprenant === "abandon",
+              "bg-muted text-muted-foreground": (contact as any).statut_apprenant === "archive",
+            })}>
+              {getStatutApprenantLabel((contact as any).statut_apprenant)}
+            </span>
+          )}
+        </div>
       </TableCell>
 
       {/* Paiement */}
