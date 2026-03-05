@@ -48,6 +48,7 @@ const moreMenuItems = [
   { id: "alertes", label: "Alertes", icon: Bell },
   { id: "qualite", label: "Qualité", icon: Award },
   { id: "partenaires", label: "Partenaires", icon: Handshake },
+  { id: "security", label: "Sécurité", icon: Shield },
 ];
 
 /** Wraps children in a Tooltip when sidebar is collapsed */

@@ -5441,6 +5441,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_runs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          status: string
+          summary_json: Json
+          total_fail: number
+          total_pass: number
+          total_warn: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: string
+          summary_json?: Json
+          total_fail?: number
+          total_pass?: number
+          total_warn?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: string
+          summary_json?: Json
+          total_fail?: number
+          total_pass?: number
+          total_warn?: number
+        }
+        Relationships: []
+      }
       session_inscriptions: {
         Row: {
           commentaires: string | null
@@ -6712,6 +6745,7 @@ export type Database = {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
       }
+      run_security_smoke_tests: { Args: never; Returns: Json }
       sign_document_public: {
         Args: {
           p_signature_id: string
