@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 export function useRecalcTrackForCatalogue() {
   const queryClient = useQueryClient();
@@ -124,9 +125,10 @@ export function useCreateCatalogueFormation() {
 
   return useMutation({
     mutationFn: async (formation: CatalogueFormationInsert) => {
+      const centreId = await getUserCentreId();
       const { data, error } = await supabase
         .from("catalogue_formations")
-        .insert(formation)
+        .insert({ ...formation, centre_id: centreId } as any)
         .select()
         .single();
 

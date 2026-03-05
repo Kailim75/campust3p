@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getUserCentreId } from "@/utils/getCentreId";
 import {
   Dialog,
   DialogContent,
@@ -182,7 +183,9 @@ export function SmartConversionDialog({
       if (creerFacture) {
         const { data: numeroFacture } = await supabase.rpc("generate_numero_facture");
         if (numeroFacture) {
+          const centreId = await getUserCentreId();
           await supabase.from("factures").insert({
+            centre_id: centreId,
             contact_id: contact.id,
             numero_facture: numeroFacture,
             montant_total: selectedSession.prix || 0,

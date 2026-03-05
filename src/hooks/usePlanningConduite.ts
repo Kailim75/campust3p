@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from "date-fns";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 // ─── Types ───
 export interface CreneauConduite {
@@ -104,9 +105,11 @@ export function useCreateCreneau() {
       capacite_max: number;
       notes_formateur?: string;
     }) => {
+      const centreId = await getUserCentreId();
       const { data, error } = await supabase
         .from("creneaux_conduite")
         .insert({
+          centre_id: centreId,
           type_seance: values.type_seance,
           date_creneau: values.date_creneau,
           heure_debut: values.heure_debut,

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTrackFromFormationType } from "@/lib/formation-track";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 export type Session = Tables<"sessions">;
 export type SessionInsert = TablesInsert<"sessions">;
@@ -235,9 +236,11 @@ export function useAddInscription() {
         const { data: numeroFacture, error: numeroError } = await supabase.rpc("generate_numero_facture");
         
         if (!numeroError && numeroFacture) {
+          const centreId = await getUserCentreId();
           const { error: factureError } = await supabase
             .from("factures")
             .insert({
+              centre_id: centreId,
               contact_id: contactId,
               session_inscription_id: inscription.id,
               numero_facture: numeroFacture,

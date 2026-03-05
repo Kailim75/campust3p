@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format, parseISO, isWithinInterval, addMonths } from "date-fns";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { getUserCentreId } from "@/utils/getCentreId";
 
 // Types
 export type Formateur = Tables<"formateurs">;
@@ -287,10 +288,11 @@ export function useCreateFormateur() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (formateur: FormateurInsert) => {
+    mutationFn: async (formateur: Omit<FormateurInsert, 'centre_id'> & { centre_id?: string }) => {
+      const centreId = formateur.centre_id || await getUserCentreId();
       const { data, error } = await supabase
         .from("formateurs")
-        .insert(formateur)
+        .insert({ ...formateur, centre_id: centreId } as FormateurInsert)
         .select()
         .single();
 

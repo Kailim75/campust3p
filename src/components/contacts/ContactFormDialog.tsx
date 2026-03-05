@@ -203,7 +203,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
-      const contactData: ContactInsert = {
+      const contactData: Omit<ContactInsert, 'centre_id'> = {
         nom: values.nom,
         prenom: values.prenom,
         civilite: values.civilite ?? null,

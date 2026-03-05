@@ -386,7 +386,7 @@ export type Database = {
         Row: {
           actif: boolean
           categorie: string
-          centre_id: string | null
+          centre_id: string
           code: string
           competences_visees: string[] | null
           created_at: string
@@ -412,7 +412,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           categorie?: string
-          centre_id?: string | null
+          centre_id: string
           code: string
           competences_visees?: string[] | null
           created_at?: string
@@ -438,7 +438,7 @@ export type Database = {
         Update: {
           actif?: boolean
           categorie?: string
-          centre_id?: string | null
+          centre_id?: string
           code?: string
           competences_visees?: string[] | null
           created_at?: string
@@ -1117,7 +1117,7 @@ export type Database = {
       contacts: {
         Row: {
           archived: boolean
-          centre_id: string | null
+          centre_id: string
           civilite: Database["public"]["Enums"]["civilite"] | null
           code_postal: string | null
           commentaires: string | null
@@ -1157,7 +1157,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
-          centre_id?: string | null
+          centre_id: string
           civilite?: Database["public"]["Enums"]["civilite"] | null
           code_postal?: string | null
           commentaires?: string | null
@@ -1197,7 +1197,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
-          centre_id?: string | null
+          centre_id?: string
           civilite?: Database["public"]["Enums"]["civilite"] | null
           code_postal?: string | null
           commentaires?: string | null
@@ -1271,7 +1271,7 @@ export type Database = {
           annule_at: string | null
           annule_par: string | null
           capacite_max: number
-          centre_id: string | null
+          centre_id: string
           commentaires: string | null
           confirme_at: string | null
           confirme_par: string | null
@@ -1304,7 +1304,7 @@ export type Database = {
           annule_at?: string | null
           annule_par?: string | null
           capacite_max?: number
-          centre_id?: string | null
+          centre_id: string
           commentaires?: string | null
           confirme_at?: string | null
           confirme_par?: string | null
@@ -1337,7 +1337,7 @@ export type Database = {
           annule_at?: string | null
           annule_par?: string | null
           capacite_max?: number
-          centre_id?: string | null
+          centre_id?: string
           commentaires?: string | null
           confirme_at?: string | null
           confirme_par?: string | null
@@ -1553,7 +1553,7 @@ export type Database = {
       }
       devis: {
         Row: {
-          centre_id: string | null
+          centre_id: string
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -1569,7 +1569,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          centre_id?: string | null
+          centre_id: string
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -1585,7 +1585,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          centre_id?: string | null
+          centre_id?: string
           commentaires?: string | null
           contact_id?: string
           created_at?: string
@@ -2486,7 +2486,7 @@ export type Database = {
       }
       factures: {
         Row: {
-          centre_id: string | null
+          centre_id: string
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -2501,7 +2501,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          centre_id?: string | null
+          centre_id: string
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -2516,7 +2516,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          centre_id?: string | null
+          centre_id?: string
           commentaires?: string | null
           contact_id?: string
           created_at?: string
@@ -2806,7 +2806,7 @@ export type Database = {
         Row: {
           actif: boolean
           adresse: string | null
-          centre_id: string | null
+          centre_id: string
           code_postal: string | null
           created_at: string
           date_agrement: string | null
@@ -2823,12 +2823,13 @@ export type Database = {
           taux_horaire: number | null
           telephone: string | null
           updated_at: string
+          user_id: string | null
           ville: string | null
         }
         Insert: {
           actif?: boolean
           adresse?: string | null
-          centre_id?: string | null
+          centre_id: string
           code_postal?: string | null
           created_at?: string
           date_agrement?: string | null
@@ -2845,12 +2846,13 @@ export type Database = {
           taux_horaire?: number | null
           telephone?: string | null
           updated_at?: string
+          user_id?: string | null
           ville?: string | null
         }
         Update: {
           actif?: boolean
           adresse?: string | null
-          centre_id?: string | null
+          centre_id?: string
           code_postal?: string | null
           created_at?: string
           date_agrement?: string | null
@@ -2867,6 +2869,7 @@ export type Database = {
           taux_horaire?: number | null
           telephone?: string | null
           updated_at?: string
+          user_id?: string | null
           ville?: string | null
         }
         Relationships: [
@@ -4433,7 +4436,7 @@ export type Database = {
         Row: {
           address: string | null
           category: Database["public"]["Enums"]["partner_category"]
-          centre_id: string | null
+          centre_id: string
           commission_payee: number | null
           company_name: string
           contact_name: string | null
@@ -4461,7 +4464,7 @@ export type Database = {
         Insert: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
-          centre_id?: string | null
+          centre_id: string
           commission_payee?: number | null
           company_name: string
           contact_name?: string | null
@@ -4489,7 +4492,7 @@ export type Database = {
         Update: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
-          centre_id?: string | null
+          centre_id?: string
           commission_payee?: number | null
           company_name?: string
           contact_name?: string | null
@@ -5498,7 +5501,7 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           catalogue_formation_id: string | null
-          centre_id: string | null
+          centre_id: string
           created_at: string
           date_debut: string
           date_fin: string
@@ -5535,7 +5538,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           catalogue_formation_id?: string | null
-          centre_id?: string | null
+          centre_id: string
           created_at?: string
           date_debut: string
           date_fin: string
@@ -5572,7 +5575,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           catalogue_formation_id?: string | null
-          centre_id?: string | null
+          centre_id?: string
           created_at?: string
           date_debut?: string
           date_fin?: string
@@ -6175,7 +6178,7 @@ export type Database = {
         Row: {
           actif: boolean
           categorie: string
-          centre_id: string | null
+          centre_id: string
           created_at: string
           date_assurance: string | null
           date_controle_technique: string | null
@@ -6192,7 +6195,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           categorie?: string
-          centre_id?: string | null
+          centre_id: string
           created_at?: string
           date_assurance?: string | null
           date_controle_technique?: string | null
@@ -6209,7 +6212,7 @@ export type Database = {
         Update: {
           actif?: boolean
           categorie?: string
-          centre_id?: string | null
+          centre_id?: string
           created_at?: string
           date_assurance?: string | null
           date_controle_technique?: string | null
@@ -6657,6 +6660,7 @@ export type Database = {
         }[]
       }
       get_user_centre_id: { Args: never; Returns: string }
+      get_user_formateur_id: { Args: never; Returns: string }
       get_user_role_for_charter: { Args: never; Returns: string }
       has_accepted_current_charter: { Args: never; Returns: boolean }
       has_accepted_current_document: {
@@ -6709,6 +6713,10 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: Json
+      }
+      storage_object_centre_id: {
+        Args: { object_name: string }
+        Returns: string
       }
       submit_reclamation_with_token: {
         Args: {
