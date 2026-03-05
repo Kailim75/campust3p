@@ -100,7 +100,7 @@ export function useCreateProspect() {
     mutationFn: async (prospect: ProspectInsert) => {
       const { data, error } = await supabase
         .from("prospects")
-        .insert(prospect)
+        .insert([prospect] as any)
         .select()
         .single();
 
