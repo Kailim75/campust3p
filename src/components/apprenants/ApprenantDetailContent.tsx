@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import { computeTrackCompletion } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -70,7 +70,7 @@ interface ApprenantDetailContentProps {
 }
 
 export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
-  const [activeTab, setActiveTab] = useState("resume");
+  const [activeTab, setActiveTabRaw] = useState("resume");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
   const queryClient = useQueryClient();
@@ -83,12 +83,25 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   const trackBadge = TRACK_BADGES[contactTrack];
   const isInitial = contactTrack === "initial";
 
+  // Tab guard: prevent accessing track-incompatible tabs
+  const setActiveTab = useCallback((tab: string) => {
+    if (tab === "cma" && !isInitial) {
+      toast.info("Non applicable à ce parcours (Formation Continue)");
+      return;
+    }
+    if (tab === "carte-pro" && isInitial) {
+      toast.info("Non applicable à ce parcours (Parcours Initial)");
+      return;
+    }
+    setActiveTabRaw(tab);
+  }, [isInitial]);
+
   // Fetch cockpit data (workflow + CMA + paiements + rappels + auto notes)
   const { data: cockpitData } = useQuery({
-    queryKey: ["apprenant-cockpit", contact?.id],
+    queryKey: ["apprenant-cockpit", contact?.id, contactTrack],
     queryFn: async () => {
       if (!contact) return null;
-      const [inscRes, docRes, factRes, paiRes, rappRes, notesRes] = await Promise.all([
+      const [inscRes, docRes, factRes, paiRes, rappRes, notesRes, carteProRes] = await Promise.all([
         supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).limit(1),
         supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id),
         supabase.from("factures").select("id, statut, montant_total").eq("contact_id", contact.id),
@@ -99,6 +112,8 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         supabase.from("contact_historique").select("id, titre, contenu, date_echange")
           .eq("contact_id", contact.id).like("titre", "[AUTO]%")
           .order("date_echange", { ascending: false }).limit(10),
+        supabase.from("cartes_professionnelles").select("numero_carte, prefecture, date_obtention, date_expiration")
+          .eq("contact_id", contact.id).order("created_at", { ascending: false }).limit(1),
       ]);
 
       const inscriptions = inscRes.data || [];
@@ -110,9 +125,11 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const hasFacture = factures.length > 0;
       const hasPaid = factures.some((f: any) => f.statut === "payee" || f.statut === "partiel");
 
-      const cmaReceived = CMA_REQUIRED_DOCS.filter(d => docTypes.has(d)).length;
-      const cmaTotal = CMA_REQUIRED_DOCS.length;
-      const cmaMissing = cmaTotal - cmaReceived;
+      // Track-aware completion
+      const trackCompletion = computeTrackCompletion(contactTrack, {
+        uploadedDocTypes: docTypes,
+        carteProData: carteProRes.data?.[0] || null,
+      });
 
       const totalFacture = factures.reduce((s: number, f: any) => s + Number(f.montant_total || 0), 0);
       const totalPaye = paiements.reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
@@ -125,7 +142,6 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const todayAutoNotes = autoNotes.filter(n => isToday(new Date(n.date_echange)));
       const lastAutoNote = autoNotes[0] || null;
 
-      // Anti double relance flags
       const alreadyRelancedCMA = todayAutoNotes.some(n => n.titre.includes("CMA"));
       const alreadyRelancedDocs = todayAutoNotes.some(n => n.titre.includes("demande docs") || n.titre.includes("relance docs"));
       const alreadyRelancedPaiement = todayAutoNotes.some(n => n.titre.includes("relance paiement"));
@@ -133,7 +149,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
       return {
         hasInscription, hasDocuments, hasFacture, hasPaid,
-        cmaReceived, cmaTotal, cmaMissing,
+        trackCompletion,
         restantDu,
         nextRappel, nextSession,
         lastAutoNote, todayAutoNotes,
@@ -231,11 +247,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     }
   };
 
-  // ─── Cockpit indicators ───
-  const cmaReceived = cockpitData?.cmaReceived ?? 0;
-  const cmaTotal = cockpitData?.cmaTotal ?? 5;
-  const cmaMissing = cockpitData?.cmaMissing ?? 0;
-  const cmaPct = Math.round((cmaReceived / cmaTotal) * 100);
+  // ─── Cockpit indicators (track-aware) ───
+  const trackComp = cockpitData?.trackCompletion ?? { received: 0, total: 5, missing: [], pct: 0 };
+  const cmaReceived = trackComp.received;
+  const cmaTotal = trackComp.total;
+  const cmaMissing = trackComp.missing.length;
+  const cmaPct = trackComp.pct;
   const restantDu = cockpitData?.restantDu ?? 0;
   const nextRappel = cockpitData?.nextRappel;
   const nextSession = cockpitData?.nextSession;
