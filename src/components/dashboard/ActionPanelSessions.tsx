@@ -1,6 +1,7 @@
 import { Calendar, ArrowRight, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useUpcomingSessions } from "@/hooks/useDashboardActionData";
 import { format, parseISO } from "date-fns";
@@ -17,10 +18,13 @@ export function ActionPanelSessions({ onNavigate }: Props) {
     return (
       <div className="rounded-xl border border-border bg-card p-5">
         <Skeleton className="h-5 w-40 mb-4" />
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full mb-2" />)}
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full mb-2" />)}
       </div>
     );
   }
+
+  const isEmpty = !sessions || sessions.length === 0;
+  const fewSessions = sessions && sessions.length < 2;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -34,8 +38,16 @@ export function ActionPanelSessions({ onNavigate }: Props) {
         </Badge>
       </div>
 
-      {(sessions || []).length === 0 && (
-        <p className="text-sm text-muted-foreground py-4 text-center">Aucune session prévue cette semaine</p>
+      {isEmpty && (
+        <div className="text-center py-6">
+          <p className="text-sm text-muted-foreground mb-3">Aucune session prévue cette semaine</p>
+          <button
+            onClick={() => onNavigate("sessions")}
+            className="text-sm text-primary hover:underline font-medium"
+          >
+            Voir toutes les sessions →
+          </button>
+        </div>
       )}
 
       <div className="space-y-1">
@@ -61,11 +73,24 @@ export function ActionPanelSessions({ onNavigate }: Props) {
                   "text-xs font-medium",
                   session.isRisk ? "text-warning" : "text-muted-foreground"
                 )}>
-                  {session.inscrits}/{session.places_totales} inscrits
+                  {session.inscrits}/{session.places_totales}
+                </span>
+              </div>
+              {/* Fill progress bar */}
+              <div className="mt-1.5 flex items-center gap-2">
+                <Progress
+                  value={session.fillPercent}
+                  className="h-1.5 flex-1"
+                />
+                <span className={cn(
+                  "text-[10px] font-medium w-8 text-right",
+                  session.fillPercent < 50 ? "text-warning" : "text-muted-foreground"
+                )}>
+                  {session.fillPercent}%
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 ml-2">
+            <div className="flex items-center gap-2 shrink-0 ml-3">
               {session.track && (
                 <Badge variant="outline" className="text-[10px]">
                   {session.track === "initial" ? "Initial" : "Continue"}
@@ -77,12 +102,20 @@ export function ActionPanelSessions({ onNavigate }: Props) {
         ))}
       </div>
 
-      <button
-        onClick={() => onNavigate("sessions")}
-        className="text-xs text-primary hover:underline mt-3 ml-3"
-      >
-        Voir toutes les sessions →
-      </button>
+      {!isEmpty && (
+        <button
+          onClick={() => onNavigate("sessions")}
+          className="text-xs text-primary hover:underline mt-3 ml-3"
+        >
+          Voir toutes les sessions →
+        </button>
+      )}
+
+      {fewSessions && !isEmpty && (
+        <p className="text-xs text-muted-foreground mt-2 ml-3">
+          Peu de sessions planifiées — pensez à anticiper votre planning.
+        </p>
+      )}
     </div>
   );
 }
