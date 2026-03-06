@@ -396,6 +396,9 @@ export type Database = {
           code: string
           competences_visees: string[] | null
           created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           duree_heures: number
           id: string
@@ -422,6 +425,9 @@ export type Database = {
           code: string
           competences_visees?: string[] | null
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           duree_heures?: number
           id?: string
@@ -448,6 +454,9 @@ export type Database = {
           code?: string
           competences_visees?: string[] | null
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           duree_heures?: number
           id?: string
@@ -977,6 +986,9 @@ export type Database = {
           contact_id: string
           created_at: string
           date_expiration: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           file_path: string
           file_size: number | null
           id: string
@@ -990,6 +1002,9 @@ export type Database = {
           contact_id: string
           created_at?: string
           date_expiration?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           file_path: string
           file_size?: number | null
           id?: string
@@ -1003,6 +1018,9 @@ export type Database = {
           contact_id?: string
           created_at?: string
           date_expiration?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           file_path?: string
           file_size?: number | null
           id?: string
@@ -1133,6 +1151,9 @@ export type Database = {
           date_delivrance_permis: string | null
           date_expiration_carte: string | null
           date_naissance: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           filleul: string | null
           fonction: string | null
@@ -1173,6 +1194,9 @@ export type Database = {
           date_delivrance_permis?: string | null
           date_expiration_carte?: string | null
           date_naissance?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           filleul?: string | null
           fonction?: string | null
@@ -1213,6 +1237,9 @@ export type Database = {
           date_delivrance_permis?: string | null
           date_expiration_carte?: string | null
           date_naissance?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           filleul?: string | null
           fonction?: string | null
@@ -1565,6 +1592,9 @@ export type Database = {
           created_at: string
           date_emission: string | null
           date_validite: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           facture_id: string | null
           id: string
           montant_total: number
@@ -1581,6 +1611,9 @@ export type Database = {
           created_at?: string
           date_emission?: string | null
           date_validite?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           facture_id?: string | null
           id?: string
           montant_total?: number
@@ -1597,6 +1630,9 @@ export type Database = {
           created_at?: string
           date_emission?: string | null
           date_validite?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           facture_id?: string | null
           id?: string
           montant_total?: number
@@ -2045,6 +2081,9 @@ export type Database = {
           categorie: string
           contenu: string
           created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
           nom: string
@@ -2057,6 +2096,9 @@ export type Database = {
           categorie?: string
           contenu: string
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           nom: string
@@ -2069,6 +2111,9 @@ export type Database = {
           categorie?: string
           contenu?: string
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           nom?: string
@@ -2158,6 +2203,9 @@ export type Database = {
           centre_id: string | null
           contenu: string
           created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           nom: string
           sujet: string
@@ -2170,6 +2218,9 @@ export type Database = {
           centre_id?: string | null
           contenu: string
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           nom: string
           sujet: string
@@ -2182,6 +2233,9 @@ export type Database = {
           centre_id?: string | null
           contenu?: string
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           nom?: string
           sujet?: string
@@ -2212,6 +2266,9 @@ export type Database = {
           created_at: string
           date_emargement: string
           date_signature: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           heure_debut: string | null
           heure_fin: string | null
           id: string
@@ -2230,6 +2287,9 @@ export type Database = {
           created_at?: string
           date_emargement: string
           date_signature?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           heure_debut?: string | null
           heure_fin?: string | null
           id?: string
@@ -2248,6 +2308,9 @@ export type Database = {
           created_at?: string
           date_emargement?: string
           date_signature?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           heure_debut?: string | null
           heure_fin?: string | null
           id?: string
@@ -2594,6 +2657,9 @@ export type Database = {
           created_at: string
           date_echeance: string | null
           date_emission: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           montant_total: number
           numero_facture: string
@@ -2609,6 +2675,9 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           date_emission?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           montant_total: number
           numero_facture: string
@@ -2624,6 +2693,9 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           date_emission?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           montant_total?: number
           numero_facture?: string
@@ -4579,6 +4651,9 @@ export type Database = {
           commentaires: string | null
           created_at: string
           date_paiement: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           facture_id: string
           id: string
           mode_paiement: Database["public"]["Enums"]["mode_paiement"]
@@ -4589,6 +4664,9 @@ export type Database = {
           commentaires?: string | null
           created_at?: string
           date_paiement?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           facture_id: string
           id?: string
           mode_paiement: Database["public"]["Enums"]["mode_paiement"]
@@ -4599,6 +4677,9 @@ export type Database = {
           commentaires?: string | null
           created_at?: string
           date_paiement?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           facture_id?: string
           id?: string
           mode_paiement?: Database["public"]["Enums"]["mode_paiement"]
@@ -4973,6 +5054,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           date_prochaine_relance: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           formation_souhaitee: string | null
           id: string
@@ -4996,6 +5080,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_prochaine_relance?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           formation_souhaitee?: string | null
           id?: string
@@ -5019,6 +5106,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_prochaine_relance?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           formation_souhaitee?: string | null
           id?: string
@@ -5702,6 +5792,9 @@ export type Database = {
           contact_id: string
           created_at: string
           date_inscription: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           documents_envoyes: string[] | null
           id: string
           session_id: string
@@ -5715,6 +5808,9 @@ export type Database = {
           contact_id: string
           created_at?: string
           date_inscription?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
           session_id: string
@@ -5728,6 +5824,9 @@ export type Database = {
           contact_id?: string
           created_at?: string
           date_inscription?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
           session_id?: string
@@ -5766,6 +5865,9 @@ export type Database = {
           created_at: string
           date_debut: string
           date_fin: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           duree_heures: number | null
           formateur: string | null
@@ -5803,6 +5905,9 @@ export type Database = {
           created_at?: string
           date_debut: string
           date_fin: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           duree_heures?: number | null
           formateur?: string | null
@@ -5840,6 +5945,9 @@ export type Database = {
           created_at?: string
           date_debut?: string
           date_fin?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           duree_heures?: number | null
           formateur?: string | null
@@ -6989,6 +7097,10 @@ export type Database = {
           type_carte: string
         }[]
       }
+      get_delete_impact: {
+        Args: { p_record_id: string; p_table_name: string }
+        Returns: Json
+      }
       get_partner_stats: {
         Args: { p_partner_id: string }
         Returns: {
@@ -7039,6 +7151,24 @@ export type Database = {
           type_document: string
         }[]
       }
+      get_trash_items: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_table_filter?: string
+        }
+        Returns: {
+          delete_reason: string
+          deleted_at: string
+          deleted_by: string
+          deleted_by_email: string
+          item_id: string
+          item_label: string
+          related_count: number
+          table_name: string
+        }[]
+      }
       get_user_centre_id: { Args: never; Returns: string }
       get_user_formateur_id: { Args: never; Returns: string }
       get_user_role_for_charter: { Args: never; Returns: string }
@@ -7082,6 +7212,11 @@ export type Database = {
         Args: { p_creneau_id: string; p_token: string }
         Returns: Json
       }
+      restore_record: {
+        Args: { p_record_id: string; p_table_name: string }
+        Returns: boolean
+      }
+      restore_session: { Args: { p_session_id: string }; Returns: Json }
       revoke_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -7093,6 +7228,14 @@ export type Database = {
           p_signature_url: string
           p_user_agent?: string
         }
+        Returns: Json
+      }
+      soft_delete_record: {
+        Args: { p_reason?: string; p_record_id: string; p_table_name: string }
+        Returns: boolean
+      }
+      soft_delete_session: {
+        Args: { p_reason?: string; p_session_id: string }
         Returns: Json
       }
       storage_object_centre_id: {
