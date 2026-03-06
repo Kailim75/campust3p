@@ -71,13 +71,18 @@ export function useDeletePaiement() {
 
   return useMutation({
     mutationFn: async ({ id, factureId }: { id: string; factureId: string }) => {
-      const { error } = await supabase.from("paiements").delete().eq("id", id);
+      const { data, error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "paiements",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
       return { factureId };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["paiements", result.factureId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
   });
 }

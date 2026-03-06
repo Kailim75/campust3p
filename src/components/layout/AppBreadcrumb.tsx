@@ -51,6 +51,7 @@ const sectionConfig: Record<string, { label: string; icon?: string; tabs?: Recor
   communications: { label: "Communications" },
   alertes: { label: "Alertes" },
   settings: { label: "Paramètres" },
+  corbeille: { label: "Corbeille" },
   workflows: { label: "Workflows" },
   qualite: { 
     label: "Centre Qualiopi",

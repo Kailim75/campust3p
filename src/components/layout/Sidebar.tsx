@@ -4,6 +4,7 @@ import {
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
   MoreHorizontal, Bell, Award, Handshake, Car, UserCog, Palette,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -50,6 +51,7 @@ const moreMenuItems = [
   { id: "qualite", label: "Qualité", icon: Award },
   { id: "partenaires", label: "Partenaires", icon: Handshake },
   { id: "security", label: "Sécurité", icon: Shield },
+  { id: "corbeille", label: "Corbeille", icon: Trash2 },
 ];
 
 /** Wraps children in a Tooltip when sidebar is collapsed */

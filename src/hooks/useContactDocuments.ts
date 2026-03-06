@@ -45,6 +45,7 @@ export function useContactDocuments(contactId: string | null) {
         .from("contact_documents")
         .select("*")
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -118,19 +119,10 @@ export function useDeleteDocument() {
 
   return useMutation({
     mutationFn: async ({ id, filePath, contactId }: { id: string; filePath: string; contactId: string }) => {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from("contact-documents")
-        .remove([filePath]);
-
-      if (storageError) {
-        console.error("Storage delete error:", storageError);
-      }
-
-      // Delete metadata
-      const { error } = await supabase
+      // Soft delete - keep the file in storage, just mark as deleted
+      const { error } = await (supabase as any)
         .from("contact_documents")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
@@ -138,7 +130,8 @@ export function useDeleteDocument() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["contact-documents", data.contactId] });
-      toast.success("Document supprimé");
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast.success("Document envoyé à la corbeille");
     },
     onError: (error) => {
       console.error("Delete error:", error);

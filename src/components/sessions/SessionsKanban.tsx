@@ -165,7 +165,7 @@ export function SessionsKanban({
                                       <Copy className="h-4 w-4 mr-2" />Dupliquer
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="text-destructive" onClick={() => onDelete(session.id)}>
-                                      <Trash2 className="h-4 w-4 mr-2" />Supprimer
+                                      <Trash2 className="h-4 w-4 mr-2" />Envoyer à la corbeille
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>

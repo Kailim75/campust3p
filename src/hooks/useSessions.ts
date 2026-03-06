@@ -17,6 +17,7 @@ export function useSessions(includeArchived = false) {
       let query = supabase
         .from("sessions")
         .select("*")
+        .is("deleted_at", null)
         .order("date_debut", { ascending: true });
 
       if (!includeArchived) {
@@ -39,6 +40,7 @@ export function useUpcomingSessions(limit = 5) {
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
+        .is("deleted_at", null)
         .eq("archived", false)
         .gte("date_fin", today)
         .order("date_debut", { ascending: true })
@@ -100,6 +102,7 @@ export function useSessionInscriptions(sessionId: string | null) {
           )
         `)
         .eq("session_id", sessionId)
+        .is("deleted_at", null)
         .order("date_inscription", { ascending: false });
 
       if (error) throw error;
@@ -116,7 +119,8 @@ export function useSessionInscriptionsCount(sessionId: string) {
       const { count, error } = await supabase
         .from("session_inscriptions")
         .select("*", { count: "exact", head: true })
-        .eq("session_id", sessionId);
+        .eq("session_id", sessionId)
+        .is("deleted_at", null);
 
       if (error) throw error;
       return count ?? 0;
@@ -190,12 +194,17 @@ export function useDeleteSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("sessions").delete().eq("id", id);
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc("soft_delete_session", {
+        p_session_id: id,
+        p_reason: reason || null,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
   });
 }
@@ -278,13 +287,28 @@ export function useRemoveInscription() {
       sessionId: string;
       contactId: string;
     }) => {
-      const { error } = await supabase
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "session_inscriptions",
+        p_record_id: null as any, // We need to find the inscription id first
+        p_reason: "Désinscription",
+      });
+      // Actually find and soft-delete the inscription
+      const { data: inscriptions } = await supabase
         .from("session_inscriptions")
-        .delete()
+        .select("id")
         .eq("session_id", sessionId)
-        .eq("contact_id", contactId);
-
-      if (error) throw error;
+        .eq("contact_id", contactId)
+        .is("deleted_at", null)
+        .limit(1);
+      
+      if (inscriptions && inscriptions.length > 0) {
+        const { error: delError } = await supabase.rpc("soft_delete_record", {
+          p_table_name: "session_inscriptions",
+          p_record_id: inscriptions[0].id,
+          p_reason: "Désinscription manuelle",
+        });
+        if (delError) throw delError;
+      }
     },
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
