@@ -1,0 +1,26 @@
+-- Temporarily disable audit trigger for restore
+ALTER TABLE public.session_inscriptions DISABLE TRIGGER audit_session_inscriptions;
+
+INSERT INTO public.session_inscriptions (id, session_id, contact_id, date_inscription, track)
+VALUES
+  ('e35d25ee-2783-467f-8b33-3f255c4eb178', '18f74ad5-e42f-4aa6-9681-00c028401802', '5e968b8d-3f17-4b8f-a520-573f43a1717d', '2026-02-17T11:26:07.540839+00:00', 'initial'),
+  ('a7b44151-f401-418e-9264-271beaec245b', '18f74ad5-e42f-4aa6-9681-00c028401802', 'b2fee4be-9345-4d0c-8c7c-f92adb4b1143', '2026-02-06T16:14:06.854292+00:00', 'initial'),
+  ('aed51c5d-ace1-44a8-b396-93b39c2c5d74', '18f74ad5-e42f-4aa6-9681-00c028401802', '35d8517f-ecd7-46d5-a45b-48abd4e46093', '2026-02-04T13:30:49.684291+00:00', 'initial'),
+  ('869521fb-fce4-41f5-b254-3e24cf1f7079', '18f74ad5-e42f-4aa6-9681-00c028401802', '42201098-1bae-45e5-b461-743e73090234', '2026-02-12T11:50:20.072957+00:00', 'initial'),
+  ('4be2bc37-d611-475f-b926-657f7302ef60', '18f74ad5-e42f-4aa6-9681-00c028401802', '26775a03-a4b7-4fb0-b3e1-46e47cb51770', '2026-01-28T16:24:28.137296+00:00', 'initial'),
+  ('10d3a479-194e-448c-89e6-aeebc0e5db69', '18f74ad5-e42f-4aa6-9681-00c028401802', 'e82178a8-3226-4a77-9384-966a70f5a835', '2026-02-11T09:18:08.344328+00:00', 'initial'),
+  ('954beba9-c010-40b6-8b75-0c5ccf06be6a', '18f74ad5-e42f-4aa6-9681-00c028401802', '65395d2e-367d-4c4b-bc6a-72c0feb9c58e', '2026-02-20T10:13:06.488391+00:00', 'initial'),
+  ('354488d4-bd04-4654-bd13-674978ce61ad', '18f74ad5-e42f-4aa6-9681-00c028401802', '3a6735c6-ce30-43fd-b737-15b80846f48e', '2026-03-06T08:56:12.315747+00:00', 'initial'),
+  ('ca3ca4da-cd2b-4283-ad08-3eac632c3ac1', '18f74ad5-e42f-4aa6-9681-00c028401802', '9cffe953-f081-4756-8b42-1ff266e4d7df', '2026-02-24T12:53:08.029925+00:00', 'initial'),
+  ('5925dc35-1c79-42be-b787-82b6c4190d57', '18f74ad5-e42f-4aa6-9681-00c028401802', '81199012-3893-4bf2-b60c-946c962e2307', '2026-02-17T13:42:30.750197+00:00', 'initial'),
+  ('7870a3a8-8d48-4acb-b36d-a96022b3d178', '18f74ad5-e42f-4aa6-9681-00c028401802', 'd205f4a8-4d4d-45ef-8ad0-9d399c95c454', '2026-02-17T16:48:34.091183+00:00', 'initial'),
+  ('fa5203ec-69b3-426f-a822-d3dba8984b8a', '18f74ad5-e42f-4aa6-9681-00c028401802', 'cf37ebf5-4bc2-4fa4-b1a1-046b839acd66', '2026-02-11T15:17:09.719982+00:00', 'initial'),
+  ('efcfd584-5c72-4f19-9e3d-8f3af013de08', '18f74ad5-e42f-4aa6-9681-00c028401802', '0be0daec-20af-4336-8d40-f2a0e59fc0cb', '2026-02-03T09:09:57.880306+00:00', 'initial'),
+  ('ebd5c10c-ebb3-4cbd-814e-b6dadab45bbc', '18f74ad5-e42f-4aa6-9681-00c028401802', 'd18d44f2-80b9-4271-b52f-007b954023f4', '2026-01-28T16:23:27.051019+00:00', 'initial'),
+  ('bc0c6db2-432f-4975-aba0-c428e09bb9ff', '18f74ad5-e42f-4aa6-9681-00c028401802', 'dc8b540d-5adc-4bdc-9cf7-4894f31669bc', '2026-01-28T16:24:01.847705+00:00', 'initial'),
+  ('fceb8b6d-5e9c-41a1-92a6-41e96fbcdbbe', '18f74ad5-e42f-4aa6-9681-00c028401802', 'd75b309d-2ec1-45e9-b86c-6bd1c259f80c', '2026-02-05T13:45:29.886695+00:00', 'initial'),
+  ('f5938050-ba0e-437d-ac58-248440c1d44b', '18f74ad5-e42f-4aa6-9681-00c028401802', 'daa98ed0-c3d5-416b-939d-1de0bc7ad8a1', '2026-02-05T13:44:56.956625+00:00', 'initial')
+ON CONFLICT (id) DO NOTHING;
+
+-- Re-enable audit trigger
+ALTER TABLE public.session_inscriptions ENABLE TRIGGER audit_session_inscriptions;
