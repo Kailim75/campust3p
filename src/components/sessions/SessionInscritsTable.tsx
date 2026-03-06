@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { 
   Users, 
   UserPlus, 
@@ -28,6 +29,9 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  Search,
+  X,
+  ArrowRightLeft,
 } from 'lucide-react';
 import {
   Table,
