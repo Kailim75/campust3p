@@ -15,6 +15,7 @@ export function useContacts() {
         .from("contacts")
         .select("*")
         .eq("archived", false)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -31,6 +32,7 @@ export function useRecentContacts(limit = 5) {
         .from("contacts")
         .select("*")
         .eq("archived", false)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -47,7 +49,8 @@ export function useContactsStats() {
       const { data, error } = await supabase
         .from("contacts")
         .select("statut, formation")
-        .eq("archived", false);
+        .eq("archived", false)
+        .is("deleted_at", null);
 
       if (error) throw error;
 
@@ -119,13 +122,14 @@ export function useDeleteContact() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("contacts")
-        .update({ archived: true })
+        .update({ archived: true, deleted_at: new Date().toISOString() } as any)
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
   });
 }

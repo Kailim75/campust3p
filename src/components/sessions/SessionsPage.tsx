@@ -76,7 +76,7 @@ export function SessionsPage() {
   const handleViewDetail = (session: Session) => { setDetailSessionId(session.id); setDetailOpen(true); };
 
   const handleDelete = async (id: string) => {
-    try { await deleteSession.mutateAsync(id); toast.success("Session supprimée"); }
+    try { await deleteSession.mutateAsync({ id }); toast.success("Session envoyée à la corbeille"); }
     catch { toast.error("Erreur lors de la suppression"); }
   };
 
