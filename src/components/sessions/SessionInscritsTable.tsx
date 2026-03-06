@@ -99,6 +99,7 @@ import { SessionDocumentsSendModal } from './SessionDocumentsSendModal';
 import type { EmailRecipient } from '@/components/email/EmailComposerModal';
 import type { Contact } from '@/hooks/useContacts';
 import type { CompanyInfo, AgrementsAutre } from '@/lib/pdf-generator';
+import { TransferStudentDialog } from './TransferStudentDialog';
 
 interface SessionInscritsTableProps {
   sessionId: string;
