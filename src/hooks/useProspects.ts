@@ -64,6 +64,7 @@ export function useProspects() {
         .from("prospects")
         .select("*")
         .eq("is_active", true)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -79,7 +80,8 @@ export function useProspectsStats() {
       const { data, error } = await supabase
         .from("prospects")
         .select("statut, formation_souhaitee, next_action_at")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .is("deleted_at", null);
 
       if (error) throw error;
 
