@@ -962,8 +962,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inscrits && inscrits.length > 0 ? (
-                inscrits.map(inscrit => {
+              {filteredInscrits.length > 0 ? (
+                filteredInscrits.map(inscrit => {
                   const facture = getFactureForContact(inscrit.contact_id);
                   const paidPercent = facture ? (facture.total_paye / Number(facture.montant_total)) * 100 : 0;
                   const urgency = getUrgency(inscrit);
