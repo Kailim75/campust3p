@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { 
   Users, 
   UserPlus, 
@@ -28,6 +29,9 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  Search,
+  X,
+  ArrowRightLeft,
 } from 'lucide-react';
 import {
   Table,
@@ -95,6 +99,7 @@ import { SessionDocumentsSendModal } from './SessionDocumentsSendModal';
 import type { EmailRecipient } from '@/components/email/EmailComposerModal';
 import type { Contact } from '@/hooks/useContacts';
 import type { CompanyInfo, AgrementsAutre } from '@/lib/pdf-generator';
+import { TransferStudentDialog } from './TransferStudentDialog';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -129,6 +134,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inscritSearchQuery, setInscritSearchQuery] = useState('');
+  
+  // Transfer dialog state
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferContact, setTransferContact] = useState<{ id: string; name: string } | null>(null);
   
   // Bulk doc send modal
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
@@ -159,11 +169,29 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
   
-  // Filtrer par recherche
+  // Filtrer par recherche (pour dialog ajout)
   const filteredContacts = availableContacts.filter(c => 
     `${c.prenom} ${c.nom}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Filter enrolled students by search
+  const filteredInscrits = useMemo(() => {
+    if (!inscrits || !inscritSearchQuery.trim()) return inscrits || [];
+    const q = inscritSearchQuery.toLowerCase().trim();
+    return inscrits.filter(i => {
+      const c = i.contact as any;
+      if (!c) return false;
+      return (
+        (c.prenom || '').toLowerCase().includes(q) ||
+        (c.nom || '').toLowerCase().includes(q) ||
+        (c.email || '').toLowerCase().includes(q) ||
+        (c.telephone || '').toLowerCase().includes(q) ||
+        (c.custom_id || '').toLowerCase().includes(q) ||
+        `${c.prenom} ${c.nom}`.toLowerCase().includes(q)
+      );
+    });
+  }, [inscrits, inscritSearchQuery]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
@@ -877,17 +905,42 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </div>
       )}
 
-      {/* Table */}
+      {/* Search bar + Table */}
       <Card>
-        <CardHeader className="py-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Stagiaires ({inscrits?.length || 0})
-          </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Inscrire
-          </Button>
+        <CardHeader className="py-3 space-y-3">
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Stagiaires ({inscrits?.length || 0})
+              {inscritSearchQuery && filteredInscrits.length !== (inscrits?.length || 0) && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {filteredInscrits.length} résultat{filteredInscrits.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Inscrire
+            </Button>
+          </div>
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un apprenant…"
+              value={inscritSearchQuery}
+              onChange={(e) => setInscritSearchQuery(e.target.value)}
+              className="pl-9 pr-9 h-9 text-sm"
+            />
+            {inscritSearchQuery && (
+              <button
+                onClick={() => setInscritSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -909,8 +962,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inscrits && inscrits.length > 0 ? (
-                inscrits.map(inscrit => {
+              {filteredInscrits.length > 0 ? (
+                filteredInscrits.map(inscrit => {
                   const facture = getFactureForContact(inscrit.contact_id);
                   const paidPercent = facture ? (facture.total_paye / Number(facture.montant_total)) * 100 : 0;
                   const urgency = getUrgency(inscrit);
@@ -1145,6 +1198,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                               <TooltipContent>Créer une facture</TooltipContent>
                             </Tooltip>
                           )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-info"
+                                onClick={() => {
+                                  setTransferContact({ id: inscrit.contact_id, name: `${inscrit.contact?.prenom} ${inscrit.contact?.nom}` });
+                                  setTransferDialogOpen(true);
+                                }}
+                                aria-label="Transférer"
+                              >
+                                <ArrowRightLeft className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Transférer vers une autre session</TooltipContent>
+                          </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -1463,6 +1533,19 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       )}
 
       <EmailComposerModal {...composerProps} />
+
+      {/* Transfer Student Dialog */}
+      {transferContact && session && (
+        <TransferStudentDialog
+          open={transferDialogOpen}
+          onOpenChange={(open) => { setTransferDialogOpen(open); if (!open) setTransferContact(null); }}
+          contactId={transferContact.id}
+          contactName={transferContact.name}
+          currentSessionId={sessionId}
+          currentSessionName={session.nom}
+          contactFormation={session.formation_type}
+        />
+      )}
     </div>
   );
 }

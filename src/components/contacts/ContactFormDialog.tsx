@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { SourceSelect } from "@/components/ui/source-select";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -443,7 +445,16 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                         <FormItem>
                           <FormLabel>Rue</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Adresse" />
+                            <AddressAutocomplete
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onSelect={(addr) => {
+                                form.setValue("rue", addr.rue);
+                                form.setValue("code_postal", addr.code_postal);
+                                form.setValue("ville", addr.ville);
+                              }}
+                              placeholder="Commencez à taper une adresse…"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -691,7 +702,10 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                         <FormItem>
                           <FormLabel>Source</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
+                            <SourceSelect
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -735,7 +749,16 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                       <FormItem>
                         <FormLabel>Rue</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Adresse" />
+                          <AddressAutocomplete
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            onSelect={(addr) => {
+                              form.setValue("rue", addr.rue);
+                              form.setValue("code_postal", addr.code_postal);
+                              form.setValue("ville", addr.ville);
+                            }}
+                            placeholder="Commencez à taper une adresse…"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -983,7 +1006,10 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                       <FormItem>
                         <FormLabel>Source</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
+                          <SourceSelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
