@@ -134,6 +134,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inscritSearchQuery, setInscritSearchQuery] = useState('');
+  
+  // Transfer dialog state
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferContact, setTransferContact] = useState<{ id: string; name: string } | null>(null);
   
   // Bulk doc send modal
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
@@ -164,11 +169,29 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const inscribedContactIds = new Set(inscrits?.map(i => i.contact_id) || []);
   const availableContacts = allContacts?.filter(c => !inscribedContactIds.has(c.id)) || [];
   
-  // Filtrer par recherche
+  // Filtrer par recherche (pour dialog ajout)
   const filteredContacts = availableContacts.filter(c => 
     `${c.prenom} ${c.nom}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Filter enrolled students by search
+  const filteredInscrits = useMemo(() => {
+    if (!inscrits || !inscritSearchQuery.trim()) return inscrits || [];
+    const q = inscritSearchQuery.toLowerCase().trim();
+    return inscrits.filter(i => {
+      const c = i.contact as any;
+      if (!c) return false;
+      return (
+        (c.prenom || '').toLowerCase().includes(q) ||
+        (c.nom || '').toLowerCase().includes(q) ||
+        (c.email || '').toLowerCase().includes(q) ||
+        (c.telephone || '').toLowerCase().includes(q) ||
+        (c.custom_id || '').toLowerCase().includes(q) ||
+        `${c.prenom} ${c.nom}`.toLowerCase().includes(q)
+      );
+    });
+  }, [inscrits, inscritSearchQuery]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dialogEnvoi, setDialogEnvoi] = useState(false);
