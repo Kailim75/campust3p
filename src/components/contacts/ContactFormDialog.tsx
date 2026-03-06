@@ -445,7 +445,16 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                         <FormItem>
                           <FormLabel>Rue</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Adresse" />
+                            <AddressAutocomplete
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onSelect={(addr) => {
+                                form.setValue("rue", addr.rue);
+                                form.setValue("code_postal", addr.code_postal);
+                                form.setValue("ville", addr.ville);
+                              }}
+                              placeholder="Commencez à taper une adresse…"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -740,7 +749,16 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                       <FormItem>
                         <FormLabel>Rue</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Adresse" />
+                          <AddressAutocomplete
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            onSelect={(addr) => {
+                              form.setValue("rue", addr.rue);
+                              form.setValue("code_postal", addr.code_postal);
+                              form.setValue("ville", addr.ville);
+                            }}
+                            placeholder="Commencez à taper une adresse…"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
