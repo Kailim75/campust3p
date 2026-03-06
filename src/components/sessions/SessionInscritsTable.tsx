@@ -905,17 +905,42 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </div>
       )}
 
-      {/* Table */}
+      {/* Search bar + Table */}
       <Card>
-        <CardHeader className="py-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Stagiaires ({inscrits?.length || 0})
-          </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Inscrire
-          </Button>
+        <CardHeader className="py-3 space-y-3">
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Stagiaires ({inscrits?.length || 0})
+              {inscritSearchQuery && filteredInscrits.length !== (inscrits?.length || 0) && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {filteredInscrits.length} résultat{filteredInscrits.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Inscrire
+            </Button>
+          </div>
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un apprenant…"
+              value={inscritSearchQuery}
+              onChange={(e) => setInscritSearchQuery(e.target.value)}
+              className="pl-9 pr-9 h-9 text-sm"
+            />
+            {inscritSearchQuery && (
+              <button
+                onClick={() => setInscritSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
