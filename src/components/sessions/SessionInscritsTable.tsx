@@ -1203,6 +1203,23 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7 text-info"
+                                onClick={() => {
+                                  setTransferContact({ id: inscrit.contact_id, name: `${inscrit.contact?.prenom} ${inscrit.contact?.nom}` });
+                                  setTransferDialogOpen(true);
+                                }}
+                                aria-label="Transférer"
+                              >
+                                <ArrowRightLeft className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Transférer vers une autre session</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-7 w-7"
                                 onClick={() => setSelectedContactId(inscrit.contact_id)}
                                 aria-label="Voir la fiche contact"
