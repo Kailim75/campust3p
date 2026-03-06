@@ -691,7 +691,10 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                         <FormItem>
                           <FormLabel>Source</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
+                            <SourceSelect
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -983,7 +986,10 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                       <FormItem>
                         <FormLabel>Source</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Google, Bouche-à-oreille, etc." />
+                          <SourceSelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

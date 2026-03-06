@@ -1533,6 +1533,19 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
       )}
 
       <EmailComposerModal {...composerProps} />
+
+      {/* Transfer Student Dialog */}
+      {transferContact && session && (
+        <TransferStudentDialog
+          open={transferDialogOpen}
+          onOpenChange={(open) => { setTransferDialogOpen(open); if (!open) setTransferContact(null); }}
+          contactId={transferContact.id}
+          contactName={transferContact.name}
+          currentSessionId={sessionId}
+          currentSessionName={session.nom}
+          contactFormation={session.formation_type}
+        />
+      )}
     </div>
   );
 }
