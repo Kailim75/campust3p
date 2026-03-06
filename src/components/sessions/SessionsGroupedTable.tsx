@@ -520,12 +520,12 @@ function SessionRow({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
-                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                <AlertDialogTitle>Envoyer à la corbeille ?</AlertDialogTitle>
+                <AlertDialogDescription>La session « {session.nom} » sera envoyée à la corbeille avec ses inscriptions et émargements. Vous pourrez la restaurer ultérieurement.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(session.id)}>Supprimer</AlertDialogAction>
+                <AlertDialogAction onClick={() => onDelete(session.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Envoyer à la corbeille</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
