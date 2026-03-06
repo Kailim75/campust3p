@@ -45,6 +45,7 @@ export function useContactDocuments(contactId: string | null) {
         .from("contact_documents")
         .select("*")
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
