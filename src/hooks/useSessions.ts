@@ -17,6 +17,7 @@ export function useSessions(includeArchived = false) {
       let query = supabase
         .from("sessions")
         .select("*")
+        .is("deleted_at", null)
         .order("date_debut", { ascending: true });
 
       if (!includeArchived) {
@@ -39,6 +40,7 @@ export function useUpcomingSessions(limit = 5) {
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
+        .is("deleted_at", null)
         .eq("archived", false)
         .gte("date_fin", today)
         .order("date_debut", { ascending: true })
@@ -100,6 +102,7 @@ export function useSessionInscriptions(sessionId: string | null) {
           )
         `)
         .eq("session_id", sessionId)
+        .is("deleted_at", null)
         .order("date_inscription", { ascending: false });
 
       if (error) throw error;
@@ -190,12 +193,17 @@ export function useDeleteSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("sessions").delete().eq("id", id);
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc("soft_delete_session", {
+        p_session_id: id,
+        p_reason: reason || null,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
   });
 }
