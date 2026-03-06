@@ -259,11 +259,17 @@ export function useDeleteFacture() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("factures").delete().eq("id", id);
+      const { data, error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "factures",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
   });
 }

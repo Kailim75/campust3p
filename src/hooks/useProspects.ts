@@ -186,14 +186,15 @@ export function useDeleteProspect() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("prospects")
-        .update({ is_active: false })
+        .update({ is_active: false, deleted_at: new Date().toISOString() } as any)
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      toast.success("Prospect supprimé");
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast.success("Prospect envoyé à la corbeille");
     },
     onError: (error) => {
       toast.error("Erreur lors de la suppression");
