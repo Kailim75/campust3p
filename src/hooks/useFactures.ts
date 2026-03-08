@@ -313,8 +313,8 @@ export function useFacturesStats() {
     queryFn: async () => {
       // Run both queries in parallel
       const [facturesRes, paiementsRes] = await Promise.all([
-        supabase.from("factures").select("id, montant_total, statut"),
-        supabase.from("paiements").select("montant"),
+        supabase.from("factures").select("id, montant_total, statut").is("deleted_at", null),
+        supabase.from("paiements").select("montant").is("deleted_at", null),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;

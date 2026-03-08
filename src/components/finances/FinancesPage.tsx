@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
-import { CreditCard, Landmark, Wallet, BarChart3 } from "lucide-react";
+import { CreditCard, Landmark, BarChart3 } from "lucide-react";
 
 export function FinancesPage() {
   const [tab, setTab] = useState("factures");

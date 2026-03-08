@@ -287,12 +287,7 @@ export function useRemoveInscription() {
       sessionId: string;
       contactId: string;
     }) => {
-      const { error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: "session_inscriptions",
-        p_record_id: null as any, // We need to find the inscription id first
-        p_reason: "Désinscription",
-      });
-      // Actually find and soft-delete the inscription
+      // Find the inscription to soft-delete
       const { data: inscriptions } = await supabase
         .from("session_inscriptions")
         .select("id")

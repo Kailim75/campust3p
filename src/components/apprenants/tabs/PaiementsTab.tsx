@@ -53,6 +53,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         .from("paiements")
         .select("*")
         .in("facture_id", factureIds.map((f) => f.id))
+        .is("deleted_at", null)
         .order("date_paiement", { ascending: false });
       if (error) throw error;
       return data || [];

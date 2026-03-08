@@ -39,6 +39,7 @@ export function useEmargements(sessionId: string | null) {
           contact:contacts(id, nom, prenom)
         `)
         .eq("session_id", sessionId)
+        .is("deleted_at", null)
         .order("date_emargement", { ascending: true })
         .order("periode", { ascending: true });
 
