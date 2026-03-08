@@ -88,6 +88,7 @@ export function useCatalogueFormations(activeOnly = false) {
       let query = supabase
         .from("catalogue_formations")
         .select("*")
+        .is("deleted_at", null)
         .order("categorie", { ascending: true })
         .order("intitule", { ascending: true });
 
