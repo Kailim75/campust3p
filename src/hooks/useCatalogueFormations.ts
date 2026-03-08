@@ -183,11 +183,11 @@ export function useDeleteCatalogueFormation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("catalogue_formations")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "catalogue_formations",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
