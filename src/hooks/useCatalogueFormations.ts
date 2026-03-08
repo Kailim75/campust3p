@@ -111,6 +111,7 @@ export function useCatalogueFormation(id: string | null) {
       const { data, error } = await supabase
         .from("catalogue_formations")
         .select("*")
+        .is("deleted_at", null)
         .eq("id", id)
         .maybeSingle();
 
