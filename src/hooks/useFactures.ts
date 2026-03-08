@@ -189,7 +189,8 @@ export function useFacture(id: string | null) {
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
         .select("montant")
-        .eq("facture_id", id);
+        .eq("facture_id", id)
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 
