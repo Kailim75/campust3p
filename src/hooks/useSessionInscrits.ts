@@ -110,7 +110,6 @@ export function useSessionInscrits(sessionId: string) {
     onSuccess: ({ inscriptionsCount, facturesCreated }) => {
       queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['factures'] });
-      queryClient.invalidateQueries({ queryKey: ['trash'] });
       
       if (facturesCreated > 0) {
         toast.success(`${inscriptionsCount} stagiaire(s) ajouté(s) avec ${facturesCreated} facture(s) générée(s)`);
