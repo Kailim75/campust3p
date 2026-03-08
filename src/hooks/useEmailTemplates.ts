@@ -39,6 +39,7 @@ export function useEmailTemplates() {
       const { data, error } = await supabase
         .from("email_templates")
         .select("*")
+        .is("deleted_at", null)
         .order("categorie", { ascending: true })
         .order("nom", { ascending: true });
 
