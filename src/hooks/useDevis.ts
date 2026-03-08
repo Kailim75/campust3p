@@ -244,6 +244,7 @@ export function useDeleteDevis() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devis"] });
       queryClient.invalidateQueries({ queryKey: ["devis-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Devis supprimé");
     },
     onError: (error: any) => {

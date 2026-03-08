@@ -133,6 +133,7 @@ export function useDeleteEmailTemplate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Modèle supprimé");
     },
     onError: (error: any) => {

@@ -192,6 +192,7 @@ export function useDeleteCatalogueFormation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["catalogue-formations"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Article supprimé du catalogue");
     },
     onError: (error: any) => {
