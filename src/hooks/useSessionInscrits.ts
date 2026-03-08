@@ -23,6 +23,7 @@ export function useSessionInscrits(sessionId: string) {
           contact:contacts(*)
         `)
         .eq('session_id', sessionId)
+        .is('deleted_at', null)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
