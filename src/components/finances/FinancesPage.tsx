@@ -19,10 +19,7 @@ export function FinancesPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="bg-muted/50 mb-5">
             <TabsTrigger value="factures" className="gap-1.5 text-xs">
-              <CreditCard className="h-3.5 w-3.5" /> Factures
-            </TabsTrigger>
-            <TabsTrigger value="paiements" className="gap-1.5 text-xs">
-              <Wallet className="h-3.5 w-3.5" /> Paiements
+              <CreditCard className="h-3.5 w-3.5" /> Facturation
             </TabsTrigger>
             <TabsTrigger value="tresorerie" className="gap-1.5 text-xs">
               <Landmark className="h-3.5 w-3.5" /> Trésorerie
@@ -33,9 +30,6 @@ export function FinancesPage() {
           </TabsList>
 
           <TabsContent value="factures">
-            <FacturationUnifiedPage />
-          </TabsContent>
-          <TabsContent value="paiements">
             <FacturationUnifiedPage />
           </TabsContent>
           <TabsContent value="tresorerie">
