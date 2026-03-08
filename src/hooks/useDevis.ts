@@ -129,7 +129,8 @@ export function useDevisStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devis")
-        .select("statut, montant_total");
+        .select("statut, montant_total")
+        .is("deleted_at", null);
 
       if (error) throw error;
 
