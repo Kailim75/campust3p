@@ -119,12 +119,11 @@ export function useDeleteDocument() {
 
   return useMutation({
     mutationFn: async ({ id, filePath, contactId }: { id: string; filePath: string; contactId: string }) => {
-      // Soft delete - keep the file in storage, just mark as deleted
-      const { error } = await (supabase as any)
-        .from("contact_documents")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
-
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "contact_documents",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
       return { contactId };
     },

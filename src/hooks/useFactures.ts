@@ -89,10 +89,12 @@ export function useFactures() {
               session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
             )
           `)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         supabase
           .from("paiements")
-          .select("facture_id, montant"),
+          .select("facture_id, montant")
+          .is("deleted_at", null),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;
@@ -129,6 +131,7 @@ export function useContactFactures(contactId: string | null) {
           )
         `)
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -140,7 +143,8 @@ export function useContactFactures(contactId: string | null) {
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
         .select("facture_id, montant")
-        .in("facture_id", factureIds);
+        .in("facture_id", factureIds)
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 
@@ -311,8 +315,8 @@ export function useFacturesStats() {
     queryFn: async () => {
       // Run both queries in parallel
       const [facturesRes, paiementsRes] = await Promise.all([
-        supabase.from("factures").select("id, montant_total, statut"),
-        supabase.from("paiements").select("montant"),
+        supabase.from("factures").select("id, montant_total, statut").is("deleted_at", null),
+        supabase.from("paiements").select("montant").is("deleted_at", null),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;

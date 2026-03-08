@@ -31,7 +31,8 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       const { data, error } = await supabase
         .from("factures")
         .select("id, montant_total, statut, type_financement")
-        .eq("contact_id", contactId);
+        .eq("contact_id", contactId)
+        .is("deleted_at", null);
       if (error) throw error;
       return data || [];
     },
@@ -52,6 +53,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         .from("paiements")
         .select("*")
         .in("facture_id", factureIds.map((f) => f.id))
+        .is("deleted_at", null)
         .order("date_paiement", { ascending: false });
       if (error) throw error;
       return data || [];

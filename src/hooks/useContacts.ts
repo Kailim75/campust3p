@@ -120,12 +120,13 @@ export function useDeleteContact() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("contacts")
-        .update({ archived: true, deleted_at: new Date().toISOString() } as any)
-        .eq("id", id);
-
+      const { data, error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "contacts",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });

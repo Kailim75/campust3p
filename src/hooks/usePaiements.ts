@@ -34,6 +34,7 @@ export function useFacturePaiements(factureId: string | null) {
         .from("paiements")
         .select("*")
         .eq("facture_id", factureId)
+        .is("deleted_at", null)
         .order("date_paiement", { ascending: false });
 
       if (error) throw error;
