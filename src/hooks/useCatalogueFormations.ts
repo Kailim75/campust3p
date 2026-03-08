@@ -88,6 +88,7 @@ export function useCatalogueFormations(activeOnly = false) {
       let query = supabase
         .from("catalogue_formations")
         .select("*")
+        .is("deleted_at", null)
         .order("categorie", { ascending: true })
         .order("intitule", { ascending: true });
 
@@ -110,6 +111,7 @@ export function useCatalogueFormation(id: string | null) {
       const { data, error } = await supabase
         .from("catalogue_formations")
         .select("*")
+        .is("deleted_at", null)
         .eq("id", id)
         .maybeSingle();
 
@@ -181,15 +183,16 @@ export function useDeleteCatalogueFormation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("catalogue_formations")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "catalogue_formations",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["catalogue-formations"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Article supprimé du catalogue");
     },
     onError: (error: any) => {

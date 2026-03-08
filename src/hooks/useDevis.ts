@@ -79,6 +79,7 @@ export function useDevis() {
           *,
           contact:contacts(id, nom, prenom, email)
         `)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -100,6 +101,7 @@ export function useDevisDetail(id: string | null) {
           *,
           contact:contacts(id, nom, prenom, email, telephone)
         `)
+        .is("deleted_at", null)
         .eq("id", id)
         .maybeSingle();
 
@@ -127,7 +129,8 @@ export function useDevisStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("devis")
-        .select("statut, montant_total");
+        .select("statut, montant_total")
+        .is("deleted_at", null);
 
       if (error) throw error;
 
@@ -231,12 +234,17 @@ export function useDeleteDevis() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("devis").delete().eq("id", id);
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "devis",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devis"] });
       queryClient.invalidateQueries({ queryKey: ["devis-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Devis supprimé");
     },
     onError: (error: any) => {
