@@ -124,11 +124,11 @@ export function useDeleteEmailTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("email_templates")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.rpc("soft_delete_record", {
+        p_table_name: "email_templates",
+        p_record_id: id,
+        p_reason: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
