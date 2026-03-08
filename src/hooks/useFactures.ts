@@ -89,10 +89,12 @@ export function useFactures() {
               session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
             )
           `)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         supabase
           .from("paiements")
-          .select("facture_id, montant"),
+          .select("facture_id, montant")
+          .is("deleted_at", null),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;
