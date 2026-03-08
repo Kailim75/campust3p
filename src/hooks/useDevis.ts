@@ -101,6 +101,7 @@ export function useDevisDetail(id: string | null) {
           *,
           contact:contacts(id, nom, prenom, email, telephone)
         `)
+        .is("deleted_at", null)
         .eq("id", id)
         .maybeSingle();
 
