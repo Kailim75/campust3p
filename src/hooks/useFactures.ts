@@ -143,7 +143,8 @@ export function useContactFactures(contactId: string | null) {
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
         .select("facture_id, montant")
-        .in("facture_id", factureIds);
+        .in("facture_id", factureIds)
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 
