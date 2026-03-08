@@ -57,6 +57,7 @@ export function useEmailTemplate(id: string | null) {
       const { data, error } = await supabase
         .from("email_templates")
         .select("*")
+        .is("deleted_at", null)
         .eq("id", id)
         .maybeSingle();
 
