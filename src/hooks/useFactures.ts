@@ -131,6 +131,7 @@ export function useContactFactures(contactId: string | null) {
           )
         `)
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
