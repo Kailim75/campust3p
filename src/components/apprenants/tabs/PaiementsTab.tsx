@@ -45,7 +45,8 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       const { data: factureIds } = await supabase
         .from("factures")
         .select("id")
-        .eq("contact_id", contactId);
+        .eq("contact_id", contactId)
+        .is("deleted_at", null);
 
       if (!factureIds || factureIds.length === 0) return [];
 
