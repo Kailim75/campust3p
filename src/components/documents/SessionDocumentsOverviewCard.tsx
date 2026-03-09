@@ -168,6 +168,20 @@ export function SessionDocumentsOverviewCard({
                 Dossiers complets
               </Badge>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => {
+                const csv = buildAuditCSV(rows);
+                const date = new Date().toISOString().slice(0, 10);
+                downloadCSV(csv, `audit-session-${date}.csv`);
+                toast.success("Export audit téléchargé");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export audit
+            </Button>
           </div>
         </div>
       </CardContent>
