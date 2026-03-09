@@ -6,7 +6,28 @@ import type {
 /**
  * Construit le CompanyInfo à partir des données du centre de formation.
  */
-export function buildCompanyInfo(centreFormation: any): CompanyInfo | undefined {
+/** Shape of the centre_formation row used for document generation. */
+interface CentreFormationRow {
+  nom_commercial?: string | null;
+  nom_legal: string;
+  adresse_complete: string;
+  telephone: string;
+  email: string;
+  siret: string;
+  nda: string;
+  logo_url?: string | null;
+  signature_cachet_url?: string | null;
+  qualiopi_numero?: string | null;
+  qualiopi_date_obtention?: string | null;
+  qualiopi_date_expiration?: string | null;
+  agrement_prefecture?: string | null;
+  agrement_prefecture_date?: string | null;
+  code_rncp?: string | null;
+  code_rs?: string | null;
+  agrements_autres?: unknown;
+}
+
+export function buildCompanyInfo(centreFormation: CentreFormationRow | null | undefined): CompanyInfo | undefined {
   if (!centreFormation) return undefined;
 
   let agrements_autres: AgrementsAutre[] = [];

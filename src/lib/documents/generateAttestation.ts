@@ -10,6 +10,7 @@ import {
   generateAttestationPDF,
   downloadPDF,
   type ContactInfo,
+  type ContactInfoWithId,
   type SessionInfo,
   type CompanyInfo,
 } from "@/lib/pdf-generator";
