@@ -518,9 +518,12 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <SessionInscritsTable sessionId={session.id} />
                 </TabsContent>
 
-                {/* Tab: Documents V2 */}
+                {/* Tab: Documents — Pilotage transverse */}
                 <TabsContent value="documents" className="pt-4">
-                  <SessionDocumentsTab sessionId={session.id} sessionTrack={session.track} />
+                  <SessionDocumentMatrixView
+                    sessionId={session.id}
+                    sessionName={session.nom}
+                  />
                 </TabsContent>
 
                 {/* Tab: Parcours / Examens */}
