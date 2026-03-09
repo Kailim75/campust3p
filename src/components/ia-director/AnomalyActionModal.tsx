@@ -299,7 +299,7 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
         } else if (anomaly.category === "sessions") {
           const { data } = await supabase
             .from("sessions")
-            .select("id, nom, formation_type, date_debut, places_max")
+            .select("id, nom, formation_type, date_debut, places_totales")
             .in("id", ids);
           setRecords((data || []).map((s: any) => ({
             id: s.id,
