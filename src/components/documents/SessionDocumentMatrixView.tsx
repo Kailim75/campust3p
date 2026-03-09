@@ -19,13 +19,13 @@ import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
 import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
 import { useGenerateDocument, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import { SessionDocumentsOverviewCard } from "./SessionDocumentsOverviewCard";
-import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter } from "./SessionDocumentFiltersBar";
+import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter, type ContractFilter } from "./SessionDocumentFiltersBar";
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 import { BulkGenerationDialog } from "./BulkGenerationDialog";
 import { BulkEmailDialog } from "./BulkEmailDialog";
 import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
-import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
+import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem, ContractFrameDisplay } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
   sessionId: string;
@@ -50,6 +50,7 @@ export function SessionDocumentMatrixView({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LearnerStatusFilter>("all");
   const [blockFilter, setBlockFilter] = useState<BlockFilter>("all");
+  const [contractFilter, setContractFilter] = useState<ContractFilter>("all");
 
   // Sort
   const [sortField, setSortField] = useState<SortField>("name");
@@ -92,6 +93,11 @@ export function SessionDocumentMatrixView({
       result = result.filter(r => r.overallStatus === statusFilter);
     }
 
+    // Contract filter
+    if (contractFilter !== "all") {
+      result = result.filter(r => (r.contractFrame ?? "a_qualifier") === contractFilter);
+    }
+
     // Sort
     result.sort((a, b) => {
       let cmp = 0;
@@ -113,7 +119,7 @@ export function SessionDocumentMatrixView({
     });
 
     return result;
-  }, [rows, search, statusFilter, sortField, sortDir]);
+  }, [rows, search, statusFilter, contractFilter, sortField, sortDir]);
 
   const filterCounts = useMemo(() => {
     if (!rows) return { all: 0, complete: 0, incomplete: 0, blocked: 0 };
@@ -122,6 +128,16 @@ export function SessionDocumentMatrixView({
       complete: rows.filter(r => r.overallStatus === "complete").length,
       incomplete: rows.filter(r => r.overallStatus === "incomplete").length,
       blocked: rows.filter(r => r.overallStatus === "blocked").length,
+    };
+  }, [rows]);
+
+  const contractCounts = useMemo(() => {
+    if (!rows) return { all: 0, contrat: 0, convention: 0, a_qualifier: 0 };
+    return {
+      all: rows.length,
+      contrat: rows.filter(r => r.contractFrame === "contrat").length,
+      convention: rows.filter(r => r.contractFrame === "convention").length,
+      a_qualifier: rows.filter(r => !r.contractFrame || r.contractFrame === "a_qualifier").length,
     };
   }, [rows]);
 
@@ -239,7 +255,10 @@ export function SessionDocumentMatrixView({
         onStatusFilterChange={setStatusFilter}
         blockFilter={blockFilter}
         onBlockFilterChange={setBlockFilter}
+        contractFilter={contractFilter}
+        onContractFilterChange={setContractFilter}
         counts={filterCounts}
+        contractCounts={contractCounts}
       />
 
       {/* Selection bar */}
@@ -316,6 +335,9 @@ export function SessionDocumentMatrixView({
                     Apprenant
                     {sortField === "name" && <SortIcon className="h-3 w-3" />}
                   </button>
+                </th>
+                <th className="text-center px-2 py-2 w-20">
+                  <span className="text-[10px] font-semibold text-muted-foreground">Cadre</span>
                 </th>
                 <th className="text-center px-2 py-2 w-24">
                   <button
@@ -401,6 +423,22 @@ export function SessionDocumentMatrixView({
                           {row.generatedCount}/{row.totalDocuments}
                         </span>
                       </div>
+                    </td>
+
+                    {/* Contract frame */}
+                    <td className="px-2 py-2 text-center">
+                      {(() => {
+                        const frame = row.contractFrame ?? "a_qualifier";
+                        const label = frame === "contrat" ? "Contrat"
+                          : frame === "convention" ? "Convention"
+                          : "À qualifier";
+                        const variant = frame === "a_qualifier" ? "destructive" as const : "secondary" as const;
+                        return (
+                          <Badge variant={variant} className="text-[9px] h-5 px-1.5">
+                            {label}
+                          </Badge>
+                        );
+                      })()}
                     </td>
 
                     {/* Block cells */}

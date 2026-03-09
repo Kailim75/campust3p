@@ -33,6 +33,7 @@ import {
   type Devis,
   type FinancementType,
 } from "@/hooks/useDevis";
+import { autoQualifyFromFinancing } from "@/hooks/useContractQualification";
 import { format, addDays } from "date-fns";
 
 interface DevisFormDialogProps {
@@ -182,6 +183,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
     e.preventDefault();
 
     try {
+      let resolvedInscriptionId: string | null = null;
+
       if (isEditing) {
         await updateDevis.mutateAsync({
           id: devis.id,
@@ -192,6 +195,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
           date_validite: dateValidite,
           commentaires: commentaires || null,
         });
+
+        resolvedInscriptionId = devis?.session_inscription_id ?? null;
 
         // Supprimer et recréer les lignes
         await deleteLignes.mutateAsync(devis.id);
@@ -220,6 +225,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
           commentaires: commentaires || null,
         });
 
+        resolvedInscriptionId = (newDevis as any)?.session_inscription_id ?? null;
+
         if (lignes.length > 0) {
           await addLignes.mutateAsync(
             lignes.map((l, index) => ({
@@ -233,6 +240,15 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
               ordre: index,
             }))
           );
+        }
+      }
+
+      // Auto-qualify contract frame if devis is linked to an inscription
+      if (resolvedInscriptionId && typeFinancement) {
+        try {
+          await autoQualifyFromFinancing(resolvedInscriptionId, typeFinancement);
+        } catch (e) {
+          console.warn("Auto-qualification from devis:", e);
         }
       }
 
