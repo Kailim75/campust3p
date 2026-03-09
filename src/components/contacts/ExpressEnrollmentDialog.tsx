@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
+import { autoQualifyFromFinancing } from "@/hooks/useContractQualification";
 
 interface ExpressEnrollmentDialogProps {
   open: boolean;
