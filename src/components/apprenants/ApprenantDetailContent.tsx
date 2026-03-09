@@ -7,24 +7,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Phone, Mail, StickyNote, FolderOpen, GraduationCap, Award,
-  CreditCard, MessageCircle, FileText, Bell, LayoutDashboard, FileCheck,
-  CheckCircle2, AlertTriangle, Clock, Send, Bot,
+  Phone, Mail, FolderOpen, GraduationCap,
+  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
+  CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { SiWhatsapp } from "react-icons/si";
 import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
-import { FormationTab } from "./tabs/FormationTab";
 import { CMATab } from "./tabs/CMATab";
 import { CarteProTab } from "./tabs/CarteProTab";
-import { ExamensTab } from "./tabs/ExamensTab";
 import { PaiementsTab } from "./tabs/PaiementsTab";
-import { CommunicationsTab } from "./tabs/CommunicationsTab";
-import { NotesTab } from "./tabs/NotesTab";
-import { RappelsTab } from "./tabs/RappelsTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
+import { SuiviTab } from "./tabs/SuiviTab";
+import { FormationExamensTab } from "./tabs/FormationExamensTab";
 import { WorkflowStepper, type StepStatus } from "@/components/workflow/WorkflowStepper";
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
@@ -282,15 +279,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     { value: "dossier", icon: FolderOpen, label: "Identité" },
     ...(isInitial
       ? [{ value: "cma", icon: FileCheck, label: "CMA" }]
-      : [{ value: "carte-pro", icon: CreditCard, label: "Carte Pro" }]
+      : [{ value: "carte-pro", icon: IdCard, label: "Carte Pro" }]
     ),
     { value: "documents", icon: FileText, label: "Documents" },
     { value: "paiements", icon: CreditCard, label: "Paiements" },
     { value: "formation", icon: GraduationCap, label: "Formation" },
-    { value: "communications", icon: MessageCircle, label: "Suivi" },
-    { value: "notes", icon: StickyNote, label: "Notes" },
-    { value: "rappels", icon: Bell, label: "Rappels" },
-    { value: "examens", icon: Award, label: "Examens" },
+    { value: "suivi", icon: MessageCircle, label: "Suivi" },
   ];
 
   return (
@@ -315,50 +309,37 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
                 contactName={contactName}
                 currentStatus={(contact as any).statut_apprenant as StatutApprenant ?? "actif"}
               />
+              {/* Badge 1: Statut pipeline */}
               {statutBadge && (
                 <Badge variant="outline" className={cn("text-xs", statutBadge.className)}>
                   {statutBadge.label}
                 </Badge>
               )}
+              {/* Badge 2: Track */}
               <Badge variant="outline" className={cn("text-xs", trackBadge.className)}>
                 {trackBadge.label} ({trackBadge.sublabel})
               </Badge>
-              {contact.formation && (
-                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                  {contact.formation}
-                </Badge>
+              {/* Badge 3: Urgency (only if action required) */}
+              {hasActionRequired && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className={cn("text-[10px] cursor-help", urgency.className)}>
+                        <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
+                        {urgency.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[220px]">
+                      <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
+                      {urgency.reasons.length > 0 && (
+                        <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
+                          {urgency.reasons.map((r: string, i: number) => <li key={i}>• {r}</li>)}
+                        </ul>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
-              {/* Dossier status badge */}
-              <Badge variant="outline" className={cn("text-xs",
-                hasActionRequired
-                  ? "bg-warning/10 text-warning border-warning/20"
-                  : "bg-success/10 text-success border-success/20"
-              )}>
-                {hasActionRequired ? (
-                  <><AlertTriangle className="h-3 w-3 mr-1" />Action requise</>
-                ) : (
-                  <><CheckCircle2 className="h-3 w-3 mr-1" />OK</>
-                )}
-              </Badge>
-              {/* Urgency badge with reasons tooltip */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className={cn("text-[10px] cursor-help", urgency.className)}>
-                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
-                      {urgency.label}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[220px]">
-                    <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
-                    {urgency.reasons.length > 0 && (
-                      <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
-                        {urgency.reasons.map((r: string, i: number) => <li key={i}>• {r}</li>)}
-                      </ul>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -367,7 +348,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Dossier progress */}
           <div className="bg-card border rounded-lg p-2.5 space-y-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Progression</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
             <div className="flex items-center gap-2">
               <Progress value={dossierProgress} className="h-1.5 flex-1" />
               <span className="text-xs font-bold text-foreground">{dossierProgress}%</span>
@@ -377,7 +358,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
           {/* CMA / Carte Pro indicator */}
           {isInitial ? (
             <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CMA</p>
+              <p className="text-[10px] font-medium text-muted-foreground">CMA</p>
               <div className="flex items-center gap-1.5">
                 <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
                   {cmaReceived}/{cmaTotal}
@@ -392,9 +373,9 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </button>
           ) : (
             <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Carte Pro</p>
+              <p className="text-[10px] font-medium text-muted-foreground">Carte Pro</p>
               <div className="flex items-center gap-1.5">
-                <CreditCard className="h-3.5 w-3.5 text-accent" />
+                <IdCard className="h-3.5 w-3.5 text-accent" />
                 <span className="text-xs font-medium">Formation Continue</span>
               </div>
             </button>
@@ -402,7 +383,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
           {/* Next deadline */}
           <div className="bg-card border rounded-lg p-2.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prochaine échéance</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Prochaine échéance</p>
             <p className="text-xs font-medium text-foreground truncate mt-0.5">
               {nextSession?.date_debut
                 ? `${nextSession.nom || "Session"} — ${format(new Date(nextSession.date_debut), "dd/MM", { locale: fr })}`
@@ -415,7 +396,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
           {/* Last action */}
           <div className="bg-card border rounded-lg p-2.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dernière action</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Dernière action</p>
             {lastAutoNote ? (
               <p className="text-xs text-foreground truncate mt-0.5">
                 <Bot className="h-3 w-3 inline mr-0.5 text-muted-foreground" />
@@ -545,19 +526,10 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             <PaiementsTab contactId={contact.id} />
           </TabsContent>
           <TabsContent value="formation" className="mt-0">
-            <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
+            <FormationExamensTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} contactFormation={contact.formation} />
           </TabsContent>
-          <TabsContent value="communications" className="mt-0">
-            <CommunicationsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
-          </TabsContent>
-          <TabsContent value="notes" className="mt-0">
-            <NotesTab contactId={contact.id} />
-          </TabsContent>
-          <TabsContent value="rappels" className="mt-0">
-            <RappelsTab contactId={contact.id} />
-          </TabsContent>
-          <TabsContent value="examens" className="mt-0">
-            <ExamensTab contactId={contact.id} formation={contact.formation} />
+          <TabsContent value="suivi" className="mt-0">
+            <SuiviTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
         </div>
       </Tabs>

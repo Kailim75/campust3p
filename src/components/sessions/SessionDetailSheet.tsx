@@ -321,7 +321,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               <SheetHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
-                    {/* Session Number Badge */}
                     {session.numero_session && (
                       <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">
                         <Hash className="h-3 w-3 mr-1" />
@@ -350,7 +349,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       )}
                     </div>
                     
-                    {/* Formateur Badge */}
                     {formateur && (
                       <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-accent/50 border border-accent">
                         <Avatar className="h-7 w-7 border-2 border-primary/20">
@@ -366,7 +364,37 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     )}
                   </div>
-                  <SheetSizeSelector size={size} onSizeChange={setSize} />
+                  <div className="flex items-center gap-2">
+                    {!session.archived && (
+                      <Button size="sm" onClick={() => onEdit(session)}>
+                        <Edit className="h-3.5 w-3.5 mr-1.5" />
+                        Modifier
+                      </Button>
+                    )}
+                    <SheetSizeSelector size={size} onSizeChange={setSize} />
+                  </div>
+                </div>
+
+                {/* ─── KPI Cockpit ─── */}
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Inscrits / Places</p>
+                    <p className={cn("text-sm font-bold", placesRestantes <= 0 ? "text-success" : "text-foreground")}>
+                      {inscriptionCount} / {session.places_totales}
+                    </p>
+                  </div>
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Prix session</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {session.prix ? `${Number(session.prix).toLocaleString('fr-FR')} €` : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Qualiopi</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {qualiopiScore ? `${qualiopiScore.score}%` : '—'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Quick Actions Bar */}
@@ -424,7 +452,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               </SheetHeader>
 
                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                   <TabsTrigger value="info" className="gap-1 text-xs px-1">
                     <Info className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Infos</span>
@@ -441,6 +469,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     <GraduationCap className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Parcours</span>
                   </TabsTrigger>
+                  <TabsTrigger value="finances" className="gap-1 text-xs px-1">
+                    <Euro className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Finances</span>
+                  </TabsTrigger>
                   <TabsTrigger value="qualiopi" className="gap-1 text-xs px-1">
                     <Shield className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Qualiopi</span>
@@ -451,7 +483,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tab: Infos */}
+                {/* Tab: Infos — clean, structural only */}
                 <TabsContent value="info" className="space-y-4 pt-4">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-muted-foreground">
@@ -463,7 +495,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </span>
                     </div>
                     
-                    {/* Horaires */}
                     {(session.heure_debut || session.heure_fin) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Clock className="h-4 w-4" />
@@ -474,7 +505,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     )}
                     
-                    {/* Adresse structurée */}
                     {(session.adresse_rue || session.adresse_ville || session.lieu) && (
                       <div className="flex items-start gap-3 text-muted-foreground">
                         <MapPin className="h-4 w-4 mt-0.5" />
@@ -498,7 +528,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </span>
                     </div>
                     
-                    {/* Prix HT/TTC */}
                     {(session.prix_ht || session.prix) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Euro className="h-4 w-4" />
@@ -512,27 +541,21 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     )}
                   </div>
 
-                  {/* Objectifs pédagogiques */}
                   {session.objectifs && (
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Objectifs pédagogiques
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Objectifs pédagogiques</h3>
                         <p className="text-sm whitespace-pre-line">{session.objectifs}</p>
                       </div>
                     </>
                   )}
 
-                  {/* Prérequis */}
                   {session.prerequis && (
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Prérequis
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Prérequis</h3>
                         <p className="text-sm whitespace-pre-line">{session.prerequis}</p>
                       </div>
                     </>
@@ -542,19 +565,61 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Description
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Description</h3>
                         <p className="text-sm">{session.description}</p>
                       </div>
                     </>
                   )}
 
+                  {/* Actions: Archive / Clôture */}
+                  <Separator />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-success text-success hover:bg-success/10"
+                          onClick={() => setCloseDialogOpen(true)}
+                          disabled={inscriptionCount === 0}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Clôturer
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {session.archived ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => unarchiveSession.mutate(session.id)}
+                          disabled={unarchiveSession.isPending}
+                        >
+                          <ArchiveRestore className="h-4 w-4 mr-2" />
+                          Désarchiver
+                        </Button>
+                      ) : canArchive ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => archiveSession.mutate(session.id)}
+                          disabled={archiveSession.isPending}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archiver
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab: Finances */}
+                <TabsContent value="finances" className="space-y-4 pt-4">
+                  <SessionFinancialSummary sessionId={session.id} />
+                  
                   <Separator />
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Documents
-                    </h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Générer les documents financiers</h3>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="w-full justify-start">
@@ -602,65 +667,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
-
-                  {/* Récapitulatif financier */}
-                  <Separator />
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <Euro className="h-4 w-4" />
-                      Récapitulatif financier
-                    </h3>
-                    <SessionFinancialSummary sessionId={session.id} />
-                  </div>
-
-                  <Separator />
-                  <div className="flex flex-col gap-2">
-                    {/* Actions principales */}
-                    <div className="flex gap-2">
-                      {!session.archived && (
-                        <Button className="flex-1" onClick={() => onEdit(session)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </Button>
-                      )}
-                      {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 border-success text-success hover:bg-success/10"
-                          onClick={() => setCloseDialogOpen(true)}
-                          disabled={inscriptionCount === 0}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Clôturer
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {/* Actions archivage */}
-                    <div className="flex gap-2">
-                      {session.archived ? (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => unarchiveSession.mutate(session.id)}
-                          disabled={unarchiveSession.isPending}
-                        >
-                          <ArchiveRestore className="h-4 w-4 mr-2" />
-                          Désarchiver
-                        </Button>
-                      ) : canArchive ? (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => archiveSession.mutate(session.id)}
-                          disabled={archiveSession.isPending}
-                        >
-                          <Archive className="h-4 w-4 mr-2" />
-                          Archiver
-                        </Button>
-                      ) : null}
-                    </div>
                   </div>
                 </TabsContent>
 
