@@ -33,6 +33,7 @@ import {
   type Devis,
   type FinancementType,
 } from "@/hooks/useDevis";
+import { autoQualifyFromFinancing } from "@/hooks/useContractQualification";
 import { format, addDays } from "date-fns";
 
 interface DevisFormDialogProps {
