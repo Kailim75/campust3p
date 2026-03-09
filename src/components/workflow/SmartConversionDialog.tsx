@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { autoQualifyFromFinancing } from "@/hooks/useContractQualification";
 import { getUserCentreId } from "@/utils/getCentreId";
 import {
   Dialog,
