@@ -255,15 +255,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
   };
 
-  const handleRemoveInscription = async (contactId: string) => {
-    if (!sessionId) return;
-    try {
-      await removeInscription.mutateAsync({ sessionId, contactId });
-      toast.success("Inscription annulée");
-    } catch {
-      toast.error("Erreur lors de l'annulation");
-    }
-  };
+
+
 
   // ─── Reusable recipient extraction (no more duplicated `as any` blocks) ───
   const openEmailForSession = (subject: string, body: string) => {
