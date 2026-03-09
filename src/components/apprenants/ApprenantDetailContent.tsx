@@ -307,7 +307,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
               <StatutApprenantDropdown
                 contactId={contact.id}
                 contactName={contactName}
-                currentStatus={(contact as any).statut_apprenant as StatutApprenant ?? "actif"}
+                currentStatus={contact.statut_apprenant as StatutApprenant ?? "actif"}
               />
               {/* Badge 1: Statut pipeline */}
               {statutBadge && (
