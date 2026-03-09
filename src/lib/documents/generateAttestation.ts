@@ -38,8 +38,11 @@ interface CentreFormationData {
   nda: string;
 }
 
+/** Enriched contact data that may contain extra fields from ContactDocumentData. */
+type EnrichedContact = ContactInfo & Partial<ContactDocumentData>;
+
 function buildAttestationVariableData(
-  fullContact: any,
+  fullContact: EnrichedContact,
   session: SessionInfo,
   centreFormation?: CentreFormationData | null,
   certificateInfo?: CertificateInfo
