@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Loader2 } from "lucide-react";
 import Auth from "./pages/Auth";
@@ -45,6 +45,7 @@ const LazyFallback = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+
 const queryClient = new QueryClient({
   defaultOptions: {
     mutations: {
@@ -63,10 +64,42 @@ const queryClient = new QueryClient({
   },
 });
 
-function SectionRedirect({ section }: { section: string }) {
-  const location = useLocation();
-  return <Navigate to={`/?section=${section}${location.search}`} replace />;
-}
+// Explicit app section routes (phase 2 incremental routing migration)
+const APP_SECTION_PATHS = [
+  "/",
+  "/dashboard",
+  "/aujourdhui",
+  "/prospects",
+  "/pipeline", // legacy alias (handled by Index mapping)
+  "/prospects-agenda", // legacy alias (handled by Index mapping)
+  "/contacts",
+  "/apprenants", // legacy alias
+  "/sessions",
+  "/formations",
+  "/finances",
+  "/facturation", // legacy alias
+  "/paiements", // legacy alias
+  "/automations",
+  "/settings",
+  "/alertes",
+  "/qualite",
+  "/partenaires",
+  "/formateurs",
+  "/planning-conduite",
+  "/template-studio",
+  "/security",
+  "/corbeille",
+] as const;
+
+const AppShellRoute = () => (
+  <ProtectedRoute>
+    <CentreProvider>
+      <AdminModeProvider>
+        <MainApp />
+      </AdminModeProvider>
+    </CentreProvider>
+  </ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -96,31 +129,29 @@ const App = () => (
                 <Route path="/flyer-vmdtr" element={<FlyerVMDTRPage />} />
                 <Route path="/flyers-pdf" element={<FlyersPDFPage />} />
                 <Route path="/reserver/:token" element={<ReserverConduite />} />
-                <Route path="/actions" element={
-                  <ProtectedRoute>
-                    <ActionLogs />
-                  </ProtectedRoute>
-                } />
-                <Route path="/formateur" element={
-                  <ProtectedRoute>
-                    <FormateurPortal />
-                  </ProtectedRoute>
-                } />
-                {/* Main App — catches "/" and all section paths like /contacts, /sessions, etc. */}
-                {/* Legacy ?section= deep-links are handled inside Index.tsx */}
                 <Route
-                  path="/*"
+                  path="/actions"
                   element={
                     <ProtectedRoute>
-                      <CentreProvider>
-                        <AdminModeProvider>
-                          <MainApp />
-                        </AdminModeProvider>
-                      </CentreProvider>
+                      <ActionLogs />
                     </ProtectedRoute>
                   }
                 />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route
+                  path="/formateur"
+                  element={
+                    <ProtectedRoute>
+                      <FormateurPortal />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Main app explicit routes */}
+                {APP_SECTION_PATHS.map((path) => (
+                  <Route key={path} path={path} element={<AppShellRoute />} />
+                ))}
+
+                {/* 404 for unknown routes */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
