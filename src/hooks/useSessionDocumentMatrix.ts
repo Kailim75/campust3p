@@ -52,7 +52,7 @@ export function useSessionDocumentMatrix({
       // Fetch inscriptions with contact data + contract qualification
       const { data: inscriptions } = await (supabase as any)
         .from("session_inscriptions")
-        .select("id, contact_id, contract_document_type, contract_frame_status, qualification_source, contacts(id, nom, prenom, email, date_naissance, ville_naissance)")
+        .select("id, contact_id, contract_document_type, contract_frame_status, qualification_source, contacts:contact_id(id, nom, prenom, email, date_naissance, ville_naissance)")
         .eq("session_id", sessionId)
         .is("deleted_at", null);
 
