@@ -49,3 +49,23 @@ export {
   type RawDocumentEnvoi,
   type RawSignatureRequest,
 } from "./documentWorkflowMapper";
+
+// Audit export
+export {
+  buildAuditCSV,
+  buildLearnerAuditCSV,
+  downloadCSV,
+} from "./auditExport";
+
+// V1 Migration Registry
+export {
+  V1_MIGRATION_REGISTRY,
+  hasV1Dependencies,
+  getMigrationStatus,
+  resolveSourceSystem,
+  getMigrationPriorities,
+  isV1TableRequired,
+  getDeprecationWarnings,
+  getMigrationSummary,
+  type V1MigrationEntry,
+} from "./v1MigrationRegistry";
