@@ -37,10 +37,10 @@ export function buildCompanyInfo(centreFormation: CentreFormationRow | null | un
     agrements_autres = rawAgrements
       .filter((a): a is AgrementsAutre => !!a && typeof a === "object")
       .map((a) => ({
-        nom: String((a as Record<string, unknown>).nom ?? ""),
-        numero: String((a as Record<string, unknown>).numero ?? ""),
-        date_obtention: (a as Record<string, unknown>).date_obtention as string | undefined ?? undefined,
-        date_expiration: (a as Record<string, unknown>).date_expiration as string | undefined ?? undefined,
+        nom: String(a.nom ?? ""),
+        numero: String(a.numero ?? ""),
+        date_obtention: a.date_obtention ?? undefined,
+        date_expiration: a.date_expiration ?? undefined,
       }))
       .filter((a) => a.nom.trim() !== "" && a.numero.trim() !== "");
   } else if (rawAgrements && typeof rawAgrements === "object") {
