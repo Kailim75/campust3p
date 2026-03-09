@@ -14,7 +14,8 @@ export type SoftDeleteTable =
   | "emargements"
   | "document_templates"
   | "catalogue_formations"
-  | "email_templates";
+  | "email_templates"
+  | "generated_documents_v2";
 
 const tableLabels: Record<SoftDeleteTable, string> = {
   sessions: "Session",
@@ -29,6 +30,7 @@ const tableLabels: Record<SoftDeleteTable, string> = {
   document_templates: "Modèle de document",
   catalogue_formations: "Formation catalogue",
   email_templates: "Modèle email",
+  generated_documents_v2: "Document généré",
 };
 
 const tableQueryKeys: Record<SoftDeleteTable, string[][]> = {
@@ -44,6 +46,7 @@ const tableQueryKeys: Record<SoftDeleteTable, string[][]> = {
   document_templates: [["document_templates"]],
   catalogue_formations: [["catalogue_formations"]],
   email_templates: [["email_templates"]],
+  generated_documents_v2: [["generated-docs-v2"]],
 };
 
 export function useSoftDelete() {

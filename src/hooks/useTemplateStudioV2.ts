@@ -440,6 +440,7 @@ export function useGeneratedDocuments(opts?: { contactId?: string; sessionId?: s
       let query = (supabase as any)
         .from("generated_documents_v2")
         .select("*, template:template_studio_templates(id, name, type, category)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (opts?.contactId) query = query.eq("contact_id", opts.contactId);
@@ -614,7 +615,8 @@ export function useRetryFailedDocuments() {
       let query = (supabase as any)
         .from("generated_documents_v2")
         .select("*, template:template_studio_templates(id, name, template_body, current_version_id)")
-        .eq("status", "failed");
+        .eq("status", "failed")
+        .is("deleted_at", null);
 
       if (opts.contactId) query = query.eq("contact_id", opts.contactId);
       if (opts.sessionId) query = query.eq("session_id", opts.sessionId);
@@ -759,6 +761,7 @@ export function useGeneratePackDocuments() {
             .eq("template_id", item.template_id)
             .eq("contact_id", params.contactId || "")
             .eq("status", "generated")
+            .is("deleted_at", null)
             .limit(1);
 
           if (existing && existing.length > 0) {
