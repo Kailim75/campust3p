@@ -146,7 +146,7 @@ export async function triggerAutoGeneration(params: {
         // Render template body
         const rendered = (tmpl.template_body || "").replace(
           /\{\{(\w+)\}\}/g,
-          (_: string, v: string) => (variables as Record<string, string>)[v] || ""
+          (_: string, v: string) => variables[v] || ""
         );
 
         // Create queued record
