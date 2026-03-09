@@ -159,7 +159,7 @@ export async function triggerAutoGeneration(params: {
           centre_id: centreIdForAuto || "",
           file_name: `${(tmpl.name || "document").replace(/\s+/g, "_")}.pdf`,
           status: "queued",
-          variables_snapshot: variables as Json,
+          variables_snapshot: variables as unknown as Json,
         });
 
         if (!doc) {
