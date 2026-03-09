@@ -44,9 +44,9 @@ export function buildCompanyInfo(centreFormation: CentreFormationRow | null | un
       }))
       .filter((a) => a.nom.trim() !== "" && a.numero.trim() !== "");
   } else if (rawAgrements && typeof rawAgrements === "object") {
-    const maybe = rawAgrements as any;
+    const maybe = rawAgrements as Record<string, unknown>;
     if (Array.isArray(maybe.agrements)) {
-      agrements_autres = maybe.agrements as AgrementsAutre[];
+      agrements_autres = (maybe.agrements as AgrementsAutre[]);
     }
   }
 
