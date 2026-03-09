@@ -51,6 +51,13 @@ const STATUS_FILTERS: { value: LearnerStatusFilter; label: string }[] = [
   { value: "blocked", label: "Bloqués" },
 ];
 
+const CONTRACT_FILTERS: { value: ContractFilter; label: string }[] = [
+  { value: "all", label: "Tous" },
+  { value: "contrat", label: "Contrat" },
+  { value: "convention", label: "Convention" },
+  { value: "a_qualifier", label: "À qualifier" },
+];
+
 export function SessionDocumentFiltersBar({
   search,
   onSearchChange,
@@ -58,7 +65,10 @@ export function SessionDocumentFiltersBar({
   onStatusFilterChange,
   blockFilter,
   onBlockFilterChange,
+  contractFilter,
+  onContractFilterChange,
   counts,
+  contractCounts,
   className,
 }: SessionDocumentFiltersBarProps) {
   const blockEntries = Object.entries(DOCUMENT_BLOCKS) as [DocumentBlock, { label: string }][];
