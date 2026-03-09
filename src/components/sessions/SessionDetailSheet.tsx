@@ -452,7 +452,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               </SheetHeader>
 
                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                   <TabsTrigger value="info" className="gap-1 text-xs px-1">
                     <Info className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Infos</span>
@@ -468,6 +468,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <TabsTrigger value="parcours" className="gap-1 text-xs px-1">
                     <GraduationCap className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Parcours</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="finances" className="gap-1 text-xs px-1">
+                    <Euro className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Finances</span>
                   </TabsTrigger>
                   <TabsTrigger value="qualiopi" className="gap-1 text-xs px-1">
                     <Shield className="h-3.5 w-3.5" />
