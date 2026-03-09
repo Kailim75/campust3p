@@ -375,7 +375,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
               <p className="text-[10px] font-medium text-muted-foreground">Carte Pro</p>
               <div className="flex items-center gap-1.5">
-                <CreditCard className="h-3.5 w-3.5 text-accent" />
+                <IdCard className="h-3.5 w-3.5 text-accent" />
                 <span className="text-xs font-medium">Formation Continue</span>
               </div>
             </button>
