@@ -21,6 +21,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
+import { DocumentHistoryTimeline } from "./DocumentHistoryTimeline";
+import { DocumentVersionBadge } from "./DocumentVersionBadge";
 import { supabase } from "@/integrations/supabase/client";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
@@ -115,6 +117,7 @@ export function DocumentPreviewDrawer({
               {item && (
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <DocumentStatusBadge status={item.businessStatus} />
+                  <DocumentVersionBadge item={item} />
                   {item.isRequired && (
                     <Badge variant="outline" className="text-[10px] h-5">Requis</Badge>
                   )}
@@ -194,6 +197,14 @@ export function DocumentPreviewDrawer({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* History timeline */}
+        {item && item.historySummary.length > 0 && (
+          <div className="px-4 py-3 border-b bg-background flex-shrink-0">
+            <p className="text-[11px] font-semibold text-muted-foreground mb-2">Historique</p>
+            <DocumentHistoryTimeline history={item.historySummary} />
           </div>
         )}
 

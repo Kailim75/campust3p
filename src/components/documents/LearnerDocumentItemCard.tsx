@@ -10,6 +10,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 import { DocumentQuickActions } from "./DocumentQuickActions";
+import { DocumentVersionBadge } from "./DocumentVersionBadge";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface LearnerDocumentItemCardProps {
@@ -88,12 +89,13 @@ export function LearnerDocumentItemCard({
             </div>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium text-sm truncate">{item.templateName}</p>
-                {item.isRequired && (
-                  <Badge variant="outline" className="text-[9px] h-4 px-1">Requis</Badge>
-                )}
-              </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-sm truncate">{item.templateName}</p>
+                  <DocumentVersionBadge item={item} />
+                  {item.isRequired && (
+                    <Badge variant="outline" className="text-[9px] h-4 px-1">Requis</Badge>
+                  )}
+                </div>
               
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <DocumentStatusBadge status={item.businessStatus} size="sm" />

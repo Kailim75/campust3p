@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, CheckCircle2, AlertTriangle, Clock, FileText,
-  Package, Loader2, Filter,
+  Package, Loader2, Filter, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
+import { toast } from "sonner";
 import type { SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
 
 interface SessionDocumentsOverviewCardProps {
@@ -166,6 +168,20 @@ export function SessionDocumentsOverviewCard({
                 Dossiers complets
               </Badge>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => {
+                const csv = buildAuditCSV(rows);
+                const date = new Date().toISOString().slice(0, 10);
+                downloadCSV(csv, `audit-session-${date}.csv`);
+                toast.success("Export audit téléchargé");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export audit
+            </Button>
           </div>
         </div>
       </CardContent>

@@ -10,16 +10,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   FileText, Users, CheckCircle2, AlertTriangle, ExternalLink,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Download, Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useSessionDocumentMatrix } from "@/hooks/useSessionDocumentMatrix";
 import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
+import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
+import { useGenerateDocument, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import { SessionDocumentsOverviewCard } from "./SessionDocumentsOverviewCard";
 import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter } from "./SessionDocumentFiltersBar";
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
-import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
+import { BulkGenerationDialog } from "./BulkGenerationDialog";
+import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
   sessionId: string;
@@ -49,8 +53,12 @@ export function SessionDocumentMatrixView({
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  // Selection (for future bulk actions)
+  // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Bulk generation
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const generateDoc = useGenerateDocument();
 
   // Detail panel
   const [detailState, setDetailState] = useState<{
@@ -148,6 +156,35 @@ export function SessionDocumentMatrixView({
     setDetailState({ row, block });
   };
 
+  // Bulk generation handler
+  const handleBulkGenerate = useCallback(async (_contactId: string, item: DocumentWorkflowItem): Promise<boolean> => {
+    if (!item.templateId) return false;
+    try {
+      const variables = await buildVariablesForGeneration({
+        contactId: item.contactId ?? undefined,
+        sessionId: item.sessionId ?? undefined,
+      });
+      await generateDoc.mutateAsync({
+        templateId: item.templateId,
+        contactId: item.contactId ?? undefined,
+        sessionId: item.sessionId ?? undefined,
+        variables,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [generateDoc]);
+
+  // Audit export
+  const handleExportAudit = useCallback(() => {
+    if (!rows?.length) return;
+    const csv = buildAuditCSV(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCSV(csv, `audit-session-${sessionName?.replace(/\s+/g, "_") ?? sessionId}-${date}.csv`);
+    toast.success("Export audit téléchargé");
+  }, [rows, sessionName, sessionId]);
+
   // ── Render ──
 
   if (isLoading) {
@@ -207,9 +244,24 @@ export function SessionDocumentMatrixView({
           <Badge variant="outline" className="text-[11px] h-6 bg-primary/10 text-primary border-primary/20">
             {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
           </Badge>
-          <span className="text-[11px] text-muted-foreground">
-            Sélection prête — génération groupée disponible dans une prochaine version.
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Play className="h-3 w-3" />
+            Générer les documents
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={handleExportAudit}
+          >
+            <Download className="h-3 w-3" />
+            Export audit
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -367,6 +419,19 @@ export function SessionDocumentMatrixView({
         block={detailState?.block ?? null}
         allBlocks={detailState?.row.blocks ?? []}
         onRefetch={refetch}
+      />
+
+      {/* Bulk generation dialog */}
+      <BulkGenerationDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        rows={rows ?? []}
+        selectedContactIds={selectedIds}
+        onGenerate={handleBulkGenerate}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          refetch();
+        }}
       />
     </div>
   );

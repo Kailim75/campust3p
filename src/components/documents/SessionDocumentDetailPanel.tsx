@@ -11,12 +11,11 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { LearnerDocumentItemCard } from "./LearnerDocumentItemCard";
 import { DocumentPreviewDrawer } from "./DocumentPreviewDrawer";
-import { DocumentStatusBadge } from "./DocumentStatusBadge";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { DocumentBlockSummary, DocumentWorkflowItem } from "@/lib/document-workflow/types";
@@ -29,9 +28,7 @@ interface SessionDocumentDetailPanelProps {
   contactEmail?: string | null;
   contactPhone?: string | null;
   sessionName?: string | null;
-  /** If set, show only this block. Otherwise show all blocks. */
   block: DocumentBlockSummary | null;
-  /** All blocks for this learner (used when block is null) */
   allBlocks?: DocumentBlockSummary[];
   onRefetch?: () => void;
 }
@@ -49,11 +46,11 @@ export function SessionDocumentDetailPanel({
   onRefetch,
 }: SessionDocumentDetailPanelProps) {
   const [previewItem, setPreviewItem] = useState<DocumentWorkflowItem | null>(null);
+  const { composerProps, openComposer } = useEmailComposer();
 
   const items = block ? block.items : allBlocks.flatMap(b => b.items);
   const label = block ? block.label : "Tous les documents";
 
-  // ── Handlers ──
   const handleDownload = useCallback(async (item: DocumentWorkflowItem) => {
     if (!item.storagePath) return;
     try {
@@ -72,6 +69,44 @@ export function SessionDocumentDetailPanel({
       toast.error("Erreur de téléchargement");
     }
   }, []);
+
+  const handleEmail = useCallback(async (item: DocumentWorkflowItem) => {
+    if (!contactEmail || !item.storagePath || !contactId) return;
+
+    try {
+      const { data: fileData, error: dlError } = await supabase.storage
+        .from("generated-docs")
+        .download(item.storagePath);
+      if (dlError) throw dlError;
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = (reader.result as string).split(",")[1];
+          resolve(base64String);
+        };
+        reader.readAsDataURL(fileData);
+      });
+
+      const nameParts = contactName.split(" ");
+      const prenom = nameParts[0] || "";
+      const nom = nameParts.slice(1).join(" ") || contactName;
+
+      openComposer({
+        recipients: [{ id: contactId, email: contactEmail, prenom, nom }],
+        defaultSubject: `${item.templateName} - ${contactName}`,
+        defaultBody: `Bonjour,\n\nVeuillez trouver ci-joint votre ${item.templateName.toLowerCase()}.\n\nCordialement,`,
+        attachments: [{
+          filename: item.templateName.replace(/\s+/g, "_") + ".pdf",
+          content: base64,
+          contentType: "application/pdf",
+        }],
+        onSuccess: () => onRefetch?.(),
+      });
+    } catch {
+      toast.error("Erreur lors de la préparation de l'email");
+    }
+  }, [contactEmail, contactId, contactName, openComposer, onRefetch]);
 
   const handleWhatsApp = useCallback((item: DocumentWorkflowItem) => {
     if (!contactPhone) return;
@@ -104,10 +139,7 @@ export function SessionDocumentDetailPanel({
                   variant="ghost"
                   size="sm"
                   className="h-7 text-[11px] gap-1"
-                  onClick={() => {
-                    // Navigate to learner profile (generic approach)
-                    window.open(`/contacts?id=${contactId}`, "_blank");
-                  }}
+                  onClick={() => window.open(`/contacts?id=${contactId}`, "_blank")}
                 >
                   <ExternalLink className="h-3 w-3" />
                   Fiche
@@ -130,6 +162,7 @@ export function SessionDocumentDetailPanel({
                   contactPhone={contactPhone}
                   onPreview={() => setPreviewItem(item)}
                   onDownload={item.storagePath ? () => handleDownload(item) : undefined}
+                  onEmail={item.storagePath && contactEmail ? () => handleEmail(item) : undefined}
                   onWhatsApp={contactPhone ? () => handleWhatsApp(item) : undefined}
                 />
               ))
@@ -148,8 +181,12 @@ export function SessionDocumentDetailPanel({
         contactPhone={contactPhone}
         sessionName={sessionName}
         onDownload={previewItem?.storagePath ? () => handleDownload(previewItem) : undefined}
+        onEmail={previewItem?.storagePath && contactEmail ? () => handleEmail(previewItem) : undefined}
         onWhatsApp={previewItem && contactPhone ? () => handleWhatsApp(previewItem) : undefined}
       />
+
+      {/* Email composer */}
+      <EmailComposerModal {...composerProps} />
     </>
   );
 }

@@ -45,10 +45,12 @@ const RULES: RuleSet = {
   convention: (c, s) => {
     const missing: string[] = [];
     if (!c.nom || !c.prenom) missing.push("Identité apprenant (nom/prénom)");
+    if (!c.email) missing.push("Email apprenant");
     if (!s) missing.push("Session liée");
     if (s && !s.date_debut) missing.push("Date de début de session");
     if (s && !s.date_fin) missing.push("Date de fin de session");
     if (s && (s.prix_total == null || s.prix_total <= 0)) missing.push("Prix de la formation");
+    if (s && !s.nom) missing.push("Nom de la formation");
     return missing;
   },
 
@@ -56,14 +58,17 @@ const RULES: RuleSet = {
     const missing: string[] = [];
     if (!c.nom || !c.prenom) missing.push("Identité apprenant");
     if (!c.date_naissance) missing.push("Date de naissance");
+    if (!c.email) missing.push("Email apprenant");
     if (!s) missing.push("Session liée");
     if (s && !s.date_debut) missing.push("Date de début");
+    if (s && !s.date_fin) missing.push("Date de fin");
     if (s && (s.prix_total == null || s.prix_total <= 0)) missing.push("Prix de la formation");
     return missing;
   },
 
-  convocation: (_c, s) => {
+  convocation: (c, s) => {
     const missing: string[] = [];
+    if (!c.nom || !c.prenom) missing.push("Identité apprenant");
     if (!s) missing.push("Session liée");
     if (s && !s.date_debut) missing.push("Date de début de session");
     if (s && !s.lieu) missing.push("Lieu de formation");
@@ -81,6 +86,7 @@ const RULES: RuleSet = {
   attestation: (c, s) => {
     const missing: string[] = [];
     if (!c.nom || !c.prenom) missing.push("Identité apprenant");
+    if (!c.date_naissance) missing.push("Date de naissance");
     if (!s) missing.push("Session liée");
     if (s && !s.date_debut) missing.push("Date de début");
     if (s && !s.date_fin) missing.push("Date de fin");
@@ -88,9 +94,11 @@ const RULES: RuleSet = {
     return missing;
   },
 
-  invoice: (c, _s) => {
+  invoice: (c, s) => {
     const missing: string[] = [];
     if (!c.nom || !c.prenom) missing.push("Identité apprenant");
+    if (!c.email) missing.push("Email apprenant");
+    if (s && (s.prix_total == null || s.prix_total <= 0)) missing.push("Prix de la formation");
     return missing;
   },
 
@@ -100,7 +108,22 @@ const RULES: RuleSet = {
   },
 
   emargement: (_c, s) => {
+    const missing: string[] = [];
+    if (!s) missing.push("Session liée");
+    if (s && !s.date_debut) missing.push("Date de début de session");
+    return missing;
+  },
+
+  evaluation_chaud: (_c, s) => {
     return !s ? ["Session liée"] : [];
+  },
+
+  evaluation_froid: (c, s) => {
+    const missing: string[] = [];
+    if (!c.email) missing.push("Email apprenant");
+    if (!s) missing.push("Session liée");
+    if (s && !s.date_fin) missing.push("Date de fin de session");
+    return missing;
   },
 };
 
