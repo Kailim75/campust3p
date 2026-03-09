@@ -181,9 +181,15 @@ export function createExpectedPlaceholders(
   session: EligibilitySession | null,
   centreId: string,
   context: "apprenant" | "session",
-  track?: FormationTrack | null
+  track?: FormationTrack | null,
+  contractContext?: ContractContext | null
 ): DocumentWorkflowItem[] {
-  const configs = getVisibleConfigs(context);
+  let configs = getVisibleConfigs(context);
+
+  // Contract-aware filtering: hide irrelevant contrat/convention
+  if (contractContext) {
+    configs = filterContractDocuments(configs, contractContext);
+  }
 
   const placeholders: DocumentWorkflowItem[] = [];
 
