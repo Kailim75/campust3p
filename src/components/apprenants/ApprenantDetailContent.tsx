@@ -134,6 +134,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const hasFacture = factures.length > 0;
       const hasPaid = factures.some((f) => f.statut === "payee" || f.statut === "partiel");
 
+      // Track-aware completion
+      const trackCompletion = computeTrackCompletion(contactTrack, {
+        uploadedDocTypes: docTypes,
+        carteProData: carteProRes.data?.[0] || null,
+      });
+
       const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
       const totalPaye = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
       const restantDu = totalFacture - totalPaye;
