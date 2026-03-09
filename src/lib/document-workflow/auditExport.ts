@@ -85,6 +85,8 @@ export function buildLearnerAuditCSV(
     totalDocuments: blocks.reduce((s, b) => s + b.items.length, 0),
     generatedCount: blocks.reduce((s, b) => s + b.generated, 0),
     missingCount: blocks.reduce((s, b) => s + b.missing, 0),
+    contractFrame: null,
+    contractFrameSource: null,
   };
 
   return buildAuditCSV([syntheticRow]);

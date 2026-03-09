@@ -237,6 +237,18 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
         }
       }
 
+      // Auto-qualify contract frame if devis is linked to an inscription
+      const inscriptionId = isEditing
+        ? devis?.session_inscription_id
+        : (newDevis as any)?.session_inscription_id;
+      if (inscriptionId && typeFinancement) {
+        try {
+          await autoQualifyFromFinancing(inscriptionId, typeFinancement);
+        } catch (e) {
+          console.warn("Auto-qualification from devis:", e);
+        }
+      }
+
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving devis:", error);
