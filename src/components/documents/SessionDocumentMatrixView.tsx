@@ -93,6 +93,11 @@ export function SessionDocumentMatrixView({
       result = result.filter(r => r.overallStatus === statusFilter);
     }
 
+    // Contract filter
+    if (contractFilter !== "all") {
+      result = result.filter(r => (r.contractFrame ?? "a_qualifier") === contractFilter);
+    }
+
     // Sort
     result.sort((a, b) => {
       let cmp = 0;
