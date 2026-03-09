@@ -7,9 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Phone, Mail, StickyNote, FolderOpen, GraduationCap, Award,
-  CreditCard, MessageCircle, FileText, Bell, LayoutDashboard, FileCheck,
-  CheckCircle2, AlertTriangle, Clock, Send, Bot,
+  Phone, Mail, FolderOpen, GraduationCap,
+  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
+  CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
