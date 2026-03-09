@@ -1,0 +1,123 @@
+// ═══════════════════════════════════════════════════════════════
+// useDocumentWorkflow — Fetch & unify document data for a contact
+// ═══════════════════════════════════════════════════════════════
+
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  mapGeneratedDocV2,
+  createExpectedPlaceholders,
+  type RawGeneratedDocV2,
+  type RawDocumentEnvoi,
+  type RawSignatureRequest,
+} from "@/lib/document-workflow/documentWorkflowMapper";
+import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
+import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
+
+interface UseDocumentWorkflowParams {
+  contactId: string | null;
+  sessionId?: string | null;
+  centreId?: string | null;
+  context?: "apprenant" | "session";
+  enabled?: boolean;
+}
+
+/**
+ * Unified hook that fetches generated docs, envois, and signatures,
+ * then maps everything into DocumentWorkflowItem[].
+ */
+export function useDocumentWorkflow({
+  contactId,
+  sessionId,
+  centreId,
+  context = "apprenant",
+  enabled = true,
+}: UseDocumentWorkflowParams) {
+  return useQuery({
+    queryKey: ["document-workflow", contactId, sessionId, context],
+    enabled: enabled && !!(contactId || sessionId),
+    queryFn: async (): Promise<DocumentWorkflowItem[]> => {
+      // 1. Fetch generated docs V2
+      let genQuery = (supabase as any)
+        .from("generated_documents_v2")
+        .select("*, template:template_studio_templates(id, name, type, category)")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (contactId) genQuery = genQuery.eq("contact_id", contactId);
+      if (sessionId) genQuery = genQuery.eq("session_id", sessionId);
+
+      // 2. Fetch envois
+      let envoisQuery = supabase
+        .from("document_envois")
+        .select("*")
+        .order("date_envoi", { ascending: false });
+
+      if (contactId) envoisQuery = envoisQuery.eq("contact_id", contactId);
+      if (sessionId) envoisQuery = envoisQuery.eq("session_id", sessionId);
+
+      // 3. Fetch signatures
+      let sigQuery = supabase
+        .from("signature_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (contactId) sigQuery = sigQuery.eq("contact_id", contactId);
+
+      // 4. Fetch contact data for eligibility
+      let contactData: EligibilityContact | null = null;
+      if (contactId) {
+        const { data: c } = await supabase
+          .from("contacts")
+          .select("id, nom, prenom, email, date_naissance, ville_naissance")
+          .eq("id", contactId)
+          .single();
+        contactData = c as EligibilityContact | null;
+      }
+
+      // 5. Fetch session data for eligibility
+      let sessionData: EligibilitySession | null = null;
+      if (sessionId) {
+        const { data: s } = await (supabase as any)
+          .from("sessions")
+          .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total")
+          .eq("id", sessionId)
+          .single();
+        sessionData = s as EligibilitySession | null;
+      }
+
+      // Execute parallel queries
+      const [genResult, envoisResult, sigResult] = await Promise.all([
+        genQuery,
+        envoisQuery,
+        sigQuery,
+      ]);
+
+      const generatedDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
+      const envois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
+      const signatures = (sigResult.data ?? []) as RawSignatureRequest[];
+
+      // Map generated docs to workflow items
+      const items: DocumentWorkflowItem[] = generatedDocs.map(doc =>
+        mapGeneratedDocV2(doc, envois, signatures, contactData, sessionData)
+      );
+
+      // Add placeholders for expected but missing documents
+      if (contactData) {
+        const existingTypes = new Set(items.map(i => i.documentType));
+        const effectiveCentreId = centreId ?? items[0]?.centreId ?? "";
+        const placeholders = createExpectedPlaceholders(
+          existingTypes,
+          contactData,
+          sessionData,
+          effectiveCentreId,
+          context
+        );
+        items.push(...placeholders);
+      }
+
+      return items;
+    },
+    staleTime: 30_000, // 30s cache
+  });
+}
