@@ -105,6 +105,10 @@ export interface DocumentBlockSummary {
   errors: number;
 }
 
+/** Contract frame status for session matrix display */
+export type ContractFrameDisplay = "contrat" | "convention" | "a_qualifier" | null;
+export type ContractFrameSource = "manual" | "auto" | null;
+
 /** Session-level matrix row (one per learner) */
 export interface SessionDocumentMatrixRow {
   contactId: string;
@@ -115,4 +119,7 @@ export interface SessionDocumentMatrixRow {
   totalDocuments: number;
   generatedCount: number;
   missingCount: number;
+  /** Contract frame qualification */
+  contractFrame: ContractFrameDisplay;
+  contractFrameSource: ContractFrameSource;
 }

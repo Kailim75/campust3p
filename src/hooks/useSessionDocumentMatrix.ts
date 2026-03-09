@@ -115,6 +115,18 @@ export function useSessionDocumentMatrix({
           ["genere", "envoye", "signe", "consulte"].includes(i.businessStatus)
         ).length;
 
+        // Contract frame from inscription
+        const contractDocType = (insc as any).contract_document_type as string | null;
+        const contractStatus = (insc as any).contract_frame_status as string | null;
+        const qualSource = (insc as any).qualification_source as string | null;
+
+        const contractFrame = contractDocType === "contrat" ? "contrat"
+          : contractDocType === "convention" ? "convention"
+          : "a_qualifier";
+        const contractFrameSource = qualSource === "manual" ? "manual"
+          : qualSource ? "auto"
+          : null;
+
         rows.push({
           contactId: contact.id,
           contactName: `${contact.prenom ?? ""} ${contact.nom ?? ""}`.trim(),
@@ -130,6 +142,8 @@ export function useSessionDocumentMatrix({
           totalDocuments: items.length,
           generatedCount,
           missingCount,
+          contractFrame: contractFrame as any,
+          contractFrameSource: contractFrameSource as any,
         });
       }
 
