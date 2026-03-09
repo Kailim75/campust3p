@@ -10,6 +10,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 import { DocumentQuickActions } from "./DocumentQuickActions";
+import { DocumentVersionBadge } from "./DocumentVersionBadge";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface LearnerDocumentItemCardProps {
