@@ -358,7 +358,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
           {/* CMA / Carte Pro indicator */}
           {isInitial ? (
             <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CMA</p>
+              <p className="text-[10px] font-medium text-muted-foreground">CMA</p>
               <div className="flex items-center gap-1.5">
                 <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
                   {cmaReceived}/{cmaTotal}
