@@ -14,6 +14,7 @@ import { useGenerateDocument, useDownloadGeneratedDoc, buildVariablesForGenerati
 import { LearnerDocumentsOverviewCard } from "./LearnerDocumentsOverviewCard";
 import { LearnerDocumentBlockCard } from "./LearnerDocumentBlockCard";
 import { DocumentPreviewDrawer } from "./DocumentPreviewDrawer";
+import { ContractQualificationBadge } from "./ContractQualificationBadge";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 

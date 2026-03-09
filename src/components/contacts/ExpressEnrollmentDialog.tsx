@@ -200,20 +200,32 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
 
       // 2. Create inscription directly
       if (contactResult?.id && formData.sessionId) {
-        const { error: inscError } = await supabase
+        const { data: inscData, error: inscError } = await supabase
           .from("session_inscriptions")
           .insert({
             contact_id: contactResult.id,
             session_id: formData.sessionId,
             statut: "en_attente",
-          });
+          })
+          .select("id")
+          .single();
         
         if (inscError) {
           console.error("Inscription error:", inscError);
           toast.error("Contact créé mais erreur lors de l'inscription à la session");
         }
+
+        // Auto-qualify contract frame based on financing type
+        if (inscData?.id && formData.financement) {
+          try {
+            await autoQualifyFromFinancing(inscData.id, formData.financement);
+          } catch (e) {
+            console.warn("Auto-qualification warning:", e);
+          }
+        }
         
         queryClient.invalidateQueries({ queryKey: ["session-inscrits"] });
+        queryClient.invalidateQueries({ queryKey: ["contract-qualification"] });
       }
 
       toast.success("Inscription express réussie !");
