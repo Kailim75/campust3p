@@ -206,6 +206,14 @@ export function createExpectedPlaceholders(
 
     const eligibility = checkDocumentEligibility(config.type, contact, session);
 
+    // Contract blocking: if a_qualifier, block contrat/convention generation
+    const contractBlocking = getContractBlockingReason(config.type, contractContext ?? null);
+    const isContractBlocked = !!contractBlocking;
+    const allMissing = [
+      ...eligibility.missingFields,
+      ...(contractBlocking ? [contractBlocking] : []),
+    ];
+
     const statusInput: StatusInput = {
       isRequired: true,
       technicalStatus: null,
