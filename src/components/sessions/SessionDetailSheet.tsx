@@ -13,7 +13,6 @@ import {
   MapPin,
   Users,
   Euro,
-  UserPlus,
   ClipboardList,
   Info,
   FileText,
@@ -25,7 +24,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
+import { useSession, useSessionInscriptions, useAddInscription, type Session } from "@/hooks/useSessions";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { useFormateur } from "@/hooks/useFormateurs";
 import { format } from "date-fns";
@@ -85,11 +84,10 @@ interface SessionDetailSheetProps {
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
   const { size, setSize, sizeClass } = useSheetSize("session");
   const { data: session, isLoading } = useSession(sessionId);
-  const { data: rawInscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
+  const { data: rawInscriptions } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
   const { data: formateur } = useFormateur(session?.formateur_id ?? null);
   const addInscription = useAddInscription();
-  const removeInscription = useRemoveInscription();
   const { composerProps, openComposer } = useEmailComposer();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -98,7 +96,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
   const [closureWizardOpen, setClosureWizardOpen] = useState(false);
-  const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
+  const { generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
   const archiveSession = useArchiveSession();
@@ -156,33 +154,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   // ─── Helper: get contact data from inscription ───
   const getInscriptionContact = (i: InscriptionWithContact): InscriptionContact | null => i.contacts;
 
-  const handleGenerateDocument = (type: DocumentType, contact: Contact) => {
-    if (!sessionInfo) return;
-    
-    const contactInfo = {
-      id: contact.id,
-      civilite: contact.civilite || undefined,
-      nom: contact.nom,
-      prenom: contact.prenom,
-      email: contact.email || undefined,
-      telephone: contact.telephone || undefined,
-      rue: contact.rue || undefined,
-      code_postal: contact.code_postal || undefined,
-      ville: contact.ville || undefined,
-      date_naissance: contact.date_naissance || undefined,
-      ville_naissance: contact.ville_naissance || undefined,
-      pays_naissance: contact.pays_naissance || undefined,
-      numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
-      prefecture_carte: contact.prefecture_carte || undefined,
-      date_expiration_carte: contact.date_expiration_carte || undefined,
-      numero_permis: contact.numero_permis || undefined,
-      prefecture_permis: contact.prefecture_permis || undefined,
-      date_delivrance_permis: contact.date_delivrance_permis || undefined,
-      formation: contact.formation || undefined,
-    };
-    
-    generateDocument(type, contactInfo, sessionInfo);
-  };
+
+
 
   const handleGenerateBulkDocuments = (type: DocumentType) => {
     if (!sessionInfo || !inscriptions?.length) {
@@ -282,15 +255,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
   };
 
-  const handleRemoveInscription = async (contactId: string) => {
-    if (!sessionId) return;
-    try {
-      await removeInscription.mutateAsync({ sessionId, contactId });
-      toast.success("Inscription annulée");
-    } catch {
-      toast.error("Erreur lors de l'annulation");
-    }
-  };
+
+
 
   // ─── Reusable recipient extraction (no more duplicated `as any` blocks) ───
   const openEmailForSession = (subject: string, body: string) => {
