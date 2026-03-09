@@ -154,33 +154,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   // ─── Helper: get contact data from inscription ───
   const getInscriptionContact = (i: InscriptionWithContact): InscriptionContact | null => i.contacts;
 
-  const handleGenerateDocument = (type: DocumentType, contact: Contact) => {
-    if (!sessionInfo) return;
-    
-    const contactInfo = {
-      id: contact.id,
-      civilite: contact.civilite || undefined,
-      nom: contact.nom,
-      prenom: contact.prenom,
-      email: contact.email || undefined,
-      telephone: contact.telephone || undefined,
-      rue: contact.rue || undefined,
-      code_postal: contact.code_postal || undefined,
-      ville: contact.ville || undefined,
-      date_naissance: contact.date_naissance || undefined,
-      ville_naissance: contact.ville_naissance || undefined,
-      pays_naissance: contact.pays_naissance || undefined,
-      numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
-      prefecture_carte: contact.prefecture_carte || undefined,
-      date_expiration_carte: contact.date_expiration_carte || undefined,
-      numero_permis: contact.numero_permis || undefined,
-      prefecture_permis: contact.prefecture_permis || undefined,
-      date_delivrance_permis: contact.date_delivrance_permis || undefined,
-      formation: contact.formation || undefined,
-    };
-    
-    generateDocument(type, contactInfo, sessionInfo);
-  };
+
+
 
   const handleGenerateBulkDocuments = (type: DocumentType) => {
     if (!sessionInfo || !inscriptions?.length) {
