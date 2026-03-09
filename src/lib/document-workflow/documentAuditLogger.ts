@@ -39,7 +39,7 @@ export async function logDocumentAudit(entry: AuditLogEntry): Promise<void> {
       .eq("is_primary", true)
       .single();
 
-    await supabase.from("audit_logs").insert({
+    await (supabase as any).from("audit_logs").insert({
       table_name: `document_${entry.entityType}`,
       record_id: entry.entityId,
       action: entry.action,
