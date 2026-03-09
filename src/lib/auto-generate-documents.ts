@@ -43,6 +43,13 @@ export async function triggerAutoGeneration(params: {
       sessionId: params.sessionId,
     });
 
+    // Resolve centre_id from contact
+    let centreIdForAuto: string | null = null;
+    if (params.contactId) {
+      const { data: contact } = await supabase.from("contacts").select("centre_id").eq("id", params.contactId).single();
+      centreIdForAuto = contact?.centre_id || null;
+    }
+
     // 3. Generate each auto template
     for (const item of autoItems) {
       try {
@@ -76,6 +83,7 @@ export async function triggerAutoGeneration(params: {
             contact_id: params.contactId,
             session_id: params.sessionId || null,
             inscription_id: params.inscriptionId || null,
+            centre_id: centreIdForAuto,
             file_name: `${tmpl.name.replace(/\s+/g, "_")}.pdf`,
             status: "queued",
             variables_snapshot: variables,

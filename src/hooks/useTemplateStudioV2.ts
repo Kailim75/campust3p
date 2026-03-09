@@ -499,6 +499,17 @@ export function useGenerateDocument() {
       // Render HTML
       const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => params.variables[v] || "");
 
+      // Resolve centre_id from contact or session
+      let centreIdForInsert: string | null = null;
+      if (params.contactId) {
+        const { data: contact } = await supabase.from("contacts").select("centre_id").eq("id", params.contactId).single();
+        centreIdForInsert = contact?.centre_id || null;
+      }
+      if (!centreIdForInsert && params.sessionId) {
+        const { data: session } = await supabase.from("sessions").select("centre_id").eq("id", params.sessionId).single();
+        centreIdForInsert = session?.centre_id || null;
+      }
+
       // Create record
       const { data: doc, error: docErr } = await (supabase as any)
         .from("generated_documents_v2")
@@ -508,6 +519,7 @@ export function useGenerateDocument() {
           contact_id: params.contactId || null,
           session_id: params.sessionId || null,
           inscription_id: params.inscriptionId || null,
+          centre_id: centreIdForInsert,
           file_name: `${tmpl.name.replace(/\s+/g, "_")}.pdf`,
           status: "queued",
           variables_snapshot: params.variables,
@@ -725,6 +737,17 @@ export function useGeneratePackDocuments() {
         sessionId: params.sessionId,
       });
 
+      // Resolve centre_id from contact or session for batch
+      let centreIdForBatch: string | null = null;
+      if (params.contactId) {
+        const { data: contact } = await supabase.from("contacts").select("centre_id").eq("id", params.contactId).single();
+        centreIdForBatch = contact?.centre_id || null;
+      }
+      if (!centreIdForBatch && params.sessionId) {
+        const { data: session } = await supabase.from("sessions").select("centre_id").eq("id", params.sessionId).single();
+        centreIdForBatch = session?.centre_id || null;
+      }
+
       let succeeded = 0;
       let failed = 0;
 
@@ -760,6 +783,7 @@ export function useGeneratePackDocuments() {
               contact_id: params.contactId || null,
               session_id: params.sessionId || null,
               inscription_id: params.inscriptionId || null,
+              centre_id: centreIdForBatch,
               file_name: `${tmpl.name.replace(/\s+/g, "_")}.pdf`,
               status: "queued",
               variables_snapshot: variables,
