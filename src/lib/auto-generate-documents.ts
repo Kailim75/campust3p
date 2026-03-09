@@ -66,6 +66,7 @@ async function insertGeneratedDocument(
     .select("id, centre_id")
     .single();
   if (error) return null;
+  // CAST JUSTIFIED: partial .select("id, centre_id") not reflected in generated Row type
   return data as unknown as GeneratedDocumentV2Row;
 }
 
