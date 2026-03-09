@@ -201,8 +201,8 @@ export async function generateSingleAttestation(
  * Génère des attestations en lot pour plusieurs contacts.
  */
 export async function generateBulkAttestations(
-  contacts: ContactInfo[],
-  session: SessionInfo,
+  contacts: ContactInfoWithId[],
+  session: SessionInfoWithId,
   company: CompanyInfo,
   centreFormation?: CentreFormationData | null
 ): Promise<number> {
@@ -215,9 +215,9 @@ export async function generateBulkAttestations(
     const templateBlob = await downloadTemplate(defaultTemplate.file_path);
 
     // Précharger tous les contacts en une seule requête
-    let contactsById: Record<string, any> = {};
+    let contactsById: Record<string, ContactDocumentData> = {};
     try {
-      const ids = contacts.map((c) => (c as any)?.id).filter(Boolean) as string[];
+      const ids = contacts.map((c) => c.id).filter((id): id is string => !!id);
       contactsById = await fetchContactsDocumentData(ids, session?.formation_type);
     } catch (e) {
       console.warn("[DOCX] Impossible de précharger les contacts (bulk)", e);
