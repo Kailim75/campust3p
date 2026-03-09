@@ -21,6 +21,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
+import { DocumentHistoryTimeline } from "./DocumentHistoryTimeline";
+import { DocumentVersionBadge } from "./DocumentVersionBadge";
 import { supabase } from "@/integrations/supabase/client";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
