@@ -13,6 +13,7 @@ import {
 } from "@/lib/document-workflow/documentWorkflowMapper";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
+import type { ContractContext } from "@/lib/document-workflow/contractDocumentFilter";
 import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
 
 interface UseDocumentWorkflowParams {
@@ -86,8 +87,27 @@ export function useDocumentWorkflow({
           .eq("id", sessionId)
           .single();
         sessionData = s as EligibilitySession | null;
-        // Resolve track: prefer DB column, fallback to derivation
         track = s?.track ?? getTrackFromFormationType(s?.formation_type);
+      }
+
+      // 6. Fetch contract qualification from inscription
+      let contractContext: ContractContext | null = null;
+      if (contactId && sessionId) {
+        const { data: insc } = await (supabase as any)
+          .from("session_inscriptions")
+          .select("contract_document_type, contract_frame_status")
+          .eq("contact_id", contactId)
+          .eq("session_id", sessionId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (insc?.[0]) {
+          contractContext = {
+            contractDocumentType: insc[0].contract_document_type,
+            contractFrameStatus: insc[0].contract_frame_status ?? "a_qualifier",
+          };
+        }
       }
 
       // Execute parallel queries
@@ -106,7 +126,7 @@ export function useDocumentWorkflow({
         mapGeneratedDocV2(doc, envois, signatures, contactData, sessionData)
       );
 
-      // Add placeholders for expected but missing documents (track-aware)
+      // Add placeholders for expected but missing documents (track + contract aware)
       if (contactData) {
         const existingTypes = new Set(items.map(i => i.documentType));
         const effectiveCentreId = centreId ?? items[0]?.centreId ?? "";
@@ -116,13 +136,14 @@ export function useDocumentWorkflow({
           sessionData,
           effectiveCentreId,
           context,
-          track
+          track,
+          contractContext
         );
         items.push(...placeholders);
       }
 
       return items;
     },
-    staleTime: 30_000, // 30s cache
+    staleTime: 30_000,
   });
 }
