@@ -12,8 +12,10 @@ import {
   type ContactInfo,
   type ContactInfoWithId,
   type SessionInfo,
+  type SessionInfoWithId,
   type CompanyInfo,
 } from "@/lib/pdf-generator";
+import type { ContactDocumentData } from "@/lib/documents/fetchContactDocumentData";
 import {
   downloadBlob,
   getOrCreateCertificateNumber,
