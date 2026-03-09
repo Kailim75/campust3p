@@ -115,7 +115,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       ]);
 
       const inscriptions = inscRes.data || [];
-      const docTypes = new Set((docRes.data || []).map((d: any) => d.type_document));
+      const docTypes = new Set((docRes.data || []).map((d) => d.type_document));
       const factures = factRes.data || [];
       const paiements = paiRes.data || [];
       const hasInscription = inscriptions.length > 0;
