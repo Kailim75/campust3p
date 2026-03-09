@@ -526,19 +526,10 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             <PaiementsTab contactId={contact.id} />
           </TabsContent>
           <TabsContent value="formation" className="mt-0">
-            <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
+            <FormationExamensTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} contactFormation={contact.formation} />
           </TabsContent>
-          <TabsContent value="communications" className="mt-0">
-            <CommunicationsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
-          </TabsContent>
-          <TabsContent value="notes" className="mt-0">
-            <NotesTab contactId={contact.id} />
-          </TabsContent>
-          <TabsContent value="rappels" className="mt-0">
-            <RappelsTab contactId={contact.id} />
-          </TabsContent>
-          <TabsContent value="examens" className="mt-0">
-            <ExamensTab contactId={contact.id} formation={contact.formation} />
+          <TabsContent value="suivi" className="mt-0">
+            <SuiviTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
         </div>
       </Tabs>
