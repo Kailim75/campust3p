@@ -49,10 +49,10 @@ export function useSessionDocumentMatrix({
       // Resolve formation track
       const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
 
-      // Fetch inscriptions with contact data
-      const { data: inscriptions } = await supabase
+      // Fetch inscriptions with contact data + contract qualification
+      const { data: inscriptions } = await (supabase as any)
         .from("session_inscriptions")
-        .select("id, contact_id, contacts(id, nom, prenom, email, date_naissance, ville_naissance)")
+        .select("id, contact_id, contract_document_type, contract_frame_status, qualification_source, contacts(id, nom, prenom, email, date_naissance, ville_naissance)")
         .eq("session_id", sessionId)
         .is("deleted_at", null);
 
