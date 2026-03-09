@@ -96,7 +96,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
   const [closureWizardOpen, setClosureWizardOpen] = useState(false);
-  const { generateDocument, generateBulkDocuments } = useDocumentGenerator();
+  const { generateBulkDocuments } = useDocumentGenerator();
   const generateBatchChevalets = useGenerateBatchChevalets();
   const batchPedagogicalDocs = useBatchPedagogicalDocuments();
   const archiveSession = useArchiveSession();
