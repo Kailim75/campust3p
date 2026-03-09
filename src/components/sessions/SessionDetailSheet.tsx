@@ -64,6 +64,7 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import type { CompanyInfo } from "@/lib/pdf-generator";
 import { SessionDocumentsTab } from "@/components/template-studio-v2/SessionDocumentsTab";
+import { SessionDocumentMatrixView } from "@/components/documents/SessionDocumentMatrixView";
 
 // Extracted sub-components
 import { SessionDetailHeader } from "./SessionDetailHeader";
@@ -517,9 +518,12 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <SessionInscritsTable sessionId={session.id} />
                 </TabsContent>
 
-                {/* Tab: Documents V2 */}
+                {/* Tab: Documents — Pilotage transverse */}
                 <TabsContent value="documents" className="pt-4">
-                  <SessionDocumentsTab sessionId={session.id} sessionTrack={session.track} />
+                  <SessionDocumentMatrixView
+                    sessionId={session.id}
+                    sessionName={session.nom}
+                  />
                 </TabsContent>
 
                 {/* Tab: Parcours / Examens */}
