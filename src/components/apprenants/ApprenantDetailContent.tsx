@@ -134,7 +134,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const restantDu = totalFacture - totalPaye;
 
       const nextRappel = rappRes.data?.[0] || null;
-      const nextSession = inscriptions[0] ? (inscriptions[0] as any).sessions : null;
+      const nextSession = inscriptions[0] ? (inscriptions[0] as Record<string, unknown>).sessions as { nom?: string; date_debut?: string } | null : null;
 
       const autoNotes = (notesRes.data || []) as Array<{ id: string; titre: string; contenu: string | null; date_echange: string }>;
       const todayAutoNotes = autoNotes.filter(n => isToday(new Date(n.date_echange)));
