@@ -263,6 +263,13 @@ export function LearnerDocumentBlockList({
         isRetrying={false}
       />
 
+      {/* Contract qualification badge */}
+      {inscriptionId && (
+        <div className="mt-3">
+          <ContractQualificationBadge inscriptionId={inscriptionId} />
+        </div>
+      )}
+
       {/* Block list */}
       <div className="space-y-3 mt-4">
         {blocks.map((block) => (

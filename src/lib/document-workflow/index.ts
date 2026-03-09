@@ -69,6 +69,14 @@ export {
   type ContinuingFormationRequirements,
 } from "./documentTrackRules";
 
+// Contract document filter
+export {
+  filterContractDocuments,
+  getContractBlockingReason,
+  type ContractContext,
+  type ContractDocType,
+  type FrameStatus,
+} from "./contractDocumentFilter";
 // V1 Migration Registry
 export {
   V1_MIGRATION_REGISTRY,
