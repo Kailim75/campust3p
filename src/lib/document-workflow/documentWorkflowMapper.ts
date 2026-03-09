@@ -19,6 +19,11 @@ import {
   isDocumentVisibleForTrack,
   getTrackRequiredOverride,
 } from "./documentTrackRules";
+import {
+  filterContractDocuments,
+  getContractBlockingReason,
+  type ContractContext,
+} from "./contractDocumentFilter";
 import type { FormationTrack } from "@/lib/formation-track";
 
 // ── Raw row shapes from Supabase queries ──
@@ -176,9 +181,15 @@ export function createExpectedPlaceholders(
   session: EligibilitySession | null,
   centreId: string,
   context: "apprenant" | "session",
-  track?: FormationTrack | null
+  track?: FormationTrack | null,
+  contractContext?: ContractContext | null
 ): DocumentWorkflowItem[] {
-  const configs = getVisibleConfigs(context);
+  let configs = getVisibleConfigs(context);
+
+  // Contract-aware filtering: hide irrelevant contrat/convention
+  if (contractContext) {
+    configs = filterContractDocuments(configs, contractContext);
+  }
 
   const placeholders: DocumentWorkflowItem[] = [];
 
@@ -195,6 +206,14 @@ export function createExpectedPlaceholders(
 
     const eligibility = checkDocumentEligibility(config.type, contact, session);
 
+    // Contract blocking: if a_qualifier, block contrat/convention generation
+    const contractBlocking = getContractBlockingReason(config.type, contractContext ?? null);
+    const isContractBlocked = !!contractBlocking;
+    const allMissing = [
+      ...eligibility.missingFields,
+      ...(contractBlocking ? [contractBlocking] : []),
+    ];
+
     const statusInput: StatusInput = {
       isRequired: true,
       technicalStatus: null,
@@ -203,7 +222,7 @@ export function createExpectedPlaceholders(
       sendFailed: false,
       signatureStatus: null,
       isArchived: false,
-      isBlocked: !eligibility.eligible,
+      isBlocked: !eligibility.eligible || isContractBlocked,
     };
 
     placeholders.push({
@@ -228,8 +247,8 @@ export function createExpectedPlaceholders(
       signedAt: null,
       businessStatus: computeBusinessStatus(statusInput),
       isRequired: true,
-      isBlocked: !eligibility.eligible,
-      missingRequiredFields: eligibility.missingFields,
+      isBlocked: !eligibility.eligible || isContractBlocked,
+      missingRequiredFields: allMissing,
       lastActionAt: null,
       historySummary: [],
       packId: null,

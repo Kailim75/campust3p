@@ -14,6 +14,7 @@ import { useGenerateDocument, useDownloadGeneratedDoc, buildVariablesForGenerati
 import { LearnerDocumentsOverviewCard } from "./LearnerDocumentsOverviewCard";
 import { LearnerDocumentBlockCard } from "./LearnerDocumentBlockCard";
 import { DocumentPreviewDrawer } from "./DocumentPreviewDrawer";
+import { ContractQualificationBadge } from "./ContractQualificationBadge";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
@@ -261,6 +262,13 @@ export function LearnerDocumentBlockList({
         isGenerating={generateDoc.isPending}
         isRetrying={false}
       />
+
+      {/* Contract qualification badge */}
+      {inscriptionId && (
+        <div className="mt-3">
+          <ContractQualificationBadge inscriptionId={inscriptionId} />
+        </div>
+      )}
 
       {/* Block list */}
       <div className="space-y-3 mt-4">
