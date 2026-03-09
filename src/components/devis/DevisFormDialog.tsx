@@ -183,6 +183,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
     e.preventDefault();
 
     try {
+      let resolvedInscriptionId: string | null = null;
+
       if (isEditing) {
         await updateDevis.mutateAsync({
           id: devis.id,
@@ -193,6 +195,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
           date_validite: dateValidite,
           commentaires: commentaires || null,
         });
+
+        resolvedInscriptionId = devis?.session_inscription_id ?? null;
 
         // Supprimer et recréer les lignes
         await deleteLignes.mutateAsync(devis.id);
@@ -221,6 +225,8 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
           commentaires: commentaires || null,
         });
 
+        resolvedInscriptionId = (newDevis as any)?.session_inscription_id ?? null;
+
         if (lignes.length > 0) {
           await addLignes.mutateAsync(
             lignes.map((l, index) => ({
@@ -238,12 +244,9 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
       }
 
       // Auto-qualify contract frame if devis is linked to an inscription
-      const inscriptionId = isEditing
-        ? devis?.session_inscription_id
-        : (newDevis as any)?.session_inscription_id;
-      if (inscriptionId && typeFinancement) {
+      if (resolvedInscriptionId && typeFinancement) {
         try {
-          await autoQualifyFromFinancing(inscriptionId, typeFinancement);
+          await autoQualifyFromFinancing(resolvedInscriptionId, typeFinancement);
         } catch (e) {
           console.warn("Auto-qualification from devis:", e);
         }
