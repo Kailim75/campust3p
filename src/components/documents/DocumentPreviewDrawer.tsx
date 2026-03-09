@@ -117,6 +117,7 @@ export function DocumentPreviewDrawer({
               {item && (
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <DocumentStatusBadge status={item.businessStatus} />
+                  <DocumentVersionBadge item={item} />
                   {item.isRequired && (
                     <Badge variant="outline" className="text-[10px] h-5">Requis</Badge>
                   )}
