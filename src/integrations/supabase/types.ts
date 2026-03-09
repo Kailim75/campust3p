@@ -5799,6 +5799,8 @@ export type Database = {
         Row: {
           commentaires: string | null
           contact_id: string
+          contract_document_type: string | null
+          contract_frame_status: string | null
           created_at: string
           date_inscription: string
           delete_reason: string | null
@@ -5806,6 +5808,9 @@ export type Database = {
           deleted_by: string | null
           documents_envoyes: string[] | null
           id: string
+          qualification_source: string | null
+          qualified_at: string | null
+          qualified_by: string | null
           session_id: string
           statut: string
           statut_paiement: string | null
@@ -5815,6 +5820,8 @@ export type Database = {
         Insert: {
           commentaires?: string | null
           contact_id: string
+          contract_document_type?: string | null
+          contract_frame_status?: string | null
           created_at?: string
           date_inscription?: string
           delete_reason?: string | null
@@ -5822,6 +5829,9 @@ export type Database = {
           deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
+          qualification_source?: string | null
+          qualified_at?: string | null
+          qualified_by?: string | null
           session_id: string
           statut?: string
           statut_paiement?: string | null
@@ -5831,6 +5841,8 @@ export type Database = {
         Update: {
           commentaires?: string | null
           contact_id?: string
+          contract_document_type?: string | null
+          contract_frame_status?: string | null
           created_at?: string
           date_inscription?: string
           delete_reason?: string | null
@@ -5838,6 +5850,9 @@ export type Database = {
           deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
+          qualification_source?: string | null
+          qualified_at?: string | null
+          qualified_by?: string | null
           session_id?: string
           statut?: string
           statut_paiement?: string | null
