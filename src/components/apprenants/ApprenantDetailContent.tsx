@@ -99,11 +99,10 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     queryKey: ["apprenant-cockpit", contact?.id, contactTrack],
     queryFn: async () => {
       if (!contact) return null;
-      const [inscRes, docRes, factRes, paiRes, rappRes, notesRes, carteProRes] = await Promise.all([
+      const [inscRes, docRes, factRes, rappRes, notesRes, carteProRes] = await Promise.all([
         supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).limit(1),
         supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id),
-        supabase.from("factures").select("id, statut, montant_total").eq("contact_id", contact.id),
-        supabase.from("paiements").select("montant"),
+        supabase.from("factures").select("id, statut, montant_total").eq("contact_id", contact.id).is("deleted_at", null),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")
           .eq("contact_id", contact.id).eq("alerte_active", true).not("date_rappel", "is", null)
           .order("date_rappel", { ascending: true }).limit(1),
@@ -117,7 +116,19 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const inscriptions = inscRes.data || [];
       const docTypes = new Set((docRes.data || []).map((d) => d.type_document));
       const factures = factRes.data || [];
-      const paiements = paiRes.data || [];
+      const factureIds = factures.map((f) => f.id);
+
+      // Fetch paiements only for this contact's factures
+      let paiements: { montant: number }[] = [];
+      if (factureIds.length > 0) {
+        const { data } = await supabase
+          .from("paiements")
+          .select("montant")
+          .in("facture_id", factureIds)
+          .is("deleted_at", null);
+        paiements = (data || []) as { montant: number }[];
+      }
+
       const hasInscription = inscriptions.length > 0;
       const hasDocuments = docTypes.size > 0;
       const hasFacture = factures.length > 0;
