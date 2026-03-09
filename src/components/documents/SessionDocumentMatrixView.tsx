@@ -10,16 +10,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   FileText, Users, CheckCircle2, AlertTriangle, ExternalLink,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Download, Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useSessionDocumentMatrix } from "@/hooks/useSessionDocumentMatrix";
 import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
+import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
+import { useGenerateDocument, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import { SessionDocumentsOverviewCard } from "./SessionDocumentsOverviewCard";
 import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter } from "./SessionDocumentFiltersBar";
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
-import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
+import { BulkGenerationDialog } from "./BulkGenerationDialog";
+import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
   sessionId: string;
