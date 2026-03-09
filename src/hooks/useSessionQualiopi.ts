@@ -36,11 +36,11 @@ export function useSessionQualiopi(sessionId: string | null) {
         emargementRes,
       ] = await Promise.all([
         supabase.from("sessions").select("*").eq("id", sessionId).single(),
-        supabase.from("session_inscriptions").select("id, contact_id").eq("session_id", sessionId),
+        supabase.from("session_inscriptions").select("id, contact_id").eq("session_id", sessionId).is("deleted_at", null),
         supabase.from("document_envois").select("id, document_type, statut").eq("session_id", sessionId),
         supabase.from("attestation_certificates").select("id, status").eq("session_id", sessionId),
         supabase.from("satisfaction_reponses").select("id").eq("session_id", sessionId),
-        supabase.from("emargements").select("id").eq("session_id", sessionId),
+        supabase.from("emargements").select("id").eq("session_id", sessionId).is("deleted_at", null),
       ]);
 
       // Fetch signature requests via inscription IDs

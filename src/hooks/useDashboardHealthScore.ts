@@ -24,10 +24,10 @@ export function useDashboardHealthScore() {
       const [contactsRes, sessionsRes, inscriptionsRes, facturesRes, paiementsRes, alertsPaymentRes] = await Promise.all([
         supabase.from("contacts").select("id, statut").eq("archived", false),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut").eq("archived", false).gte("date_fin", todayStr),
-        supabase.from("session_inscriptions").select("session_id"),
-        supabase.from("factures").select("montant_total, statut, date_echeance").not("statut", "eq", "annulee"),
-        supabase.from("paiements").select("montant"),
-        supabase.from("factures").select("id").in("statut", ["emise", "partiel", "impayee"]),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
+        supabase.from("factures").select("montant_total, statut, date_echeance").is("deleted_at", null).not("statut", "eq", "annulee"),
+        supabase.from("paiements").select("montant").is("deleted_at", null),
+        supabase.from("factures").select("id").is("deleted_at", null).in("statut", ["emise", "partiel", "impayee"]),
       ]);
 
       const contacts = contactsRes.data || [];
