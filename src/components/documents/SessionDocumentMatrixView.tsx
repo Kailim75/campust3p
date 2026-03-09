@@ -50,6 +50,7 @@ export function SessionDocumentMatrixView({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LearnerStatusFilter>("all");
   const [blockFilter, setBlockFilter] = useState<BlockFilter>("all");
+  const [contractFilter, setContractFilter] = useState<ContractFilter>("all");
 
   // Sort
   const [sortField, setSortField] = useState<SortField>("name");
