@@ -79,10 +79,9 @@ export function buildBlockSummaries(items: DocumentWorkflowItem[]): DocumentBloc
       if (blockItems.length === 0) return null;
 
       // Sort items within block by config sortOrder (via documentType)
-      blockItems.sort((a, b) => {
-        const { getDocumentTypeConfig } = require("@/lib/document-workflow/documentBlockConfig");
-        return getDocumentTypeConfig(a.documentType).sortOrder - getDocumentTypeConfig(b.documentType).sortOrder;
-      });
+      blockItems.sort((a, b) =>
+        getDocumentTypeConfig(a.documentType).sortOrder - getDocumentTypeConfig(b.documentType).sortOrder
+      );
 
       return {
         block,
