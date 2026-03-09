@@ -175,7 +175,8 @@ export function createExpectedPlaceholders(
   contact: EligibilityContact,
   session: EligibilitySession | null,
   centreId: string,
-  context: "apprenant" | "session"
+  context: "apprenant" | "session",
+  track?: FormationTrack | null
 ): DocumentWorkflowItem[] {
   const configs = getVisibleConfigs(context);
 
@@ -183,7 +184,14 @@ export function createExpectedPlaceholders(
 
   for (const config of configs) {
     if (existingTypes.has(config.type)) continue;
-    if (!config.requiredByDefault) continue; // Only show required placeholders
+
+    // Track-aware visibility: skip documents not relevant for this track
+    if (!isDocumentVisibleForTrack(config.type, track ?? null)) continue;
+
+    // Track-aware required override
+    const trackOverride = getTrackRequiredOverride(config.type, track ?? null);
+    const isRequired = trackOverride ?? config.requiredByDefault;
+    if (!isRequired) continue; // Only show required placeholders
 
     const eligibility = checkDocumentEligibility(config.type, contact, session);
 
