@@ -279,15 +279,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
     { value: "dossier", icon: FolderOpen, label: "Identité" },
     ...(isInitial
       ? [{ value: "cma", icon: FileCheck, label: "CMA" }]
-      : [{ value: "carte-pro", icon: CreditCard, label: "Carte Pro" }]
+      : [{ value: "carte-pro", icon: IdCard, label: "Carte Pro" }]
     ),
     { value: "documents", icon: FileText, label: "Documents" },
     { value: "paiements", icon: CreditCard, label: "Paiements" },
     { value: "formation", icon: GraduationCap, label: "Formation" },
-    { value: "communications", icon: MessageCircle, label: "Suivi" },
-    { value: "notes", icon: StickyNote, label: "Notes" },
-    { value: "rappels", icon: Bell, label: "Rappels" },
-    { value: "examens", icon: Award, label: "Examens" },
+    { value: "suivi", icon: MessageCircle, label: "Suivi" },
   ];
 
   return (
