@@ -38,7 +38,7 @@ export function computeImpact(
     // ── Sessions ──
     case "session_sous_remplie": {
       return affectedRecords.reduce((sum, s) => {
-        const places = s.places_max || 10;
+        const places = s.places_totales ?? 10;
         const inscrits = ctx.inscriptions.filter((i: any) => i.session_id === s.id).length;
         const placesRestantes = places - inscrits;
         return sum + placesRestantes * prixMoyen * tauxRemplissage;
@@ -47,7 +47,7 @@ export function computeImpact(
 
     case "session_sans_inscription": {
       return affectedRecords.reduce((sum, s) => {
-        const places = s.places_max || 10;
+        const places = s.places_totales ?? 10;
         return sum + places * prixMoyen * tauxRemplissage * 0.5; // 50% chance of filling
       }, 0);
     }

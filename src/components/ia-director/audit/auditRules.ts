@@ -146,7 +146,7 @@ function ruleSessionSousRemplie(ctx: AuditContext): AnomalyDraft | null {
   const affected = ctx.sessions.filter((s: any) => {
     if (s.archived || !s.date_debut || s.date_debut > j10) return false;
     const inscrits = ctx.inscriptions.filter((i: any) => i.session_id === s.id).length;
-    const places = s.places_max || 10;
+    const places = s.places_totales ?? 10;
     return inscrits / places < 0.5;
   });
   if (affected.length === 0) return null;

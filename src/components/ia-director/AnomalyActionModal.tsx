@@ -299,12 +299,12 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
         } else if (anomaly.category === "sessions") {
           const { data } = await supabase
             .from("sessions")
-            .select("id, nom, formation_type, date_debut, places_max")
+            .select("id, nom, formation_type, date_debut, places_totales")
             .in("id", ids);
           setRecords((data || []).map((s: any) => ({
             id: s.id,
             label: s.nom || "Session sans nom",
-            sublabel: `${s.formation_type || "Formation"} — ${s.date_debut ? new Date(s.date_debut).toLocaleDateString("fr-FR") : "Date non définie"} — ${s.places_max || "?"} places`,
+            sublabel: `${s.formation_type || "Formation"} — ${s.date_debut ? new Date(s.date_debut).toLocaleDateString("fr-FR") : "Date non définie"} — ${s.places_totales ?? "?"} places`,
             icon: Calendar,
             tags: [s.formation_type].filter(Boolean),
             navigateTo: `/?section=sessions`,
