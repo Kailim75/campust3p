@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Users, CheckCircle2, AlertTriangle, Clock, FileText,
-  Package, Loader2, Filter,
+  Package, Loader2, Filter, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
+import { toast } from "sonner";
 import type { SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
 
 interface SessionDocumentsOverviewCardProps {
