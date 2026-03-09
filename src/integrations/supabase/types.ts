@@ -3265,6 +3265,9 @@ export type Database = {
           contact_id: string | null
           created_at: string | null
           created_by: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           error_message: string | null
           file_name: string | null
           file_path: string | null
@@ -3283,6 +3286,9 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           error_message?: string | null
           file_name?: string | null
           file_path?: string | null
@@ -3301,6 +3307,9 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           error_message?: string | null
           file_name?: string | null
           file_path?: string | null
