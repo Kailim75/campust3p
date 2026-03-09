@@ -13,7 +13,6 @@ import {
   MapPin,
   Users,
   Euro,
-  UserPlus,
   ClipboardList,
   Info,
   FileText,
