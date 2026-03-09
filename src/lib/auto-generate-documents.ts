@@ -51,6 +51,7 @@ async function checkExistingDocument(templateId: string, contactId: string): Pro
     .eq("template_id", templateId)
     .eq("contact_id", contactId)
     .eq("status", "generated")
+    .is("deleted_at", null)
     .limit(1);
   return !!data && data.length > 0;
 }

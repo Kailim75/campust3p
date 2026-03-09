@@ -761,6 +761,7 @@ export function useGeneratePackDocuments() {
             .eq("template_id", item.template_id)
             .eq("contact_id", params.contactId || "")
             .eq("status", "generated")
+            .is("deleted_at", null)
             .limit(1);
 
           if (existing && existing.length > 0) {
