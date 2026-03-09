@@ -163,6 +163,7 @@ export function GenerateDocumentDialog({
         const pdfBlob = doc.output("blob");
         const savedDoc = await saveDocument.mutateAsync({
           contactId: contact.id,
+          centreId: contact.centre_id,
           templateTextId: template.id,
           nom: `${template.type_document} - ${contact.nom} ${contact.prenom}`,
           pdfBlob,
