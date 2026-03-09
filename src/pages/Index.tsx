@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
@@ -33,9 +33,79 @@ import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
+// ─── URL ↔ Section mapping ────────────────────────────────────────────────────
+// Bidirectional map: pathname segment → section key
+const PATH_TO_SECTION: Record<string, string> = {
+  "": "dashboard",
+  "dashboard": "dashboard",
+  "aujourdhui": "aujourdhui",
+  "contacts": "contacts",
+  "apprenants": "contacts",        // legacy alias
+  "formations": "formations",
+  "sessions": "sessions",
+  "prospects": "prospects",
+  "finances": "finances",
+  "facturation": "finances",       // legacy alias
+  "paiements": "finances",         // legacy alias
+  "automations": "automations",
+  "settings": "settings",
+  "formateurs": "formateurs",
+  "alertes": "alertes",
+  "qualite": "qualite",
+  "partenaires": "partenaires",
+  "planning-conduite": "planning-conduite",
+  "security": "security",
+  "template-studio": "template-studio",
+  "corbeille": "corbeille",
+};
+
+const SECTION_TO_PATH: Record<string, string> = {
+  "dashboard": "/",
+  "aujourdhui": "/aujourdhui",
+  "contacts": "/contacts",
+  "formations": "/formations",
+  "sessions": "/sessions",
+  "prospects": "/prospects",
+  "finances": "/finances",
+  "automations": "/automations",
+  "settings": "/settings",
+  "formateurs": "/formateurs",
+  "alertes": "/alertes",
+  "qualite": "/qualite",
+  "partenaires": "/partenaires",
+  "planning-conduite": "/planning-conduite",
+  "security": "/security",
+  "template-studio": "/template-studio",
+  "corbeille": "/corbeille",
+};
+
+// Legacy redirect map: old section key → {section, tab?}
+const LEGACY_REDIRECTS: Record<string, { section: string; tab?: string }> = {
+  pipeline: { section: "prospects", tab: "pipeline" },
+  "prospects-agenda": { section: "prospects", tab: "agenda" },
+};
+
+/** Derive section from current pathname */
+function getSectionFromPathname(pathname: string): string | null {
+  const segment = pathname.replace(/^\//, "").split("/")[0];
+  return PATH_TO_SECTION[segment] ?? null;
+}
+
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive initial section: pathname first, then ?section= param (legacy), then dashboard
+  const getInitialSection = (): string => {
+    const fromPath = getSectionFromPathname(location.pathname);
+    if (fromPath) return fromPath;
+    const fromParam = searchParams.get("section");
+    if (fromParam && PATH_TO_SECTION[fromParam] !== undefined) return fromParam;
+    return "dashboard";
+  };
+
+  const [activeSection, setActiveSectionState] = useState<string>(getInitialSection);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -46,12 +116,61 @@ const Index = () => {
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undo);
 
-  // Global undo with Ctrl+Z
+  /** Core navigation: updates state + URL pathname */
+  const setActiveSection = useCallback((section: string) => {
+    // Resolve legacy redirects before navigating
+    const redirect = LEGACY_REDIRECTS[section];
+    if (redirect) {
+      setActiveSectionState(redirect.section);
+      if (redirect.tab) setActiveTab(redirect.tab);
+      const path = SECTION_TO_PATH[redirect.section] ?? "/";
+      navigate(path, { replace: true });
+      return;
+    }
+    setActiveSectionState(section);
+    const path = SECTION_TO_PATH[section] ?? "/";
+    // Only push to history if the path is different (avoid duplicate entries)
+    if (location.pathname !== path) {
+      navigate(path);
+    }
+  }, [navigate, location.pathname]);
+
+  // ── Sync: browser Back/Forward → activeSection ─────────────────────────────
+  useEffect(() => {
+    const section = getSectionFromPathname(location.pathname);
+    if (section && section !== activeSection) {
+      setActiveSectionState(section);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // ── Legacy: consume ?section= and ?contactId= search params ───────────────
+  useEffect(() => {
+    const section = searchParams.get("section");
+    const contactId = searchParams.get("contactId");
+
+    if (section) {
+      setActiveSection(section);
+    }
+    if (contactId) {
+      setSelectedContactId(contactId);
+    }
+
+    // Clean params from URL after consuming
+    if (section || contactId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("section");
+      next.delete("contactId");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Global undo Ctrl+Z ─────────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        // Don't trigger if user is typing in an input
-        if (document.activeElement?.tagName === "INPUT" || 
+        if (document.activeElement?.tagName === "INPUT" ||
             document.activeElement?.tagName === "TEXTAREA") {
           return;
         }
@@ -59,113 +178,55 @@ const Index = () => {
         undoAction();
       }
     };
-    
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undoAction]);
 
-  // Support deep-links like /?section=contacts&contactId=...
-  useEffect(() => {
-    const section = searchParams.get("section");
-    const contactId = searchParams.get("contactId");
-    
-    if (section) {
-      setActiveSection(section);
-    }
-    if (contactId) {
-      setSelectedContactId(contactId);
-    }
-    
-    // Remove params from URL
-    if (section || contactId) {
-      const next = new URLSearchParams(searchParams);
-      next.delete("section");
-      next.delete("contactId");
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Redirect legacy routes to parent hubs (no re-render loop, preserves history)
-  useEffect(() => {
-    const redirects: Record<string, { section: string; tab?: string }> = {
-      pipeline: { section: "prospects", tab: "pipeline" },
-      "prospects-agenda": { section: "prospects", tab: "agenda" },
-    };
-    const redirect = redirects[activeSection];
-    if (redirect) {
-      setActiveSection(redirect.section);
-      if (redirect.tab) setActiveTab(redirect.tab);
-    }
-  }, [activeSection]);
-
-  // Listen for navigate-to-alerts event from ProactiveAlertsToast
+  // ── DOM custom events (alerts, blockage panel) ────────────────────────────
   useEffect(() => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
     const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
-    window.addEventListener('navigate-to-alerts', handleNavigateToAlerts);
-    window.addEventListener('open-blockage-panel', handleOpenBlockagePanel);
+    window.addEventListener("navigate-to-alerts", handleNavigateToAlerts);
+    window.addEventListener("open-blockage-panel", handleOpenBlockagePanel);
     return () => {
-      window.removeEventListener('navigate-to-alerts', handleNavigateToAlerts);
-      window.removeEventListener('open-blockage-panel', handleOpenBlockagePanel);
+      window.removeEventListener("navigate-to-alerts", handleNavigateToAlerts);
+      window.removeEventListener("open-blockage-panel", handleOpenBlockagePanel);
     };
-  }, []);
+  }, [setActiveSection]);
 
-  // Global keyboard shortcuts
+  // ── Global keyboard shortcuts ──────────────────────────────────────────────
   useGlobalShortcuts({
     onNewContact: () => setActiveSection("contacts"),
     onNewSession: () => setActiveSection("sessions"),
-    onNewPayment: () => setActiveSection("paiements"),
+    onNewPayment: () => setActiveSection("finances"),
     onSearch: () => {
-      // Focus global search - we can trigger this via event
-      document.querySelector<HTMLButtonElement>('[data-global-search]')?.click();
+      document.querySelector<HTMLButtonElement>("[data-global-search]")?.click();
     },
     onHelp: () => setShortcutsDialogOpen(true),
   });
 
-  // Handle quick action - navigate to appropriate section
   const handleQuickAction = (action: QuickAction) => {
     switch (action) {
-      case "contact":
-        setActiveSection("contacts");
-        break;
-      case "session":
-        setActiveSection("sessions");
-        break;
-      case "inscription":
-        setActiveSection("sessions");
-        break;
-      case "paiement":
-        setActiveSection("paiements");
-        break;
-      case "document":
-        setActiveSection("documents");
-        break;
-      case "communication":
-        setActiveSection("communications");
-        break;
+      case "contact":      setActiveSection("contacts"); break;
+      case "session":      setActiveSection("sessions"); break;
+      case "inscription":  setActiveSection("sessions"); break;
+      case "paiement":     setActiveSection("finances"); break;
+      case "document":     setActiveSection("documents"); break;
+      case "communication":setActiveSection("communications"); break;
     }
   };
 
-  // Navigate to a section with optional contactId
   const handleNavigateWithContact = (section: string, contactId?: string) => {
     setActiveSection(section);
-    if (contactId) {
-      setSelectedContactId(contactId);
-    }
+    if (contactId) setSelectedContactId(contactId);
   };
 
-  // Clear selected contact when handled
-  const handleContactOpened = () => {
-    setSelectedContactId(null);
-  };
+  const handleContactOpened = () => setSelectedContactId(null);
 
-  // Navigate with query params (from dashboard KPIs)
   const handleNavigateWithParams = (section: string, params: Record<string, string>) => {
     setActiveSection(section);
     if (params.tab) setActiveTab(params.tab);
-    // Store other params in URL for the target page to pick up
     const next = new URLSearchParams(searchParams);
-    next.set("section", section);
     Object.entries(params).forEach(([k, v]) => next.set(k, v));
     setSearchParams(next, { replace: true });
   };
@@ -190,7 +251,6 @@ const Index = () => {
         return <AutomationsPage />;
       case "settings":
         return <SettingsPage />;
-      // pipeline is redirected via useEffect above
       case "formateurs":
         return <FormateursPage />;
       case "alertes":
@@ -207,8 +267,6 @@ const Index = () => {
         return <TemplateStudioV2Page />;
       case "corbeille":
         return <CorbeillePage />;
-      case "facturation":
-        return <FinancesPage />;
       default:
         return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
     }
@@ -216,16 +274,16 @@ const Index = () => {
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-    return (
+  return (
     <div className="h-screen bg-background overflow-hidden">
-      <Sidebar 
-        activeSection={activeSection} 
+      <Sidebar
+        activeSection={activeSection}
         onSectionChange={setActiveSection}
         onNewContact={() => setNewContactOpen(true)}
         onNewProspect={() => setNewProspectOpen(true)}
         onCollapsedChange={setSidebarCollapsed}
       />
-      
+
       <main className={cn(
         "transition-all duration-200 h-full overflow-auto flex flex-col",
         isMobile ? "ml-0" : sidebarCollapsed ? "ml-[60px]" : "ml-[240px]"
@@ -251,21 +309,13 @@ const Index = () => {
         onNavigate={setActiveSection}
       />
 
-      {/* Quick Actions FAB */}
       <QuickActionsMenu onAction={handleQuickAction} />
-      
-      {/* Proactive alerts toast on login */}
       <ProactiveAlertsToast />
-      
-      {/* Keyboard shortcuts help dialog */}
-      <KeyboardShortcutsDialog 
-        open={shortcutsDialogOpen} 
-        onOpenChange={setShortcutsDialogOpen} 
+      <KeyboardShortcutsDialog
+        open={shortcutsDialogOpen}
+        onOpenChange={setShortcutsDialogOpen}
       />
-      
-      {/* Onboarding tour for new users */}
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
-
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
     </div>

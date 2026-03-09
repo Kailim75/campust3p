@@ -106,27 +106,10 @@ const App = () => (
                     <FormateurPortal />
                   </ProtectedRoute>
                 } />
-                {/* Legacy deep-links */}
+                {/* Main App — catches "/" and all section paths like /contacts, /sessions, etc. */}
+                {/* Legacy ?section= deep-links are handled inside Index.tsx */}
                 <Route
-                  path="/apprenants"
-                  element={
-                    <ProtectedRoute>
-                      <SectionRedirect section="contacts" />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/sessions"
-                  element={
-                    <ProtectedRoute>
-                      <SectionRedirect section="sessions" />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Main App with Mode Routing */}
-                <Route
-                  path="/"
+                  path="/*"
                   element={
                     <ProtectedRoute>
                       <CentreProvider>
