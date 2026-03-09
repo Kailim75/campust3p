@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import { useDocumentWorkflow } from "./useDocumentWorkflow";
-import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
+import { DOCUMENT_BLOCKS, getDocumentTypeConfig } from "@/lib/document-workflow/documentBlockConfig";
 import type { DocumentBlock, DocumentBlockSummary, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface UseLearnerDocumentBlocksParams {
