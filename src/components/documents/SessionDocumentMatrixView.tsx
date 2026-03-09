@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
-  FileText, Users, CheckCircle2, AlertTriangle, ExternalLink,
-  ChevronUp, ChevronDown, Download, Play,
+  FileText, Users, CheckCircle2, AlertTriangle,
+  ChevronUp, ChevronDown, Download, Play, Mail, FileArchive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter }
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 import { BulkGenerationDialog } from "./BulkGenerationDialog";
+import { BulkEmailDialog } from "./BulkEmailDialog";
+import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
 import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
@@ -56,8 +58,10 @@ export function SessionDocumentMatrixView({
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Bulk generation
+  // Bulk dialogs
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [exportAuditOpen, setExportAuditOpen] = useState(false);
   const generateDoc = useGenerateDocument();
 
   // Detail panel
@@ -251,7 +255,25 @@ export function SessionDocumentMatrixView({
             onClick={() => setBulkOpen(true)}
           >
             <Play className="h-3 w-3" />
-            Générer les documents
+            Générer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setBulkEmailOpen(true)}
+          >
+            <Mail className="h-3 w-3" />
+            Envoyer par email
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setExportAuditOpen(true)}
+          >
+            <FileArchive className="h-3 w-3" />
+            Pack audit
           </Button>
           <Button
             variant="outline"
@@ -260,7 +282,7 @@ export function SessionDocumentMatrixView({
             onClick={handleExportAudit}
           >
             <Download className="h-3 w-3" />
-            Export audit
+            CSV
           </Button>
           <Button
             variant="ghost"
@@ -432,6 +454,30 @@ export function SessionDocumentMatrixView({
           setSelectedIds(new Set());
           refetch();
         }}
+      />
+
+      {/* Bulk email dialog */}
+      <BulkEmailDialog
+        open={bulkEmailOpen}
+        onOpenChange={setBulkEmailOpen}
+        sessionId={sessionId}
+        sessionName={sessionName}
+        rows={rows ?? []}
+        selectedContactIds={selectedIds}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          refetch();
+        }}
+      />
+
+      {/* Export audit pack dialog */}
+      <ExportAuditPackDialog
+        open={exportAuditOpen}
+        onOpenChange={setExportAuditOpen}
+        type="session"
+        sessionId={sessionId}
+        sessionName={sessionName}
+        documentsCount={rows?.reduce((s, r) => s + r.generatedCount, 0) ?? 0}
       />
     </div>
   );

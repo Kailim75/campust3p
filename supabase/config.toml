@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.generate-workflow-ai]
 verify_jwt = false
+
+[functions.export-audit-pack]
+verify_jwt = false
+
+[functions.bulk-send-documents]
+verify_jwt = false
