@@ -22,9 +22,9 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 interface SessionDetailHeaderProps {
   session: Session;
   formateur: { prenom: string; nom: string } | null | undefined;
-  qualiopiScore: { score: number } | null | undefined;
-  size: string;
-  onSizeChange: (size: string) => void;
+  qualiopiScore: SessionQualiopiScore | null | undefined;
+  size: SheetSize;
+  onSizeChange: (size: SheetSize) => void;
   onEdit: (session: Session) => void;
 }
 
