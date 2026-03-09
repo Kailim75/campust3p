@@ -69,3 +69,12 @@ export {
   getMigrationSummary,
   type V1MigrationEntry,
 } from "./v1MigrationRegistry";
+
+// Audit Logger
+export {
+  logDocumentAudit,
+  logBulkGeneration,
+  logBulkEmail,
+  logExportAudit,
+  type AuditAction,
+} from "./documentAuditLogger";
