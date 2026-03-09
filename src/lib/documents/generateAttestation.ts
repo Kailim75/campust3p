@@ -225,8 +225,8 @@ export async function generateBulkAttestations(
 
     for (const contact of contacts) {
       try {
-        const contactId = (contact as any)?.id;
-        const sessionId = (session as any)?.id;
+        const contactId = contact.id;
+        const sessionId = session.id;
         let certificateInfo: CertificateInfo | null = null;
 
         if (contactId) {
