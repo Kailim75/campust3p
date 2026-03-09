@@ -255,7 +255,25 @@ export function SessionDocumentMatrixView({
             onClick={() => setBulkOpen(true)}
           >
             <Play className="h-3 w-3" />
-            Générer les documents
+            Générer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setBulkEmailOpen(true)}
+          >
+            <Mail className="h-3 w-3" />
+            Envoyer par email
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setExportAuditOpen(true)}
+          >
+            <FileArchive className="h-3 w-3" />
+            Pack audit
           </Button>
           <Button
             variant="outline"
@@ -264,7 +282,7 @@ export function SessionDocumentMatrixView({
             onClick={handleExportAudit}
           >
             <Download className="h-3 w-3" />
-            Export audit
+            CSV
           </Button>
           <Button
             variant="ghost"
