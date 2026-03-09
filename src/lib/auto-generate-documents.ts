@@ -31,9 +31,9 @@ type GeneratedDocumentV2Insert = Database["public"]["Tables"]["generated_documen
 type TemplateAuditLogInsert = Database["public"]["Tables"]["template_audit_log"]["Insert"];
 
 // ─── Typed query helpers ────────────────────────────────────────────────────
-// These wrappers provide explicit typing for tables that may not be fully
-// recognized by the auto-generated client. The underlying Supabase query
-// is unchanged; we only cast the result for type-safety.
+// Supabase's auto-generated types do not fully represent nested relational
+// selects (e.g. `document_pack_items(... template:template_studio_templates(...))`).
+// The `as unknown as` casts below bridge this gap without altering the query.
 
 async function fetchDefaultPacks(track: TrackScope): Promise<DocumentPack[]> {
   const { data } = await supabase
@@ -41,6 +41,7 @@ async function fetchDefaultPacks(track: TrackScope): Promise<DocumentPack[]> {
     .select("id, name, document_pack_items(id, auto_generate, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
     .eq("is_default", true)
     .or(`track_scope.eq.${track},track_scope.eq.both`);
+  // CAST JUSTIFIED: nested relational join shape not represented in generated types
   return (data ?? []) as unknown as DocumentPack[];
 }
 
