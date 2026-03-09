@@ -91,6 +91,18 @@ const RULES: RuleSet = {
     if (s && !s.date_debut) missing.push("Date de début");
     if (s && !s.date_fin) missing.push("Date de fin");
     if (s && !s.duree_heures) missing.push("Volume horaire");
+    if (s && !s.nom) missing.push("Nom de la formation");
+    return missing;
+  },
+
+  certificat_realisation: (c, s) => {
+    const missing: string[] = [];
+    if (!c.nom || !c.prenom) missing.push("Identité apprenant");
+    if (!s) missing.push("Session liée");
+    if (s && !s.date_debut) missing.push("Date de début");
+    if (s && !s.date_fin) missing.push("Date de fin");
+    if (s && !s.duree_heures) missing.push("Volume horaire");
+    if (s && !s.nom) missing.push("Nom de la formation");
     return missing;
   },
 
