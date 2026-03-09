@@ -18,6 +18,7 @@ export type LearnerStatusFilter =
   | "empty";
 
 export type BlockFilter = DocumentBlock | "all";
+export type ContractFilter = "all" | "contrat" | "convention" | "a_qualifier";
 
 interface SessionDocumentFiltersBarProps {
   search: string;
@@ -26,11 +27,19 @@ interface SessionDocumentFiltersBarProps {
   onStatusFilterChange: (val: LearnerStatusFilter) => void;
   blockFilter: BlockFilter;
   onBlockFilterChange: (val: BlockFilter) => void;
+  contractFilter?: ContractFilter;
+  onContractFilterChange?: (val: ContractFilter) => void;
   counts: {
     all: number;
     complete: number;
     incomplete: number;
     blocked: number;
+  };
+  contractCounts?: {
+    all: number;
+    contrat: number;
+    convention: number;
+    a_qualifier: number;
   };
   className?: string;
 }
