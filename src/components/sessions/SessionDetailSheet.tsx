@@ -84,11 +84,10 @@ interface SessionDetailSheetProps {
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
   const { size, setSize, sizeClass } = useSheetSize("session");
   const { data: session, isLoading } = useSession(sessionId);
-  const { data: rawInscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
+  const { data: rawInscriptions } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
   const { data: formateur } = useFormateur(session?.formateur_id ?? null);
   const addInscription = useAddInscription();
-  const removeInscription = useRemoveInscription();
   const { composerProps, openComposer } = useEmailComposer();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
