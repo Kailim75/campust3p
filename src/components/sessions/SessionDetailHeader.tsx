@@ -8,6 +8,8 @@ import { getFormationColor, getFormationLabel } from "@/constants/formationColor
 import { SessionQualiopiBadge } from "./SessionQualiopiBadge";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import type { Session } from "@/hooks/useSessions";
+import type { SessionQualiopiScore } from "@/hooks/useSessionQualiopi";
+import type { SheetSize } from "@/hooks/useSheetSize";
 
 const statusConfig: Record<string, { label: string; class: string }> = {
   a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
