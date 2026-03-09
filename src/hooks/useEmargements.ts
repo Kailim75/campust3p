@@ -206,13 +206,17 @@ export function useGenerateEmargements() {
 
       if (existError) throw existError;
 
-      // Delete emargements for contacts no longer enrolled
+      // Soft delete emargements for contacts no longer enrolled
       const toDelete = (existingEmargements || []).filter(e => !inscritContactIds.has(e.contact_id));
       if (toDelete.length > 0) {
         const deleteIds = toDelete.map(e => e.id);
         const { error: delError } = await supabase
           .from("emargements")
-          .delete()
+          .update({ 
+            deleted_at: new Date().toISOString(),
+            deleted_by: null, // Could be enhanced to track user
+            delete_reason: "Contact désinscrit de la session"
+          })
           .in("id", deleteIds);
         if (delError) throw delError;
       }
