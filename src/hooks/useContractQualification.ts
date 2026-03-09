@@ -145,6 +145,12 @@ export function useQualifyContractFrame() {
  * Auto-qualify an inscription based on financing type.
  * Only sets if not already manually qualified.
  */
+/**
+ * Auto-qualify an inscription based on financing type.
+ * Respects priority: manual > auto > a_qualifier.
+ * - Only writes if status is "a_qualifier" or "auto_detecte" (never overwrites manual).
+ * - Idempotent: skips write if the computed type matches the current persisted type.
+ */
 export async function autoQualifyFromFinancing(
   inscriptionId: string,
   financingType: string
@@ -152,17 +158,34 @@ export async function autoQualifyFromFinancing(
   const financing = mapCrmFinancingType(financingType);
   const result = disambiguateContractType(financing);
 
-  if (result.certainty === "certain") {
-    await (supabase as any)
-      .from("session_inscriptions")
-      .update({
-        contract_document_type: result.recommendedType,
-        contract_frame_status: "auto_detecte",
-        qualification_source: "auto_financement",
-        qualified_at: new Date().toISOString(),
-        qualified_by: null,
-      })
-      .eq("id", inscriptionId)
-      .is("contract_frame_status", "a_qualifier"); // Only if not already qualified
-  }
+  if (result.certainty !== "certain") return;
+
+  // Fetch current state to avoid unnecessary writes
+  const { data: current } = await (supabase as any)
+    .from("session_inscriptions")
+    .select("contract_document_type, contract_frame_status")
+    .eq("id", inscriptionId)
+    .single();
+
+  if (!current) return;
+
+  // Never overwrite manual qualification
+  if (current.contract_frame_status === "qualifie") return;
+
+  // Skip if already auto-detected with the same type (idempotent)
+  if (
+    current.contract_frame_status === "auto_detecte" &&
+    current.contract_document_type === result.recommendedType
+  ) return;
+
+  await (supabase as any)
+    .from("session_inscriptions")
+    .update({
+      contract_document_type: result.recommendedType,
+      contract_frame_status: "auto_detecte",
+      qualification_source: "auto_financement",
+      qualified_at: new Date().toISOString(),
+      qualified_by: null,
+    })
+    .eq("id", inscriptionId);
 }
