@@ -115,13 +115,13 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       ]);
 
       const inscriptions = inscRes.data || [];
-      const docTypes = new Set((docRes.data || []).map((d: any) => d.type_document));
+      const docTypes = new Set((docRes.data || []).map((d) => d.type_document));
       const factures = factRes.data || [];
       const paiements = paiRes.data || [];
       const hasInscription = inscriptions.length > 0;
       const hasDocuments = docTypes.size > 0;
       const hasFacture = factures.length > 0;
-      const hasPaid = factures.some((f: any) => f.statut === "payee" || f.statut === "partiel");
+      const hasPaid = factures.some((f) => f.statut === "payee" || f.statut === "partiel");
 
       // Track-aware completion
       const trackCompletion = computeTrackCompletion(contactTrack, {
@@ -129,12 +129,12 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         carteProData: carteProRes.data?.[0] || null,
       });
 
-      const totalFacture = factures.reduce((s: number, f: any) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = paiements.reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
+      const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+      const totalPaye = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
       const restantDu = totalFacture - totalPaye;
 
       const nextRappel = rappRes.data?.[0] || null;
-      const nextSession = inscriptions[0] ? (inscriptions[0] as any).sessions : null;
+      const nextSession = inscriptions[0] ? (inscriptions[0] as Record<string, unknown>).sessions as { nom?: string; date_debut?: string } | null : null;
 
       const autoNotes = (notesRes.data || []) as Array<{ id: string; titre: string; contenu: string | null; date_echange: string }>;
       const todayAutoNotes = autoNotes.filter(n => isToday(new Date(n.date_echange)));
@@ -307,7 +307,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
               <StatutApprenantDropdown
                 contactId={contact.id}
                 contactName={contactName}
-                currentStatus={(contact as any).statut_apprenant as StatutApprenant ?? "actif"}
+                currentStatus={contact.statut_apprenant as StatutApprenant ?? "actif"}
               />
               {/* Badge 1: Statut pipeline */}
               {statutBadge && (
