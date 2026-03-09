@@ -244,9 +244,24 @@ export function SessionDocumentMatrixView({
           <Badge variant="outline" className="text-[11px] h-6 bg-primary/10 text-primary border-primary/20">
             {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
           </Badge>
-          <span className="text-[11px] text-muted-foreground">
-            Sélection prête — génération groupée disponible dans une prochaine version.
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Play className="h-3 w-3" />
+            Générer les documents
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={handleExportAudit}
+          >
+            <Download className="h-3 w-3" />
+            Export audit
+          </Button>
           <Button
             variant="ghost"
             size="sm"
