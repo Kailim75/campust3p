@@ -37,11 +37,15 @@ export function useSessionDocumentMatrix({
       if (!sessionId) return [];
 
       // Fetch session data (including track)
-      const { data: sessionRaw } = await (supabase as any)
+      const { data: sessionRaw, error: sessionError } = await (supabase as any)
         .from("sessions")
-        .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total, centre_id, track")
+        .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix, centre_id, track")
         .eq("id", sessionId)
         .single();
+
+      if (sessionError) {
+        console.error("Session document matrix: session fetch error", sessionError);
+      }
 
       if (!sessionRaw) return [];
       const sessionData: EligibilitySession = sessionRaw;
