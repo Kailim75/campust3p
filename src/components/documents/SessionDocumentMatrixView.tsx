@@ -156,6 +156,35 @@ export function SessionDocumentMatrixView({
     setDetailState({ row, block });
   };
 
+  // Bulk generation handler
+  const handleBulkGenerate = useCallback(async (_contactId: string, item: DocumentWorkflowItem): Promise<boolean> => {
+    if (!item.templateId) return false;
+    try {
+      const variables = await buildVariablesForGeneration({
+        contactId: item.contactId ?? undefined,
+        sessionId: item.sessionId ?? undefined,
+      });
+      await generateDoc.mutateAsync({
+        templateId: item.templateId,
+        contactId: item.contactId ?? undefined,
+        sessionId: item.sessionId ?? undefined,
+        variables,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [generateDoc]);
+
+  // Audit export
+  const handleExportAudit = useCallback(() => {
+    if (!rows?.length) return;
+    const csv = buildAuditCSV(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCSV(csv, `audit-session-${sessionName?.replace(/\s+/g, "_") ?? sessionId}-${date}.csv`);
+    toast.success("Export audit téléchargé");
+  }, [rows, sessionName, sessionId]);
+
   // ── Render ──
 
   if (isLoading) {
