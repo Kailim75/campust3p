@@ -483,7 +483,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tab: Infos */}
+                {/* Tab: Infos — clean, structural only */}
                 <TabsContent value="info" className="space-y-4 pt-4">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-muted-foreground">
@@ -495,7 +495,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </span>
                     </div>
                     
-                    {/* Horaires */}
                     {(session.heure_debut || session.heure_fin) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Clock className="h-4 w-4" />
@@ -506,7 +505,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     )}
                     
-                    {/* Adresse structurée */}
                     {(session.adresse_rue || session.adresse_ville || session.lieu) && (
                       <div className="flex items-start gap-3 text-muted-foreground">
                         <MapPin className="h-4 w-4 mt-0.5" />
@@ -530,7 +528,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </span>
                     </div>
                     
-                    {/* Prix HT/TTC */}
                     {(session.prix_ht || session.prix) && (
                       <div className="flex items-center gap-3 text-muted-foreground">
                         <Euro className="h-4 w-4" />
@@ -544,27 +541,21 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     )}
                   </div>
 
-                  {/* Objectifs pédagogiques */}
                   {session.objectifs && (
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Objectifs pédagogiques
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Objectifs pédagogiques</h3>
                         <p className="text-sm whitespace-pre-line">{session.objectifs}</p>
                       </div>
                     </>
                   )}
 
-                  {/* Prérequis */}
                   {session.prerequis && (
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Prérequis
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Prérequis</h3>
                         <p className="text-sm whitespace-pre-line">{session.prerequis}</p>
                       </div>
                     </>
@@ -574,19 +565,61 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     <>
                       <Separator />
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                          Description
-                        </h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Description</h3>
                         <p className="text-sm">{session.description}</p>
                       </div>
                     </>
                   )}
 
+                  {/* Actions: Archive / Clôture */}
+                  <Separator />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-success text-success hover:bg-success/10"
+                          onClick={() => setCloseDialogOpen(true)}
+                          disabled={inscriptionCount === 0}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Clôturer
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {session.archived ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => unarchiveSession.mutate(session.id)}
+                          disabled={unarchiveSession.isPending}
+                        >
+                          <ArchiveRestore className="h-4 w-4 mr-2" />
+                          Désarchiver
+                        </Button>
+                      ) : canArchive ? (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => archiveSession.mutate(session.id)}
+                          disabled={archiveSession.isPending}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archiver
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab: Finances */}
+                <TabsContent value="finances" className="space-y-4 pt-4">
+                  <SessionFinancialSummary sessionId={session.id} />
+                  
                   <Separator />
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Documents
-                    </h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Générer les documents financiers</h3>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="w-full justify-start">
@@ -634,65 +667,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
-
-                  {/* Récapitulatif financier */}
-                  <Separator />
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <Euro className="h-4 w-4" />
-                      Récapitulatif financier
-                    </h3>
-                    <SessionFinancialSummary sessionId={session.id} />
-                  </div>
-
-                  <Separator />
-                  <div className="flex flex-col gap-2">
-                    {/* Actions principales */}
-                    <div className="flex gap-2">
-                      {!session.archived && (
-                        <Button className="flex-1" onClick={() => onEdit(session)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </Button>
-                      )}
-                      {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 border-success text-success hover:bg-success/10"
-                          onClick={() => setCloseDialogOpen(true)}
-                          disabled={inscriptionCount === 0}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Clôturer
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {/* Actions archivage */}
-                    <div className="flex gap-2">
-                      {session.archived ? (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => unarchiveSession.mutate(session.id)}
-                          disabled={unarchiveSession.isPending}
-                        >
-                          <ArchiveRestore className="h-4 w-4 mr-2" />
-                          Désarchiver
-                        </Button>
-                      ) : canArchive ? (
-                        <Button 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => archiveSession.mutate(session.id)}
-                          disabled={archiveSession.isPending}
-                        >
-                          <Archive className="h-4 w-4 mr-2" />
-                          Archiver
-                        </Button>
-                      ) : null}
-                    </div>
                   </div>
                 </TabsContent>
 
