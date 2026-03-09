@@ -309,50 +309,37 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
                 contactName={contactName}
                 currentStatus={(contact as any).statut_apprenant as StatutApprenant ?? "actif"}
               />
+              {/* Badge 1: Statut pipeline */}
               {statutBadge && (
                 <Badge variant="outline" className={cn("text-xs", statutBadge.className)}>
                   {statutBadge.label}
                 </Badge>
               )}
+              {/* Badge 2: Track */}
               <Badge variant="outline" className={cn("text-xs", trackBadge.className)}>
                 {trackBadge.label} ({trackBadge.sublabel})
               </Badge>
-              {contact.formation && (
-                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                  {contact.formation}
-                </Badge>
+              {/* Badge 3: Urgency (only if action required) */}
+              {hasActionRequired && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className={cn("text-[10px] cursor-help", urgency.className)}>
+                        <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
+                        {urgency.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[220px]">
+                      <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
+                      {urgency.reasons.length > 0 && (
+                        <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
+                          {urgency.reasons.map((r: string, i: number) => <li key={i}>• {r}</li>)}
+                        </ul>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
-              {/* Dossier status badge */}
-              <Badge variant="outline" className={cn("text-xs",
-                hasActionRequired
-                  ? "bg-warning/10 text-warning border-warning/20"
-                  : "bg-success/10 text-success border-success/20"
-              )}>
-                {hasActionRequired ? (
-                  <><AlertTriangle className="h-3 w-3 mr-1" />Action requise</>
-                ) : (
-                  <><CheckCircle2 className="h-3 w-3 mr-1" />OK</>
-                )}
-              </Badge>
-              {/* Urgency badge with reasons tooltip */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className={cn("text-[10px] cursor-help", urgency.className)}>
-                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", urgency.dotClassName)} />
-                      {urgency.label}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[220px]">
-                    <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
-                    {urgency.reasons.length > 0 && (
-                      <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
-                        {urgency.reasons.map((r: string, i: number) => <li key={i}>• {r}</li>)}
-                      </ul>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </div>
         </div>
