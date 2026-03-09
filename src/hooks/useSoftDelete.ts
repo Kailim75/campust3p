@@ -46,6 +46,7 @@ const tableQueryKeys: Record<SoftDeleteTable, string[][]> = {
   document_templates: [["document_templates"]],
   catalogue_formations: [["catalogue_formations"]],
   email_templates: [["email_templates"]],
+  generated_documents_v2: [["generated-docs-v2"]],
 };
 
 export function useSoftDelete() {

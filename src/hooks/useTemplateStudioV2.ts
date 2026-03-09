@@ -615,7 +615,8 @@ export function useRetryFailedDocuments() {
       let query = (supabase as any)
         .from("generated_documents_v2")
         .select("*, template:template_studio_templates(id, name, template_body, current_version_id)")
-        .eq("status", "failed");
+        .eq("status", "failed")
+        .is("deleted_at", null);
 
       if (opts.contactId) query = query.eq("contact_id", opts.contactId);
       if (opts.sessionId) query = query.eq("session_id", opts.sessionId);
