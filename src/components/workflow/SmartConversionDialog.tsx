@@ -250,6 +250,13 @@ export function SmartConversionDialog({
           .eq("session_id", selectedSession.id)
           .single();
         if (inscData) {
+          // 5a. Auto-qualify contract frame from financing
+          try {
+            await autoQualifyFromFinancing(inscData.id, financement);
+          } catch (e) {
+            console.warn("Auto-qualification from conversion:", e);
+          }
+
           triggerAutoGeneration({
             contactId: contact.id,
             sessionId: selectedSession.id,
