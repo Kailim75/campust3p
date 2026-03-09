@@ -137,13 +137,13 @@ async function enrichContact(contact: ContactInfo, contactId?: string, formation
  * Génère une attestation unique (fiche stagiaire ou fiche session).
  */
 export async function generateSingleAttestation(
-  contact: ContactInfo,
-  session: SessionInfo,
+  contact: ContactInfoWithId,
+  session: SessionInfoWithId,
   company: CompanyInfo,
   centreFormation?: CentreFormationData | null
 ): Promise<void> {
-  const contactId = (contact as any)?.id;
-  const sessionId = (session as any)?.id;
+  const contactId = contact.id;
+  const sessionId = session.id;
   const typeAttestation = getAttestationType(session.formation_type);
 
   // Générer le numéro de certificat
