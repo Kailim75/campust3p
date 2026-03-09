@@ -296,6 +296,7 @@ export function useSaveGeneratedDocument() {
   return useMutation({
     mutationFn: async ({
       contactId,
+      centreId,
       templateFileId,
       templateTextId,
       nom,
@@ -304,6 +305,7 @@ export function useSaveGeneratedDocument() {
       metadata,
     }: {
       contactId: string;
+      centreId: string;
       templateFileId?: string;
       templateTextId?: string;
       nom: string;
@@ -311,9 +313,9 @@ export function useSaveGeneratedDocument() {
       sessionId?: string;
       metadata?: Record<string, unknown>;
     }) => {
-      // Upload le PDF généré
+      // Upload le PDF généré — path must start with centreId for RLS
       const fileName = `${Date.now()}-${nom.replace(/[^a-zA-Z0-9.-]/g, "_")}.pdf`;
-      const filePath = `${contactId}/${fileName}`;
+      const filePath = `${centreId}/${contactId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("generated-documents")
