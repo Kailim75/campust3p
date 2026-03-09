@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
-  MoreHorizontal, Bell, Award, Handshake, Car, UserCog, Palette,
+  MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
   Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
