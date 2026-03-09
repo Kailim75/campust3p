@@ -2,42 +2,24 @@ import { useState } from "react";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   MapPin,
   Users,
   Euro,
-  Edit,
   UserPlus,
-  Trash2,
   ClipboardList,
-  FileSignature,
   Info,
-  FileDown,
   FileText,
-  Hash,
   Clock,
   GraduationCap,
-  User,
-  Award,
-  Send,
   CheckCircle2,
-  CreditCard,
   Archive,
   ArchiveRestore,
   Shield,
@@ -49,7 +31,6 @@ import { useFormateur } from "@/hooks/useFormateurs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 import {
   Dialog,
   DialogContent,
@@ -71,11 +52,8 @@ import { useBatchPedagogicalDocuments } from "@/hooks/useBatchPedagogicalDocumen
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import { useArchiveSession, useUnarchiveSession, useCanArchiveSession } from "@/hooks/useSessionArchive";
 import SessionInscritsTable from "./SessionInscritsTable";
-import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import { useSheetSize } from "@/hooks/useSheetSize";
-import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import { SessionQualiopiTab } from "./SessionQualiopiTab";
-import { SessionQualiopiBadge } from "./SessionQualiopiBadge";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionQuickActions } from "./SessionQuickActions";
 import { SessionParcoursTab } from "./SessionParcoursTab";
@@ -85,17 +63,17 @@ import { SessionClosureWizard } from "./SessionClosureWizard";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
-import type { CompanyInfo, AgrementsAutre } from "@/lib/pdf-generator";
+import type { CompanyInfo } from "@/lib/pdf-generator";
 import { SessionDocumentsTab } from "@/components/template-studio-v2/SessionDocumentsTab";
 
-const statusConfig = {
-  a_venir: { label: "À venir", class: "bg-info/10 text-info border-info/20" },
-  en_cours: { label: "En cours", class: "bg-warning/10 text-warning border-warning/20" },
-  terminee: { label: "Terminée", class: "bg-muted text-muted-foreground border-muted" },
-  annulee: { label: "Annulée", class: "bg-destructive/10 text-destructive border-destructive/20" },
-  complet: { label: "Complet", class: "bg-success/10 text-success border-success/20" },
-};
+// Extracted sub-components
+import { SessionDetailHeader } from "./SessionDetailHeader";
+import { SessionKPICockpit } from "./SessionKPICockpit";
+import { SessionFinancesTabContent } from "./SessionFinancesTabContent";
 
+// Typed inscription helpers
+import type { InscriptionWithContact, InscriptionContact } from "@/types/session-inscription";
+import { extractRecipientsFromInscriptions } from "@/types/session-inscription";
 
 interface SessionDetailSheetProps {
   sessionId: string | null;
@@ -107,7 +85,7 @@ interface SessionDetailSheetProps {
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
   const { size, setSize, sizeClass } = useSheetSize("session");
   const { data: session, isLoading } = useSession(sessionId);
-  const { data: inscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
+  const { data: rawInscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
   const { data: formateur } = useFormateur(session?.formateur_id ?? null);
   const addInscription = useAddInscription();
@@ -128,6 +106,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const canArchive = useCanArchiveSession(session?.date_fin);
   const { data: qualiopiScore } = useSessionQualiopi(sessionId);
   const { centreFormation } = useCentreFormation();
+
+  // Cast raw inscriptions to typed form (Supabase returns untyped relational joins)
+  // CAST JUSTIFIED: Supabase's auto-generated types don't model relational joins;
+  // InscriptionWithContact mirrors the exact select query in useSessionInscriptions.
+  const inscriptions = rawInscriptions as unknown as InscriptionWithContact[] | undefined;
 
   // Build CompanyInfo for document generation
   const companyInfo: CompanyInfo | undefined = centreFormation ? {
@@ -154,7 +137,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const placesRestantes = session ? session.places_totales - inscriptionCount : 0;
 
   const sessionInfo = session ? {
-    id: session.id, // Nécessaire pour générer le numéro de certificat
+    id: session.id,
     nom: session.nom,
     formation_type: session.formation_type,
     date_debut: session.date_debut,
@@ -170,11 +153,14 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     prix: session.prix ? Number(session.prix) : undefined,
   } : null;
 
+  // ─── Helper: get contact data from inscription ───
+  const getInscriptionContact = (i: InscriptionWithContact): InscriptionContact | null => i.contacts;
+
   const handleGenerateDocument = (type: DocumentType, contact: Contact) => {
     if (!sessionInfo) return;
     
     const contactInfo = {
-      id: contact.id, // Nécessaire pour générer le numéro de certificat
+      id: contact.id,
       civilite: contact.civilite || undefined,
       nom: contact.nom,
       prenom: contact.prenom,
@@ -205,18 +191,18 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
     
     const contactsInfo = inscriptions.map((inscription) => {
-      const contact = inscription.contacts as unknown as Contact;
+      const c = getInscriptionContact(inscription);
       return {
-        civilite: contact.civilite || undefined,
-        nom: contact.nom,
-        prenom: contact.prenom,
-        email: contact.email || undefined,
-        telephone: contact.telephone || undefined,
-        rue: contact.rue || undefined,
-        code_postal: contact.code_postal || undefined,
-        ville: contact.ville || undefined,
-        date_naissance: contact.date_naissance || undefined,
-        ville_naissance: contact.ville_naissance || undefined,
+        civilite: c?.civilite || undefined,
+        nom: c?.nom || "",
+        prenom: c?.prenom || "",
+        email: c?.email || undefined,
+        telephone: c?.telephone || undefined,
+        rue: c?.rue || undefined,
+        code_postal: c?.code_postal || undefined,
+        ville: c?.ville || undefined,
+        date_naissance: c?.date_naissance || undefined,
+        ville_naissance: c?.ville_naissance || undefined,
       };
     });
     
@@ -230,10 +216,10 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
 
     const contactsData = inscriptions.map((inscription) => {
-      const contact = inscription.contacts as unknown as Contact;
+      const c = getInscriptionContact(inscription);
       return {
-        id: contact.id,
-        prenom: contact.prenom,
+        id: c?.id || inscription.contact_id,
+        prenom: c?.prenom || "",
         formation: session.formation_type,
       };
     });
@@ -248,15 +234,15 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
 
     const contactsData = inscriptions.map((inscription) => {
-      const contact = inscription.contacts as unknown as Contact;
+      const c = getInscriptionContact(inscription);
       return {
-        id: contact.id,
-        nom: contact.nom,
-        prenom: contact.prenom,
-        email: contact.email,
-        telephone: contact.telephone,
-        date_naissance: contact.date_naissance,
-        ville_naissance: contact.ville_naissance,
+        id: c?.id || inscription.contact_id,
+        nom: c?.nom || "",
+        prenom: c?.prenom || "",
+        email: c?.email || null,
+        telephone: c?.telephone || null,
+        date_naissance: c?.date_naissance || null,
+        ville_naissance: c?.ville_naissance || null,
       };
     });
 
@@ -306,6 +292,39 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     }
   };
 
+  // ─── Reusable recipient extraction (no more duplicated `as any` blocks) ───
+  const openEmailForSession = (subject: string, body: string) => {
+    const recipients = extractRecipientsFromInscriptions(inscriptions);
+    if (recipients.length === 0) {
+      toast.error("Aucun inscrit avec email");
+      return;
+    }
+    openComposer({
+      recipients,
+      defaultSubject: subject,
+      defaultBody: body,
+      autoNoteCategory: "session_email",
+    });
+  };
+
+  // ─── CSV Export ───
+  const handleExport = () => {
+    if (!inscriptions?.length) return;
+    const rows = inscriptions.map((i) => {
+      const c = getInscriptionContact(i);
+      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].join(",");
+    });
+    const csv = ["Prénom,Nom,Email,Téléphone,Statut", ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inscrits_${session?.nom.replace(/\s/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Liste exportée");
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -318,138 +337,40 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
             </div>
           ) : session ? (
             <>
-              <SheetHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    {session.numero_session && (
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">
-                        <Hash className="h-3 w-3 mr-1" />
-                        {session.numero_session}
-                      </Badge>
-                    )}
-                    <SheetTitle className="text-xl">{session.nom}</SheetTitle>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={cn("text-xs", getFormationColor(session.formation_type).badge)}>
-                        {getFormationLabel(session.formation_type)}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", statusConfig[session.statut]?.class)}
-                      >
-                        {statusConfig[session.statut]?.label || session.statut}
-                      </Badge>
-                      {qualiopiScore && (
-                        <SessionQualiopiBadge qualiopi={qualiopiScore} />
-                      )}
-                      {session.archived && (
-                        <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-muted">
-                          <Archive className="h-3 w-3 mr-1" />
-                          Archivée
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {formateur && (
-                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-accent/50 border border-accent">
-                        <Avatar className="h-7 w-7 border-2 border-primary/20">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                            {`${formateur.prenom?.[0] ?? ""}${formateur.nom?.[0] ?? ""}`.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground">Formateur</span>
-                          <span className="text-sm font-medium">{formateur.prenom} {formateur.nom}</span>
-                        </div>
-                        <GraduationCap className="h-4 w-4 text-primary ml-auto" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!session.archived && (
-                      <Button size="sm" onClick={() => onEdit(session)}>
-                        <Edit className="h-3.5 w-3.5 mr-1.5" />
-                        Modifier
-                      </Button>
-                    )}
-                    <SheetSizeSelector size={size} onSizeChange={setSize} />
-                  </div>
-                </div>
+              <SessionDetailHeader
+                session={session}
+                formateur={formateur}
+                qualiopiScore={qualiopiScore}
+                size={size}
+                onSizeChange={setSize}
+                onEdit={onEdit}
+              />
 
-                {/* ─── KPI Cockpit ─── */}
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="bg-card border rounded-lg p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Inscrits / Places</p>
-                    <p className={cn("text-sm font-bold", placesRestantes <= 0 ? "text-success" : "text-foreground")}>
-                      {inscriptionCount} / {session.places_totales}
-                    </p>
-                  </div>
-                  <div className="bg-card border rounded-lg p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Prix session</p>
-                    <p className="text-sm font-bold text-foreground">
-                      {session.prix ? `${Number(session.prix).toLocaleString('fr-FR')} €` : '—'}
-                    </p>
-                  </div>
-                  <div className="bg-card border rounded-lg p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Qualiopi</p>
-                    <p className="text-sm font-bold text-foreground">
-                      {qualiopiScore ? `${qualiopiScore.score}%` : '—'}
-                    </p>
-                  </div>
-                </div>
+              {/* ─── KPI Cockpit ─── */}
+              <SessionKPICockpit
+                inscriptionCount={inscriptionCount}
+                placesTotales={session.places_totales}
+                prix={session.prix ? Number(session.prix) : null}
+                qualiopiScore={qualiopiScore ? qualiopiScore.score : null}
+              />
 
-                {/* Quick Actions Bar */}
-                <SessionQuickActions
-                  inscriptionCount={inscriptionCount}
-                  archived={session.archived}
-                  isTerminee={session.statut === "terminee"}
-                  onSendDocuments={() => setDocSendModalOpen(true)}
-                  onSendEmail={() => {
-                    const recipients = inscriptions
-                      ?.filter((i) => {
-                        const c = i.contacts as any;
-                        return c?.email;
-                      })
-                      .map((i) => {
-                        const c = i.contacts as any;
-                        return {
-                          id: i.contact_id,
-                          email: c.email,
-                          prenom: c.prenom || "",
-                          nom: c.nom || "",
-                        };
-                      }) || [];
-                    if (recipients.length === 0) {
-                      toast.error("Aucun inscrit avec email");
-                      return;
-                    }
-                    openComposer({
-                      recipients,
-                      defaultSubject: `${session.nom} — Information`,
-                      defaultBody: `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nBien cordialement,\nL'équipe pédagogique`,
-                      autoNoteCategory: "session_email",
-                    });
-                  }}
-                  onManageExams={() => setActiveTab("parcours")}
-                  onExport={() => {
-                    if (!inscriptions?.length) return;
-                    const rows = inscriptions.map((i) => {
-                      const c = i.contacts as any;
-                      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].join(",");
-                    });
-                    const csv = ["Prénom,Nom,Email,Téléphone,Statut", ...rows].join("\n");
-                    const blob = new Blob([csv], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `inscrits_${session.nom.replace(/\s/g, "_")}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    toast.success("Liste exportée");
-                  }}
-                  onPackAudit={() => setPackAuditOpen(true)}
-                  onCloseSession={() => setClosureWizardOpen(true)}
-                />
-              </SheetHeader>
+              {/* Quick Actions Bar */}
+              <SessionQuickActions
+                inscriptionCount={inscriptionCount}
+                archived={session.archived}
+                isTerminee={session.statut === "terminee"}
+                onSendDocuments={() => setDocSendModalOpen(true)}
+                onSendEmail={() => {
+                  openEmailForSession(
+                    `${session.nom} — Information`,
+                    `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nBien cordialement,\nL'équipe pédagogique`
+                  );
+                }}
+                onManageExams={() => setActiveTab("parcours")}
+                onExport={handleExport}
+                onPackAudit={() => setPackAuditOpen(true)}
+                onCloseSession={() => setClosureWizardOpen(true)}
+              />
 
                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
                 <TabsList className="grid w-full grid-cols-7">
@@ -614,60 +535,15 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 </TabsContent>
 
                 {/* Tab: Finances */}
-                <TabsContent value="finances" className="space-y-4 pt-4">
-                  <SessionFinancialSummary sessionId={session.id} />
-                  
-                  <Separator />
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Générer les documents financiers</h3>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start">
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Générer les documents
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-64">
-                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convocation")}>
-                          <Send className="h-4 w-4 mr-2" />
-                          Toutes les convocations
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("convention")}>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Toutes les conventions (tiers payeur)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("contrat")}>
-                          <FileSignature className="h-4 w-4 mr-2" />
-                          Tous les contrats (paiement direct)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateBulkDocuments("attestation")}>
-                          <Award className="h-4 w-4 mr-2" />
-                          Toutes les attestations
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handleGenerateBatchChevalets}
-                          disabled={generateBatchChevalets.isPending}
-                        >
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Tous les chevalets
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleGenerateBatchPedagogicalDocs("entree_sortie")}
-                          disabled={batchPedagogicalDocs.isPending}
-                        >
-                          <ClipboardList className="h-4 w-4 mr-2" />
-                          Fiches entrée/sortie
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleGenerateBatchPedagogicalDocs("test_positionnement")}
-                          disabled={batchPedagogicalDocs.isPending}
-                        >
-                          <ClipboardList className="h-4 w-4 mr-2" />
-                          Tests de positionnement
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                <TabsContent value="finances">
+                  <SessionFinancesTabContent
+                    sessionId={session.id}
+                    onGenerateBulkDocuments={handleGenerateBulkDocuments}
+                    onGenerateBatchChevalets={handleGenerateBatchChevalets}
+                    onGenerateBatchPedagogicalDocs={handleGenerateBatchPedagogicalDocs}
+                    isBatchCheveletsPending={generateBatchChevalets.isPending}
+                    isBatchPedagogicalPending={batchPedagogicalDocs.isPending}
+                  />
                 </TabsContent>
 
                 {/* Tab: Inscriptions */}
@@ -677,7 +553,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Documents V2 */}
                 <TabsContent value="documents" className="pt-4">
-                  <SessionDocumentsTab sessionId={session.id} sessionTrack={(session as any).track} />
+                  <SessionDocumentsTab sessionId={session.id} sessionTrack={session.track} />
                 </TabsContent>
 
                 {/* Tab: Parcours / Examens */}
@@ -697,20 +573,13 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       setDocSendModalOpen(true);
                     }}
                     onSendEmail={(template) => {
-                      const recipients = inscriptions
-                        ?.filter((i) => { const c = i.contacts as any; return c?.email; })
-                        .map((i) => { const c = i.contacts as any; return { id: i.contact_id, email: c.email, prenom: c.prenom || "", nom: c.nom || "" }; }) || [];
-                      if (recipients.length === 0) { toast.error("Aucun inscrit avec email"); return; }
-                      openComposer({
-                        recipients,
-                        defaultSubject: template === "satisfaction"
-                          ? `${session.nom} — Enquête de satisfaction`
-                          : `${session.nom} — Information`,
-                        defaultBody: template === "satisfaction"
-                          ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
-                          : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\nÉcole T3P Montrouge`,
-                        autoNoteCategory: "session_email",
-                      });
+                      const subject = template === "satisfaction"
+                        ? `${session.nom} — Enquête de satisfaction`
+                        : `${session.nom} — Information`;
+                      const body = template === "satisfaction"
+                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
+                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\nÉcole T3P Montrouge`;
+                      openEmailForSession(subject, body);
                     }}
                     onEditSession={() => onEdit(session)}
                     onOpenEmargement={() => setActiveTab("emargement")}
@@ -777,7 +646,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
       {session && (
         <CloseSessionDialog
           session={session}
-          inscriptions={inscriptions || []}
+          inscriptions={rawInscriptions || []}
           open={closeDialogOpen}
           onOpenChange={setCloseDialogOpen}
           onSuccess={() => onOpenChange(false)}
@@ -791,7 +660,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           onOpenChange={setDocSendModalOpen}
           inscrits={(inscriptions || []).map((i) => ({
             contact_id: i.contact_id,
-            contact: i.contacts as any,
+            contact: i.contacts as InscriptionContact,
           }))}
           sessionInfo={sessionInfo}
           sessionName={session.nom}
@@ -820,17 +689,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
             setDocSendModalOpen(true);
           }}
           onSendEmail={(template) => {
-            const recipients = inscriptions
-              ?.filter((i) => { const c = i.contacts as any; return c?.email; })
-              .map((i) => { const c = i.contacts as any; return { id: i.contact_id, email: c.email, prenom: c.prenom || "", nom: c.nom || "" }; }) || [];
-            if (recipients.length === 0) { toast.error("Aucun inscrit avec email"); return; }
             setClosureWizardOpen(false);
-            openComposer({
-              recipients,
-              defaultSubject: `${session.nom} — Enquête de satisfaction`,
-              defaultBody: `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`,
-              autoNoteCategory: "session_email",
-            });
+            openEmailForSession(
+              `${session.nom} — Enquête de satisfaction`,
+              `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
+            );
           }}
           onOpenPackAudit={() => {
             setClosureWizardOpen(false);
