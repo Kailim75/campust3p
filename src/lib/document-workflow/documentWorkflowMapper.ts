@@ -8,7 +8,7 @@ import type {
   DocumentHistoryEntry,
   DocumentSourceSystem,
 } from "./types";
-import { getDocumentTypeConfig } from "./documentBlockConfig";
+import { getDocumentTypeConfig, getVisibleConfigs } from "./documentBlockConfig";
 import { computeBusinessStatus, type StatusInput } from "./documentBusinessStatus";
 import {
   checkDocumentEligibility,
