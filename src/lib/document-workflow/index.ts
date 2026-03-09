@@ -57,6 +57,18 @@ export {
   downloadCSV,
 } from "./auditExport";
 
+// Track-aware rules & convention/contrat disambiguation
+export {
+  getTrackRequiredOverride,
+  isDocumentVisibleForTrack,
+  disambiguateContractType,
+  mapCrmFinancingType,
+  getContinuingFormationRequirements,
+  type FinancingContext,
+  type ContractDisambiguationResult,
+  type ContinuingFormationRequirements,
+} from "./documentTrackRules";
+
 // V1 Migration Registry
 export {
   V1_MIGRATION_REGISTRY,

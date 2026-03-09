@@ -47,9 +47,10 @@ export const DOCUMENT_TYPE_REGISTRY: readonly DocumentTypeConfig[] = [
   { type: "test_positionnement",  label: "Test de positionnement (alt)", block: "suivi",     requiredByDefault: false, visibility: "apprenant", sortOrder: 6,  supportsBulk: false, requiresSignature: false },
 
   // ── Bloc FIN ──
-  { type: "attestation",          label: "Attestation de fin de formation", block: "fin",    requiredByDefault: true,  visibility: "both",      sortOrder: 1,  supportsBulk: true,  requiresSignature: false },
-  { type: "evaluation_froid",     label: "Évaluation à froid (J+30)",    block: "fin",       requiredByDefault: false, visibility: "both",      sortOrder: 2,  supportsBulk: true,  requiresSignature: false },
-  { type: "chef_oeuvre",          label: "Chef d'œuvre",                  block: "fin",       requiredByDefault: false, visibility: "apprenant", sortOrder: 3,  supportsBulk: false, requiresSignature: false },
+  { type: "attestation",             label: "Attestation de fin de formation",  block: "fin",    requiredByDefault: true,  visibility: "both",      sortOrder: 1,  supportsBulk: true,  requiresSignature: false },
+  { type: "certificat_realisation",  label: "Certificat de réalisation",        block: "fin",    requiredByDefault: true,  visibility: "both",      sortOrder: 2,  supportsBulk: true,  requiresSignature: false },
+  { type: "evaluation_froid",        label: "Évaluation à froid (J+30)",        block: "fin",    requiredByDefault: false, visibility: "both",      sortOrder: 3,  supportsBulk: true,  requiresSignature: false },
+  { type: "chef_oeuvre",             label: "Chef d'œuvre",                      block: "fin",    requiredByDefault: false, visibility: "apprenant", sortOrder: 4,  supportsBulk: false, requiresSignature: false },
 
   // ── Bloc FINANCES ──
   { type: "invoice",              label: "Facture",                      block: "finances",  requiredByDefault: true,  visibility: "apprenant", sortOrder: 1,  supportsBulk: false, requiresSignature: false },

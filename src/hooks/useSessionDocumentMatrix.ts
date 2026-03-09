@@ -14,6 +14,7 @@ import {
 } from "@/lib/document-workflow/documentWorkflowMapper";
 import type { SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
+import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
 
 interface UseSessionDocumentMatrixParams {
   sessionId: string | null;
@@ -23,6 +24,7 @@ interface UseSessionDocumentMatrixParams {
 /**
  * Builds a matrix of all learners × document blocks for a session.
  * Used in the session view to show document completion at a glance.
+ * Now track-aware: adapts required documents based on initial vs continuing.
  */
 export function useSessionDocumentMatrix({
   sessionId,
@@ -34,16 +36,18 @@ export function useSessionDocumentMatrix({
     queryFn: async (): Promise<SessionDocumentMatrixRow[]> => {
       if (!sessionId) return [];
 
-      // Fetch session data
+      // Fetch session data (including track)
       const { data: sessionRaw } = await (supabase as any)
         .from("sessions")
-        .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total, centre_id")
+        .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total, centre_id, track")
         .eq("id", sessionId)
         .single();
 
       if (!sessionRaw) return [];
       const sessionData: EligibilitySession = sessionRaw;
       const centreId = sessionRaw.centre_id as string;
+      // Resolve formation track
+      const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
 
       // Fetch inscriptions with contact data
       const { data: inscriptions } = await supabase
@@ -96,10 +100,10 @@ export function useSessionDocumentMatrix({
           mapGeneratedDocV2(doc, contactEnvois, contactSigs, contact, sessionData)
         );
 
-        // Add placeholders
+        // Add placeholders (track-aware)
         const existingTypes = new Set(items.map(i => i.documentType));
         const placeholders = createExpectedPlaceholders(
-          existingTypes, contact, sessionData, centreId, "session"
+          existingTypes, contact, sessionData, centreId, "session", track
         );
         items.push(...placeholders);
 
