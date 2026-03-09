@@ -255,7 +255,10 @@ export function SessionDocumentMatrixView({
         onStatusFilterChange={setStatusFilter}
         blockFilter={blockFilter}
         onBlockFilterChange={setBlockFilter}
+        contractFilter={contractFilter}
+        onContractFilterChange={setContractFilter}
         counts={filterCounts}
+        contractCounts={contractCounts}
       />
 
       {/* Selection bar */}
