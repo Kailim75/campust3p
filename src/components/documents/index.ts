@@ -21,3 +21,7 @@ export { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 
 // Phase 4 components
 export { BulkGenerationDialog } from "./BulkGenerationDialog";
+
+// Phase 5 components
+export { BulkEmailDialog } from "./BulkEmailDialog";
+export { ExportAuditPackDialog } from "./ExportAuditPackDialog";
