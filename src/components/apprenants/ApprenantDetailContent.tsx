@@ -396,7 +396,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
           {/* Last action */}
           <div className="bg-card border rounded-lg p-2.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dernière action</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Dernière action</p>
             {lastAutoNote ? (
               <p className="text-xs text-foreground truncate mt-0.5">
                 <Bot className="h-3 w-3 inline mr-0.5 text-muted-foreground" />
