@@ -425,6 +425,22 @@ export function SessionDocumentMatrixView({
                       </div>
                     </td>
 
+                    {/* Contract frame */}
+                    <td className="px-2 py-2 text-center">
+                      {(() => {
+                        const frame = row.contractFrame ?? "a_qualifier";
+                        const label = frame === "contrat" ? "Contrat"
+                          : frame === "convention" ? "Convention"
+                          : "À qualifier";
+                        const variant = frame === "a_qualifier" ? "destructive" as const : "secondary" as const;
+                        return (
+                          <Badge variant={variant} className="text-[9px] h-5 px-1.5">
+                            {label}
+                          </Badge>
+                        );
+                      })()}
+                    </td>
+
                     {/* Block cells */}
                     {blockOrder
                       .filter(([block]) => blockFilter === "all" || blockFilter === block)
