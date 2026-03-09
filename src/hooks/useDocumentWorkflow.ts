@@ -13,6 +13,7 @@ import {
 } from "@/lib/document-workflow/documentWorkflowMapper";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
+import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
 
 interface UseDocumentWorkflowParams {
   contactId: string | null;
@@ -75,15 +76,18 @@ export function useDocumentWorkflow({
         contactData = c as EligibilityContact | null;
       }
 
-      // 5. Fetch session data for eligibility
+      // 5. Fetch session data for eligibility + track
       let sessionData: EligibilitySession | null = null;
+      let track: FormationTrack | null = null;
       if (sessionId) {
         const { data: s } = await (supabase as any)
           .from("sessions")
-          .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total")
+          .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total, track")
           .eq("id", sessionId)
           .single();
         sessionData = s as EligibilitySession | null;
+        // Resolve track: prefer DB column, fallback to derivation
+        track = s?.track ?? getTrackFromFormationType(s?.formation_type);
       }
 
       // Execute parallel queries
@@ -102,7 +106,7 @@ export function useDocumentWorkflow({
         mapGeneratedDocV2(doc, envois, signatures, contactData, sessionData)
       );
 
-      // Add placeholders for expected but missing documents
+      // Add placeholders for expected but missing documents (track-aware)
       if (contactData) {
         const existingTypes = new Set(items.map(i => i.documentType));
         const effectiveCentreId = centreId ?? items[0]?.centreId ?? "";
@@ -111,7 +115,8 @@ export function useDocumentWorkflow({
           contactData,
           sessionData,
           effectiveCentreId,
-          context
+          context,
+          track
         );
         items.push(...placeholders);
       }
