@@ -58,8 +58,10 @@ export function SessionDocumentMatrixView({
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Bulk generation
+  // Bulk dialogs
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [exportAuditOpen, setExportAuditOpen] = useState(false);
   const generateDoc = useGenerateDocument();
 
   // Detail panel
