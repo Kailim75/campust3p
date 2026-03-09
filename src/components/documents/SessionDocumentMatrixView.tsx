@@ -19,13 +19,13 @@ import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
 import { buildAuditCSV, downloadCSV } from "@/lib/document-workflow/auditExport";
 import { useGenerateDocument, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import { SessionDocumentsOverviewCard } from "./SessionDocumentsOverviewCard";
-import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter } from "./SessionDocumentFiltersBar";
+import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter, type ContractFilter } from "./SessionDocumentFiltersBar";
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 import { BulkGenerationDialog } from "./BulkGenerationDialog";
 import { BulkEmailDialog } from "./BulkEmailDialog";
 import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
-import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
+import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem, ContractFrameDisplay } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
   sessionId: string;
