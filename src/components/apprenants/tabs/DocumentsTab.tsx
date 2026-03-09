@@ -1,39 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  FileText, Download, RefreshCw, FolderOpen, AlertCircle,
-  CheckCircle2, Clock, XCircle, File, Loader2, Package, MoreVertical, RotateCcw,
-} from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { FileText, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { ContactDocumentsTab } from "@/components/contacts/detail/ContactDocumentsTab";
-import {
-  useGeneratedDocuments,
-  useGenerateDocument,
-  useGeneratePackDocuments,
-  useDownloadGeneratedDoc,
-  useDocumentPacks,
-  useRetryFailedDocuments,
-  buildVariablesForGeneration,
-  DOC_FILTER_OPTIONS,
-  type GeneratedDocument,
-  type TrackScope,
-  type DocFilterStatus,
-} from "@/hooks/useTemplateStudioV2";
-import { MissingFieldsDialog, findMissingVariables } from "@/components/template-studio-v2/MissingFieldsDialog";
+import { LearnerDocumentBlockList } from "@/components/documents/LearnerDocumentBlockList";
 
 const DOCUMENT_TYPES = [
   { value: "cni", label: "CNI" },
@@ -45,12 +18,6 @@ const DOCUMENT_TYPES = [
   { value: "autre", label: "Autre" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
-  generated: { label: "Généré", icon: CheckCircle2, className: "text-success bg-success/10 border-success/20" },
-  queued: { label: "En cours…", icon: Clock, className: "text-warning bg-warning/10 border-warning/20" },
-  failed: { label: "Échec", icon: XCircle, className: "text-destructive bg-destructive/10 border-destructive/20" },
-};
-
 interface DocumentsTabProps {
   contactId: string;
   contactPrenom?: string;
@@ -59,15 +26,58 @@ interface DocumentsTabProps {
   contactFormation?: string | null;
 }
 
-export function DocumentsTab({ contactId }: DocumentsTabProps) {
+export function DocumentsTab({
+  contactId,
+  contactPrenom,
+  contactNom,
+  contactEmail,
+}: DocumentsTabProps) {
   const [subTab, setSubTab] = useState("generated");
-  const [filter, setFilter] = useState<DocFilterStatus>("all");
-  const [missingFieldsState, setMissingFieldsState] = useState<{
-    open: boolean;
-    fields: string[];
-    templateName: string;
-    onConfirm: () => void;
-  } | null>(null);
+
+  const { data: enrollment } = useActiveEnrollment(contactId);
+
+  const { data: uploadedDocs = [], isLoading: loadingUploaded } = useQuery({
+    queryKey: ["contact-documents", contactId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_documents")
+        .select("*")
+        .eq("contact_id", contactId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!contactId,
+  });
+
+  const contactName = [contactPrenom, contactNom].filter(Boolean).join(" ") || "Apprenant";
+
+  const handleUploadDownload = async (filePath: string, filename: string) => {
+    try {
+      const { data, error } = await supabase.storage.from("contact-documents").download(filePath);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Erreur de téléchargement");
+    }
+  };
+
+  const handleDeleteDoc = async ({ id, filePath }: { id: string; filePath: string; contactId: string }) => {
+    try {
+      await supabase.storage.from("contact-documents").remove([filePath]);
+      await supabase.from("contact_documents").delete().eq("id", id);
+      toast.success("Document supprimé");
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
 
   const { data: enrollment } = useActiveEnrollment(contactId);
   const trackScope: TrackScope = enrollment?.track === "continuing" ? "continuing" : "initial";
