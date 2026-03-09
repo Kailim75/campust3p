@@ -455,6 +455,30 @@ export function SessionDocumentMatrixView({
           refetch();
         }}
       />
+
+      {/* Bulk email dialog */}
+      <BulkEmailDialog
+        open={bulkEmailOpen}
+        onOpenChange={setBulkEmailOpen}
+        sessionId={sessionId}
+        sessionName={sessionName}
+        rows={rows ?? []}
+        selectedContactIds={selectedIds}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          refetch();
+        }}
+      />
+
+      {/* Export audit pack dialog */}
+      <ExportAuditPackDialog
+        open={exportAuditOpen}
+        onOpenChange={setExportAuditOpen}
+        type="session"
+        sessionId={sessionId}
+        sessionName={sessionName}
+        documentsCount={rows?.reduce((s, r) => s + r.generatedCount, 0) ?? 0}
+      />
     </div>
   );
 }
