@@ -420,6 +420,19 @@ export function SessionDocumentMatrixView({
         allBlocks={detailState?.row.blocks ?? []}
         onRefetch={refetch}
       />
+
+      {/* Bulk generation dialog */}
+      <BulkGenerationDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        rows={rows ?? []}
+        selectedContactIds={selectedIds}
+        onGenerate={handleBulkGenerate}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          refetch();
+        }}
+      />
     </div>
   );
 }
