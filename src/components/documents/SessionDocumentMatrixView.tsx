@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
-  FileText, Users, CheckCircle2, AlertTriangle, ExternalLink,
-  ChevronUp, ChevronDown, Download, Play,
+  FileText, Users, CheckCircle2, AlertTriangle,
+  ChevronUp, ChevronDown, Download, Play, Mail, FileArchive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import { SessionDocumentFiltersBar, type LearnerStatusFilter, type BlockFilter }
 import { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 import { BulkGenerationDialog } from "./BulkGenerationDialog";
+import { BulkEmailDialog } from "./BulkEmailDialog";
+import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
 import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
