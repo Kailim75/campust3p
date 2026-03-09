@@ -75,7 +75,7 @@ const SECTION_TO_PATH: Record<string, string> = {
   "partenaires": "/partenaires",
   "planning-conduite": "/planning-conduite",
   "security": "/security",
-  "template-studio": "/template-studio",
+  
   "corbeille": "/corbeille",
 };
 
