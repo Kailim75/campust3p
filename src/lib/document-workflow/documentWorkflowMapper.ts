@@ -172,8 +172,7 @@ export function createExpectedPlaceholders(
   centreId: string,
   context: "apprenant" | "session"
 ): DocumentWorkflowItem[] {
-  const { getVisibleConfigs: getConfigs } = await import("./documentBlockConfig");
-  const configs = getConfigs(context);
+  const configs = getVisibleConfigs(context);
 
   const placeholders: DocumentWorkflowItem[] = [];
 
