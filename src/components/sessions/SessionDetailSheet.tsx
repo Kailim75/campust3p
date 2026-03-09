@@ -24,7 +24,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSession, useSessionInscriptions, useAddInscription, useRemoveInscription, type Session } from "@/hooks/useSessions";
+import { useSession, useSessionInscriptions, useAddInscription, type Session } from "@/hooks/useSessions";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { useFormateur } from "@/hooks/useFormateurs";
 import { format } from "date-fns";
