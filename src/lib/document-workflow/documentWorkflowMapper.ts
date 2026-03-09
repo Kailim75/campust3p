@@ -15,6 +15,11 @@ import {
   type EligibilityContact,
   type EligibilitySession,
 } from "./documentEligibility";
+import {
+  isDocumentVisibleForTrack,
+  getTrackRequiredOverride,
+} from "./documentTrackRules";
+import type { FormationTrack } from "@/lib/formation-track";
 
 // ── Raw row shapes from Supabase queries ──
 
