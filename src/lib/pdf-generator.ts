@@ -131,6 +131,11 @@ export interface SessionInfo {
   prerequis?: string;
 }
 
+/** SessionInfo with an optional `id` field, used when generating documents that need session lookup. */
+export interface SessionInfoWithId extends SessionInfo {
+  id?: string;
+}
+
 export interface FactureInfo {
   numero_facture: string;
   montant_total: number;
