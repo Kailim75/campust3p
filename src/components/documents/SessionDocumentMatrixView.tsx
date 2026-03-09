@@ -53,8 +53,12 @@ export function SessionDocumentMatrixView({
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  // Selection (for future bulk actions)
+  // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Bulk generation
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const generateDoc = useGenerateDocument();
 
   // Detail panel
   const [detailState, setDetailState] = useState<{
