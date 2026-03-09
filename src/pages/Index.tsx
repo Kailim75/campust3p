@@ -263,8 +263,6 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "security":
         return <SecurityStatusPage />;
-      case "template-studio":
-        return <TemplateStudioV2Page />;
       case "corbeille":
         return <CorbeillePage />;
       default:

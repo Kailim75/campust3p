@@ -46,7 +46,7 @@ const menuItems = [
 const moreMenuItems = [
   { id: "formateurs", label: "Formateurs", icon: UserCog },
   { id: "planning-conduite", label: "Planning conduite", icon: Car },
-  { id: "template-studio", label: "Template Studio", icon: Palette },
+  
   { id: "alertes", label: "Alertes", icon: Bell },
   { id: "qualite", label: "Qualité", icon: Award },
   { id: "partenaires", label: "Partenaires", icon: Handshake },
