@@ -321,7 +321,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               <SheetHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
-                    {/* Session Number Badge */}
                     {session.numero_session && (
                       <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">
                         <Hash className="h-3 w-3 mr-1" />
@@ -350,7 +349,6 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       )}
                     </div>
                     
-                    {/* Formateur Badge */}
                     {formateur && (
                       <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-accent/50 border border-accent">
                         <Avatar className="h-7 w-7 border-2 border-primary/20">
@@ -366,7 +364,37 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                       </div>
                     )}
                   </div>
-                  <SheetSizeSelector size={size} onSizeChange={setSize} />
+                  <div className="flex items-center gap-2">
+                    {!session.archived && (
+                      <Button size="sm" onClick={() => onEdit(session)}>
+                        <Edit className="h-3.5 w-3.5 mr-1.5" />
+                        Modifier
+                      </Button>
+                    )}
+                    <SheetSizeSelector size={size} onSizeChange={setSize} />
+                  </div>
+                </div>
+
+                {/* ─── KPI Cockpit ─── */}
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Inscrits / Places</p>
+                    <p className={cn("text-sm font-bold", placesRestantes <= 0 ? "text-success" : "text-foreground")}>
+                      {inscriptionCount} / {session.places_totales}
+                    </p>
+                  </div>
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Prix session</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {session.prix ? `${Number(session.prix).toLocaleString('fr-FR')} €` : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-card border rounded-lg p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground">Qualiopi</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {qualiopiScore ? `${qualiopiScore.score}%` : '—'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Quick Actions Bar */}
