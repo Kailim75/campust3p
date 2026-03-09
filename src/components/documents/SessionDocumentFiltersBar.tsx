@@ -124,28 +124,58 @@ export function SessionDocumentFiltersBar({
         </div>
       </div>
 
-      {/* Row 2: Block filters */}
-      <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-[11px] text-muted-foreground mr-1">Bloc :</span>
-        <Button
-          variant={blockFilter === "all" ? "secondary" : "ghost"}
-          size="sm"
-          className="h-6 text-[10px] px-2"
-          onClick={() => onBlockFilterChange("all")}
-        >
-          Tous
-        </Button>
-        {blockEntries.map(([block, meta]) => (
+      {/* Row 2: Contract + Block filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Contract filter */}
+        {contractFilter !== undefined && onContractFilterChange && contractCounts && (
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground mr-1">Cadre :</span>
+            {CONTRACT_FILTERS.map(({ value, label }) => {
+              const count = contractCounts[value] ?? 0;
+              return (
+                <Button
+                  key={value}
+                  variant={contractFilter === value ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-6 text-[10px] px-2 gap-1",
+                    value === "a_qualifier" && contractFilter !== value && count > 0 && "text-orange-600"
+                  )}
+                  onClick={() => onContractFilterChange(value)}
+                >
+                  {label}
+                  {count > 0 && value !== "all" && (
+                    <span className="text-[9px] text-muted-foreground">({count})</span>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Block filter */}
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[11px] text-muted-foreground mr-1">Bloc :</span>
           <Button
-            key={block}
-            variant={blockFilter === block ? "secondary" : "ghost"}
+            variant={blockFilter === "all" ? "secondary" : "ghost"}
             size="sm"
             className="h-6 text-[10px] px-2"
-            onClick={() => onBlockFilterChange(block)}
+            onClick={() => onBlockFilterChange("all")}
           >
-            {meta.label}
+            Tous
           </Button>
-        ))}
+          {blockEntries.map(([block, meta]) => (
+            <Button
+              key={block}
+              variant={blockFilter === block ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => onBlockFilterChange(block)}
+            >
+              {meta.label}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
