@@ -6,7 +6,28 @@ import type {
 /**
  * Construit le CompanyInfo à partir des données du centre de formation.
  */
-export function buildCompanyInfo(centreFormation: any): CompanyInfo | undefined {
+/** Shape of the centre_formation row used for document generation. */
+interface CentreFormationRow {
+  nom_commercial?: string | null;
+  nom_legal: string;
+  adresse_complete: string;
+  telephone: string;
+  email: string;
+  siret: string;
+  nda: string;
+  logo_url?: string | null;
+  signature_cachet_url?: string | null;
+  qualiopi_numero?: string | null;
+  qualiopi_date_obtention?: string | null;
+  qualiopi_date_expiration?: string | null;
+  agrement_prefecture?: string | null;
+  agrement_prefecture_date?: string | null;
+  code_rncp?: string | null;
+  code_rs?: string | null;
+  agrements_autres?: unknown;
+}
+
+export function buildCompanyInfo(centreFormation: CentreFormationRow | null | undefined): CompanyInfo | undefined {
   if (!centreFormation) return undefined;
 
   let agrements_autres: AgrementsAutre[] = [];
@@ -15,7 +36,7 @@ export function buildCompanyInfo(centreFormation: any): CompanyInfo | undefined 
   if (Array.isArray(rawAgrements)) {
     agrements_autres = rawAgrements
       .filter((a): a is AgrementsAutre => !!a && typeof a === "object")
-      .map((a: any) => ({
+      .map((a) => ({
         nom: String(a.nom ?? ""),
         numero: String(a.numero ?? ""),
         date_obtention: a.date_obtention ?? undefined,
@@ -23,9 +44,9 @@ export function buildCompanyInfo(centreFormation: any): CompanyInfo | undefined 
       }))
       .filter((a) => a.nom.trim() !== "" && a.numero.trim() !== "");
   } else if (rawAgrements && typeof rawAgrements === "object") {
-    const maybe = rawAgrements as any;
+    const maybe = rawAgrements as Record<string, unknown>;
     if (Array.isArray(maybe.agrements)) {
-      agrements_autres = maybe.agrements as AgrementsAutre[];
+      agrements_autres = (maybe.agrements as AgrementsAutre[]);
     }
   }
 

@@ -101,6 +101,11 @@ export interface ContactInfo {
   ville_naissance?: string;
 }
 
+/** ContactInfo with an optional `id` field, used when generating documents that need contact lookup. */
+export interface ContactInfoWithId extends ContactInfo {
+  id?: string;
+}
+
 export interface SessionInfo {
   nom: string;
   formation_type: string;
@@ -124,6 +129,11 @@ export interface SessionInfo {
   adresse_ville?: string;
   objectifs?: string;
   prerequis?: string;
+}
+
+/** SessionInfo with an optional `id` field, used when generating documents that need session lookup. */
+export interface SessionInfoWithId extends SessionInfo {
+  id?: string;
 }
 
 export interface FactureInfo {

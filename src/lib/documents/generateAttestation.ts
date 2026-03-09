@@ -10,9 +10,12 @@ import {
   generateAttestationPDF,
   downloadPDF,
   type ContactInfo,
+  type ContactInfoWithId,
   type SessionInfo,
+  type SessionInfoWithId,
   type CompanyInfo,
 } from "@/lib/pdf-generator";
+import type { ContactDocumentData } from "@/lib/documents/fetchContactDocumentData";
 import {
   downloadBlob,
   getOrCreateCertificateNumber,
@@ -35,8 +38,11 @@ interface CentreFormationData {
   nda: string;
 }
 
+/** Enriched contact data that may contain extra fields from ContactDocumentData. */
+type EnrichedContact = ContactInfo & Partial<ContactDocumentData>;
+
 function buildAttestationVariableData(
-  fullContact: any,
+  fullContact: EnrichedContact,
   session: SessionInfo,
   centreFormation?: CentreFormationData | null,
   certificateInfo?: CertificateInfo
@@ -69,10 +75,10 @@ function buildAttestationVariableData(
       lieu: session.lieu,
       heure_debut: session.heure_debut,
       heure_fin: session.heure_fin,
-      heure_debut_matin: (session as any).heure_debut_matin,
-      heure_fin_matin: (session as any).heure_fin_matin,
-      heure_debut_aprem: (session as any).heure_debut_aprem,
-      heure_fin_aprem: (session as any).heure_fin_aprem,
+      heure_debut_matin: session.heure_debut_matin,
+      heure_fin_matin: session.heure_fin_matin,
+      heure_debut_aprem: session.heure_debut_aprem,
+      heure_fin_aprem: session.heure_fin_aprem,
       formation_type: session.formation_type,
       duree_heures: session.duree_heures,
     },
@@ -116,7 +122,7 @@ async function downloadTemplate(filePath: string): Promise<Blob> {
   return templateBlob;
 }
 
-async function enrichContact(contact: ContactInfo, contactId?: string, formationType?: string): Promise<any> {
+async function enrichContact(contact: ContactInfo, contactId?: string, formationType?: string): Promise<EnrichedContact> {
   if (!contactId) return contact;
   try {
     const extra = await fetchContactDocumentData(contactId, formationType);
@@ -131,13 +137,13 @@ async function enrichContact(contact: ContactInfo, contactId?: string, formation
  * Génère une attestation unique (fiche stagiaire ou fiche session).
  */
 export async function generateSingleAttestation(
-  contact: ContactInfo,
-  session: SessionInfo,
+  contact: ContactInfoWithId,
+  session: SessionInfoWithId,
   company: CompanyInfo,
   centreFormation?: CentreFormationData | null
 ): Promise<void> {
-  const contactId = (contact as any)?.id;
-  const sessionId = (session as any)?.id;
+  const contactId = contact.id;
+  const sessionId = session.id;
   const typeAttestation = getAttestationType(session.formation_type);
 
   // Générer le numéro de certificat
@@ -195,8 +201,8 @@ export async function generateSingleAttestation(
  * Génère des attestations en lot pour plusieurs contacts.
  */
 export async function generateBulkAttestations(
-  contacts: ContactInfo[],
-  session: SessionInfo,
+  contacts: ContactInfoWithId[],
+  session: SessionInfoWithId,
   company: CompanyInfo,
   centreFormation?: CentreFormationData | null
 ): Promise<number> {
@@ -209,9 +215,9 @@ export async function generateBulkAttestations(
     const templateBlob = await downloadTemplate(defaultTemplate.file_path);
 
     // Précharger tous les contacts en une seule requête
-    let contactsById: Record<string, any> = {};
+    let contactsById: Record<string, ContactDocumentData> = {};
     try {
-      const ids = contacts.map((c) => (c as any)?.id).filter(Boolean) as string[];
+      const ids = contacts.map((c) => c.id).filter((id): id is string => !!id);
       contactsById = await fetchContactsDocumentData(ids, session?.formation_type);
     } catch (e) {
       console.warn("[DOCX] Impossible de précharger les contacts (bulk)", e);
@@ -219,8 +225,8 @@ export async function generateBulkAttestations(
 
     for (const contact of contacts) {
       try {
-        const contactId = (contact as any)?.id;
-        const sessionId = (session as any)?.id;
+        const contactId = contact.id;
+        const sessionId = session.id;
         let certificateInfo: CertificateInfo | null = null;
 
         if (contactId) {
@@ -247,8 +253,8 @@ export async function generateBulkAttestations(
   // Fallback PDF
   for (const contact of contacts) {
     try {
-      const contactId = (contact as any)?.id;
-      const sessionId = (session as any)?.id;
+      const contactId = contact.id;
+      const sessionId = session.id;
       let certificateInfo: CertificateInfo | null = null;
 
       if (contactId) {
