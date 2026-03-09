@@ -336,6 +336,9 @@ export function SessionDocumentMatrixView({
                     {sortField === "name" && <SortIcon className="h-3 w-3" />}
                   </button>
                 </th>
+                <th className="text-center px-2 py-2 w-20">
+                  <span className="text-[10px] font-semibold text-muted-foreground">Cadre</span>
+                </th>
                 <th className="text-center px-2 py-2 w-24">
                   <button
                     className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground mx-auto"
