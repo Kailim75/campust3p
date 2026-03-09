@@ -131,6 +131,16 @@ export function SessionDocumentMatrixView({
     };
   }, [rows]);
 
+  const contractCounts = useMemo(() => {
+    if (!rows) return { all: 0, contrat: 0, convention: 0, a_qualifier: 0 };
+    return {
+      all: rows.length,
+      contrat: rows.filter(r => r.contractFrame === "contrat").length,
+      convention: rows.filter(r => r.contractFrame === "convention").length,
+      a_qualifier: rows.filter(r => !r.contractFrame || r.contractFrame === "a_qualifier").length,
+    };
+  }, [rows]);
+
   // Selection handlers
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
