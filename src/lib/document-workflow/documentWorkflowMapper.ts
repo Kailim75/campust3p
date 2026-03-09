@@ -222,7 +222,7 @@ export function createExpectedPlaceholders(
       sendFailed: false,
       signatureStatus: null,
       isArchived: false,
-      isBlocked: !eligibility.eligible,
+      isBlocked: !eligibility.eligible || isContractBlocked,
     };
 
     placeholders.push({
