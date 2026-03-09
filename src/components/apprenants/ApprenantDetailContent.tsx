@@ -121,7 +121,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
       const hasInscription = inscriptions.length > 0;
       const hasDocuments = docTypes.size > 0;
       const hasFacture = factures.length > 0;
-      const hasPaid = factures.some((f: any) => f.statut === "payee" || f.statut === "partiel");
+      const hasPaid = factures.some((f) => f.statut === "payee" || f.statut === "partiel");
 
       // Track-aware completion
       const trackCompletion = computeTrackCompletion(contactTrack, {
