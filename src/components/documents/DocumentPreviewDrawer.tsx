@@ -200,6 +200,14 @@ export function DocumentPreviewDrawer({
           </div>
         )}
 
+        {/* History timeline */}
+        {item && item.historySummary.length > 0 && (
+          <div className="px-4 py-3 border-b bg-background flex-shrink-0">
+            <p className="text-[11px] font-semibold text-muted-foreground mb-2">Historique</p>
+            <DocumentHistoryTimeline history={item.historySummary} />
+          </div>
+        )}
+
         {/* PDF Viewer */}
         <div className="flex-1 min-h-0 bg-muted/20">
           {loading ? (
