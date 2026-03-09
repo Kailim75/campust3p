@@ -348,7 +348,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Dossier progress */}
           <div className="bg-card border rounded-lg p-2.5 space-y-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Progression</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
             <div className="flex items-center gap-2">
               <Progress value={dossierProgress} className="h-1.5 flex-1" />
               <span className="text-xs font-bold text-foreground">{dossierProgress}%</span>
