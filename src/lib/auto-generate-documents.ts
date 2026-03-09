@@ -159,6 +159,7 @@ export async function triggerAutoGeneration(params: {
           centre_id: centreIdForAuto || "",
           file_name: `${(tmpl.name || "document").replace(/\s+/g, "_")}.pdf`,
           status: "queued",
+          // CAST JUSTIFIED: Record<string,string> → Json (structural mismatch in index signatures)
           variables_snapshot: variables as unknown as Json,
         });
 
