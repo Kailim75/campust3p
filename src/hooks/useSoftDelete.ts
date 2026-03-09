@@ -30,6 +30,7 @@ const tableLabels: Record<SoftDeleteTable, string> = {
   document_templates: "Modèle de document",
   catalogue_formations: "Formation catalogue",
   email_templates: "Modèle email",
+  generated_documents_v2: "Document généré",
 };
 
 const tableQueryKeys: Record<SoftDeleteTable, string[][]> = {
