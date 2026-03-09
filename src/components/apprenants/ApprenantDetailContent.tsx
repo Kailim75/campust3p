@@ -383,7 +383,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
           {/* Next deadline */}
           <div className="bg-card border rounded-lg p-2.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prochaine échéance</p>
+            <p className="text-[10px] font-medium text-muted-foreground">Prochaine échéance</p>
             <p className="text-xs font-medium text-foreground truncate mt-0.5">
               {nextSession?.date_debut
                 ? `${nextSession.nom || "Session"} — ${format(new Date(nextSession.date_debut), "dd/MM", { locale: fr })}`
