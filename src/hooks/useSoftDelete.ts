@@ -14,7 +14,8 @@ export type SoftDeleteTable =
   | "emargements"
   | "document_templates"
   | "catalogue_formations"
-  | "email_templates";
+  | "email_templates"
+  | "generated_documents_v2";
 
 const tableLabels: Record<SoftDeleteTable, string> = {
   sessions: "Session",
