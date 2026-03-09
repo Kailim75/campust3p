@@ -129,8 +129,8 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         carteProData: carteProRes.data?.[0] || null,
       });
 
-      const totalFacture = factures.reduce((s: number, f: any) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = paiements.reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
+      const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+      const totalPaye = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
       const restantDu = totalFacture - totalPaye;
 
       const nextRappel = rappRes.data?.[0] || null;
