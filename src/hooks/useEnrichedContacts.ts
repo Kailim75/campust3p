@@ -66,16 +66,20 @@ export function useEnrichedContacts() {
         supabase
           .from("session_inscriptions")
           .select("contact_id, session_id, sessions(id, nom, date_debut)")
-          .eq("statut", "inscrit"),
+          .eq("statut", "inscrit")
+          .is("deleted_at", null),
         supabase
           .from("factures")
-          .select("contact_id, montant_total, date_echeance, statut"),
+          .select("contact_id, montant_total, date_echeance, statut")
+          .is("deleted_at", null),
         supabase
           .from("paiements")
-          .select("facture_id, montant, factures!inner(contact_id)"),
+          .select("facture_id, montant, factures!inner(contact_id)")
+          .is("deleted_at", null),
         supabase
           .from("contact_documents")
-          .select("contact_id, type_document"),
+          .select("contact_id, type_document")
+          .is("deleted_at", null),
         supabase
           .from("examens_t3p")
           .select("contact_id, date_examen, resultat, statut")

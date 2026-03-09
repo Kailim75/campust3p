@@ -17,10 +17,11 @@ export function useDashboardActionCounts() {
           .eq("archived", false)
           .in("statut", ["a_venir", "en_cours"])
           .gte("date_fin", todayStr),
-        supabase.from("session_inscriptions").select("session_id"),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         // New inscriptions in last 7 days
         supabase.from("session_inscriptions")
           .select("id")
+          .is("deleted_at", null)
           .gte("created_at", sevenDaysAgo),
       ]);
 

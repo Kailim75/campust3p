@@ -69,10 +69,10 @@ export function usePredictiveScoring() {
       const [sessionsRes, inscriptionsRes, facturesRes, paiementsRes, prospectsRes, budgetRes] = await Promise.all([
         supabase.from("sessions").select("id, nom, places_totales, prix, statut, date_debut, formation_type")
           .eq("archived", false).gte("date_debut", todayStr).lte("date_debut", in30Str),
-        supabase.from("session_inscriptions").select("session_id"),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         supabase.from("factures").select("id, montant_total, statut, date_echeance, date_emission, contact_id")
-          .not("statut", "eq", "annulee"),
-        supabase.from("paiements").select("montant, facture_id"),
+          .is("deleted_at", null).not("statut", "eq", "annulee"),
+        supabase.from("paiements").select("montant, facture_id").is("deleted_at", null),
         supabase.from("prospects").select("id, statut, created_at, updated_at, nom, prenom")
           .eq("is_active", true),
         supabase.from("budget_previsionnel").select("montant_prevu, type, mois, annee")
