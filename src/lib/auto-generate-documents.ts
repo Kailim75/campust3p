@@ -5,6 +5,84 @@
 import { supabase } from "@/integrations/supabase/client";
 import { buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import type { TrackScope } from "@/hooks/useTemplateStudioV2";
+import type { Database, Json } from "@/integrations/supabase/types";
+
+// ─── Local Types for Document Generation ────────────────────────────────────
+type TemplateStudioTemplate = Database["public"]["Tables"]["template_studio_templates"]["Row"];
+
+interface PackItemWithTemplate {
+  id: string;
+  auto_generate: boolean | null;
+  template: Pick<TemplateStudioTemplate, "id" | "name" | "type" | "status" | "template_body" | "current_version_id"> | null;
+}
+
+interface DocumentPack {
+  id: string;
+  name: string;
+  document_pack_items: PackItemWithTemplate[];
+}
+
+interface GeneratedDocumentV2Row {
+  id: string;
+  centre_id: string;
+}
+
+type GeneratedDocumentV2Insert = Database["public"]["Tables"]["generated_documents_v2"]["Insert"];
+type TemplateAuditLogInsert = Database["public"]["Tables"]["template_audit_log"]["Insert"];
+
+// ─── Typed query helpers ────────────────────────────────────────────────────
+// These wrappers provide explicit typing for tables that may not be fully
+// recognized by the auto-generated client. The underlying Supabase query
+// is unchanged; we only cast the result for type-safety.
+
+async function fetchDefaultPacks(track: TrackScope): Promise<DocumentPack[]> {
+  const { data } = await supabase
+    .from("document_packs")
+    .select("id, name, document_pack_items(id, auto_generate, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
+    .eq("is_default", true)
+    .or(`track_scope.eq.${track},track_scope.eq.both`);
+  return (data ?? []) as unknown as DocumentPack[];
+}
+
+async function checkExistingDocument(templateId: string, contactId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("generated_documents_v2")
+    .select("id")
+    .eq("template_id", templateId)
+    .eq("contact_id", contactId)
+    .eq("status", "generated")
+    .limit(1);
+  return !!data && data.length > 0;
+}
+
+async function insertGeneratedDocument(
+  payload: GeneratedDocumentV2Insert
+): Promise<GeneratedDocumentV2Row | null> {
+  const { data, error } = await supabase
+    .from("generated_documents_v2")
+    .insert(payload)
+    .select("id, centre_id")
+    .single();
+  if (error) return null;
+  return data as unknown as GeneratedDocumentV2Row;
+}
+
+async function updateGeneratedDocumentStatus(
+  docId: string,
+  status: "generated" | "failed",
+  extra: { file_path?: string; error_message?: string }
+): Promise<void> {
+  await supabase
+    .from("generated_documents_v2")
+    .update({ status, ...extra })
+    .eq("id", docId);
+}
+
+async function insertAuditLog(payload: TemplateAuditLogInsert): Promise<void> {
+  await supabase.from("template_audit_log").insert(payload);
+}
+
+// ─── Main auto-generation function ──────────────────────────────────────────
 
 /**
  * Triggers auto-generation of documents marked auto_generate=true
@@ -22,17 +100,12 @@ export async function triggerAutoGeneration(params: {
 
   try {
     // 1. Find default pack for this track
-    const { data: packs } = await (supabase as any)
-      .from("document_packs")
-      .select("*, document_pack_items(*, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
-      .eq("is_default", true)
-      .or(`track_scope.eq.${params.track},track_scope.eq.both`);
-
-    if (!packs || packs.length === 0) return { generated: 0, errors: 0 };
+    const packs = await fetchDefaultPacks(params.track);
+    if (packs.length === 0) return { generated: 0, errors: 0 };
 
     const pack = packs[0];
     const autoItems = (pack.document_pack_items || []).filter(
-      (i: any) => i.auto_generate && i.template?.status === "published"
+      (i) => i.auto_generate && i.template?.status === "published"
     );
 
     if (autoItems.length === 0) return { generated: 0, errors: 0 };
@@ -46,7 +119,11 @@ export async function triggerAutoGeneration(params: {
     // Resolve centre_id from contact
     let centreIdForAuto: string | null = null;
     if (params.contactId) {
-      const { data: contact } = await supabase.from("contacts").select("centre_id").eq("id", params.contactId).single();
+      const { data: contact } = await supabase
+        .from("contacts")
+        .select("centre_id")
+        .eq("id", params.contactId)
+        .single();
       centreIdForAuto = contact?.centre_id || null;
     }
 
@@ -54,44 +131,38 @@ export async function triggerAutoGeneration(params: {
     for (const item of autoItems) {
       try {
         const tmpl = item.template;
+        if (!tmpl) continue;
 
         // Anti-duplicate check
-        const { data: existing } = await (supabase as any)
-          .from("generated_documents_v2")
-          .select("id")
-          .eq("template_id", tmpl.id)
-          .eq("contact_id", params.contactId)
-          .eq("status", "generated")
-          .limit(1);
-
-        if (existing && existing.length > 0) {
+        const alreadyExists = await checkExistingDocument(tmpl.id, params.contactId);
+        if (alreadyExists) {
           generated++; // Already exists
           continue;
         }
 
-        // Create queued record
-        const rendered = tmpl.template_body.replace(
+        // Render template body
+        const rendered = (tmpl.template_body || "").replace(
           /\{\{(\w+)\}\}/g,
-          (_: string, v: string) => variables[v] || ""
+          (_: string, v: string) => (variables as Record<string, string>)[v] || ""
         );
 
-        const { data: doc, error: docErr } = await (supabase as any)
-          .from("generated_documents_v2")
-          .insert({
-            template_id: tmpl.id,
-            template_version_id: tmpl.current_version_id,
-            contact_id: params.contactId,
-            session_id: params.sessionId || null,
-            inscription_id: params.inscriptionId || null,
-            centre_id: centreIdForAuto,
-            file_name: `${tmpl.name.replace(/\s+/g, "_")}.pdf`,
-            status: "queued",
-            variables_snapshot: variables,
-          })
-          .select()
-          .single();
+        // Create queued record
+        const doc = await insertGeneratedDocument({
+          template_id: tmpl.id,
+          template_version_id: tmpl.current_version_id,
+          contact_id: params.contactId,
+          session_id: params.sessionId || null,
+          inscription_id: params.inscriptionId || null,
+          centre_id: centreIdForAuto || "",
+          file_name: `${(tmpl.name || "document").replace(/\s+/g, "_")}.pdf`,
+          status: "queued",
+          variables_snapshot: variables as Json,
+        });
 
-        if (docErr) { errors++; continue; }
+        if (!doc) {
+          errors++;
+          continue;
+        }
 
         // Generate PDF client-side
         const { default: jsPDF } = await import("jspdf");
@@ -132,21 +203,15 @@ export async function triggerAutoGeneration(params: {
           .upload(filePath, pdfBlob, { contentType: "application/pdf" });
 
         if (upErr) {
-          await (supabase as any)
-            .from("generated_documents_v2")
-            .update({ status: "failed", error_message: upErr.message })
-            .eq("id", doc.id);
+          await updateGeneratedDocumentStatus(doc.id, "failed", { error_message: upErr.message });
           errors++;
           continue;
         }
 
-        await (supabase as any)
-          .from("generated_documents_v2")
-          .update({ status: "generated", file_path: filePath })
-          .eq("id", doc.id);
+        await updateGeneratedDocumentStatus(doc.id, "generated", { file_path: filePath });
 
         // Audit
-        await (supabase as any).from("template_audit_log").insert({
+        await insertAuditLog({
           template_id: tmpl.id,
           generated_document_id: doc.id,
           action: "auto_generated",
