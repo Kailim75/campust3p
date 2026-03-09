@@ -440,6 +440,7 @@ export function useGeneratedDocuments(opts?: { contactId?: string; sessionId?: s
       let query = (supabase as any)
         .from("generated_documents_v2")
         .select("*, template:template_studio_templates(id, name, type, category)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (opts?.contactId) query = query.eq("contact_id", opts.contactId);
