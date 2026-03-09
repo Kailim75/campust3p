@@ -119,7 +119,7 @@ export function SessionDocumentMatrixView({
     });
 
     return result;
-  }, [rows, search, statusFilter, sortField, sortDir]);
+  }, [rows, search, statusFilter, contractFilter, sortField, sortDir]);
 
   const filterCounts = useMemo(() => {
     if (!rows) return { all: 0, complete: 0, incomplete: 0, blocked: 0 };
