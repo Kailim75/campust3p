@@ -122,7 +122,7 @@ async function downloadTemplate(filePath: string): Promise<Blob> {
   return templateBlob;
 }
 
-async function enrichContact(contact: ContactInfo, contactId?: string, formationType?: string): Promise<any> {
+async function enrichContact(contact: ContactInfo, contactId?: string, formationType?: string): Promise<EnrichedContact> {
   if (!contactId) return contact;
   try {
     const extra = await fetchContactDocumentData(contactId, formationType);
