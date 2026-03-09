@@ -19,6 +19,11 @@ import {
   isDocumentVisibleForTrack,
   getTrackRequiredOverride,
 } from "./documentTrackRules";
+import {
+  filterContractDocuments,
+  getContractBlockingReason,
+  type ContractContext,
+} from "./contractDocumentFilter";
 import type { FormationTrack } from "@/lib/formation-track";
 
 // ── Raw row shapes from Supabase queries ──
