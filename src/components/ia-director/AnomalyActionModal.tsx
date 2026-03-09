@@ -304,7 +304,7 @@ function useAffectedRecordDetails(anomaly: Anomaly | null) {
           setRecords((data || []).map((s: any) => ({
             id: s.id,
             label: s.nom || "Session sans nom",
-            sublabel: `${s.formation_type || "Formation"} — ${s.date_debut ? new Date(s.date_debut).toLocaleDateString("fr-FR") : "Date non définie"} — ${s.places_max || "?"} places`,
+            sublabel: `${s.formation_type || "Formation"} — ${s.date_debut ? new Date(s.date_debut).toLocaleDateString("fr-FR") : "Date non définie"} — ${s.places_totales ?? "?"} places`,
             icon: Calendar,
             tags: [s.formation_type].filter(Boolean),
             navigateTo: `/?section=sessions`,
