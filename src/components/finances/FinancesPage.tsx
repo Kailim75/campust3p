@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
 import { CreditCard, Landmark, BarChart3 } from "lucide-react";
+import { useNavigation } from "@/contexts/NavigationContext";
+
+const VALID_TABS = ["factures", "tresorerie", "analyse"] as const;
 
 export function FinancesPage() {
+  const { activeTab } = useNavigation();
   const [tab, setTab] = useState("factures");
+
+  // Sync deep-link tab from NavigationContext
+  useEffect(() => {
+    if (activeTab && VALID_TABS.includes(activeTab as typeof VALID_TABS[number])) {
+      setTab(activeTab);
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen">
