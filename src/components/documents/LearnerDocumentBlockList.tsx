@@ -105,16 +105,26 @@ export function LearnerDocumentBlockList({
         reader.readAsDataURL(fileData);
       });
 
+      // Parse name from contactName
+      const nameParts = contactName.split(" ");
+      const prenom = nameParts[0] || "";
+      const nom = nameParts.slice(1).join(" ") || contactName;
+
       openComposer({
-        recipients: [{ email: contactEmail, name: contactName }],
+        recipients: [{
+          id: contactId,
+          email: contactEmail,
+          prenom,
+          nom,
+        }],
         defaultSubject: `${item.templateName} - ${contactName}`,
         defaultBody: `Bonjour,\n\nVeuillez trouver ci-joint votre ${item.templateName.toLowerCase()}.\n\nCordialement,`,
         attachments: [{
           filename: item.templateName.replace(/\s+/g, "_") + ".pdf",
           content: base64,
-          type: "application/pdf",
+          contentType: "application/pdf",
         }],
-        autoNoteCategory: "communication_sortante",
+        autoNoteCategory: "apprenant_demander_docs",
         onSuccess: () => refetch(),
       });
     } catch (err) {
