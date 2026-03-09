@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
-  MoreHorizontal, Bell, Award, Handshake, Car, UserCog, Palette,
+  MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
   Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -46,7 +46,7 @@ const menuItems = [
 const moreMenuItems = [
   { id: "formateurs", label: "Formateurs", icon: UserCog },
   { id: "planning-conduite", label: "Planning conduite", icon: Car },
-  { id: "template-studio", label: "Template Studio", icon: Palette },
+  
   { id: "alertes", label: "Alertes", icon: Bell },
   { id: "qualite", label: "Qualité", icon: Award },
   { id: "partenaires", label: "Partenaires", icon: Handshake },

@@ -26,7 +26,7 @@ import { PartnersPage } from "@/components/partners/PartnersPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
-import TemplateStudioV2Page from "@/components/template-studio-v2/TemplateStudioV2Page";
+
 import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
@@ -55,7 +55,7 @@ const PATH_TO_SECTION: Record<string, string> = {
   "partenaires": "partenaires",
   "planning-conduite": "planning-conduite",
   "security": "security",
-  "template-studio": "template-studio",
+  
   "corbeille": "corbeille",
 };
 
@@ -75,7 +75,7 @@ const SECTION_TO_PATH: Record<string, string> = {
   "partenaires": "/partenaires",
   "planning-conduite": "/planning-conduite",
   "security": "/security",
-  "template-studio": "/template-studio",
+  
   "corbeille": "/corbeille",
 };
 
@@ -263,8 +263,6 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "security":
         return <SecurityStatusPage />;
-      case "template-studio":
-        return <TemplateStudioV2Page />;
       case "corbeille":
         return <CorbeillePage />;
       default:

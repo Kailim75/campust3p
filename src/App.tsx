@@ -86,7 +86,7 @@ const APP_SECTION_PATHS = [
   "/partenaires",
   "/formateurs",
   "/planning-conduite",
-  "/template-studio",
+  
   "/security",
   "/corbeille",
 ] as const;
