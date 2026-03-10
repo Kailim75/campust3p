@@ -643,7 +643,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos, halfWidth, 45, 2, 2, "FD");
   
   doc.setFontSize(DOCUMENT_FONTS.sizes.tiny);
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
