@@ -737,9 +737,16 @@ export function generateAttestationPDF(
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text("a suivi avec succès la formation suivante :", pageWidth / 2, yPos, { align: "center" });
   
-  // Formation details box avec style
+  // Formation details box avec style - hauteur dynamique
   yPos += 12;
-  const boxHeight = session.lieu ? 60 : 50;
+  let attestBoxContentH = 15; // padding top
+  attestBoxContentH += 14; // nom formation
+  attestBoxContentH += 12; // dates
+  if (session.duree_heures) attestBoxContentH += 10;
+  if (session.lieu) attestBoxContentH += 10;
+  attestBoxContentH += 8; // padding bottom
+  const boxHeight = attestBoxContentH;
+  
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(30, yPos, pageWidth - 60, boxHeight, 4, 4, "F");
   
@@ -751,9 +758,11 @@ export function generateAttestationPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(session.nom, pageWidth / 2, yPos, { align: "center" });
+  // Wrap session name if too long
+  const sessionNameLines = doc.splitTextToSize(session.nom, pageWidth - 80);
+  doc.text(sessionNameLines, pageWidth / 2, yPos, { align: "center" });
   
-  yPos += 12;
+  yPos += sessionNameLines.length * 6 + 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
