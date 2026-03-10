@@ -47,8 +47,10 @@ export interface CompanyInfo {
 // ==================== COLORS ====================
 const COLORS = {
   forestGreen: { r: 27, g: 77, b: 62 },
+  forestGreenDark: { r: 20, g: 61, b: 49 },
   cream: { r: 245, g: 235, b: 215 },
   creamLight: { r: 251, g: 247, b: 239 },
+  creamDark: { r: 232, g: 220, b: 196 },
   gold: { r: 212, g: 168, b: 83 },
   warmGray500: { r: 137, g: 129, b: 114 },
   warmGray600: { r: 107, g: 107, b: 107 },
