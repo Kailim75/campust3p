@@ -2334,7 +2334,7 @@ export function generateConvocationPDF(
   doc.setTextColor(cOrange.r, cOrange.g, cOrange.b);
   doc.text("✓", mL + 3.3, yPos + 6);
 
-  yPos += sectionHeaderH + 1;
+  yPos += sectionHeaderH2 + 1;
 
   const practicalItems = [
     "Veuillez vous présenter 15 minutes avant le début de la formation.",
@@ -2344,7 +2344,7 @@ export function generateConvocationPDF(
     "En cas d'empêchement, contactez-nous dans les plus brefs délais.",
   ];
 
-  const practCardH = 8 + practicalItems.length * 7;
+  const practCardH = 6 + practicalItems.length * 6;
   doc.setFillColor(cOrangeLight.r, cOrangeLight.g, cOrangeLight.b);
   doc.roundedRect(mL, yPos, cW, practCardH, 0, 2, "F");
 
@@ -2352,19 +2352,18 @@ export function generateConvocationPDF(
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL, yPos, 2.5, practCardH, "F");
 
-  let pY = yPos + 6;
-  doc.setFontSize(9);
+  let pY = yPos + 5;
+  doc.setFontSize(8.5);
   for (const item of practicalItems) {
-    // Bullet orange
     doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
-    doc.circle(mL + 8, pY - 1, 1.2, "F");
+    doc.circle(mL + 8, pY - 1, 1, "F");
     doc.setFont("helvetica", "normal");
     doc.setTextColor(cText.r, cText.g, cText.b);
-    doc.text(item, mL + 13, pY);
-    pY += 7;
+    doc.text(item, mL + 12, pY);
+    pY += 6;
   }
 
-  yPos += practCardH + 10;
+  yPos += practCardH + 8;
 
   // ═══════════════════════════════════════════════════════
   // F. CONTACT + SIGNATURE
