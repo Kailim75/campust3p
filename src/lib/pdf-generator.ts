@@ -541,12 +541,12 @@ export function generateFacturePDF(
   
   // Table header avec Forest Green
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos, pageWidth - 40, 12, 2, 2, "F");
+  doc.roundedRect(20, yPos, pageWidth - 40, 14, 2, 2, "F");
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text("Description", 25, yPos + 8);
-  doc.text("Montant HT", pageWidth - 25, yPos + 8, { align: "right" });
+  doc.text("Description", 25, yPos + 9);
+  doc.text("Montant HT", pageWidth - 25, yPos + 9, { align: "right" });
   
   // Mapping des intitulés officiels pour les factures
   const INTITULE_FACTURE_MAP: Record<string, string> = {
