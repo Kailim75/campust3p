@@ -2379,10 +2379,10 @@ export function generateConvocationPDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
   doc.text(`${company.phone}  •  ${company.email}`, mL + 22, yPos + 6.5);
-  yPos += 16;
+  yPos += 13;
 
   // Formule de politesse
-  doc.setFontSize(9.5);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cText.r, cText.g, cText.b);
   const closingLines = doc.splitTextToSize(
@@ -2390,7 +2390,7 @@ export function generateConvocationPDF(
     cW
   ) as string[];
   doc.text(closingLines, mL, yPos);
-  yPos += closingLines.length * 4.8 + 8;
+  yPos += closingLines.length * 4.5 + 6;
 
   // Signature / cachet
   const stampAdded = addStampImage(doc, company, mL, yPos, 32, 18);
