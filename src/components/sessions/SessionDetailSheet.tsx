@@ -3,11 +3,16 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
+import {
+  Drawer,
+  DrawerContent,
+} from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Calendar,
   MapPin,
@@ -84,6 +89,7 @@ interface SessionDetailSheetProps {
 
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
   const { size, setSize, sizeClass } = useSheetSize("session");
+  const isMobile = useIsMobile();
   const { data: session, isLoading } = useSession(sessionId);
   const { data: rawInscriptions } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
@@ -292,11 +298,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     toast.success("Liste exportée");
   };
 
-  return (
-    <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
-          {isLoading ? (
+  const sheetContent = (
+    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] p-3" : "")}>
+      {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
               <Skeleton className="h-20 w-full" />
@@ -340,36 +344,38 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               />
 
                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="info" className="gap-1 text-xs px-1">
-                    <Info className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Infos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="inscriptions" className="gap-1 text-xs px-1">
-                    <Users className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Inscrits</span> ({inscriptionCount})
-                  </TabsTrigger>
-                  <TabsTrigger value="documents" className="gap-1 text-xs px-1">
-                    <FileText className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Docs</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="parcours" className="gap-1 text-xs px-1">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Parcours</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="finances" className="gap-1 text-xs px-1">
-                    <Euro className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Finances</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="qualiopi" className="gap-1 text-xs px-1">
-                    <Shield className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Qualiopi</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="emargement" className="gap-1 text-xs px-1">
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Émarg.</span>
-                  </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto scrollbar-hide">
+                  <TabsList className="w-max sm:grid sm:w-full sm:grid-cols-7">
+                    <TabsTrigger value="info" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Info className="h-3.5 w-3.5" />
+                      <span>Infos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="inscriptions" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Users className="h-3.5 w-3.5" />
+                      <span>Inscrits</span> ({inscriptionCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="documents" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>Docs</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="parcours" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      <span>Parcours</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="finances" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Euro className="h-3.5 w-3.5" />
+                      <span>Finances</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="qualiopi" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Shield className="h-3.5 w-3.5" />
+                      <span>Qualiopi</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="emargement" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      <span>Émarg.</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Tab: Infos — clean, structural only */}
                 <TabsContent value="info" className="space-y-4 pt-4">
@@ -569,8 +575,24 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           ) : (
             <div className="py-12 text-center text-muted-foreground">Session non trouvée</div>
           )}
-        </SheetContent>
-      </Sheet>
+    </div>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[92vh] overflow-hidden">
+            {sheetContent}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
+            {sheetContent}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Add Inscription Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

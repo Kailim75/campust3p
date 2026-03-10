@@ -37,16 +37,16 @@ export function SessionDetailHeader({
   onEdit,
 }: SessionDetailHeaderProps) {
   return (
-    <SheetHeader className="pb-4">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
+    <SheetHeader className="pb-3 sm:pb-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1.5 sm:space-y-2 min-w-0 flex-1">
           {session.numero_session && (
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-mono text-[10px] sm:text-xs">
               <Hash className="h-3 w-3 mr-1" />
               {session.numero_session}
             </Badge>
           )}
-          <SheetTitle className="text-xl">{session.nom}</SheetTitle>
+          <SheetTitle className="text-base sm:text-xl truncate">{session.nom}</SheetTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={cn("text-xs", getFormationColor(session.formation_type).badge)}>
               {getFormationLabel(session.formation_type)}
@@ -83,14 +83,16 @@ export function SessionDetailHeader({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {!session.archived && (
-            <Button size="sm" onClick={() => onEdit(session)}>
-              <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Modifier
+            <Button size="sm" onClick={() => onEdit(session)} className="h-8 text-xs sm:text-sm">
+              <Edit className="h-3.5 w-3.5 mr-1 sm:mr-1.5" />
+              <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
-          <SheetSizeSelector size={size} onSizeChange={onSizeChange} />
+          <div className="hidden sm:block">
+            <SheetSizeSelector size={size} onSizeChange={onSizeChange} />
+          </div>
         </div>
       </div>
     </SheetHeader>

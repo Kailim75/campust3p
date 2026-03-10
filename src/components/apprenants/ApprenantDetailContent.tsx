@@ -301,16 +301,16 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   return (
     <div className="flex flex-col h-full">
       {/* ─── COCKPIT HEADER ─── */}
-      <div className="p-5 border-b bg-muted/30 space-y-3">
+      <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
         {/* Identity row */}
-        <div className="flex items-start gap-4">
-          <Avatar className="h-14 w-14">
-            <AvatarFallback className={cn("text-lg font-bold text-primary-foreground", avatarColor)}>
+        <div className="flex items-start gap-3 sm:gap-4">
+          <Avatar className="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
+            <AvatarFallback className={cn("text-sm sm:text-lg font-bold text-primary-foreground", avatarColor)}>
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1">
-            <h2 className="text-xl font-display font-bold text-foreground truncate">
+            <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
               {contact.prenom} {contact.nom}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
@@ -356,7 +356,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         </div>
 
         {/* Cockpit indicators row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
           {/* Dossier progress */}
           <div className="bg-card border rounded-lg p-2.5 space-y-1">
             <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
@@ -428,7 +428,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         )}
 
         {/* Quick CTA actions */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {contact.telephone && (
             <Button size="sm" variant="outline" className="text-xs" asChild>
               <a href={`tel:${contact.telephone}`}>
@@ -501,20 +501,23 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
       {/* ─── TABS ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-5 mt-3 mb-0 justify-start bg-transparent gap-1 p-0 h-auto flex-wrap">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="gap-1.5 text-xs px-3 py-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
-            >
-              <tab.icon className="h-3.5 w-3.5" />
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="mx-3 sm:mx-5 mt-2 sm:mt-3 mb-0 overflow-x-auto scrollbar-hide">
+          <TabsList className="justify-start bg-transparent gap-0.5 sm:gap-1 p-0 h-auto flex-nowrap w-max">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="gap-1 sm:gap-1.5 text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg whitespace-nowrap flex-shrink-0"
+              >
+                <tab.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.length > 6 ? tab.label.slice(0, 5) + '.' : tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-        <div className="flex-1 overflow-auto p-5">
+        <div className="flex-1 overflow-auto p-3 sm:p-5">
           <TabsContent value="resume" className="mt-0">
             <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
           </TabsContent>

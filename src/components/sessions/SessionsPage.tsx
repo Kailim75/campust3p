@@ -101,7 +101,7 @@ export function SessionsPage() {
     <div className="min-h-screen">
       <Header title="Sessions de formation" subtitle="Gérez vos sessions et inscriptions" />
 
-      <main className="p-6 space-y-6 animate-fade-in">
+      <main className="p-3 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
         {sessions && (
           <SessionsKPICards
             sessions={sessions}
