@@ -98,7 +98,7 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateConventionPDF(contact, session, company);
+            doc = generateConventionFormationV2(contact, session, company);
             filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
@@ -107,7 +107,7 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateContratFormationPDF(contact, session, company);
+            doc = generateContratFormationV2(contact, session, company);
             filename = `contrat-formation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
