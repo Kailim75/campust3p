@@ -612,28 +612,28 @@ export function generateContratFormationV2(
   writeBullet(ctx, "ANNEXE 2 : Règlement intérieur de l'organisme de formation");
 
   // ═══ SIGNATURES ═══
-  ctx.yPos += 6;
-  checkPageBreak(ctx, 55);
+  ctx.yPos += 10;
+  checkPageBreak(ctx, 60);
 
   setFill(doc, C.gold);
   doc.rect(ctx.mL, ctx.yPos, ctx.cW, 0.5, "F");
-  ctx.yPos += 6;
+  ctx.yPos += 8;
 
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   doc.setFontSize(9);
   setColor(doc, C.forestGreen);
   doc.text("SIGNATURES", ctx.mL, ctx.yPos);
-  ctx.yPos += 4;
+  ctx.yPos += 5;
 
   doc.setFont(DOCUMENT_FONTS.primary, "normal");
   doc.setFontSize(7.5);
   setColor(doc, C.warmGray500);
   doc.text(`Fait en double exemplaire, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, ctx.mL, ctx.yPos);
   setColor(doc, C.warmGray800);
-  ctx.yPos += 6;
+  ctx.yPos += 8;
 
   const halfW = (ctx.cW - 10) / 2;
-  const sigBoxH = 36;
+  const sigBoxH = 42;
 
   // Box gauche - Organisme
   setFill(doc, C.creamLight);
@@ -644,10 +644,10 @@ export function generateContratFormationV2(
   doc.setFontSize(7.5);
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   setColor(doc, C.forestGreen);
-  doc.text("Pour l'Organisme de formation", ctx.mL + 4, ctx.yPos + 6);
+  doc.text("Pour l'Organisme de formation", ctx.mL + 5, ctx.yPos + 7);
   doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(doc, C.warmGray600);
-  doc.text("(Cachet et signature)", ctx.mL + 4, ctx.yPos + 11);
+  doc.text("(Cachet et signature)", ctx.mL + 5, ctx.yPos + 13);
 
   // Box droite - Stagiaire
   const rightX = ctx.mL + halfW + 10;
@@ -656,14 +656,14 @@ export function generateContratFormationV2(
 
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   setColor(doc, C.forestGreen);
-  doc.text("Le Stagiaire", rightX + 4, ctx.yPos + 6);
+  doc.text("Le Stagiaire", rightX + 5, ctx.yPos + 7);
   doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(doc, C.warmGray700);
-  doc.text(fullName, rightX + 4, ctx.yPos + 11);
+  doc.text(fullName, rightX + 5, ctx.yPos + 13);
   doc.setFontSize(6.5);
   setColor(doc, C.warmGray500);
-  doc.text("(Signature précédée de la mention", rightX + 4, ctx.yPos + 23);
-  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 4, ctx.yPos + 27);
+  doc.text("(Signature précédée de la mention", rightX + 5, ctx.yPos + 26);
+  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 5, ctx.yPos + 30);
 
   ctx.yPos += sigBoxH + 5;
 
