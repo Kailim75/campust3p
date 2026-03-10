@@ -695,7 +695,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.creamLight.g, 
     DOCUMENT_COLORS.creamLight.b
   );
-  doc.roundedRect(rightX, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(rightX, yPos, halfWidth, 45, 2, 2, "FD");
   
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
   doc.setTextColor(
