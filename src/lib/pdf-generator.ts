@@ -579,10 +579,11 @@ export function generateFacturePDF(
       }
     }
     
-    // Ajouter horaires de formation
-    if (session.heure_debut_matin && session.heure_fin_matin && session.heure_debut_aprem && session.heure_fin_aprem) {
+    // Ajouter horaires de formation (skip 00:00 values)
+    const isValid = (t?: string) => !!t && t !== "00:00:00" && t !== "00:00";
+    if (isValid(session.heure_debut_matin) && isValid(session.heure_fin_matin) && isValid(session.heure_debut_aprem) && isValid(session.heure_fin_aprem)) {
       description += `\nHoraires: ${session.heure_debut_matin} - ${session.heure_fin_matin} / ${session.heure_debut_aprem} - ${session.heure_fin_aprem}`;
-    } else if (session.heure_debut && session.heure_fin) {
+    } else if (isValid(session.heure_debut) && isValid(session.heure_fin)) {
       description += `\nHoraires: ${session.heure_debut} - ${session.heure_fin}`;
     }
     
