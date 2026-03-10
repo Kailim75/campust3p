@@ -322,7 +322,7 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
 // Fonction pour dessiner un titre de document avec style
 function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: string, reference?: string) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yPos = startY + 8;
+  let yPos = startY + 10;
   
   // Badge titre avec fond Gold
   doc.setFontSize(13);
