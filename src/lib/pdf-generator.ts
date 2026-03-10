@@ -2097,17 +2097,18 @@ export function generateConvocationPDF(
   doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
   doc.text(company.name, textStartX, 16);
 
-  // Adresse + contact
+  // Adresse (ligne 1)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(195, 215, 200);
-  doc.text(company.address, textStartX, 22);
+  doc.text(company.address, textStartX, 23);
 
+  // Ligne vide puis téléphone + email (ligne 3)
   const contactParts: string[] = [];
   if (company.phone) contactParts.push(company.phone);
   if (company.email) contactParts.push(company.email);
   if (contactParts.length > 0) {
-    doc.text(contactParts.join("  •  "), textStartX, 27);
+    doc.text(contactParts.join("  •  "), textStartX, 31);
   }
 
   // Références admin à droite dans le bandeau (conditionnelles)
@@ -2130,7 +2131,7 @@ export function generateConvocationPDF(
     doc.text(`Certifié Qualiopi`, pageWidth - mR, 32, { align: "right" });
   }
 
-  let yPos = headerH + 12;
+  let yPos = headerH + 10;
 
   // ═══════════════════════════════════════════════════════
   // B. TITRE — grand, centré, avec accent orange
@@ -2159,8 +2160,7 @@ export function generateConvocationPDF(
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
   doc.text(metaParts.join("  —  "), pageWidth / 2, yPos, { align: "center" });
 
-  yPos += 10;
-
+  yPos += 8;
   // ═══════════════════════════════════════════════════════
   // C. DESTINATAIRE + INTRO
   // ═══════════════════════════════════════════════════════
@@ -2205,32 +2205,44 @@ export function generateConvocationPDF(
   const introLines = doc.splitTextToSize(introText, introMaxW) as string[];
   doc.text(introLines, mL, yPos + 7);
 
-  yPos = Math.max(destY + 8, yPos + 7 + introLines.length * 4.8) + 8;
+  yPos = Math.max(destY + 6, yPos + 7 + introLines.length * 4.8) + 6;
 
   // ═══════════════════════════════════════════════════════
   // D. DÉTAILS DE LA FORMATION — bloc imposant
   // ═══════════════════════════════════════════════════════
 
-  // En-tête de section vert forêt
-  const sectionHeaderH = 9;
+  // Mesurer le nom de la formation pour adapter la hauteur du bandeau vert
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  const nomFormationMaxW = cW - 16;
+  const nomFormationLines = doc.splitTextToSize(session.nom, nomFormationMaxW) as string[];
+  const sectionHeaderH = 10 + nomFormationLines.length * 5.5;
+
+  // En-tête de section vert forêt (contient le nom de la formation)
   doc.setFillColor(cPrimaryMid.r, cPrimaryMid.g, cPrimaryMid.b);
   doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text("DÉTAILS DE LA FORMATION", mL + 8, yPos + 6.5);
 
   // Petit carré orange décoratif
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL + 3, yPos + 3, 3, 3, "F");
 
+  // Label "DÉTAILS DE LA FORMATION"
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(200, 220, 205);
+  doc.text("DÉTAILS DE LA FORMATION", mL + 8, yPos + 6);
+
+  // Nom complet de la formation en blanc, dans le bandeau
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text(nomFormationLines, mL + 8, yPos + 12);
+
   yPos += sectionHeaderH + 1;
 
-  // Build rows
-  interface ConvRow { label: string; value: string; accent?: boolean }
+  // Build rows (sans l'intitulé, déjà dans le bandeau)
+  interface ConvRow { label: string; value: string }
   const sessionRows: ConvRow[] = [];
-
-  sessionRows.push({ label: "Intitulé", value: session.nom, accent: true });
 
   if (session.formation_type && session.formation_type !== session.nom) {
     sessionRows.push({ label: "Type", value: session.formation_type });
@@ -2254,14 +2266,14 @@ export function generateConvocationPDF(
   const valX = mL + labelW + 4;
   const maxValW = cW - labelW - 8;
 
-  doc.setFontSize(9.5);
-  const rendered: { label: string; lines: string[]; h: number; accent?: boolean }[] = [];
-  let cardH = 8;
+  doc.setFontSize(9);
+  const rendered: { label: string; lines: string[]; h: number }[] = [];
+  let cardH = 6;
   for (const r of sessionRows) {
     const lines = doc.splitTextToSize(r.value, maxValW) as string[];
-    const h = Math.max(lines.length * 5, 6.5);
-    rendered.push({ label: r.label, lines, h, accent: r.accent });
-    cardH += h + 3.5;
+    const h = Math.max(lines.length * 4.5, 6);
+    rendered.push({ label: r.label, lines, h });
+    cardH += h + 3;
   }
 
   // Card fond vert très léger avec bordure subtile
@@ -2274,40 +2286,41 @@ export function generateConvocationPDF(
   doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
   doc.rect(mL, yPos, 2.5, cardH, "F");
 
-  let rY = yPos + 6;
+  let rY = yPos + 5;
   for (let i = 0; i < rendered.length; i++) {
     const row = rendered[i];
 
     // Label
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
     doc.text(row.label, mL + 7, rY);
 
     // Value
-    doc.setFont("helvetica", row.accent ? "bold" : "normal");
-    doc.setFontSize(row.accent ? 11 : 9.5);
-    doc.setTextColor(row.accent ? cPrimary.r : cText.r, row.accent ? cPrimary.g : cText.g, row.accent ? cPrimary.b : cText.b);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(cText.r, cText.g, cText.b);
     doc.text(row.lines, valX, rY);
 
-    rY += row.h + 3.5;
+    rY += row.h + 3;
 
     if (i < rendered.length - 1) {
       doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
       doc.setLineWidth(0.15);
-      doc.line(mL + 6, rY - 2, mL + cW - 6, rY - 2);
+      doc.line(mL + 6, rY - 1.5, mL + cW - 6, rY - 1.5);
     }
   }
 
-  yPos += cardH + 10;
+  yPos += cardH + 8;
 
   // ═══════════════════════════════════════════════════════
   // E. INFORMATIONS PRATIQUES — bloc orange
   // ═══════════════════════════════════════════════════════
 
   // En-tête section orange
+  const sectionHeaderH2 = 9;
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
-  doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
+  doc.roundedRect(mL, yPos, cW, sectionHeaderH2, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
@@ -2321,7 +2334,7 @@ export function generateConvocationPDF(
   doc.setTextColor(cOrange.r, cOrange.g, cOrange.b);
   doc.text("✓", mL + 3.3, yPos + 6);
 
-  yPos += sectionHeaderH + 1;
+  yPos += sectionHeaderH2 + 1;
 
   const practicalItems = [
     "Veuillez vous présenter 15 minutes avant le début de la formation.",
@@ -2331,7 +2344,7 @@ export function generateConvocationPDF(
     "En cas d'empêchement, contactez-nous dans les plus brefs délais.",
   ];
 
-  const practCardH = 8 + practicalItems.length * 7;
+  const practCardH = 6 + practicalItems.length * 6;
   doc.setFillColor(cOrangeLight.r, cOrangeLight.g, cOrangeLight.b);
   doc.roundedRect(mL, yPos, cW, practCardH, 0, 2, "F");
 
@@ -2339,19 +2352,18 @@ export function generateConvocationPDF(
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL, yPos, 2.5, practCardH, "F");
 
-  let pY = yPos + 6;
-  doc.setFontSize(9);
+  let pY = yPos + 5;
+  doc.setFontSize(8.5);
   for (const item of practicalItems) {
-    // Bullet orange
     doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
-    doc.circle(mL + 8, pY - 1, 1.2, "F");
+    doc.circle(mL + 8, pY - 1, 1, "F");
     doc.setFont("helvetica", "normal");
     doc.setTextColor(cText.r, cText.g, cText.b);
-    doc.text(item, mL + 13, pY);
-    pY += 7;
+    doc.text(item, mL + 12, pY);
+    pY += 6;
   }
 
-  yPos += practCardH + 10;
+  yPos += practCardH + 8;
 
   // ═══════════════════════════════════════════════════════
   // F. CONTACT + SIGNATURE
@@ -2367,10 +2379,10 @@ export function generateConvocationPDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
   doc.text(`${company.phone}  •  ${company.email}`, mL + 22, yPos + 6.5);
-  yPos += 16;
+  yPos += 13;
 
   // Formule de politesse
-  doc.setFontSize(9.5);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cText.r, cText.g, cText.b);
   const closingLines = doc.splitTextToSize(
@@ -2378,11 +2390,11 @@ export function generateConvocationPDF(
     cW
   ) as string[];
   doc.text(closingLines, mL, yPos);
-  yPos += closingLines.length * 4.8 + 8;
+  yPos += closingLines.length * 4.5 + 6;
 
   // Signature / cachet
-  const stampAdded = addStampImage(doc, company, mL, yPos, 32, 18);
-  yPos += stampAdded ? 22 : 0;
+  const stampAdded = addStampImage(doc, company, mL, yPos, 28, 16);
+  yPos += stampAdded ? 18 : 0;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
