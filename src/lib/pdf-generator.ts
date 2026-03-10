@@ -248,8 +248,8 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
   // Reset text color
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 
-  // Retourne la position Y après le header (avec marge)
-  return headerHeight + 8;
+  // Retourne la position Y après le header (avec marge aérée)
+  return headerHeight + 10;
 }
 
 function addFooter(doc: jsPDF, pageNum: number = 1) {
@@ -281,7 +281,7 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
     doc.text(title, x, y);
-    y += 6;
+    y += 7;
   }
   
   doc.setFont("helvetica", "normal");
@@ -296,33 +296,33 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   
   if (contact.rue) {
-    y += 5;
+    y += 6;
     doc.text(contact.rue, x, y);
   }
   
   if (contact.code_postal || contact.ville) {
-    y += 5;
+    y += 6;
     doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), x, y);
   }
   
   if (contact.email) {
-    y += 5;
+    y += 6;
     doc.text(contact.email, x, y);
   }
   
   if (contact.telephone) {
-    y += 5;
+    y += 6;
     doc.text(contact.telephone, x, y);
   }
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  return y + 10;
+  return y + 12;
 }
 
 // Fonction pour dessiner un titre de document avec style
 function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: string, reference?: string) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yPos = startY + 8;
+  let yPos = startY + 10;
   
   // Badge titre avec fond Gold
   doc.setFontSize(13);
@@ -363,11 +363,11 @@ function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(title, 27, yPos + 6);
+  doc.text(title, 28, yPos + 6);
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.setFont("helvetica", "normal");
-  return yPos + 18;
+  return yPos + 20;
 }
 
 // Box d'information avec fond cream

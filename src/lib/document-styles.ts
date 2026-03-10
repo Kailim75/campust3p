@@ -43,17 +43,25 @@ export const DOCUMENT_FONTS = {
   primary: "helvetica",
   secondary: "times",
   
-  // Tailles standard
+  // Tailles standard (optimisées lisibilité A4)
   sizes: {
     title: 16,       // Titre du document
     subtitle: 12,    // Sous-titre / nom de section
     heading: 11,     // En-tête de section
     subheading: 10,  // Sous-titre de section
-    body: 10,        // Corps de texte principal
+    body: 9.5,       // Corps de texte principal
     small: 9,        // Texte secondaire
     tiny: 8,         // Notes, mentions légales
     micro: 7,        // Pied de page, références
     nano: 6.5,       // Agréments, informations compactées
+  },
+
+  // Interlignage standard (mm par ligne de texte)
+  lineHeight: {
+    body: 5.2,       // Corps de texte — aéré
+    small: 4.8,      // Texte secondaire
+    tight: 4.2,      // Listes compactes
+    heading: 6,      // Titres de section
   },
   
   // Poids
@@ -87,14 +95,14 @@ export const DOCUMENT_LAYOUT = {
   footerHeight: 15,
   titleBandHeight: 12,
   
-  // Espacement
+  // Espacement (valeurs aérées pour lisibilité A4)
   spacing: {
-    xs: 2,
-    sm: 4,
-    md: 6,
-    lg: 8,
-    xl: 12,
-    xxl: 16,
+    xs: 3,
+    sm: 5,
+    md: 8,
+    lg: 10,
+    xl: 14,
+    xxl: 18,
   },
 } as const;
 
@@ -515,7 +523,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos - 4, 3, 14, 1, 1, "F");
+  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos - 4, 3, 16, 1, 1, "F");
   
   doc.setFontSize(DOCUMENT_FONTS.sizes.heading);
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
@@ -524,7 +532,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.text(title, DOCUMENT_LAYOUT.marginLeft + 7, yPos + 4);
+  doc.text(title, DOCUMENT_LAYOUT.marginLeft + 8, yPos + 5);
   
   // Reset
   doc.setTextColor(
@@ -534,7 +542,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
   );
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.normal);
   
-  return yPos + DOCUMENT_LAYOUT.spacing.xxl;
+  return yPos + DOCUMENT_LAYOUT.spacing.xxl + 2;
 }
 
 /**
@@ -635,7 +643,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos, halfWidth, 45, 2, 2, "FD");
   
   doc.setFontSize(DOCUMENT_FONTS.sizes.tiny);
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
@@ -687,7 +695,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.creamLight.g, 
     DOCUMENT_COLORS.creamLight.b
   );
-  doc.roundedRect(rightX, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(rightX, yPos, halfWidth, 45, 2, 2, "FD");
   
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
   doc.setTextColor(
@@ -719,7 +727,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.warmGray800.b
   );
   
-  return yPos + 50;
+  return yPos + 55;
 }
 
 /**
@@ -765,12 +773,12 @@ export function addParagraph(
   const lines = doc.splitTextToSize(text, contentWidth - indent);
   
   lines.forEach((line: string) => {
-    yPos = checkPageBreak(doc, yPos, 5);
+    yPos = checkPageBreak(doc, yPos, 6);
     doc.text(line, DOCUMENT_LAYOUT.marginLeft + indent, yPos);
-    yPos += 4.5;
+    yPos += DOCUMENT_FONTS.lineHeight.body;
   });
   
-  return yPos + 2;
+  return yPos + 3;
 }
 
 /**

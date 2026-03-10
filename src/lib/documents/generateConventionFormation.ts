@@ -101,21 +101,21 @@ function addFooter(ctx: ConvCtx): void {
 }
 
 function writeArticle(ctx: ConvCtx, title: string): void {
-  ctx.yPos += 6;
-  checkPageBreak(ctx, 20);
+  ctx.yPos += 8;
+  checkPageBreak(ctx, 22);
   setFill(ctx.doc, C.forestGreen);
-  ctx.doc.roundedRect(ctx.mL, ctx.yPos - 2, 3, 13, 1, 1, "F");
+  ctx.doc.roundedRect(ctx.mL, ctx.yPos - 2, 3, 14, 1, 1, "F");
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
   ctx.doc.setFontSize(9.5);
   setColor(ctx.doc, C.forestGreen);
-  ctx.doc.text(title, ctx.mL + 7, ctx.yPos + 5);
+  ctx.doc.text(title, ctx.mL + 8, ctx.yPos + 5);
   setColor(ctx.doc, C.warmGray800);
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
-  ctx.yPos += 14;
+  ctx.yPos += 16;
 }
 
 function writeParagraph(ctx: ConvCtx, text: string, indent: number = 0): void {
-  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFontSize(9);
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(ctx.doc, C.warmGray700);
   const lines = ctx.doc.splitTextToSize(text, ctx.cW - indent) as string[];
@@ -124,32 +124,34 @@ function writeParagraph(ctx: ConvCtx, text: string, indent: number = 0): void {
     ctx.doc.text(line, ctx.mL + indent, ctx.yPos);
     ctx.yPos += ctx.lineH;
   }
+  ctx.yPos += 2;
   setColor(ctx.doc, C.warmGray800);
 }
 
 function writeBullet(ctx: ConvCtx, text: string): void {
-  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFontSize(9);
   setColor(ctx.doc, C.warmGray700);
-  const lines = ctx.doc.splitTextToSize(`• ${text}`, ctx.cW - 8) as string[];
+  const lines = ctx.doc.splitTextToSize(`• ${text}`, ctx.cW - 10) as string[];
   for (let i = 0; i < lines.length; i++) {
     checkPageBreak(ctx, ctx.lineH + 1);
-    ctx.doc.text(lines[i], ctx.mL + (i === 0 ? 4 : 9), ctx.yPos);
+    ctx.doc.text(lines[i], ctx.mL + (i === 0 ? 5 : 10), ctx.yPos);
     ctx.yPos += ctx.lineH;
   }
+  ctx.yPos += 1;
   setColor(ctx.doc, C.warmGray800);
 }
 
 function drawInfoBox(ctx: ConvCtx, items: Array<{ label: string; value: string }>): void {
   const visibleItems = items.filter(i => i.value.trim() !== "");
   if (visibleItems.length === 0) return;
-  const boxH = visibleItems.length * ctx.lineH + 10;
-  checkPageBreak(ctx, boxH + 5);
+  const boxH = visibleItems.length * (ctx.lineH + 1) + 14;
+  checkPageBreak(ctx, boxH + 6);
   setFill(ctx.doc, C.creamLight);
   ctx.doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, boxH, 3, 3, "F");
   setFill(ctx.doc, C.forestGreen);
   ctx.doc.roundedRect(ctx.mL, ctx.yPos, 3, boxH, 1, 1, "F");
-  let y = ctx.yPos + 6;
-  ctx.doc.setFontSize(8.5);
+  let y = ctx.yPos + 8;
+  ctx.doc.setFontSize(9);
   for (const item of visibleItems) {
     ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
     setColor(ctx.doc, C.forestGreen);
@@ -157,16 +159,16 @@ function drawInfoBox(ctx: ConvCtx, items: Array<{ label: string; value: string }
     const labelW = ctx.doc.getTextWidth(`${item.label} : `);
     ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(ctx.doc, C.warmGray700);
-    const valueLines = ctx.doc.splitTextToSize(item.value, ctx.cW - 16 - labelW) as string[];
+    const valueLines = ctx.doc.splitTextToSize(item.value, ctx.cW - 18 - labelW) as string[];
     ctx.doc.text(valueLines[0] || "", ctx.mL + 8 + labelW, y);
-    y += ctx.lineH;
+    y += ctx.lineH + 1;
     for (let i = 1; i < valueLines.length; i++) {
       ctx.doc.text(valueLines[i], ctx.mL + 8 + labelW, y);
       y += ctx.lineH;
     }
   }
   setColor(ctx.doc, C.warmGray800);
-  ctx.yPos += boxH + 4;
+  ctx.yPos += boxH + 6;
 }
 
 // ── Helpers ──
@@ -219,7 +221,7 @@ export function generateConventionFormationV2(
     pageHeight: doc.internal.pageSize.getHeight(),
     mL: 20, mR: 20,
     cW: doc.internal.pageSize.getWidth() - 40,
-    bottomMargin: 28, lineH: 4.5, pageNum: 1, yPos: 0,
+    bottomMargin: 32, lineH: 5.2, pageNum: 1, yPos: 0,
   };
 
   ctx.yPos = addHeader(ctx);
@@ -462,21 +464,21 @@ export function generateConventionFormationV2(
   writeBullet(ctx, "ANNEXE 3 : Conditions générales de vente");
 
   // ═══ SIGNATURES ═══
-  ctx.yPos += 6;
-  checkPageBreak(ctx, 55);
+  ctx.yPos += 10;
+  checkPageBreak(ctx, 60);
 
   setFill(doc, C.gold);
   doc.rect(ctx.mL, ctx.yPos, ctx.cW, 0.5, "F");
-  ctx.yPos += 6;
+  ctx.yPos += 8;
 
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   doc.setFontSize(9);
   setColor(doc, C.warmGray800);
   doc.text(`Fait en double exemplaire original, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, ctx.mL, ctx.yPos);
-  ctx.yPos += 8;
+  ctx.yPos += 10;
 
   const halfW = (ctx.cW - 10) / 2;
-  const sigBoxH = 36;
+  const sigBoxH = 42;
 
   // Box gauche - Organisme
   setFill(doc, C.creamLight);
@@ -487,11 +489,11 @@ export function generateConventionFormationV2(
   doc.setFontSize(7.5);
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   setColor(doc, C.forestGreen);
-  doc.text("Pour l'Organisme de formation", ctx.mL + 4, ctx.yPos + 6);
+  doc.text("Pour l'Organisme de formation", ctx.mL + 5, ctx.yPos + 7);
   doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(doc, C.warmGray600);
-  doc.text(company.name, ctx.mL + 4, ctx.yPos + 11);
-  doc.text("(Cachet et signature)", ctx.mL + 4, ctx.yPos + 16);
+  doc.text(company.name, ctx.mL + 5, ctx.yPos + 13);
+  doc.text("(Cachet et signature)", ctx.mL + 5, ctx.yPos + 19);
 
   // Box droite - Bénéficiaire
   const rightX = ctx.mL + halfW + 10;
@@ -500,16 +502,16 @@ export function generateConventionFormationV2(
 
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   setColor(doc, C.forestGreen);
-  doc.text("Le Bénéficiaire", rightX + 4, ctx.yPos + 6);
+  doc.text("Le Bénéficiaire", rightX + 5, ctx.yPos + 7);
   doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(doc, C.warmGray700);
-  doc.text(fullName, rightX + 4, ctx.yPos + 11);
+  doc.text(fullName, rightX + 5, ctx.yPos + 13);
   doc.setFontSize(6.5);
   setColor(doc, C.warmGray500);
-  doc.text("(Signature précédée de la mention", rightX + 4, ctx.yPos + 23);
-  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 4, ctx.yPos + 27);
+  doc.text("(Signature précédée de la mention", rightX + 5, ctx.yPos + 26);
+  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 5, ctx.yPos + 30);
 
-  ctx.yPos += sigBoxH + 5;
+  ctx.yPos += sigBoxH + 8;
 
   checkPageBreak(ctx, 8);
   doc.setFontSize(6.5);
