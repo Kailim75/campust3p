@@ -2097,17 +2097,18 @@ export function generateConvocationPDF(
   doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
   doc.text(company.name, textStartX, 16);
 
-  // Adresse + contact
+  // Adresse (ligne 1)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(195, 215, 200);
-  doc.text(company.address, textStartX, 22);
+  doc.text(company.address, textStartX, 23);
 
+  // Ligne vide puis téléphone + email (ligne 3)
   const contactParts: string[] = [];
   if (company.phone) contactParts.push(company.phone);
   if (company.email) contactParts.push(company.email);
   if (contactParts.length > 0) {
-    doc.text(contactParts.join("  •  "), textStartX, 27);
+    doc.text(contactParts.join("  •  "), textStartX, 31);
   }
 
   // Références admin à droite dans le bandeau (conditionnelles)
