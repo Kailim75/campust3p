@@ -23,7 +23,7 @@ import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 import { DocumentHistoryTimeline } from "./DocumentHistoryTimeline";
 import { DocumentVersionBadge } from "./DocumentVersionBadge";
-import { supabase } from "@/integrations/supabase/client";
+import { downloadPdf } from "@/lib/documents/pdfResolver";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface DocumentPreviewDrawerProps {
