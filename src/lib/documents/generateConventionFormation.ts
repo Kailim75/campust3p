@@ -144,14 +144,14 @@ function writeBullet(ctx: ConvCtx, text: string): void {
 function drawInfoBox(ctx: ConvCtx, items: Array<{ label: string; value: string }>): void {
   const visibleItems = items.filter(i => i.value.trim() !== "");
   if (visibleItems.length === 0) return;
-  const boxH = visibleItems.length * ctx.lineH + 10;
-  checkPageBreak(ctx, boxH + 5);
+  const boxH = visibleItems.length * (ctx.lineH + 1) + 14;
+  checkPageBreak(ctx, boxH + 6);
   setFill(ctx.doc, C.creamLight);
   ctx.doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, boxH, 3, 3, "F");
   setFill(ctx.doc, C.forestGreen);
   ctx.doc.roundedRect(ctx.mL, ctx.yPos, 3, boxH, 1, 1, "F");
-  let y = ctx.yPos + 6;
-  ctx.doc.setFontSize(8.5);
+  let y = ctx.yPos + 8;
+  ctx.doc.setFontSize(9);
   for (const item of visibleItems) {
     ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
     setColor(ctx.doc, C.forestGreen);
@@ -159,16 +159,16 @@ function drawInfoBox(ctx: ConvCtx, items: Array<{ label: string; value: string }
     const labelW = ctx.doc.getTextWidth(`${item.label} : `);
     ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(ctx.doc, C.warmGray700);
-    const valueLines = ctx.doc.splitTextToSize(item.value, ctx.cW - 16 - labelW) as string[];
+    const valueLines = ctx.doc.splitTextToSize(item.value, ctx.cW - 18 - labelW) as string[];
     ctx.doc.text(valueLines[0] || "", ctx.mL + 8 + labelW, y);
-    y += ctx.lineH;
+    y += ctx.lineH + 1;
     for (let i = 1; i < valueLines.length; i++) {
       ctx.doc.text(valueLines[i], ctx.mL + 8 + labelW, y);
       y += ctx.lineH;
     }
   }
   setColor(ctx.doc, C.warmGray800);
-  ctx.yPos += boxH + 4;
+  ctx.yPos += boxH + 6;
 }
 
 // ── Helpers ──
