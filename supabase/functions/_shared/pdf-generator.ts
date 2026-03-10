@@ -1,7 +1,10 @@
 // PDF Generator for Supabase Edge Functions
 // Simplified port of src/lib/pdf-generator.ts for server-side generation
 // @ts-ignore - jsPDF for Deno
-import jsPDF from "npm:jspdf@2.5.2";
+import jsPDFModule from "npm:jspdf@2.5.2";
+
+// Handle both ESM default export and CJS module.exports
+const jsPDF = (jsPDFModule as any).jsPDF || (jsPDFModule as any).default?.jsPDF || (jsPDFModule as any).default || jsPDFModule;
 
 // ==================== TYPES ====================
 export interface ContactInfo {
