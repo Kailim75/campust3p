@@ -1674,15 +1674,15 @@ export function generateContratFormationPDF(
 
     // Barre latérale Forest Green
     doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+    doc.roundedRect(marginLeft, yPos - 2, 3, 14, 1, 1, "F");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.text(title, marginLeft + 7, yPos + 3);
+    doc.text(title, marginLeft + 7, yPos + 5);
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
     doc.setFont("helvetica", "normal");
-    yPos += lineH + 6;
+    yPos += lineH + 8;
   }
 
   function writeBullet(text: string): void {
