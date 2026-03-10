@@ -2055,238 +2055,356 @@ export function generateConvocationPDF(
 ): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const marginLeft = 20;
-  const marginRight = 20;
-  const contentWidth = pageWidth - marginLeft - marginRight;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const mL = 20; // margin left
+  const mR = 20; // margin right
+  const cW = pageWidth - mL - mR; // content width
 
-  // ── Header ──
-  const headerEndY = addHeader(doc, company);
+  // ─── Color shortcuts ───
+  const cPrimary = { r: 27, g: 62, b: 92 };     // Deep navy blue - institutional
+  const cPrimaryLight = { r: 42, g: 82, b: 115 };
+  const cAccent = { r: 0, g: 122, b: 179 };      // Bright blue accent
+  const cText = { r: 33, g: 37, b: 41 };         // Near-black text
+  const cTextMuted = { r: 108, g: 117, b: 125 };  // Muted gray
+  const cTextLight = { r: 155, g: 155, b: 155 };
+  const cBg = { r: 245, g: 247, b: 250 };        // Light background
+  const cBgCard = { r: 255, g: 255, b: 255 };
+  const cBorder = { r: 222, g: 226, b: 230 };
+  const cWhite = { r: 255, g: 255, b: 255 };
+  const cSuccess = { r: 25, g: 135, b: 84 };
 
-  // ── Document title with gold badge ──
-  let yPos = headerEndY + 4;
-  const titleText = "CONVOCATION À LA FORMATION";
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  const titleW = doc.getTextWidth(titleText) + 28;
-  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleW) / 2, yPos - 7, titleW, 16, 3, 3, "F");
-  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(titleText, pageWidth / 2, yPos + 1, { align: "center" });
+  // ─── Helper: draw horizontal rule ───
+  const drawHR = (y: number, x1: number = mL, x2: number = pageWidth - mR) => {
+    doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
+    doc.setLineWidth(0.4);
+    doc.line(x1, y, x2, y);
+  };
 
-  // Session reference under title
-  if (session.numero_session) {
-    yPos += 10;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-    doc.text(`Réf. Session : ${session.numero_session}`, pageWidth / 2, yPos, { align: "center" });
+  // ═══════════════════════════════════════════════════════════
+  // A. BANDEAU SUPÉRIEUR - En-tête institutionnel
+  // ═══════════════════════════════════════════════════════════
+  const headerH = 32;
+  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.rect(0, 0, pageWidth, headerH, "F");
+
+  // Thin accent line under header
+  doc.setFillColor(cAccent.r, cAccent.g, cAccent.b);
+  doc.rect(0, headerH, pageWidth, 1.5, "F");
+
+  // Logo (left side)
+  let logoEndX = mL;
+  const logoAdded = addLogoImage(doc, company, mL, 5, 30, 18);
+  if (logoAdded) {
+    logoEndX = mL + 34;
   }
 
-  // ── Date d'émission (top-right) ──
-  yPos += 10;
-  doc.setFontSize(9);
+  // Company name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text(company.name, logoEndX, 14);
+
+  // Address & contact on second line
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-  const emissionDate = `Fait le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`;
-  doc.text(emissionDate, pageWidth - marginRight, yPos, { align: "right" });
+  doc.setFontSize(7.5);
+  doc.setTextColor(200, 210, 225);
+  doc.text(`${company.address}  |  ${company.phone}  |  ${company.email}`, logoEndX, 21);
 
-  // ── Destinataire block (right-aligned, formal letter style) ──
+  // Administrative references (right side, conditional)
+  const adminParts: string[] = [];
+  if (company.siret && !company.siret.includes("[")) adminParts.push(`SIRET ${company.siret}`);
+  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") adminParts.push(`NDA ${company.nda}`);
+  if (company.qualiopi_numero) adminParts.push(`Qualiopi ${company.qualiopi_numero}`);
+
+  if (adminParts.length > 0) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(170, 185, 200);
+    doc.text(adminParts.join("  •  "), pageWidth - mR, 28, { align: "right" });
+  }
+
+  let yPos = headerH + 10;
+
+  // ═══════════════════════════════════════════════════════════
+  // B. TITRE PRINCIPAL
+  // ═══════════════════════════════════════════════════════════
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.text("CONVOCATION À LA FORMATION", pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 6;
+
+  // Ref session + date émission
+  const metaParts: string[] = [];
+  if (session.numero_session) metaParts.push(`Réf. ${session.numero_session}`);
+  metaParts.push(`Émise le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+  doc.text(metaParts.join("  —  "), pageWidth / 2, yPos, { align: "center" });
+
+  yPos += 5;
+  drawHR(yPos);
   yPos += 8;
-  const contactX = pageWidth - 80;
-  const contactEndY = addContactBlock(doc, contact, contactX, yPos, "");
 
-  // ── Body starts after contact block ──
-  yPos = Math.max(contactEndY, yPos + 35) + 4;
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  // ═══════════════════════════════════════════════════════════
+  // C. BLOC DESTINATAIRE (cartouche gauche)
+  // ═══════════════════════════════════════════════════════════
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
 
   // Objet line
-  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Objet : ", marginLeft, yPos);
-  const objetLabelW = doc.getTextWidth("Objet : ");
+  doc.setFontSize(10);
+  doc.setTextColor(cText.r, cText.g, cText.b);
+  doc.text("Objet :", mL, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text("Convocation à votre session de formation", marginLeft + objetLabelW, yPos);
+  doc.text(" Convocation à votre session de formation", mL + doc.getTextWidth("Objet : "), yPos);
 
-  yPos += 10;
-  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  yPos += 8;
+
+  // Destinataire cartouche
+  const destBoxX = pageWidth - mR - 75;
+  const destLines: string[] = [fullName];
+  if (contact.rue) destLines.push(contact.rue);
+  if (contact.code_postal || contact.ville) destLines.push(`${contact.code_postal || ""} ${contact.ville || ""}`.trim());
+  if (contact.email) destLines.push(contact.email);
+  if (contact.telephone) destLines.push(contact.telephone);
+
+  const destBoxH = 8 + destLines.length * 5;
+  doc.setFillColor(cBg.r, cBg.g, cBg.b);
+  doc.roundedRect(destBoxX - 4, yPos - 5, 79, destBoxH, 2, 2, "F");
+  doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(destBoxX - 4, yPos - 5, 79, destBoxH, 2, 2, "S");
+
+  let destY = yPos;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(cText.r, cText.g, cText.b);
+  doc.text(destLines[0], destBoxX, destY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+  for (let i = 1; i < destLines.length; i++) {
+    destY += 5;
+    doc.text(destLines[i], destBoxX, destY);
+  }
+
+  // Intro text (left side, next to cartouche)
+  const introY = yPos;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(`${fullName},`, marginLeft, yPos);
+  doc.setTextColor(cText.r, cText.g, cText.b);
+  doc.text(`${fullName},`, mL, introY);
 
-  yPos += 7;
-  const introLines = doc.splitTextToSize(
-    "Nous avons le plaisir de vous confirmer votre inscription à la formation ci-dessous. Nous vous remercions de votre confiance et vous invitons à prendre connaissance des informations suivantes.",
-    contentWidth
-  ) as string[];
-  doc.text(introLines, marginLeft, yPos);
-  yPos += introLines.length * 5 + 6;
+  const introMaxW = destBoxX - mL - 10;
+  const introText = "Nous avons le plaisir de vous confirmer votre inscription à la formation ci-dessous. Merci de prendre connaissance des informations pratiques suivantes.";
+  const introLines = doc.splitTextToSize(introText, introMaxW) as string[];
+  doc.setFontSize(9.5);
+  doc.text(introLines, mL, introY + 7);
 
-  // ── Section 1: Formation details (cream box with gold left border) ──
-  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
-  doc.setFontSize(11);
+  yPos = Math.max(destY + 8, introY + 7 + introLines.length * 5) + 6;
+
+  // ═══════════════════════════════════════════════════════════
+  // D. BLOC SESSION DE FORMATION — Cœur visuel
+  // ═══════════════════════════════════════════════════════════
+
+  // Section header
+  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.roundedRect(mL, yPos, cW, 10, 2, 2, "F");
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("INFORMATIONS DE FORMATION", marginLeft + 7, yPos + 6);
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 18;
+  doc.setFontSize(10);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text("DÉTAILS DE LA FORMATION", mL + 6, yPos + 7);
+  yPos += 14;
 
-  // Build detail rows
-  interface DetailRow { label: string; value: string }
-  const details: DetailRow[] = [];
+  // Build session detail rows (conditional)
+  interface ConvRow { label: string; value: string; bold?: boolean }
+  const sessionRows: ConvRow[] = [];
 
-  details.push({ label: "Formation", value: session.nom });
-  details.push({
+  sessionRows.push({ label: "Intitulé", value: session.nom, bold: true });
+
+  if (session.formation_type && session.formation_type !== session.nom) {
+    sessionRows.push({ label: "Type", value: session.formation_type });
+  }
+
+  sessionRows.push({
     label: "Dates",
     value: `Du ${format(new Date(session.date_debut), "EEEE dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "EEEE dd MMMM yyyy", { locale: fr })}`
   });
 
   const hours = formatSessionHours(session);
-  if (hours) details.push({ label: "Horaires", value: hours });
+  if (hours) sessionRows.push({ label: "Horaires", value: hours });
+
+  if (session.duree_heures) sessionRows.push({ label: "Durée", value: `${session.duree_heures} heures` });
 
   const address = formatFullAddress(session);
-  if (address) details.push({ label: "Lieu", value: address });
+  if (address) sessionRows.push({ label: "Lieu", value: address });
 
-  if (session.duree_heures) details.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
-  if (session.formateur) details.push({ label: "Formateur", value: session.formateur });
+  if (session.formateur) sessionRows.push({ label: "Formateur", value: session.formateur });
 
-  // Calculate box height with generous padding
-  const labelColW = 38;
-  const valueColX = marginLeft + 10 + labelColW;
-  const maxValW = contentWidth - labelColW - 16;
-  const rowGap = 3;
-  const boxPadY = 10;
+  // Render session rows in a clean card
+  const labelW = 30;
+  const valX = mL + labelW + 4;
+  const maxValW = cW - labelW - 8;
+  const rowH = 6.5;
 
-  // Pre-calculate multi-line values
+  // Pre-calculate heights
   doc.setFontSize(9.5);
-  const detailRendered: { label: string; lines: string[]; lineH: number }[] = [];
-  let totalBoxH = boxPadY * 2;
-  for (const d of details) {
-    const lines = doc.splitTextToSize(d.value, maxValW) as string[];
-    const lineH = Math.max(lines.length * 5.5, 8);
-    detailRendered.push({ label: d.label, lines, lineH });
-    totalBoxH += lineH + rowGap;
+  const rendered: { label: string; lines: string[]; h: number; bold?: boolean }[] = [];
+  let cardH = 8; // top + bottom padding
+  for (const r of sessionRows) {
+    const lines = doc.splitTextToSize(r.value, maxValW) as string[];
+    const h = Math.max(lines.length * 5, rowH);
+    rendered.push({ label: r.label, lines, h, bold: r.bold });
+    cardH += h + 3;
   }
-  totalBoxH -= rowGap; // remove last gap
+  cardH -= 3; // remove last gap
 
-  // Cream background
-  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(marginLeft, yPos, contentWidth, totalBoxH, 3, 3, "F");
+  // Card background
+  doc.setFillColor(cBg.r, cBg.g, cBg.b);
+  doc.roundedRect(mL, yPos, cW, cardH, 2, 2, "F");
 
-  // Gold left accent
-  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect(marginLeft, yPos, 3, totalBoxH, 1.5, 1.5, "F");
+  // Left accent bar
+  doc.setFillColor(cAccent.r, cAccent.g, cAccent.b);
+  doc.roundedRect(mL, yPos, 2.5, cardH, 1, 1, "F");
 
-  let rowY = yPos + boxPadY + 2;
-  doc.setFontSize(9.5);
-  for (let i = 0; i < detailRendered.length; i++) {
-    const row = detailRendered[i];
-    // Label (right-aligned in its column for clean alignment)
+  let rY = yPos + 5;
+  for (let i = 0; i < rendered.length; i++) {
+    const row = rendered[i];
+
+    // Label
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.text(row.label, marginLeft + 8, rowY);
+    doc.setFontSize(9);
+    doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+    doc.text(row.label, mL + 6, rY);
 
     // Value
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-    doc.text(row.lines, valueColX, rowY);
+    doc.setFont("helvetica", row.bold ? "bold" : "normal");
+    doc.setFontSize(row.bold ? 10.5 : 9.5);
+    doc.setTextColor(cText.r, cText.g, cText.b);
+    doc.text(row.lines, valX, rY);
 
-    rowY += row.lineH + rowGap;
+    rY += row.h + 3;
 
-    // Subtle divider between rows (not after last)
-    if (i < detailRendered.length - 1) {
-      doc.setDrawColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
-      doc.setLineWidth(0.3);
-      doc.line(marginLeft + 6, rowY - rowGap / 2, marginLeft + contentWidth - 6, rowY - rowGap / 2);
+    // Divider
+    if (i < rendered.length - 1) {
+      doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
+      doc.setLineWidth(0.2);
+      doc.line(mL + 5, rY - 1.5, mL + cW - 5, rY - 1.5);
     }
   }
 
-  yPos += totalBoxH + 10;
+  yPos += cardH + 8;
 
-  // ── Section 2: Documents à apporter ──
-  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
-  doc.setFontSize(11);
+  // ═══════════════════════════════════════════════════════════
+  // E. CONSIGNES PRATIQUES
+  // ═══════════════════════════════════════════════════════════
+
+  // Section header
+  doc.setFillColor(cSuccess.r, cSuccess.g, cSuccess.b);
+  doc.roundedRect(mL, yPos, cW, 10, 2, 2, "F");
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("DOCUMENTS À APPORTER", marginLeft + 7, yPos + 6);
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 18;
+  doc.setFontSize(10);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text("CONSIGNES & DOCUMENTS À APPORTER", mL + 6, yPos + 7);
+  yPos += 14;
 
-  const docsTooBring = [
-    "Pièce d'identité en cours de validité",
-    "Permis de conduire",
-    "Attestation d'inscription (cette convocation)",
+  // Practical info card
+  const practicalItems = [
+    "Veuillez vous présenter 15 minutes avant le début de la formation.",
+    "Munissez-vous d'une pièce d'identité en cours de validité.",
+    "Apportez votre permis de conduire.",
+    "Conservez cette convocation et présentez-la le jour de la formation.",
+    "En cas d'empêchement, contactez-nous dans les plus brefs délais.",
   ];
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  for (const item of docsTooBring) {
-    // Green bullet
-    doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.circle(marginLeft + 4, yPos - 1.2, 1.2, "F");
-    doc.text(item, marginLeft + 10, yPos);
-    yPos += 7;
+  const practCardH = 6 + practicalItems.length * 7;
+  doc.setFillColor(cBg.r, cBg.g, cBg.b);
+  doc.roundedRect(mL, yPos, cW, practCardH, 2, 2, "F");
+
+  let pY = yPos + 5;
+  doc.setFontSize(9);
+  for (const item of practicalItems) {
+    // Checkmark-style bullet
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cSuccess.r, cSuccess.g, cSuccess.b);
+    doc.text("✓", mL + 5, pY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(cText.r, cText.g, cText.b);
+    doc.text(item, mL + 12, pY);
+    pY += 7;
   }
 
-  // ── Section 3: Informations pratiques ──
-  yPos += 4;
-  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("INFORMATIONS PRATIQUES", marginLeft + 7, yPos + 6);
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 18;
+  yPos += practCardH + 8;
 
+  // ═══════════════════════════════════════════════════════════
+  // F. CONTACT & SIGNATURE
+  // ═══════════════════════════════════════════════════════════
+
+  // Contact box
+  const contactBoxH = 14;
+  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.roundedRect(mL, yPos, cW, contactBoxH, 2, 2, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text("Contact :", mL + 6, yPos + 5.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${company.phone}  |  ${company.email}`, mL + 30, yPos + 5.5);
+  doc.setFontSize(7.5);
+  doc.setTextColor(200, 210, 225);
+  doc.text("N'hésitez pas à nous contacter pour toute question relative à votre formation.", mL + 6, yPos + 11);
+  yPos += contactBoxH + 10;
+
+  // Closing formula
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
-  const practicalLines = doc.splitTextToSize(
-    "Nous vous prions de bien vouloir vous présenter 15 minutes avant le début de la formation. En cas d'empêchement, merci de nous prévenir dans les plus brefs délais.",
-    contentWidth
+  doc.setTextColor(cText.r, cText.g, cText.b);
+  const closingLines = doc.splitTextToSize(
+    "Dans l'attente de vous accueillir, nous vous prions d'agréer, " + fullName + ", l'expression de nos salutations distinguées.",
+    cW
   ) as string[];
-  doc.text(practicalLines, marginLeft, yPos);
-  yPos += practicalLines.length * 5 + 6;
+  doc.text(closingLines, mL, yPos);
+  yPos += closingLines.length * 5 + 8;
 
-  // ── Contact support box ──
-  const contactBoxH = 16;
-  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(marginLeft, yPos, contentWidth, contactBoxH, 3, 3, "F");
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Contact :", marginLeft + 6, yPos + 6);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`${company.phone}  |  ${company.email}`, marginLeft + 28, yPos + 6);
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("N'hésitez pas à nous contacter pour toute question relative à votre formation.", marginLeft + 6, yPos + 12);
-  yPos += contactBoxH + 12;
-
-  // ── Closing & signature ──
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  doc.text("Dans l'attente de vous accueillir, nous vous prions d'agréer nos salutations distinguées.", marginLeft, yPos);
-
-  yPos += 12;
   // Stamp / signature
-  const stampAdded = addStampImage(doc, company, marginLeft, yPos, 32, 18);
-  yPos += stampAdded ? 22 : 4;
+  const stampAdded = addStampImage(doc, company, mL, yPos, 32, 18);
+  yPos += stampAdded ? 22 : 2;
 
-  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("L'équipe Formation", marginLeft, yPos);
+  doc.setFontSize(10);
+  doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.text("Le Service Formation", mL, yPos);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-  doc.text(company.name, marginLeft, yPos + 5);
+  doc.setFontSize(8.5);
+  doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+  doc.text(company.name, mL, yPos + 5);
 
-  // ── Footer ──
-  addFooter(doc);
+  // ═══════════════════════════════════════════════════════════
+  // FOOTER INSTITUTIONNEL
+  // ═══════════════════════════════════════════════════════════
+  const footerY = pageHeight - 16;
+  drawHR(footerY);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(cTextLight.r, cTextLight.g, cTextLight.b);
+  doc.text(company.name, mL, footerY + 5);
+
+  // Build footer right parts (conditional)
+  const footerRight: string[] = [];
+  if (company.siret && !company.siret.includes("[")) footerRight.push(`SIRET ${company.siret}`);
+  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") footerRight.push(`NDA ${company.nda}`);
+  if (footerRight.length > 0) {
+    doc.text(footerRight.join("  •  "), pageWidth - mR, footerY + 5, { align: "right" });
+  }
+
+  doc.setFontSize(6.5);
+  doc.setTextColor(cTextLight.r, cTextLight.g, cTextLight.b);
+  doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy")}`, pageWidth / 2, footerY + 5, { align: "center" });
 
   return doc;
 }
