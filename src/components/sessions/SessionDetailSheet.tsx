@@ -89,6 +89,7 @@ interface SessionDetailSheetProps {
 
 export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: SessionDetailSheetProps) {
   const { size, setSize, sizeClass } = useSheetSize("session");
+  const isMobile = useIsMobile();
   const { data: session, isLoading } = useSession(sessionId);
   const { data: rawInscriptions } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
