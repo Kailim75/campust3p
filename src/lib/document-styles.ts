@@ -87,14 +87,14 @@ export const DOCUMENT_LAYOUT = {
   footerHeight: 15,
   titleBandHeight: 12,
   
-  // Espacement
+  // Espacement (valeurs aérées pour lisibilité A4)
   spacing: {
-    xs: 2,
-    sm: 4,
-    md: 6,
-    lg: 8,
-    xl: 12,
-    xxl: 16,
+    xs: 3,
+    sm: 5,
+    md: 8,
+    lg: 10,
+    xl: 14,
+    xxl: 18,
   },
 } as const;
 
