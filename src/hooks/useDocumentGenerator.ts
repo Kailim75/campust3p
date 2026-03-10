@@ -13,7 +13,7 @@ import {
   type SessionInfo,
   type FactureInfo,
 } from "@/lib/pdf-generator";
-import { generateContratFormationV2 } from "@/lib/documents/generateContratFormation";
+import { generateContratFormationV2, validateContratData } from "@/lib/documents/generateContratFormation";
 import { generateConventionFormationV2 } from "@/lib/documents/generateConventionFormation";
 import { buildCompanyInfo } from "@/lib/documents/companyInfo";
 import {
@@ -106,6 +106,18 @@ export function useDocumentGenerator() {
             if (!session) {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
+            }
+            {
+              const validationErrors = validateContratData(contact, session, company);
+              const blockingErrors = validationErrors.filter(e => e.severity === "blocking");
+              if (blockingErrors.length > 0) {
+                toast.error(`Données manquantes pour le contrat : ${blockingErrors.map(e => e.message).join(", ")}`);
+                return null;
+              }
+              const warnings = validationErrors.filter(e => e.severity === "warning");
+              if (warnings.length > 0) {
+                toast.warning(`Attention : ${warnings.map(e => e.message).join(", ")}`);
+              }
             }
             doc = generateContratFormationV2(contact, session, company);
             filename = `contrat-formation-${contact.nom}-${contact.prenom}.pdf`;
