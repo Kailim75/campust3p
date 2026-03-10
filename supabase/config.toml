@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.bulk-send-documents]
 verify_jwt = false
+
+[functions.public-sign-document]
+verify_jwt = false
