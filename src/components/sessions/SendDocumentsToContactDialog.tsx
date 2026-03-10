@@ -627,7 +627,8 @@ export function SendDocumentsToContactDialog({
             if (pdfDoc) {
               try {
                 const pdfBlob = pdfDoc.output('blob');
-                const filePath = `signatures/${contact.id}/${docType}-${Date.now()}.pdf`;
+                const centreId = await getUserCentreId();
+                const filePath = `${centreId}/signatures/${contact.id}/${docType}-${Date.now()}.pdf`;
                 const { error: uploadError } = await supabase.storage
                   .from('generated-documents')
                   .upload(filePath, pdfBlob, { contentType: 'application/pdf' });
