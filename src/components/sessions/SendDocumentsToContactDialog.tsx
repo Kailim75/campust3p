@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { buildVariableData, processDocxWithVariables } from '@/lib/docx-processor';
 import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentData';
+import { getUserCentreId } from '@/utils/getCentreId';
 
 interface Contact {
   id: string;
