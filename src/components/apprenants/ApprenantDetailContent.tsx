@@ -301,16 +301,16 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
   return (
     <div className="flex flex-col h-full">
       {/* ─── COCKPIT HEADER ─── */}
-      <div className="p-5 border-b bg-muted/30 space-y-3">
+      <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
         {/* Identity row */}
-        <div className="flex items-start gap-4">
-          <Avatar className="h-14 w-14">
-            <AvatarFallback className={cn("text-lg font-bold text-primary-foreground", avatarColor)}>
+        <div className="flex items-start gap-3 sm:gap-4">
+          <Avatar className="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
+            <AvatarFallback className={cn("text-sm sm:text-lg font-bold text-primary-foreground", avatarColor)}>
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1">
-            <h2 className="text-xl font-display font-bold text-foreground truncate">
+            <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
               {contact.prenom} {contact.nom}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
