@@ -2056,127 +2056,116 @@ export function generateConvocationPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const mL = 20; // margin left
-  const mR = 20; // margin right
-  const cW = pageWidth - mL - mR; // content width
+  const mL = 20;
+  const mR = 20;
+  const cW = pageWidth - mL - mR;
 
-  // ─── Color shortcuts ───
-  const cPrimary = { r: 27, g: 62, b: 92 };     // Deep navy blue - institutional
-  const cPrimaryLight = { r: 42, g: 82, b: 115 };
-  const cAccent = { r: 0, g: 122, b: 179 };      // Bright blue accent
-  const cText = { r: 33, g: 37, b: 41 };         // Near-black text
-  const cTextMuted = { r: 108, g: 117, b: 125 };  // Muted gray
-  const cTextLight = { r: 155, g: 155, b: 155 };
-  const cBg = { r: 245, g: 247, b: 250 };        // Light background
-  const cBgCard = { r: 255, g: 255, b: 255 };
-  const cBorder = { r: 222, g: 226, b: 230 };
+  // ─── Charte graphique T3P Campus ───
+  const cPrimary = { r: 15, g: 23, b: 42 };      // --primary #0F172A
+  const cTeal = { r: 45, g: 150, b: 133 };        // --cta teal
+  const cText = { r: 11, g: 18, b: 32 };          // --foreground
+  const cTextMuted = { r: 100, g: 116, b: 139 };  // --muted-foreground
+  const cTextLight = { r: 148, g: 163, b: 184 };
+  const cBorder = { r: 226, g: 232, b: 240 };     // --border
+  const cBgSubtle = { r: 248, g: 250, b: 252 };   // --background
   const cWhite = { r: 255, g: 255, b: 255 };
-  const cSuccess = { r: 25, g: 135, b: 84 };
 
-  // ─── Helper: draw horizontal rule ───
-  const drawHR = (y: number, x1: number = mL, x2: number = pageWidth - mR) => {
+  // Helper
+  const drawHR = (y: number, x1 = mL, x2 = pageWidth - mR) => {
     doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.3);
     doc.line(x1, y, x2, y);
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // A. BANDEAU SUPÉRIEUR - En-tête institutionnel
-  // ═══════════════════════════════════════════════════════════
-  const headerH = 32;
-  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
-  doc.rect(0, 0, pageWidth, headerH, "F");
+  // ═══════════════════════════════════════════════
+  // A. EN-TÊTE — sobre, aligné gauche
+  // ═══════════════════════════════════════════════
+  let yPos = 16;
 
-  // Thin accent line under header
-  doc.setFillColor(cAccent.r, cAccent.g, cAccent.b);
-  doc.rect(0, headerH, pageWidth, 1.5, "F");
+  // Logo
+  let textStartX = mL;
+  const logoAdded = addLogoImage(doc, company, mL, 10, 28, 16);
+  if (logoAdded) textStartX = mL + 32;
 
-  // Logo (left side)
-  let logoEndX = mL;
-  const logoAdded = addLogoImage(doc, company, mL, 5, 30, 18);
-  if (logoAdded) {
-    logoEndX = mL + 34;
+  // Nom organisme
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.text(company.name, textStartX, yPos);
+
+  // Adresse + contact
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+  doc.text(company.address, textStartX, yPos + 5);
+
+  const contactLine: string[] = [];
+  if (company.phone) contactLine.push(company.phone);
+  if (company.email) contactLine.push(company.email);
+  if (contactLine.length > 0) {
+    doc.text(contactLine.join("  •  "), textStartX, yPos + 9.5);
   }
 
-  // Company name
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text(company.name, logoEndX, 14);
-
-  // Address & contact on second line
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(200, 210, 225);
-  doc.text(`${company.address}  |  ${company.phone}  |  ${company.email}`, logoEndX, 21);
-
-  // Administrative references (right side, conditional)
+  // Références admin à droite (conditionnelles)
   const adminParts: string[] = [];
   if (company.siret && !company.siret.includes("[")) adminParts.push(`SIRET ${company.siret}`);
   if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") adminParts.push(`NDA ${company.nda}`);
-  if (company.qualiopi_numero) adminParts.push(`Qualiopi ${company.qualiopi_numero}`);
 
   if (adminParts.length > 0) {
-    doc.setFontSize(6.5);
-    doc.setTextColor(170, 185, 200);
-    doc.text(adminParts.join("  •  "), pageWidth - mR, 28, { align: "right" });
+    doc.setFontSize(7);
+    doc.setTextColor(cTextLight.r, cTextLight.g, cTextLight.b);
+    adminParts.forEach((part, i) => {
+      doc.text(part, pageWidth - mR, yPos + i * 4, { align: "right" });
+    });
   }
 
-  let yPos = headerH + 10;
+  yPos = 34;
+  drawHR(yPos);
+  yPos += 10;
 
-  // ═══════════════════════════════════════════════════════════
-  // B. TITRE PRINCIPAL
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════
+  // B. TITRE
+  // ═══════════════════════════════════════════════
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
-  doc.text("CONVOCATION À LA FORMATION", pageWidth / 2, yPos, { align: "center" });
+  doc.text("CONVOCATION À LA FORMATION", mL, yPos);
+
+  yPos += 5;
+
+  // Ligne accent teal sous le titre
+  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.rect(mL, yPos, 50, 1.2, "F");
 
   yPos += 6;
 
-  // Ref session + date émission
+  // Réf + date
   const metaParts: string[] = [];
   if (session.numero_session) metaParts.push(`Réf. ${session.numero_session}`);
   metaParts.push(`Émise le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
-  doc.text(metaParts.join("  —  "), pageWidth / 2, yPos, { align: "center" });
+  doc.text(metaParts.join("  —  "), mL, yPos);
 
-  yPos += 5;
-  drawHR(yPos);
-  yPos += 8;
+  yPos += 10;
 
-  // ═══════════════════════════════════════════════════════════
-  // C. BLOC DESTINATAIRE (cartouche gauche)
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════
+  // C. DESTINATAIRE
+  // ═══════════════════════════════════════════════
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
 
-  // Objet line
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(cText.r, cText.g, cText.b);
-  doc.text("Objet :", mL, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(" Convocation à votre session de formation", mL + doc.getTextWidth("Objet : "), yPos);
-
-  yPos += 8;
-
-  // Destinataire cartouche
+  // Cartouche destinataire (droite)
   const destBoxX = pageWidth - mR - 75;
   const destLines: string[] = [fullName];
   if (contact.rue) destLines.push(contact.rue);
   if (contact.code_postal || contact.ville) destLines.push(`${contact.code_postal || ""} ${contact.ville || ""}`.trim());
   if (contact.email) destLines.push(contact.email);
-  if (contact.telephone) destLines.push(contact.telephone);
 
-  const destBoxH = 8 + destLines.length * 5;
-  doc.setFillColor(cBg.r, cBg.g, cBg.b);
-  doc.roundedRect(destBoxX - 4, yPos - 5, 79, destBoxH, 2, 2, "F");
-  doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(destBoxX - 4, yPos - 5, 79, destBoxH, 2, 2, "S");
+  const destBoxH = 6 + destLines.length * 5;
+  doc.setFillColor(cBgSubtle.r, cBgSubtle.g, cBgSubtle.b);
+  doc.roundedRect(destBoxX - 4, yPos - 4, 79, destBoxH, 1.5, 1.5, "F");
 
   let destY = yPos;
   doc.setFont("helvetica", "bold");
@@ -2184,46 +2173,45 @@ export function generateConvocationPDF(
   doc.setTextColor(cText.r, cText.g, cText.b);
   doc.text(destLines[0], destBoxX, destY);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
   for (let i = 1; i < destLines.length; i++) {
     destY += 5;
     doc.text(destLines[i], destBoxX, destY);
   }
 
-  // Intro text (left side, next to cartouche)
-  const introY = yPos;
-  doc.setFontSize(10);
+  // Texte intro (gauche)
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cText.r, cText.g, cText.b);
-  doc.text(`${fullName},`, mL, introY);
+  doc.text(`${fullName},`, mL, yPos);
 
-  const introMaxW = destBoxX - mL - 10;
-  const introText = "Nous avons le plaisir de vous confirmer votre inscription à la formation ci-dessous. Merci de prendre connaissance des informations pratiques suivantes.";
+  const introMaxW = destBoxX - mL - 12;
+  const introText = "Nous avons le plaisir de vous confirmer votre inscription à la formation ci-dessous. Veuillez prendre connaissance des informations pratiques.";
   const introLines = doc.splitTextToSize(introText, introMaxW) as string[];
-  doc.setFontSize(9.5);
-  doc.text(introLines, mL, introY + 7);
+  doc.text(introLines, mL, yPos + 6);
 
-  yPos = Math.max(destY + 8, introY + 7 + introLines.length * 5) + 6;
+  yPos = Math.max(destY + 6, yPos + 6 + introLines.length * 4.5) + 8;
 
-  // ═══════════════════════════════════════════════════════════
-  // D. BLOC SESSION DE FORMATION — Cœur visuel
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════
+  // D. DÉTAILS DE LA FORMATION — bloc principal
+  // ═══════════════════════════════════════════════
 
-  // Section header
-  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
-  doc.roundedRect(mL, yPos, cW, 10, 2, 2, "F");
+  // Label de section
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text("DÉTAILS DE LA FORMATION", mL + 6, yPos + 7);
-  yPos += 14;
+  doc.setFontSize(9);
+  doc.setTextColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.text("DÉTAILS DE LA FORMATION", mL, yPos);
+  yPos += 2;
+  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.rect(mL, yPos, cW, 0.5, "F");
+  yPos += 6;
 
-  // Build session detail rows (conditional)
-  interface ConvRow { label: string; value: string; bold?: boolean }
+  // Build rows
+  interface ConvRow { label: string; value: string; accent?: boolean }
   const sessionRows: ConvRow[] = [];
 
-  sessionRows.push({ label: "Intitulé", value: session.nom, bold: true });
+  sessionRows.push({ label: "Intitulé", value: session.nom, accent: true });
 
   if (session.formation_type && session.formation_type !== session.nom) {
     sessionRows.push({ label: "Type", value: session.formation_type });
@@ -2236,39 +2224,34 @@ export function generateConvocationPDF(
 
   const hours = formatSessionHours(session);
   if (hours) sessionRows.push({ label: "Horaires", value: hours });
-
   if (session.duree_heures) sessionRows.push({ label: "Durée", value: `${session.duree_heures} heures` });
 
   const address = formatFullAddress(session);
   if (address) sessionRows.push({ label: "Lieu", value: address });
-
   if (session.formateur) sessionRows.push({ label: "Formateur", value: session.formateur });
 
-  // Render session rows in a clean card
-  const labelW = 30;
-  const valX = mL + labelW + 4;
-  const maxValW = cW - labelW - 8;
-  const rowH = 6.5;
+  // Render rows
+  const labelW = 28;
+  const valX = mL + labelW + 2;
+  const maxValW = cW - labelW - 4;
 
-  // Pre-calculate heights
   doc.setFontSize(9.5);
-  const rendered: { label: string; lines: string[]; h: number; bold?: boolean }[] = [];
-  let cardH = 8; // top + bottom padding
+  const rendered: { label: string; lines: string[]; h: number; accent?: boolean }[] = [];
+  let totalH = 6;
   for (const r of sessionRows) {
     const lines = doc.splitTextToSize(r.value, maxValW) as string[];
-    const h = Math.max(lines.length * 5, rowH);
-    rendered.push({ label: r.label, lines, h, bold: r.bold });
-    cardH += h + 3;
+    const h = Math.max(lines.length * 4.8, 6);
+    rendered.push({ label: r.label, lines, h, accent: r.accent });
+    totalH += h + 3;
   }
-  cardH -= 3; // remove last gap
 
-  // Card background
-  doc.setFillColor(cBg.r, cBg.g, cBg.b);
-  doc.roundedRect(mL, yPos, cW, cardH, 2, 2, "F");
+  // Card fond
+  doc.setFillColor(cBgSubtle.r, cBgSubtle.g, cBgSubtle.b);
+  doc.roundedRect(mL, yPos, cW, totalH, 1.5, 1.5, "F");
 
-  // Left accent bar
-  doc.setFillColor(cAccent.r, cAccent.g, cAccent.b);
-  doc.roundedRect(mL, yPos, 2.5, cardH, 1, 1, "F");
+  // Accent bar gauche
+  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.rect(mL, yPos, 2, totalH, "F");
 
   let rY = yPos + 5;
   for (let i = 0; i < rendered.length; i++) {
@@ -2276,42 +2259,39 @@ export function generateConvocationPDF(
 
     // Label
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
     doc.text(row.label, mL + 6, rY);
 
     // Value
-    doc.setFont("helvetica", row.bold ? "bold" : "normal");
-    doc.setFontSize(row.bold ? 10.5 : 9.5);
-    doc.setTextColor(cText.r, cText.g, cText.b);
+    doc.setFont("helvetica", row.accent ? "bold" : "normal");
+    doc.setFontSize(row.accent ? 10 : 9.5);
+    doc.setTextColor(row.accent ? cPrimary.r : cText.r, row.accent ? cPrimary.g : cText.g, row.accent ? cPrimary.b : cText.b);
     doc.text(row.lines, valX, rY);
 
     rY += row.h + 3;
 
-    // Divider
     if (i < rendered.length - 1) {
       doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
-      doc.setLineWidth(0.2);
+      doc.setLineWidth(0.15);
       doc.line(mL + 5, rY - 1.5, mL + cW - 5, rY - 1.5);
     }
   }
 
-  yPos += cardH + 8;
+  yPos += totalH + 8;
 
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════
   // E. CONSIGNES PRATIQUES
-  // ═══════════════════════════════════════════════════════════
-
-  // Section header
-  doc.setFillColor(cSuccess.r, cSuccess.g, cSuccess.b);
-  doc.roundedRect(mL, yPos, cW, 10, 2, 2, "F");
+  // ═══════════════════════════════════════════════
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text("CONSIGNES & DOCUMENTS À APPORTER", mL + 6, yPos + 7);
-  yPos += 14;
+  doc.setFontSize(9);
+  doc.setTextColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.text("INFORMATIONS PRATIQUES", mL, yPos);
+  yPos += 2;
+  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.rect(mL, yPos, cW, 0.5, "F");
+  yPos += 6;
 
-  // Practical info card
   const practicalItems = [
     "Veuillez vous présenter 15 minutes avant le début de la formation.",
     "Munissez-vous d'une pièce d'identité en cours de validité.",
@@ -2320,91 +2300,71 @@ export function generateConvocationPDF(
     "En cas d'empêchement, contactez-nous dans les plus brefs délais.",
   ];
 
-  const practCardH = 6 + practicalItems.length * 7;
-  doc.setFillColor(cBg.r, cBg.g, cBg.b);
-  doc.roundedRect(mL, yPos, cW, practCardH, 2, 2, "F");
-
-  let pY = yPos + 5;
+  let pY = yPos;
   doc.setFontSize(9);
   for (const item of practicalItems) {
-    // Checkmark-style bullet
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(cSuccess.r, cSuccess.g, cSuccess.b);
-    doc.text("✓", mL + 5, pY);
-
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(cTeal.r, cTeal.g, cTeal.b);
+    doc.text("•", mL + 2, pY);
     doc.setTextColor(cText.r, cText.g, cText.b);
-    doc.text(item, mL + 12, pY);
-    pY += 7;
+    doc.text(item, mL + 8, pY);
+    pY += 6;
   }
 
-  yPos += practCardH + 8;
+  yPos = pY + 8;
 
-  // ═══════════════════════════════════════════════════════════
-  // F. CONTACT & SIGNATURE
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════
+  // F. CONTACT + SIGNATURE
+  // ═══════════════════════════════════════════════
 
-  // Contact box
-  const contactBoxH = 14;
-  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
-  doc.roundedRect(mL, yPos, cW, contactBoxH, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text("Contact :", mL + 6, yPos + 5.5);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${company.phone}  |  ${company.email}`, mL + 30, yPos + 5.5);
-  doc.setFontSize(7.5);
-  doc.setTextColor(200, 210, 225);
-  doc.text("N'hésitez pas à nous contacter pour toute question relative à votre formation.", mL + 6, yPos + 11);
-  yPos += contactBoxH + 10;
-
-  // Closing formula
-  doc.setFontSize(9.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(cText.r, cText.g, cText.b);
-  const closingLines = doc.splitTextToSize(
-    "Dans l'attente de vous accueillir, nous vous prions d'agréer, " + fullName + ", l'expression de nos salutations distinguées.",
-    cW
-  ) as string[];
-  doc.text(closingLines, mL, yPos);
-  yPos += closingLines.length * 5 + 8;
-
-  // Stamp / signature
-  const stampAdded = addStampImage(doc, company, mL, yPos, 32, 18);
-  yPos += stampAdded ? 22 : 2;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
-  doc.text("Le Service Formation", mL, yPos);
+  // Contact discret
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
-  doc.text(company.name, mL, yPos + 5);
+  doc.text(`Contact : ${company.phone}  •  ${company.email}`, mL, yPos);
+  yPos += 10;
 
-  // ═══════════════════════════════════════════════════════════
-  // FOOTER INSTITUTIONNEL
-  // ═══════════════════════════════════════════════════════════
-  const footerY = pageHeight - 16;
+  // Formule de politesse
+  doc.setFontSize(9.5);
+  doc.setTextColor(cText.r, cText.g, cText.b);
+  const closingLines = doc.splitTextToSize(
+    `Dans l'attente de vous accueillir, nous vous prions d'agréer, ${fullName}, l'expression de nos salutations distinguées.`,
+    cW
+  ) as string[];
+  doc.text(closingLines, mL, yPos);
+  yPos += closingLines.length * 4.5 + 8;
+
+  // Signature / cachet
+  const stampAdded = addStampImage(doc, company, mL, yPos, 30, 16);
+  yPos += stampAdded ? 20 : 0;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(cPrimary.r, cPrimary.g, cPrimary.b);
+  doc.text("Le Service Formation", mL, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
+  doc.text(company.name, mL, yPos + 4.5);
+
+  // ═══════════════════════════════════════════════
+  // FOOTER
+  // ═══════════════════════════════════════════════
+  const footerY = pageHeight - 14;
   drawHR(footerY);
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(cTextLight.r, cTextLight.g, cTextLight.b);
   doc.text(company.name, mL, footerY + 5);
+  doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy")}`, pageWidth / 2, footerY + 5, { align: "center" });
 
-  // Build footer right parts (conditional)
   const footerRight: string[] = [];
   if (company.siret && !company.siret.includes("[")) footerRight.push(`SIRET ${company.siret}`);
   if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") footerRight.push(`NDA ${company.nda}`);
   if (footerRight.length > 0) {
     doc.text(footerRight.join("  •  "), pageWidth - mR, footerY + 5, { align: "right" });
   }
-
-  doc.setFontSize(6.5);
-  doc.setTextColor(cTextLight.r, cTextLight.g, cTextLight.b);
-  doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy")}`, pageWidth / 2, footerY + 5, { align: "center" });
 
   return doc;
 }
