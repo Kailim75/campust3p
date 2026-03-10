@@ -127,6 +127,7 @@ serve(async (req) => {
             email: centreFormation.email || "",
             siret: centreFormation.siret || "",
             nda: centreFormation.nda || "",
+            qualiopi_numero: centreFormation.qualiopi_numero || undefined,
           };
         }
       } catch (e) {
