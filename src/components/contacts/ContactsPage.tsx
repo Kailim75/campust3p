@@ -15,7 +15,7 @@ export function ContactsPage() {
         onAddClick={() => setFormOpen(true)}
       />
 
-      <main className="p-6 animate-fade-in">
+      <main className="p-3 sm:p-6 animate-fade-in">
         <ContactsTable />
       </main>
 
