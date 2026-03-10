@@ -201,7 +201,7 @@ function writeArticle(ctx: ContratContext, title: string): void {
 }
 
 function writeParagraph(ctx: ContratContext, text: string, indent: number = 0): void {
-  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFontSize(9);
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(ctx.doc, C.warmGray700);
   const lines = ctx.doc.splitTextToSize(text, ctx.cW - indent) as string[];
@@ -210,6 +210,7 @@ function writeParagraph(ctx: ContratContext, text: string, indent: number = 0): 
     ctx.doc.text(line, ctx.mL + indent, ctx.yPos);
     ctx.yPos += ctx.lineH;
   }
+  ctx.yPos += 2; // inter-paragraph breathing
   setColor(ctx.doc, C.warmGray800);
 }
 
