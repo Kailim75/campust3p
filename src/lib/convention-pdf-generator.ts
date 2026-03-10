@@ -368,13 +368,17 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
   // --- ENTRE LES SOUSSIGNÉS ---
   yPos = addSectionTitle(doc, "ENTRE LES SOUSSIGNÉS", yPos);
 
-  // Organisme
-  yPos = addInfoBox(doc, "L'organisme de formation :", [
+  // Organisme — skip NDA if empty
+  const orgInfoLines = [
     `${ORGANISME.raisonSociale} (${ORGANISME.nom})`,
     `Adresse: ${ORGANISME.adresse}, ${ORGANISME.codePostal} ${ORGANISME.ville}`,
-    `SIRET: ${ORGANISME.siret} | NDA: ${ORGANISME.nda}`,
+    `SIRET: ${ORGANISME.siret}`,
     `Représenté par: ${ORGANISME.responsablePedagogique.nom}, ${ORGANISME.responsablePedagogique.fonction}`,
-  ], yPos);
+  ];
+  if (ORGANISME.nda) {
+    orgInfoLines.splice(3, 0, `NDA: ${ORGANISME.nda}`);
+  }
+  yPos = addInfoBox(doc, "L'organisme de formation :", orgInfoLines, yPos);
 
   // Bénéficiaire
   yPos = addInfoBox(doc, "Le bénéficiaire :", [
