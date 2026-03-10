@@ -221,6 +221,9 @@ serve(async (req) => {
           heure_debut_aprem: sessionInfo.heure_debut_aprem || undefined,
           heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
           formateur: sessionInfo.formateur || undefined,
+          adresse_rue: sessionInfo.adresse_rue || undefined,
+          adresse_code_postal: sessionInfo.adresse_code_postal || undefined,
+          adresse_ville: sessionInfo.adresse_ville || undefined,
         };
         
         let validatedAttachments: ValidatedAttachment[] = [];
