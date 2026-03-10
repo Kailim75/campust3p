@@ -281,7 +281,7 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
     doc.text(title, x, y);
-    y += 6;
+    y += 7;
   }
   
   doc.setFont("helvetica", "normal");
@@ -296,27 +296,27 @@ function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number,
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
   
   if (contact.rue) {
-    y += 5;
+    y += 6;
     doc.text(contact.rue, x, y);
   }
   
   if (contact.code_postal || contact.ville) {
-    y += 5;
+    y += 6;
     doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), x, y);
   }
   
   if (contact.email) {
-    y += 5;
+    y += 6;
     doc.text(contact.email, x, y);
   }
   
   if (contact.telephone) {
-    y += 5;
+    y += 6;
     doc.text(contact.telephone, x, y);
   }
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  return y + 10;
+  return y + 12;
 }
 
 // Fonction pour dessiner un titre de document avec style
