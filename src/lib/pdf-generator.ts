@@ -2160,8 +2160,7 @@ export function generateConvocationPDF(
   doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
   doc.text(metaParts.join("  —  "), pageWidth / 2, yPos, { align: "center" });
 
-  yPos += 10;
-
+  yPos += 8;
   // ═══════════════════════════════════════════════════════
   // C. DESTINATAIRE + INTRO
   // ═══════════════════════════════════════════════════════
