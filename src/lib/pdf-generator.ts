@@ -2199,13 +2199,13 @@ export function generateConvocationPDF(
 
   // ── Section 2: Documents à apporter ──
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("DOCUMENTS À APPORTER", marginLeft + 7, yPos + 4);
+  doc.text("DOCUMENTS À APPORTER", marginLeft + 7, yPos + 6);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 14;
+  yPos += 18;
 
   const docsTooBring = [
     "Pièce d'identité en cours de validité",
