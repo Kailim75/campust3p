@@ -2060,16 +2060,17 @@ export function generateConvocationPDF(
   const mR = 18;
   const cW = pageWidth - mL - mR;
 
-  // ─── Charte graphique T3P Campus ───
-  const cPrimary = { r: 15, g: 23, b: 42 };       // #0F172A navy
-  const cPrimaryMid = { r: 30, g: 41, b: 59 };    // #1E293B
-  const cTeal = { r: 45, g: 150, b: 133 };         // CTA teal
-  const cTealLight = { r: 230, g: 247, b: 244 };   // Teal très léger
-  const cText = { r: 11, g: 18, b: 32 };
-  const cTextMuted = { r: 100, g: 116, b: 139 };
-  const cTextLight = { r: 148, g: 163, b: 184 };
-  const cBorder = { r: 226, g: 232, b: 240 };
-  const cBgSubtle = { r: 248, g: 250, b: 252 };
+  // ─── Charte graphique ÉCOLE T3P (ecolet3p.fr) ───
+  const cPrimary = { r: 30, g: 70, b: 45 };        // Vert forêt foncé — couleur dominante du site
+  const cPrimaryMid = { r: 40, g: 85, b: 55 };     // Vert forêt moyen
+  const cPrimaryLight = { r: 235, g: 245, b: 238 }; // Vert très léger pour fonds
+  const cOrange = { r: 234, g: 118, b: 30 };        // Orange CTA du site (#EA761E)
+  const cOrangeLight = { r: 254, g: 243, b: 230 };  // Orange très léger
+  const cText = { r: 33, g: 37, b: 41 };
+  const cTextMuted = { r: 100, g: 116, b: 125 };
+  const cTextLight = { r: 148, g: 163, b: 170 };
+  const cBorder = { r: 220, g: 228, b: 222 };
+  const cBgSubtle = { r: 247, g: 250, b: 248 };
   const cWhite = { r: 255, g: 255, b: 255 };
 
   // ═══════════════════════════════════════════════════════
