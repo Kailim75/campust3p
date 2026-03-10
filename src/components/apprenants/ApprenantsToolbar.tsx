@@ -90,7 +90,7 @@ export function ApprenantsToolbar({
       </div>
 
       {/* Activity filter row */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap overflow-x-auto scrollbar-hide">
         {([
           { value: "actifs" as const, label: "Actifs", count: activityCounts.actifs },
           { value: "tous" as const, label: "Tous", count: activityCounts.tous },

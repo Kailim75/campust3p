@@ -693,11 +693,11 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-background pb-2 sm:pb-0 sm:static border-t sm:border-t-0 mt-4 sm:mt-0 -mx-6 px-6 sm:mx-0 sm:px-0">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-10 sm:h-9">
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="h-10 sm:h-9">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Mettre à jour" : "Créer la session"}
               </Button>

@@ -83,14 +83,16 @@ export function SessionDetailHeader({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {!session.archived && (
-            <Button size="sm" onClick={() => onEdit(session)}>
-              <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Modifier
+            <Button size="sm" onClick={() => onEdit(session)} className="h-8 text-xs sm:text-sm">
+              <Edit className="h-3.5 w-3.5 mr-1 sm:mr-1.5" />
+              <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
-          <SheetSizeSelector size={size} onSizeChange={onSizeChange} />
+          <div className="hidden sm:block">
+            <SheetSizeSelector size={size} onSizeChange={onSizeChange} />
+          </div>
         </div>
       </div>
     </SheetHeader>
