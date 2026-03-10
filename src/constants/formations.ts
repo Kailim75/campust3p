@@ -67,12 +67,12 @@ export interface ModuleFormation {
   evaluation?: string[];
 }
 
-// Programme VTC conforme 2024 - Durée totale : 34 heures
-// Répartition adaptée au format 34h du centre de formation
+// Programme VTC conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
+// Nomenclature officielle des épreuves : A, B, C, D, E + F(V), G(V)
 export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation du transport public particulier de personnes",
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
     dureeHeures: 6,
     contenu: [
       "Cadre juridique national et européen du transport de personnes",
@@ -81,17 +81,22 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
       "Obligations du conducteur VTC : registre de disponibilité, documents obligatoires",
       "Relations avec les plateformes de réservation et centrales",
       "Sanctions administratives et pénales",
-      "Évolutions réglementaires et jurisprudence"
+      "Évolutions réglementaires et jurisprudence",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste (outrage sexiste, agression sexuelle, harcèlement sexuel, viol)",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
     ],
     objectifs: [
       "Maîtriser le cadre réglementaire du transport VTC",
       "Identifier les obligations légales du conducteur",
-      "Connaître les sanctions encourues en cas d'infraction"
+      "Connaître les sanctions encourues en cas d'infraction",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise",
+    titre: "B — Gestion",
     dureeHeures: 4,
     contenu: [
       "Choix du statut juridique : auto-entrepreneur, EURL, SASU",
@@ -110,7 +115,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 3,
-    titre: "Sécurité routière",
+    titre: "C — Sécurité routière",
     dureeHeures: 6,
     contenu: [
       "Réglementation du Code de la route applicable au transport de personnes",
@@ -120,7 +125,8 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
       "Gestion de la fatigue et temps de conduite",
       "Équipements de sécurité et entretien du véhicule",
       "Conduite par conditions difficiles (pluie, neige, nuit)",
-      "Gestion des situations d'urgence et accidents"
+      "Gestion des situations d'urgence et accidents",
+      "Mécanisme du permis à points"
     ],
     objectifs: [
       "Adopter une conduite sécuritaire et responsable",
@@ -130,7 +136,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 4,
-    titre: "Français (compréhension et expression)",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 6,
     contenu: [
       "Accueil et présentation professionnelle",
@@ -149,7 +155,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 5,
-    titre: "Anglais (niveau B1 du CECRL)",
+    titre: "E — Anglais",
     dureeHeures: 6,
     contenu: [
       "Accueil et salutations en anglais",
@@ -168,44 +174,43 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 6,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
+    titre: "F(V) — Développement commercial et gestion propre à l'activité de VTC",
+    dureeHeures: 4,
     contenu: [
-      "Cadre légal : loi du 27 mai 2008 et Code pénal",
-      "Les 27 critères de discrimination prohibés",
-      "Sanctions pénales et administratives",
-      "Études de cas concrets dans le transport de personnes",
-      "Refus de prise en charge : cas légitimes et illégitimes",
-      "Obligations spécifiques du conducteur professionnel",
-      "Signalement et témoignage"
+      "Stratégie de développement commercial pour un conducteur VTC",
+      "Positionnement et différenciation sur le marché",
+      "Gestion de la relation client et fidélisation",
+      "Utilisation des plateformes de réservation et outils numériques",
+      "Construction d'une offre de services (gamme de véhicules, prestations)",
+      "Communication professionnelle et e-réputation",
+      "Partenariats et développement de réseau"
     ],
     objectifs: [
-      "Connaître le cadre légal de la non-discrimination",
-      "Identifier les comportements discriminatoires",
-      "Adopter une attitude professionnelle égalitaire"
+      "Élaborer une stratégie commerciale adaptée",
+      "Maîtriser les outils de développement d'activité",
+      "Fidéliser une clientèle haut de gamme"
     ]
   },
   {
     numero: 7,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
+    titre: "G(V) — Réglementation nationale spécifique de l'activité de VTC",
+    dureeHeures: 2,
     contenu: [
-      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
-      "Signaux d'alerte et situations à risque",
-      "Obligations légales de signalement",
-      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
-      "Procédures de signalement et protection des victimes",
-      "Rôle de vigilance du conducteur professionnel",
-      "Responsabilités pénales et civiles"
+      "Conditions d'exercice spécifiques à l'activité VTC",
+      "Carte professionnelle VTC : obtention, renouvellement, retrait",
+      "Obligations en matière de véhicule (ancienneté, puissance, dimensions)",
+      "Réglementation sur la prise en charge et la dépose",
+      "Interdiction de la maraude et du stationnement sur la voie publique",
+      "Tarification libre et obligations de transparence",
+      "Articulation avec les autres modes de transport public particulier"
     ],
     objectifs: [
-      "Reconnaître les situations de danger",
-      "Connaître ses obligations de signalement",
-      "Savoir réagir face à ces situations"
+      "Maîtriser le cadre réglementaire spécifique VTC",
+      "Connaître les obligations propres au conducteur VTC",
+      "Distinguer les droits et limites de l'activité VTC"
     ]
   }
 ];
-
 // Programme TAXI National conforme 2024 - Durée totale : 34 heures
 // (Tronc commun sans module territorial spécifique)
 export const PROGRAMME_TAXI: ModuleFormation[] = [
