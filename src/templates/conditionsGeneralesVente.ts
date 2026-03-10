@@ -48,13 +48,43 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
         `${ORGANISME.nom} propose des formations professionnelles dans le domaine du transport public particulier de personnes (T3P), notamment :`,
         "• Formation VTC (Voiture de Transport avec Chauffeur)",
         "• Formation TAXI",
-        "• Formation VMDTR (Véhicule Motorisé à Deux ou Trois Roues)",
-        "• Stages de récupération de points"
+        "• Formation VMDTR (Véhicule Motorisé à Deux ou Trois Roues)"
       ]
     },
     {
       numero: 3,
       titre: "INSCRIPTION",
+      sous_articles: [
+        {
+          numero: "3.1",
+          titre: "Modalités d'inscription",
+          contenu: [
+            "L'inscription devient définitive après :",
+            "1. Réception du dossier d'inscription complet",
+            "2. Vérification des prérequis réglementaires",
+            "3. Signature du contrat de formation",
+            "4. Expiration du délai de rétractation de 10 jours"
+          ]
+        },
+        {
+          numero: "3.2",
+          titre: "Dossier d'inscription",
+          contenu: [
+            "Le dossier complet comprend :",
+            ...ORGANISME.piecesInscription.map(p => `• ${p}`)
+          ]
+        },
+        {
+          numero: "3.3",
+          titre: "Délai d'inscription",
+          contenu: [
+            "Les inscriptions sont acceptées jusqu'à 3 jours ouvrés avant le début de la formation, sous réserve de places disponibles.",
+            "",
+            "Effectif maximum : 12 stagiaires par session."
+          ]
+        }
+      ]
+    },
       sous_articles: [
         {
           numero: "3.1",
