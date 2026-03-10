@@ -1915,7 +1915,7 @@ export function generateContratFormationPDF(
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   yPos += priceBoxH + 3;
 
-  writeParagraph("Le paiement s'effectue à la signature du présent contrat ou selon l'échéancier convenu entre les parties.");
+  writeParagraph("Conformément aux articles L.6353-5 et L.6353-6 du Code du travail, aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte maximum de 30 % du prix convenu peut être versé. Le solde donne lieu à échelonnement des paiements au fur et à mesure du déroulement de l'action de formation.");
 
   // Article 7 - Rétractation (mise en évidence)
   writeArticleTitle("Article 7 — Délai de rétractation (Art. L.6353-5)");
