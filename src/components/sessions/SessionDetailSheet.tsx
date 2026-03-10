@@ -298,11 +298,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     toast.success("Liste exportée");
   };
 
-  return (
-    <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
-          {isLoading ? (
+  const sheetContent = (
+    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] p-3" : "")}>
+      {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
               <Skeleton className="h-20 w-full" />
