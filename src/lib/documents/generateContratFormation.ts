@@ -325,8 +325,8 @@ export function generateContratFormationV2(
     mL: 20,
     mR: 20,
     cW: doc.internal.pageSize.getWidth() - 40,
-    bottomMargin: 28,
-    lineH: 4.5,
+    bottomMargin: 32,
+    lineH: 5.2,
     pageNum: 1,
     yPos: 0,
   };
