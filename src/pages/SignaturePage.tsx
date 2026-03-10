@@ -147,34 +147,25 @@ export default function SignaturePage() {
     setSigning(true);
 
     try {
-      const fileName = `${sigRequest.id}_${Date.now()}.png`;
       const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, "");
-      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-      const { error: uploadError } = await supabase.storage
-        .from("signatures")
-        .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
+      // Use Edge Function to handle upload + update (bypasses storage RLS for public page)
+      const { data: result, error: fnError } = await supabase.functions.invoke("public-sign-document", {
+        body: {
+          signatureId: sigRequest.id,
+          signatureDataBase64: base64Data,
+          userAgent: navigator.userAgent,
+        },
+      });
 
-      if (uploadError) throw uploadError;
-
-      // Store the file path (not a public URL since the bucket is private)
-      const signaturePath = fileName;
-
-      // Use Security Definer RPC to update signature
-      const { data: result, error: rpcError } = await (supabase as any)
-        .rpc("sign_document_public", {
-          p_signature_id: sigRequest.id,
-          p_signature_url: signaturePath,
-          p_user_agent: navigator.userAgent,
-        });
-
-      if (rpcError) throw rpcError;
+      if (fnError) throw fnError;
       if (result && !result.success) throw new Error(result.error);
 
       setCompleted("signed");
       loadSignatureRequest();
       toast.success("Document signé avec succès !");
-    } catch {
+    } catch (err: any) {
+      console.error("Signing error:", err);
       toast.error("Erreur lors de la signature. Veuillez réessayer.");
     } finally {
       setSigning(false);
