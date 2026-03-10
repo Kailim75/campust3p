@@ -12,31 +12,31 @@
  * Ces valeurs sont remplacées par les données configurées dans Paramètres > Centre.
  */
 export const ORGANISME = {
-  // Ces valeurs sont des placeholders - les vraies données proviennent de la base de données
-  nom: "[Nom configuré dans Paramètres]",
-  raisonSociale: "[Raison sociale configurée dans Paramètres]",
-  adresse: "[Adresse configurée dans Paramètres]",
-  codePostal: "",
-  ville: "",
-  telephone: "[Téléphone configuré dans Paramètres]",
-  email: "[Email configuré dans Paramètres]",
-  siret: "[SIRET configuré dans Paramètres]",
-  nda: "[NDA configuré dans Paramètres]",
-  numeroRS: "[RS configuré dans Paramètres]",
-  agreementVTCTAXI: "[Agrément configuré dans Paramètres]",
-  agreementVMDTR: "[Agrément configuré dans Paramètres]",
+  // Données ECOLE T3P par défaut — remplacées par les données du centre en DB si configurées
+  nom: "ECOLE T3P",
+  raisonSociale: "ECOLE T3P",
+  adresse: "3 rue Corneille",
+  codePostal: "92120",
+  ville: "Montrouge",
+  telephone: "01 88 75 05 55",
+  email: "montrouge@ecolet3p.fr",
+  siret: "94856480200023",
+  nda: "", // Pas de NDA actuellement — ne pas afficher
+  numeroRS: "",
+  agreementVTCTAXI: "",
+  agreementVMDTR: "",
   referentHandicap: {
-    nom: "[Configuré dans Paramètres]",
-    telephone: "[Configuré dans Paramètres]",
-    email: "[Configuré dans Paramètres]"
+    nom: "ECOLE T3P",
+    telephone: "01 88 75 05 55",
+    email: "montrouge@ecolet3p.fr"
   },
   responsablePedagogique: {
-    nom: "[Configuré dans Paramètres]",
-    fonction: "Directeur pédagogique"
+    nom: "La Direction",
+    fonction: "Direction pédagogique"
   },
   assurance: {
-    nom: "[Configuré dans Paramètres]",
-    numeroContrat: "[Configuré dans Paramètres]"
+    nom: "",
+    numeroContrat: ""
   },
   mediateur: {
     nom: "MEDICYS",
@@ -47,10 +47,18 @@ export const ORGANISME = {
     web: "https://www.medicys.fr"
   },
   rib: {
-    banque: "[Configuré dans Paramètres]",
-    iban: "[Configuré dans Paramètres]",
-    bic: "[Configuré dans Paramètres]"
-  }
+    banque: "",
+    iban: "",
+    bic: ""
+  },
+  // Pièces d'inscription à fournir (liste canonique)
+  piecesInscription: [
+    "Pièce d'identité",
+    "Permis de conduire",
+    "Justificatif de domicile de moins de 3 mois",
+    "Photo d'identité",
+    "Signature sur fond blanc"
+  ],
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -882,26 +890,47 @@ export const TARIFS = {
   VTC: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   TAXI: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   "TAXI-75": {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   VMDTR: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   RECUPERATION_POINTS: {
     standard: 250
   }
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════
+// FORMULES DE FORMATION (offre réelle)
+// ═══════════════════════════════════════════════════════════════════
+
+export const FORMULES = {
+  soiree: {
+    label: "Formule Soir",
+    dureeHeures: 33,
+    conduiteIncluse: 2,
+    description: "33 heures dont 2 heures de conduite incluses",
+  },
+  journee: {
+    label: "Formule Journée",
+    dureeHeures: 40,
+    conduiteIncluse: 2,
+    description: "40 heures dont 2 heures de conduite incluses",
+  },
+  examen_blanc: {
+    label: "Examen blanc final",
+    dureeHeures: 4,
+    conduiteIncluse: 0,
+    description: "4 heures d'examen blanc en conditions réelles",
+  },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -917,10 +946,6 @@ export const HORAIRES = {
     matin: "18h00 - 20h00",
     apresMidi: "20h00 - 22h00"
   },
-  weekend: {
-    matin: "9h00 - 12h30",
-    apresMidi: "13h30 - 17h00"
-  }
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -928,7 +953,7 @@ export const HORAIRES = {
 // ═══════════════════════════════════════════════════════════════════
 
 export type TypeFormation = "VTC" | "TAXI" | "TAXI-75" | "VMDTR" | "RECUPERATION_POINTS";
-export type Modalite = "journée" | "soirée" | "weekend";
+export type Modalite = "journée" | "soirée";
 export type Civilite = "M." | "Mme";
 
 export interface Beneficiaire {

@@ -107,12 +107,14 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
   const orgSiret = company?.siret || ORGANISME.siret;
   const orgNda = company?.nda || ORGANISME.nda;
 
-  // Build legal info line
-  const legalParts = [`SIRET: ${orgSiret}`, `NDA: ${orgNda}`];
+  // Build legal info line — skip empty fields
+  const legalParts: string[] = [];
+  if (orgSiret && !orgSiret.includes("[")) legalParts.push(`SIRET: ${orgSiret}`);
+  if (orgNda && !orgNda.includes("[")) legalParts.push(`NDA: ${orgNda}`);
   if (company?.qualiopi_numero) legalParts.push(`Qualiopi: ${company.qualiopi_numero}`);
   if (company?.agrement_prefecture) legalParts.push(`Agrément Préf.: ${company.agrement_prefecture}`);
   if (company?.code_rs) legalParts.push(`RS: ${company.code_rs}`);
-  const legalInfo = legalParts.join(" | ");
+  const legalInfo = legalParts.length > 0 ? legalParts.join(" | ") : "";
 
   // Bandeau vert Forest
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -141,9 +143,11 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
   doc.text(orgAdresse, MARGIN_LEFT, 24);
   doc.text(`Tél: ${orgTel} | Email: ${orgEmail}`, MARGIN_LEFT, 30);
 
-  // Informations légales
-  doc.setFontSize(7);
-  doc.text(legalInfo, MARGIN_LEFT, 37);
+  // Informations légales (only if not empty)
+  if (legalInfo) {
+    doc.setFontSize(7);
+    doc.text(legalInfo, MARGIN_LEFT, 37);
+  }
 
   // Titre du document (bande dorée)
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
@@ -277,8 +281,8 @@ function addInfoBox(doc: jsPDF, title: string, lines: string[], yPos: number): n
 }
 
 // ==================== SIGNATURE BLOCK ====================
-function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, beneficiaire?: Beneficiaire): number {
-  yPos = checkPageBreak(doc, yPos, 50);
+function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, beneficiaire?: Beneficiaire, company?: ConventionCompanyInfo): number {
+  yPos = checkPageBreak(doc, yPos, 55);
 
   const halfWidth = CONTENT_WIDTH / 2 - 5;
 
@@ -292,7 +296,7 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
   // Box gauche - Organisme
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.setDrawColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(MARGIN_LEFT, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(MARGIN_LEFT, yPos, halfWidth, 45, 2, 2, "FD");
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -301,14 +305,27 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
 
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(ORGANISME.responsablePedagogique.nom, MARGIN_LEFT + 4, yPos + 12);
-  doc.text(ORGANISME.responsablePedagogique.fonction, MARGIN_LEFT + 4, yPos + 17);
-  doc.text(`Fait à ${ORGANISME.ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT + 4, yPos + 24);
+  const sigNom = company?.responsable_nom || ORGANISME.responsablePedagogique.nom;
+  const sigFonction = company?.responsable_fonction || ORGANISME.responsablePedagogique.fonction;
+  doc.text(sigNom, MARGIN_LEFT + 4, yPos + 12);
+  doc.text(sigFonction, MARGIN_LEFT + 4, yPos + 17);
+  const ville = company?.ville || extractVille(company?.address) || ORGANISME.ville;
+  doc.text(`Fait à ${ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT + 4, yPos + 24);
+
+  // Tampon / cachet — positioned below text to avoid overlap
+  if (company?.signature_cachet_url) {
+    const cachedStamp = convImageCache.get(company.signature_cachet_url);
+    if (cachedStamp) {
+      try {
+        doc.addImage(cachedStamp, 'PNG', MARGIN_LEFT + halfWidth - 40, yPos + 26, 35, 18);
+      } catch { /* ignore */ }
+    }
+  }
 
   // Box droite - Bénéficiaire
   const rightX = MARGIN_LEFT + halfWidth + 10;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(rightX, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(rightX, yPos, halfWidth, 45, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -325,7 +342,7 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
     doc.text("(Précédée de la mention \"Lu et approuvé\")", rightX + 4, yPos + 17);
   }
 
-  return yPos + 50;
+  return yPos + 55;
 }
 
 // ============================================================
@@ -351,13 +368,17 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
   // --- ENTRE LES SOUSSIGNÉS ---
   yPos = addSectionTitle(doc, "ENTRE LES SOUSSIGNÉS", yPos);
 
-  // Organisme
-  yPos = addInfoBox(doc, "L'organisme de formation :", [
+  // Organisme — skip NDA if empty
+  const orgInfoLines = [
     `${ORGANISME.raisonSociale} (${ORGANISME.nom})`,
     `Adresse: ${ORGANISME.adresse}, ${ORGANISME.codePostal} ${ORGANISME.ville}`,
-    `SIRET: ${ORGANISME.siret} | NDA: ${ORGANISME.nda}`,
+    `SIRET: ${ORGANISME.siret}`,
     `Représenté par: ${ORGANISME.responsablePedagogique.nom}, ${ORGANISME.responsablePedagogique.fonction}`,
-  ], yPos);
+  ];
+  if (ORGANISME.nda) {
+    orgInfoLines.splice(3, 0, `NDA: ${ORGANISME.nda}`);
+  }
+  yPos = addInfoBox(doc, "L'organisme de formation :", orgInfoLines, yPos);
 
   // Bénéficiaire
   yPos = addInfoBox(doc, "Le bénéficiaire :", [
@@ -476,11 +497,11 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
     `TVA (20%): ${(formation.tarifHT * 0.2).toFixed(2)} €`,
     `Prix TTC: ${prixTTC.toFixed(2)} €`,
   ], yPos);
-  yPos = addParagraph(doc, "Le règlement s'effectue par virement bancaire, carte bancaire, ou via les dispositifs de financement (CPF, OPCO, etc.).", yPos);
+  yPos = addParagraph(doc, "Le paiement s'effectue à titre personnel. Aucune somme ne peut être exigée avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte de 30% maximum peut être versé. Le solde est échelonné en mensualités égales.", yPos);
 
   // --- ARTICLE 10 : DÉLAI DE RÉTRACTATION ---
   yPos = addArticleTitle(doc, 10, "DÉLAI DE RÉTRACTATION", yPos);
-  yPos = addParagraph(doc, "Conformément à l'article L.6353-5 du Code du travail, le bénéficiaire dispose d'un délai de 14 jours calendaires à compter de la signature pour se rétracter, par lettre recommandée avec accusé de réception.", yPos);
+  yPos = addParagraph(doc, "Conformément à l'article L.6353-5 du Code du travail, le bénéficiaire dispose d'un délai de 10 jours à compter de la signature pour se rétracter, par lettre recommandée avec accusé de réception. Aucun paiement ne peut être exigé pendant ce délai.", yPos);
 
   // --- ARTICLE 11 : CESSATION ANTICIPÉE ---
   yPos = addArticleTitle(doc, 11, "CAS DE CESSATION ANTICIPÉE", yPos);
@@ -492,7 +513,7 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
 
   // --- ARTICLE 13 : ASSURANCE ET RESPONSABILITÉ ---
   yPos = addArticleTitle(doc, 13, "ASSURANCE ET RESPONSABILITÉ", yPos);
-  yPos = addParagraph(doc, `L'organisme de formation a souscrit une assurance responsabilité civile professionnelle auprès de ${ORGANISME.assurance.nom}. Le stagiaire est couvert pendant les heures de formation.`, yPos);
+  yPos = addParagraph(doc, `L'organisme de formation a souscrit une assurance responsabilité civile professionnelle. Le stagiaire est couvert pendant les heures de formation.`, yPos);
 
   // --- ARTICLE 14 : PROTECTION DES DONNÉES (RGPD) ---
   yPos = addArticleTitle(doc, 14, "PROTECTION DES DONNÉES PERSONNELLES (RGPD)", yPos);

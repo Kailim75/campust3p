@@ -1,5 +1,6 @@
 // ============================================================
 // CONDITIONS GÉNÉRALES DE VENTE (CGV) - Template pour génération PDF
+// Personnalisé ECOLE T3P — sans CPF, sans OPCO, sans weekend
 // ============================================================
 
 import { ORGANISME, TARIFS } from '@/constants/formations';
@@ -48,8 +49,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
         `${ORGANISME.nom} propose des formations professionnelles dans le domaine du transport public particulier de personnes (T3P), notamment :`,
         "• Formation VTC (Voiture de Transport avec Chauffeur)",
         "• Formation TAXI",
-        "• Formation VMDTR (Véhicule Motorisé à Deux ou Trois Roues)",
-        "• Stages de récupération de points"
+        "• Formation VMDTR (Véhicule Motorisé à Deux ou Trois Roues)"
       ]
     },
     {
@@ -63,8 +63,8 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
             "L'inscription devient définitive après :",
             "1. Réception du dossier d'inscription complet",
             "2. Vérification des prérequis réglementaires",
-            "3. Signature de la convention de formation",
-            "4. Paiement de l'acompte (sauf mention contraire)"
+            "3. Signature du contrat de formation",
+            "4. Expiration du délai de rétractation de 10 jours"
           ]
         },
         {
@@ -72,12 +72,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           titre: "Dossier d'inscription",
           contenu: [
             "Le dossier complet comprend :",
-            "• Formulaire d'inscription rempli et signé",
-            "• Copie de la pièce d'identité en cours de validité",
-            "• Copie du permis de conduire (catégorie B depuis 3 ans minimum)",
-            "• Justificatif de domicile de moins de 3 mois",
-            "• Photo d'identité récente",
-            "• Attestation de recensement ou JDC (pour les -25 ans)"
+            ...ORGANISME.piecesInscription.map(p => `• ${p}`)
           ]
         },
         {
@@ -103,21 +98,19 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
             "",
             "TVA non applicable - Article 261.4.4°a du CGI (formations continues).",
             "",
-            "Les tarifs en vigueur sont :",
-            `• Formation VTC journée (35h) : ${TARIFS.VTC.journee} € HT`,
-            `• Formation VTC soirée (35h) : ${TARIFS.VTC.soiree} € HT`,
-            `• Formation VTC weekend (35h) : ${TARIFS.VTC.weekend} € HT`,
-            `• Formation TAXI journée (35h) : ${TARIFS.TAXI.journee} € HT`,
-            `• Formation VMDTR (35h) : ${TARIFS.VMDTR.journee} € HT`,
+            "Formules disponibles :",
+            `• Formule Soir : 33 heures dont 2 heures de conduite incluses — à partir de ${TARIFS.VTC.soiree} € HT`,
+            `• Formule Journée : 40 heures dont 2 heures de conduite incluses — à partir de ${TARIFS.VTC.journee} € HT`,
+            "• Examen blanc final : 4 heures",
             "",
             "Ces tarifs comprennent :",
-            "• Les 35 heures de formation",
+            "• Les heures de formation théorique et pratique",
             "• Les supports pédagogiques",
             "• L'accès plateforme e-learning (3 mois)",
             "• L'attestation de fin de formation",
             "",
             "Ces tarifs ne comprennent pas :",
-            "• Les frais d'inscription à l'examen CMA (environ 192 €)",
+            "• Les frais d'inscription à l'examen (environ 192 €)",
             "• Les frais de transport et d'hébergement",
             "• Les repas"
           ]
@@ -126,12 +119,13 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           numero: "4.2",
           titre: "Modalités de paiement",
           contenu: [
-            "Option 1 - Paiement comptant :",
-            "Paiement intégral à l'inscription (avantage : aucun frais supplémentaire)",
+            "Le paiement s'effectue à titre personnel uniquement.",
             "",
-            "Option 2 - Paiement échelonné :",
-            "• Acompte de 30% à l'inscription",
-            "• Solde de 70% au premier jour de formation",
+            "Conformément à l'article L.6353-5 du Code du travail, aucune somme ne peut être exigée avant l'expiration du délai de rétractation de 10 jours.",
+            "",
+            "À l'issue de ce délai :",
+            "• Acompte maximum de 30% du montant total",
+            "• Solde échelonné en mensualités égales avant la fin de la formation",
             "",
             "Moyens de paiement acceptés :",
             "• Virement bancaire (RIB sur demande)",
@@ -157,50 +151,14 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
     },
     {
       numero: 5,
-      titre: "FINANCEMENT",
-      sous_articles: [
-        {
-          numero: "5.1",
-          titre: "Compte Personnel de Formation (CPF)",
-          contenu: [
-            "Nos formations VTC, TAXI et VMDTR sont éligibles au CPF.",
-            "",
-            "Code CPF : 235802",
-            "",
-            "Procédure :",
-            "1. Créer un compte sur moncompteformation.gouv.fr",
-            `2. Rechercher "${ORGANISME.nom}" ou la formation souhaitée`,
-            "3. S'inscrire directement en ligne",
-            "4. Validation sous 48h (jours ouvrés)",
-            "",
-            "En cas de financement CPF, aucun acompte n'est requis. Le paiement est directement versé par la Caisse des Dépôts."
-          ]
-        },
-        {
-          numero: "5.2",
-          titre: "Autres financements",
-          contenu: [
-            "Nos formations peuvent être prises en charge par :",
-            "• France Travail (AIF - Aide Individuelle à la Formation)",
-            "• Région Île-de-France (selon dispositifs en vigueur)",
-            "• OPCO (Opérateurs de Compétences)",
-            "• Entreprises (plan de développement des compétences)",
-            "",
-            `Contact pour étude de financement : ${ORGANISME.email}`
-          ]
-        }
-      ]
-    },
-    {
-      numero: 6,
       titre: "ANNULATION ET REPORT",
       sous_articles: [
         {
-          numero: "6.1",
+          numero: "5.1",
           titre: "Annulation par le stagiaire avant le début de la formation",
           contenu: [
             "Délai de rétractation légal (article L.6353-5 du Code du travail) :",
-            "• Délai : 10 jours à compter de la signature de la convention",
+            "• Délai : 10 jours à compter de la signature du contrat",
             "• Modalités : Lettre recommandée avec AR",
             "• Effet : Remboursement intégral des sommes versées (délai 30 jours)",
             "",
@@ -219,7 +177,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "6.2",
+          numero: "5.2",
           titre: "Annulation par le stagiaire en cours de formation",
           contenu: [
             "En cas d'abandon :",
@@ -229,7 +187,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "6.3",
+          numero: "5.3",
           titre: "Report demandé par le stagiaire",
           contenu: [
             "Un report est possible une seule fois :",
@@ -240,7 +198,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "6.4",
+          numero: "5.4",
           titre: `Annulation par ${ORGANISME.nom}`,
           contenu: [
             `${ORGANISME.nom} se réserve le droit d'annuler une session en cas de :`,
@@ -257,11 +215,11 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 7,
+      numero: 6,
       titre: "DÉROULEMENT DE LA FORMATION",
       sous_articles: [
         {
-          numero: "7.1",
+          numero: "6.1",
           titre: "Convocation",
           contenu: [
             "Une convocation est adressée au stagiaire par email 7 jours avant le début de la formation, précisant :",
@@ -272,18 +230,18 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "7.2",
+          numero: "6.2",
           titre: "Assiduité",
           contenu: [
             "La présence à 100% des heures est obligatoire pour :",
             "• Obtenir l'attestation de fin de formation",
-            "• Se présenter à l'examen CMA",
+            "• Se présenter à l'examen",
             "",
             "Émargement obligatoire matin et après-midi."
           ]
         },
         {
-          numero: "7.3",
+          numero: "6.3",
           titre: "Absence et retard",
           contenu: [
             "Toute absence doit être :",
@@ -297,13 +255,13 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "7.4",
+          numero: "6.4",
           titre: "Évaluation",
           contenu: [
             "Évaluation continue :",
             "• QCM réguliers",
             "• Exercices pratiques",
-            "• Examen blanc en conditions réelles",
+            "• Examen blanc en conditions réelles (4 heures)",
             "",
             "L'obtention d'une note < 10/20 à l'examen blanc ne permet pas l'obtention de l'attestation. Le stagiaire devra suivre des heures de renforcement (facturation supplémentaire)."
           ]
@@ -311,7 +269,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 8,
+      numero: 7,
       titre: "OBLIGATIONS DU STAGIAIRE",
       contenu: [
         "Le stagiaire s'engage à :",
@@ -324,7 +282,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 9,
+      numero: 8,
       titre: `OBLIGATIONS DE ${ORGANISME.nom}`,
       contenu: [
         `${ORGANISME.nom} s'engage à :`,
@@ -332,28 +290,27 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
         "• Mettre à disposition des formateurs qualifiés",
         "• Fournir les supports pédagogiques nécessaires",
         "• Délivrer une attestation de fin de formation",
-        "• Respecter la réglementation en vigueur",
-        "• Maintenir la certification Qualiopi"
+        "• Respecter la réglementation en vigueur"
       ]
     },
     {
-      numero: 10,
-      titre: "EXAMEN CMA",
+      numero: 9,
+      titre: "EXAMEN",
       sous_articles: [
         {
-          numero: "10.1",
+          numero: "9.1",
           titre: "Inscription à l'examen",
           contenu: [
-            "L'inscription à l'examen CMA se fait :",
-            "• En ligne sur le site de la CMA",
+            "L'inscription à l'examen se fait :",
+            "• En ligne auprès de l'organisme compétent",
             "• Minimum 3 semaines avant la date souhaitée",
             "• Sur présentation de l'attestation de fin de formation",
             "",
-            "Frais d'examen : environ 192 € (à régler directement à la CMA)"
+            "Frais d'examen : environ 192 € (à régler directement par le stagiaire)"
           ]
         },
         {
-          numero: "10.2",
+          numero: "9.2",
           titre: "Assistance administrative",
           contenu: [
             `${ORGANISME.nom} assiste le stagiaire pour :`,
@@ -363,20 +320,20 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "10.3",
+          numero: "9.3",
           titre: "Résultats",
           contenu: [
-            "Les résultats sont disponibles sous 48h après l'examen sur le site de la CMA.",
+            "Les résultats sont disponibles sous 48h après l'examen.",
             "",
             "En cas d'échec :",
-            "• Possibilité de repasser l'examen (nouveaux frais CMA)",
+            "• Possibilité de repasser l'examen (nouveaux frais d'examen)",
             `• Possibilité de suivre des heures de renforcement chez ${ORGANISME.nom} (tarif horaire : 50 €/h)`
           ]
         }
       ]
     },
     {
-      numero: 11,
+      numero: 10,
       titre: "PROPRIÉTÉ INTELLECTUELLE",
       contenu: [
         `Tous les supports de formation (cours, exercices, QCM) sont la propriété exclusive de ${ORGANISME.nom}.`,
@@ -387,11 +344,11 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 12,
+      numero: 11,
       titre: "RESPONSABILITÉ ET ASSURANCE",
       sous_articles: [
         {
-          numero: "12.1",
+          numero: "11.1",
           titre: `Responsabilité de ${ORGANISME.nom}`,
           contenu: [
             `${ORGANISME.nom} est assurée en responsabilité civile professionnelle.`,
@@ -399,14 +356,13 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
             "Sa responsabilité ne pourra être engagée qu'en cas de faute prouvée.",
             "",
             `${ORGANISME.nom} ne peut être tenue responsable :`,
-            "• De l'échec à l'examen CMA",
+            "• De l'échec à l'examen",
             "• Des conséquences d'absences du stagiaire",
-            "• De la non-obtention d'un financement",
             "• De vols ou dégradations de biens personnels"
           ]
         },
         {
-          numero: "12.2",
+          numero: "11.2",
           titre: "Responsabilité du stagiaire",
           contenu: [
             "Le stagiaire doit être couvert par une assurance responsabilité civile.",
@@ -417,7 +373,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 13,
+      numero: 12,
       titre: "PROTECTION DES DONNÉES PERSONNELLES",
       contenu: [
         "Conformément au RGPD :",
@@ -435,15 +391,15 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
         "• Opposition, limitation",
         "• Portabilité",
         "",
-        `Contact DPO : ${ORGANISME.email}`
+        `Contact : ${ORGANISME.email}`
       ]
     },
     {
-      numero: 14,
+      numero: 13,
       titre: "RÉCLAMATION ET MÉDIATION",
       sous_articles: [
         {
-          numero: "14.1",
+          numero: "13.1",
           titre: "Réclamation",
           contenu: [
             "Toute réclamation doit être adressée par écrit à :",
@@ -453,20 +409,20 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           ]
         },
         {
-          numero: "14.2",
+          numero: "13.2",
           titre: "Médiation de la consommation",
           contenu: [
             "En cas de litige non résolu à l'amiable, le stagiaire peut saisir gratuitement le médiateur de la consommation :",
             "",
-            "MEDICYS",
-            "73 Boulevard de Clichy",
-            "75009 PARIS",
-            "contact@medicys.fr",
-            "https://www.medicys.fr"
+            ORGANISME.mediateur.nom,
+            ORGANISME.mediateur.adresse,
+            `${ORGANISME.mediateur.codePostal} ${ORGANISME.mediateur.ville}`,
+            ORGANISME.mediateur.email,
+            ORGANISME.mediateur.web
           ]
         },
         {
-          numero: "14.3",
+          numero: "13.3",
           titre: "Plateforme européenne de RLL (Règlement en Ligne des Litiges)",
           contenu: [
             "https://ec.europa.eu/consumers/odr"
@@ -475,7 +431,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 15,
+      numero: 14,
       titre: "MODIFICATION DES CGV",
       contenu: [
         `${ORGANISME.nom} se réserve le droit de modifier les présentes CGV à tout moment.`,
@@ -484,7 +440,7 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
       ]
     },
     {
-      numero: 16,
+      numero: 15,
       titre: "DROIT APPLICABLE ET JURIDICTION",
       contenu: [
         "Les présentes CGV sont soumises au droit français.",
