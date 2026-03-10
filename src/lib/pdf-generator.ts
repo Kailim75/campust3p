@@ -601,7 +601,7 @@ export function generateFacturePDF(
   const contentHeight = Math.max(20, wrappedLines.length * lineHeight + 10);
 
   // Table content avec fond cream
-  yPos += 12;
+  yPos += 14;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.rect(20, yPos, pageWidth - 40, contentHeight, "F");
   
