@@ -617,6 +617,7 @@ export function SendDocumentsToContactDialog({
 
             // Upload PDF to storage if generated
             let documentUrl: string | undefined;
+            let storagePath: string | undefined;
             if (pdfDoc) {
               try {
                 const pdfBlob = pdfDoc.output('blob');
@@ -626,14 +627,23 @@ export function SendDocumentsToContactDialog({
                   .upload(filePath, pdfBlob, { contentType: 'application/pdf' });
                 
                 if (!uploadError) {
+                  storagePath = filePath;
+                  // Create a signed URL for the signature page (public access)
                   const { data: signedUrlData } = await supabase.storage
                     .from('generated-documents')
                     .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year
-                  documentUrl = signedUrlData?.signedUrl || null;
+                  documentUrl = signedUrlData?.signedUrl || undefined;
                 }
               } catch (uploadErr) {
                 console.warn(`Erreur upload PDF pour ${docType}:`, uploadErr);
               }
+            }
+
+            // GUARDRAIL: Block signature creation if no PDF was uploaded
+            if (!documentUrl) {
+              console.error(`Cannot create signature for ${docType}: no PDF available`);
+              toast.error(`Impossible de créer la demande de signature pour ${docLabels[docType] || docType} — PDF non disponible`);
+              continue;
             }
 
             const sigRequest = await createSignatureRequest.mutateAsync({
