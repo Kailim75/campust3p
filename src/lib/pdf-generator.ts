@@ -2318,8 +2318,9 @@ export function generateConvocationPDF(
   // ═══════════════════════════════════════════════════════
 
   // En-tête section orange
+  const sectionHeaderH2 = 9;
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
-  doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
+  doc.roundedRect(mL, yPos, cW, sectionHeaderH2, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
