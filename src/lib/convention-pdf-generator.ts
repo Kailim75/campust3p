@@ -497,11 +497,11 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
     `TVA (20%): ${(formation.tarifHT * 0.2).toFixed(2)} €`,
     `Prix TTC: ${prixTTC.toFixed(2)} €`,
   ], yPos);
-  yPos = addParagraph(doc, "Le règlement s'effectue par virement bancaire, carte bancaire, ou via les dispositifs de financement (CPF, OPCO, etc.).", yPos);
+  yPos = addParagraph(doc, "Le paiement s'effectue à titre personnel. Aucune somme ne peut être exigée avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte de 30% maximum peut être versé. Le solde est échelonné en mensualités égales.", yPos);
 
   // --- ARTICLE 10 : DÉLAI DE RÉTRACTATION ---
   yPos = addArticleTitle(doc, 10, "DÉLAI DE RÉTRACTATION", yPos);
-  yPos = addParagraph(doc, "Conformément à l'article L.6353-5 du Code du travail, le bénéficiaire dispose d'un délai de 14 jours calendaires à compter de la signature pour se rétracter, par lettre recommandée avec accusé de réception.", yPos);
+  yPos = addParagraph(doc, "Conformément à l'article L.6353-5 du Code du travail, le bénéficiaire dispose d'un délai de 10 jours à compter de la signature pour se rétracter, par lettre recommandée avec accusé de réception. Aucun paiement ne peut être exigé pendant ce délai.", yPos);
 
   // --- ARTICLE 11 : CESSATION ANTICIPÉE ---
   yPos = addArticleTitle(doc, 11, "CAS DE CESSATION ANTICIPÉE", yPos);
