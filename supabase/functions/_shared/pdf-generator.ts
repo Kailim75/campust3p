@@ -36,6 +36,9 @@ export interface SessionInfo {
   heure_debut_aprem?: string;
   heure_fin_aprem?: string;
   formateur?: string;
+  adresse_rue?: string;
+  adresse_code_postal?: string;
+  adresse_ville?: string;
 }
 
 export interface CompanyInfo {
@@ -45,6 +48,7 @@ export interface CompanyInfo {
   email: string;
   siret: string;
   nda: string;
+  qualiopi_numero?: string;
 }
 
 // ==================== COLORS ====================
