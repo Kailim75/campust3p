@@ -215,14 +215,15 @@ function writeParagraph(ctx: ContratContext, text: string, indent: number = 0): 
 }
 
 function writeBullet(ctx: ContratContext, text: string): void {
-  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFontSize(9);
   setColor(ctx.doc, C.warmGray700);
-  const lines = ctx.doc.splitTextToSize(`• ${text}`, ctx.cW - 8) as string[];
+  const lines = ctx.doc.splitTextToSize(`• ${text}`, ctx.cW - 10) as string[];
   for (let i = 0; i < lines.length; i++) {
     checkPageBreak(ctx, ctx.lineH + 1);
-    ctx.doc.text(lines[i], ctx.mL + (i === 0 ? 4 : 9), ctx.yPos);
+    ctx.doc.text(lines[i], ctx.mL + (i === 0 ? 5 : 10), ctx.yPos);
     ctx.yPos += ctx.lineH;
   }
+  ctx.yPos += 1; // breathing between bullets
   setColor(ctx.doc, C.warmGray800);
 }
 
