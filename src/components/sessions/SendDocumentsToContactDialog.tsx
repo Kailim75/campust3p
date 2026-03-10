@@ -31,6 +31,7 @@ import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGene
 import {
   generateConventionPDF,
   generateContratFormationPDF,
+  preloadCompanyImages,
   type ContactInfo as PdfContactInfo,
   type SessionInfo as PdfSessionInfo,
   type CompanyInfo,
@@ -576,6 +577,11 @@ export function SendDocumentsToContactDialog({
           heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
         };
 
+        // Preload company images (logo, stamp) before generating PDFs
+        if (companyInfo) {
+          await preloadCompanyImages(companyInfo);
+        }
+
         let signaturesCreated = 0;
         for (const docType of signableDocTypes) {
           try {
@@ -616,7 +622,6 @@ export function SendDocumentsToContactDialog({
             }
 
             // Upload PDF to storage if generated
-            let documentUrl: string | undefined;
             let storagePath: string | undefined;
             if (pdfDoc) {
               try {
@@ -628,11 +633,8 @@ export function SendDocumentsToContactDialog({
                 
                 if (!uploadError) {
                   storagePath = filePath;
-                  // Create a signed URL for the signature page (public access)
-                  const { data: signedUrlData } = await supabase.storage
-                    .from('generated-documents')
-                    .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year
-                  documentUrl = signedUrlData?.signedUrl || undefined;
+                } else {
+                  console.error(`Erreur upload PDF pour ${docType}:`, uploadError.message);
                 }
               } catch (uploadErr) {
                 console.warn(`Erreur upload PDF pour ${docType}:`, uploadErr);
@@ -640,11 +642,17 @@ export function SendDocumentsToContactDialog({
             }
 
             // GUARDRAIL: Block signature creation if no PDF was uploaded
-            if (!documentUrl) {
+            if (!storagePath) {
               console.error(`Cannot create signature for ${docType}: no PDF available`);
               toast.error(`Impossible de créer la demande de signature pour ${docLabels[docType] || docType} — PDF non disponible`);
               continue;
             }
+
+            // Generate signed URL on demand for the signature page
+            const { data: signedUrlData } = await supabase.storage
+              .from('generated-documents')
+              .createSignedUrl(storagePath, 60 * 60 * 24 * 365); // 1 year
+            const documentUrl = signedUrlData?.signedUrl || null;
 
             const sigRequest = await createSignatureRequest.mutateAsync({
               contact_id: contact.id,
@@ -652,7 +660,7 @@ export function SendDocumentsToContactDialog({
               titre: `${docLabels[docType] || docType} - ${sessionInfo.nom}`,
               description: `Signature électronique demandée pour ${docLabels[docType] || docType} de la session ${sessionInfo.nom}`,
               date_expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              document_url: documentUrl || null,
+              document_url: documentUrl,
             } as any);
 
             // Send signature email
