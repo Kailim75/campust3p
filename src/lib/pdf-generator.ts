@@ -2074,16 +2074,16 @@ export function generateConvocationPDF(
   const cWhite = { r: 255, g: 255, b: 255 };
 
   // ═══════════════════════════════════════════════════════
-  // A. BANDEAU EN-TÊTE — Navy imposant pleine largeur
+  // A. BANDEAU EN-TÊTE — Vert forêt T3P
   // ═══════════════════════════════════════════════════════
   const headerH = 38;
 
-  // Fond navy pleine largeur
+  // Fond vert forêt pleine largeur
   doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
   doc.rect(0, 0, pageWidth, headerH, "F");
 
-  // Accent teal fin sous le bandeau
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Accent orange fin sous le bandeau
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(0, headerH, pageWidth, 1.8, "F");
 
   // Logo
@@ -2100,7 +2100,7 @@ export function generateConvocationPDF(
   // Adresse + contact
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(190, 200, 215);
+  doc.setTextColor(195, 215, 200);
   doc.text(company.address, textStartX, 22);
 
   const contactParts: string[] = [];
@@ -2117,7 +2117,7 @@ export function generateConvocationPDF(
 
   if (adminParts.length > 0) {
     doc.setFontSize(7);
-    doc.setTextColor(140, 155, 175);
+    doc.setTextColor(155, 185, 160);
     adminParts.forEach((part, i) => {
       doc.text(part, pageWidth - mR, 16 + i * 4, { align: "right" });
     });
@@ -2126,14 +2126,14 @@ export function generateConvocationPDF(
   // Qualiopi mention si présente
   if (company.qualiopi_numero) {
     doc.setFontSize(6.5);
-    doc.setTextColor(cTeal.r, cTeal.g, cTeal.b);
+    doc.setTextColor(cOrange.r, cOrange.g, cOrange.b);
     doc.text(`Certifié Qualiopi`, pageWidth - mR, 32, { align: "right" });
   }
 
   let yPos = headerH + 12;
 
   // ═══════════════════════════════════════════════════════
-  // B. TITRE — grand, centré, avec accent teal
+  // B. TITRE — grand, centré, avec accent orange
   // ═══════════════════════════════════════════════════════
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
@@ -2142,9 +2142,9 @@ export function generateConvocationPDF(
 
   yPos += 4;
 
-  // Ligne accent teal centrée
+  // Ligne accent orange centrée
   const titleLineW = 60;
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect((pageWidth - titleLineW) / 2, yPos, titleLineW, 1.5, "F");
 
   yPos += 7;
@@ -2166,7 +2166,7 @@ export function generateConvocationPDF(
   // ═══════════════════════════════════════════════════════
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
 
-  // Cartouche destinataire (droite) avec bordure gauche teal
+  // Cartouche destinataire (droite) avec bordure gauche orange
   const destBoxX = pageWidth - mR - 78;
   const destLines: string[] = [fullName];
   if (contact.rue) destLines.push(contact.rue);
@@ -2176,8 +2176,8 @@ export function generateConvocationPDF(
   const destBoxH = 8 + destLines.length * 5.5;
   doc.setFillColor(cBgSubtle.r, cBgSubtle.g, cBgSubtle.b);
   doc.roundedRect(destBoxX - 6, yPos - 5, 82, destBoxH, 2, 2, "F");
-  // Bordure gauche teal sur le cartouche
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Bordure gauche orange sur le cartouche
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(destBoxX - 6, yPos - 5, 2.5, destBoxH, "F");
 
   let destY = yPos;
@@ -2211,7 +2211,7 @@ export function generateConvocationPDF(
   // D. DÉTAILS DE LA FORMATION — bloc imposant
   // ═══════════════════════════════════════════════════════
 
-  // En-tête de section navy
+  // En-tête de section vert forêt
   const sectionHeaderH = 9;
   doc.setFillColor(cPrimaryMid.r, cPrimaryMid.g, cPrimaryMid.b);
   doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
@@ -2220,8 +2220,8 @@ export function generateConvocationPDF(
   doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
   doc.text("DÉTAILS DE LA FORMATION", mL + 8, yPos + 6.5);
 
-  // Petit carré teal décoratif
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Petit carré orange décoratif
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL + 3, yPos + 3, 3, 3, "F");
 
   yPos += sectionHeaderH + 1;
@@ -2264,14 +2264,14 @@ export function generateConvocationPDF(
     cardH += h + 3.5;
   }
 
-  // Card fond blanc avec bordure subtile
-  doc.setFillColor(cWhite.r, cWhite.g, cWhite.b);
+  // Card fond vert très léger avec bordure subtile
+  doc.setFillColor(cPrimaryLight.r, cPrimaryLight.g, cPrimaryLight.b);
   doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
   doc.setLineWidth(0.3);
   doc.roundedRect(mL, yPos, cW, cardH, 0, 2, "FD");
 
-  // Accent bar gauche teal
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Accent bar gauche vert forêt
+  doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
   doc.rect(mL, yPos, 2.5, cardH, "F");
 
   let rY = yPos + 6;
@@ -2302,11 +2302,11 @@ export function generateConvocationPDF(
   yPos += cardH + 10;
 
   // ═══════════════════════════════════════════════════════
-  // E. INFORMATIONS PRATIQUES — bloc teal léger
+  // E. INFORMATIONS PRATIQUES — bloc orange
   // ═══════════════════════════════════════════════════════
 
-  // En-tête section
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // En-tête section orange
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
@@ -2318,7 +2318,7 @@ export function generateConvocationPDF(
   doc.rect(mL + 3, yPos + 2.5, 3, 4, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.setTextColor(cTeal.r, cTeal.g, cTeal.b);
+  doc.setTextColor(cOrange.r, cOrange.g, cOrange.b);
   doc.text("✓", mL + 3.3, yPos + 6);
 
   yPos += sectionHeaderH + 1;
@@ -2332,18 +2332,18 @@ export function generateConvocationPDF(
   ];
 
   const practCardH = 8 + practicalItems.length * 7;
-  doc.setFillColor(cTealLight.r, cTealLight.g, cTealLight.b);
+  doc.setFillColor(cOrangeLight.r, cOrangeLight.g, cOrangeLight.b);
   doc.roundedRect(mL, yPos, cW, practCardH, 0, 2, "F");
 
-  // Accent bar gauche
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Accent bar gauche orange
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL, yPos, 2.5, practCardH, "F");
 
   let pY = yPos + 6;
   doc.setFontSize(9);
   for (const item of practicalItems) {
-    // Bullet teal
-    doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+    // Bullet orange
+    doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
     doc.circle(mL + 8, pY - 1, 1.2, "F");
     doc.setFont("helvetica", "normal");
     doc.setTextColor(cText.r, cText.g, cText.b);
@@ -2358,7 +2358,7 @@ export function generateConvocationPDF(
   // ═══════════════════════════════════════════════════════
 
   // Ligne contact
-  doc.setFillColor(cBgSubtle.r, cBgSubtle.g, cBgSubtle.b);
+  doc.setFillColor(cPrimaryLight.r, cPrimaryLight.g, cPrimaryLight.b);
   doc.roundedRect(mL, yPos, cW, 10, 1.5, 1.5, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
@@ -2394,7 +2394,7 @@ export function generateConvocationPDF(
   doc.text(company.name, mL, yPos + 5);
 
   // ═══════════════════════════════════════════════════════
-  // FOOTER — bandeau navy discret
+  // FOOTER — bandeau vert forêt
   // ═══════════════════════════════════════════════════════
   const footerH = 12;
   const footerY = pageHeight - footerH;
@@ -2404,7 +2404,7 @@ export function generateConvocationPDF(
 
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(160, 175, 195);
+  doc.setTextColor(170, 200, 178);
   doc.text(company.name, mL, footerY + 5);
   doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy")}`, pageWidth / 2, footerY + 5, { align: "center" });
 
@@ -2415,8 +2415,8 @@ export function generateConvocationPDF(
     doc.text(footerRight.join("  •  "), pageWidth - mR, footerY + 5, { align: "right" });
   }
 
-  // Filet teal au-dessus du footer
-  doc.setFillColor(cTeal.r, cTeal.g, cTeal.b);
+  // Filet orange au-dessus du footer
+  doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(0, footerY - 1, pageWidth, 1, "F");
 
   return doc;
