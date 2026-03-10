@@ -871,10 +871,13 @@ export function useGeneratePackDocuments() {
 export function useDownloadGeneratedDoc() {
   return useMutation({
     mutationFn: async (doc: GeneratedDocument) => {
-      if (!doc.file_path) throw new Error("No file path");
-      const { data, error } = await supabase.storage.from("generated-docs").download(doc.file_path);
-      if (error) throw error;
-      const url = URL.createObjectURL(data);
+      if (!doc.file_path) throw new Error("Aucun fichier disponible pour ce document");
+
+      // Use centralized resolver to detect correct bucket
+      const { downloadPdf } = await import("@/lib/documents/pdfResolver");
+      const { blob } = await downloadPdf(doc.file_path);
+
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = doc.file_name || "document.pdf";

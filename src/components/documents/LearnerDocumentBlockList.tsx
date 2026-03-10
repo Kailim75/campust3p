@@ -6,7 +6,7 @@ import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { downloadPdf, downloadPdfAsBase64, isPdfReadyForSignature } from "@/lib/documents/pdfResolver";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { useLearnerDocumentBlocks } from "@/hooks/useLearnerDocumentBlocks";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -62,16 +62,14 @@ export function LearnerDocumentBlockList({
   // ── Handlers ──
 
   const handleDownload = useCallback(async (item: DocumentWorkflowItem) => {
-    if (!item.storagePath) return;
+    if (!item.storagePath) {
+      toast.error("Aucun fichier disponible");
+      return;
+    }
 
     try {
-      const { data, error: dlError } = await supabase.storage
-        .from("generated-docs")
-        .download(item.storagePath);
-
-      if (dlError) throw dlError;
-
-      const url = URL.createObjectURL(data);
+      const { blob } = await downloadPdf(item.storagePath);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = item.templateName.replace(/\s+/g, "_") + ".pdf";
@@ -79,32 +77,25 @@ export function LearnerDocumentBlockList({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       toast.success("Document téléchargé");
     } catch (err) {
-      toast.error("Erreur de téléchargement");
+      console.error("Download error:", err);
+      toast.error("Erreur de téléchargement — fichier introuvable");
     }
   }, []);
 
   const handleEmail = useCallback(async (item: DocumentWorkflowItem) => {
-    if (!contactEmail || !item.storagePath) return;
+    if (!contactEmail || !item.storagePath) {
+      toast.error("Email ou fichier manquant");
+      return;
+    }
 
     try {
-      // Download the file to create attachment
-      const { data: fileData, error: dlError } = await supabase.storage
-        .from("generated-docs")
-        .download(item.storagePath);
-
-      if (dlError) throw dlError;
-
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = (reader.result as string).split(",")[1];
-          resolve(base64String);
-        };
-        reader.readAsDataURL(fileData);
-      });
+      const result = await downloadPdfAsBase64(item.storagePath);
+      if (!result) {
+        toast.error("Impossible de récupérer le document pour l'email");
+        return;
+      }
 
       // Parse name from contactName
       const nameParts = contactName.split(" ");
@@ -122,7 +113,7 @@ export function LearnerDocumentBlockList({
         defaultBody: `Bonjour,\n\nVeuillez trouver ci-joint votre ${item.templateName.toLowerCase()}.\n\nCordialement,`,
         attachments: [{
           filename: item.templateName.replace(/\s+/g, "_") + ".pdf",
-          content: base64,
+          content: result.base64,
           contentType: "application/pdf",
         }],
         autoNoteCategory: "apprenant_demander_docs",
