@@ -211,17 +211,27 @@ serve(async (req) => {
         if (!doc.file_path) continue;
 
         try {
+          // Detect bucket based on path convention
+          const bucket = doc.file_path.startsWith("centre/") 
+            ? "generated-docs" 
+            : "generated-documents";
+
           const { data: fileData, error: downloadError } = await supabase.storage
-            .from("generated-documents")
+            .from(bucket)
             .download(doc.file_path);
 
           if (downloadError || !fileData) {
-            console.error(`Failed to download ${doc.file_path}:`, downloadError);
+            console.error(`Failed to download ${bucket}/${doc.file_path}:`, downloadError);
             continue;
           }
 
           const arrayBuffer = await fileData.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
           
           attachments.push({
             filename: doc.file_name || `document_${doc.id}.pdf`,
