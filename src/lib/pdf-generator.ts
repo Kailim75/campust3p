@@ -2131,7 +2131,7 @@ export function generateConvocationPDF(
     doc.text(`Certifié Qualiopi`, pageWidth - mR, 32, { align: "right" });
   }
 
-  let yPos = headerH + 12;
+  let yPos = headerH + 10;
 
   // ═══════════════════════════════════════════════════════
   // B. TITRE — grand, centré, avec accent orange
