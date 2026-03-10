@@ -103,21 +103,19 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
             "",
             "TVA non applicable - Article 261.4.4°a du CGI (formations continues).",
             "",
-            "Les tarifs en vigueur sont :",
-            `• Formation VTC journée (35h) : ${TARIFS.VTC.journee} € HT`,
-            `• Formation VTC soirée (35h) : ${TARIFS.VTC.soiree} € HT`,
-            `• Formation VTC weekend (35h) : ${TARIFS.VTC.weekend} € HT`,
-            `• Formation TAXI journée (35h) : ${TARIFS.TAXI.journee} € HT`,
-            `• Formation VMDTR (35h) : ${TARIFS.VMDTR.journee} € HT`,
+            "Formules disponibles :",
+            `• Formule Soir : 33 heures dont 2 heures de conduite incluses — à partir de ${TARIFS.VTC.soiree} € HT`,
+            `• Formule Journée : 40 heures dont 2 heures de conduite incluses — à partir de ${TARIFS.VTC.journee} € HT`,
+            "• Examen blanc final : 4 heures",
             "",
             "Ces tarifs comprennent :",
-            "• Les 35 heures de formation",
+            "• Les heures de formation théorique et pratique",
             "• Les supports pédagogiques",
             "• L'accès plateforme e-learning (3 mois)",
             "• L'attestation de fin de formation",
             "",
             "Ces tarifs ne comprennent pas :",
-            "• Les frais d'inscription à l'examen CMA (environ 192 €)",
+            "• Les frais d'inscription à l'examen (environ 192 €)",
             "• Les frais de transport et d'hébergement",
             "• Les repas"
           ]
@@ -126,12 +124,13 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
           numero: "4.2",
           titre: "Modalités de paiement",
           contenu: [
-            "Option 1 - Paiement comptant :",
-            "Paiement intégral à l'inscription (avantage : aucun frais supplémentaire)",
+            "Le paiement s'effectue à titre personnel uniquement.",
             "",
-            "Option 2 - Paiement échelonné :",
-            "• Acompte de 30% à l'inscription",
-            "• Solde de 70% au premier jour de formation",
+            "Conformément à l'article L.6353-5 du Code du travail, aucune somme ne peut être exigée avant l'expiration du délai de rétractation de 10 jours.",
+            "",
+            "À l'issue de ce délai :",
+            "• Acompte maximum de 30% du montant total",
+            "• Solde échelonné en mensualités égales avant la fin de la formation",
             "",
             "Moyens de paiement acceptés :",
             "• Virement bancaire (RIB sur demande)",
@@ -157,42 +156,6 @@ export const CONDITIONS_GENERALES_VENTE: ConditionsGeneralesVente = {
     },
     {
       numero: 5,
-      titre: "FINANCEMENT",
-      sous_articles: [
-        {
-          numero: "5.1",
-          titre: "Compte Personnel de Formation (CPF)",
-          contenu: [
-            "Nos formations VTC, TAXI et VMDTR sont éligibles au CPF.",
-            "",
-            "Code CPF : 235802",
-            "",
-            "Procédure :",
-            "1. Créer un compte sur moncompteformation.gouv.fr",
-            `2. Rechercher "${ORGANISME.nom}" ou la formation souhaitée`,
-            "3. S'inscrire directement en ligne",
-            "4. Validation sous 48h (jours ouvrés)",
-            "",
-            "En cas de financement CPF, aucun acompte n'est requis. Le paiement est directement versé par la Caisse des Dépôts."
-          ]
-        },
-        {
-          numero: "5.2",
-          titre: "Autres financements",
-          contenu: [
-            "Nos formations peuvent être prises en charge par :",
-            "• France Travail (AIF - Aide Individuelle à la Formation)",
-            "• Région Île-de-France (selon dispositifs en vigueur)",
-            "• OPCO (Opérateurs de Compétences)",
-            "• Entreprises (plan de développement des compétences)",
-            "",
-            `Contact pour étude de financement : ${ORGANISME.email}`
-          ]
-        }
-      ]
-    },
-    {
-      numero: 6,
       titre: "ANNULATION ET REPORT",
       sous_articles: [
         {
