@@ -2393,8 +2393,8 @@ export function generateConvocationPDF(
   yPos += closingLines.length * 4.5 + 6;
 
   // Signature / cachet
-  const stampAdded = addStampImage(doc, company, mL, yPos, 32, 18);
-  yPos += stampAdded ? 22 : 0;
+  const stampAdded = addStampImage(doc, company, mL, yPos, 28, 16);
+  yPos += stampAdded ? 18 : 0;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
