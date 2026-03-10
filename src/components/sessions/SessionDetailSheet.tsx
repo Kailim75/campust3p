@@ -575,8 +575,24 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           ) : (
             <div className="py-12 text-center text-muted-foreground">Session non trouvée</div>
           )}
-        </SheetContent>
-      </Sheet>
+    </div>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[92vh] overflow-hidden">
+            {sheetContent}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent className={cn(sizeClass, "overflow-y-auto")}>
+            {sheetContent}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Add Inscription Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
