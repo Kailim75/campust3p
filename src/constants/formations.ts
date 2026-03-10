@@ -211,13 +211,13 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
     ]
   }
 ];
-// Programme TAXI National conforme 2024 - Durée totale : 34 heures
-// (Tronc commun sans module territorial spécifique)
+// Programme TAXI National conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
+// Nomenclature officielle des épreuves : A, B, C, D, E + F(T), G(T) + Pratique
 export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation du transport public particulier de personnes",
-    dureeHeures: 6,
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
+    dureeHeures: 5,
     contenu: [
       "Réglementation s'appliquant aux différents modes de transports publics particuliers : taxis, VTC, VMDTR",
       "Réglementation relative à l'utilisation de la voie publique pour la prise en charge de la clientèle",
@@ -227,17 +227,21 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
       "Composition et rôle des organismes administratifs, consultatifs et professionnels",
       "Agents susceptibles de procéder à des contrôles et leurs prérogatives",
       "Sanctions administratives et pénales encourues",
-      "Règles relatives à la prise en charge des personnes à mobilité réduite"
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
     ],
     objectifs: [
       "Maîtriser le cadre réglementaire du transport taxi",
       "Identifier les obligations légales du conducteur",
-      "Connaître les sanctions encourues en cas d'infraction"
+      "Connaître les sanctions encourues en cas d'infraction",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise de taxi",
+    titre: "B — Gestion",
     dureeHeures: 5,
     contenu: [
       "Principes de base de gestion et de comptabilité",
@@ -259,7 +263,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 3,
-    titre: "Sécurité routière",
+    titre: "C — Sécurité routière",
     dureeHeures: 5,
     contenu: [
       "Obligations en matière d'entretien et de visite technique des véhicules",
@@ -280,7 +284,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 4,
-    titre: "Français (compréhension et expression)",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 5,
     contenu: [
       "Accueil et présentation professionnelle",
@@ -299,7 +303,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 5,
-    titre: "Anglais (niveau B1 du CECRL)",
+    titre: "E — Anglais",
     dureeHeures: 4,
     contenu: [
       "Accueil et salutations en anglais",
@@ -318,12 +322,30 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 6,
-    titre: "Réglementation nationale spécifique de l'activité taxi",
+    titre: "F(T) — Connaissance du territoire et réglementation locale",
+    dureeHeures: 4,
+    contenu: [
+      "Topographie et connaissance du territoire d'exercice",
+      "Principaux axes routiers, monuments et sites d'intérêt",
+      "Gares, aéroports, hôpitaux et lieux stratégiques",
+      "Zones de stationnement taxi et emplacements réservés",
+      "Réglementation locale spécifique au département",
+      "Restrictions de circulation et ZFE (Zone à Faibles Émissions)",
+      "Articulation entre réglementations nationales et locales"
+    ],
+    objectifs: [
+      "Connaître le territoire d'exercice",
+      "Maîtriser les principaux itinéraires et points d'intérêt",
+      "Appliquer la réglementation locale"
+    ]
+  },
+  {
+    numero: 7,
+    titre: "G(T) — Réglementation nationale de l'activité taxis et gestion propre à cette activité",
     dureeHeures: 4,
     contenu: [
       "Fonctionnement des équipements spéciaux obligatoires (taximètre, lumineux)",
       "Terminal de paiement électronique",
-      "Articulation entre réglementations nationales et locales",
       "Régime des autorisations de stationnement (ADS)",
       "Règles de tarification d'une course taxi",
       "Activités complémentaires : services réguliers, TAP",
@@ -337,46 +359,8 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
     ]
   },
   {
-    numero: 7,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
-    contenu: [
-      "Cadre légal : loi du 27 mai 2008 et Code pénal",
-      "Les 27 critères de discrimination prohibés",
-      "Sanctions pénales et administratives",
-      "Études de cas concrets dans le transport de personnes",
-      "Refus de prise en charge : cas légitimes et illégitimes",
-      "Obligations spécifiques du conducteur de taxi",
-      "Signalement et témoignage"
-    ],
-    objectifs: [
-      "Connaître le cadre légal de la non-discrimination",
-      "Identifier les comportements discriminatoires",
-      "Adopter une attitude professionnelle égalitaire"
-    ]
-  },
-  {
     numero: 8,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
-    contenu: [
-      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
-      "Signaux d'alerte et situations à risque",
-      "Obligations légales de signalement",
-      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
-      "Procédures de signalement et protection des victimes",
-      "Rôle de vigilance du conducteur professionnel",
-      "Responsabilités pénales et civiles"
-    ],
-    objectifs: [
-      "Reconnaître les situations de danger",
-      "Connaître ses obligations de signalement",
-      "Savoir réagir face à ces situations"
-    ]
-  },
-  {
-    numero: 9,
-    titre: "Module pratique taxi",
+    titre: "Épreuve pratique d'admission",
     dureeHeures: 2,
     contenu: [
       "Conduite en sécurité et respect du code de la route",
@@ -396,7 +380,6 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
     ]
   }
 ];
-
 // Programme TAXI PARIS (75) - Durée totale : 34 heures
 // Formation initiale avec module spécifique à la zone Paris
 export const PROGRAMME_TAXI_75: ModuleFormation[] = [
