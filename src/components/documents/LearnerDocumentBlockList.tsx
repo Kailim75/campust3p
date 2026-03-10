@@ -62,16 +62,14 @@ export function LearnerDocumentBlockList({
   // ── Handlers ──
 
   const handleDownload = useCallback(async (item: DocumentWorkflowItem) => {
-    if (!item.storagePath) return;
+    if (!item.storagePath) {
+      toast.error("Aucun fichier disponible");
+      return;
+    }
 
     try {
-      const { data, error: dlError } = await supabase.storage
-        .from("generated-docs")
-        .download(item.storagePath);
-
-      if (dlError) throw dlError;
-
-      const url = URL.createObjectURL(data);
+      const { blob } = await downloadPdf(item.storagePath);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = item.templateName.replace(/\s+/g, "_") + ".pdf";
@@ -79,10 +77,10 @@ export function LearnerDocumentBlockList({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       toast.success("Document téléchargé");
     } catch (err) {
-      toast.error("Erreur de téléchargement");
+      console.error("Download error:", err);
+      toast.error("Erreur de téléchargement — fichier introuvable");
     }
   }, []);
 
