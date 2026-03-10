@@ -809,11 +809,13 @@ export function addLegalMentions(
   );
   
   // Mentions
-  const mentions = [
-    `${organisme.nom} - ${organisme.raisonSociale || ""}`,
-    `${organisme.adresse}`,
-    `SIRET: ${organisme.siret} | N° de déclaration d'activité: ${organisme.nda}`,
-  ];
+  const mentions: string[] = [];
+  if (organisme.nom) mentions.push(`${organisme.nom}${organisme.raisonSociale ? " - " + organisme.raisonSociale : ""}`);
+  if (organisme.adresse) mentions.push(organisme.adresse);
+  const legalParts: string[] = [];
+  if (organisme.siret && !organisme.siret.includes("[")) legalParts.push(`SIRET: ${organisme.siret}`);
+  if (organisme.nda && !organisme.nda.includes("[") && organisme.nda.trim() !== "") legalParts.push(`N° de déclaration d'activité: ${organisme.nda}`);
+  if (legalParts.length > 0) mentions.push(legalParts.join(" | "));
   
   if (organisme.qualiopiNumero) {
     mentions.push(`Certification Qualiopi: ${organisme.qualiopiNumero}`);
