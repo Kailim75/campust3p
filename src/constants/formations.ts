@@ -12,31 +12,31 @@
  * Ces valeurs sont remplacées par les données configurées dans Paramètres > Centre.
  */
 export const ORGANISME = {
-  // Ces valeurs sont des placeholders - les vraies données proviennent de la base de données
-  nom: "[Nom configuré dans Paramètres]",
-  raisonSociale: "[Raison sociale configurée dans Paramètres]",
-  adresse: "[Adresse configurée dans Paramètres]",
-  codePostal: "",
-  ville: "",
-  telephone: "[Téléphone configuré dans Paramètres]",
-  email: "[Email configuré dans Paramètres]",
-  siret: "[SIRET configuré dans Paramètres]",
-  nda: "[NDA configuré dans Paramètres]",
-  numeroRS: "[RS configuré dans Paramètres]",
-  agreementVTCTAXI: "[Agrément configuré dans Paramètres]",
-  agreementVMDTR: "[Agrément configuré dans Paramètres]",
+  // Données ECOLE T3P par défaut — remplacées par les données du centre en DB si configurées
+  nom: "ECOLE T3P",
+  raisonSociale: "ECOLE T3P",
+  adresse: "3 rue Corneille",
+  codePostal: "92120",
+  ville: "Montrouge",
+  telephone: "01 88 75 05 55",
+  email: "montrouge@ecolet3p.fr",
+  siret: "94856480200023",
+  nda: "", // Pas de NDA actuellement — ne pas afficher
+  numeroRS: "",
+  agreementVTCTAXI: "",
+  agreementVMDTR: "",
   referentHandicap: {
-    nom: "[Configuré dans Paramètres]",
-    telephone: "[Configuré dans Paramètres]",
-    email: "[Configuré dans Paramètres]"
+    nom: "ECOLE T3P",
+    telephone: "01 88 75 05 55",
+    email: "montrouge@ecolet3p.fr"
   },
   responsablePedagogique: {
-    nom: "[Configuré dans Paramètres]",
-    fonction: "Directeur pédagogique"
+    nom: "La Direction",
+    fonction: "Direction pédagogique"
   },
   assurance: {
-    nom: "[Configuré dans Paramètres]",
-    numeroContrat: "[Configuré dans Paramètres]"
+    nom: "",
+    numeroContrat: ""
   },
   mediateur: {
     nom: "MEDICYS",
@@ -47,10 +47,18 @@ export const ORGANISME = {
     web: "https://www.medicys.fr"
   },
   rib: {
-    banque: "[Configuré dans Paramètres]",
-    iban: "[Configuré dans Paramètres]",
-    bic: "[Configuré dans Paramètres]"
-  }
+    banque: "",
+    iban: "",
+    bic: ""
+  },
+  // Pièces d'inscription à fournir (liste canonique)
+  piecesInscription: [
+    "Pièce d'identité",
+    "Permis de conduire",
+    "Justificatif de domicile de moins de 3 mois",
+    "Photo d'identité",
+    "Signature sur fond blanc"
+  ],
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
