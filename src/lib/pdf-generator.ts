@@ -717,12 +717,12 @@ export function generateAttestationPDF(
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   const nameWidth = doc.getTextWidth(fullName) + 40;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 16, 3, 3, "F");
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(fullName, pageWidth / 2, yPos + 3, { align: "center" });
+  doc.text(fullName, pageWidth / 2, yPos + 4, { align: "center" });
   
   yPos += 15;
   doc.setFont("helvetica", "normal");
