@@ -6037,6 +6037,8 @@ export type Database = {
           date_expiration: string | null
           date_signature: string | null
           description: string | null
+          document_storage_bucket: string | null
+          document_storage_path: string | null
           document_url: string | null
           id: string
           ip_signature: string | null
@@ -6057,6 +6059,8 @@ export type Database = {
           date_expiration?: string | null
           date_signature?: string | null
           description?: string | null
+          document_storage_bucket?: string | null
+          document_storage_path?: string | null
           document_url?: string | null
           id?: string
           ip_signature?: string | null
@@ -6077,6 +6081,8 @@ export type Database = {
           date_expiration?: string | null
           date_signature?: string | null
           description?: string | null
+          document_storage_bucket?: string | null
+          document_storage_path?: string | null
           document_url?: string | null
           id?: string
           ip_signature?: string | null
