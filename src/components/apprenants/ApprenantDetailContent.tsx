@@ -428,7 +428,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         )}
 
         {/* Quick CTA actions */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {contact.telephone && (
             <Button size="sm" variant="outline" className="text-xs" asChild>
               <a href={`tel:${contact.telephone}`}>
