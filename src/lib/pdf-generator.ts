@@ -1509,14 +1509,14 @@ export function generateConventionPDF(
       
       // Module header
       doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-      doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+      doc.roundedRect(20, yPos - 4, pageWidth - 40, 13, 2, 2, "F");
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-      doc.text(`${module.titre}`, 25, yPos + 2);
-      doc.text(`${module.duree}`, pageWidth - 30, yPos + 2, { align: "right" });
+      doc.text(`${module.titre}`, 25, yPos + 3);
+      doc.text(`${module.duree}`, pageWidth - 30, yPos + 3, { align: "right" });
       
-      yPos += 12;
+      yPos += 14;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
