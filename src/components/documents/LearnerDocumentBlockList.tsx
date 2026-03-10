@@ -6,7 +6,7 @@ import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { downloadPdf, downloadPdfAsBase64, isPdfReadyForSignature } from "@/lib/documents/pdfResolver";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { useLearnerDocumentBlocks } from "@/hooks/useLearnerDocumentBlocks";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
