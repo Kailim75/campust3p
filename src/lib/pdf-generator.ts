@@ -1484,11 +1484,11 @@ export function generateConventionPDF(
     doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
     const annexeTitle = "ANNEXE 1 - PROGRAMME DÉTAILLÉ";
     const annexeTitleWidth = doc.getTextWidth(annexeTitle) + 30;
-    doc.roundedRect((pageWidth - annexeTitleWidth) / 2, yPos - 5, annexeTitleWidth, 12, 3, 3, "F");
+    doc.roundedRect((pageWidth - annexeTitleWidth) / 2, yPos - 5, annexeTitleWidth, 15, 3, 3, "F");
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-    doc.text(annexeTitle, pageWidth / 2, yPos + 3, { align: "center" });
+    doc.text(annexeTitle, pageWidth / 2, yPos + 4, { align: "center" });
     
     yPos += 12;
     doc.setFontSize(11);
