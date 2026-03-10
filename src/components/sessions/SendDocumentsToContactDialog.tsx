@@ -31,6 +31,7 @@ import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGene
 import {
   generateConventionPDF,
   generateContratFormationPDF,
+  preloadCompanyImages,
   type ContactInfo as PdfContactInfo,
   type SessionInfo as PdfSessionInfo,
   type CompanyInfo,
