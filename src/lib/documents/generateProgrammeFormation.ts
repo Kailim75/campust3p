@@ -48,19 +48,8 @@ function formatFullAddress(session: SessionInfo): string {
   return parts.length > 0 ? parts.join(", ") : session.lieu || "En présentiel";
 }
 
-// Cache pour images (partagé via pdf-generator)
-declare const imageCache: Map<string, string>;
-// We use the global imageCache from pdf-generator via a small bridge
-function tryGetCachedImage(url: string | undefined): string | null {
-  if (!url) return null;
-  try {
-    // Access the module-level cache from pdf-generator indirectly
-    // The images are preloaded by preloadCompanyImages before this runs
-    return null; // Will be handled by addLogoToHeader
-  } catch {
-    return null;
-  }
-}
+
+
 
 // ─── PDF Drawing Primitives ─────────────────────────────────────
 
