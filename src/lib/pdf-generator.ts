@@ -2069,9 +2069,9 @@ export function generateConvocationPDF(
   doc.setFont("helvetica", "bold");
   const titleW = doc.getTextWidth(titleText) + 28;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleW) / 2, yPos - 7, titleW, 13, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 7, titleW, 16, 3, 3, "F");
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+  doc.text(titleText, pageWidth / 2, yPos + 1, { align: "center" });
 
   // Session reference under title
   if (session.numero_session) {
