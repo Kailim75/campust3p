@@ -255,7 +255,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto sm:max-w-3xl max-sm:!max-w-[100vw] max-sm:!h-[100dvh] max-sm:!max-h-[100dvh] max-sm:!rounded-none max-sm:!top-0 max-sm:!translate-y-0">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la session" : "Créer une session"}
