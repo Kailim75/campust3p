@@ -2150,18 +2150,19 @@ export function generateConvocationPDF(
   if (session.duree_heures) details.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
   if (session.formateur) details.push({ label: "Formateur", value: session.formateur });
 
-  // Calculate box height
-  const rowH = 8;
-  const boxPadY = 8;
+  // Calculate box height with generous padding
+  const rowH = 10;
+  const boxPadY = 10;
+  const rowGap = 2; // extra gap between rows for divider clearance
   let totalBoxH = boxPadY * 2;
   // Pre-calculate multi-line values
   const detailRendered: { label: string; lines: string[]; lineH: number }[] = [];
   for (const d of details) {
-    const maxValW = contentWidth - 45;
+    const maxValW = contentWidth - 48;
     const lines = doc.splitTextToSize(d.value, maxValW) as string[];
-    const lineH = lines.length * 5;
+    const lineH = lines.length * 5.5;
     detailRendered.push({ label: d.label, lines, lineH: Math.max(lineH, rowH) });
-    totalBoxH += Math.max(lineH, rowH);
+    totalBoxH += Math.max(lineH, rowH) + rowGap;
   }
 
   // Cream background
@@ -2172,7 +2173,7 @@ export function generateConvocationPDF(
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.roundedRect(marginLeft, yPos, 3, totalBoxH, 1.5, 1.5, "F");
 
-  let rowY = yPos + boxPadY + 3;
+  let rowY = yPos + boxPadY + 4;
   doc.setFontSize(9.5);
   for (const row of detailRendered) {
     // Label
@@ -2183,14 +2184,14 @@ export function generateConvocationPDF(
     // Value
     doc.setFont("helvetica", "normal");
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-    doc.text(row.lines, marginLeft + 40, rowY);
+    doc.text(row.lines, marginLeft + 42, rowY);
 
-    // Subtle divider
-    rowY += row.lineH;
+    // Subtle divider drawn below text with clearance
+    rowY += row.lineH + rowGap;
     if (row !== detailRendered[detailRendered.length - 1]) {
       doc.setDrawColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
       doc.setLineWidth(0.3);
-      doc.line(marginLeft + 6, rowY - 2, marginLeft + contentWidth - 6, rowY - 2);
+      doc.line(marginLeft + 6, rowY - 1, marginLeft + contentWidth - 6, rowY - 1);
     }
   }
 
