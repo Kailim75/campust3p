@@ -72,13 +72,9 @@ export function DocumentPreviewDrawer({
 
     const loadPdf = async () => {
       try {
-        const { data, error: dlError } = await supabase.storage
-          .from("generated-docs")
-          .download(item.storagePath!);
-
-        if (dlError) throw dlError;
+        const { blob } = await downloadPdf(item.storagePath!);
         if (!cancelled) {
-          setPdfData(data);
+          setPdfData(blob);
         }
       } catch (err) {
         console.error("Failed to load PDF:", err);
