@@ -325,14 +325,14 @@ function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: 
   let yPos = startY + 8;
   
   // Badge titre avec fond Gold
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   const titleWidth = doc.getTextWidth(title) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 16, 3, 3, "F");
   
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(title, pageWidth / 2, yPos, { align: "center" });
+  doc.text(title, pageWidth / 2, yPos + 1, { align: "center" });
   
   yPos += 10;
   
@@ -358,16 +358,16 @@ function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: 
 // Section avec titre coloré
 function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos - 4, 3, 14, 1, 1, "F");
+  doc.roundedRect(20, yPos - 2, 3, 16, 1, 1, "F");
   
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(title, 27, yPos + 4);
+  doc.text(title, 27, yPos + 6);
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.setFont("helvetica", "normal");
-  return yPos + 14;
+  return yPos + 18;
 }
 
 // Box d'information avec fond cream
@@ -541,12 +541,12 @@ export function generateFacturePDF(
   
   // Table header avec Forest Green
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos, pageWidth - 40, 12, 2, 2, "F");
+  doc.roundedRect(20, yPos, pageWidth - 40, 14, 2, 2, "F");
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text("Description", 25, yPos + 8);
-  doc.text("Montant HT", pageWidth - 25, yPos + 8, { align: "right" });
+  doc.text("Description", 25, yPos + 9);
+  doc.text("Montant HT", pageWidth - 25, yPos + 9, { align: "right" });
   
   // Mapping des intitulés officiels pour les factures
   const INTITULE_FACTURE_MAP: Record<string, string> = {
@@ -601,7 +601,7 @@ export function generateFacturePDF(
   const contentHeight = Math.max(20, wrappedLines.length * lineHeight + 10);
 
   // Table content avec fond cream
-  yPos += 12;
+  yPos += 14;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.rect(20, yPos, pageWidth - 40, contentHeight, "F");
   
@@ -717,12 +717,12 @@ export function generateAttestationPDF(
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   const nameWidth = doc.getTextWidth(fullName) + 40;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 16, 3, 3, "F");
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(fullName, pageWidth / 2, yPos + 3, { align: "center" });
+  doc.text(fullName, pageWidth / 2, yPos + 4, { align: "center" });
   
   yPos += 15;
   doc.setFont("helvetica", "normal");
@@ -737,9 +737,16 @@ export function generateAttestationPDF(
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text("a suivi avec succès la formation suivante :", pageWidth / 2, yPos, { align: "center" });
   
-  // Formation details box avec style
+  // Formation details box avec style - hauteur dynamique
   yPos += 12;
-  const boxHeight = session.lieu ? 60 : 50;
+  let attestBoxContentH = 15; // padding top
+  attestBoxContentH += 14; // nom formation
+  attestBoxContentH += 12; // dates
+  if (session.duree_heures) attestBoxContentH += 10;
+  if (session.lieu) attestBoxContentH += 10;
+  attestBoxContentH += 8; // padding bottom
+  const boxHeight = attestBoxContentH;
+  
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(30, yPos, pageWidth - 60, boxHeight, 4, 4, "F");
   
@@ -751,9 +758,11 @@ export function generateAttestationPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(session.nom, pageWidth / 2, yPos, { align: "center" });
+  // Wrap session name if too long
+  const sessionNameLines = doc.splitTextToSize(session.nom, pageWidth - 80);
+  doc.text(sessionNameLines, pageWidth / 2, yPos, { align: "center" });
   
-  yPos += 12;
+  yPos += sessionNameLines.length * 6 + 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
@@ -1475,11 +1484,11 @@ export function generateConventionPDF(
     doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
     const annexeTitle = "ANNEXE 1 - PROGRAMME DÉTAILLÉ";
     const annexeTitleWidth = doc.getTextWidth(annexeTitle) + 30;
-    doc.roundedRect((pageWidth - annexeTitleWidth) / 2, yPos - 5, annexeTitleWidth, 12, 3, 3, "F");
+    doc.roundedRect((pageWidth - annexeTitleWidth) / 2, yPos - 5, annexeTitleWidth, 15, 3, 3, "F");
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-    doc.text(annexeTitle, pageWidth / 2, yPos + 3, { align: "center" });
+    doc.text(annexeTitle, pageWidth / 2, yPos + 4, { align: "center" });
     
     yPos += 12;
     doc.setFontSize(11);
@@ -1500,14 +1509,14 @@ export function generateConventionPDF(
       
       // Module header
       doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-      doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+      doc.roundedRect(20, yPos - 4, pageWidth - 40, 13, 2, 2, "F");
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-      doc.text(`${module.titre}`, 25, yPos + 2);
-      doc.text(`${module.duree}`, pageWidth - 30, yPos + 2, { align: "right" });
+      doc.text(`${module.titre}`, 25, yPos + 3);
+      doc.text(`${module.duree}`, pageWidth - 30, yPos + 3, { align: "right" });
       
-      yPos += 12;
+      yPos += 14;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
@@ -1553,11 +1562,11 @@ export function generateConventionPDF(
     doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
     const annexe2Title = "ANNEXE 2 - RÈGLEMENT INTÉRIEUR";
     const annexe2TitleWidth = doc.getTextWidth(annexe2Title) + 30;
-    doc.roundedRect((pageWidth - annexe2TitleWidth) / 2, yPos - 5, annexe2TitleWidth, 12, 3, 3, "F");
+    doc.roundedRect((pageWidth - annexe2TitleWidth) / 2, yPos - 5, annexe2TitleWidth, 15, 3, 3, "F");
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-    doc.text(annexe2Title, pageWidth / 2, yPos + 3, { align: "center" });
+    doc.text(annexe2Title, pageWidth / 2, yPos + 4, { align: "center" });
     
     yPos += 15;
     doc.setFontSize(8);
@@ -1665,15 +1674,15 @@ export function generateContratFormationPDF(
 
     // Barre latérale Forest Green
     doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+    doc.roundedRect(marginLeft, yPos - 2, 3, 14, 1, 1, "F");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.text(title, marginLeft + 7, yPos + 3);
+    doc.text(title, marginLeft + 7, yPos + 5);
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
     doc.setFont("helvetica", "normal");
-    yPos += lineH + 6;
+    yPos += lineH + 8;
   }
 
   function writeBullet(text: string): void {
@@ -1697,9 +1706,9 @@ export function generateContratFormationPDF(
   const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
   const titleW = doc.getTextWidth(titleText) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 16, 3, 3, "F");
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+  doc.text(titleText, pageWidth / 2, yPos + 1, { align: "center" });
 
   yPos += 8;
   doc.setFontSize(8);
@@ -2060,9 +2069,9 @@ export function generateConvocationPDF(
   doc.setFont("helvetica", "bold");
   const titleW = doc.getTextWidth(titleText) + 28;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleW) / 2, yPos - 7, titleW, 13, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 7, titleW, 16, 3, 3, "F");
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+  doc.text(titleText, pageWidth / 2, yPos + 1, { align: "center" });
 
   // Session reference under title
   if (session.numero_session) {
@@ -2114,13 +2123,13 @@ export function generateConvocationPDF(
 
   // ── Section 1: Formation details (cream box with gold left border) ──
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("INFORMATIONS DE FORMATION", marginLeft + 7, yPos + 4);
+  doc.text("INFORMATIONS DE FORMATION", marginLeft + 7, yPos + 6);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 14;
+  yPos += 18;
 
   // Build detail rows
   interface DetailRow { label: string; value: string }
@@ -2141,18 +2150,19 @@ export function generateConvocationPDF(
   if (session.duree_heures) details.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
   if (session.formateur) details.push({ label: "Formateur", value: session.formateur });
 
-  // Calculate box height
-  const rowH = 8;
-  const boxPadY = 8;
+  // Calculate box height with generous padding
+  const rowH = 10;
+  const boxPadY = 10;
+  const rowGap = 2; // extra gap between rows for divider clearance
   let totalBoxH = boxPadY * 2;
   // Pre-calculate multi-line values
   const detailRendered: { label: string; lines: string[]; lineH: number }[] = [];
   for (const d of details) {
-    const maxValW = contentWidth - 45;
+    const maxValW = contentWidth - 48;
     const lines = doc.splitTextToSize(d.value, maxValW) as string[];
-    const lineH = lines.length * 5;
+    const lineH = lines.length * 5.5;
     detailRendered.push({ label: d.label, lines, lineH: Math.max(lineH, rowH) });
-    totalBoxH += Math.max(lineH, rowH);
+    totalBoxH += Math.max(lineH, rowH) + rowGap;
   }
 
   // Cream background
@@ -2163,7 +2173,7 @@ export function generateConvocationPDF(
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.roundedRect(marginLeft, yPos, 3, totalBoxH, 1.5, 1.5, "F");
 
-  let rowY = yPos + boxPadY + 3;
+  let rowY = yPos + boxPadY + 4;
   doc.setFontSize(9.5);
   for (const row of detailRendered) {
     // Label
@@ -2174,14 +2184,14 @@ export function generateConvocationPDF(
     // Value
     doc.setFont("helvetica", "normal");
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-    doc.text(row.lines, marginLeft + 40, rowY);
+    doc.text(row.lines, marginLeft + 42, rowY);
 
-    // Subtle divider
-    rowY += row.lineH;
+    // Subtle divider drawn below text with clearance
+    rowY += row.lineH + rowGap;
     if (row !== detailRendered[detailRendered.length - 1]) {
       doc.setDrawColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
       doc.setLineWidth(0.3);
-      doc.line(marginLeft + 6, rowY - 2, marginLeft + contentWidth - 6, rowY - 2);
+      doc.line(marginLeft + 6, rowY - 1, marginLeft + contentWidth - 6, rowY - 1);
     }
   }
 
@@ -2189,13 +2199,13 @@ export function generateConvocationPDF(
 
   // ── Section 2: Documents à apporter ──
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("DOCUMENTS À APPORTER", marginLeft + 7, yPos + 4);
+  doc.text("DOCUMENTS À APPORTER", marginLeft + 7, yPos + 6);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 14;
+  yPos += 18;
 
   const docsTooBring = [
     "Pièce d'identité en cours de validité",
@@ -2216,13 +2226,13 @@ export function generateConvocationPDF(
   // ── Section 3: Informations pratiques ──
   yPos += 4;
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(marginLeft, yPos - 4, 3, 12, 1, 1, "F");
+  doc.roundedRect(marginLeft, yPos - 2, 3, 16, 1, 1, "F");
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("INFORMATIONS PRATIQUES", marginLeft + 7, yPos + 4);
+  doc.text("INFORMATIONS PRATIQUES", marginLeft + 7, yPos + 6);
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  yPos += 14;
+  yPos += 18;
 
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
@@ -2373,14 +2383,14 @@ export function generateProgrammePDF(
     
     // Titre du module avec fond Forest Green
     doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+    doc.roundedRect(20, yPos - 4, pageWidth - 40, 13, 2, 2, "F");
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 2);
+    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 3);
     
-    yPos += 12;
+    yPos += 14;
     
     // Contenu du module
     doc.setFont("helvetica", "normal");
@@ -2573,14 +2583,14 @@ export function generateProgrammeStandalonePDF(
     
     // Titre du module avec fond Forest Green
     doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+    doc.roundedRect(20, yPos - 4, pageWidth - 40, 13, 2, 2, "F");
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 2);
+    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 3);
     
-    yPos += 12;
+    yPos += 14;
     
     // Contenu du module
     doc.setFont("helvetica", "normal");
