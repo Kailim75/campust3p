@@ -2151,19 +2151,23 @@ export function generateConvocationPDF(
   if (session.formateur) details.push({ label: "Formateur", value: session.formateur });
 
   // Calculate box height with generous padding
-  const rowH = 10;
+  const labelColW = 38;
+  const valueColX = marginLeft + 10 + labelColW;
+  const maxValW = contentWidth - labelColW - 16;
+  const rowGap = 3;
   const boxPadY = 10;
-  const rowGap = 2; // extra gap between rows for divider clearance
-  let totalBoxH = boxPadY * 2;
+
   // Pre-calculate multi-line values
+  doc.setFontSize(9.5);
   const detailRendered: { label: string; lines: string[]; lineH: number }[] = [];
+  let totalBoxH = boxPadY * 2;
   for (const d of details) {
-    const maxValW = contentWidth - 48;
     const lines = doc.splitTextToSize(d.value, maxValW) as string[];
-    const lineH = lines.length * 5.5;
-    detailRendered.push({ label: d.label, lines, lineH: Math.max(lineH, rowH) });
-    totalBoxH += Math.max(lineH, rowH) + rowGap;
+    const lineH = Math.max(lines.length * 5.5, 8);
+    detailRendered.push({ label: d.label, lines, lineH });
+    totalBoxH += lineH + rowGap;
   }
+  totalBoxH -= rowGap; // remove last gap
 
   // Cream background
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
@@ -2173,10 +2177,11 @@ export function generateConvocationPDF(
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.roundedRect(marginLeft, yPos, 3, totalBoxH, 1.5, 1.5, "F");
 
-  let rowY = yPos + boxPadY + 4;
+  let rowY = yPos + boxPadY + 2;
   doc.setFontSize(9.5);
-  for (const row of detailRendered) {
-    // Label
+  for (let i = 0; i < detailRendered.length; i++) {
+    const row = detailRendered[i];
+    // Label (right-aligned in its column for clean alignment)
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
     doc.text(row.label, marginLeft + 8, rowY);
@@ -2184,14 +2189,15 @@ export function generateConvocationPDF(
     // Value
     doc.setFont("helvetica", "normal");
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-    doc.text(row.lines, marginLeft + 42, rowY);
+    doc.text(row.lines, valueColX, rowY);
 
-    // Subtle divider drawn below text with clearance
     rowY += row.lineH + rowGap;
-    if (row !== detailRendered[detailRendered.length - 1]) {
+
+    // Subtle divider between rows (not after last)
+    if (i < detailRendered.length - 1) {
       doc.setDrawColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
       doc.setLineWidth(0.3);
-      doc.line(marginLeft + 6, rowY - 1, marginLeft + contentWidth - 6, rowY - 1);
+      doc.line(marginLeft + 6, rowY - rowGap / 2, marginLeft + contentWidth - 6, rowY - rowGap / 2);
     }
   }
 
