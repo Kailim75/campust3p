@@ -115,7 +115,7 @@ function writeArticle(ctx: ConvCtx, title: string): void {
 }
 
 function writeParagraph(ctx: ConvCtx, text: string, indent: number = 0): void {
-  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFontSize(9);
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
   setColor(ctx.doc, C.warmGray700);
   const lines = ctx.doc.splitTextToSize(text, ctx.cW - indent) as string[];
@@ -124,6 +124,7 @@ function writeParagraph(ctx: ConvCtx, text: string, indent: number = 0): void {
     ctx.doc.text(line, ctx.mL + indent, ctx.yPos);
     ctx.yPos += ctx.lineH;
   }
+  ctx.yPos += 2;
   setColor(ctx.doc, C.warmGray800);
 }
 
