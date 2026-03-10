@@ -107,12 +107,14 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
   const orgSiret = company?.siret || ORGANISME.siret;
   const orgNda = company?.nda || ORGANISME.nda;
 
-  // Build legal info line
-  const legalParts = [`SIRET: ${orgSiret}`, `NDA: ${orgNda}`];
+  // Build legal info line — skip empty fields
+  const legalParts: string[] = [];
+  if (orgSiret && !orgSiret.includes("[")) legalParts.push(`SIRET: ${orgSiret}`);
+  if (orgNda && !orgNda.includes("[")) legalParts.push(`NDA: ${orgNda}`);
   if (company?.qualiopi_numero) legalParts.push(`Qualiopi: ${company.qualiopi_numero}`);
   if (company?.agrement_prefecture) legalParts.push(`Agrément Préf.: ${company.agrement_prefecture}`);
   if (company?.code_rs) legalParts.push(`RS: ${company.code_rs}`);
-  const legalInfo = legalParts.join(" | ");
+  const legalInfo = legalParts.length > 0 ? legalParts.join(" | ") : "";
 
   // Bandeau vert Forest
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -141,9 +143,11 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
   doc.text(orgAdresse, MARGIN_LEFT, 24);
   doc.text(`Tél: ${orgTel} | Email: ${orgEmail}`, MARGIN_LEFT, 30);
 
-  // Informations légales
-  doc.setFontSize(7);
-  doc.text(legalInfo, MARGIN_LEFT, 37);
+  // Informations légales (only if not empty)
+  if (legalInfo) {
+    doc.setFontSize(7);
+    doc.text(legalInfo, MARGIN_LEFT, 37);
+  }
 
   // Titre du document (bande dorée)
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
