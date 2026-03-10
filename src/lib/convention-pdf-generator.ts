@@ -281,8 +281,8 @@ function addInfoBox(doc: jsPDF, title: string, lines: string[], yPos: number): n
 }
 
 // ==================== SIGNATURE BLOCK ====================
-function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, beneficiaire?: Beneficiaire): number {
-  yPos = checkPageBreak(doc, yPos, 50);
+function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, beneficiaire?: Beneficiaire, company?: ConventionCompanyInfo): number {
+  yPos = checkPageBreak(doc, yPos, 55);
 
   const halfWidth = CONTENT_WIDTH / 2 - 5;
 
@@ -296,7 +296,7 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
   // Box gauche - Organisme
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.setDrawColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(MARGIN_LEFT, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(MARGIN_LEFT, yPos, halfWidth, 45, 2, 2, "FD");
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -305,14 +305,27 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
 
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(ORGANISME.responsablePedagogique.nom, MARGIN_LEFT + 4, yPos + 12);
-  doc.text(ORGANISME.responsablePedagogique.fonction, MARGIN_LEFT + 4, yPos + 17);
-  doc.text(`Fait à ${ORGANISME.ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT + 4, yPos + 24);
+  const sigNom = company?.responsable_nom || ORGANISME.responsablePedagogique.nom;
+  const sigFonction = company?.responsable_fonction || ORGANISME.responsablePedagogique.fonction;
+  doc.text(sigNom, MARGIN_LEFT + 4, yPos + 12);
+  doc.text(sigFonction, MARGIN_LEFT + 4, yPos + 17);
+  const ville = company?.ville || extractVille(company?.address) || ORGANISME.ville;
+  doc.text(`Fait à ${ville}, le ${formatDateShort(new Date())}`, MARGIN_LEFT + 4, yPos + 24);
+
+  // Tampon / cachet — positioned below text to avoid overlap
+  if (company?.signature_cachet_url) {
+    const cachedStamp = convImageCache.get(company.signature_cachet_url);
+    if (cachedStamp) {
+      try {
+        doc.addImage(cachedStamp, 'PNG', MARGIN_LEFT + halfWidth - 40, yPos + 26, 35, 18);
+      } catch { /* ignore */ }
+    }
+  }
 
   // Box droite - Bénéficiaire
   const rightX = MARGIN_LEFT + halfWidth + 10;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(rightX, yPos, halfWidth, 40, 2, 2, "FD");
+  doc.roundedRect(rightX, yPos, halfWidth, 45, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
@@ -329,7 +342,7 @@ function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, bene
     doc.text("(Précédée de la mention \"Lu et approuvé\")", rightX + 4, yPos + 17);
   }
 
-  return yPos + 50;
+  return yPos + 55;
 }
 
 // ============================================================
