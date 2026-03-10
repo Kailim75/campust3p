@@ -22,7 +22,7 @@ const formSchema = z.object({
   telephone: z.string().min(10, 'Minimum 10 caractères'),
   email: z.string().email('Email invalide'),
   siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres'),
-  nda: z.string().min(1, 'Requis'),
+  nda: z.string().optional().default(''),
   region_declaration: z.string().min(1, 'Requis'),
   responsable_legal_nom: z.string().min(1, 'Requis'),
   responsable_legal_fonction: z.string().min(1, 'Requis'),
