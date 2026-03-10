@@ -773,12 +773,12 @@ export function addParagraph(
   const lines = doc.splitTextToSize(text, contentWidth - indent);
   
   lines.forEach((line: string) => {
-    yPos = checkPageBreak(doc, yPos, 5);
+    yPos = checkPageBreak(doc, yPos, 6);
     doc.text(line, DOCUMENT_LAYOUT.marginLeft + indent, yPos);
-    yPos += 4.5;
+    yPos += DOCUMENT_FONTS.lineHeight.body;
   });
   
-  return yPos + 2;
+  return yPos + 3;
 }
 
 /**
