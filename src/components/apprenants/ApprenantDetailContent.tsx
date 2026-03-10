@@ -517,7 +517,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto p-5">
+        <div className="flex-1 overflow-auto p-3 sm:p-5">
           <TabsContent value="resume" className="mt-0">
             <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
           </TabsContent>
