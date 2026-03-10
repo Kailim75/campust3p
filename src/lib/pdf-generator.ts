@@ -248,8 +248,8 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
   // Reset text color
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 
-  // Retourne la position Y après le header (avec marge)
-  return headerHeight + 8;
+  // Retourne la position Y après le header (avec marge aérée)
+  return headerHeight + 10;
 }
 
 function addFooter(doc: jsPDF, pageNum: number = 1) {
