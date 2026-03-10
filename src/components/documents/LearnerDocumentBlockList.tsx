@@ -85,24 +85,17 @@ export function LearnerDocumentBlockList({
   }, []);
 
   const handleEmail = useCallback(async (item: DocumentWorkflowItem) => {
-    if (!contactEmail || !item.storagePath) return;
+    if (!contactEmail || !item.storagePath) {
+      toast.error("Email ou fichier manquant");
+      return;
+    }
 
     try {
-      // Download the file to create attachment
-      const { data: fileData, error: dlError } = await supabase.storage
-        .from("generated-docs")
-        .download(item.storagePath);
-
-      if (dlError) throw dlError;
-
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = (reader.result as string).split(",")[1];
-          resolve(base64String);
-        };
-        reader.readAsDataURL(fileData);
-      });
+      const result = await downloadPdfAsBase64(item.storagePath);
+      if (!result) {
+        toast.error("Impossible de récupérer le document pour l'email");
+        return;
+      }
 
       // Parse name from contactName
       const nameParts = contactName.split(" ");
