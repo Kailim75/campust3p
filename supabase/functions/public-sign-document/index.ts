@@ -7,9 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
 interface SignRequest {
   signatureId: string;
-  signatureDataBase64: string; // base64 PNG data (without data:image prefix)
+  signatureDataBase64: string;
   userAgent?: string;
 }
 
@@ -27,10 +34,7 @@ serve(async (req) => {
     const { signatureId, signatureDataBase64, userAgent } = body;
 
     if (!signatureId || !signatureDataBase64) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Paramètres manquants" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Paramètres manquants" }, 400);
     }
 
     // Verify the signature request exists and is signable
@@ -41,24 +45,15 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !sigRequest) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Document introuvable" }),
-        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Document introuvable" }, 404);
     }
 
     if (!["en_attente", "envoye"].includes(sigRequest.statut)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Ce document ne peut plus être signé" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Ce document ne peut plus être signé" }, 400);
     }
 
     if (sigRequest.date_expiration && new Date(sigRequest.date_expiration) < new Date()) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Ce lien de signature a expiré" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Ce lien de signature a expiré" }, 400);
     }
 
     // Get centre_id from contact for proper storage path
@@ -71,11 +66,11 @@ serve(async (req) => {
     const centreId = contact?.centre_id || "unknown";
 
     // Upload signature image to storage using service role
-    const fileName = `${centreId}/public-signatures/${signatureId}_${Date.now()}.png`;
+    const fileName = `centre/${centreId}/signatures/${sigRequest.contact_id}/sig-${signatureId}-${Date.now()}.png`;
     const binaryData = decode(signatureDataBase64);
 
     const { error: uploadError } = await supabase.storage
-      .from("signatures")
+      .from("generated-documents")
       .upload(fileName, binaryData, {
         contentType: "image/png",
         upsert: true,
@@ -83,13 +78,10 @@ serve(async (req) => {
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Erreur lors de l'upload de la signature" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Erreur lors de l'upload de la signature" }, 500);
     }
 
-    // Update signature request via direct update (service role bypasses RLS)
+    // Update signature request
     const { error: updateError } = await supabase
       .from("signature_requests")
       .update({
@@ -102,23 +94,14 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Update error:", updateError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Erreur lors de la mise à jour" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return jsonResponse({ success: false, error: "Erreur lors de la mise à jour" }, 500);
     }
 
     console.log(`Document ${signatureId} signed successfully`);
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  } catch (error: any) {
+    return jsonResponse({ success: true });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur interne";
     console.error("Error in public-sign-document:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+    return jsonResponse({ success: false, error: message }, 500);
   }
 });

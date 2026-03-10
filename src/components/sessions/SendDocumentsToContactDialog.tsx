@@ -650,7 +650,7 @@ export function SendDocumentsToContactDialog({
               continue;
             }
 
-            // Generate signed URL on demand for the signature page
+            // Generate signed URL for immediate use + store stable path
             const { data: signedUrlData } = await supabase.storage
               .from('generated-documents')
               .createSignedUrl(storagePath, 60 * 60 * 24 * 365); // 1 year
@@ -663,7 +663,9 @@ export function SendDocumentsToContactDialog({
               description: `Signature électronique demandée pour ${docLabels[docType] || docType} de la session ${sessionInfo.nom}`,
               date_expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
               document_url: documentUrl,
-            } as any);
+              document_storage_path: storagePath,
+              document_storage_bucket: 'generated-documents',
+            });
 
             // Send signature email
             if (sigRequest?.id) {
