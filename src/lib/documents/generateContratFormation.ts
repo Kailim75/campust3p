@@ -1,0 +1,559 @@
+// ═══════════════════════════════════════════════════════════════
+// Contrat de Formation Professionnelle — PDF Generator
+// Art. L6353-3 à L6353-7 du Code du travail
+// Personne physique finançant elle-même sa formation
+// ═══════════════════════════════════════════════════════════════
+
+import jsPDF from "jspdf";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { DOCUMENT_COLORS, DOCUMENT_FONTS } from "../document-styles";
+import type { ContactInfo, SessionInfo, CompanyInfo } from "../pdf-generator";
+import { ORGANISME } from "@/constants/formations";
+
+const C = DOCUMENT_COLORS;
+
+// ── PDF helpers (self-contained for maintainability) ──
+
+function setColor(doc: jsPDF, color: { r: number; g: number; b: number }) {
+  doc.setTextColor(color.r, color.g, color.b);
+}
+
+function setFill(doc: jsPDF, color: { r: number; g: number; b: number }) {
+  doc.setFillColor(color.r, color.g, color.b);
+}
+
+interface ContratContext {
+  doc: jsPDF;
+  company: CompanyInfo;
+  contact: ContactInfo;
+  session: SessionInfo;
+  pageWidth: number;
+  pageHeight: number;
+  mL: number;
+  mR: number;
+  cW: number;
+  bottomMargin: number;
+  lineH: number;
+  pageNum: number;
+  yPos: number;
+}
+
+function checkPageBreak(ctx: ContratContext, needed: number): void {
+  if (ctx.yPos + needed > ctx.pageHeight - ctx.bottomMargin) {
+    addFooter(ctx);
+    ctx.doc.addPage();
+    ctx.pageNum++;
+    ctx.yPos = addHeader(ctx) + 5;
+  }
+}
+
+function addHeader(ctx: ContratContext): number {
+  const { doc, company, pageWidth, mL } = ctx;
+  const headerH = 32;
+
+  setFill(doc, C.forestGreen);
+  doc.rect(0, 0, pageWidth, headerH, "F");
+
+  setFill(doc, C.gold);
+  doc.rect(0, headerH, pageWidth, 1.5, "F");
+
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  doc.setFontSize(14);
+  setColor(doc, C.white);
+  doc.text(company.name, mL, 13);
+
+  doc.setFontSize(7.5);
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  doc.setTextColor(210, 225, 215);
+  doc.text(company.address, mL, 20);
+
+  const contactLine: string[] = [];
+  if (company.phone) contactLine.push(company.phone);
+  if (company.email) contactLine.push(company.email);
+  if (contactLine.length > 0) doc.text(contactLine.join(" • "), mL, 26);
+
+  // Admin refs on right (conditional: skip if placeholder)
+  const refs: string[] = [];
+  if (company.siret && !company.siret.includes("[")) refs.push(`SIRET ${company.siret}`);
+  if (company.nda && !company.nda.includes("[") && company.nda.trim()) refs.push(`NDA ${company.nda}`);
+  if (refs.length > 0) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(170, 195, 175);
+    refs.forEach((r, i) => doc.text(r, pageWidth - ctx.mR, 13 + i * 4, { align: "right" }));
+  }
+  if (company.qualiopi_numero) {
+    doc.setFontSize(6);
+    doc.setTextColor(C.gold.r, C.gold.g, C.gold.b);
+    doc.text("Certifié Qualiopi", pageWidth - ctx.mR, 28, { align: "right" });
+  }
+
+  setColor(doc, C.warmGray800);
+  return headerH + 6;
+}
+
+function addFooter(ctx: ContratContext): void {
+  const { doc, pageWidth, pageHeight, pageNum } = ctx;
+
+  setFill(doc, C.gold);
+  doc.rect(ctx.mL, pageHeight - 22, pageWidth - ctx.mL - ctx.mR, 0.5, "F");
+
+  doc.setFontSize(6.5);
+  setColor(doc, C.warmGray500);
+  doc.text(`Document généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, ctx.mL, pageHeight - 16);
+  doc.text(`Page ${pageNum}`, pageWidth - ctx.mR, pageHeight - 16, { align: "right" });
+  setColor(doc, C.warmGray800);
+}
+
+function writeArticle(ctx: ContratContext, title: string): void {
+  ctx.yPos += 6;
+  checkPageBreak(ctx, 20);
+
+  setFill(ctx.doc, C.forestGreen);
+  ctx.doc.roundedRect(ctx.mL, ctx.yPos - 2, 3, 13, 1, 1, "F");
+
+  ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  ctx.doc.setFontSize(9.5);
+  setColor(ctx.doc, C.forestGreen);
+  ctx.doc.text(title, ctx.mL + 7, ctx.yPos + 5);
+  setColor(ctx.doc, C.warmGray800);
+  ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  ctx.yPos += 14;
+}
+
+function writeParagraph(ctx: ContratContext, text: string, indent: number = 0): void {
+  ctx.doc.setFontSize(8.5);
+  ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  setColor(ctx.doc, C.warmGray700);
+  const lines = ctx.doc.splitTextToSize(text, ctx.cW - indent) as string[];
+  for (const line of lines) {
+    checkPageBreak(ctx, ctx.lineH + 1);
+    ctx.doc.text(line, ctx.mL + indent, ctx.yPos);
+    ctx.yPos += ctx.lineH;
+  }
+  setColor(ctx.doc, C.warmGray800);
+}
+
+function writeBullet(ctx: ContratContext, text: string): void {
+  ctx.doc.setFontSize(8.5);
+  setColor(ctx.doc, C.warmGray700);
+  const lines = ctx.doc.splitTextToSize(`• ${text}`, ctx.cW - 8) as string[];
+  for (let i = 0; i < lines.length; i++) {
+    checkPageBreak(ctx, ctx.lineH + 1);
+    ctx.doc.text(lines[i], ctx.mL + (i === 0 ? 4 : 9), ctx.yPos);
+    ctx.yPos += ctx.lineH;
+  }
+  setColor(ctx.doc, C.warmGray800);
+}
+
+function drawInfoBox(ctx: ContratContext, items: Array<{ label: string; value: string }>): void {
+  const visibleItems = items.filter(i => i.value.trim() !== "");
+  if (visibleItems.length === 0) return;
+
+  const boxH = visibleItems.length * ctx.lineH + 10;
+  checkPageBreak(ctx, boxH + 5);
+
+  setFill(ctx.doc, C.creamLight);
+  ctx.doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, boxH, 3, 3, "F");
+  setFill(ctx.doc, C.forestGreen);
+  ctx.doc.roundedRect(ctx.mL, ctx.yPos, 3, boxH, 1, 1, "F");
+
+  let y = ctx.yPos + 6;
+  ctx.doc.setFontSize(8.5);
+  for (const item of visibleItems) {
+    ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(ctx.doc, C.forestGreen);
+    ctx.doc.text(`${item.label} :`, ctx.mL + 8, y);
+    const labelW = ctx.doc.getTextWidth(`${item.label} : `);
+    ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    setColor(ctx.doc, C.warmGray700);
+    const valueLines = ctx.doc.splitTextToSize(item.value, ctx.cW - 16 - labelW) as string[];
+    ctx.doc.text(valueLines[0] || "", ctx.mL + 8 + labelW, y);
+    y += ctx.lineH;
+    for (let i = 1; i < valueLines.length; i++) {
+      ctx.doc.text(valueLines[i], ctx.mL + 8 + labelW, y);
+      y += ctx.lineH;
+    }
+  }
+  setColor(ctx.doc, C.warmGray800);
+  ctx.yPos += boxH + 4;
+}
+
+// ── Helpers ──
+
+function formatTime(t: string): string {
+  const [h, m] = t.split(":");
+  return `${h}h${m}`;
+}
+
+function isValidTime(t?: string): t is string {
+  return !!t && t !== "00:00:00" && t !== "00:00";
+}
+
+function formatSessionHours(s: SessionInfo): string {
+  if (isValidTime(s.heure_debut_matin) && isValidTime(s.heure_fin_matin) && isValidTime(s.heure_debut_aprem) && isValidTime(s.heure_fin_aprem)) {
+    return `${formatTime(s.heure_debut_matin)} - ${formatTime(s.heure_fin_matin)} / ${formatTime(s.heure_debut_aprem)} - ${formatTime(s.heure_fin_aprem)}`;
+  }
+  if (isValidTime(s.heure_debut) && isValidTime(s.heure_fin)) {
+    return `${formatTime(s.heure_debut)} - ${formatTime(s.heure_fin)}`;
+  }
+  return "";
+}
+
+function formatAddress(s: SessionInfo): string {
+  const parts: string[] = [];
+  if (s.adresse_rue) parts.push(s.adresse_rue);
+  if (s.adresse_code_postal || s.adresse_ville) parts.push(`${s.adresse_code_postal || ""} ${s.adresse_ville || ""}`.trim());
+  if (parts.length === 0 && s.lieu) return s.lieu;
+  return parts.join(", ");
+}
+
+function getPrice(s: SessionInfo): number {
+  return s.prix_ht || s.prix || 0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN GENERATOR
+// ═══════════════════════════════════════════════════════════════
+
+export function generateContratFormationV2(
+  contact: ContactInfo,
+  session: SessionInfo,
+  company: CompanyInfo
+): jsPDF {
+  const doc = new jsPDF();
+  const ctx: ContratContext = {
+    doc,
+    company,
+    contact,
+    session,
+    pageWidth: doc.internal.pageSize.getWidth(),
+    pageHeight: doc.internal.pageSize.getHeight(),
+    mL: 20,
+    mR: 20,
+    cW: doc.internal.pageSize.getWidth() - 40,
+    bottomMargin: 28,
+    lineH: 4.5,
+    pageNum: 1,
+    yPos: 0,
+  };
+
+  ctx.yPos = addHeader(ctx);
+
+  const prix = getPrice(session);
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+
+  // ═══ TITRE ═══
+  ctx.yPos += 4;
+  doc.setFontSize(13);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
+  const titleW = doc.getTextWidth(titleText) + 24;
+  setFill(doc, C.gold);
+  doc.roundedRect((ctx.pageWidth - titleW) / 2, ctx.yPos - 7, titleW, 14, 3, 3, "F");
+  setColor(doc, C.forestGreenDark);
+  doc.text(titleText, ctx.pageWidth / 2, ctx.yPos, { align: "center" });
+
+  ctx.yPos += 6;
+  doc.setFontSize(7.5);
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  setColor(doc, C.warmGray500);
+  doc.text("En application des articles L.6353-3 à L.6353-7 du Code du travail", ctx.pageWidth / 2, ctx.yPos, { align: "center" });
+
+  if (session.numero_session) {
+    ctx.yPos += 4;
+    doc.setFontSize(8);
+    setColor(doc, C.forestGreenLight);
+    doc.text(`Réf : ${session.numero_session}`, ctx.pageWidth / 2, ctx.yPos, { align: "center" });
+  }
+
+  setColor(doc, C.warmGray800);
+
+  // ═══ PARTIES ═══
+  ctx.yPos += 8;
+  doc.setFontSize(9.5);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.forestGreen);
+  doc.text("ENTRE LES SOUSSIGNÉS :", ctx.mL, ctx.yPos);
+  ctx.yPos += 6;
+
+  // Box Organisme
+  const orgLines: string[] = [company.name];
+  if (company.siret && !company.siret.includes("[")) orgLines.push(`SIRET : ${company.siret}`);
+  orgLines.push(company.address);
+  if (company.nda && !company.nda.includes("[") && company.nda.trim()) orgLines.push(`Déclaration d'activité N° ${company.nda}`);
+  const orgBoxH = orgLines.length * ctx.lineH + 14;
+
+  setFill(doc, C.creamLight);
+  doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, orgBoxH, 3, 3, "F");
+  setFill(doc, C.gold);
+  doc.roundedRect(ctx.mL, ctx.yPos, 3, orgBoxH, 1, 1, "F");
+
+  let orgY = ctx.yPos + 6;
+  doc.setFontSize(8);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.forestGreen);
+  doc.text("L'organisme de formation :", ctx.mL + 8, orgY);
+  orgY += ctx.lineH + 2;
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  setColor(doc, C.warmGray700);
+  for (const line of orgLines) {
+    doc.text(line, ctx.mL + 8, orgY);
+    orgY += ctx.lineH;
+  }
+  doc.setFontSize(7);
+  setColor(doc, C.warmGray500);
+  doc.text("(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", ctx.mL + 8, orgY);
+  setColor(doc, C.warmGray800);
+  ctx.yPos += orgBoxH + 4;
+
+  // Box Stagiaire
+  const stagParts: string[] = [fullName];
+  if (contact.date_naissance) {
+    stagParts.push(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`);
+  }
+  if (contact.rue) stagParts.push(contact.rue);
+  if (contact.code_postal || contact.ville) stagParts.push(`${contact.code_postal || ""} ${contact.ville || ""}`.trim());
+  if (contact.email) stagParts.push(`Email : ${contact.email}`);
+  if (contact.telephone) stagParts.push(`Tél : ${contact.telephone}`);
+  const stagBoxH = stagParts.length * ctx.lineH + 14;
+
+  setFill(doc, C.creamLight);
+  doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, stagBoxH, 3, 3, "F");
+  setFill(doc, C.forestGreen);
+  doc.roundedRect(ctx.mL, ctx.yPos, 3, stagBoxH, 1, 1, "F");
+
+  let stagY = ctx.yPos + 6;
+  doc.setFontSize(8);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.forestGreen);
+  doc.text("Le stagiaire (personne physique) :", ctx.mL + 8, stagY);
+  stagY += ctx.lineH + 2;
+  setColor(doc, C.warmGray700);
+  for (let i = 0; i < stagParts.length; i++) {
+    doc.setFont(DOCUMENT_FONTS.primary, i === 0 ? "bold" : "normal");
+    setColor(doc, i === 0 ? C.warmGray800 : C.warmGray700);
+    doc.text(stagParts[i], ctx.mL + 8, stagY);
+    stagY += ctx.lineH;
+  }
+  doc.setFontSize(7);
+  setColor(doc, C.warmGray500);
+  doc.text("Ci-après dénommé « le Stagiaire »", ctx.mL + 8, stagY);
+  setColor(doc, C.warmGray800);
+  ctx.yPos += stagBoxH + 3;
+
+  // ═══ ARTICLES ═══
+
+  // Article 1 — Objet
+  writeArticle(ctx, "Article 1 — Objet du contrat");
+  writeParagraph(ctx, "Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. L'Organisme s'engage à organiser l'action de formation définie ci-après et le Stagiaire s'engage à suivre cette formation avec assiduité.");
+
+  // Article 2 — Nature et caractéristiques
+  writeArticle(ctx, "Article 2 — Nature et caractéristiques de l'action de formation");
+  const art2Items: Array<{ label: string; value: string }> = [
+    { label: "Intitulé", value: session.nom },
+    { label: "Type d'action", value: "Formation professionnelle (Art. L6313-1 du Code du travail)" },
+    { label: "Dates", value: `Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` },
+  ];
+  if (session.duree_heures) art2Items.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
+  const hours = formatSessionHours(session);
+  if (hours) art2Items.push({ label: "Horaires", value: hours });
+  const addr = formatAddress(session);
+  if (addr) art2Items.push({ label: "Lieu", value: addr });
+  art2Items.push({ label: "Modalité", value: "En présentiel" });
+  drawInfoBox(ctx, art2Items);
+
+  // Article 3 — Objectifs
+  writeArticle(ctx, "Article 3 — Objectifs pédagogiques");
+  const objectifText = session.objectifs || "Acquisition des compétences professionnelles visées par la formation, telles que définies dans le programme annexé au présent contrat.";
+  writeParagraph(ctx, objectifText);
+
+  // Article 4 — Prérequis
+  writeArticle(ctx, "Article 4 — Niveau requis et public concerné");
+  const prerequisText = session.prerequis || "Aucun prérequis spécifique n'est demandé pour cette formation. Les conditions d'accès sont détaillées dans le programme annexé.";
+  writeParagraph(ctx, prerequisText);
+
+  // Article 5 — Programme
+  writeArticle(ctx, "Article 5 — Programme de formation");
+  writeParagraph(ctx, "Le programme détaillé de la formation figure en ANNEXE 1 du présent contrat. Il précise les objectifs, le contenu, les méthodes et les modalités d'évaluation de la formation.");
+
+  // Article 6 — Moyens pédagogiques et techniques
+  writeArticle(ctx, "Article 6 — Moyens pédagogiques et techniques");
+  writeParagraph(ctx, "La formation est dispensée en présentiel dans les locaux de l'Organisme. Les moyens pédagogiques mis en œuvre comprennent :");
+  writeBullet(ctx, "Supports de cours remis à chaque stagiaire (papier et/ou numérique)");
+  writeBullet(ctx, "Exercices pratiques, mises en situation et études de cas");
+  writeBullet(ctx, "Plateforme e-learning pour révisions (accès 24/7)");
+  writeBullet(ctx, "Salle de formation équipée (vidéoprojecteur, tableau interactif)");
+
+  // Article 7 — Modalités d'évaluation
+  writeArticle(ctx, "Article 7 — Modalités de contrôle et d'évaluation");
+  writeParagraph(ctx, "Les acquis du Stagiaire sont évalués tout au long de la formation par des évaluations formatives (QCM, exercices, mises en situation). Une évaluation sommative est réalisée en fin de formation. Une attestation de fin de formation précisant les objectifs atteints est remise au Stagiaire.");
+
+  // Article 8 — Sanction
+  writeArticle(ctx, "Article 8 — Sanction de la formation");
+  writeParagraph(ctx, "À l'issue de la formation et sous réserve de l'assiduité requise, le Stagiaire reçoit une attestation de fin de formation mentionnant les compétences acquises. Cette attestation est délivrée conformément aux obligations de l'organisme (Art. L6353-1 du Code du travail).");
+
+  // Article 9 — Prix (conditionnel)
+  writeArticle(ctx, "Article 9 — Prix de la formation et modalités de paiement");
+  checkPageBreak(ctx, 25);
+
+  if (prix > 0) {
+    const priceBoxH = 16;
+    setFill(doc, { r: 255, g: 251, b: 240 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, priceBoxH, 3, 3, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, priceBoxH, 1, 1, "F");
+
+    doc.setFontSize(9.5);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text(`Prix total : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, ctx.mL + 8, ctx.yPos + 7);
+    doc.setFontSize(7.5);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    setColor(doc, C.warmGray600);
+    doc.text("TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += priceBoxH + 3;
+
+    writeParagraph(ctx, "Le paiement s'effectue à la signature du présent contrat ou selon l'échéancier convenu entre les parties. Ce tarif comprend la formation, les supports de cours et l'attestation de fin de formation.");
+  } else {
+    writeParagraph(ctx, "La présente formation est dispensée à titre gratuit. Aucune somme n'est exigée du Stagiaire.");
+  }
+
+  // Article 10 — Rétractation (mise en évidence)
+  writeArticle(ctx, "Article 10 — Délai de rétractation (Art. L.6353-5)");
+  checkPageBreak(ctx, 20);
+
+  const retractBoxH = 14;
+  setFill(doc, C.forestGreen);
+  doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, retractBoxH, 3, 3, "F");
+  doc.setFontSize(8.5);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.white);
+  doc.text("⚠ DÉLAI DE RÉTRACTATION : 10 JOURS", ctx.mL + 8, ctx.yPos + 5.5);
+  doc.setFontSize(7);
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  doc.text("À compter de la signature — par lettre recommandée avec accusé de réception", ctx.mL + 8, ctx.yPos + 10.5);
+  setColor(doc, C.warmGray800);
+  ctx.yPos += retractBoxH + 3;
+
+  writeParagraph(ctx, "Conformément à l'article L.6353-5 du Code du travail, le Stagiaire dispose d'un délai de DIX (10) JOURS à compter de la signature du présent contrat pour se rétracter. Cette rétractation doit être notifiée par lettre recommandée avec accusé de réception adressée à l'Organisme. Dans ce cas, aucune somme ne peut être exigée du Stagiaire.");
+
+  // Article 11 — Paiement anticipé
+  if (prix > 0) {
+    writeArticle(ctx, "Article 11 — Paiement anticipé (Art. L.6353-6)");
+    writeParagraph(ctx, "Conformément à l'article L.6353-6 du Code du travail, aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte maximum de 30% du prix convenu peut être versé. Le solde donne lieu à échelonnement des paiements au fur et à mesure du déroulement de la formation.");
+  }
+
+  // Article 12 — Interruption / cessation anticipée
+  writeArticle(ctx, prix > 0 ? "Article 12 — Cessation anticipée et force majeure" : "Article 11 — Cessation anticipée et force majeure");
+  writeParagraph(ctx, "En cas de cessation anticipée de la formation du fait de l'Organisme ou d'abandon pour un motif relevant de la force majeure dûment reconnu, seules les prestations effectivement dispensées sont dues au prorata temporis de leur valeur prévue au contrat.");
+  ctx.yPos += 2;
+  writeParagraph(ctx, "Constituent des cas de force majeure : maladie ou accident du stagiaire sur présentation d'un justificatif médical, décès d'un proche, catastrophe naturelle, ou tout événement imprévisible et irrésistible au sens de l'article 1218 du Code civil.");
+
+  // Article 13 — Obligations du Stagiaire
+  const artNum = prix > 0 ? 13 : 12;
+  writeArticle(ctx, `Article ${artNum} — Obligations du Stagiaire`);
+  writeParagraph(ctx, "Le Stagiaire s'engage à :");
+  writeBullet(ctx, "Suivre la formation avec assiduité et ponctualité");
+  writeBullet(ctx, "Respecter le règlement intérieur de l'Organisme");
+  writeBullet(ctx, "Participer aux évaluations prévues dans le programme");
+  writeBullet(ctx, "Informer l'Organisme de tout empêchement dans les meilleurs délais");
+
+  // Article 14 — Règlement intérieur
+  writeArticle(ctx, `Article ${artNum + 1} — Règlement intérieur`);
+  writeParagraph(ctx, "Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme de formation, qui lui a été remis préalablement à la signature du présent contrat, et s'engage à le respecter.");
+
+  // Article 15 — RGPD
+  writeArticle(ctx, `Article ${artNum + 2} — Protection des données personnelles (RGPD)`);
+  writeParagraph(ctx, `Les données personnelles recueillies dans le cadre du présent contrat font l'objet d'un traitement destiné à la gestion administrative et pédagogique de la formation. Conformément au RGPD et à la loi Informatique et Libertés, le Stagiaire dispose d'un droit d'accès, de rectification, de suppression et de portabilité. Conservation : 3 ans. Contact : ${company.email}`);
+
+  // Article 16 — Litiges
+  writeArticle(ctx, `Article ${artNum + 3} — Règlement des litiges`);
+  writeParagraph(ctx, "En cas de contestation, les parties conviennent de rechercher une solution amiable. Le Stagiaire peut recourir gratuitement au service du médiateur de la consommation :");
+  writeParagraph(ctx, `${ORGANISME.mediateur.nom} — ${ORGANISME.mediateur.adresse}, ${ORGANISME.mediateur.codePostal} ${ORGANISME.mediateur.ville} — ${ORGANISME.mediateur.web}`, 4);
+  writeParagraph(ctx, "À défaut d'accord amiable, le litige sera soumis aux tribunaux compétents.");
+
+  // Article 17 — Dispositions générales
+  writeArticle(ctx, `Article ${artNum + 4} — Dispositions générales`);
+  writeParagraph(ctx, "Le présent contrat est soumis au droit français. Il annule et remplace tout accord antérieur entre les parties relatif à la même formation. Toute modification doit faire l'objet d'un avenant signé par les deux parties.");
+
+  // Article 18 — Documents annexes
+  writeArticle(ctx, `Article ${artNum + 5} — Documents annexes`);
+  writeParagraph(ctx, "Sont annexés au présent contrat :");
+  writeBullet(ctx, "ANNEXE 1 : Programme détaillé de la formation");
+  writeBullet(ctx, "ANNEXE 2 : Règlement intérieur de l'organisme de formation");
+
+  // ═══ SIGNATURES ═══
+  ctx.yPos += 6;
+  checkPageBreak(ctx, 55);
+
+  setFill(doc, C.gold);
+  doc.rect(ctx.mL, ctx.yPos, ctx.cW, 0.5, "F");
+  ctx.yPos += 6;
+
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  doc.setFontSize(9);
+  setColor(doc, C.forestGreen);
+  doc.text("SIGNATURES", ctx.mL, ctx.yPos);
+  ctx.yPos += 4;
+
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  doc.setFontSize(7.5);
+  setColor(doc, C.warmGray500);
+  doc.text(`Fait en double exemplaire, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, ctx.mL, ctx.yPos);
+  setColor(doc, C.warmGray800);
+  ctx.yPos += 6;
+
+  const halfW = (ctx.cW - 10) / 2;
+  const sigBoxH = 36;
+
+  // Box gauche - Organisme
+  setFill(doc, C.creamLight);
+  doc.setDrawColor(C.forestGreen.r, C.forestGreen.g, C.forestGreen.b);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(ctx.mL, ctx.yPos, halfW, sigBoxH, 2, 2, "FD");
+
+  doc.setFontSize(7.5);
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.forestGreen);
+  doc.text("Pour l'Organisme de formation", ctx.mL + 4, ctx.yPos + 6);
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  setColor(doc, C.warmGray600);
+  doc.text("(Cachet et signature)", ctx.mL + 4, ctx.yPos + 11);
+
+  // Box droite - Stagiaire
+  const rightX = ctx.mL + halfW + 10;
+  setFill(doc, C.creamLight);
+  doc.roundedRect(rightX, ctx.yPos, halfW, sigBoxH, 2, 2, "FD");
+
+  doc.setFont(DOCUMENT_FONTS.primary, "bold");
+  setColor(doc, C.forestGreen);
+  doc.text("Le Stagiaire", rightX + 4, ctx.yPos + 6);
+  doc.setFont(DOCUMENT_FONTS.primary, "normal");
+  setColor(doc, C.warmGray700);
+  doc.text(fullName, rightX + 4, ctx.yPos + 11);
+  doc.setFontSize(6.5);
+  setColor(doc, C.warmGray500);
+  doc.text("(Signature précédée de la mention", rightX + 4, ctx.yPos + 23);
+  doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 4, ctx.yPos + 27);
+
+  ctx.yPos += sigBoxH + 5;
+
+  // Mention légale finale
+  checkPageBreak(ctx, 8);
+  doc.setFontSize(6.5);
+  setColor(doc, C.warmGray500);
+  doc.text("Contrat conclu conformément aux articles L.6353-3 à L.6353-7 du Code du travail.", ctx.mL, ctx.yPos);
+  setColor(doc, C.warmGray800);
+
+  // Add footers to all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    ctx.pageNum = i;
+    addFooter(ctx);
+  }
+
+  return doc;
+}

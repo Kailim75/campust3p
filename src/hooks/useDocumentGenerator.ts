@@ -3,8 +3,8 @@ import { toast } from "sonner";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import {
   generateFacturePDF,
-  generateConventionPDF,
-  generateContratFormationPDF,
+  generateConventionPDF as generateConventionPDFLegacy,
+  generateContratFormationPDF as generateContratPDFLegacy,
   generateConvocationPDF,
   generateProgrammePDF,
   downloadPDF,
@@ -13,6 +13,8 @@ import {
   type SessionInfo,
   type FactureInfo,
 } from "@/lib/pdf-generator";
+import { generateContratFormationV2 } from "@/lib/documents/generateContratFormation";
+import { generateConventionFormationV2 } from "@/lib/documents/generateConventionFormation";
 import { buildCompanyInfo } from "@/lib/documents/companyInfo";
 import {
   getDocumentLabel,
@@ -96,7 +98,7 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateConventionPDF(contact, session, company);
+            doc = generateConventionFormationV2(contact, session, company);
             filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
@@ -105,7 +107,7 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateContratFormationPDF(contact, session, company);
+            doc = generateContratFormationV2(contact, session, company);
             filename = `contrat-formation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
