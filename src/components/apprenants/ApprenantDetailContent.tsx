@@ -356,7 +356,7 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         </div>
 
         {/* Cockpit indicators row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
           {/* Dossier progress */}
           <div className="bg-card border rounded-lg p-2.5 space-y-1">
             <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
