@@ -2383,14 +2383,14 @@ export function generateProgrammePDF(
     
     // Titre du module avec fond Forest Green
     doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.roundedRect(20, yPos - 4, pageWidth - 40, 10, 2, 2, "F");
+    doc.roundedRect(20, yPos - 4, pageWidth - 40, 13, 2, 2, "F");
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 2);
+    doc.text(`Module ${module.numero} : ${module.titre}`, 25, yPos + 3);
     
-    yPos += 12;
+    yPos += 14;
     
     // Contenu du module
     doc.setFont("helvetica", "normal");
