@@ -13,7 +13,7 @@ import {
   type SessionInfo,
   type FactureInfo,
 } from "@/lib/pdf-generator";
-import { generateContratFormationV2 } from "@/lib/documents/generateContratFormation";
+import { generateContratFormationV2, validateContratData } from "@/lib/documents/generateContratFormation";
 import { generateConventionFormationV2 } from "@/lib/documents/generateConventionFormation";
 import { buildCompanyInfo } from "@/lib/documents/companyInfo";
 import {
