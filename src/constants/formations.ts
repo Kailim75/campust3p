@@ -67,12 +67,12 @@ export interface ModuleFormation {
   evaluation?: string[];
 }
 
-// Programme VTC conforme 2024 - Durée totale : 34 heures
-// Répartition adaptée au format 34h du centre de formation
+// Programme VTC conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
+// Nomenclature officielle des épreuves : A, B, C, D, E + F(V), G(V)
 export const PROGRAMME_VTC: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation du transport public particulier de personnes",
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
     dureeHeures: 6,
     contenu: [
       "Cadre juridique national et européen du transport de personnes",
@@ -81,17 +81,22 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
       "Obligations du conducteur VTC : registre de disponibilité, documents obligatoires",
       "Relations avec les plateformes de réservation et centrales",
       "Sanctions administratives et pénales",
-      "Évolutions réglementaires et jurisprudence"
+      "Évolutions réglementaires et jurisprudence",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste (outrage sexiste, agression sexuelle, harcèlement sexuel, viol)",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
     ],
     objectifs: [
       "Maîtriser le cadre réglementaire du transport VTC",
       "Identifier les obligations légales du conducteur",
-      "Connaître les sanctions encourues en cas d'infraction"
+      "Connaître les sanctions encourues en cas d'infraction",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise",
+    titre: "B — Gestion",
     dureeHeures: 4,
     contenu: [
       "Choix du statut juridique : auto-entrepreneur, EURL, SASU",
@@ -110,7 +115,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 3,
-    titre: "Sécurité routière",
+    titre: "C — Sécurité routière",
     dureeHeures: 6,
     contenu: [
       "Réglementation du Code de la route applicable au transport de personnes",
@@ -120,7 +125,8 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
       "Gestion de la fatigue et temps de conduite",
       "Équipements de sécurité et entretien du véhicule",
       "Conduite par conditions difficiles (pluie, neige, nuit)",
-      "Gestion des situations d'urgence et accidents"
+      "Gestion des situations d'urgence et accidents",
+      "Mécanisme du permis à points"
     ],
     objectifs: [
       "Adopter une conduite sécuritaire et responsable",
@@ -130,7 +136,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 4,
-    titre: "Français (compréhension et expression)",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 6,
     contenu: [
       "Accueil et présentation professionnelle",
@@ -149,7 +155,7 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 5,
-    titre: "Anglais (niveau B1 du CECRL)",
+    titre: "E — Anglais",
     dureeHeures: 6,
     contenu: [
       "Accueil et salutations en anglais",
@@ -168,51 +174,50 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
   },
   {
     numero: 6,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
+    titre: "F(V) — Développement commercial et gestion propre à l'activité de VTC",
+    dureeHeures: 4,
     contenu: [
-      "Cadre légal : loi du 27 mai 2008 et Code pénal",
-      "Les 27 critères de discrimination prohibés",
-      "Sanctions pénales et administratives",
-      "Études de cas concrets dans le transport de personnes",
-      "Refus de prise en charge : cas légitimes et illégitimes",
-      "Obligations spécifiques du conducteur professionnel",
-      "Signalement et témoignage"
+      "Stratégie de développement commercial pour un conducteur VTC",
+      "Positionnement et différenciation sur le marché",
+      "Gestion de la relation client et fidélisation",
+      "Utilisation des plateformes de réservation et outils numériques",
+      "Construction d'une offre de services (gamme de véhicules, prestations)",
+      "Communication professionnelle et e-réputation",
+      "Partenariats et développement de réseau"
     ],
     objectifs: [
-      "Connaître le cadre légal de la non-discrimination",
-      "Identifier les comportements discriminatoires",
-      "Adopter une attitude professionnelle égalitaire"
+      "Élaborer une stratégie commerciale adaptée",
+      "Maîtriser les outils de développement d'activité",
+      "Fidéliser une clientèle haut de gamme"
     ]
   },
   {
     numero: 7,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
+    titre: "G(V) — Réglementation nationale spécifique de l'activité de VTC",
+    dureeHeures: 2,
     contenu: [
-      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
-      "Signaux d'alerte et situations à risque",
-      "Obligations légales de signalement",
-      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
-      "Procédures de signalement et protection des victimes",
-      "Rôle de vigilance du conducteur professionnel",
-      "Responsabilités pénales et civiles"
+      "Conditions d'exercice spécifiques à l'activité VTC",
+      "Carte professionnelle VTC : obtention, renouvellement, retrait",
+      "Obligations en matière de véhicule (ancienneté, puissance, dimensions)",
+      "Réglementation sur la prise en charge et la dépose",
+      "Interdiction de la maraude et du stationnement sur la voie publique",
+      "Tarification libre et obligations de transparence",
+      "Articulation avec les autres modes de transport public particulier"
     ],
     objectifs: [
-      "Reconnaître les situations de danger",
-      "Connaître ses obligations de signalement",
-      "Savoir réagir face à ces situations"
+      "Maîtriser le cadre réglementaire spécifique VTC",
+      "Connaître les obligations propres au conducteur VTC",
+      "Distinguer les droits et limites de l'activité VTC"
     ]
   }
 ];
-
-// Programme TAXI National conforme 2024 - Durée totale : 34 heures
-// (Tronc commun sans module territorial spécifique)
+// Programme TAXI National conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
+// Nomenclature officielle des épreuves : A, B, C, D, E + F(T), G(T) + Pratique
 export const PROGRAMME_TAXI: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation du transport public particulier de personnes",
-    dureeHeures: 6,
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
+    dureeHeures: 5,
     contenu: [
       "Réglementation s'appliquant aux différents modes de transports publics particuliers : taxis, VTC, VMDTR",
       "Réglementation relative à l'utilisation de la voie publique pour la prise en charge de la clientèle",
@@ -222,17 +227,21 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
       "Composition et rôle des organismes administratifs, consultatifs et professionnels",
       "Agents susceptibles de procéder à des contrôles et leurs prérogatives",
       "Sanctions administratives et pénales encourues",
-      "Règles relatives à la prise en charge des personnes à mobilité réduite"
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
     ],
     objectifs: [
       "Maîtriser le cadre réglementaire du transport taxi",
       "Identifier les obligations légales du conducteur",
-      "Connaître les sanctions encourues en cas d'infraction"
+      "Connaître les sanctions encourues en cas d'infraction",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise de taxi",
+    titre: "B — Gestion",
     dureeHeures: 5,
     contenu: [
       "Principes de base de gestion et de comptabilité",
@@ -254,7 +263,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 3,
-    titre: "Sécurité routière",
+    titre: "C — Sécurité routière",
     dureeHeures: 5,
     contenu: [
       "Obligations en matière d'entretien et de visite technique des véhicules",
@@ -275,7 +284,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 4,
-    titre: "Français (compréhension et expression)",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 5,
     contenu: [
       "Accueil et présentation professionnelle",
@@ -294,7 +303,7 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 5,
-    titre: "Anglais (niveau B1 du CECRL)",
+    titre: "E — Anglais",
     dureeHeures: 4,
     contenu: [
       "Accueil et salutations en anglais",
@@ -313,12 +322,30 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
   },
   {
     numero: 6,
-    titre: "Réglementation nationale spécifique de l'activité taxi",
+    titre: "F(T) — Connaissance du territoire et réglementation locale",
+    dureeHeures: 4,
+    contenu: [
+      "Topographie et connaissance du territoire d'exercice",
+      "Principaux axes routiers, monuments et sites d'intérêt",
+      "Gares, aéroports, hôpitaux et lieux stratégiques",
+      "Zones de stationnement taxi et emplacements réservés",
+      "Réglementation locale spécifique au département",
+      "Restrictions de circulation et ZFE (Zone à Faibles Émissions)",
+      "Articulation entre réglementations nationales et locales"
+    ],
+    objectifs: [
+      "Connaître le territoire d'exercice",
+      "Maîtriser les principaux itinéraires et points d'intérêt",
+      "Appliquer la réglementation locale"
+    ]
+  },
+  {
+    numero: 7,
+    titre: "G(T) — Réglementation nationale de l'activité taxis et gestion propre à cette activité",
     dureeHeures: 4,
     contenu: [
       "Fonctionnement des équipements spéciaux obligatoires (taximètre, lumineux)",
       "Terminal de paiement électronique",
-      "Articulation entre réglementations nationales et locales",
       "Régime des autorisations de stationnement (ADS)",
       "Règles de tarification d'une course taxi",
       "Activités complémentaires : services réguliers, TAP",
@@ -332,46 +359,8 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
     ]
   },
   {
-    numero: 7,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
-    contenu: [
-      "Cadre légal : loi du 27 mai 2008 et Code pénal",
-      "Les 27 critères de discrimination prohibés",
-      "Sanctions pénales et administratives",
-      "Études de cas concrets dans le transport de personnes",
-      "Refus de prise en charge : cas légitimes et illégitimes",
-      "Obligations spécifiques du conducteur de taxi",
-      "Signalement et témoignage"
-    ],
-    objectifs: [
-      "Connaître le cadre légal de la non-discrimination",
-      "Identifier les comportements discriminatoires",
-      "Adopter une attitude professionnelle égalitaire"
-    ]
-  },
-  {
     numero: 8,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
-    contenu: [
-      "Définitions : traite des êtres humains, harcèlement, agressions sexuelles",
-      "Signaux d'alerte et situations à risque",
-      "Obligations légales de signalement",
-      "Numéros d'urgence : 119 (enfance), 3919 (violences), 17 (police)",
-      "Procédures de signalement et protection des victimes",
-      "Rôle de vigilance du conducteur professionnel",
-      "Responsabilités pénales et civiles"
-    ],
-    objectifs: [
-      "Reconnaître les situations de danger",
-      "Connaître ses obligations de signalement",
-      "Savoir réagir face à ces situations"
-    ]
-  },
-  {
-    numero: 9,
-    titre: "Module pratique taxi",
+    titre: "Épreuve pratique d'admission",
     dureeHeures: 2,
     contenu: [
       "Conduite en sécurité et respect du code de la route",
@@ -391,13 +380,12 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
     ]
   }
 ];
-
-// Programme TAXI PARIS (75) - Durée totale : 34 heures
-// Formation initiale avec module spécifique à la zone Paris
+// Programme TAXI PARIS (75) - Arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
+// Nomenclature officielle : A, B, C, D, E + F(T) spécifique Paris, G(T) + Pratique
 export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation du transport public particulier de personnes",
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
     dureeHeures: 5,
     contenu: [
       "Réglementation s'appliquant aux différents modes de transports publics particuliers : taxis, VTC, VMDTR",
@@ -408,17 +396,21 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
       "Composition et rôle des organismes administratifs, consultatifs et professionnels",
       "Agents susceptibles de procéder à des contrôles et leurs prérogatives",
       "Sanctions administratives et pénales encourues",
-      "Règles relatives à la prise en charge des personnes à mobilité réduite"
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
     ],
     objectifs: [
       "Maîtriser le cadre réglementaire du transport taxi",
       "Identifier les obligations légales du conducteur",
-      "Connaître les sanctions encourues en cas d'infraction"
+      "Connaître les sanctions encourues en cas d'infraction",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'une entreprise de taxi",
+    titre: "B — Gestion",
     dureeHeures: 4,
     contenu: [
       "Principes de base de gestion et de comptabilité",
@@ -439,7 +431,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 3,
-    titre: "Sécurité routière",
+    titre: "C — Sécurité routière",
     dureeHeures: 4,
     contenu: [
       "Obligations en matière d'entretien et de visite technique des véhicules",
@@ -459,7 +451,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 4,
-    titre: "Français (compréhension et expression)",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 4,
     contenu: [
       "Accueil et présentation professionnelle",
@@ -477,7 +469,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 5,
-    titre: "Anglais (niveau B1 du CECRL)",
+    titre: "E — Anglais",
     dureeHeures: 3,
     contenu: [
       "Accueil et salutations en anglais",
@@ -495,7 +487,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 6,
-    titre: "Connaissance du territoire Paris (75) et réglementation locale",
+    titre: "F(T) — Connaissance du territoire Paris (75) et réglementation locale",
     dureeHeures: 5,
     contenu: [
       "Topographie de Paris : arrondissements, quartiers, limites administratives",
@@ -515,7 +507,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 7,
-    titre: "Réglementation nationale spécifique de l'activité taxi",
+    titre: "G(T) — Réglementation nationale de l'activité taxis et gestion propre à cette activité",
     dureeHeures: 4,
     contenu: [
       "Fonctionnement des équipements spéciaux obligatoires (taximètre, lumineux)",
@@ -535,20 +527,22 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 8,
-    titre: "Prévention et lutte contre les discriminations",
+    titre: "Épreuve pratique d'admission",
     dureeHeures: 2,
     contenu: [
-      "Cadre légal : loi du 27 mai 2008 et Code pénal",
-      "Les 27 critères de discrimination prohibés",
-      "Sanctions pénales et administratives",
-      "Études de cas concrets dans le transport de personnes",
-      "Refus de prise en charge : cas légitimes et illégitimes",
-      "Obligations spécifiques du conducteur de taxi"
+      "Conduite en sécurité dans Paris et respect du code de la route",
+      "Souplesse de la conduite assurant le confort des passagers",
+      "Prise en charge et dépose des clients (aéroports, gares)",
+      "Présentation générale et attitude adaptées",
+      "Élaboration et suivi d'un parcours parisien",
+      "Informations touristiques et pratiques sur Paris",
+      "Utilisation des équipements spéciaux taxi",
+      "Établissement du prix, facturation et encaissement"
     ],
     objectifs: [
-      "Connaître le cadre légal de la non-discrimination",
-      "Identifier les comportements discriminatoires",
-      "Adopter une attitude professionnelle égalitaire"
+      "Maîtriser la conduite professionnelle taxi à Paris",
+      "Assurer un service client de qualité",
+      "Délivrer des informations touristiques pertinentes"
     ]
   },
   {
@@ -570,117 +564,152 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   },
   {
     numero: 10,
-    titre: "Module pratique taxi",
+    titre: "Évaluation et examen blanc",
     dureeHeures: 2,
     contenu: [
-      "Conduite en sécurité dans Paris et respect du code de la route",
-      "Souplesse de la conduite assurant le confort des passagers",
-      "Prise en charge et dépose des clients (aéroports, gares)",
-      "Présentation générale et attitude adaptées",
-      "Élaboration et suivi d'un parcours parisien",
-      "Informations touristiques et pratiques sur Paris",
-      "Utilisation des équipements spéciaux taxi",
-      "Établissement du prix, facturation et encaissement"
+      "Examen blanc complet dans les conditions de l'épreuve CMA",
+      "QCM sur l'ensemble des matières A, B, C, D, E, F(T), G(T)",
+      "Correction commentée et analyse des résultats",
+      "Préparation mentale et méthodologie d'examen"
     ],
     objectifs: [
-      "Maîtriser la conduite professionnelle taxi à Paris",
-      "Assurer un service client de qualité",
-      "Délivrer des informations touristiques pertinentes"
+      "Se préparer dans les conditions réelles de l'examen",
+      "Identifier ses points forts et axes d'amélioration",
+      "Consolider les acquis de la formation"
     ]
   }
 ];
-
 // Programme VMDTR conforme 2024 - Durée totale : 34 heures
+// Nomenclature alignée sur l'arrêté du 6 avril 2017 (adaptation VMDTR)
 export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation spécifique VMDTR",
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
     dureeHeures: 6,
     contenu: [
       "Cadre réglementaire du VMDTR",
-      "Différences avec le transport à 4 roues",
-      "Conditions d'accès à la profession",
+      "Différences avec le transport à 4 roues (taxi, VTC)",
+      "Conditions d'accès et d'exercice de la profession VMDTR",
       "Obligations du conducteur VMDTR",
       "Documents obligatoires à bord",
-      "Spécificités de sécurité",
-      "Sanctions applicables"
+      "Sanctions administratives et pénales applicables",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
+    ],
+    objectifs: [
+      "Maîtriser le cadre réglementaire du transport VMDTR",
+      "Identifier les obligations légales du conducteur",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'entreprise VMDTR",
+    titre: "B — Gestion",
     dureeHeures: 4,
     contenu: [
-      "Statuts juridiques adaptés",
-      "Investissement et coûts spécifiques",
-      "Assurances et garanties",
-      "Comptabilité et charges",
-      "Tarification et rentabilité",
-      "Développement commercial"
+      "Statuts juridiques adaptés à l'activité VMDTR",
+      "Investissement et coûts spécifiques deux-roues",
+      "Assurances professionnelles et garanties obligatoires",
+      "Obligations comptables et charges sociales",
+      "Tarification et calcul de la rentabilité",
+      "Développement commercial et fidélisation"
+    ],
+    objectifs: [
+      "Comprendre les statuts juridiques adaptés",
+      "Calculer sa rentabilité",
+      "Maîtriser les obligations comptables"
     ]
   },
   {
     numero: 3,
-    titre: "Sécurité routière deux-roues",
+    titre: "C — Sécurité routière spécifique deux-roues",
     dureeHeures: 6,
     contenu: [
-      "Conduite défensive deux-roues",
-      "Risques spécifiques moto/scooter",
-      "Équipements de protection",
-      "Conduite par mauvais temps",
-      "Transport de passagers",
-      "Anticipation et visibilité",
-      "Entretien du véhicule"
+      "Conduite défensive spécifique deux-roues",
+      "Risques spécifiques moto/scooter en milieu urbain",
+      "Équipements de protection obligatoires (conducteur et passager)",
+      "Conduite par conditions difficiles (pluie, nuit, vent)",
+      "Transport de passagers en deux-roues : règles de sécurité",
+      "Anticipation, visibilité et positionnement sur la chaussée",
+      "Entretien et vérification du véhicule deux-roues"
+    ],
+    objectifs: [
+      "Adopter une conduite sécuritaire en deux-roues",
+      "Garantir la sécurité du passager",
+      "Prévenir les risques spécifiques au deux-roues"
     ]
   },
   {
     numero: 4,
-    titre: "Français professionnel",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 6,
     contenu: [
-      "Communication en situation VMDTR",
+      "Communication adaptée au contexte VMDTR",
       "Accueil et professionnalisme",
-      "Gestion client spécifique",
-      "Instructions de sécurité passager"
+      "Gestion de la relation client spécifique au deux-roues",
+      "Instructions de sécurité au passager",
+      "Vocabulaire professionnel du transport de personnes"
+    ],
+    objectifs: [
+      "Communiquer efficacement en français",
+      "Adopter un langage professionnel adapté",
+      "Transmettre les consignes de sécurité au passager"
     ]
   },
   {
     numero: 5,
-    titre: "Anglais professionnel",
+    titre: "E — Anglais",
     dureeHeures: 6,
     contenu: [
-      "Vocabulaire VMDTR en anglais",
-      "Instructions de sécurité",
-      "Communication client anglophone",
-      "Tourisme en deux-roues"
+      "Vocabulaire professionnel VMDTR en anglais",
+      "Instructions de sécurité en anglais",
+      "Communication avec une clientèle anglophone",
+      "Informations touristiques en anglais",
+      "Situations courantes de transport"
+    ],
+    objectifs: [
+      "Accueillir une clientèle anglophone",
+      "Communiquer les consignes de sécurité en anglais",
+      "Assurer un service professionnel en anglais"
     ]
   },
   {
     numero: 6,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
+    titre: "F(M) — Sécurité routière spécifique à l'usage et à la conduite de motocyclettes",
+    dureeHeures: 4,
     contenu: [
-      "Cadre légal anti-discrimination",
-      "27 critères prohibés",
-      "Obligations conducteur VMDTR",
-      "Sanctions",
-      "Cas pratiques"
+      "Spécificités de la conduite de motocyclette avec passager",
+      "Réglementation routière applicable aux deux-roues motorisés",
+      "Équipements de sécurité obligatoires et recommandés",
+      "Techniques de freinage d'urgence et d'évitement",
+      "Gestion des situations d'urgence en deux-roues"
+    ],
+    objectifs: [
+      "Maîtriser la conduite professionnelle en motocyclette",
+      "Garantir la sécurité du conducteur et du passager",
+      "Réagir efficacement en situation d'urgence"
     ]
   },
   {
     numero: 7,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
+    titre: "G(M) — Prise en charge du passager",
+    dureeHeures: 2,
     contenu: [
-      "Vigilance professionnelle",
-      "Signaux d'alerte",
-      "Obligations de signalement",
-      "Numéros d'urgence",
-      "Protection des victimes"
+      "Accueil et installation du passager",
+      "Équipements de protection à fournir au passager",
+      "Briefing de sécurité avant départ",
+      "Confort et communication pendant le trajet",
+      "Dépose sécurisée du passager"
+    ],
+    objectifs: [
+      "Assurer un accueil professionnel",
+      "Garantir la sécurité et le confort du passager",
+      "Maîtriser le protocole de prise en charge"
     ]
   }
 ];
-
 // ═══════════════════════════════════════════════════════════════════
 // PRÉREQUIS RÉGLEMENTAIRES
 // ═══════════════════════════════════════════════════════════════════
