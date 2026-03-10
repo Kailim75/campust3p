@@ -501,18 +501,21 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
 
       {/* ─── TABS ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-5 mt-3 mb-0 justify-start bg-transparent gap-1 p-0 h-auto flex-wrap">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="gap-1.5 text-xs px-3 py-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg"
-            >
-              <tab.icon className="h-3.5 w-3.5" />
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="mx-3 sm:mx-5 mt-2 sm:mt-3 mb-0 overflow-x-auto scrollbar-hide">
+          <TabsList className="justify-start bg-transparent gap-0.5 sm:gap-1 p-0 h-auto flex-nowrap w-max">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="gap-1 sm:gap-1.5 text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg whitespace-nowrap flex-shrink-0"
+              >
+                <tab.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.length > 6 ? tab.label.slice(0, 5) + '.' : tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <div className="flex-1 overflow-auto p-5">
           <TabsContent value="resume" className="mt-0">
