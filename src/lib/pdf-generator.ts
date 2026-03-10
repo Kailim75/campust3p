@@ -358,16 +358,16 @@ function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: 
 // Section avec titre coloré
 function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos - 4, 3, 14, 1, 1, "F");
+  doc.roundedRect(20, yPos - 2, 3, 16, 1, 1, "F");
   
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(title, 27, yPos + 4);
+  doc.text(title, 27, yPos + 6);
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.setFont("helvetica", "normal");
-  return yPos + 14;
+  return yPos + 18;
 }
 
 // Box d'information avec fond cream
