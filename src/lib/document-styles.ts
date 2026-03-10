@@ -523,7 +523,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos - 4, 3, 14, 1, 1, "F");
+  doc.roundedRect(DOCUMENT_LAYOUT.marginLeft, yPos - 4, 3, 16, 1, 1, "F");
   
   doc.setFontSize(DOCUMENT_FONTS.sizes.heading);
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.bold);
@@ -532,7 +532,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
     DOCUMENT_COLORS.forestGreen.g, 
     DOCUMENT_COLORS.forestGreen.b
   );
-  doc.text(title, DOCUMENT_LAYOUT.marginLeft + 7, yPos + 4);
+  doc.text(title, DOCUMENT_LAYOUT.marginLeft + 8, yPos + 5);
   
   // Reset
   doc.setTextColor(
@@ -542,7 +542,7 @@ export function addSectionTitle(doc: jsPDF, title: string, yPos: number): number
   );
   doc.setFont(DOCUMENT_FONTS.primary, DOCUMENT_FONTS.weights.normal);
   
-  return yPos + DOCUMENT_LAYOUT.spacing.xxl;
+  return yPos + DOCUMENT_LAYOUT.spacing.xxl + 2;
 }
 
 /**
