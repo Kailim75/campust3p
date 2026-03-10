@@ -325,14 +325,14 @@ function addDocumentTitle(doc: jsPDF, title: string, startY: number, subtitle?: 
   let yPos = startY + 8;
   
   // Badge titre avec fond Gold
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   const titleWidth = doc.getTextWidth(title) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleWidth) / 2, yPos - 8, titleWidth, 16, 3, 3, "F");
   
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(title, pageWidth / 2, yPos, { align: "center" });
+  doc.text(title, pageWidth / 2, yPos + 1, { align: "center" });
   
   yPos += 10;
   
