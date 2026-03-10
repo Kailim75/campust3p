@@ -242,13 +242,13 @@ export function buildAccreditationsLines(organisme: OrganismeInfo): string[] {
   const parts1: string[] = [];
   const parts2: string[] = [];
   
-  // Première ligne : SIRET + NDA + Qualiopi
-  parts1.push(`SIRET: ${organisme.siret}`);
-  parts1.push(`NDA: ${organisme.nda}`);
+  // Première ligne : SIRET + NDA (only if present) + Qualiopi
+  if (organisme.siret && !organisme.siret.includes("[")) parts1.push(`SIRET: ${organisme.siret}`);
+  if (organisme.nda && !organisme.nda.includes("[") && organisme.nda.trim() !== "") parts1.push(`NDA: ${organisme.nda}`);
   if (organisme.qualiopiNumero) {
     parts1.push(`Qualiopi: ${organisme.qualiopiNumero}`);
   }
-  lines.push(parts1.join(" | "));
+  if (parts1.length > 0) lines.push(parts1.join(" | "));
   
   // Deuxième ligne : RNCP, RS, Préfecture, autres
   if (organisme.codeRncp) {
