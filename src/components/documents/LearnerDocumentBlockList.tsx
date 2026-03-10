@@ -113,7 +113,7 @@ export function LearnerDocumentBlockList({
         defaultBody: `Bonjour,\n\nVeuillez trouver ci-joint votre ${item.templateName.toLowerCase()}.\n\nCordialement,`,
         attachments: [{
           filename: item.templateName.replace(/\s+/g, "_") + ".pdf",
-          content: base64,
+          content: result.base64,
           contentType: "application/pdf",
         }],
         autoNoteCategory: "apprenant_demander_docs",
