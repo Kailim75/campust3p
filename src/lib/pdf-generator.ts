@@ -1562,11 +1562,11 @@ export function generateConventionPDF(
     doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
     const annexe2Title = "ANNEXE 2 - RÈGLEMENT INTÉRIEUR";
     const annexe2TitleWidth = doc.getTextWidth(annexe2Title) + 30;
-    doc.roundedRect((pageWidth - annexe2TitleWidth) / 2, yPos - 5, annexe2TitleWidth, 12, 3, 3, "F");
+    doc.roundedRect((pageWidth - annexe2TitleWidth) / 2, yPos - 5, annexe2TitleWidth, 15, 3, 3, "F");
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-    doc.text(annexe2Title, pageWidth / 2, yPos + 3, { align: "center" });
+    doc.text(annexe2Title, pageWidth / 2, yPos + 4, { align: "center" });
     
     yPos += 15;
     doc.setFontSize(8);
