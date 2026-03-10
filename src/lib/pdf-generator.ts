@@ -2205,32 +2205,44 @@ export function generateConvocationPDF(
   const introLines = doc.splitTextToSize(introText, introMaxW) as string[];
   doc.text(introLines, mL, yPos + 7);
 
-  yPos = Math.max(destY + 8, yPos + 7 + introLines.length * 4.8) + 8;
+  yPos = Math.max(destY + 6, yPos + 7 + introLines.length * 4.8) + 6;
 
   // ═══════════════════════════════════════════════════════
   // D. DÉTAILS DE LA FORMATION — bloc imposant
   // ═══════════════════════════════════════════════════════
 
-  // En-tête de section vert forêt
-  const sectionHeaderH = 9;
+  // Mesurer le nom de la formation pour adapter la hauteur du bandeau vert
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  const nomFormationMaxW = cW - 16;
+  const nomFormationLines = doc.splitTextToSize(session.nom, nomFormationMaxW) as string[];
+  const sectionHeaderH = 10 + nomFormationLines.length * 5.5;
+
+  // En-tête de section vert forêt (contient le nom de la formation)
   doc.setFillColor(cPrimaryMid.r, cPrimaryMid.g, cPrimaryMid.b);
   doc.roundedRect(mL, yPos, cW, sectionHeaderH, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
-  doc.text("DÉTAILS DE LA FORMATION", mL + 8, yPos + 6.5);
 
   // Petit carré orange décoratif
   doc.setFillColor(cOrange.r, cOrange.g, cOrange.b);
   doc.rect(mL + 3, yPos + 3, 3, 3, "F");
 
+  // Label "DÉTAILS DE LA FORMATION"
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(200, 220, 205);
+  doc.text("DÉTAILS DE LA FORMATION", mL + 8, yPos + 6);
+
+  // Nom complet de la formation en blanc, dans le bandeau
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(cWhite.r, cWhite.g, cWhite.b);
+  doc.text(nomFormationLines, mL + 8, yPos + 12);
+
   yPos += sectionHeaderH + 1;
 
-  // Build rows
-  interface ConvRow { label: string; value: string; accent?: boolean }
+  // Build rows (sans l'intitulé, déjà dans le bandeau)
+  interface ConvRow { label: string; value: string }
   const sessionRows: ConvRow[] = [];
-
-  sessionRows.push({ label: "Intitulé", value: session.nom, accent: true });
 
   if (session.formation_type && session.formation_type !== session.nom) {
     sessionRows.push({ label: "Type", value: session.formation_type });
@@ -2254,14 +2266,14 @@ export function generateConvocationPDF(
   const valX = mL + labelW + 4;
   const maxValW = cW - labelW - 8;
 
-  doc.setFontSize(9.5);
-  const rendered: { label: string; lines: string[]; h: number; accent?: boolean }[] = [];
-  let cardH = 8;
+  doc.setFontSize(9);
+  const rendered: { label: string; lines: string[]; h: number }[] = [];
+  let cardH = 6;
   for (const r of sessionRows) {
     const lines = doc.splitTextToSize(r.value, maxValW) as string[];
-    const h = Math.max(lines.length * 5, 6.5);
-    rendered.push({ label: r.label, lines, h, accent: r.accent });
-    cardH += h + 3.5;
+    const h = Math.max(lines.length * 4.5, 6);
+    rendered.push({ label: r.label, lines, h });
+    cardH += h + 3;
   }
 
   // Card fond vert très léger avec bordure subtile
@@ -2274,32 +2286,32 @@ export function generateConvocationPDF(
   doc.setFillColor(cPrimary.r, cPrimary.g, cPrimary.b);
   doc.rect(mL, yPos, 2.5, cardH, "F");
 
-  let rY = yPos + 6;
+  let rY = yPos + 5;
   for (let i = 0; i < rendered.length; i++) {
     const row = rendered[i];
 
     // Label
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(cTextMuted.r, cTextMuted.g, cTextMuted.b);
     doc.text(row.label, mL + 7, rY);
 
     // Value
-    doc.setFont("helvetica", row.accent ? "bold" : "normal");
-    doc.setFontSize(row.accent ? 11 : 9.5);
-    doc.setTextColor(row.accent ? cPrimary.r : cText.r, row.accent ? cPrimary.g : cText.g, row.accent ? cPrimary.b : cText.b);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(cText.r, cText.g, cText.b);
     doc.text(row.lines, valX, rY);
 
-    rY += row.h + 3.5;
+    rY += row.h + 3;
 
     if (i < rendered.length - 1) {
       doc.setDrawColor(cBorder.r, cBorder.g, cBorder.b);
       doc.setLineWidth(0.15);
-      doc.line(mL + 6, rY - 2, mL + cW - 6, rY - 2);
+      doc.line(mL + 6, rY - 1.5, mL + cW - 6, rY - 1.5);
     }
   }
 
-  yPos += cardH + 10;
+  yPos += cardH + 8;
 
   // ═══════════════════════════════════════════════════════
   // E. INFORMATIONS PRATIQUES — bloc orange
