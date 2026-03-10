@@ -188,7 +188,7 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
-          centre_id: string
+          centre_id: string | null
           changed_fields: string[] | null
           created_at: string
           id: string
@@ -203,7 +203,7 @@ export type Database = {
         }
         Insert: {
           action: string
-          centre_id: string
+          centre_id?: string | null
           changed_fields?: string[] | null
           created_at?: string
           id?: string
@@ -218,7 +218,7 @@ export type Database = {
         }
         Update: {
           action?: string
-          centre_id?: string
+          centre_id?: string | null
           changed_fields?: string[] | null
           created_at?: string
           id?: string
