@@ -101,17 +101,17 @@ function addFooter(ctx: ConvCtx): void {
 }
 
 function writeArticle(ctx: ConvCtx, title: string): void {
-  ctx.yPos += 6;
-  checkPageBreak(ctx, 20);
+  ctx.yPos += 8;
+  checkPageBreak(ctx, 22);
   setFill(ctx.doc, C.forestGreen);
-  ctx.doc.roundedRect(ctx.mL, ctx.yPos - 2, 3, 13, 1, 1, "F");
+  ctx.doc.roundedRect(ctx.mL, ctx.yPos - 2, 3, 14, 1, 1, "F");
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "bold");
   ctx.doc.setFontSize(9.5);
   setColor(ctx.doc, C.forestGreen);
-  ctx.doc.text(title, ctx.mL + 7, ctx.yPos + 5);
+  ctx.doc.text(title, ctx.mL + 8, ctx.yPos + 5);
   setColor(ctx.doc, C.warmGray800);
   ctx.doc.setFont(DOCUMENT_FONTS.primary, "normal");
-  ctx.yPos += 14;
+  ctx.yPos += 16;
 }
 
 function writeParagraph(ctx: ConvCtx, text: string, indent: number = 0): void {
