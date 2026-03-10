@@ -727,7 +727,7 @@ export function addSignatureBlock(
     DOCUMENT_COLORS.warmGray800.b
   );
   
-  return yPos + 50;
+  return yPos + 55;
 }
 
 /**
