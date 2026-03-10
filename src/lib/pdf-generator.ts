@@ -363,11 +363,11 @@ function addSectionTitle(doc: jsPDF, title: string, yPos: number): number {
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text(title, 27, yPos + 6);
+  doc.text(title, 28, yPos + 6);
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   doc.setFont("helvetica", "normal");
-  return yPos + 18;
+  return yPos + 20;
 }
 
 // Box d'information avec fond cream
