@@ -1706,9 +1706,9 @@ export function generateContratFormationPDF(
   const titleText = "CONTRAT DE FORMATION PROFESSIONNELLE";
   const titleW = doc.getTextWidth(titleText) + 30;
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 14, 3, 3, "F");
+  doc.roundedRect((pageWidth - titleW) / 2, yPos - 8, titleW, 16, 3, 3, "F");
   doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(titleText, pageWidth / 2, yPos, { align: "center" });
+  doc.text(titleText, pageWidth / 2, yPos + 1, { align: "center" });
 
   yPos += 8;
   doc.setFontSize(8);
