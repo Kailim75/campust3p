@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Contrat de Formation Professionnelle — PDF Generator
+// Contrat de Formation Professionnelle — PDF Generator V2
 // Art. L6353-3 à L6353-7 du Code du travail
 // Personne physique finançant elle-même sa formation
 // ═══════════════════════════════════════════════════════════════
@@ -13,7 +13,86 @@ import { ORGANISME } from "@/constants/formations";
 
 const C = DOCUMENT_COLORS;
 
-// ── PDF helpers (self-contained for maintainability) ──
+// ── Validation pré-génération ──────────────────────────────────
+
+export interface ContratValidationError {
+  field: string;
+  message: string;
+  severity: "blocking" | "warning";
+}
+
+/**
+ * Valide les données obligatoires avant génération du contrat.
+ * Retourne un tableau d'erreurs. Si au moins une erreur est "blocking",
+ * la génération doit être interdite.
+ */
+export function validateContratData(
+  contact: ContactInfo,
+  session: SessionInfo,
+  company: CompanyInfo
+): ContratValidationError[] {
+  const errors: ContratValidationError[] = [];
+
+  // ── Organisme ──
+  if (!company.name || company.name.includes("[")) {
+    errors.push({ field: "company.name", message: "Nom de l'organisme non configuré", severity: "blocking" });
+  }
+  if (!company.siret || company.siret.includes("[")) {
+    errors.push({ field: "company.siret", message: "SIRET non configuré", severity: "blocking" });
+  }
+  if (!company.address || company.address.includes("[")) {
+    errors.push({ field: "company.address", message: "Adresse de l'organisme non configurée", severity: "blocking" });
+  }
+  if (!company.email || company.email.includes("[")) {
+    errors.push({ field: "company.email", message: "Email de l'organisme non configuré", severity: "blocking" });
+  }
+  if (!company.nda || company.nda.includes("[")) {
+    errors.push({ field: "company.nda", message: "Numéro de déclaration d'activité (NDA) non configuré", severity: "warning" });
+  }
+
+  // ── Stagiaire ──
+  if (!contact.nom) {
+    errors.push({ field: "contact.nom", message: "Nom du stagiaire obligatoire", severity: "blocking" });
+  }
+  if (!contact.prenom) {
+    errors.push({ field: "contact.prenom", message: "Prénom du stagiaire obligatoire", severity: "blocking" });
+  }
+  if (!contact.date_naissance) {
+    errors.push({ field: "contact.date_naissance", message: "Date de naissance du stagiaire recommandée", severity: "warning" });
+  }
+  if (!contact.rue && !contact.ville) {
+    errors.push({ field: "contact.adresse", message: "Adresse du stagiaire recommandée", severity: "warning" });
+  }
+
+  // ── Session ──
+  if (!session.nom) {
+    errors.push({ field: "session.nom", message: "Intitulé de la formation obligatoire", severity: "blocking" });
+  }
+  if (!session.date_debut || !session.date_fin) {
+    errors.push({ field: "session.dates", message: "Dates de début et fin obligatoires", severity: "blocking" });
+  }
+  if (!session.duree_heures) {
+    errors.push({ field: "session.duree_heures", message: "Durée en heures obligatoire", severity: "blocking" });
+  }
+  if (!session.formation_type) {
+    errors.push({ field: "session.formation_type", message: "Type de formation obligatoire", severity: "warning" });
+  }
+
+  return errors;
+}
+
+/**
+ * Retourne true si la génération est possible (pas d'erreur bloquante).
+ */
+export function canGenerateContrat(
+  contact: ContactInfo,
+  session: SessionInfo,
+  company: CompanyInfo
+): boolean {
+  return !validateContratData(contact, session, company).some(e => e.severity === "blocking");
+}
+
+// ── PDF helpers ────────────────────────────────────────────────
 
 function setColor(doc: jsPDF, color: { r: number; g: number; b: number }) {
   doc.setTextColor(color.r, color.g, color.b);
@@ -73,7 +152,7 @@ function addHeader(ctx: ContratContext): number {
   if (company.email) contactLine.push(company.email);
   if (contactLine.length > 0) doc.text(contactLine.join(" • "), mL, 26);
 
-  // Admin refs on right (conditional: skip if placeholder)
+  // Admin refs on right
   const refs: string[] = [];
   if (company.siret && !company.siret.includes("[")) refs.push(`SIRET ${company.siret}`);
   if (company.nda && !company.nda.includes("[") && company.nda.trim()) refs.push(`NDA ${company.nda}`);
@@ -212,6 +291,20 @@ function getPrice(s: SessionInfo): number {
   return s.prix_ht || s.prix || 0;
 }
 
+/**
+ * Détermine le label T3P lisible à partir du formation_type technique.
+ */
+function getFormationLabel(formationType: string): string {
+  const labels: Record<string, string> = {
+    vtc: "Formation VTC (Voiture de Transport avec Chauffeur)",
+    taxi: "Formation Taxi",
+    taxi_75: "Formation Taxi (Paris et petite couronne)",
+    vmdtr: "Formation VMDTR (Véhicule Motorisé à Deux ou Trois Roues)",
+    mobilite_taxi: "Formation Mobilité Taxi",
+  };
+  return labels[formationType.toLowerCase()] || formationType;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATOR
 // ═══════════════════════════════════════════════════════════════
@@ -278,10 +371,13 @@ export function generateContratFormationV2(
   ctx.yPos += 6;
 
   // Box Organisme
+  const ndaText = company.nda && !company.nda.includes("[") && company.nda.trim()
+    ? company.nda
+    : null;
   const orgLines: string[] = [company.name];
   if (company.siret && !company.siret.includes("[")) orgLines.push(`SIRET : ${company.siret}`);
   orgLines.push(company.address);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim()) orgLines.push(`Déclaration d'activité N° ${company.nda}`);
+  if (ndaText) orgLines.push(`Déclaration d'activité enregistrée sous le N° ${ndaText} auprès du Préfet de région`);
   const orgBoxH = orgLines.length * ctx.lineH + 14;
 
   setFill(doc, C.creamLight);
@@ -303,7 +399,7 @@ export function generateContratFormationV2(
   }
   doc.setFontSize(7);
   setColor(doc, C.warmGray500);
-  doc.text("(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", ctx.mL + 8, orgY);
+  doc.text("(Cette déclaration ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", ctx.mL + 8, orgY);
   setColor(doc, C.warmGray800);
   ctx.yPos += orgBoxH + 4;
 
@@ -327,7 +423,7 @@ export function generateContratFormationV2(
   doc.setFontSize(8);
   doc.setFont(DOCUMENT_FONTS.primary, "bold");
   setColor(doc, C.forestGreen);
-  doc.text("Le stagiaire (personne physique) :", ctx.mL + 8, stagY);
+  doc.text("Le stagiaire (personne physique finançant personnellement sa formation) :", ctx.mL + 8, stagY);
   stagY += ctx.lineH + 2;
   setColor(doc, C.warmGray700);
   for (let i = 0; i < stagParts.length; i++) {
@@ -342,59 +438,83 @@ export function generateContratFormationV2(
   setColor(doc, C.warmGray800);
   ctx.yPos += stagBoxH + 3;
 
-  // ═══ ARTICLES ═══
+  // ═══════════════════════════════════════════════════════════
+  // ARTICLES — numérotation stable (toujours 1 à 18)
+  // ═══════════════════════════════════════════════════════════
 
   // Article 1 — Objet
   writeArticle(ctx, "Article 1 — Objet du contrat");
-  writeParagraph(ctx, "Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. L'Organisme s'engage à organiser l'action de formation définie ci-après et le Stagiaire s'engage à suivre cette formation avec assiduité.");
+  writeParagraph(ctx, "Le présent contrat est conclu en application des articles L.6353-3 à L.6353-7 du Code du travail. Il est établi entre l'Organisme de formation et le Stagiaire, personne physique, qui entreprend une formation à ses frais personnels.");
+  writeParagraph(ctx, "L'Organisme s'engage à organiser l'action de formation définie ci-après et le Stagiaire s'engage à suivre cette formation avec assiduité.");
 
   // Article 2 — Nature et caractéristiques
-  writeArticle(ctx, "Article 2 — Nature et caractéristiques de l'action de formation");
+  writeArticle(ctx, "Article 2 — Nature, durée et caractéristiques de l'action de formation");
+  const formationLabel = session.formation_type ? getFormationLabel(session.formation_type) : session.nom;
   const art2Items: Array<{ label: string; value: string }> = [
     { label: "Intitulé", value: session.nom },
-    { label: "Type d'action", value: "Formation professionnelle (Art. L6313-1 du Code du travail)" },
+    { label: "Nature de l'action", value: `${formationLabel} — Action de formation professionnelle (Art. L6313-1 du Code du travail)` },
     { label: "Dates", value: `Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` },
   ];
   if (session.duree_heures) art2Items.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
   const hours = formatSessionHours(session);
   if (hours) art2Items.push({ label: "Horaires", value: hours });
   const addr = formatAddress(session);
-  if (addr) art2Items.push({ label: "Lieu", value: addr });
+  if (addr) art2Items.push({ label: "Lieu de formation", value: addr });
   art2Items.push({ label: "Modalité", value: "En présentiel" });
+  art2Items.push({ label: "Effectif", value: "Formation dispensée en groupe (effectif limité selon les capacités d'accueil de l'organisme)" });
   drawInfoBox(ctx, art2Items);
 
-  // Article 3 — Objectifs
+  // Article 3 — Objectifs pédagogiques
   writeArticle(ctx, "Article 3 — Objectifs pédagogiques");
   const objectifText = session.objectifs || "Acquisition des compétences professionnelles visées par la formation, telles que définies dans le programme annexé au présent contrat.";
   writeParagraph(ctx, objectifText);
 
-  // Article 4 — Prérequis
-  writeArticle(ctx, "Article 4 — Niveau requis et public concerné");
-  const prerequisText = session.prerequis || "Aucun prérequis spécifique n'est demandé pour cette formation. Les conditions d'accès sont détaillées dans le programme annexé.";
+  // Article 4 — Public visé et prérequis
+  writeArticle(ctx, "Article 4 — Public visé et prérequis");
+  writeParagraph(ctx, "Public visé : toute personne physique souhaitant obtenir ou renouveler sa carte professionnelle dans le domaine du transport public particulier de personnes (T3P).");
+  const prerequisText = session.prerequis || "Être titulaire d'un permis de conduire en cours de validité (catégorie B). Aucun autre prérequis spécifique n'est demandé. Les conditions d'accès détaillées figurent dans le programme annexé.";
   writeParagraph(ctx, prerequisText);
 
   // Article 5 — Programme
   writeArticle(ctx, "Article 5 — Programme de formation");
-  writeParagraph(ctx, "Le programme détaillé de la formation figure en ANNEXE 1 du présent contrat. Il précise les objectifs, le contenu, les méthodes et les modalités d'évaluation de la formation.");
+  writeParagraph(ctx, "Le programme détaillé de la formation figure en ANNEXE 1 du présent contrat. Il précise les objectifs pédagogiques par module, le contenu, les méthodes pédagogiques et les modalités d'évaluation de la formation.");
 
-  // Article 6 — Moyens pédagogiques et techniques
-  writeArticle(ctx, "Article 6 — Moyens pédagogiques et techniques");
-  writeParagraph(ctx, "La formation est dispensée en présentiel dans les locaux de l'Organisme. Les moyens pédagogiques mis en œuvre comprennent :");
+  // Article 6 — Modalités de déroulement
+  writeArticle(ctx, "Article 6 — Modalités de déroulement de l'action");
+  writeParagraph(ctx, "La formation se déroule en présentiel, dans les locaux de l'Organisme ou sur les parcours prévus pour les épreuves pratiques, aux dates et horaires indiqués à l'article 2.");
+  writeParagraph(ctx, "Le Stagiaire bénéficie d'un suivi pédagogique individualisé et d'une assistance technique pendant toute la durée de la formation.");
+
+  // Article 7 — Moyens pédagogiques et techniques
+  writeArticle(ctx, "Article 7 — Moyens pédagogiques, techniques et d'encadrement");
+  writeParagraph(ctx, "Les moyens mis en œuvre comprennent :");
   writeBullet(ctx, "Supports de cours remis à chaque stagiaire (papier et/ou numérique)");
   writeBullet(ctx, "Exercices pratiques, mises en situation et études de cas");
-  writeBullet(ctx, "Plateforme e-learning pour révisions (accès 24/7)");
   writeBullet(ctx, "Salle de formation équipée (vidéoprojecteur, tableau interactif)");
+  writeBullet(ctx, "Véhicule(s) homologué(s) pour les épreuves pratiques de conduite, le cas échéant");
+  if (session.formateur) {
+    ctx.yPos += 2;
+    writeParagraph(ctx, `Formateur référent : ${session.formateur}.`);
+  } else {
+    ctx.yPos += 2;
+    writeParagraph(ctx, "La formation est encadrée par des formateurs qualifiés, dont les références sont communiquées au Stagiaire en début de formation.");
+  }
 
-  // Article 7 — Modalités d'évaluation
-  writeArticle(ctx, "Article 7 — Modalités de contrôle et d'évaluation");
-  writeParagraph(ctx, "Les acquis du Stagiaire sont évalués tout au long de la formation par des évaluations formatives (QCM, exercices, mises en situation). Une évaluation sommative est réalisée en fin de formation. Une attestation de fin de formation précisant les objectifs atteints est remise au Stagiaire.");
+  // Article 8 — Contrôle des connaissances et évaluation
+  writeArticle(ctx, "Article 8 — Modalités de contrôle des connaissances et d'évaluation");
+  writeParagraph(ctx, "Les acquis du Stagiaire sont évalués tout au long de la formation selon les modalités suivantes :");
+  writeBullet(ctx, "Évaluations formatives continues (QCM, exercices, mises en situation)");
+  writeBullet(ctx, "Évaluation sommative en fin de formation");
+  writeBullet(ctx, "Feuilles d'émargement signées par le Stagiaire et le formateur");
+  writeParagraph(ctx, "Un bilan de fin de formation est établi, attestant du niveau d'acquisition des compétences.");
 
-  // Article 8 — Sanction
-  writeArticle(ctx, "Article 8 — Sanction de la formation");
-  writeParagraph(ctx, "À l'issue de la formation et sous réserve de l'assiduité requise, le Stagiaire reçoit une attestation de fin de formation mentionnant les compétences acquises. Cette attestation est délivrée conformément aux obligations de l'organisme (Art. L6353-1 du Code du travail).");
+  // Article 9 — Sanction de la formation
+  writeArticle(ctx, "Article 9 — Sanction de la formation");
+  writeParagraph(ctx, "À l'issue de la formation et sous réserve de l'assiduité requise et de la réussite aux évaluations, le Stagiaire reçoit :");
+  writeBullet(ctx, "Une attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation (Art. L6353-1 du Code du travail)");
+  writeBullet(ctx, "Le cas échéant, une attestation d'aptitude permettant de constituer le dossier de demande de carte professionnelle auprès de la préfecture compétente");
 
-  // Article 9 — Prix (conditionnel)
-  writeArticle(ctx, "Article 9 — Prix de la formation et modalités de paiement");
+  // Article 10 — Prix et modalités de paiement
+  writeArticle(ctx, "Article 10 — Prix de la formation et modalités de paiement");
   checkPageBreak(ctx, 25);
 
   if (prix > 0) {
@@ -415,13 +535,18 @@ export function generateContratFormationV2(
     setColor(doc, C.warmGray800);
     ctx.yPos += priceBoxH + 3;
 
-    writeParagraph(ctx, "Le paiement s'effectue à la signature du présent contrat ou selon l'échéancier convenu entre les parties. Ce tarif comprend la formation, les supports de cours et l'attestation de fin de formation.");
+    // ⚠ CLAUSE CONFORME ART. L6353-5 ET L6353-6
+    writeParagraph(ctx, "Conformément aux articles L.6353-5 et L.6353-6 du Code du travail :");
+    writeBullet(ctx, "Aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours prévu à l'article 11 ci-après.");
+    writeBullet(ctx, `À l'issue de ce délai, un acompte maximum de 30 % du prix convenu, soit ${(prix * 0.3).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €, peut être versé.`);
+    writeBullet(ctx, "Le solde donne lieu à échelonnement des paiements au fur et à mesure du déroulement de l'action de formation.");
+    writeParagraph(ctx, "Ce tarif comprend la formation, les supports de cours et l'attestation de fin de formation.");
   } else {
     writeParagraph(ctx, "La présente formation est dispensée à titre gratuit. Aucune somme n'est exigée du Stagiaire.");
   }
 
-  // Article 10 — Rétractation (mise en évidence)
-  writeArticle(ctx, "Article 10 — Délai de rétractation (Art. L.6353-5)");
+  // Article 11 — Rétractation (mise en évidence)
+  writeArticle(ctx, "Article 11 — Délai de rétractation (Art. L.6353-5)");
   checkPageBreak(ctx, 20);
 
   const retractBoxH = 14;
@@ -439,48 +564,48 @@ export function generateContratFormationV2(
 
   writeParagraph(ctx, "Conformément à l'article L.6353-5 du Code du travail, le Stagiaire dispose d'un délai de DIX (10) JOURS à compter de la signature du présent contrat pour se rétracter. Cette rétractation doit être notifiée par lettre recommandée avec accusé de réception adressée à l'Organisme. Dans ce cas, aucune somme ne peut être exigée du Stagiaire.");
 
-  // Article 11 — Paiement anticipé
-  if (prix > 0) {
-    writeArticle(ctx, "Article 11 — Paiement anticipé (Art. L.6353-6)");
-    writeParagraph(ctx, "Conformément à l'article L.6353-6 du Code du travail, aucun paiement ne peut être exigé avant l'expiration du délai de rétractation de 10 jours. À l'issue de ce délai, un acompte maximum de 30% du prix convenu peut être versé. Le solde donne lieu à échelonnement des paiements au fur et à mesure du déroulement de la formation.");
-  }
-
-  // Article 12 — Interruption / cessation anticipée
-  writeArticle(ctx, prix > 0 ? "Article 12 — Cessation anticipée et force majeure" : "Article 11 — Cessation anticipée et force majeure");
+  // Article 12 — Cessation anticipée / Abandon
+  writeArticle(ctx, "Article 12 — Abandon, cessation anticipée et force majeure (Art. L.6353-7)");
   writeParagraph(ctx, "En cas de cessation anticipée de la formation du fait de l'Organisme ou d'abandon pour un motif relevant de la force majeure dûment reconnu, seules les prestations effectivement dispensées sont dues au prorata temporis de leur valeur prévue au contrat.");
   ctx.yPos += 2;
   writeParagraph(ctx, "Constituent des cas de force majeure : maladie ou accident du stagiaire sur présentation d'un justificatif médical, décès d'un proche, catastrophe naturelle, ou tout événement imprévisible et irrésistible au sens de l'article 1218 du Code civil.");
+  ctx.yPos += 2;
+  writeParagraph(ctx, "En cas d'abandon par le Stagiaire pour un motif autre que la force majeure, l'Organisme peut facturer les heures effectivement dispensées au prorata du prix convenu, dans la limite du montant restant dû.");
 
   // Article 13 — Obligations du Stagiaire
-  const artNum = prix > 0 ? 13 : 12;
-  writeArticle(ctx, `Article ${artNum} — Obligations du Stagiaire`);
+  writeArticle(ctx, "Article 13 — Obligations du Stagiaire");
   writeParagraph(ctx, "Le Stagiaire s'engage à :");
   writeBullet(ctx, "Suivre la formation avec assiduité et ponctualité");
   writeBullet(ctx, "Respecter le règlement intérieur de l'Organisme");
   writeBullet(ctx, "Participer aux évaluations prévues dans le programme");
   writeBullet(ctx, "Informer l'Organisme de tout empêchement dans les meilleurs délais");
+  writeBullet(ctx, "Ne pas utiliser les supports de cours à des fins commerciales ou de reproduction");
 
   // Article 14 — Règlement intérieur
-  writeArticle(ctx, `Article ${artNum + 1} — Règlement intérieur`);
-  writeParagraph(ctx, "Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme de formation, qui lui a été remis préalablement à la signature du présent contrat, et s'engage à le respecter.");
+  writeArticle(ctx, "Article 14 — Règlement intérieur");
+  writeParagraph(ctx, "Le Stagiaire déclare avoir pris connaissance du règlement intérieur de l'Organisme de formation, qui lui a été remis préalablement à la signature du présent contrat conformément à l'article L.6352-3 du Code du travail, et s'engage à le respecter.");
 
   // Article 15 — RGPD
-  writeArticle(ctx, `Article ${artNum + 2} — Protection des données personnelles (RGPD)`);
-  writeParagraph(ctx, `Les données personnelles recueillies dans le cadre du présent contrat font l'objet d'un traitement destiné à la gestion administrative et pédagogique de la formation. Conformément au RGPD et à la loi Informatique et Libertés, le Stagiaire dispose d'un droit d'accès, de rectification, de suppression et de portabilité. Conservation : 3 ans. Contact : ${company.email}`);
+  writeArticle(ctx, "Article 15 — Protection des données personnelles (RGPD)");
+  writeParagraph(ctx, "Les données personnelles recueillies dans le cadre du présent contrat font l'objet d'un traitement destiné à la gestion administrative et pédagogique de la formation, sur le fondement de l'exécution contractuelle (Art. 6.1.b du RGPD).");
+  writeParagraph(ctx, "Conformément au Règlement Général sur la Protection des Données (UE 2016/679) et à la loi Informatique et Libertés du 6 janvier 1978 modifiée, le Stagiaire dispose d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition au traitement de ses données.");
+  writeParagraph(ctx, `Durée de conservation : 5 ans après la fin de la formation (obligation légale). Pour exercer ces droits : ${company.email}. En cas de litige, le Stagiaire peut introduire une réclamation auprès de la CNIL (www.cnil.fr).`);
 
-  // Article 16 — Litiges
-  writeArticle(ctx, `Article ${artNum + 3} — Règlement des litiges`);
-  writeParagraph(ctx, "En cas de contestation, les parties conviennent de rechercher une solution amiable. Le Stagiaire peut recourir gratuitement au service du médiateur de la consommation :");
-  writeParagraph(ctx, `${ORGANISME.mediateur.nom} — ${ORGANISME.mediateur.adresse}, ${ORGANISME.mediateur.codePostal} ${ORGANISME.mediateur.ville} — ${ORGANISME.mediateur.web}`, 4);
-  writeParagraph(ctx, "À défaut d'accord amiable, le litige sera soumis aux tribunaux compétents.");
+  // Article 16 — Litiges et médiation
+  writeArticle(ctx, "Article 16 — Règlement des litiges et médiation");
+  writeParagraph(ctx, "En cas de contestation, les parties conviennent de rechercher une solution amiable. Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, le Stagiaire peut recourir gratuitement au service du médiateur de la consommation :");
+  writeParagraph(ctx, `${ORGANISME.mediateur.nom} — ${ORGANISME.mediateur.adresse}, ${ORGANISME.mediateur.codePostal} ${ORGANISME.mediateur.ville}`, 4);
+  writeParagraph(ctx, `${ORGANISME.mediateur.email} — ${ORGANISME.mediateur.web}`, 4);
+  writeParagraph(ctx, "À défaut d'accord amiable, le litige sera soumis aux tribunaux compétents du ressort du siège de l'Organisme.");
 
   // Article 17 — Dispositions générales
-  writeArticle(ctx, `Article ${artNum + 4} — Dispositions générales`);
+  writeArticle(ctx, "Article 17 — Dispositions générales");
   writeParagraph(ctx, "Le présent contrat est soumis au droit français. Il annule et remplace tout accord antérieur entre les parties relatif à la même formation. Toute modification doit faire l'objet d'un avenant signé par les deux parties.");
+  writeParagraph(ctx, "Si l'une des clauses du présent contrat était déclarée nulle, les autres clauses resteraient en vigueur.");
 
   // Article 18 — Documents annexes
-  writeArticle(ctx, `Article ${artNum + 5} — Documents annexes`);
-  writeParagraph(ctx, "Sont annexés au présent contrat :");
+  writeArticle(ctx, "Article 18 — Documents annexes");
+  writeParagraph(ctx, "Sont annexés au présent contrat et en font partie intégrante :");
   writeBullet(ctx, "ANNEXE 1 : Programme détaillé de la formation");
   writeBullet(ctx, "ANNEXE 2 : Règlement intérieur de l'organisme de formation");
 
