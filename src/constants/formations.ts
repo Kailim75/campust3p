@@ -890,26 +890,47 @@ export const TARIFS = {
   VTC: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   TAXI: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   "TAXI-75": {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   VMDTR: {
     journee: 990,
     soiree: 1090,
-    weekend: 1090
   },
   RECUPERATION_POINTS: {
     standard: 250
   }
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════
+// FORMULES DE FORMATION (offre réelle)
+// ═══════════════════════════════════════════════════════════════════
+
+export const FORMULES = {
+  soiree: {
+    label: "Formule Soir",
+    dureeHeures: 33,
+    conduiteIncluse: 2,
+    description: "33 heures dont 2 heures de conduite incluses",
+  },
+  journee: {
+    label: "Formule Journée",
+    dureeHeures: 40,
+    conduiteIncluse: 2,
+    description: "40 heures dont 2 heures de conduite incluses",
+  },
+  examen_blanc: {
+    label: "Examen blanc final",
+    dureeHeures: 4,
+    conduiteIncluse: 0,
+    description: "4 heures d'examen blanc en conditions réelles",
+  },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -925,10 +946,6 @@ export const HORAIRES = {
     matin: "18h00 - 20h00",
     apresMidi: "20h00 - 22h00"
   },
-  weekend: {
-    matin: "9h00 - 12h30",
-    apresMidi: "13h30 - 17h00"
-  }
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════
