@@ -43,17 +43,25 @@ export const DOCUMENT_FONTS = {
   primary: "helvetica",
   secondary: "times",
   
-  // Tailles standard
+  // Tailles standard (optimisées lisibilité A4)
   sizes: {
     title: 16,       // Titre du document
     subtitle: 12,    // Sous-titre / nom de section
     heading: 11,     // En-tête de section
     subheading: 10,  // Sous-titre de section
-    body: 10,        // Corps de texte principal
+    body: 9.5,       // Corps de texte principal
     small: 9,        // Texte secondaire
     tiny: 8,         // Notes, mentions légales
     micro: 7,        // Pied de page, références
     nano: 6.5,       // Agréments, informations compactées
+  },
+
+  // Interlignage standard (mm par ligne de texte)
+  lineHeight: {
+    body: 5.2,       // Corps de texte — aéré
+    small: 4.8,      // Texte secondaire
+    tight: 4.2,      // Listes compactes
+    heading: 6,      // Titres de section
   },
   
   // Poids
