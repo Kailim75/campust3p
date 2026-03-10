@@ -513,7 +513,7 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
 
   // --- ARTICLE 13 : ASSURANCE ET RESPONSABILITÉ ---
   yPos = addArticleTitle(doc, 13, "ASSURANCE ET RESPONSABILITÉ", yPos);
-  yPos = addParagraph(doc, `L'organisme de formation a souscrit une assurance responsabilité civile professionnelle auprès de ${ORGANISME.assurance.nom}. Le stagiaire est couvert pendant les heures de formation.`, yPos);
+  yPos = addParagraph(doc, `L'organisme de formation a souscrit une assurance responsabilité civile professionnelle. Le stagiaire est couvert pendant les heures de formation.`, yPos);
 
   // --- ARTICLE 14 : PROTECTION DES DONNÉES (RGPD) ---
   yPos = addArticleTitle(doc, 14, "PROTECTION DES DONNÉES PERSONNELLES (RGPD)", yPos);
