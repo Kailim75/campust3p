@@ -7173,6 +7173,8 @@ export type Database = {
           contact_prenom: string
           date_expiration: string
           description: string
+          document_storage_bucket: string
+          document_storage_path: string
           document_url: string
           id: string
           signature_url: string

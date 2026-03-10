@@ -15,8 +15,9 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 }
 
 interface SignRequest {
+  action?: "sign" | "get_document_url";
   signatureId: string;
-  signatureDataBase64: string;
+  signatureDataBase64?: string;
   userAgent?: string;
 }
 
@@ -31,13 +32,69 @@ serve(async (req) => {
 
   try {
     const body: SignRequest = await req.json();
+    const action = body.action || "sign";
+
+    // ─── ACTION: get_document_url ───
+    // Generates a fresh signed URL from the stable storage path
+    if (action === "get_document_url") {
+      const { signatureId } = body;
+      if (!signatureId) {
+        return jsonResponse({ success: false, error: "signatureId requis" }, 400);
+      }
+
+      const { data: sigRequest, error: fetchError } = await supabase
+        .from("signature_requests")
+        .select("id, document_storage_path, document_storage_bucket, document_url")
+        .eq("id", signatureId)
+        .single();
+
+      if (fetchError || !sigRequest) {
+        return jsonResponse({ success: false, error: "Document introuvable", code: "NOT_FOUND" }, 404);
+      }
+
+      // Priority 1: stable storage path
+      if (sigRequest.document_storage_path && sigRequest.document_storage_bucket) {
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from(sigRequest.document_storage_bucket)
+          .createSignedUrl(sigRequest.document_storage_path, 3600); // 1 hour
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          console.error("Signed URL generation failed:", signedUrlError);
+          return jsonResponse({
+            success: false,
+            error: "Le fichier du document est introuvable dans le stockage.",
+            code: "FILE_NOT_FOUND",
+          }, 404);
+        }
+
+        return jsonResponse({ success: true, url: signedUrlData.signedUrl, source: "storage_path" });
+      }
+
+      // Priority 2: legacy document_url (may be expired)
+      if (sigRequest.document_url) {
+        return jsonResponse({
+          success: true,
+          url: sigRequest.document_url,
+          source: "legacy_url",
+          warning: "URL héritée — peut être expirée",
+        });
+      }
+
+      // No source available
+      return jsonResponse({
+        success: false,
+        error: "Aucun document associé à cette demande de signature.",
+        code: "NO_DOCUMENT",
+      }, 404);
+    }
+
+    // ─── ACTION: sign (default) ───
     const { signatureId, signatureDataBase64, userAgent } = body;
 
     if (!signatureId || !signatureDataBase64) {
       return jsonResponse({ success: false, error: "Paramètres manquants" }, 400);
     }
 
-    // Verify the signature request exists and is signable
     const { data: sigRequest, error: fetchError } = await supabase
       .from("signature_requests")
       .select("id, statut, date_expiration, contact_id")
@@ -56,7 +113,6 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Ce lien de signature a expiré" }, 400);
     }
 
-    // Get centre_id from contact for proper storage path
     const { data: contact } = await supabase
       .from("contacts")
       .select("centre_id")
@@ -65,7 +121,6 @@ serve(async (req) => {
 
     const centreId = contact?.centre_id || "unknown";
 
-    // Upload signature image to storage using service role
     const fileName = `centre/${centreId}/signatures/${sigRequest.contact_id}/sig-${signatureId}-${Date.now()}.png`;
     const binaryData = decode(signatureDataBase64);
 
@@ -81,7 +136,6 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Erreur lors de l'upload de la signature" }, 500);
     }
 
-    // Update signature request
     const { error: updateError } = await supabase
       .from("signature_requests")
       .update({

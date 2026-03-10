@@ -20,6 +20,7 @@ import {
   Download,
   Eye,
   FileSignature,
+  RefreshCw,
 } from "lucide-react";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { format, parseISO } from "date-fns";
@@ -36,6 +37,8 @@ interface SignatureData {
   signature_url: string | null;
   contact_id: string;
   contact: { id: string; nom: string; prenom: string; email: string | null } | null;
+  document_storage_path: string | null;
+  document_storage_bucket: string | null;
 }
 
 interface RelatedDocument {
@@ -47,6 +50,8 @@ interface RelatedDocument {
   date_envoi: string | null;
   date_signature: string | null;
 }
+
+type DocumentStatus = "loading" | "ready" | "legacy" | "unavailable" | "error";
 
 const TYPE_LABELS: Record<string, string> = {
   convention: "Convention de formation",
@@ -65,6 +70,11 @@ export default function SignaturePage() {
   const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Document resolution state
+  const [resolvedDocumentUrl, setResolvedDocumentUrl] = useState<string | null>(null);
+  const [documentStatus, setDocumentStatus] = useState<DocumentStatus>("loading");
+  const [documentWarning, setDocumentWarning] = useState<string | null>(null);
+
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showRefuse, setShowRefuse] = useState(false);
@@ -78,10 +88,46 @@ export default function SignaturePage() {
     loadSignatureRequest();
   }, [id]);
 
+  /**
+   * Resolves the document URL via the edge function (service role generates signed URL).
+   * Source of truth: document_storage_path + document_storage_bucket
+   * Fallback: legacy document_url
+   */
+  const resolveDocumentUrl = async (signatureId: string) => {
+    setDocumentStatus("loading");
+    setDocumentWarning(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("public-sign-document", {
+        body: { action: "get_document_url", signatureId },
+      });
+
+      if (fnError) {
+        console.error("Document URL resolution error:", fnError);
+        setDocumentStatus("error");
+        return;
+      }
+
+      if (data?.success && data?.url) {
+        setResolvedDocumentUrl(data.url);
+        if (data.source === "legacy_url") {
+          setDocumentStatus("legacy");
+          setDocumentWarning(data.warning || "Le lien vers ce document est peut-être expiré.");
+        } else {
+          setDocumentStatus("ready");
+        }
+      } else {
+        setDocumentStatus("unavailable");
+        setResolvedDocumentUrl(null);
+      }
+    } catch {
+      setDocumentStatus("error");
+    }
+  };
+
   const loadSignatureRequest = async () => {
     try {
-      // Use Security Definer RPC to bypass RLS on contacts table
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: Record<string, unknown>[] | Record<string, unknown> | null; error: unknown }> })
         .rpc("get_signature_request_public", { p_signature_id: id! });
 
       if (fetchError || !data || (Array.isArray(data) && data.length === 0)) {
@@ -95,44 +141,49 @@ export default function SignaturePage() {
         setCompleted("signed");
       } else if (row.statut === "refuse") {
         setCompleted("refused");
-      } else if (row.date_expiration && new Date(row.date_expiration) < new Date()) {
+      } else if (row.date_expiration && new Date(row.date_expiration as string) < new Date()) {
         setError("Ce lien de signature a expiré.");
         return;
       }
 
       const sigData: SignatureData = {
-        id: row.id,
-        titre: row.titre,
-        description: row.description,
-        type_document: row.type_document,
-        date_expiration: row.date_expiration,
-        statut: row.statut,
-        document_url: row.document_url,
-        signature_url: row.signature_url,
-        contact_id: row.contact_id,
+        id: row.id as string,
+        titre: row.titre as string,
+        description: row.description as string | null,
+        type_document: row.type_document as string,
+        date_expiration: row.date_expiration as string | null,
+        statut: row.statut as string,
+        document_url: row.document_url as string | null,
+        signature_url: row.signature_url as string | null,
+        contact_id: row.contact_id as string,
         contact: row.contact_nom ? {
-          id: row.contact_id,
-          nom: row.contact_nom,
-          prenom: row.contact_prenom,
-          email: row.contact_email,
+          id: row.contact_id as string,
+          nom: row.contact_nom as string,
+          prenom: row.contact_prenom as string,
+          email: row.contact_email as string | null,
         } : null,
+        document_storage_path: row.document_storage_path as string | null,
+        document_storage_bucket: row.document_storage_bucket as string | null,
       };
 
       setSigRequest(sigData);
 
+      // Resolve the actual document URL via edge function
+      await resolveDocumentUrl(sigData.id);
+
       // Load related documents via RPC
       if (row.contact_id) {
-        const { data: related } = await (supabase as any)
+        const { data: related } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: RelatedDocument[] | null; error: unknown }> })
           .rpc("get_related_signature_docs", { p_contact_id: row.contact_id });
 
         if (related && Array.isArray(related)) {
           const seen = new Set<string>();
-          const unique = related.filter((d: any) => {
+          const unique = related.filter((d) => {
             if (seen.has(d.type_document)) return false;
             seen.add(d.type_document);
             return true;
           });
-          setRelatedDocs(unique as RelatedDocument[]);
+          setRelatedDocs(unique);
         }
       }
     } catch {
@@ -149,7 +200,6 @@ export default function SignaturePage() {
     try {
       const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, "");
 
-      // Use Edge Function to handle upload + update (bypasses storage RLS for public page)
       const { data: result, error: fnError } = await supabase.functions.invoke("public-sign-document", {
         body: {
           signatureId: sigRequest.id,
@@ -164,8 +214,9 @@ export default function SignaturePage() {
       setCompleted("signed");
       loadSignatureRequest();
       toast.success("Document signé avec succès !");
-    } catch (err: any) {
-      console.error("Signing error:", err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      console.error("Signing error:", message);
       toast.error("Erreur lors de la signature. Veuillez réessayer.");
     } finally {
       setSigning(false);
@@ -177,8 +228,7 @@ export default function SignaturePage() {
     setRefusing(true);
 
     try {
-      // Use Security Definer RPC to refuse document
-      const { data: result, error: rpcError } = await (supabase as any)
+      const { data: result, error: rpcError } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: { success: boolean; error?: string } | null; error: unknown }> })
         .rpc("refuse_document_public", {
           p_signature_id: sigRequest.id,
           p_commentaires: refuseReason || "Refusé par le signataire",
@@ -229,7 +279,88 @@ export default function SignaturePage() {
     }
   };
 
-  const contact = sigRequest?.contact as any;
+  /** Renders the document status indicator and preview */
+  const renderDocumentSection = () => {
+    if (documentStatus === "loading") {
+      return (
+        <div className="rounded-lg border bg-slate-50 p-6 flex flex-col items-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+          <p className="text-sm text-slate-500">Chargement du document...</p>
+        </div>
+      );
+    }
+
+    if (documentStatus === "unavailable") {
+      return (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-700 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Aucun document PDF n'est associé à cette demande. Vous pouvez tout de même signer le document.
+          </p>
+        </div>
+      );
+    }
+
+    if (documentStatus === "error") {
+      return (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-2">
+          <p className="text-sm text-red-700 flex items-center gap-2">
+            <XCircle className="h-4 w-4 shrink-0" />
+            Impossible de charger le document. Veuillez réessayer.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => sigRequest && resolveDocumentUrl(sigRequest.id)}
+            className="text-xs"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Réessayer
+          </Button>
+        </div>
+      );
+    }
+
+    // "ready" or "legacy"
+    return (
+      <>
+        {documentStatus === "legacy" && documentWarning && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 mb-2">
+            <p className="text-xs text-amber-700 flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {documentWarning}
+            </p>
+          </div>
+        )}
+        {resolvedDocumentUrl && (
+          <div className="rounded-lg border overflow-hidden bg-white">
+            <div className="flex items-center justify-between p-3 border-b bg-slate-50">
+              <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Aperçu du document
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(resolvedDocumentUrl, "_blank")}
+                className="text-xs gap-1"
+              >
+                <Download className="h-3 w-3" />
+                Télécharger
+              </Button>
+            </div>
+            <PDFViewer
+              pdfData={resolvedDocumentUrl}
+              className="h-[400px]"
+              onDownload={() => window.open(resolvedDocumentUrl, "_blank")}
+            />
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const contact = sigRequest?.contact;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
@@ -262,7 +393,6 @@ export default function SignaturePage() {
                 </p>
               </div>
 
-              {/* Documents section after signing */}
               {relatedDocs.length > 0 && (
                 <DocumentsSection
                   docs={relatedDocs}
@@ -310,22 +440,8 @@ export default function SignaturePage() {
                 </div>
               </div>
 
-              {/* Preview of current document */}
-              {sigRequest?.document_url && (
-                <div className="rounded-lg border overflow-hidden bg-white">
-                  <div className="flex items-center justify-between p-3 border-b bg-slate-50">
-                    <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      Aperçu du document
-                    </span>
-                  </div>
-                  <PDFViewer
-                    pdfData={sigRequest.document_url}
-                    className="h-[400px]"
-                    onDownload={() => window.open(sigRequest.document_url!, "_blank")}
-                  />
-                </div>
-              )}
+              {/* Document Preview - resolved via edge function */}
+              {renderDocumentSection()}
 
               {/* Related documents before signing */}
               {relatedDocs.length > 1 && (
