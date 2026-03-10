@@ -953,7 +953,7 @@ export const HORAIRES = {
 // ═══════════════════════════════════════════════════════════════════
 
 export type TypeFormation = "VTC" | "TAXI" | "TAXI-75" | "VMDTR" | "RECUPERATION_POINTS";
-export type Modalite = "journée" | "soirée" | "weekend";
+export type Modalite = "journée" | "soirée";
 export type Civilite = "M." | "Mme";
 
 export interface Beneficiaire {
