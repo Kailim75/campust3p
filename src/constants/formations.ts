@@ -580,96 +580,136 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
   }
 ];
 // Programme VMDTR conforme 2024 - Durée totale : 34 heures
+// Nomenclature alignée sur l'arrêté du 6 avril 2017 (adaptation VMDTR)
 export const PROGRAMME_VMDTR: ModuleFormation[] = [
   {
     numero: 1,
-    titre: "Réglementation spécifique VMDTR",
+    titre: "A — Réglementation du transport public particulier de personnes et prévention des discriminations et des violences sexuelles et sexistes",
     dureeHeures: 6,
     contenu: [
       "Cadre réglementaire du VMDTR",
-      "Différences avec le transport à 4 roues",
-      "Conditions d'accès à la profession",
+      "Différences avec le transport à 4 roues (taxi, VTC)",
+      "Conditions d'accès et d'exercice de la profession VMDTR",
       "Obligations du conducteur VMDTR",
       "Documents obligatoires à bord",
-      "Spécificités de sécurité",
-      "Sanctions applicables"
+      "Sanctions administratives et pénales applicables",
+      "Règles relatives à la prise en charge des personnes à mobilité réduite",
+      "Connaître les comportements constituant des infractions à caractère sexuel et/ou sexiste",
+      "Connaître les discriminations listées à l'article 225-1 du code pénal ainsi que les peines encourues",
+      "Connaître les acteurs au service de la prévention en matière de violences sexuelles et sexistes et de lutte contre les discriminations"
+    ],
+    objectifs: [
+      "Maîtriser le cadre réglementaire du transport VMDTR",
+      "Identifier les obligations légales du conducteur",
+      "Prévenir et lutter contre les discriminations et les violences"
     ]
   },
   {
     numero: 2,
-    titre: "Gestion d'entreprise VMDTR",
+    titre: "B — Gestion",
     dureeHeures: 4,
     contenu: [
-      "Statuts juridiques adaptés",
-      "Investissement et coûts spécifiques",
-      "Assurances et garanties",
-      "Comptabilité et charges",
-      "Tarification et rentabilité",
-      "Développement commercial"
+      "Statuts juridiques adaptés à l'activité VMDTR",
+      "Investissement et coûts spécifiques deux-roues",
+      "Assurances professionnelles et garanties obligatoires",
+      "Obligations comptables et charges sociales",
+      "Tarification et calcul de la rentabilité",
+      "Développement commercial et fidélisation"
+    ],
+    objectifs: [
+      "Comprendre les statuts juridiques adaptés",
+      "Calculer sa rentabilité",
+      "Maîtriser les obligations comptables"
     ]
   },
   {
     numero: 3,
-    titre: "Sécurité routière deux-roues",
+    titre: "C — Sécurité routière spécifique deux-roues",
     dureeHeures: 6,
     contenu: [
-      "Conduite défensive deux-roues",
-      "Risques spécifiques moto/scooter",
-      "Équipements de protection",
-      "Conduite par mauvais temps",
-      "Transport de passagers",
-      "Anticipation et visibilité",
-      "Entretien du véhicule"
+      "Conduite défensive spécifique deux-roues",
+      "Risques spécifiques moto/scooter en milieu urbain",
+      "Équipements de protection obligatoires (conducteur et passager)",
+      "Conduite par conditions difficiles (pluie, nuit, vent)",
+      "Transport de passagers en deux-roues : règles de sécurité",
+      "Anticipation, visibilité et positionnement sur la chaussée",
+      "Entretien et vérification du véhicule deux-roues"
+    ],
+    objectifs: [
+      "Adopter une conduite sécuritaire en deux-roues",
+      "Garantir la sécurité du passager",
+      "Prévenir les risques spécifiques au deux-roues"
     ]
   },
   {
     numero: 4,
-    titre: "Français professionnel",
+    titre: "D — Français (compréhension et expression)",
     dureeHeures: 6,
     contenu: [
-      "Communication en situation VMDTR",
+      "Communication adaptée au contexte VMDTR",
       "Accueil et professionnalisme",
-      "Gestion client spécifique",
-      "Instructions de sécurité passager"
+      "Gestion de la relation client spécifique au deux-roues",
+      "Instructions de sécurité au passager",
+      "Vocabulaire professionnel du transport de personnes"
+    ],
+    objectifs: [
+      "Communiquer efficacement en français",
+      "Adopter un langage professionnel adapté",
+      "Transmettre les consignes de sécurité au passager"
     ]
   },
   {
     numero: 5,
-    titre: "Anglais professionnel",
+    titre: "E — Anglais",
     dureeHeures: 6,
     contenu: [
-      "Vocabulaire VMDTR en anglais",
-      "Instructions de sécurité",
-      "Communication client anglophone",
-      "Tourisme en deux-roues"
+      "Vocabulaire professionnel VMDTR en anglais",
+      "Instructions de sécurité en anglais",
+      "Communication avec une clientèle anglophone",
+      "Informations touristiques en anglais",
+      "Situations courantes de transport"
+    ],
+    objectifs: [
+      "Accueillir une clientèle anglophone",
+      "Communiquer les consignes de sécurité en anglais",
+      "Assurer un service professionnel en anglais"
     ]
   },
   {
     numero: 6,
-    titre: "Prévention et lutte contre les discriminations",
-    dureeHeures: 2,
+    titre: "F(M) — Sécurité routière spécifique à l'usage et à la conduite de motocyclettes",
+    dureeHeures: 4,
     contenu: [
-      "Cadre légal anti-discrimination",
-      "27 critères prohibés",
-      "Obligations conducteur VMDTR",
-      "Sanctions",
-      "Cas pratiques"
+      "Spécificités de la conduite de motocyclette avec passager",
+      "Réglementation routière applicable aux deux-roues motorisés",
+      "Équipements de sécurité obligatoires et recommandés",
+      "Techniques de freinage d'urgence et d'évitement",
+      "Gestion des situations d'urgence en deux-roues"
+    ],
+    objectifs: [
+      "Maîtriser la conduite professionnelle en motocyclette",
+      "Garantir la sécurité du conducteur et du passager",
+      "Réagir efficacement en situation d'urgence"
     ]
   },
   {
     numero: 7,
-    titre: "Prévention et lutte contre la traite des êtres humains et le harcèlement et agressions sexuels",
-    dureeHeures: 1,
+    titre: "G(M) — Prise en charge du passager",
+    dureeHeures: 2,
     contenu: [
-      "Vigilance professionnelle",
-      "Signaux d'alerte",
-      "Obligations de signalement",
-      "Numéros d'urgence",
-      "Protection des victimes"
+      "Accueil et installation du passager",
+      "Équipements de protection à fournir au passager",
+      "Briefing de sécurité avant départ",
+      "Confort et communication pendant le trajet",
+      "Dépose sécurisée du passager"
+    ],
+    objectifs: [
+      "Assurer un accueil professionnel",
+      "Garantir la sécurité et le confort du passager",
+      "Maîtriser le protocole de prise en charge"
     ]
   }
 ];
-
 // ═══════════════════════════════════════════════════════════════════
 // PRÉREQUIS RÉGLEMENTAIRES
 // ═══════════════════════════════════════════════════════════════════
