@@ -93,6 +93,11 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
                         <Badge variant="outline" className={cn("text-xs", priorite.color)}>
                           {priorite.label}
                         </Badge>
+                        {reclamation.categorie && (
+                          <Badge variant="secondary" className="text-xs">
+                            {reclamation.categorie}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {reclamation.description}
