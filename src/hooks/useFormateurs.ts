@@ -347,6 +347,9 @@ export function useDeleteFormateur() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du formateur : " + error.message);
+    },
   });
 }
 
