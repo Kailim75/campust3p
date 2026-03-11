@@ -78,5 +78,4 @@ export { useGenerateChevalet, useGenerateBatchChevalets } from "../useChevalets"
 export { useDocumentScanner } from "../useDocumentScanner";
 
 // ── Legacy (à supprimer Phase 7) ────────────────────────────────
-export { useConventionGenerator } from "../useConventionGenerator";
 export { useStudioTemplates } from "../useTemplateStudio";
