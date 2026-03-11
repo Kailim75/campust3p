@@ -41,11 +41,16 @@ export const TEMPLATE_FORMATS = [
 ] as const;
 
 // ── Template Statuses ──
+// DECISION PRODUIT (2026-03-11):
+// - "review" et "approved" sont des statuts legacy (workflow v1 à 4 étapes).
+// - Le workflow v2 actif est: draft → published (gate compliance) → archived.
+// - Ces statuts restent dans les constantes pour l'affichage et le filtrage
+//   des templates historiques, mais ne sont PAS intégrés au workflow v2.
 
 export const TEMPLATE_STATUSES = [
   { value: "draft", label: "Brouillon", color: "bg-muted text-muted-foreground" },
-  { value: "review", label: "En révision", color: "bg-yellow-500/10 text-yellow-600" },
-  { value: "approved", label: "Approuvé", color: "bg-blue-500/10 text-blue-600" },
+  { value: "review", label: "En révision", color: "bg-yellow-500/10 text-yellow-600" },    // legacy v1
+  { value: "approved", label: "Approuvé", color: "bg-blue-500/10 text-blue-600" },          // legacy v1
   { value: "published", label: "Publié", color: "bg-green-500/10 text-green-600" },
   { value: "inactive", label: "Inactif", color: "bg-muted text-muted-foreground" },
   { value: "archived", label: "Archivé", color: "bg-muted/50 text-muted-foreground" },
@@ -76,6 +81,12 @@ export interface TemplateVersion {
   created_at: string;
   created_by: string | null;
 }
+
+// DECISION PRODUIT (2026-03-11) — Audit / Logs:
+// - v1 écrit dans `template_approval_logs` via useTemplateWorkflow().logAction()
+// - v2 écrit dans `template_audit_log` (superset: inclut génération, envoi, etc.)
+// - Les deux tables coexistent sans migration. La purge de template_approval_logs
+//   interviendra lors de la Phase 7 (suppression complète du Template Studio v1).
 
 export interface ApprovalLog {
   id: string;
