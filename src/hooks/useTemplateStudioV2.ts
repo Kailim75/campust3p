@@ -270,7 +270,6 @@ export function usePublishTemplateV2() {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: { user } } = await supabase.auth.getUser();
       const newVersion = template.version + (template.status === "published" ? 1 : 0);
 
       const { data: ver, error: verErr } = await (supabase as any)
