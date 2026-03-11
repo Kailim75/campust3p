@@ -233,6 +233,9 @@ export function useCreateFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la facture : " + error.message);
+    },
   });
 }
 
