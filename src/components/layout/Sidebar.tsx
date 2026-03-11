@@ -60,7 +60,7 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8} className="bg-[hsl(222_47%_18%)] text-white/90 border-white/10 text-xs font-medium">
+      <TooltipContent side="right" sideOffset={8} className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border text-xs font-medium">
         {label}
       </TooltipContent>
     </Tooltip>
