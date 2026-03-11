@@ -304,6 +304,9 @@ export function useCreateFormateur() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création du formateur : " + error.message);
+    },
   });
 }
 
