@@ -23,7 +23,7 @@ import {
 } from "@/hooks/useDocumentEnvoiHistory";
 
 interface DocumentEnvoiHistoryPanelProps {
-  contactId: string;
+  contactId?: string | null;
   sessionId?: string | null;
 }
 
