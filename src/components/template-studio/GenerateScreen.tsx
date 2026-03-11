@@ -12,10 +12,10 @@ interface Props {
 }
 
 export default function GenerateScreen({ preselectedTemplateId, onBack }: Props) {
-  const { data: templates, isLoading } = useStudioTemplates();
+  const { data: templates, isLoading } = useTemplatesV2({});
   const [selectedId, setSelectedId] = useState<string | null>(preselectedTemplateId);
 
-  const selectedTemplate = templates?.find((t) => t.id === selectedId) || null;
+  const selectedTemplate: TemplateV2 | null = templates?.find((t) => t.id === selectedId) || null;
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
