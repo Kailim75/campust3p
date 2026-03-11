@@ -324,5 +324,8 @@ export function useRemoveInscription() {
       queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la désinscription : " + error.message);
+    },
   });
 }

@@ -139,5 +139,8 @@ export function useDeleteContact() {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du contact : " + error.message);
+    },
   });
 }
