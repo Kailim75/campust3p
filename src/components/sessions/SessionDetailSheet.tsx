@@ -52,7 +52,7 @@ import {
 import { EmargementSheet } from "./EmargementSheet";
 import { useDocumentGenerator, type DocumentType } from "@/hooks/useDocumentGenerator";
 import { useGenerateBatchChevalets } from "@/hooks/useChevalets";
-import { useBatchPedagogicalDocuments } from "@/hooks/useBatchPedagogicalDocuments";
+import { useBatchPedagogicalDocuments } from "@/hooks/usePedagogicalDocuments";
 import { CloseSessionDialog } from "./CloseSessionDialog";
 import { useArchiveSession, useUnarchiveSession, useCanArchiveSession } from "@/hooks/useSessionArchive";
 import SessionInscritsTable from "./SessionInscritsTable";
