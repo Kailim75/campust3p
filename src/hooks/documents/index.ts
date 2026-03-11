@@ -79,4 +79,4 @@ export { useDocumentScanner } from "../useDocumentScanner";
 
 // ── Legacy (à supprimer Phase 7) ────────────────────────────────
 export { useConventionGenerator } from "../useConventionGenerator";
-export { useTemplateStudio } from "../useTemplateStudio";
+export { useStudioTemplates } from "../useTemplateStudio";
