@@ -11,7 +11,7 @@ export type { DocumentType } from "../useDocumentGenerator";
 export { useDocumentTemplates, replaceVariables } from "../useDocumentTemplates";
 export { useDocumentTemplateFiles, useSaveGeneratedDocument } from "../useDocumentTemplateFiles";
 export { usePublishedTemplate } from "../usePublishedTemplate";
-export { useTemplateStudioV2 } from "../useTemplateStudioV2";
+export { useTemplatesV2 } from "../useTemplateStudioV2";
 
 // ── Workflow & Orchestration ────────────────────────────────────
 export { useDocumentWorkflow } from "../useDocumentWorkflow";
