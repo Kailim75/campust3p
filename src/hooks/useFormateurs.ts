@@ -329,6 +329,9 @@ export function useUpdateFormateur() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour du formateur : " + error.message);
+    },
   });
 }
 
