@@ -167,6 +167,9 @@ export function useCreateSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la session : " + error.message);
+    },
   });
 }
 
