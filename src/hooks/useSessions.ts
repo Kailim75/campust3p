@@ -283,6 +283,9 @@ export function useAddInscription() {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'inscription : " + error.message);
+    },
   });
 }
 
