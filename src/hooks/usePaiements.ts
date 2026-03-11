@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export type ModePaiement = "cb" | "virement" | "cheque" | "especes" | "cpf" | "alma";
 
@@ -63,6 +64,9 @@ export function useCreatePaiement() {
       queryClient.invalidateQueries({ queryKey: ["paiements", variables.facture_id] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'enregistrement du paiement : " + error.message);
+    },
   });
 }
 
@@ -84,6 +88,9 @@ export function useDeletePaiement() {
       queryClient.invalidateQueries({ queryKey: ["paiements", result.factureId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du paiement : " + error.message);
     },
   });
 }

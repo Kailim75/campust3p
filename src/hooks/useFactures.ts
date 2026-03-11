@@ -233,6 +233,9 @@ export function useCreateFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la facture : " + error.message);
+    },
   });
 }
 
@@ -255,6 +258,9 @@ export function useUpdateFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la facture : " + error.message);
+    },
   });
 }
 
@@ -275,6 +281,9 @@ export function useDeleteFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de la facture : " + error.message);
     },
   });
 }

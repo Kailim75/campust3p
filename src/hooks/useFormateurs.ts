@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format, parseISO, isWithinInterval, addMonths } from "date-fns";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { toast } from "sonner";
 
 // Types
 export type Formateur = Tables<"formateurs">;
@@ -302,6 +303,9 @@ export function useCreateFormateur() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création du formateur : " + error.message);
+    },
   });
 }
 
@@ -324,6 +328,9 @@ export function useUpdateFormateur() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour du formateur : " + error.message);
+    },
   });
 }
 
@@ -338,6 +345,9 @@ export function useDeleteFormateur() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du formateur : " + error.message);
     },
   });
 }
@@ -379,6 +389,9 @@ export function useCreateFormateurDocument() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'ajout du document : " + error.message);
+    },
   });
 }
 
@@ -392,6 +405,9 @@ export function useDeleteFormateurDocument() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du document : " + error.message);
     },
   });
 }
@@ -433,6 +449,9 @@ export function useCreateFormateurFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la facture formateur : " + error.message);
+    },
   });
 }
 
@@ -454,6 +473,9 @@ export function useUpdateFormateurFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la facture formateur : " + error.message);
+    },
   });
 }
 
@@ -467,6 +489,9 @@ export function useDeleteFormateurFacture() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de la facture formateur : " + error.message);
     },
   });
 }

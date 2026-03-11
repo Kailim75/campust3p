@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
 
 export type Contact = Tables<"contacts">;
@@ -91,6 +92,9 @@ export function useCreateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création du contact : " + error.message);
+    },
   });
 }
 
@@ -112,6 +116,9 @@ export function useUpdateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour du contact : " + error.message);
+    },
   });
 }
 
@@ -131,6 +138,9 @@ export function useDeleteContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du contact : " + error.message);
     },
   });
 }

@@ -3,6 +3,7 @@ import { getTrackFromFormationType } from "@/lib/formation-track";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { toast } from "sonner";
 
 export type Session = Tables<"sessions">;
 export type SessionInsert = TablesInsert<"sessions">;
@@ -166,6 +167,9 @@ export function useCreateSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la session : " + error.message);
+    },
   });
 }
 
@@ -187,6 +191,9 @@ export function useUpdateSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la session : " + error.message);
+    },
   });
 }
 
@@ -205,6 +212,9 @@ export function useDeleteSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de la session : " + error.message);
     },
   });
 }
@@ -273,6 +283,9 @@ export function useAddInscription() {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'inscription : " + error.message);
+    },
   });
 }
 
@@ -310,6 +323,9 @@ export function useRemoveInscription() {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la désinscription : " + error.message);
     },
   });
 }

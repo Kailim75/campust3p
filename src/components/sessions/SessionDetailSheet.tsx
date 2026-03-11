@@ -68,7 +68,7 @@ import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import type { CompanyInfo } from "@/lib/pdf-generator";
-// template-studio-v2/SessionDocumentsTab — import retiré (remplacé par SessionDocumentMatrixView)
+
 import { SessionDocumentMatrixView } from "@/components/documents/SessionDocumentMatrixView";
 import { DocumentEnvoiHistoryPanel } from "@/components/documents/DocumentEnvoiHistoryPanel";
 
