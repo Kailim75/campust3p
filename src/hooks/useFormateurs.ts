@@ -491,5 +491,8 @@ export function useDeleteFormateurFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de la facture formateur : " + error.message);
+    },
   });
 }

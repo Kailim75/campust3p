@@ -89,5 +89,8 @@ export function useDeletePaiement() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du paiement : " + error.message);
+    },
   });
 }

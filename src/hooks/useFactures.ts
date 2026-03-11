@@ -282,6 +282,9 @@ export function useDeleteFacture() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de la facture : " + error.message);
+    },
   });
 }
 
