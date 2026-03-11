@@ -17,7 +17,7 @@ import {
   TEMPLATE_TYPES,
   TEMPLATE_STATUSES,
 } from "@/hooks/useTemplateStudio";
-import { TEMPLATE_GENERATORS } from "./complianceEngine";
+import { TEMPLATE_GENERATORS } from "@/lib/complianceEngine";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
