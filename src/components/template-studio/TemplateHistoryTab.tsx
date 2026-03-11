@@ -9,9 +9,8 @@ import {
   useTemplateVersions,
   useStudioTemplate,
   useTemplateWorkflow,
-  TEMPLATE_STATUSES,
-  type TemplateVersion,
 } from "@/hooks/useTemplateStudio";
+import { TEMPLATE_STATUSES, type TemplateVersion } from "@/constants/templateConstants";
 import {
   AlertDialog,
   AlertDialogAction,

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, FileText } from "lucide-react";
 import { useStudioTemplates } from "@/hooks/useTemplateStudio";
 import GenerateDocumentModal from "./GenerateDocumentModal";
-import type { StudioTemplate } from "@/hooks/useTemplateStudio";
+import type { StudioTemplate } from "@/constants/templateConstants";
 
 interface Props {
   preselectedTemplateId: string | null;

@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
 import DOMPurify from "dompurify";
-import type { StudioTemplate } from "@/hooks/useTemplateStudio";
+import type { StudioTemplate } from "@/constants/templateConstants";
 
 const ENTITY_TYPES = [
   { value: "apprenant", label: "Apprenant", icon: User },

@@ -9,9 +9,8 @@ import { cn } from "@/lib/utils";
 import {
   useStudioTemplates,
   useDeleteTemplate,
-  TEMPLATE_TYPES,
-  TEMPLATE_STATUSES,
 } from "@/hooks/useTemplateStudio";
+import { TEMPLATE_TYPES, TEMPLATE_STATUSES } from "@/constants/templateConstants";
 import {
   AlertDialog,
   AlertDialogAction,
