@@ -407,6 +407,9 @@ export function useDeleteFormateurDocument() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression du document : " + error.message);
+    },
   });
 }
 
