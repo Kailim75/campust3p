@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, GraduationCap } from "lucide-react";
+import { Receipt, GraduationCap, Send } from "lucide-react";
 import { DocumentsFormationTab } from "./DocumentsFormationTab";
 import { ContactFacturesTab } from "./ContactFacturesTab";
+import { DocumentEnvoiHistoryPanel } from "@/components/documents/DocumentEnvoiHistoryPanel";
 
 interface Document {
   id: string;
@@ -58,11 +59,15 @@ export function ContactAdminTab({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-5 h-10 p-1 bg-muted/60 rounded-xl">
+      <TabsList className="grid w-full grid-cols-3 mb-5 h-10 p-1 bg-muted/60 rounded-xl">
         <TabsTrigger value="documents" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <GraduationCap className="h-3.5 w-3.5 mr-1.5" />
-          <span className="hidden sm:inline">Documents formation</span>
+          <span className="hidden sm:inline">Documents</span>
           <span className="sm:hidden">Docs</span>
+        </TabsTrigger>
+        <TabsTrigger value="envois" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
+          <Send className="h-3.5 w-3.5 mr-1.5" />
+          <span className="hidden sm:inline">Envois</span>
         </TabsTrigger>
         <TabsTrigger value="factures" className="text-xs px-2 rounded-lg data-[state=active]:shadow-md transition-all duration-150">
           <Receipt className="h-3.5 w-3.5 mr-1.5" />
@@ -75,6 +80,10 @@ export function ContactAdminTab({
           contactId={contactId} 
           contact={contact}
         />
+      </TabsContent>
+
+      <TabsContent value="envois">
+        <DocumentEnvoiHistoryPanel contactId={contactId} />
       </TabsContent>
 
       <TabsContent value="factures">

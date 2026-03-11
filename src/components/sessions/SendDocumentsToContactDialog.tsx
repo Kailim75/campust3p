@@ -39,6 +39,8 @@ import {
 } from '@/lib/pdf-generator';
 import { generateReglementInterieurPDF, generateCGVPDF, type ConventionCompanyInfo } from '@/lib/convention-pdf-generator';
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
+import { useDocumentEnvoiHistory, getContactEnvoiSummaries } from '@/hooks/useDocumentEnvoiHistory';
+import { EnvoiAlreadySentWarning } from '@/components/documents/EnvoiAlreadySentWarning';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
@@ -135,6 +137,17 @@ export function SendDocumentsToContactDialog({
   const { centreFormation } = useCentreFormation();
   const createSignatureRequest = useCreateSignatureRequest();
   const sendSignatureEmail = useSendSignatureEmail();
+
+  // Anti-doublon: fetch envoi history for this contact+session
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(
+    contact.id,
+    sessionInfo.id,
+    open
+  );
+  const envoiSummaries = useMemo(
+    () => getContactEnvoiSummaries(envoiEvents, contact.id, sessionInfo.id),
+    [envoiEvents, contact.id, sessionInfo.id]
+  );
   
   // Fetch custom templates
   const { data: templateFiles = [] } = useDocumentTemplateFiles();
@@ -890,6 +903,14 @@ export function SendDocumentsToContactDialog({
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Anti-doublon warning */}
+          {selectedDocuments.length > 0 && Object.keys(envoiSummaries).length > 0 && (
+            <EnvoiAlreadySentWarning
+              summaries={envoiSummaries}
+              selectedDocTypes={selectedDocuments}
+            />
+          )}
 
           {/* Option envoi email */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
