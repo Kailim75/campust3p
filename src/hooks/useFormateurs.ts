@@ -390,6 +390,9 @@ export function useCreateFormateurDocument() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "documents"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'ajout du document : " + error.message);
+    },
   });
 }
 
