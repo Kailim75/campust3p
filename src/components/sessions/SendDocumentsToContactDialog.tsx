@@ -137,6 +137,17 @@ export function SendDocumentsToContactDialog({
   const { centreFormation } = useCentreFormation();
   const createSignatureRequest = useCreateSignatureRequest();
   const sendSignatureEmail = useSendSignatureEmail();
+
+  // Anti-doublon: fetch envoi history for this contact+session
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(
+    contact.id,
+    sessionInfo.id,
+    open
+  );
+  const envoiSummaries = useMemo(
+    () => getContactEnvoiSummaries(envoiEvents, contact.id, sessionInfo.id),
+    [envoiEvents, contact.id, sessionInfo.id]
+  );
   
   // Fetch custom templates
   const { data: templateFiles = [] } = useDocumentTemplateFiles();
