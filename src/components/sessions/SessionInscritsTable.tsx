@@ -624,8 +624,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     try {
       await removeInscription.mutateAsync({ sessionId, contactId });
       toast.success("Inscription annulée");
-    } catch {
-      toast.error("Erreur lors de l'annulation");
+    } catch (err: any) {
+      console.error("Erreur suppression inscription:", err);
+      toast.error(err?.message || "Erreur lors de l'annulation");
     }
   };
 

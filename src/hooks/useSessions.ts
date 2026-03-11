@@ -308,6 +308,8 @@ export function useRemoveInscription() {
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
   });
 }
