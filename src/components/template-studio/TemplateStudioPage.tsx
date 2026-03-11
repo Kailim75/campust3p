@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Palette, Plus, ArrowLeft, Sparkles } from "lucide-react";
-import TemplateLibrary from "./TemplateLibrary";
-import TemplateEditorTab from "./TemplateEditorTab";
+import TemplateLibraryV2 from "./TemplateLibraryV2";
+import TemplateEditorV2 from "./TemplateEditorV2";
 import GenerateScreen from "./GenerateScreen";
 import AIGenerateTemplateModal from "./AIGenerateTemplateModal";
 
@@ -97,14 +97,14 @@ export default function TemplateStudioPage() {
 
       {/* Screens */}
       {screen === "library" && (
-        <TemplateLibrary
+        <TemplateLibraryV2
           onEdit={handleEdit}
           onCreate={handleCreate}
           onGenerate={handleGenerate}
         />
       )}
       {screen === "editor" && (
-        <TemplateEditorTab
+        <TemplateEditorV2
           templateId={selectedTemplateId}
           isCreating={isCreating}
           onBack={handleBackToLibrary}

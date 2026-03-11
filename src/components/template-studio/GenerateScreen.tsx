@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2, FileText } from "lucide-react";
-import { useStudioTemplates } from "@/hooks/useTemplateStudio";
+import { useTemplatesV2, type TemplateV2 } from "@/hooks/useTemplateStudioV2";
 import GenerateDocumentModal from "./GenerateDocumentModal";
-import type { StudioTemplate } from "@/constants/templateConstants";
 
 interface Props {
   preselectedTemplateId: string | null;
@@ -13,10 +12,10 @@ interface Props {
 }
 
 export default function GenerateScreen({ preselectedTemplateId, onBack }: Props) {
-  const { data: templates, isLoading } = useStudioTemplates();
+  const { data: templates, isLoading } = useTemplatesV2({});
   const [selectedId, setSelectedId] = useState<string | null>(preselectedTemplateId);
 
-  const selectedTemplate = templates?.find((t) => t.id === selectedId) || null;
+  const selectedTemplate: TemplateV2 | null = templates?.find((t) => t.id === selectedId) || null;
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
