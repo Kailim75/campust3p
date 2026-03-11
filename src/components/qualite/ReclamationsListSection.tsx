@@ -54,14 +54,14 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
     if (reclamations.length === 0) {
       return (
         <Card ref={ref}>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <CheckCircle className="h-12 w-12 text-success mb-4" />
-          <h3 className="text-lg font-medium">Aucune réclamation</h3>
-          <p className="text-muted-foreground text-center mt-2 max-w-md">
-            Aucune réclamation n'a été enregistrée pour le moment.
-          </p>
-        </CardContent>
-      </Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Aucune réclamation</h3>
+            <p className="text-muted-foreground text-center mt-2 max-w-md">
+              Aucune réclamation n'a été enregistrée. Les réclamations créées manuellement ou soumises par les stagiaires apparaîtront ici.
+            </p>
+          </CardContent>
+        </Card>
     );
   }
 
@@ -93,6 +93,11 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
                         <Badge variant="outline" className={cn("text-xs", priorite.color)}>
                           {priorite.label}
                         </Badge>
+                        {reclamation.categorie && (
+                          <Badge variant="secondary" className="text-xs">
+                            {reclamation.categorie}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {reclamation.description}

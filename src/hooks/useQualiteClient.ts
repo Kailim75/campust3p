@@ -173,6 +173,9 @@ export function useQualiteClient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reclamations'] });
       toast.success('Réclamation mise à jour');
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la réclamation : " + error.message);
     }
   });
 
