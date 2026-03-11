@@ -450,6 +450,9 @@ export function useCreateFormateurFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création de la facture formateur : " + error.message);
+    },
   });
 }
 
