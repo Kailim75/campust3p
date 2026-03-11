@@ -474,6 +474,9 @@ export function useUpdateFormateurFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["formateurs", "factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la facture formateur : " + error.message);
+    },
   });
 }
 
