@@ -4,7 +4,6 @@ import { startOfMonth, endOfMonth, format, parseISO, isWithinInterval, addMonths
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { toast } from "sonner";
-import { getUserCentreId } from "@/utils/getCentreId";
 
 // Types
 export type Formateur = Tables<"formateurs">;
