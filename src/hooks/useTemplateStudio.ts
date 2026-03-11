@@ -6,16 +6,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { runComplianceCheck, COMPLIANCE_GATED_TYPES, type ComplianceReport } from "@/lib/complianceEngine";
+import type { StudioTemplate, TemplateVersion, ApprovalLog } from "@/constants/templateConstants";
 
 // Re-export shared constants and types for backward compatibility
 export {
   TEMPLATE_TYPES,
   TEMPLATE_FORMATS,
   TEMPLATE_STATUSES,
-  type StudioTemplate,
-  type TemplateVersion,
-  type ApprovalLog,
 } from "@/constants/templateConstants";
+export type { StudioTemplate, TemplateVersion, ApprovalLog } from "@/constants/templateConstants";
 
 // ── Queries ──
 
