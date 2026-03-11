@@ -129,7 +129,21 @@ function checkPageBreak(ctx: ContratContext, needed: number): void {
 
 function addHeader(ctx: ContratContext): number {
   const { doc, company, pageWidth, mL } = ctx;
-  const headerH = 32;
+
+  // Build refs list to compute dynamic height
+  const refs: string[] = [];
+  if (company.siret && !company.siret.includes("[")) refs.push(`SIRET ${company.siret}`);
+  if (company.nda && !company.nda.includes("[") && company.nda.trim()) refs.push(`NDA ${company.nda}`);
+  if (company.code_rs) refs.push(`RS ${company.code_rs}`);
+  if (company.code_rncp) refs.push(`RNCP ${company.code_rncp}`);
+  if (company.agrement_prefecture) refs.push(`Agrément Préf. ${company.agrement_prefecture}`);
+  if (company.agrements_autres && company.agrements_autres.length > 0) {
+    company.agrements_autres.forEach(a => {
+      if (a.nom && a.numero) refs.push(`${a.nom}: ${a.numero}`);
+    });
+  }
+  const totalRefLines = refs.length + (company.qualiopi_numero ? 1 : 0);
+  const headerH = Math.max(32, 13 + totalRefLines * 4 + 4);
 
   setFill(doc, C.forestGreen);
   doc.rect(0, 0, pageWidth, headerH, "F");
@@ -153,17 +167,6 @@ function addHeader(ctx: ContratContext): number {
   if (contactLine.length > 0) doc.text(contactLine.join(" • "), mL, 26);
 
   // Admin refs on right
-  const refs: string[] = [];
-  if (company.siret && !company.siret.includes("[")) refs.push(`SIRET ${company.siret}`);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim()) refs.push(`NDA ${company.nda}`);
-  if (company.code_rs) refs.push(`RS ${company.code_rs}`);
-  if (company.code_rncp) refs.push(`RNCP ${company.code_rncp}`);
-  if (company.agrement_prefecture) refs.push(`Agrément Préf. ${company.agrement_prefecture}`);
-  if (company.agrements_autres && company.agrements_autres.length > 0) {
-    company.agrements_autres.forEach(a => {
-      if (a.nom && a.numero) refs.push(`${a.nom}: ${a.numero}`);
-    });
-  }
   if (refs.length > 0) {
     doc.setFontSize(6.5);
     doc.setTextColor(170, 195, 175);
