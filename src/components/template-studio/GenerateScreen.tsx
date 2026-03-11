@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2, FileText } from "lucide-react";
-import { useStudioTemplates } from "@/hooks/useTemplateStudio";
+import { useTemplatesV2, type TemplateV2 } from "@/hooks/useTemplateStudioV2";
 import GenerateDocumentModal from "./GenerateDocumentModal";
-import type { StudioTemplate } from "@/constants/templateConstants";
 
 interface Props {
   preselectedTemplateId: string | null;
