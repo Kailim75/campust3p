@@ -211,8 +211,8 @@ const Index = () => {
       case "session":      setActiveSection("sessions"); break;
       case "inscription":  setActiveSection("sessions"); break;
       case "paiement":     setActiveSection("finances"); break;
-      case "document":     setActiveSection("documents"); break;
-      case "communication":setActiveSection("communications"); break;
+      case "document":     setActiveSection("sessions"); break;
+      case "communication":setActiveSection("contacts"); break;
     }
   };
 

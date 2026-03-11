@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Plus, 
   X, 
@@ -78,10 +78,8 @@ export function QuickActionsMenu({ onAction }: QuickActionsMenuProps) {
     setIsOpen(false);
   };
 
-  // Keyboard shortcuts
-  useState(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + key shortcuts
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
         const action = actions.find(a => a.shortcut.toLowerCase() === e.key.toLowerCase());
         if (action) {
@@ -93,7 +91,7 @@ export function QuickActionsMenu({ onAction }: QuickActionsMenuProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, []);
 
   return (
     <>

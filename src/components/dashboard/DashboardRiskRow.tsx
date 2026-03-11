@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { AlertTriangle, UserX, FolderOpen, UserPlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,12 @@ interface Props {
   isLoading: boolean;
   onNavigate: (section: string, params?: Record<string, string>) => void;
 }
+
+/** Tooltip-compatible span that forwards ref */
+const TooltipSpan = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  (props, ref) => <span ref={ref} {...props} />
+);
+TooltipSpan.displayName = "TooltipSpan";
 
 export function DashboardRiskRow({ metrics, isLoading, onNavigate }: Props) {
   if (isLoading) {
@@ -111,10 +118,10 @@ export function DashboardRiskRow({ metrics, isLoading, onNavigate }: Props) {
                 {card.delta && (
                   card.delta.tooltip ? (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-xs font-medium text-muted-foreground/50 cursor-help">
+                    <TooltipTrigger asChild>
+                        <TooltipSpan className="text-xs font-medium text-muted-foreground/50 cursor-help">
                           {card.delta.text}
-                        </span>
+                        </TooltipSpan>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="text-xs">
                         {card.delta.tooltip}

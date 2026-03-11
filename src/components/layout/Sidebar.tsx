@@ -60,7 +60,7 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8} className="bg-[hsl(222_47%_18%)] text-white/90 border-white/10 text-xs font-medium">
+      <TooltipContent side="right" sideOffset={8} className="bg-sidebar-accent text-sidebar-foreground border-sidebar-border text-xs font-medium">
         {label}
       </TooltipContent>
     </Tooltip>
@@ -310,7 +310,7 @@ function SidebarContent({
           <button 
             onClick={() => { signOut(); onItemClick?.(); }} 
             className={cn(
-              "sidebar-item w-full text-red-400/70 hover:text-red-300 hover:bg-red-500/8",
+              "sidebar-item w-full text-destructive/70 hover:text-destructive hover:bg-destructive/10",
               collapsed && "justify-center px-0"
             )}
           >
