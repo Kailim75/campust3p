@@ -258,6 +258,9 @@ export function useUpdateFacture() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la facture : " + error.message);
+    },
   });
 }
 
