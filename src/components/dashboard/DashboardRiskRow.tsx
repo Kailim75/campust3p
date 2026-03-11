@@ -118,10 +118,10 @@ export function DashboardRiskRow({ metrics, isLoading, onNavigate }: Props) {
                 {card.delta && (
                   card.delta.tooltip ? (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-xs font-medium text-muted-foreground/50 cursor-help">
+                    <TooltipTrigger asChild>
+                        <TooltipSpan className="text-xs font-medium text-muted-foreground/50 cursor-help">
                           {card.delta.text}
-                        </span>
+                        </TooltipSpan>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="text-xs">
                         {card.delta.tooltip}

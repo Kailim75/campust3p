@@ -310,7 +310,7 @@ function SidebarContent({
           <button 
             onClick={() => { signOut(); onItemClick?.(); }} 
             className={cn(
-              "sidebar-item w-full text-red-400/70 hover:text-red-300 hover:bg-red-500/8",
+              "sidebar-item w-full text-destructive/70 hover:text-destructive hover:bg-destructive/10",
               collapsed && "justify-center px-0"
             )}
           >
