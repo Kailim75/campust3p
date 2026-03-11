@@ -64,6 +64,9 @@ export function useCreatePaiement() {
       queryClient.invalidateQueries({ queryKey: ["paiements", variables.facture_id] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de l'enregistrement du paiement : " + error.message);
+    },
   });
 }
 
