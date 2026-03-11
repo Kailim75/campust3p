@@ -82,6 +82,12 @@ export interface TemplateVersion {
   created_by: string | null;
 }
 
+// DECISION PRODUIT (2026-03-11) — Audit / Logs:
+// - v1 écrit dans `template_approval_logs` via useTemplateWorkflow().logAction()
+// - v2 écrit dans `template_audit_log` (superset: inclut génération, envoi, etc.)
+// - Les deux tables coexistent sans migration. La purge de template_approval_logs
+//   interviendra lors de la Phase 7 (suppression complète du Template Studio v1).
+
 export interface ApprovalLog {
   id: string;
   centre_id: string | null;
