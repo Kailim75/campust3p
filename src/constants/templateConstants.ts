@@ -56,7 +56,10 @@ export const TEMPLATE_STATUSES = [
 // v2 adds: track_scope, category, applies_to, current_version_id
 // All v1 consumers only use the common fields.
 
-export type StudioTemplate = TemplateV2;
+export type StudioTemplate = TemplateV2 & {
+  compliance_validated_at?: string | null;
+  compliance_validated_by?: string | null;
+};
 
 // ── Re-export v1 sub-types for backward compat ──
 
