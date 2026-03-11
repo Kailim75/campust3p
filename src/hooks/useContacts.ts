@@ -116,6 +116,9 @@ export function useUpdateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour du contact : " + error.message);
+    },
   });
 }
 
