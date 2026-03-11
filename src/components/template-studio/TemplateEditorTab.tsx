@@ -28,7 +28,7 @@ import {
   COMPLIANCE_GATED_TYPES,
   TEMPLATE_GENERATORS,
   type ComplianceReport,
-} from "./complianceEngine";
+} from "@/lib/complianceEngine";
 import TemplatePreview from "./TemplatePreview";
 import GenerateDocumentModal from "./GenerateDocumentModal";
 import { toast } from "sonner";

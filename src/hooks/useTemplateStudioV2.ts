@@ -252,6 +252,23 @@ export function usePublishTemplateV2() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ template, changelog }: { template: TemplateV2; changelog?: string }) => {
+      // ── Compliance gate (ported from v1) ──
+      if (COMPLIANCE_GATED_TYPES.includes(template.type)) {
+        const report = runComplianceCheck(template.template_body, template.type);
+        if (!report.ready_to_publish) {
+          throw new Error(
+            `Publication bloquée — mentions obligatoires manquantes :\n${report.blocking_issues.join("\n")}`
+          );
+        }
+        // Persist fresh compliance data
+        template = {
+          ...template,
+          compliance_score: report.score,
+          compliance_report_json: report as any,
+        };
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: { user } } = await supabase.auth.getUser();
       const newVersion = template.version + (template.status === "published" ? 1 : 0);
 
