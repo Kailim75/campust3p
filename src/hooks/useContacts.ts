@@ -92,6 +92,9 @@ export function useCreateContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la création du contact : " + error.message);
+    },
   });
 }
 
