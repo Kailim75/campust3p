@@ -904,6 +904,14 @@ export function SendDocumentsToContactDialog({
             </TabsContent>
           </Tabs>
 
+          {/* Anti-doublon warning */}
+          {selectedDocuments.length > 0 && Object.keys(envoiSummaries).length > 0 && (
+            <EnvoiAlreadySentWarning
+              summaries={envoiSummaries}
+              selectedDocTypes={selectedDocuments}
+            />
+          )}
+
           {/* Option envoi email */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
