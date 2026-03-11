@@ -191,6 +191,9 @@ export function useUpdateSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la mise à jour de la session : " + error.message);
+    },
   });
 }
 
