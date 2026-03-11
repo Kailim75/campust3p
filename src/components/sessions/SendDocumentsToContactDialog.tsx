@@ -39,6 +39,8 @@ import {
 } from '@/lib/pdf-generator';
 import { generateReglementInterieurPDF, generateCGVPDF, type ConventionCompanyInfo } from '@/lib/convention-pdf-generator';
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
+import { useDocumentEnvoiHistory, getContactEnvoiSummaries } from '@/hooks/useDocumentEnvoiHistory';
+import { EnvoiAlreadySentWarning } from '@/components/documents/EnvoiAlreadySentWarning';
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
