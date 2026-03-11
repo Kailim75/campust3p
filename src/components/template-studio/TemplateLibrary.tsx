@@ -14,9 +14,8 @@ import {
   useStudioTemplates,
   useDeleteTemplate,
   useCreateTemplate,
-  TEMPLATE_TYPES,
-  TEMPLATE_STATUSES,
 } from "@/hooks/useTemplateStudio";
+import { TEMPLATE_TYPES, TEMPLATE_STATUSES } from "@/constants/templateConstants";
 import { TEMPLATE_GENERATORS } from "@/lib/complianceEngine";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

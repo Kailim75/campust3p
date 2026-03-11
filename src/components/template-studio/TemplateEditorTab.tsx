@@ -19,10 +19,8 @@ import {
   useCreateTemplate,
   useUpdateTemplate,
   useTemplateWorkflow,
-  TEMPLATE_TYPES,
-  TEMPLATE_FORMATS,
-  TEMPLATE_STATUSES,
 } from "@/hooks/useTemplateStudio";
+import { TEMPLATE_TYPES, TEMPLATE_FORMATS, TEMPLATE_STATUSES } from "@/constants/templateConstants";
 import {
   runComplianceCheck,
   COMPLIANCE_GATED_TYPES,

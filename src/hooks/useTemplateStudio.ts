@@ -7,93 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { runComplianceCheck, COMPLIANCE_GATED_TYPES, type ComplianceReport } from "@/lib/complianceEngine";
 
-export interface StudioTemplate {
-  id: string;
-  centre_id: string | null;
-  type: string;
-  format: string;
-  name: string;
-  description: string | null;
-  template_body: string;
-  variables_schema: any[];
-  compliance_tags: any[];
-  version: number;
-  status: string;
-  is_active: boolean;
-  scenario: string | null;
-  compliance_score: number | null;
-  compliance_report_json: ComplianceReport | null;
-  compliance_validated_at: string | null;
-  compliance_validated_by: string | null;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-}
-
-export interface TemplateVersion {
-  id: string;
-  template_id: string;
-  version: number;
-  template_body: string;
-  variables_schema: any[];
-  compliance_tags: any[];
-  compliance_score: number | null;
-  compliance_report_json: ComplianceReport | null;
-  status: string;
-  created_at: string;
-  created_by: string | null;
-}
-
-export interface ApprovalLog {
-  id: string;
-  centre_id: string | null;
-  template_id: string;
-  version: number;
-  action: string;
-  comment: string | null;
-  created_at: string;
-  created_by: string | null;
-}
-
-export const TEMPLATE_TYPES = [
-  { value: "programme", label: "Programme de formation" },
-  { value: "contrat", label: "Contrat de formation (personne physique)" },
-  { value: "convention", label: "Convention de formation (entreprise)" },
-  { value: "attestation", label: "Attestation" },
-  { value: "bulletin_inscription", label: "Bulletin d'inscription" },
-  { value: "positionnement", label: "Test de positionnement" },
-  { value: "test_positionnement", label: "Test de positionnement (alt)" },
-  { value: "evaluation", label: "Évaluation" },
-  { value: "evaluation_chaud", label: "Évaluation à chaud" },
-  { value: "evaluation_froid", label: "Évaluation à froid (J+30)" },
-  { value: "emargement", label: "Feuille d'émargement" },
-  { value: "feuille_emargement", label: "Feuille d'émargement (alt)" },
-  { value: "convocation", label: "Convocation" },
-  { value: "reglement_interieur", label: "Règlement intérieur" },
-  { value: "procedure_reclamation", label: "Procédure de réclamation" },
-  { value: "devis", label: "Devis" },
-  { value: "invoice", label: "Facture" },
-  { value: "email", label: "Email" },
-  { value: "chef_oeuvre", label: "Chef d'œuvre" },
-  { value: "autre", label: "Autre" },
-] as const;
-
-export const TEMPLATE_FORMATS = [
-  { value: "html", label: "HTML" },
-  { value: "markdown", label: "Markdown" },
-  { value: "email", label: "Email" },
-  { value: "pdf", label: "PDF" },
-  { value: "docx", label: "DOCX" },
-] as const;
-
-export const TEMPLATE_STATUSES = [
-  { value: "draft", label: "Brouillon", color: "bg-muted text-muted-foreground" },
-  { value: "review", label: "En révision", color: "bg-yellow-500/10 text-yellow-600" },
-  { value: "approved", label: "Approuvé", color: "bg-blue-500/10 text-blue-600" },
-  { value: "published", label: "Publié", color: "bg-green-500/10 text-green-600" },
-  { value: "inactive", label: "Inactif", color: "bg-muted text-muted-foreground" },
-  { value: "archived", label: "Archivé", color: "bg-muted/50 text-muted-foreground" },
-] as const;
+// Re-export shared constants and types for backward compatibility
+export {
+  TEMPLATE_TYPES,
+  TEMPLATE_FORMATS,
+  TEMPLATE_STATUSES,
+  type StudioTemplate,
+  type TemplateVersion,
+  type ApprovalLog,
+} from "@/constants/templateConstants";
 
 // ── Queries ──
 

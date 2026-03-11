@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import GenerateDocumentModal from "@/components/template-studio/GenerateDocumentModal";
-import type { StudioTemplate } from "@/hooks/useTemplateStudio";
+import type { StudioTemplate } from "@/constants/templateConstants";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
