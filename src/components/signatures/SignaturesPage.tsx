@@ -60,8 +60,8 @@ import {
   useSendSignatureRequest,
   useDeleteSignatureRequest,
   SignatureRequest,
+  useSendSignatureEmail,
 } from "@/hooks/useSignatures";
-import { useSendSignatureEmail } from "@/hooks/useSendSignatureEmail";
 import { SignatureFormDialog } from "./SignatureFormDialog";
 import { SignatureSigningDialog } from "./SignatureSigningDialog";
 

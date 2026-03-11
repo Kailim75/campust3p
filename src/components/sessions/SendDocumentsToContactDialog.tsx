@@ -44,8 +44,7 @@ import { EnvoiAlreadySentWarning } from '@/components/documents/EnvoiAlreadySent
 import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
 import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
-import { useCreateSignatureRequest } from '@/hooks/useSignatures';
-import { useSendSignatureEmail } from '@/hooks/useSendSignatureEmail';
+import { useCreateSignatureRequest, useSendSignatureEmail } from '@/hooks/useSignatures';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';

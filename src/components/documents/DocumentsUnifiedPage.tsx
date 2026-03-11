@@ -62,8 +62,8 @@ import {
   useSendSignatureRequest,
   useDeleteSignatureRequest,
   SignatureRequest,
+  useSendSignatureEmail,
 } from "@/hooks/useSignatures";
-import { useSendSignatureEmail } from "@/hooks/useSendSignatureEmail";
 import { SignatureFormDialog } from "@/components/signatures/SignatureFormDialog";
 import { SignatureSigningDialog } from "@/components/signatures/SignatureSigningDialog";
 import { SendDocumentsFromSignatureDialog } from "@/components/documents/SendDocumentsFromSignatureDialog";
