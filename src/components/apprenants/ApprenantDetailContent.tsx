@@ -62,6 +62,26 @@ import type { SheetSize } from "@/hooks/useSheetSize";
 
 // ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
+const FORMATION_COLORS: Record<string, string> = {
+  TAXI: "bg-primary",
+  VTC: "bg-accent",
+  VMDTR: "bg-info",
+  "ACC VTC": "bg-accent",
+  "Formation continue Taxi": "bg-success",
+  "Formation continue VTC": "bg-success",
+};
+
+const STATUT_BADGES: Record<string, { label: string; className: string }> = {
+  "En attente de validation": { label: "Nouveau lead", className: "bg-muted text-muted-foreground" },
+  "En formation théorique": { label: "En formation", className: "bg-primary/15 text-primary" },
+  "Examen T3P programmé": { label: "Examen T3P", className: "bg-accent/15 text-accent" },
+  "T3P obtenu": { label: "T3P Obtenu", className: "bg-success/15 text-success" },
+  "En formation pratique": { label: "Formation pratique", className: "bg-info/15 text-info" },
+  "Client": { label: "Diplômé", className: "bg-success/15 text-success" },
+  "Bravo": { label: "Diplômé", className: "bg-success/15 text-success" },
+  "Abandonné": { label: "Abandonné", className: "bg-destructive/15 text-destructive" },
+};
+
 interface ApprenantDetailContentProps {
   contact: Contact | null;
   isLoading: boolean;
@@ -71,7 +91,7 @@ interface ApprenantDetailContentProps {
   onSheetSizeChange?: (size: SheetSize) => void;
 }
 
-export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
+export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sheetSize, onSheetSizeChange }: ApprenantDetailContentProps) {
   const [activeTab, setActiveTabRaw] = useState("resume");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
