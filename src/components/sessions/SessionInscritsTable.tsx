@@ -87,7 +87,7 @@ import { BulkDocumentPreviewDialog, TemplateSelection } from './BulkDocumentPrev
 import { FactureFormDialog } from '@/components/paiements/FactureFormDialog';
 import { FactureDetailSheet } from '@/components/paiements/FactureDetailSheet';
 import { SendDocumentsToContactDialog } from './SendDocumentsToContactDialog';
-import { ContactDetailSheet } from '@/components/contacts/ContactDetailSheet';
+import { ApprenantDetailSheet } from '@/components/apprenants/ApprenantDetailSheet';
 import { ContactFormDialog } from '@/components/contacts/ContactFormDialog';
 import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
 import { fetchContactsDocumentData } from '@/lib/documents/fetchContactDocumentData';
