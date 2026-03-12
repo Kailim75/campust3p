@@ -136,7 +136,9 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       prenom: contact.prenom,
       email: contact.email || "",
       telephone: contact.telephone || "",
-      adresse: [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", "),
+      rue: contact.rue || "",
+      code_postal: contact.code_postal || "",
+      ville: contact.ville || "",
     };
     const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
     doc.save(`facture-${f.numero_facture || "sans-numero"}.pdf`);
