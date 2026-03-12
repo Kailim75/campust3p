@@ -705,6 +705,11 @@ export function PaiementsPage() {
         open={showFECDialog}
         onOpenChange={setShowFECDialog}
       />
+
+      <FactureLibreDialog
+        open={showFactureLibre}
+        onOpenChange={setShowFactureLibre}
+      />
     </div>
   );
 }
