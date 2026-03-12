@@ -121,11 +121,20 @@ export function useSessionDocumentMatrix({
           mapGeneratedDocV2(doc, contactEnvois, contactSigs, contact, sessionData)
         );
 
-        // Add placeholders (track-aware)
+        // Add placeholders (track-aware) and enrich with published template IDs
         const existingTypes = new Set(items.map(i => i.documentType));
         const placeholders = createExpectedPlaceholders(
           existingTypes, contact, sessionData, centreId, "session", track
         );
+        // Resolve templateId from published templates for placeholders
+        for (const ph of placeholders) {
+          if (!ph.templateId) {
+            const pubId = publishedTemplateMap.get(ph.documentType);
+            if (pubId) {
+              ph.templateId = pubId;
+            }
+          }
+        }
         items.push(...placeholders);
 
         const blocks = buildBlockSummaries(items);
