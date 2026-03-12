@@ -463,10 +463,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         {/* Quick CTA actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {contact.telephone && (
-            <Button size="sm" variant="outline" className="text-xs" asChild>
-              <a href={`tel:${contact.telephone}`}>
-                <Phone className="h-3 w-3 mr-1" /> Appeler
-              </a>
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={() => {
+                window.open(`tel:${contact.telephone}`, "_blank");
+                setCallLogOpen(true);
+              }}
+            >
+              <Phone className="h-3 w-3 mr-1" /> Appeler
             </Button>
           )}
           {contact.email && (
