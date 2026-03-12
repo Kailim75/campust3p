@@ -339,6 +339,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 qualiopiScore={qualiopiScore ? qualiopiScore.score : null}
               />
 
+              {/* Envoi Aggregates */}
+              {envoiAggregates.totalEnvois > 0 && (
+                <SessionEnvoiAggregates aggregates={envoiAggregates} className="mt-2" />
+              )}
+
               {/* Quick Actions Bar */}
               <SessionQuickActions
                 inscriptionCount={inscriptionCount}
