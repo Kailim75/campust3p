@@ -86,6 +86,7 @@ export function useCreateDocumentEnvoi() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document_envois"] });
+      queryClient.invalidateQueries({ queryKey: ["document-envoi-history"] });
     },
   });
 }
@@ -105,6 +106,7 @@ export function useBulkCreateDocumentEnvois() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document_envois"] });
+      queryClient.invalidateQueries({ queryKey: ["document-envoi-history"] });
     },
   });
 }
@@ -126,6 +128,7 @@ export function useUpdateDocumentEnvoi() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document_envois"] });
+      queryClient.invalidateQueries({ queryKey: ["document-envoi-history"] });
     },
   });
 }
