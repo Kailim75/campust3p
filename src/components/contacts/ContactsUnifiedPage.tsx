@@ -437,7 +437,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
         onOpenChange={setProspectFormOpen}
       />
 
-      <ContactDetailSheet
+      <ApprenantDetailSheet
         contactId={selectedContact?.id || null}
         open={detailOpen}
         onOpenChange={setDetailOpen}

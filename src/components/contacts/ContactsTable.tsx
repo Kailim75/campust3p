@@ -535,7 +535,7 @@ export function ContactsTable() {
       </div>
 
       {/* Detail Sheet */}
-      <ContactDetailSheet
+      <ApprenantDetailSheet
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
