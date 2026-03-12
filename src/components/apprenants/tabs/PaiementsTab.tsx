@@ -23,6 +23,7 @@ interface PaiementsTabProps {
 export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "" });
 
   // Get factures + paiements for this contact
