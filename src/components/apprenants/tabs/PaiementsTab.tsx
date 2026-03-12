@@ -35,6 +35,7 @@ const statutColors: Record<string, string> = {
 
 export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const queryClient = useQueryClient();
+  const { centreFormation } = useCentreFormation();
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [editingFacture, setEditingFacture] = useState<any>(null);
