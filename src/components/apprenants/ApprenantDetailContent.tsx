@@ -95,6 +95,9 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const [activeTab, setActiveTabRaw] = useState("resume");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
+  const [callLogOpen, setCallLogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
