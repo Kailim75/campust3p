@@ -582,7 +582,7 @@ export function useGenerateDocument() {
       const pdfBlob = pdf.output("blob");
 
       const centreId = doc.centre_id;
-      const filePath = `centre/${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
+      const filePath = `${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
 
       const { error: upErr } = await supabase.storage
         .from("generated-docs")
@@ -691,7 +691,7 @@ export function useRetryFailedDocuments() {
           }
 
           const pdfBlob = pdf.output("blob");
-          const filePath = `centre/${doc.centre_id}/contacts/${doc.contact_id || "general"}/${doc.id}.pdf`;
+          const filePath = `${doc.centre_id}/contacts/${doc.contact_id || "general"}/${doc.id}.pdf`;
 
           const { error: upErr } = await supabase.storage
             .from("generated-docs")
@@ -842,7 +842,7 @@ export function useGeneratePackDocuments() {
 
           const pdfBlob = pdf.output("blob");
           const centreId = doc.centre_id;
-          const filePath = `centre/${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
+          const filePath = `${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
 
           const { error: upErr } = await supabase.storage
             .from("generated-docs")

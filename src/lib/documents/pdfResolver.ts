@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 const BUCKET_V2 = "generated-docs";
 /** Legacy workflow bucket (generated_documents_legacy, signatures, docx) */
 const BUCKET_LEGACY = "generated-documents";
+const UUID_SEGMENT_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ── Types ──
 
@@ -39,13 +40,23 @@ export interface PdfDownloadResult {
 
 /**
  * Determines which bucket a file_path belongs to.
- * V2 paths follow: centre/{centreId}/contacts/{contactId}/{docId}.pdf
+ * V2 paths can follow:
+ * - centre/{centreId}/contacts/{contactId}/{docId}.pdf (legacy V2 path)
+ * - {centreId}/contacts/{contactId}/{docId}.pdf (RLS-compliant V2 path)
  * Legacy paths follow: {centreId}/{contactId}/{file}.pdf or signatures/... or envois/...
  */
 export function detectBucket(filePath: string | null | undefined): string {
   if (!filePath) return BUCKET_V2;
-  // V2 paths always start with "centre/"
+
+  // V2 historical path
   if (filePath.startsWith("centre/")) return BUCKET_V2;
+
+  // V2 RLS-compliant path: {centreId}/contacts/{contactId}/{docId}.pdf
+  const [firstSegment, secondSegment] = filePath.split("/");
+  if (secondSegment === "contacts" && UUID_SEGMENT_REGEX.test(firstSegment || "")) {
+    return BUCKET_V2;
+  }
+
   // Legacy paths: signatures/, envois/, or {uuid}/{uuid}/...
   return BUCKET_LEGACY;
 }
