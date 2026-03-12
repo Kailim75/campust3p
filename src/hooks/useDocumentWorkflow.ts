@@ -110,16 +110,32 @@ export function useDocumentWorkflow({
         }
       }
 
+      // 7. Fetch published templates to resolve templateId for placeholders
+      const publishedQuery = (supabase as any)
+        .from("template_studio_templates")
+        .select("id, name, type")
+        .eq("status", "published")
+        .eq("is_active", true);
+
       // Execute parallel queries
-      const [genResult, envoisResult, sigResult] = await Promise.all([
+      const [genResult, envoisResult, sigResult, publishedResult] = await Promise.all([
         genQuery,
         envoisQuery,
         sigQuery,
+        publishedQuery,
       ]);
 
       const generatedDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
       const envois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
       const signatures = (sigResult.data ?? []) as RawSignatureRequest[];
+
+      // Build published template lookup map (type → templateId)
+      const publishedTemplateMap = new Map<string, string>();
+      for (const t of (publishedResult.data ?? []) as Array<{ id: string; name: string; type: string }>) {
+        if (!publishedTemplateMap.has(t.type)) {
+          publishedTemplateMap.set(t.type, t.id);
+        }
+      }
 
       // Map generated docs to workflow items
       const items: DocumentWorkflowItem[] = generatedDocs.map(doc =>
@@ -139,6 +155,15 @@ export function useDocumentWorkflow({
           track,
           contractContext
         );
+        // Resolve templateId from published templates for placeholders
+        for (const ph of placeholders) {
+          if (!ph.templateId) {
+            const pubId = publishedTemplateMap.get(ph.documentType);
+            if (pubId) {
+              ph.templateId = pubId;
+            }
+          }
+        }
         items.push(...placeholders);
       }
 
