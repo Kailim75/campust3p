@@ -121,10 +121,20 @@ export function useSessionDocumentMatrix({
           mapGeneratedDocV2(doc, contactEnvois, contactSigs, contact, sessionData)
         );
 
-        // Add placeholders (track-aware) and enrich with published template IDs
+        // Build contract context from inscription qualification
+        const inscContractDocType = (insc as any).contract_document_type as string | null;
+        const inscContractStatus = (insc as any).contract_frame_status as string | null;
+        const inscContractContext = inscContractDocType
+          ? {
+              contractDocumentType: inscContractDocType as "contrat" | "convention",
+              contractFrameStatus: (inscContractStatus ?? "a_qualifier") as "qualifie" | "a_qualifier" | "auto_detecte",
+            }
+          : null;
+
+        // Add placeholders (track-aware + contract-aware) and enrich with published template IDs
         const existingTypes = new Set(items.map(i => i.documentType));
         const placeholders = createExpectedPlaceholders(
-          existingTypes, contact, sessionData, centreId, "session", track
+          existingTypes, contact, sessionData, centreId, "session", track, inscContractContext
         );
         // Resolve templateId from published templates for placeholders
         for (const ph of placeholders) {
