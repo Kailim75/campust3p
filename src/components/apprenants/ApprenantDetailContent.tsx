@@ -617,6 +617,78 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         onReturnDashboard={() => setPostAssignment(null)}
       />
       <EmailComposerModal {...composerProps} />
+
+      {/* ─── Legacy-parity dialogs ─── */}
+      <GenerateDocumentDialog
+        open={generateDialogOpen}
+        onOpenChange={setGenerateDialogOpen}
+        contact={contact}
+      />
+
+      <SendEnqueteDialog
+        open={enqueteDialogOpen}
+        onOpenChange={setEnqueteDialogOpen}
+        contact={{
+          id: contact.id,
+          nom: contact.nom,
+          prenom: contact.prenom,
+          email: contact.email,
+        }}
+      />
+
+      {contact.telephone && (
+        <CallLogDialog
+          open={callLogOpen}
+          onOpenChange={setCallLogOpen}
+          contactId={contact.id}
+          contactName={contactName}
+          phoneNumber={contact.telephone}
+        />
+      )}
+
+      {/* ─── FOOTER: Modifier / Archiver ─── */}
+      {(onEdit || onClose) && (
+        <div className="flex gap-2.5 p-3 sm:p-5 border-t border-border/60 bg-card">
+          {onEdit && (
+            <Button className="flex-1 h-10 font-semibold" onClick={() => onEdit(contact)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="icon" className="h-10 w-10">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Archiver cet apprenant ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  L'apprenant sera archivé et n'apparaîtra plus dans la liste. Cette action peut
+                  être annulée ultérieurement.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={async () => {
+                  try {
+                    await deleteContact.mutateAsync(contact.id);
+                    toast.success("Contact archivé", {
+                      description: `${contact.prenom} ${contact.nom} a été archivé avec succès.`,
+                    });
+                    onClose?.();
+                  } catch {
+                    toast.error("Erreur", {
+                      description: "Impossible d'archiver le contact. Veuillez réessayer.",
+                    });
+                  }
+                }}>Archiver</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }
