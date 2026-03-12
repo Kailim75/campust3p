@@ -45,6 +45,7 @@ export function useSessionDocumentMatrix({
 
       if (sessionError) {
         console.error("Session document matrix: session fetch error", sessionError);
+        throw new Error(`Erreur chargement session: ${sessionError.message}`);
       }
 
       if (!sessionRaw) return [];
@@ -58,11 +59,16 @@ export function useSessionDocumentMatrix({
       const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
 
       // Fetch inscriptions with contact data + contract qualification
-      const { data: inscriptions } = await (supabase as any)
+      const { data: inscriptions, error: inscError } = await (supabase as any)
         .from("session_inscriptions")
         .select("id, contact_id, contract_document_type, contract_frame_status, qualification_source, contacts:contact_id(id, nom, prenom, email, date_naissance, ville_naissance)")
         .eq("session_id", sessionId)
         .is("deleted_at", null);
+
+      if (inscError) {
+        console.error("Session document matrix: inscriptions fetch error", inscError);
+        throw new Error(`Erreur chargement inscriptions: ${inscError.message}`);
+      }
 
       if (!inscriptions?.length) return [];
 
@@ -92,6 +98,12 @@ export function useSessionDocumentMatrix({
           .eq("status", "published")
           .eq("is_active", true),
       ]);
+
+      // Log any errors from parallel queries
+      if (genResult.error) console.error("Session doc matrix: generated_documents_v2 error", genResult.error);
+      if (envoisResult.error) console.error("Session doc matrix: document_envois error", envoisResult.error);
+      if (sigResult.error) console.error("Session doc matrix: signature_requests error", sigResult.error);
+      if (publishedResult.error) console.error("Session doc matrix: template_studio_templates error", publishedResult.error);
 
       const allDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
       const allEnvois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
