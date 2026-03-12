@@ -35,7 +35,7 @@ import { openWhatsApp } from "@/lib/phone-utils";
 import { useContacts, type Contact } from "@/hooks/useContacts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ContactDetailSheet } from "./ContactDetailSheet";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ContactFormDialog } from "./ContactFormDialog";
 import { QuickStatusDropdown } from "./QuickStatusDropdown";
 import { QuickEnrollDialog } from "./QuickEnrollDialog";
