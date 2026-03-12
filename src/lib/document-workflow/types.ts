@@ -111,6 +111,7 @@ export type ContractFrameSource = "manual" | "auto" | null;
 
 /** Session-level matrix row (one per learner) */
 export interface SessionDocumentMatrixRow {
+  inscriptionId: string;
   contactId: string;
   contactName: string;
   contactEmail: string | null;
