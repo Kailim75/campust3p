@@ -135,3 +135,59 @@ export function checkAlreadySent(
   const summary = getEnvoiSummary(events, contactId, sessionId, documentType);
   return summary.alreadySent ? summary : null;
 }
+
+// ── Sprint 2: Session-level aggregates (pure functions, no DB calls) ──
+
+export interface SessionEnvoiAggregates {
+  /** Total number of envoi events for the session */
+  totalEnvois: number;
+  /** Number of failed envois (statut === 'echec') */
+  totalEchecs: number;
+  /** Coverage: % of inscrit contactIds that have at least 1 envoi */
+  couverturePct: number;
+  /** Number of unique contacts with at least 1 envoi */
+  contactsCouverts: number;
+  /** Total number of inscrit contacts considered */
+  totalInscrits: number;
+}
+
+/**
+ * Compute session-level envoi aggregates from cached events.
+ * Coverage = % of inscritContactIds that have ≥1 envoi in the events list.
+ */
+export function getSessionEnvoiAggregates(
+  events: EnvoiEvent[],
+  inscritContactIds: string[]
+): SessionEnvoiAggregates {
+  const totalEnvois = events.length;
+  const totalEchecs = events.filter((e) => e.statut === "echec").length;
+
+  const contactsWithEnvoi = new Set(
+    events.map((e) => e.contact_id).filter(Boolean)
+  );
+  const contactsCouverts = inscritContactIds.filter((id) =>
+    contactsWithEnvoi.has(id)
+  ).length;
+  const totalInscrits = inscritContactIds.length;
+  const couverturePct =
+    totalInscrits > 0 ? Math.round((contactsCouverts / totalInscrits) * 100) : 0;
+
+  return {
+    totalEnvois,
+    totalEchecs,
+    couverturePct,
+    contactsCouverts,
+    totalInscrits,
+  };
+}
+
+/**
+ * Get the latest envoi event for a specific contact within the session events.
+ * Events are assumed to be sorted by date_envoi DESC (as returned by the hook).
+ */
+export function getLatestEnvoiForContact(
+  events: EnvoiEvent[],
+  contactId: string
+): EnvoiEvent | null {
+  return events.find((e) => e.contact_id === contactId) ?? null;
+}

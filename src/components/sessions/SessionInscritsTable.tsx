@@ -1,6 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
+import { useDocumentEnvoiHistory, getLatestEnvoiForContact } from '@/hooks/useDocumentEnvoiHistory';
+import { EnvoiStatusBadge } from '@/components/documents/EnvoiStatusBadge';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { useContacts } from '@/hooks/useContacts';
 import { useSession } from '@/hooks/useSessions';
 import { useInscritsExamResults } from '@/hooks/useInscritsExamResults';
@@ -126,6 +130,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
   const { centreFormation } = useCentreFormation();
   const { composerProps, openComposer } = useEmailComposer();
+  
+  // Envoi history for "Dernière comm." column — reuses session-level cache, no new request
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(null, sessionId);
   
   // Exam results for all inscrits
   const inscritContactIds = inscrits?.map(i => i.contact_id) || [];
@@ -958,6 +965,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
+                <TableHead className="hidden lg:table-cell w-24">Dern. comm.</TableHead>
                 <TableHead className="hidden lg:table-cell w-10 text-center">⚡</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -1098,6 +1106,31 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                      {/* Dernière comm. */}
+                      <TableCell className="hidden lg:table-cell">
+                        {(() => {
+                          const latest = getLatestEnvoiForContact(envoiEvents, inscrit.contact_id);
+                          if (!latest) return <span className="text-xs text-muted-foreground">—</span>;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-col gap-0.5 cursor-default">
+                                  <EnvoiStatusBadge statut={latest.statut} size="sm" />
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {format(new Date(latest.date_envoi), "dd/MM", { locale: fr })}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="left">
+                                <p className="text-xs font-medium">{latest.document_name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {format(new Date(latest.date_envoi), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
                       </TableCell>
                       {/* Urgency dot */}
                       <TableCell className="hidden lg:table-cell text-center">
@@ -1246,7 +1279,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Aucun stagiaire inscrit
                   </TableCell>
                 </TableRow>

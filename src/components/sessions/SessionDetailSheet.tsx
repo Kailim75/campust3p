@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -71,6 +71,8 @@ import type { CompanyInfo } from "@/lib/pdf-generator";
 
 import { SessionDocumentMatrixView } from "@/components/documents/SessionDocumentMatrixView";
 import { DocumentEnvoiHistoryPanel } from "@/components/documents/DocumentEnvoiHistoryPanel";
+import { useDocumentEnvoiHistory, getSessionEnvoiAggregates } from "@/hooks/useDocumentEnvoiHistory";
+import { SessionEnvoiAggregates } from "./SessionEnvoiAggregates";
 
 // Extracted sub-components
 import { SessionDetailHeader } from "./SessionDetailHeader";
@@ -112,6 +114,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const canArchive = useCanArchiveSession(session?.date_fin);
   const { data: qualiopiScore } = useSessionQualiopi(sessionId);
   const { centreFormation } = useCentreFormation();
+
+  // Envoi history for session-level aggregates — reuses cache, no new request
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(null, sessionId);
+  const inscritContactIds = useMemo(
+    () => (rawInscriptions as unknown as InscriptionWithContact[] | undefined)?.map((i) => i.contact_id) ?? [],
+    [rawInscriptions]
+  );
+  const envoiAggregates = useMemo(
+    () => getSessionEnvoiAggregates(envoiEvents, inscritContactIds),
+    [envoiEvents, inscritContactIds]
+  );
 
   // Cast raw inscriptions to typed form (Supabase returns untyped relational joins)
   // CAST JUSTIFIED: Supabase's auto-generated types don't model relational joins;
@@ -325,6 +338,11 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 prix={session.prix ? Number(session.prix) : null}
                 qualiopiScore={qualiopiScore ? qualiopiScore.score : null}
               />
+
+              {/* Envoi Aggregates */}
+              {envoiAggregates.totalEnvois > 0 && (
+                <SessionEnvoiAggregates aggregates={envoiAggregates} className="mt-2" />
+              )}
 
               {/* Quick Actions Bar */}
               <SessionQuickActions
