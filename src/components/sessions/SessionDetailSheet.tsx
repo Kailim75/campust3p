@@ -115,6 +115,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const { data: qualiopiScore } = useSessionQualiopi(sessionId);
   const { centreFormation } = useCentreFormation();
 
+  // Envoi history for session-level aggregates — reuses cache, no new request
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(null, sessionId);
+  const inscritContactIds = useMemo(
+    () => (rawInscriptions as unknown as InscriptionWithContact[] | undefined)?.map((i) => i.contact_id) ?? [],
+    [rawInscriptions]
+  );
+  const envoiAggregates = useMemo(
+    () => getSessionEnvoiAggregates(envoiEvents, inscritContactIds),
+    [envoiEvents, inscritContactIds]
+  );
+
   // Cast raw inscriptions to typed form (Supabase returns untyped relational joins)
   // CAST JUSTIFIED: Supabase's auto-generated types don't model relational joins;
   // InscriptionWithContact mirrors the exact select query in useSessionInscriptions.
