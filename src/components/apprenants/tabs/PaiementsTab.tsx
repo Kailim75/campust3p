@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Pencil } from "lucide-react";
+import { Plus, FileText, Pencil, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,9 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
+import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
+import { centreToCompanyInfo } from "@/lib/centre-to-company";
 
 interface PaiementsTabProps {
   contactId: string;
@@ -32,6 +35,7 @@ const statutColors: Record<string, string> = {
 
 export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const queryClient = useQueryClient();
+  const { centreFormation } = useCentreFormation();
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [editingFacture, setEditingFacture] = useState<any>(null);
@@ -48,6 +52,19 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info", contactId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("nom, prenom, email, telephone, rue, code_postal, ville")
+        .eq("id", contactId)
+        .single();
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -99,6 +116,34 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     },
     onError: () => toast.error("Erreur lors de l'ajout du versement"),
   });
+
+  const handlePrintFacture = (f: any) => {
+    if (!contact) { toast.error("Informations contact manquantes"); return; }
+    const company = centreToCompanyInfo(centreFormation);
+    const factureInfo: FactureInfo = {
+      numero_facture: f.numero_facture || "",
+      montant_total: Number(f.montant_total),
+      total_paye: (paiements || [])
+        .filter((p: any) => p.facture_id === f.id)
+        .reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+      statut: f.statut,
+      type_financement: f.type_financement || "personnel",
+      date_emission: f.date_emission,
+      commentaires: f.commentaires,
+    };
+    const contactInfo: ContactInfo = {
+      nom: contact.nom,
+      prenom: contact.prenom,
+      email: contact.email || "",
+      telephone: contact.telephone || "",
+      rue: contact.rue || "",
+      code_postal: contact.code_postal || "",
+      ville: contact.ville || "",
+    };
+    const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
+    doc.save(`facture-${f.numero_facture || "sans-numero"}.pdf`);
+    toast.success("Facture téléchargée");
+  };
 
   if (facturesLoading || paiementsLoading) return <Skeleton className="h-[200px] rounded-xl" />;
 
@@ -183,7 +228,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                 <TableHead>Montant</TableHead>
                 <TableHead>Financement</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,9 +246,14 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditingFacture(f); }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handlePrintFacture(f); }} title="Imprimer la facture">
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditingFacture(f); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
