@@ -241,6 +241,12 @@ export function PaiementsPage() {
           setEditingFacture(null);
           setShowFactureForm(true);
         }}
+        extraActions={
+          <Button variant="outline" size="sm" onClick={() => setShowFactureLibre(true)}>
+            <FileText className="h-4 w-4 mr-1.5" />
+            Facture forfait
+          </Button>
+        }
       />
 
       <main className="p-6 animate-fade-in">
