@@ -293,11 +293,17 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handlePrintFacture(f); }} title="Imprimer la facture">
+                    <div className="flex gap-0.5">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handlePrintFacture(f); }} title="Télécharger PDF">
                         <Printer className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditingFacture(f); }}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handleEmailFacture(f); }} title="Envoyer par email">
+                        <Mail className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handleWhatsAppFacture(f); }} title="Envoyer par WhatsApp">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditingFacture(f); }} title="Modifier">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </div>
