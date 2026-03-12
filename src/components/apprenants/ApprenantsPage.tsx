@@ -429,7 +429,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
         </div>
       </main>
 
-      <ContactDetailSheet
+      <ApprenantDetailSheet
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}

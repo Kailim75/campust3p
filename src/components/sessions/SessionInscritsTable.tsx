@@ -1289,8 +1289,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         </DialogContent>
       </Dialog>
 
-      {/* Contact Detail Sheet - Fiche complète du stagiaire */}
-      <ContactDetailSheet
+      {/* Fiche apprenant V2 */}
+      <ApprenantDetailSheet
         contactId={selectedContactId}
         open={!!selectedContactId}
         onOpenChange={(open) => {
