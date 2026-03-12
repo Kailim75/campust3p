@@ -67,27 +67,6 @@ export function useDocumentEnvoiHistory(
   });
 }
 
-/**
- * Fetch envoi history for all contacts in a session (for session matrix view).
- */
-export function useSessionEnvoiHistory(sessionId: string | null, enabled = true) {
-  return useQuery({
-    queryKey: ["session-envoi-history", sessionId],
-    enabled: enabled && !!sessionId,
-    staleTime: 30_000,
-    queryFn: async (): Promise<EnvoiEvent[]> => {
-      if (!sessionId) return [];
-      const { data, error } = await supabase
-        .from("document_envois")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("date_envoi", { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as EnvoiEvent[];
-    },
-  });
-}
 
 // ── Derived business indicators (pure functions, no DB calls) ──
 
