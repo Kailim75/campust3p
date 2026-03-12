@@ -25,6 +25,7 @@ import { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 import { BulkGenerationDialog } from "./BulkGenerationDialog";
 import { BulkEmailDialog } from "./BulkEmailDialog";
 import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
+import { InlineContractQualifier } from "./InlineContractQualifier";
 import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem, ContractFrameDisplay } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
@@ -425,20 +426,13 @@ export function SessionDocumentMatrixView({
                       </div>
                     </td>
 
-                    {/* Contract frame */}
+                    {/* Contract frame — inline qualifier */}
                     <td className="px-2 py-2 text-center">
-                      {(() => {
-                        const frame = row.contractFrame ?? "a_qualifier";
-                        const label = frame === "contrat" ? "Contrat"
-                          : frame === "convention" ? "Convention"
-                          : "À qualifier";
-                        const variant = frame === "a_qualifier" ? "destructive" as const : "secondary" as const;
-                        return (
-                          <Badge variant={variant} className="text-[9px] h-5 px-1.5">
-                            {label}
-                          </Badge>
-                        );
-                      })()}
+                      <InlineContractQualifier
+                        inscriptionId={row.inscriptionId}
+                        currentFrame={(row.contractFrame ?? "a_qualifier") as "contrat" | "convention" | "a_qualifier"}
+                        contactName={row.contactName}
+                      />
                     </td>
 
                     {/* Block cells */}

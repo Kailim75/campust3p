@@ -180,6 +180,7 @@ export function useSessionDocumentMatrix({
           : null;
 
         rows.push({
+          inscriptionId: (insc as any).id as string,
           contactId: contact.id,
           contactName: `${contact.prenom ?? ""} ${contact.nom ?? ""}`.trim(),
           contactEmail: contact.email,
