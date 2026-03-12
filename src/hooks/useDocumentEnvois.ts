@@ -128,6 +128,7 @@ export function useUpdateDocumentEnvoi() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document_envois"] });
+      queryClient.invalidateQueries({ queryKey: ["document-envoi-history"] });
     },
   });
 }
