@@ -338,6 +338,15 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-start justify-between">
+              <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
+                {contact.prenom} {contact.nom}
+              </h2>
+              {sheetSize && onSheetSizeChange && (
+                <SheetSizeSelector size={sheetSize} onSizeChange={onSheetSizeChange} />
+              )}
+            </div>
+          <div className="flex-1 min-w-0 space-y-1">
             <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
               {contact.prenom} {contact.nom}
             </h2>
