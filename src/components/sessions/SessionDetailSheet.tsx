@@ -313,7 +313,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   };
 
   const sheetContent = (
-    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] p-3" : "")}>
+    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] px-3 py-2" : "")}>
       {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
