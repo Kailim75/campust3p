@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 const BUCKET_V2 = "generated-docs";
 /** Legacy workflow bucket (generated_documents_legacy, signatures, docx) */
 const BUCKET_LEGACY = "generated-documents";
+const UUID_SEGMENT_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ── Types ──
 
