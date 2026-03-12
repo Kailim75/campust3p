@@ -192,6 +192,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
           </TableBody>
         </Table>
       </Card>
+      <FactureLibreDialog
+        open={showFactureLibre}
+        onOpenChange={setShowFactureLibre}
+        defaultContactId={contactId}
+      />
     </div>
   );
 }
