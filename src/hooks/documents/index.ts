@@ -20,8 +20,6 @@ export { useSessionDocumentMatrix } from "../useSessionDocumentMatrix";
 
 // ── Envoi & Historique ──────────────────────────────────────────
 export {
-  useDocumentEnvois,
-  useAllDocumentEnvois,
   useCreateDocumentEnvoi,
   useBulkCreateDocumentEnvois,
   useUpdateDocumentEnvoi,
