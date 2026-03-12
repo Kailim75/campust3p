@@ -359,6 +359,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         facture={editingFacture}
         contactId={contactId}
       />
+      <EmailComposerModal {...composerProps} />
     </div>
   );
 }
