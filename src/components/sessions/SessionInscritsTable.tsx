@@ -131,6 +131,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const { centreFormation } = useCentreFormation();
   const { composerProps, openComposer } = useEmailComposer();
   
+  // Envoi history for "Dernière comm." column — reuses session-level cache, no new request
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(null, sessionId);
+  
   // Exam results for all inscrits
   const inscritContactIds = inscrits?.map(i => i.contact_id) || [];
   const { data: examResults = {}, setResult: setExamResult } = useInscritsExamResults(inscritContactIds);
