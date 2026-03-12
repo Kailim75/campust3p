@@ -313,7 +313,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   };
 
   const sheetContent = (
-    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] p-3" : "")}>
+    <div className={cn("overflow-y-auto", isMobile ? "max-h-[88vh] px-3 py-2" : "")}>
       {isLoading ? (
             <div className="space-y-6 pt-6">
               <Skeleton className="h-8 w-64" />
@@ -362,9 +362,12 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 onCloseSession={() => setClosureWizardOpen(true)}
               />
 
-               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <div className="overflow-x-auto scrollbar-hide">
-                  <TabsList className="w-max sm:grid sm:w-full sm:grid-cols-7">
+               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3 sm:mt-4">
+                <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+                  <TabsList className={cn(
+                    "w-max",
+                    !isMobile && "sm:grid sm:w-full sm:grid-cols-7"
+                  )}>
                     <TabsTrigger value="info" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <Info className="h-3.5 w-3.5" />
                       <span>Infos</span>
