@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Pencil } from "lucide-react";
+import { Plus, FileText, Pencil, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,9 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
+import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
+import { centreToCompanyInfo } from "@/lib/centre-to-company";
 
 interface PaiementsTabProps {
   contactId: string;
