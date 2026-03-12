@@ -1107,6 +1107,31 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
+                      {/* Dernière comm. */}
+                      <TableCell className="hidden lg:table-cell">
+                        {(() => {
+                          const latest = getLatestEnvoiForContact(envoiEvents, inscrit.contact_id);
+                          if (!latest) return <span className="text-xs text-muted-foreground">—</span>;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-col gap-0.5 cursor-default">
+                                  <EnvoiStatusBadge statut={latest.statut} size="sm" />
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {format(new Date(latest.date_envoi), "dd/MM", { locale: fr })}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="left">
+                                <p className="text-xs font-medium">{latest.document_name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {format(new Date(latest.date_envoi), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
+                      </TableCell>
                       {/* Urgency dot */}
                       <TableCell className="hidden lg:table-cell text-center">
                         <Tooltip>
