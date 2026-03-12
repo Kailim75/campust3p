@@ -33,7 +33,7 @@ import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
 import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type Prospect } from "@/hooks/useProspects";
 import { ContactsTable } from "./ContactsTable";
 import { ContactFormDialog } from "./ContactFormDialog";
-import { ContactDetailSheet } from "./ContactDetailSheet";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { ProspectsDashboard } from "@/components/prospects/ProspectsDashboard";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
