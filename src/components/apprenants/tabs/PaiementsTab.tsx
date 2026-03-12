@@ -19,6 +19,9 @@ import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreD
 import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
+import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { EmailComposerModal } from "@/components/email/EmailComposerModal";
+import { formatPhoneForWhatsApp } from "@/lib/phone-utils";
 
 interface PaiementsTabProps {
   contactId: string;
