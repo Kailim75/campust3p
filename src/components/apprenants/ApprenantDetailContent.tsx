@@ -10,6 +10,7 @@ import {
   Phone, Mail, FolderOpen, GraduationCap,
   MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
+  Edit, Trash2, Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
@@ -26,6 +27,22 @@ import { WorkflowStepper, type StepStatus } from "@/components/workflow/Workflow
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
 import { PostAssignmentDialog } from "@/components/workflow/PostAssignmentDialog";
+import { GenerateDocumentDialog } from "@/components/contacts/GenerateDocumentDialog";
+import { SendEnqueteDialog } from "@/components/contacts/SendEnqueteDialog";
+import { CallLogDialog } from "@/components/contacts/CallLogDialog";
+import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useDeleteContact } from "@/hooks/useContacts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,30 +58,17 @@ import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
+import type { SheetSize } from "@/hooks/useSheetSize";
 
-const FORMATION_COLORS: Record<string, string> = {
-  TAXI: "bg-primary",
-  VTC: "bg-accent",
-  VMDTR: "bg-info",
-  "ACC VTC": "bg-accent",
-  "Formation continue Taxi": "bg-success",
-  "Formation continue VTC": "bg-success",
-};
-
-const STATUT_BADGES: Record<string, { label: string; className: string }> = {
-  "En attente de validation": { label: "Nouveau lead", className: "bg-muted text-muted-foreground" },
-  "En formation théorique": { label: "En formation", className: "bg-primary/15 text-primary" },
-  "Examen T3P programmé": { label: "Examen T3P", className: "bg-accent/15 text-accent" },
-  "T3P obtenu": { label: "T3P Obtenu", className: "bg-success/15 text-success" },
-  "En formation pratique": { label: "Formation pratique", className: "bg-info/15 text-info" },
-  "Client": { label: "Diplômé", className: "bg-success/15 text-success" },
-  "Bravo": { label: "Diplômé", className: "bg-success/15 text-success" },
-  "Abandonné": { label: "Abandonné", className: "bg-destructive/15 text-destructive" },
-};
+// ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
 interface ApprenantDetailContentProps {
   contact: Contact | null;
   isLoading: boolean;
+  onEdit?: (contact: Contact) => void;
+  onClose?: () => void;
+  sheetSize?: SheetSize;
+  onSheetSizeChange?: (size: SheetSize) => void;
 }
 
 export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
