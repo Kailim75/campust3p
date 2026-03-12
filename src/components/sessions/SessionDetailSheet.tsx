@@ -71,6 +71,8 @@ import type { CompanyInfo } from "@/lib/pdf-generator";
 
 import { SessionDocumentMatrixView } from "@/components/documents/SessionDocumentMatrixView";
 import { DocumentEnvoiHistoryPanel } from "@/components/documents/DocumentEnvoiHistoryPanel";
+import { useDocumentEnvoiHistory, getSessionEnvoiAggregates } from "@/hooks/useDocumentEnvoiHistory";
+import { SessionEnvoiAggregates } from "./SessionEnvoiAggregates";
 
 // Extracted sub-components
 import { SessionDetailHeader } from "./SessionDetailHeader";
