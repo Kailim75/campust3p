@@ -691,7 +691,7 @@ export function useRetryFailedDocuments() {
           }
 
           const pdfBlob = pdf.output("blob");
-          const filePath = `centre/${doc.centre_id}/contacts/${doc.contact_id || "general"}/${doc.id}.pdf`;
+          const filePath = `${doc.centre_id}/contacts/${doc.contact_id || "general"}/${doc.id}.pdf`;
 
           const { error: upErr } = await supabase.storage
             .from("generated-docs")
