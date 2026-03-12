@@ -149,6 +149,49 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     toast.success("Facture téléchargée");
   };
 
+  const buildFacturePdfBase64 = (f: any): { base64: string; filename: string } | null => {
+    if (!contact) return null;
+    const company = centreToCompanyInfo(centreFormation);
+    const factureInfo: FactureInfo = {
+      numero_facture: f.numero_facture || "",
+      montant_total: Number(f.montant_total),
+      total_paye: (paiements || []).filter((p: any) => p.facture_id === f.id).reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+      statut: f.statut,
+      type_financement: f.type_financement || "personnel",
+      date_emission: f.date_emission,
+      commentaires: f.commentaires,
+    };
+    const contactInfo: ContactInfo = {
+      nom: contact.nom, prenom: contact.prenom, email: contact.email || "", telephone: contact.telephone || "",
+      rue: contact.rue || "", code_postal: contact.code_postal || "", ville: contact.ville || "",
+    };
+    const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
+    const base64 = doc.output("datauristring").split(",")[1];
+    const filename = `facture-${f.numero_facture || "sans-numero"}.pdf`;
+    return { base64, filename };
+  };
+
+  const handleEmailFacture = (f: any) => {
+    if (!contact?.email) { toast.error("Aucun email pour ce contact"); return; }
+    const pdf = buildFacturePdfBase64(f);
+    if (!pdf) { toast.error("Informations contact manquantes"); return; }
+    openComposer({
+      recipients: [{ email: contact.email, name: `${contact.prenom} ${contact.nom}` }],
+      defaultSubject: `Facture ${f.numero_facture || ""}`,
+      defaultBody: `Bonjour ${contact.prenom},\n\nVeuillez trouver ci-joint votre facture ${f.numero_facture || ""} d'un montant de ${Number(f.montant_total).toLocaleString("fr-FR")}€.\n\nCordialement`,
+      attachments: [{ filename: pdf.filename, content: pdf.base64, contentType: "application/pdf" }],
+    });
+  };
+
+  const handleWhatsAppFacture = (f: any) => {
+    if (!contact?.telephone) { toast.error("Aucun numéro de téléphone pour ce contact"); return; }
+    const phone = formatPhoneForWhatsApp(contact.telephone);
+    if (!phone) { toast.error("Numéro de téléphone invalide"); return; }
+    const waNumber = phone.replace(/^\+/, "");
+    const msg = encodeURIComponent(`Bonjour ${contact.prenom}, voici votre facture ${f.numero_facture || ""} d'un montant de ${Number(f.montant_total).toLocaleString("fr-FR")}€. N'hésitez pas à nous contacter pour toute question.`);
+    window.open(`https://wa.me/${waNumber}?text=${msg}`, "_blank");
+  };
+
   if (facturesLoading || paiementsLoading) return <Skeleton className="h-[200px] rounded-xl" />;
 
   return (
