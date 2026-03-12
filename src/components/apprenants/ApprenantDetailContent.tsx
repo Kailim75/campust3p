@@ -532,6 +532,20 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
               )}
             </Tooltip>
           </TooltipProvider>
+
+          {/* Générer document */}
+          <Button size="sm" variant="default" className="text-xs"
+            onClick={() => setGenerateDialogOpen(true)}
+          >
+            <FileText className="h-3 w-3 mr-1" /> Générer doc
+          </Button>
+
+          {/* Enquête satisfaction */}
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setEnqueteDialogOpen(true)}
+          >
+            <Star className="h-3 w-3 mr-1" /> Enquête
+          </Button>
         </div>
       </div>
 
