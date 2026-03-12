@@ -275,7 +275,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                 <TableHead>Montant</TableHead>
                 <TableHead>Financement</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead className="w-20"></TableHead>
+                <TableHead className="w-32"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
