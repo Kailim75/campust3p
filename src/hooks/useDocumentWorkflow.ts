@@ -83,10 +83,10 @@ export function useDocumentWorkflow({
       if (sessionId) {
         const { data: s } = await (supabase as any)
           .from("sessions")
-          .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix_total, track")
+          .select("id, nom, date_debut, date_fin, formation_type, lieu, duree_heures, prix, track")
           .eq("id", sessionId)
           .single();
-        sessionData = s as EligibilitySession | null;
+        sessionData = s ? { ...s, prix_total: s.prix ?? null } as EligibilitySession : null;
         track = s?.track ?? getTrackFromFormationType(s?.formation_type);
       }
 

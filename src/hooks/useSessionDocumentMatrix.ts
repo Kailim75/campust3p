@@ -48,7 +48,11 @@ export function useSessionDocumentMatrix({
       }
 
       if (!sessionRaw) return [];
-      const sessionData: EligibilitySession = sessionRaw;
+      // Map DB field 'prix' to EligibilitySession's 'prix_total'
+      const sessionData: EligibilitySession = {
+        ...sessionRaw,
+        prix_total: sessionRaw.prix ?? null,
+      };
       const centreId = sessionRaw.centre_id as string;
       // Resolve formation track
       const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
