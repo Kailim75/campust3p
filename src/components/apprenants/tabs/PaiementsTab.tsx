@@ -117,6 +117,32 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     onError: () => toast.error("Erreur lors de l'ajout du versement"),
   });
 
+  const handlePrintFacture = (f: any) => {
+    if (!contact) { toast.error("Informations contact manquantes"); return; }
+    const company = centreToCompanyInfo(centreFormation);
+    const factureInfo: FactureInfo = {
+      numero_facture: f.numero_facture || "",
+      montant_total: Number(f.montant_total),
+      total_paye: (paiements || [])
+        .filter((p: any) => p.facture_id === f.id)
+        .reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+      statut: f.statut,
+      type_financement: f.type_financement || "personnel",
+      date_emission: f.date_emission,
+      commentaires: f.commentaires,
+    };
+    const contactInfo: ContactInfo = {
+      nom: contact.nom,
+      prenom: contact.prenom,
+      email: contact.email || "",
+      telephone: contact.telephone || "",
+      adresse: [contact.rue, contact.code_postal, contact.ville].filter(Boolean).join(", "),
+    };
+    const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
+    doc.save(`facture-${f.numero_facture || "sans-numero"}.pdf`);
+    toast.success("Facture téléchargée");
+  };
+
   if (facturesLoading || paiementsLoading) return <Skeleton className="h-[200px] rounded-xl" />;
 
   return (
