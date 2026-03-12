@@ -582,7 +582,7 @@ export function useGenerateDocument() {
       const pdfBlob = pdf.output("blob");
 
       const centreId = doc.centre_id;
-      const filePath = `centre/${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
+      const filePath = `${centreId}/contacts/${params.contactId || "general"}/${doc.id}.pdf`;
 
       const { error: upErr } = await supabase.storage
         .from("generated-docs")
