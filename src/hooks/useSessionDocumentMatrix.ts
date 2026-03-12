@@ -48,7 +48,11 @@ export function useSessionDocumentMatrix({
       }
 
       if (!sessionRaw) return [];
-      const sessionData: EligibilitySession = sessionRaw;
+      // Map DB field 'prix' to EligibilitySession's 'prix_total'
+      const sessionData: EligibilitySession = {
+        ...sessionRaw,
+        prix_total: sessionRaw.prix ?? null,
+      };
       const centreId = sessionRaw.centre_id as string;
       // Resolve formation track
       const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
@@ -64,8 +68,8 @@ export function useSessionDocumentMatrix({
 
       const contactIds = inscriptions.map((i: any) => i.contact_id).filter(Boolean);
 
-      // Batch fetch all docs, envois, signatures for this session
-      const [genResult, envoisResult, sigResult] = await Promise.all([
+      // Batch fetch all docs, envois, signatures, and published templates for this session
+      const [genResult, envoisResult, sigResult, publishedResult] = await Promise.all([
         (supabase as any)
           .from("generated_documents_v2")
           .select("*, template:template_studio_templates(id, name, type, category)")
@@ -82,11 +86,24 @@ export function useSessionDocumentMatrix({
           .select("*")
           .in("contact_id", contactIds)
           .order("created_at", { ascending: false }),
+        (supabase as any)
+          .from("template_studio_templates")
+          .select("id, name, type")
+          .eq("status", "published")
+          .eq("is_active", true),
       ]);
 
       const allDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
       const allEnvois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
       const allSigs = (sigResult.data ?? []) as RawSignatureRequest[];
+
+      // Build a map of document type → published template ID
+      const publishedTemplateMap = new Map<string, string>();
+      for (const t of (publishedResult.data ?? []) as Array<{ id: string; name: string; type: string }>) {
+        if (!publishedTemplateMap.has(t.type)) {
+          publishedTemplateMap.set(t.type, t.id);
+        }
+      }
 
       // Build matrix rows
       const rows: SessionDocumentMatrixRow[] = [];
@@ -104,11 +121,20 @@ export function useSessionDocumentMatrix({
           mapGeneratedDocV2(doc, contactEnvois, contactSigs, contact, sessionData)
         );
 
-        // Add placeholders (track-aware)
+        // Add placeholders (track-aware) and enrich with published template IDs
         const existingTypes = new Set(items.map(i => i.documentType));
         const placeholders = createExpectedPlaceholders(
           existingTypes, contact, sessionData, centreId, "session", track
         );
+        // Resolve templateId from published templates for placeholders
+        for (const ph of placeholders) {
+          if (!ph.templateId) {
+            const pubId = publishedTemplateMap.get(ph.documentType);
+            if (pubId) {
+              ph.templateId = pubId;
+            }
+          }
+        }
         items.push(...placeholders);
 
         const blocks = buildBlockSummaries(items);
