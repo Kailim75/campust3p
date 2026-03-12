@@ -68,8 +68,8 @@ export function useSessionDocumentMatrix({
 
       const contactIds = inscriptions.map((i: any) => i.contact_id).filter(Boolean);
 
-      // Batch fetch all docs, envois, signatures for this session
-      const [genResult, envoisResult, sigResult] = await Promise.all([
+      // Batch fetch all docs, envois, signatures, and published templates for this session
+      const [genResult, envoisResult, sigResult, publishedResult] = await Promise.all([
         (supabase as any)
           .from("generated_documents_v2")
           .select("*, template:template_studio_templates(id, name, type, category)")
@@ -86,11 +86,24 @@ export function useSessionDocumentMatrix({
           .select("*")
           .in("contact_id", contactIds)
           .order("created_at", { ascending: false }),
+        (supabase as any)
+          .from("template_studio_templates")
+          .select("id, name, type")
+          .eq("status", "published")
+          .eq("is_active", true),
       ]);
 
       const allDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
       const allEnvois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
       const allSigs = (sigResult.data ?? []) as RawSignatureRequest[];
+
+      // Build a map of document type → published template ID
+      const publishedTemplateMap = new Map<string, string>();
+      for (const t of (publishedResult.data ?? []) as Array<{ id: string; name: string; type: string }>) {
+        if (!publishedTemplateMap.has(t.type)) {
+          publishedTemplateMap.set(t.type, t.id);
+        }
+      }
 
       // Build matrix rows
       const rows: SessionDocumentMatrixRow[] = [];
