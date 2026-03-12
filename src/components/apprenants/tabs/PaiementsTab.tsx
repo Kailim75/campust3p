@@ -176,7 +176,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     const pdf = buildFacturePdfBase64(f);
     if (!pdf) { toast.error("Informations contact manquantes"); return; }
     openComposer({
-      recipients: [{ email: contact.email, name: `${contact.prenom} ${contact.nom}` }],
+      recipients: [{ id: contactId, email: contact.email, prenom: contact.prenom, nom: contact.nom }],
       defaultSubject: `Facture ${f.numero_facture || ""}`,
       defaultBody: `Bonjour ${contact.prenom},\n\nVeuillez trouver ci-joint votre facture ${f.numero_facture || ""} d'un montant de ${Number(f.montant_total).toLocaleString("fr-FR")}€.\n\nCordialement`,
       attachments: [{ filename: pdf.filename, content: pdf.base64, contentType: "application/pdf" }],
