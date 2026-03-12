@@ -69,6 +69,7 @@ export function PaiementsPage() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null);
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
   const [showFECDialog, setShowFECDialog] = useState(false);
+  const [showFactureLibre, setShowFactureLibre] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
 
