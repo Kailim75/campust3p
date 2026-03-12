@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { isActiveApprenant, isTerminated, type StatutApprenant } from "@/lib/apprenant-active";
 import { useUpdateContact } from "@/hooks/useContacts";
-import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
