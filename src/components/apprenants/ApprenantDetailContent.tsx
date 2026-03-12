@@ -100,6 +100,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const [callLogOpen, setCallLogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
+  const deleteContact = useDeleteContact();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
 
   // Determine track: from active enrollment, fallback to contact.formation
