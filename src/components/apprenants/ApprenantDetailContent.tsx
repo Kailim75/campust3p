@@ -54,6 +54,7 @@ import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
+import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
