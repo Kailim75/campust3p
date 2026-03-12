@@ -26,6 +26,8 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
 import { SessionHealthBadge } from "./SessionHealthBadge";
+import { SessionCardMobile } from "./SessionCardMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Session } from "@/hooks/useSessions";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 import { calculateHealthScore, type SessionFinancialData } from "@/hooks/useSessionFinancials";
@@ -49,6 +51,14 @@ const groupByOptions = [
   { value: "status", label: "Par statut" },
   { value: "month", label: "Par mois" },
   { value: "lieu", label: "Par lieu" },
+];
+
+const sortOptions = [
+  { value: "date_debut", label: "Date" },
+  { value: "nom", label: "Nom" },
+  { value: "inscrits", label: "Inscrits" },
+  { value: "score", label: "Santé" },
+  { value: "statut", label: "Statut" },
 ];
 
 interface SessionsGroupedTableProps {
@@ -118,13 +128,13 @@ export function SessionsGroupedTable({
   onDuplicate,
   onDelete,
 }: SessionsGroupedTableProps) {
+  const isMobile = useIsMobile();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('date_debut');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const sortedSessions = useMemo(() => {
     return [...sessions].sort((a, b) => {
-      // Critical sessions always first
       const aCrit = isSessionCritical(a, inscriptionsCounts);
       const bCrit = isSessionCritical(b, inscriptionsCounts);
       if (aCrit && !bCrit) return -1;
@@ -198,6 +208,16 @@ export function SessionsGroupedTable({
     else { setSortField(field); setSortOrder('asc'); }
   };
 
+  const handleMobileSortChange = (value: string) => {
+    const field = value as SortField;
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
     return sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
@@ -245,49 +265,191 @@ export function SessionsGroupedTable({
     </TableHeader>
   );
 
+  // ─── Loading state ───
   if (isLoading) {
     return (
       <div className="card-elevated overflow-hidden">
         <div className="p-4 border-b border-border"><Skeleton className="h-10 w-48" /></div>
-        <Table>
-          {renderHeaders()}
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={i}>
-                {Array.from({ length: 7 }).map((_, j) => (
-                  <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
-                ))}
-              </TableRow>
+        {isMobile ? (
+          <div className="p-3 space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-lg" />
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        ) : (
+          <Table>
+            {renderHeaders()}
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     );
   }
 
+  // ─── Mobile toolbar ───
+  const renderMobileToolbar = () => (
+    <div className="p-3 border-b border-border space-y-2">
+      {/* Group by */}
+      <div className="flex items-center gap-2">
+        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Select value={groupBy} onValueChange={(v) => onGroupByChange(v as GroupByMode)}>
+          <SelectTrigger className="flex-1 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {groupByOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Sort + expand/collapse */}
+      <div className="flex items-center gap-2">
+        <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Select value={sortField} onValueChange={handleMobileSortChange}>
+          <SelectTrigger className="flex-1 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+          title={sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}
+        >
+          {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+        </Button>
+        {groupBy !== "none" && (
+          <>
+            <Button variant="ghost" size="sm" className="h-9 text-xs px-2" onClick={() => setExpandedGroups(new Set(groupedSessions.map(g => g.key)))}>
+              Tout
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 text-xs px-2" onClick={() => setExpandedGroups(new Set())}>
+              Replier
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // ─── Desktop toolbar ───
+  const renderDesktopToolbar = () => (
+    <div className="p-4 border-b border-border flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-2">
+        <Layers className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Regrouper par :</span>
+        <Select value={groupBy} onValueChange={(v) => onGroupByChange(v as GroupByMode)}>
+          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {groupByOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {groupBy !== "none" && (
+        <div className="flex items-center gap-2 ml-auto">
+          <Button variant="ghost" size="sm" onClick={() => setExpandedGroups(new Set(groupedSessions.map(g => g.key)))}>Tout déplier</Button>
+          <Button variant="ghost" size="sm" onClick={() => setExpandedGroups(new Set())}>Tout replier</Button>
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── Mobile group header ───
+  const renderMobileGroupHeader = (group: GroupedSessions) => (
+    <div className="flex items-center gap-2 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
+      {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+        {group.badgeClass ? (
+          <Badge variant="outline" className={cn("text-xs", group.badgeClass)}>{group.label}</Badge>
+        ) : (
+          <span className="font-semibold text-sm text-foreground">{group.label}</span>
+        )}
+        <Badge variant="secondary" className="text-xs">
+          {group.sessions.length}
+        </Badge>
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0">
+        {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)}/{group.sessions.reduce((a, s) => a + s.places_totales, 0)}
+      </span>
+    </div>
+  );
+
+  // ─── Render mobile card for a session ───
+  const renderMobileCard = (session: Session) => {
+    const inscrits = inscriptionsCounts[session.id] || 0;
+    const health = getSessionHealth(session, inscriptionsCounts, financials);
+    return (
+      <SessionCardMobile
+        key={session.id}
+        session={session}
+        inscrits={inscrits}
+        financial={financials[session.id]}
+        health={health}
+        isCritical={isSessionCritical(session, inscriptionsCounts)}
+        isActive={activeSessionId === session.id}
+        statusConfig={statusConfig}
+        onViewDetail={onViewDetail}
+        onEdit={onEdit}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+      />
+    );
+  };
+
+  // ─── MOBILE RENDER ───
+  if (isMobile) {
+    return (
+      <TooltipProvider>
+        <div className="card-elevated overflow-hidden">
+          {renderMobileToolbar()}
+
+          {groupBy === "none" ? (
+            <div className="p-3 space-y-2">
+              {sortedSessions.map(renderMobileCard)}
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {groupedSessions.map((group) => (
+                <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
+                  <CollapsibleTrigger asChild>
+                    {renderMobileGroupHeader(group)}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="px-3 pb-3 space-y-2">
+                      {group.sessions.map(renderMobileCard)}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+
+          {sortedSessions.length === 0 && (
+            <div className="py-12 text-center text-muted-foreground">Aucune session trouvée</div>
+          )}
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  // ─── DESKTOP RENDER (unchanged) ───
   return (
     <TooltipProvider>
       <div className="card-elevated overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Regrouper par :</span>
-            <Select value={groupBy} onValueChange={(v) => onGroupByChange(v as GroupByMode)}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {groupByOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {groupBy !== "none" && (
-            <div className="flex items-center gap-2 ml-auto">
-              <Button variant="ghost" size="sm" onClick={() => setExpandedGroups(new Set(groupedSessions.map(g => g.key)))}>Tout déplier</Button>
-              <Button variant="ghost" size="sm" onClick={() => setExpandedGroups(new Set())}>Tout replier</Button>
-            </div>
-          )}
-        </div>
+        {renderDesktopToolbar()}
 
         {groupBy === "none" ? (
           <Table>
@@ -327,7 +489,6 @@ export function SessionsGroupedTable({
                     <Badge variant="secondary" className="ml-2">
                       {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
                     </Badge>
-                    {/* Group summary — always visible */}
                     <span className="text-xs text-muted-foreground ml-auto mr-4 flex items-center gap-3">
                       <span>
                         {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
