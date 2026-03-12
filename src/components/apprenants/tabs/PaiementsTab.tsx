@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Euro, FileText } from "lucide-react";
+import { Plus, FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,26 +15,37 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
+import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
 
 interface PaiementsTabProps {
   contactId: string;
 }
 
+const statutColors: Record<string, string> = {
+  brouillon: "bg-muted text-muted-foreground",
+  emise: "bg-primary/15 text-primary",
+  payee: "bg-success/15 text-success",
+  partiel: "bg-warning/15 text-warning",
+  impayee: "bg-destructive/15 text-destructive",
+  annulee: "bg-muted text-muted-foreground",
+};
+
 export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
+  const [editingFacture, setEditingFacture] = useState<any>(null);
   const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "" });
 
-  // Get factures + paiements for this contact
   const { data: factures, isLoading: facturesLoading } = useQuery({
     queryKey: ["apprenant-factures", contactId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("factures")
-        .select("id, montant_total, statut, type_financement")
+        .select("id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires")
         .eq("contact_id", contactId)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -43,7 +54,6 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const { data: paiements, isLoading: paiementsLoading } = useQuery({
     queryKey: ["apprenant-paiements", contactId],
     queryFn: async () => {
-      // Get paiements linked to factures of this contact
       const { data: factureIds } = await supabase
         .from("factures")
         .select("id")
@@ -115,7 +125,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         </Card>
       </div>
 
-      {/* Add payment / facture libre */}
+      {/* Actions */}
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => setShowFactureLibre(true)}>
           <FileText className="h-3.5 w-3.5 mr-1" /> Facture forfait
@@ -159,8 +169,54 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         </Card>
       )}
 
+      {/* Factures list */}
+      {factures && factures.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="px-4 py-2.5 border-b bg-muted/30">
+            <p className="text-sm font-medium text-foreground">Factures</p>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>N°</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Financement</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {factures.map((f: any) => (
+                <TableRow key={f.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setEditingFacture(f)}>
+                  <TableCell className="text-sm font-mono">{f.numero_facture || "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {f.date_emission ? format(parseISO(f.date_emission), "dd/MM/yyyy", { locale: fr }) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm font-medium">{Number(f.montant_total).toLocaleString("fr-FR")}€</TableCell>
+                  <TableCell className="text-sm capitalize">{f.type_financement || "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn("text-[10px]", statutColors[f.statut] || "")}>
+                      {f.statut}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditingFacture(f); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
       {/* Payments table */}
       <Card className="overflow-hidden">
+        <div className="px-4 py-2.5 border-b bg-muted/30">
+          <p className="text-sm font-medium text-foreground">Versements</p>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -192,10 +248,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
           </TableBody>
         </Table>
       </Card>
-      <FactureLibreDialog
-        open={showFactureLibre}
-        onOpenChange={setShowFactureLibre}
-        defaultContactId={contactId}
+
+      <FactureLibreDialog open={showFactureLibre} onOpenChange={setShowFactureLibre} defaultContactId={contactId} />
+      <EditFactureLibreDialog
+        open={!!editingFacture}
+        onOpenChange={(v) => { if (!v) setEditingFacture(null); }}
+        facture={editingFacture}
+        contactId={contactId}
       />
     </div>
   );
