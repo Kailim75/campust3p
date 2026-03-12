@@ -99,6 +99,12 @@ export function useSessionDocumentMatrix({
           .eq("is_active", true),
       ]);
 
+      // Log any errors from parallel queries
+      if (genResult.error) console.error("Session doc matrix: generated_documents_v2 error", genResult.error);
+      if (envoisResult.error) console.error("Session doc matrix: document_envois error", envoisResult.error);
+      if (sigResult.error) console.error("Session doc matrix: signature_requests error", sigResult.error);
+      if (publishedResult.error) console.error("Session doc matrix: template_studio_templates error", publishedResult.error);
+
       const allDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
       const allEnvois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
       const allSigs = (sigResult.data ?? []) as RawSignatureRequest[];
