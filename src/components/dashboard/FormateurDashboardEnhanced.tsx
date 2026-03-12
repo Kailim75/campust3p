@@ -26,7 +26,7 @@ import { useFormateursStats, useFormateursDisponibilite, useFormateursTable } fr
 import { useSessions } from "@/hooks/useSessions";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useEmargements } from "@/hooks/useEmargements";
-import { ContactDetailSheet } from "@/components/contacts/ContactDetailSheet";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -505,8 +505,8 @@ export function FormateurDashboardEnhanced({ formateurId, formateurNom }: Format
         </TabsContent>
       </Tabs>
 
-      {/* Contact Detail Sheet */}
-      <ContactDetailSheet
+      {/* Fiche apprenant V2 */}
+      <ApprenantDetailSheet
         contactId={selectedContactId}
         open={!!selectedContactId}
         onOpenChange={(open) => {
