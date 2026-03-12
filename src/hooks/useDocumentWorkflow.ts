@@ -110,11 +110,19 @@ export function useDocumentWorkflow({
         }
       }
 
+      // 7. Fetch published templates to resolve templateId for placeholders
+      const publishedQuery = (supabase as any)
+        .from("template_studio_templates")
+        .select("id, name, type")
+        .eq("status", "published")
+        .eq("is_active", true);
+
       // Execute parallel queries
-      const [genResult, envoisResult, sigResult] = await Promise.all([
+      const [genResult, envoisResult, sigResult, publishedResult] = await Promise.all([
         genQuery,
         envoisQuery,
         sigQuery,
+        publishedQuery,
       ]);
 
       const generatedDocs = (genResult.data ?? []) as RawGeneratedDocV2[];
