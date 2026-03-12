@@ -115,8 +115,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         </Card>
       </div>
 
-      {/* Add payment */}
-      <div className="flex justify-end">
+      {/* Add payment / facture libre */}
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => setShowFactureLibre(true)}>
+          <FileText className="h-3.5 w-3.5 mr-1" /> Facture forfait
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un versement
         </Button>
