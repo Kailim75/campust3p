@@ -77,6 +77,7 @@ export function buildLearnerAuditCSV(
 ): string {
   // Reuse the session-level function with a single synthetic row
   const syntheticRow: SessionDocumentMatrixRow = {
+    inscriptionId: "",
     contactId: "",
     contactName,
     contactEmail,
