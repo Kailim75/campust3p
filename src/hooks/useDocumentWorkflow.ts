@@ -129,6 +129,14 @@ export function useDocumentWorkflow({
       const envois = (envoisResult.data ?? []) as RawDocumentEnvoi[];
       const signatures = (sigResult.data ?? []) as RawSignatureRequest[];
 
+      // Build published template lookup map (type → templateId)
+      const publishedTemplateMap = new Map<string, string>();
+      for (const t of (publishedResult.data ?? []) as Array<{ id: string; name: string; type: string }>) {
+        if (!publishedTemplateMap.has(t.type)) {
+          publishedTemplateMap.set(t.type, t.id);
+        }
+      }
+
       // Map generated docs to workflow items
       const items: DocumentWorkflowItem[] = generatedDocs.map(doc =>
         mapGeneratedDocV2(doc, envois, signatures, contactData, sessionData)
@@ -147,6 +155,15 @@ export function useDocumentWorkflow({
           track,
           contractContext
         );
+        // Resolve templateId from published templates for placeholders
+        for (const ph of placeholders) {
+          if (!ph.templateId) {
+            const pubId = publishedTemplateMap.get(ph.documentType);
+            if (pubId) {
+              ph.templateId = pubId;
+            }
+          }
+        }
         items.push(...placeholders);
       }
 
