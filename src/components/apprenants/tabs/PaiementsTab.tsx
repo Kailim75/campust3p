@@ -55,6 +55,19 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     },
   });
 
+  const { data: contact } = useQuery({
+    queryKey: ["contact-info", contactId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("nom, prenom, email, telephone, rue, code_postal, ville")
+        .eq("id", contactId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: paiements, isLoading: paiementsLoading } = useQuery({
     queryKey: ["apprenant-paiements", contactId],
     queryFn: async () => {
