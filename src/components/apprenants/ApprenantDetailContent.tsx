@@ -346,10 +346,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
                 <SheetSizeSelector size={sheetSize} onSizeChange={onSheetSizeChange} />
               )}
             </div>
-          <div className="flex-1 min-w-0 space-y-1">
-            <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
-              {contact.prenom} {contact.nom}
-            </h2>
             <div className="flex items-center gap-2 flex-wrap">
               {/* Statut apprenant officiel */}
               <StatutApprenantDropdown
