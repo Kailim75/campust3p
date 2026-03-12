@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Euro } from "lucide-react";
+import { Plus, Trash2, Euro, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 
 interface PaiementsTabProps {
   contactId: string;
@@ -22,6 +23,7 @@ interface PaiementsTabProps {
 export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "" });
 
   // Get factures + paiements for this contact
@@ -113,8 +115,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         </Card>
       </div>
 
-      {/* Add payment */}
-      <div className="flex justify-end">
+      {/* Add payment / facture libre */}
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => setShowFactureLibre(true)}>
+          <FileText className="h-3.5 w-3.5 mr-1" /> Facture forfait
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un versement
         </Button>
@@ -187,6 +192,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
           </TableBody>
         </Table>
       </Card>
+      <FactureLibreDialog
+        open={showFactureLibre}
+        onOpenChange={setShowFactureLibre}
+        defaultContactId={contactId}
+      />
     </div>
   );
 }

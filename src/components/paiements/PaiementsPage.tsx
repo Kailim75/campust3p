@@ -42,6 +42,7 @@ import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { ExportFECDialog } from "./ExportFECDialog";
+import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 // XLSX loaded dynamically for performance
 
@@ -68,6 +69,7 @@ export function PaiementsPage() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null);
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
   const [showFECDialog, setShowFECDialog] = useState(false);
+  const [showFactureLibre, setShowFactureLibre] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
 
@@ -239,6 +241,12 @@ export function PaiementsPage() {
           setEditingFacture(null);
           setShowFactureForm(true);
         }}
+        extraActions={
+          <Button variant="outline" size="sm" onClick={() => setShowFactureLibre(true)}>
+            <FileText className="h-4 w-4 mr-1.5" />
+            Facture forfait
+          </Button>
+        }
       />
 
       <main className="p-6 animate-fade-in">
@@ -696,6 +704,11 @@ export function PaiementsPage() {
       <ExportFECDialog
         open={showFECDialog}
         onOpenChange={setShowFECDialog}
+      />
+
+      <FactureLibreDialog
+        open={showFactureLibre}
+        onOpenChange={setShowFactureLibre}
       />
     </div>
   );
