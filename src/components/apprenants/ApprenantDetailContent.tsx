@@ -54,6 +54,7 @@ import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
+import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
@@ -102,6 +103,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(contact?.id);
 
   // Determine track: from active enrollment, fallback to contact.formation
   const contactTrack: FormationTrack = activeEnrollment?.track
@@ -383,6 +385,18 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              )}
+              {/* Badge 4: Envoi counter */}
+              {envoiEvents.length > 0 && (
+                <Badge variant="outline" className="text-[10px] cursor-default">
+                  <Send className="h-3 w-3 mr-1" />
+                  {envoiEvents.length} envoi{envoiEvents.length > 1 ? "s" : ""}
+                  {envoiEvents.some(e => e.statut === "echec") && (
+                    <span className="ml-1 text-destructive">
+                      · {envoiEvents.filter(e => e.statut === "echec").length} échec{envoiEvents.filter(e => e.statut === "echec").length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </Badge>
               )}
             </div>
           </div>

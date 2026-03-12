@@ -19,6 +19,9 @@ export { SessionDocumentMatrixCell } from "./SessionDocumentMatrixCell";
 export { SessionDocumentMatrixView } from "./SessionDocumentMatrixView";
 export { SessionDocumentDetailPanel } from "./SessionDocumentDetailPanel";
 
+// Envoi status
+export { EnvoiStatusBadge, getEnvoiStatusConfig } from "./EnvoiStatusBadge";
+
 // Phase 4 components
 export { BulkGenerationDialog } from "./BulkGenerationDialog";
 

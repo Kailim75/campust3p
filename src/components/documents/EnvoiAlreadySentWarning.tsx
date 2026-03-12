@@ -1,12 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
 // EnvoiAlreadySentWarning — Non-blocking anti-doublon alert
 // Shows when a document was already sent to this contact in this session
+// Uses EnvoiStatusBadge for consistent status display
 // ═══════════════════════════════════════════════════════════════
 
-import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { EnvoiStatusBadge } from "./EnvoiStatusBadge";
 import type { EnvoiSummary } from "@/hooks/useDocumentEnvoiHistory";
 
 interface EnvoiAlreadySentWarningProps {
@@ -50,19 +51,16 @@ export function EnvoiAlreadySentWarning({
               const summary = summaries[type]!;
               return (
                 <div key={type} className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] border-warning/30 text-warning"
-                  >
+                  <span className="text-[10px] font-medium text-warning">
                     {DOC_LABELS[type] ?? type}
-                  </Badge>
+                  </span>
+                  {summary.lastStatus && (
+                    <EnvoiStatusBadge statut={summary.lastStatus} size="sm" />
+                  )}
                   <span className="text-[10px] text-muted-foreground">
                     {summary.sendCount}x envoyé
                     {summary.lastSentAt && (
                       <> · dernier : {format(parseISO(summary.lastSentAt), "dd/MM/yyyy à HH:mm", { locale: fr })}</>
-                    )}
-                    {summary.lastStatus === "echec" && (
-                      <span className="text-destructive font-medium"> · dernier en échec</span>
                     )}
                   </span>
                 </div>

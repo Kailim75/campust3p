@@ -1,48 +1,24 @@
 // ═══════════════════════════════════════════════════════════════
-// DocumentEnvoiHistoryPanel — Chronological history of document sends
-// Used in Contact Detail Sheet (Suivi tab) and optionally in Session view
+// DocumentEnvoiHistoryPanel — Vertical timeline of document sends
+// Uses EnvoiStatusBadge as single source of truth for statuses
 // ═══════════════════════════════════════════════════════════════
 
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Mail,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Send,
-  FileText,
-  Inbox,
-} from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import {
   useDocumentEnvoiHistory,
   type EnvoiEvent,
 } from "@/hooks/useDocumentEnvoiHistory";
+import { EnvoiStatusBadge, getEnvoiStatusConfig } from "./EnvoiStatusBadge";
 
 interface DocumentEnvoiHistoryPanelProps {
   contactId?: string | null;
   sessionId?: string | null;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
-  "envoyé": { label: "Envoyé", icon: CheckCircle2, className: "bg-success/10 text-success border-success/20" },
-  "envoye": { label: "Envoyé", icon: CheckCircle2, className: "bg-success/10 text-success border-success/20" },
-  "livré": { label: "Livré", icon: Inbox, className: "bg-info/10 text-info border-info/20" },
-  "livre": { label: "Livré", icon: Inbox, className: "bg-info/10 text-info border-info/20" },
-  "echec": { label: "Échec", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
-  "généré": { label: "Généré", icon: FileText, className: "bg-muted text-muted-foreground border-muted" },
-  "genere": { label: "Généré", icon: FileText, className: "bg-muted text-muted-foreground border-muted" },
-};
-
-function getStatusConfig(statut: string) {
-  return STATUS_CONFIG[statut.toLowerCase()] ?? {
-    label: statut,
-    icon: Clock,
-    className: "bg-muted text-muted-foreground border-muted",
-  };
 }
 
 export function DocumentEnvoiHistoryPanel({
@@ -96,36 +72,45 @@ export function DocumentEnvoiHistoryPanel({
         </Badge>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {groupedByDate.map(([dateKey, dayEvents]) => (
           <div key={dateKey}>
-            <p className="text-xs font-medium text-muted-foreground mb-2">
+            <p className="text-xs font-medium text-muted-foreground mb-3">
               {format(parseISO(dateKey), "EEEE d MMMM yyyy", { locale: fr })}
             </p>
-            <div className="space-y-2">
-              {dayEvents.map((event) => {
-                const statusConf = getStatusConfig(event.statut);
-                const StatusIcon = statusConf.icon;
+
+            {/* Vertical timeline */}
+            <div className="relative pl-6 space-y-0">
+              {/* Timeline line */}
+              <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
+
+              {dayEvents.map((event, idx) => {
+                const config = getEnvoiStatusConfig(event.statut);
+                const StatusIcon = config.icon;
+                const isLast = idx === dayEvents.length - 1;
 
                 return (
-                  <div
-                    key={event.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border bg-card"
-                  >
-                    <div className="mt-0.5">
-                      <StatusIcon className="h-4 w-4 text-muted-foreground" />
+                  <div key={event.id} className={cn("relative flex gap-3", !isLast && "pb-4")}>
+                    {/* Timeline dot */}
+                    <div className="absolute -left-6 top-1 flex items-center justify-center">
+                      <div className={cn(
+                        "h-[18px] w-[18px] rounded-full border-2 bg-background flex items-center justify-center",
+                        event.statut === "echec" ? "border-destructive" : "border-primary"
+                      )}>
+                        <StatusIcon className={cn(
+                          "h-3 w-3",
+                          event.statut === "echec" ? "text-destructive" : "text-primary"
+                        )} />
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 space-y-1 pt-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium truncate">
                           {event.document_name}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 ${statusConf.className}`}
-                        >
-                          {statusConf.label}
-                        </Badge>
+                        <EnvoiStatusBadge statut={event.statut} size="sm" />
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>
