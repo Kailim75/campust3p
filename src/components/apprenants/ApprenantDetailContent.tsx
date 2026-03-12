@@ -10,6 +10,7 @@ import {
   Phone, Mail, FolderOpen, GraduationCap,
   MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
+  Edit, Trash2, Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
@@ -26,6 +27,22 @@ import { WorkflowStepper, type StepStatus } from "@/components/workflow/Workflow
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
 import { PostAssignmentDialog } from "@/components/workflow/PostAssignmentDialog";
+import { GenerateDocumentDialog } from "@/components/contacts/GenerateDocumentDialog";
+import { SendEnqueteDialog } from "@/components/contacts/SendEnqueteDialog";
+import { CallLogDialog } from "@/components/contacts/CallLogDialog";
+import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useDeleteContact } from "@/hooks/useContacts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +58,9 @@ import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
+import type { SheetSize } from "@/hooks/useSheetSize";
+
+// ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
 const FORMATION_COLORS: Record<string, string> = {
   TAXI: "bg-primary",
@@ -65,14 +85,22 @@ const STATUT_BADGES: Record<string, { label: string; className: string }> = {
 interface ApprenantDetailContentProps {
   contact: Contact | null;
   isLoading: boolean;
+  onEdit?: (contact: Contact) => void;
+  onClose?: () => void;
+  sheetSize?: SheetSize;
+  onSheetSizeChange?: (size: SheetSize) => void;
 }
 
-export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailContentProps) {
+export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sheetSize, onSheetSizeChange }: ApprenantDetailContentProps) {
   const [activeTab, setActiveTabRaw] = useState("resume");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [postAssignment, setPostAssignment] = useState<{ sessionId: string; sessionName: string } | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
+  const [callLogOpen, setCallLogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
+  const deleteContact = useDeleteContact();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
 
   // Determine track: from active enrollment, fallback to contact.formation
@@ -310,9 +338,14 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1">
-            <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
-              {contact.prenom} {contact.nom}
-            </h2>
+            <div className="flex items-start justify-between">
+              <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
+                {contact.prenom} {contact.nom}
+              </h2>
+              {sheetSize && onSheetSizeChange && (
+                <SheetSizeSelector size={sheetSize} onSizeChange={onSheetSizeChange} />
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               {/* Statut apprenant officiel */}
               <StatutApprenantDropdown
@@ -430,10 +463,13 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         {/* Quick CTA actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {contact.telephone && (
-            <Button size="sm" variant="outline" className="text-xs" asChild>
-              <a href={`tel:${contact.telephone}`}>
-                <Phone className="h-3 w-3 mr-1" /> Appeler
-              </a>
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={() => {
+                window.open(`tel:${contact.telephone}`, "_blank");
+                setCallLogOpen(true);
+              }}
+            >
+              <Phone className="h-3 w-3 mr-1" /> Appeler
             </Button>
           )}
           {contact.email && (
@@ -496,6 +532,20 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
               )}
             </Tooltip>
           </TooltipProvider>
+
+          {/* Générer document */}
+          <Button size="sm" variant="default" className="text-xs"
+            onClick={() => setGenerateDialogOpen(true)}
+          >
+            <FileText className="h-3 w-3 mr-1" /> Générer doc
+          </Button>
+
+          {/* Enquête satisfaction */}
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setEnqueteDialogOpen(true)}
+          >
+            <Star className="h-3 w-3 mr-1" /> Enquête
+          </Button>
         </div>
       </div>
 
@@ -567,6 +617,78 @@ export function ApprenantDetailContent({ contact, isLoading }: ApprenantDetailCo
         onReturnDashboard={() => setPostAssignment(null)}
       />
       <EmailComposerModal {...composerProps} />
+
+      {/* ─── Legacy-parity dialogs ─── */}
+      <GenerateDocumentDialog
+        open={generateDialogOpen}
+        onOpenChange={setGenerateDialogOpen}
+        contact={contact}
+      />
+
+      <SendEnqueteDialog
+        open={enqueteDialogOpen}
+        onOpenChange={setEnqueteDialogOpen}
+        contact={{
+          id: contact.id,
+          nom: contact.nom,
+          prenom: contact.prenom,
+          email: contact.email,
+        }}
+      />
+
+      {contact.telephone && (
+        <CallLogDialog
+          open={callLogOpen}
+          onOpenChange={setCallLogOpen}
+          contactId={contact.id}
+          contactName={contactName}
+          phoneNumber={contact.telephone}
+        />
+      )}
+
+      {/* ─── FOOTER: Modifier / Archiver ─── */}
+      {(onEdit || onClose) && (
+        <div className="flex gap-2.5 p-3 sm:p-5 border-t border-border/60 bg-card">
+          {onEdit && (
+            <Button className="flex-1 h-10 font-semibold" onClick={() => onEdit(contact)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="icon" className="h-10 w-10">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Archiver cet apprenant ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  L'apprenant sera archivé et n'apparaîtra plus dans la liste. Cette action peut
+                  être annulée ultérieurement.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={async () => {
+                  try {
+                    await deleteContact.mutateAsync(contact.id);
+                    toast.success("Contact archivé", {
+                      description: `${contact.prenom} ${contact.nom} a été archivé avec succès.`,
+                    });
+                    onClose?.();
+                  } catch {
+                    toast.error("Erreur", {
+                      description: "Impossible d'archiver le contact. Veuillez réessayer.",
+                    });
+                  }
+                }}>Archiver</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }
