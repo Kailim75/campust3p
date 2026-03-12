@@ -42,6 +42,7 @@ import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { ExportFECDialog } from "./ExportFECDialog";
+import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 // XLSX loaded dynamically for performance
 
