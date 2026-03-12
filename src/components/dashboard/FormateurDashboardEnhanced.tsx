@@ -505,8 +505,8 @@ export function FormateurDashboardEnhanced({ formateurId, formateurNom }: Format
         </TabsContent>
       </Tabs>
 
-      {/* Contact Detail Sheet */}
-      <ContactDetailSheet
+      {/* Fiche apprenant V2 */}
+      <ApprenantDetailSheet
         contactId={selectedContactId}
         open={!!selectedContactId}
         onOpenChange={(open) => {
