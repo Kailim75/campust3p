@@ -103,6 +103,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
+  const { data: envoiEvents = [] } = useDocumentEnvoiHistory(contact?.id);
 
   // Determine track: from active enrollment, fallback to contact.formation
   const contactTrack: FormationTrack = activeEnrollment?.track
