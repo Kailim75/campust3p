@@ -537,14 +537,17 @@ export function generateFacturePDF(
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, pageWidth, headerH, "F");
 
-  // Logo (right)
-  addLogoImage(doc, company, pageWidth - marginR - 24, 5, 22, 12);
+  // Logo (left side of header)
+  const logoW = 20;
+  const logoH = 14;
+  const hasLogo = addLogoImage(doc, company, marginL + 1, (headerH - logoH) / 2, logoW, logoH);
+  const textStartX = hasLogo ? marginL + logoW + 4 : marginL;
 
-  // Enseigne
+  // Enseigne (next to logo)
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text(company.name, marginL, 13);
+  doc.text(company.name, textStartX, 13);
 
   // Sous-titre juridique court
   const legalSub = [company.forme_juridique, company.nom_legal && company.nom_legal !== company.name ? company.nom_legal : null]
@@ -553,7 +556,7 @@ export function generateFacturePDF(
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-    doc.text(legalSub, marginL, 19);
+    doc.text(legalSub, textStartX, 19);
   }
 
   // Titre FACTURE + numéro (right aligned in header)
