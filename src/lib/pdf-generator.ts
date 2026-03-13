@@ -516,6 +516,9 @@ export async function preloadCompanyImages(company: CompanyInfo): Promise<void> 
 }
 
 // ==================== FACTURE PDF ====================
+// Refonte complète — Conformité organisme de formation réglementé
+// Structure : Header compact → Double colonne émetteur/client → Métadonnées →
+//             Tableau prestation → Totaux → Mentions de règlement → Footer juridique
 export function generateFacturePDF(
   facture: FactureInfo,
   contact: ContactInfo,
@@ -524,39 +527,188 @@ export function generateFacturePDF(
 ): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  
-  const headerEndY = addHeader(doc, company);
-  
-  // Title avec style
-  let yPos = addDocumentTitle(doc, "FACTURE", headerEndY, undefined, facture.numero_facture);
-  
-  // Contact info avec box
-  yPos += 5;
-  addInfoBox(doc, yPos, 35);
-  yPos = addContactBlock(doc, contact, 30, yPos + 8, "Facturer à");
-  
-  // Dates on the right
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-  doc.text(`Date d'émission: ${facture.date_emission ? format(new Date(facture.date_emission), "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy")}`, pageWidth - 25, 80, { align: "right" });
-  if (facture.date_echeance) {
-    doc.text(`Date d'échéance: ${format(new Date(facture.date_echeance), "dd/MM/yyyy")}`, pageWidth - 25, 86, { align: "right" });
-  }
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  
-  // Table
-  yPos = Math.max(yPos + 15, 110);
-  
-  // Table header avec Forest Green
+  const marginL = 20;
+  const marginR = 20;
+  const contentW = pageWidth - marginL - marginR;
+
+  // ── A. HEADER COMPACT ──────────────────────────────────────────
+  // Bandeau réduit : logo + enseigne + titre FACTURE + numéro
+  const headerH = 28;
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(20, yPos, pageWidth - 40, 14, 2, 2, "F");
-  doc.setFontSize(10);
+  doc.rect(0, 0, pageWidth, headerH, "F");
+
+  // Logo (right)
+  addLogoImage(doc, company, pageWidth - marginR - 24, 5, 22, 12);
+
+  // Enseigne
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
-  doc.text("Description", 25, yPos + 9);
-  doc.text("Montant HT", pageWidth - 25, yPos + 9, { align: "right" });
-  
-  // Mapping des intitulés officiels pour les factures
+  doc.text(company.name, marginL, 13);
+
+  // Sous-titre juridique court
+  const legalSub = [company.forme_juridique, company.nom_legal && company.nom_legal !== company.name ? company.nom_legal : null]
+    .filter(Boolean).join(" — ");
+  if (legalSub) {
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+    doc.text(legalSub, marginL, 19);
+  }
+
+  // Titre FACTURE + numéro (right aligned in header)
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.text("FACTURE", pageWidth - marginR, 14, { align: "right" });
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.text(`N° ${facture.numero_facture}`, pageWidth - marginR, 21, { align: "right" });
+
+  // Gold accent line
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(0, headerH, pageWidth, 1.5, "F");
+
+  let yPos = headerH + 8;
+
+  // ── B. DOUBLE COLONNE : ÉMETTEUR / CLIENT ──────────────────────
+  const colW = contentW / 2 - 5;
+  const colLeftX = marginL;
+  const colRightX = marginL + colW + 10;
+  const blockStartY = yPos;
+
+  // --- Émetteur (gauche) ---
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("ÉMETTEUR", colLeftX, yPos);
+  yPos += 5;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  doc.text(company.name, colLeftX, yPos);
+  yPos += 4.5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+  // Address
+  doc.text(company.address, colLeftX, yPos);
+  yPos += 4;
+
+  // Phone + email
+  doc.text(`Tél : ${company.phone}`, colLeftX, yPos);
+  yPos += 4;
+  doc.text(company.email, colLeftX, yPos);
+  yPos += 5;
+
+  // Legal identifiers
+  doc.setFontSize(7.5);
+  if (company.siret && !company.siret.includes("[")) {
+    // Extract SIREN from SIRET (first 9 digits)
+    const siren = company.siret.substring(0, 9);
+    doc.text(`SIREN : ${siren}  |  SIRET : ${company.siret}`, colLeftX, yPos);
+    yPos += 3.5;
+  }
+
+  // NDA — formulation réglementaire complète
+  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") {
+    const ndaLine = company.region_declaration
+      ? `Déclaration d'activité enregistrée sous le n° ${company.nda} auprès du préfet de région de ${company.region_declaration}`
+      : `N° d'activité : ${company.nda}`;
+    const wrappedNda = doc.splitTextToSize(ndaLine, colW);
+    wrappedNda.forEach((line: string) => {
+      doc.text(line, colLeftX, yPos);
+      yPos += 3.5;
+    });
+  }
+
+  const emitterEndY = yPos;
+
+  // --- Client (droite) ---
+  yPos = blockStartY;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text("FACTURÉ À", colRightX, yPos);
+  yPos += 5;
+
+  // Client box background
+  const clientBoxH = 28;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(colRightX - 3, yPos - 4, colW + 6, clientBoxH, 2, 2, "F");
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(colRightX - 3, yPos - 4, 2, clientBoxH, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  const clientName = `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
+  doc.text(clientName, colRightX + 2, yPos);
+  yPos += 4.5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+  if (contact.rue) {
+    doc.text(contact.rue, colRightX + 2, yPos);
+    yPos += 4;
+  }
+  if (contact.code_postal || contact.ville) {
+    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), colRightX + 2, yPos);
+    yPos += 4;
+  }
+  if (contact.email) {
+    doc.text(contact.email, colRightX + 2, yPos);
+    yPos += 4;
+  }
+  if (contact.telephone) {
+    doc.text(contact.telephone, colRightX + 2, yPos);
+  }
+
+  yPos = Math.max(emitterEndY, blockStartY + clientBoxH + 5) + 4;
+
+  // ── C. MÉTADONNÉES FACTURE ─────────────────────────────────────
+  doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+  const metaBoxY = yPos;
+  doc.roundedRect(marginL, metaBoxY, contentW, 14, 2, 2, "F");
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+
+  const dateEmission = facture.date_emission
+    ? format(new Date(facture.date_emission), "dd/MM/yyyy")
+    : format(new Date(), "dd/MM/yyyy");
+  const dateEcheance = facture.date_echeance
+    ? format(new Date(facture.date_echeance), "dd/MM/yyyy")
+    : null;
+
+  const metaItems: string[] = [
+    `Date d'émission : ${dateEmission}`,
+    dateEcheance ? `Échéance : ${dateEcheance}` : "Payable comptant",
+    `Financement : ${getFinancementLabel(facture.type_financement)}`,
+  ];
+
+  if (session?.numero_session) {
+    metaItems.push(`Session : ${session.numero_session}`);
+  }
+
+  // Distribute evenly
+  const metaY = metaBoxY + 9;
+  const metaSpacing = contentW / metaItems.length;
+  metaItems.forEach((item, i) => {
+    doc.text(item, marginL + 5 + i * metaSpacing, metaY);
+  });
+
+  yPos = metaBoxY + 20;
+
+  // ── D. TABLEAU DE PRESTATION ───────────────────────────────────
+  // Mapping des intitulés officiels
   const INTITULE_FACTURE_MAP: Record<string, string> = {
     "VTC": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
     "vtc": "Habilitation pour l'accès à la profession de conducteur de voiture de transport avec chauffeur (VTC)",
@@ -567,132 +719,204 @@ export function generateFacturePDF(
     "vmdtr": "Habilitation pour l'accès à la profession de conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
   };
 
+  // Table header
+  const tableX = marginL;
+  const descColW = contentW * 0.42;
+  const periodColW = contentW * 0.22;
+  const dureeColW = contentW * 0.14;
+  const montantColW = contentW * 0.22;
+
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(tableX, yPos, contentW, 10, 1.5, 1.5, "F");
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.text("Désignation", tableX + 4, yPos + 7);
+  doc.text("Période", tableX + descColW + 4, yPos + 7);
+  doc.text("Durée", tableX + descColW + periodColW + 4, yPos + 7);
+  doc.text("Montant HT", tableX + descColW + periodColW + dureeColW + montantColW - 4, yPos + 7, { align: "right" });
+
+  yPos += 10;
+
+  // Table row
   let description = "Formation professionnelle";
+  let periode = "—";
+  let duree = "—";
+
   if (session) {
     const intituleOfficiel = INTITULE_FACTURE_MAP[session.formation_type || ""];
-    if (intituleOfficiel) {
-      description = intituleOfficiel;
-    } else {
-      description = `Formation: ${session.nom}`;
-    }
-    
-    // Ajouter dates de formation
+    description = intituleOfficiel || `Formation : ${session.nom}`;
+
     if (session.date_debut && session.date_fin) {
-      const dateDebut = format(new Date(session.date_debut), "dd/MM/yyyy");
-      const dateFin = format(new Date(session.date_fin), "dd/MM/yyyy");
-      if (dateDebut === dateFin) {
-        description += `\nDate: ${dateDebut}`;
-      } else {
-        description += `\nDu ${dateDebut} au ${dateFin}`;
-      }
+      const dDebut = format(new Date(session.date_debut), "dd/MM/yyyy");
+      const dFin = format(new Date(session.date_fin), "dd/MM/yyyy");
+      periode = dDebut === dFin ? dDebut : `${dDebut} au ${dFin}`;
     }
-    
-    // Ajouter horaires de formation (skip 00:00 values)
-    const isValid = (t?: string) => !!t && t !== "00:00:00" && t !== "00:00";
-    if (isValid(session.heure_debut_matin) && isValid(session.heure_fin_matin) && isValid(session.heure_debut_aprem) && isValid(session.heure_fin_aprem)) {
-      description += `\nHoraires: ${session.heure_debut_matin} - ${session.heure_fin_matin} / ${session.heure_debut_aprem} - ${session.heure_fin_aprem}`;
-    } else if (isValid(session.heure_debut) && isValid(session.heure_fin)) {
-      description += `\nHoraires: ${session.heure_debut} - ${session.heure_fin}`;
-    }
-    
-    // Ajouter durée si disponible
+
     if (session.duree_heures) {
-      description += `\nDurée: ${session.duree_heures} heures`;
+      duree = `${session.duree_heures}h`;
     }
   }
 
-  // Wrap long text and calculate dynamic height
-  doc.setFontSize(10);
+  // Wrap description
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  const maxTextWidth = pageWidth - 40 - 50; // leave space for amount column
-  const wrappedLines = doc.splitTextToSize(description, maxTextWidth);
-  const lineHeight = 5;
-  const contentHeight = Math.max(20, wrappedLines.length * lineHeight + 10);
+  const wrappedDesc = doc.splitTextToSize(description, descColW - 8);
+  const rowH = Math.max(14, wrappedDesc.length * 4.5 + 8);
 
-  // Table content avec fond cream
-  yPos += 14;
+  // Row background
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.rect(20, yPos, pageWidth - 40, contentHeight, "F");
-  
-  yPos += 8;
+  doc.rect(tableX, yPos, contentW, rowH, "F");
+
+  // Cell borders (subtle)
+  doc.setDrawColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
+  doc.setLineWidth(0.3);
+  doc.line(tableX + descColW, yPos, tableX + descColW, yPos + rowH);
+  doc.line(tableX + descColW + periodColW, yPos, tableX + descColW + periodColW, yPos + rowH);
+  doc.line(tableX + descColW + periodColW + dureeColW, yPos, tableX + descColW + periodColW + dureeColW, yPos + rowH);
+
+  // Cell content
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  
-  wrappedLines.forEach((line: string, i: number) => {
-    doc.text(line, 25, yPos + (i * lineHeight));
+  const cellY = yPos + 6;
+  wrappedDesc.forEach((line: string, i: number) => {
+    doc.text(line, tableX + 4, cellY + i * 4.5);
   });
-  
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos, { align: "right" });
-  
-  // Financement info
-  yPos += wrappedLines.length * lineHeight + 12;
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+
   doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Mode de financement: ${getFinancementLabel(facture.type_financement)}`, 25, yPos);
-  
-  // Totals box
-  yPos += 15;
-  doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
-  doc.roundedRect(pageWidth - 90, yPos, 70, 45, 3, 3, "F");
-  
-  yPos += 10;
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text("Total HT:", pageWidth - 85, yPos);
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos, { align: "right" });
-  
-  yPos += 8;
-  doc.text("TVA (0%):", pageWidth - 85, yPos);
-  doc.text("0,00 €", pageWidth - 25, yPos, { align: "right" });
-  
-  yPos += 10;
-  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect(pageWidth - 90, yPos - 5, 70, 12, 2, 2, "F");
+  doc.text(periode, tableX + descColW + 4, cellY);
+  doc.text(duree, tableX + descColW + periodColW + 4, cellY);
+
+  // Montant HT (bold, forest green)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text("Total TTC:", pageWidth - 85, yPos + 3);
-  doc.text(`${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 25, yPos + 3, { align: "right" });
-  
-  // Payment status
-  yPos += 20;
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  const montantStr = Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+  doc.text(`${montantStr} €`, tableX + contentW - 4, cellY, { align: "right" });
+
+  yPos += rowH + 2;
+
+  // ── E. BLOC TOTAUX ─────────────────────────────────────────────
+  const totalsW = 78;
+  const totalsX = tableX + contentW - totalsW;
+  const montantTotal = Number(facture.montant_total) || 0;
+  const totalPaye = Number(facture.total_paye) || 0;
+  const resteAPayer = Math.max(0, montantTotal - totalPaye);
+
+  // Totals background
+  doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+  doc.roundedRect(totalsX, yPos, totalsW, 52, 2, 2, "F");
+
+  let tY = yPos + 8;
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  
-  const montantRestant = Number(facture.montant_total) - facture.total_paye;
-  
-  if (facture.total_paye > 0) {
-    doc.setTextColor(COLORS.success.r, COLORS.success.g, COLORS.success.b);
-    doc.text(`✓ Montant déjà payé: ${facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 85, yPos);
-    yPos += 6;
-  }
-  
-  if (montantRestant > 0) {
-    doc.setTextColor(COLORS.error.r, COLORS.error.g, COLORS.error.b);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Reste à payer: ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, pageWidth - 85, yPos);
-  }
-  
-  // Comments
-  if (facture.commentaires) {
-    yPos += 25;
-    yPos = addSectionTitle(doc, "Observations", yPos);
-    doc.setFontSize(9);
-    const splitComments = doc.splitTextToSize(facture.commentaires, pageWidth - 50);
-    doc.text(splitComments, 27, yPos);
-  }
-  
-  // Legal mentions
-  yPos = 250;
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+
+  // Total HT
+  doc.text("Total HT :", totalsX + 4, tY);
+  doc.text(`${montantStr} €`, totalsX + totalsW - 4, tY, { align: "right" });
+  tY += 7;
+
+  // TVA
+  doc.text("TVA :", totalsX + 4, tY);
   doc.setFontSize(7);
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("TVA non applicable - Article 261.4.4°a du CGI", 20, yPos);
-  doc.text("En cas de retard de paiement, une pénalité de 3 fois le taux d'intérêt légal sera appliquée.", 20, yPos + 4);
-  
+  doc.text("Exonération art. 261.4.4°a CGI", totalsX + 18, tY);
+  doc.setFontSize(8.5);
+  doc.text("0,00 €", totalsX + totalsW - 4, tY, { align: "right" });
+  tY += 8;
+
+  // Total TTC — emphasized
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect(totalsX + 2, tY - 4, totalsW - 4, 10, 1.5, 1.5, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text("Total TTC :", totalsX + 6, tY + 3);
+  doc.text(`${montantStr} €`, totalsX + totalsW - 6, tY + 3, { align: "right" });
+  tY += 14;
+
+  // Montant réglé
+  if (totalPaye > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.success.r, COLORS.success.g, COLORS.success.b);
+    doc.text("Montant réglé :", totalsX + 4, tY);
+    doc.text(`${totalPaye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, totalsX + totalsW - 4, tY, { align: "right" });
+    tY += 6;
+  }
+
+  // Reste à payer
+  if (resteAPayer > 0) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(COLORS.error.r, COLORS.error.g, COLORS.error.b);
+    doc.text("Reste à payer :", totalsX + 4, tY);
+    doc.text(`${resteAPayer.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, totalsX + totalsW - 4, tY, { align: "right" });
+  } else if (totalPaye >= montantTotal && montantTotal > 0) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(COLORS.success.r, COLORS.success.g, COLORS.success.b);
+    doc.text("SOLDÉE", totalsX + totalsW / 2, tY, { align: "center" });
+  }
+
+  yPos += 58;
+
+  // ── F. OBSERVATIONS ────────────────────────────────────────────
+  if (facture.commentaires) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("Observations", marginL, yPos);
+    yPos += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    const splitComments = doc.splitTextToSize(facture.commentaires, contentW);
+    doc.text(splitComments, marginL, yPos);
+    yPos += splitComments.length * 4 + 5;
+  }
+
+  // ── G. FOOTER JURIDIQUE & MENTIONS DE RÈGLEMENT ────────────────
+  // Fixed position near bottom, stable for PDF export
+  const footerStartY = 235;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+  // Separator
+  doc.setFillColor(COLORS.creamDark.r, COLORS.creamDark.g, COLORS.creamDark.b);
+  doc.rect(marginL, footerStartY, contentW, 0.5, "F");
+
+  let fY = footerStartY + 5;
+
+  // TVA mention
+  doc.text("TVA non applicable — Exonération de TVA en application de l'article 261.4.4°a du Code Général des Impôts", marginL, fY);
+  fY += 4;
+
+  // Conditions de règlement
+  doc.text(`Date d'émission : ${dateEmission}`, marginL, fY);
+  fY += 3.5;
+  doc.text(dateEcheance ? `Date d'échéance : ${dateEcheance}` : "Règlement : payable comptant", marginL, fY);
+  fY += 3.5;
+  doc.text("Escompte pour paiement anticipé : néant", marginL, fY);
+  fY += 3.5;
+  doc.text("En cas de retard de paiement : pénalité de 3 fois le taux d'intérêt légal en vigueur (art. L441-10 Code de commerce)", marginL, fY);
+  fY += 3.5;
+  doc.text("Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D441-5 Code de commerce)", marginL, fY);
+  fY += 5;
+
+  // NDA mention (footer repeat for conformity)
+  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") {
+    doc.setFontSize(6.5);
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    const ndaFooter = company.region_declaration
+      ? `Déclaration d'activité enregistrée sous le n° ${company.nda} auprès du préfet de région de ${company.region_declaration}. Cette déclaration ne vaut pas agrément de l'État.`
+      : `N° d'activité : ${company.nda}`;
+    const ndaWrapped = doc.splitTextToSize(ndaFooter, contentW);
+    doc.text(ndaWrapped, marginL, fY);
+    fY += ndaWrapped.length * 3;
+  }
+
   addFooter(doc);
-  
+
   return doc;
 }
 
