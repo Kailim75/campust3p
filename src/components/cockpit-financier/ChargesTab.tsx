@@ -14,7 +14,9 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { formatEuro, CHARGE_CATEGORIES, CHARGE_CATEGORY_ICONS } from "@/lib/formatFinancial";
 import type { PeriodRange } from "@/hooks/useFinancialData";
-import { useCharges, useRecurringCharges, useCreateCharge, useCancelCharge, useBudgetPrevisionnel } from "@/hooks/useFinancialData";
+import { useCharges, useRecurringCharges, useCreateCharge, useUpdateCharge, useCancelCharge, useBudgetPrevisionnel } from "@/hooks/useFinancialData";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   range: PeriodRange;
