@@ -248,6 +248,31 @@ export function ChargesTab({ range }: Props) {
     setCancelId(null);
   };
 
+  const handleEdit = async () => {
+    if (!editCharge) return;
+    const montant = parseFloat(editCharge.montant);
+    if (!editCharge.categorie || !editCharge.libelle || !montant || montant <= 0) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+    try {
+      await updateCharge.mutateAsync({
+        id: editCharge.id,
+        categorie: editCharge.categorie,
+        type_charge: editCharge.type_charge,
+        libelle: editCharge.libelle,
+        montant,
+        date_charge: editCharge.date_charge,
+        periodicite: editCharge.periodicite,
+        prestataire: editCharge.prestataire || null,
+      });
+      toast.success("Charge modifiée");
+      setEditCharge(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    }
+  };
+
   // Group charges by category
   const grouped = useMemo(() => {
     const map: Record<string, typeof charges> = {};
