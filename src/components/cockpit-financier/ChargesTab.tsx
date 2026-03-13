@@ -14,7 +14,9 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { formatEuro, CHARGE_CATEGORIES, CHARGE_CATEGORY_ICONS } from "@/lib/formatFinancial";
 import type { PeriodRange } from "@/hooks/useFinancialData";
-import { useCharges, useRecurringCharges, useCreateCharge, useCancelCharge, useBudgetPrevisionnel } from "@/hooks/useFinancialData";
+import { useCharges, useRecurringCharges, useCreateCharge, useUpdateCharge, useCancelCharge, useBudgetPrevisionnel } from "@/hooks/useFinancialData";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   range: PeriodRange;
@@ -171,6 +173,8 @@ export function ChargesTab({ range }: Props) {
   const createCharge = useCreateCharge();
   const cancelCharge = useCancelCharge();
 
+  const updateCharge = useUpdateCharge();
+
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -187,6 +191,18 @@ export function ChargesTab({ range }: Props) {
     prestataire: "",
   });
   const [cancelId, setCancelId] = useState<string | null>(null);
+
+  // Edit state
+  const [editCharge, setEditCharge] = useState<null | {
+    id: string;
+    categorie: string;
+    type_charge: string;
+    libelle: string;
+    montant: string;
+    date_charge: string;
+    periodicite: string;
+    prestataire: string;
+  }>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +246,31 @@ export function ChargesTab({ range }: Props) {
       toast.error(err.message);
     }
     setCancelId(null);
+  };
+
+  const handleEdit = async () => {
+    if (!editCharge) return;
+    const montant = parseFloat(editCharge.montant);
+    if (!editCharge.categorie || !editCharge.libelle || !montant || montant <= 0) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+    try {
+      await updateCharge.mutateAsync({
+        id: editCharge.id,
+        categorie: editCharge.categorie,
+        type_charge: editCharge.type_charge,
+        libelle: editCharge.libelle,
+        montant,
+        date_charge: editCharge.date_charge,
+        periodicite: editCharge.periodicite,
+        prestataire: editCharge.prestataire || null,
+      });
+      toast.success("Charge modifiée");
+      setEditCharge(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    }
   };
 
   // Group charges by category
@@ -371,6 +412,18 @@ export function ChargesTab({ range }: Props) {
                                 <Badge variant="outline" className="text-xs text-muted-foreground">Annulée</Badge>
                               ) : (
                                 <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCharge({
+                                    id: c.id,
+                                    categorie: c.categorie,
+                                    type_charge: c.type_charge,
+                                    libelle: c.libelle,
+                                    montant: String(c.montant),
+                                    date_charge: c.date_charge,
+                                    periodicite: c.periodicite,
+                                    prestataire: c.prestataire || "",
+                                  })}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCancelId(c.id)}>
                                     <Ban className="h-3.5 w-3.5 text-destructive" />
                                   </Button>
@@ -436,6 +489,77 @@ export function ChargesTab({ range }: Props) {
           </div>
         </Card>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editCharge} onOpenChange={(open) => !open && setEditCharge(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifier la charge</DialogTitle>
+          </DialogHeader>
+          {editCharge && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Catégorie</Label>
+                  <Select value={editCharge.categorie} onValueChange={v => setEditCharge(e => e ? { ...e, categorie: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CHARGE_CATEGORIES).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{CHARGE_CATEGORY_ICONS[k]} {v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Type</Label>
+                  <Select value={editCharge.type_charge} onValueChange={v => setEditCharge(e => e ? { ...e, type_charge: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixe">Fixe</SelectItem>
+                      <SelectItem value="variable">Variable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Libellé</Label>
+                <Input value={editCharge.libelle} onChange={e => setEditCharge(ec => ec ? { ...ec, libelle: e.target.value } : null)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Montant (€)</Label>
+                  <Input type="number" step="0.01" min="0.01" value={editCharge.montant} onChange={e => setEditCharge(ec => ec ? { ...ec, montant: e.target.value } : null)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date</Label>
+                  <Input type="date" value={editCharge.date_charge} onChange={e => setEditCharge(ec => ec ? { ...ec, date_charge: e.target.value } : null)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Périodicité</Label>
+                  <Select value={editCharge.periodicite} onValueChange={v => setEditCharge(e => e ? { ...e, periodicite: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PERIODICITE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Prestataire</Label>
+                  <Input value={editCharge.prestataire} onChange={e => setEditCharge(ec => ec ? { ...ec, prestataire: e.target.value } : null)} />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCharge(null)}>Annuler</Button>
+            <Button onClick={handleEdit} disabled={updateCharge.isPending}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel Dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
