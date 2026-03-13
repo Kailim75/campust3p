@@ -98,26 +98,82 @@ serve(async (req) => {
           }
         }
 
-        // Insérer dans la table contacts du CRM
-        const { data: newStudent, error: studentError } = await supabase
-          .from('contacts')
-          .insert({
-            prenom: String(first_name).substring(0, 100),
-            nom: String(last_name).substring(0, 100),
-            email: studentEmail ? String(studentEmail).substring(0, 255) : null,
-            telephone: phone ? String(phone).substring(0, 20) : null,
-            source: 'webhook',
-            origine: 'site_web',
-            statut: 'En formation théorique',
-            statut_apprenant: 'actif',
-            formation: mappedFormation,
-            centre_id: centreId,
-            commentaires: rawActivity ? `Activité: ${rawActivity.substring(0, 100)}` : null,
-          })
-          .select('id')
-          .single();
+        // ── Déduplication : chercher un contact existant par email OU nom+prénom ──
+        const normalizedNom = String(last_name).trim().toUpperCase().substring(0, 100);
+        const normalizedPrenom = String(first_name).trim().toUpperCase().substring(0, 100);
+        const normalizedEmail = studentEmail ? String(studentEmail).trim().toLowerCase().substring(0, 255) : null;
 
-        if (studentError) throw studentError;
+        let existingContact = null;
+
+        // 1) Chercher par email (le plus fiable)
+        if (normalizedEmail) {
+          const { data: byEmail } = await supabase
+            .from('contacts')
+            .select('id')
+            .ilike('email', normalizedEmail)
+            .eq('archived', false)
+            .is('deleted_at', null)
+            .limit(1)
+            .maybeSingle();
+          existingContact = byEmail;
+        }
+
+        // 2) Si pas trouvé par email, chercher par nom+prénom exact
+        if (!existingContact) {
+          const { data: byName } = await supabase
+            .from('contacts')
+            .select('id')
+            .ilike('nom', normalizedNom)
+            .ilike('prenom', normalizedPrenom)
+            .eq('centre_id', centreId)
+            .eq('archived', false)
+            .is('deleted_at', null)
+            .limit(1)
+            .maybeSingle();
+          existingContact = byName;
+        }
+
+        let newStudent: { id: string } | null = null;
+        let wasExisting = false;
+
+        if (existingContact) {
+          // Contact déjà existant → mettre à jour les infos si besoin
+          newStudent = { id: existingContact.id };
+          wasExisting = true;
+          console.log(`Duplicate detected, reusing contact ${existingContact.id}`);
+
+          // Mettre à jour les champs qui pourraient être vides
+          const updates: Record<string, unknown> = {};
+          if (normalizedEmail) updates.email = normalizedEmail;
+          if (phone) updates.telephone = String(phone).substring(0, 20);
+          if (mappedFormation) updates.formation = mappedFormation;
+          updates.statut = 'En formation théorique';
+          updates.statut_apprenant = 'actif';
+
+          await supabase.from('contacts').update(updates).eq('id', existingContact.id);
+        } else {
+          // Nouveau contact
+          const { data: inserted, error: studentError } = await supabase
+            .from('contacts')
+            .insert({
+              prenom: String(first_name).substring(0, 100),
+              nom: String(last_name).substring(0, 100),
+              email: normalizedEmail,
+              telephone: phone ? String(phone).substring(0, 20) : null,
+              source: 'webhook',
+              origine: 'site_web',
+              statut: 'En formation théorique',
+              statut_apprenant: 'actif',
+              formation: mappedFormation,
+              centre_id: centreId,
+              commentaires: rawActivity ? `Activité: ${rawActivity.substring(0, 100)}` : null,
+            })
+            .select('id')
+            .single();
+
+          if (studentError) throw studentError;
+          newStudent = inserted;
+        }
 
         // Initialiser la progression côté conduite pour affichage immédiat dans l'onglet Élèves
         if (newStudent?.id) {
