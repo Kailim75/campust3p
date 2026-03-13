@@ -3,10 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const DRIVEFLOW_WEBHOOK_URL = 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
+const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
+const DRIVEFLOW_WEBHOOK_SECRET = Deno.env.get('DRIVEFLOW_WEBHOOK_SECRET') ?? Deno.env.get('WEBHOOK_SECRET');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
