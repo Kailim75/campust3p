@@ -615,7 +615,7 @@ export function generateFacturePDF(
     // Extract SIREN from SIRET (first 9 digits)
     const siren = company.siret.substring(0, 9);
     doc.text(`SIREN : ${siren}  |  SIRET : ${company.siret}`, colLeftX, yPos);
-    yPos += 3.5;
+    yPos += 4;
   }
 
   // NDA — formulation réglementaire complète
@@ -625,6 +625,33 @@ export function generateFacturePDF(
       : `N° d'activité : ${company.nda}`;
     const wrappedNda = doc.splitTextToSize(ndaLine, colW);
     wrappedNda.forEach((line: string) => {
+      doc.text(line, colLeftX, yPos);
+      yPos += 3.5;
+    });
+  }
+
+  // Qualiopi
+  if (company.qualiopi_numero) {
+    doc.text(`Qualiopi : ${company.qualiopi_numero}`, colLeftX, yPos);
+    yPos += 3.5;
+  }
+
+  // Agréments : RNCP, RS, Préfecture, autres
+  const accredParts: string[] = [];
+  if (company.code_rncp) accredParts.push(`RNCP : ${company.code_rncp}`);
+  if (company.code_rs) accredParts.push(`RS : ${company.code_rs}`);
+  if (company.agrement_prefecture) accredParts.push(`Agrément Préf. : ${company.agrement_prefecture}`);
+  if (company.agrements_autres && company.agrements_autres.length > 0) {
+    company.agrements_autres.forEach(a => {
+      if (a.nom && a.numero) {
+        accredParts.push(`${a.nom} : ${a.numero}`);
+      }
+    });
+  }
+  if (accredParts.length > 0) {
+    const accredLine = accredParts.join("  |  ");
+    const wrappedAccred = doc.splitTextToSize(accredLine, colW);
+    wrappedAccred.forEach((line: string) => {
       doc.text(line, colLeftX, yPos);
       yPos += 3.5;
     });
