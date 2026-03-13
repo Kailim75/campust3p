@@ -73,6 +73,7 @@ serve(async (req) => {
         email: contact.email || null,
         phone: contact.telephone || null,
         activity_type: contact.formation || 'auto_ecole',
+        centre_id: contact.centre_id,
       },
     };
 
