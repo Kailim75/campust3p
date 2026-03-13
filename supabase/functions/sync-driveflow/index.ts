@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     // Log the sync in contact history
-    await serviceClient.from('contact_historique').insert({
+    await supabase.from('contact_historique').insert({
       contact_id: contact.id,
       type: 'note',
       titre: '[AUTO] Envoyé vers Drive Flow',
@@ -97,12 +97,12 @@ serve(async (req) => {
     });
 
     // Log in action_logs
-    await serviceClient.from('action_logs').insert({
+    await supabase.from('action_logs').insert({
       entity_type: 'contact',
       entity_id: contact.id,
       action_type: 'sync_driveflow',
       label: `Sync Drive Flow: ${contact.prenom} ${contact.nom}`,
-      user_id: claimsData.claims.sub,
+      user_id: user.id,
     });
 
     return new Response(JSON.stringify({
