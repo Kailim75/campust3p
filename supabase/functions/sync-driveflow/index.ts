@@ -51,7 +51,7 @@ serve(async (req) => {
     // Fetch contact data
     const { data: contact, error: contactError } = await supabase
       .from('contacts')
-      .select('id, prenom, nom, email, telephone, formation')
+      .select('id, prenom, nom, email, telephone, formation, centre_id')
       .eq('id', contact_id)
       .single();
 
@@ -73,6 +73,7 @@ serve(async (req) => {
         email: contact.email || null,
         phone: contact.telephone || null,
         activity_type: contact.formation || 'auto_ecole',
+        centre_id: contact.centre_id,
       },
     };
 

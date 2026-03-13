@@ -42,9 +42,27 @@ serve(async (req) => {
     switch (event) {
       // ─── Webhook plateforme conduite : student.created ───
       case 'student.created': {
-        const { first_name, last_name, email: studentEmail, phone, activity_type } = data || {};
+        const { first_name, last_name, email: studentEmail, phone, activity_type, centre_id: payload_centre_id } = data || {};
         if (!first_name || !last_name || typeof first_name !== 'string' || typeof last_name !== 'string') {
           return new Response(JSON.stringify({ success: false, error: 'data.first_name and data.last_name are required and must be non-empty strings' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Get centre_id from payload or fallback to first centre
+        let centreId = payload_centre_id;
+        if (!centreId) {
+          const { data: firstCentre } = await supabase
+            .from('centres')
+            .select('id')
+            .limit(1)
+            .single();
+          centreId = firstCentre?.id;
+        }
+
+        if (!centreId) {
+          return new Response(JSON.stringify({ success: false, error: 'No centre_id available' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
@@ -61,6 +79,7 @@ serve(async (req) => {
             source: 'webhook',
             origine: 'site_web',
             statut: 'prospect',
+            centre_id: centreId,
             commentaires: activity_type ? `Activité: ${String(activity_type).substring(0, 100)}` : null,
           })
           .select('id')
