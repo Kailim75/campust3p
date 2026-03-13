@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
-const DRIVEFLOW_WEBHOOK_SECRET = Deno.env.get('DRIVEFLOW_WEBHOOK_SECRET') ?? Deno.env.get('WEBHOOK_SECRET');
+const DRIVEFLOW_API_KEY = Deno.env.get('DRIVEFLOW_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -81,13 +81,13 @@ serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
-    if (DRIVEFLOW_WEBHOOK_SECRET) {
-      driveFlowHeaders['x-webhook-secret'] = DRIVEFLOW_WEBHOOK_SECRET;
+    if (DRIVEFLOW_API_KEY) {
+      driveFlowHeaders['X-API-KEY'] = DRIVEFLOW_API_KEY;
     }
 
     console.log('Sending to Drive Flow:', DRIVEFLOW_WEBHOOK_URL);
     console.log('Payload:', JSON.stringify(payload));
-    console.log('Has webhook secret:', !!DRIVEFLOW_WEBHOOK_SECRET);
+    console.log('Has API key:', !!DRIVEFLOW_API_KEY);
 
     const driveFlowResponse = await fetch(DRIVEFLOW_WEBHOOK_URL, {
       method: 'POST',

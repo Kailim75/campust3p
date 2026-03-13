@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-api-key',
 };
 
 serve(async (req) => {
@@ -11,11 +11,17 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Vérifier le secret webhook pour sécuriser l'accès
+  // Vérifier l'authentification : X-API-KEY header ou x-webhook-secret (legacy)
   const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
+  const DRIVEFLOW_API_KEY = Deno.env.get('DRIVEFLOW_API_KEY');
+  const providedApiKey = req.headers.get('X-API-KEY') || req.headers.get('x-api-key');
   const providedSecret = req.headers.get('x-webhook-secret') || new URL(req.url).searchParams.get('secret');
 
-  if (WEBHOOK_SECRET && providedSecret !== WEBHOOK_SECRET) {
+  const isAuthenticated = 
+    (DRIVEFLOW_API_KEY && providedApiKey === DRIVEFLOW_API_KEY) ||
+    (WEBHOOK_SECRET && providedSecret === WEBHOOK_SECRET);
+
+  if ((DRIVEFLOW_API_KEY || WEBHOOK_SECRET) && !isAuthenticated) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
