@@ -123,7 +123,7 @@ serve(async (req) => {
             formation: formation || null,
             source: source || 'site_web',
             origine: 'site_web',
-            statut: 'prospect',
+            statut: 'En attente de validation',
             commentaires: message ? String(message).substring(0, 2000) : null,
           })
           .select('id')
