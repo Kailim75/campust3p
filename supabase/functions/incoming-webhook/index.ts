@@ -192,8 +192,8 @@ serve(async (req) => {
           }
         }
 
-        // Historique
-        if (newStudent) {
+        // Historique (seulement si nouveau contact)
+        if (newStudent && !wasExisting) {
           await supabase.from('contact_historique').insert({
             contact_id: newStudent.id,
             type: 'formulaire',
@@ -203,7 +203,7 @@ serve(async (req) => {
           });
         }
 
-        result = { contact_id: newStudent?.id };
+        result = { contact_id: newStudent?.id, was_existing: wasExisting };
         break;
       }
 
