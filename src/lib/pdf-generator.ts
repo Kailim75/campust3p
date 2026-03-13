@@ -595,11 +595,15 @@ export function generateFacturePDF(
   doc.setFontSize(8);
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
 
-  // Address
-  doc.text(company.address, colLeftX, yPos);
-  yPos += 4;
+  // Address — wrap if long
+  const wrappedAddr = doc.splitTextToSize(company.address, colW - 2);
+  wrappedAddr.forEach((line: string) => {
+    doc.text(line, colLeftX, yPos);
+    yPos += 4;
+  });
 
   // Phone + email
+  yPos += 1;
   doc.text(`Tél : ${company.phone}`, colLeftX, yPos);
   yPos += 4;
   doc.text(company.email, colLeftX, yPos);
