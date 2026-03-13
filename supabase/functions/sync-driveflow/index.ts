@@ -24,15 +24,13 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(
-      authHeader.replace('Bearer ', '')
-    );
-    if (claimsError || !claimsData?.claims) {
+    // Validate user token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ success: false, error: 'Token invalide' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -49,13 +47,8 @@ serve(async (req) => {
       });
     }
 
-    // Fetch contact data using service role for full access
-    const serviceClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    const { data: contact, error: contactError } = await serviceClient
+    // Fetch contact data
+    const { data: contact, error: contactError } = await supabase
       .from('contacts')
       .select('id, prenom, nom, email, telephone, formation')
       .eq('id', contact_id)
@@ -95,7 +88,7 @@ serve(async (req) => {
     }
 
     // Log the sync in contact history
-    await serviceClient.from('contact_historique').insert({
+    await supabase.from('contact_historique').insert({
       contact_id: contact.id,
       type: 'note',
       titre: '[AUTO] Envoyé vers Drive Flow',
@@ -104,12 +97,12 @@ serve(async (req) => {
     });
 
     // Log in action_logs
-    await serviceClient.from('action_logs').insert({
+    await supabase.from('action_logs').insert({
       entity_type: 'contact',
       entity_id: contact.id,
       action_type: 'sync_driveflow',
       label: `Sync Drive Flow: ${contact.prenom} ${contact.nom}`,
-      user_id: claimsData.claims.sub,
+      user_id: user.id,
     });
 
     return new Response(JSON.stringify({
