@@ -39,6 +39,15 @@ export function centreToCompanyInfo(centre: CentreFormation | null | undefined):
     siret: centre.siret,
     nda: centre.nda,
     
+    // Identité juridique étendue
+    nom_legal: centre.nom_legal || undefined,
+    forme_juridique: centre.forme_juridique || undefined,
+    region_declaration: centre.region_declaration || undefined,
+    responsable_legal_nom: centre.responsable_legal_nom || undefined,
+    responsable_legal_fonction: centre.responsable_legal_fonction || undefined,
+    iban: centre.iban || undefined,
+    bic: centre.bic || undefined,
+    
     // Visuels
     logo_url: centre.logo_url || undefined,
     signature_cachet_url: centre.signature_cachet_url || undefined,

@@ -50,6 +50,16 @@ export function buildCompanyInfo(centreFormation: CentreFormationRow | null | un
     }
   }
 
+  const row = centreFormation as CentreFormationRow & {
+    nom_legal?: string;
+    forme_juridique?: string;
+    region_declaration?: string;
+    responsable_legal_nom?: string;
+    responsable_legal_fonction?: string;
+    iban?: string;
+    bic?: string;
+  };
+
   return {
     name: centreFormation.nom_commercial || centreFormation.nom_legal,
     address: centreFormation.adresse_complete,
@@ -57,6 +67,13 @@ export function buildCompanyInfo(centreFormation: CentreFormationRow | null | un
     email: centreFormation.email,
     siret: centreFormation.siret,
     nda: centreFormation.nda,
+    nom_legal: row.nom_legal || undefined,
+    forme_juridique: row.forme_juridique || undefined,
+    region_declaration: row.region_declaration || undefined,
+    responsable_legal_nom: row.responsable_legal_nom || undefined,
+    responsable_legal_fonction: row.responsable_legal_fonction || undefined,
+    iban: row.iban || undefined,
+    bic: row.bic || undefined,
     logo_url: centreFormation.logo_url || undefined,
     signature_cachet_url: centreFormation.signature_cachet_url || undefined,
     qualiopi_numero: centreFormation.qualiopi_numero || undefined,
