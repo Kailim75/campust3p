@@ -394,6 +394,37 @@ function addInfoBox(doc: jsPDF, yPos: number, height: number): number {
 // Cache for loaded images (base64)
 const imageCache: Map<string, string> = new Map();
 
+// Normalize any image blob to PNG data URL (best compatibility with jsPDF)
+async function blobToPngDataUrl(blob: Blob): Promise<string | null> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx || canvas.width === 0 || canvas.height === 0) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch {
+        resolve(null);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(null);
+    };
+    img.src = objectUrl;
+  });
+}
+
 // Helper function to load image and convert to base64
 async function loadImageAsBase64(url: string): Promise<string | null> {
   if (!url) return null;
@@ -411,20 +442,24 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
       // Fallback: try loading via Image element (handles CORS differently)
       return await loadImageViaElement(url);
     }
-    
+
     const blob = await response.blob();
-    return new Promise((resolve) => {
+    const pngBase64 = await blobToPngDataUrl(blob);
+    if (pngBase64) {
+      imageCache.set(url, pngBase64);
+      console.log(`[Logo/Image] Loaded successfully (normalized PNG): ${url.substring(0, 60)}...`);
+      return pngBase64;
+    }
+
+    // Last fallback: direct data URL from blob
+    return await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
         imageCache.set(url, base64);
-        console.log(`[Logo/Image] Loaded successfully: ${url.substring(0, 60)}...`);
         resolve(base64);
       };
-      reader.onerror = () => {
-        console.warn(`[Logo/Image] FileReader error for ${url}`);
-        resolve(null);
-      };
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (err) {
