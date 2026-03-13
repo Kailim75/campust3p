@@ -493,11 +493,24 @@ function addLogoImage(doc: jsPDF, company: CompanyInfo, x: number, y: number, ma
   if (!cachedImage) return false;
   
   try {
-    doc.addImage(cachedImage, 'PNG', x, y, maxWidth, maxHeight);
+    // Auto-detect format from base64 data URI
+    let format = 'PNG';
+    if (cachedImage.includes('data:image/jpeg') || cachedImage.includes('data:image/jpg')) {
+      format = 'JPEG';
+    } else if (cachedImage.includes('data:image/webp')) {
+      format = 'WEBP';
+    }
+    doc.addImage(cachedImage, format, x, y, maxWidth, maxHeight);
     return true;
-  } catch {
-    console.error('Error adding logo image to PDF');
-    return false;
+  } catch (err) {
+    // Retry without explicit format — let jsPDF auto-detect
+    try {
+      doc.addImage(cachedImage, '', x, y, maxWidth, maxHeight);
+      return true;
+    } catch {
+      console.error('Error adding logo image to PDF:', err);
+      return false;
+    }
   }
 }
 
