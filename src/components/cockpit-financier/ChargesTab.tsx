@@ -490,6 +490,77 @@ export function ChargesTab({ range }: Props) {
         </Card>
       )}
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editCharge} onOpenChange={(open) => !open && setEditCharge(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifier la charge</DialogTitle>
+          </DialogHeader>
+          {editCharge && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Catégorie</Label>
+                  <Select value={editCharge.categorie} onValueChange={v => setEditCharge(e => e ? { ...e, categorie: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CHARGE_CATEGORIES).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{CHARGE_CATEGORY_ICONS[k]} {v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Type</Label>
+                  <Select value={editCharge.type_charge} onValueChange={v => setEditCharge(e => e ? { ...e, type_charge: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixe">Fixe</SelectItem>
+                      <SelectItem value="variable">Variable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Libellé</Label>
+                <Input value={editCharge.libelle} onChange={e => setEditCharge(ec => ec ? { ...ec, libelle: e.target.value } : null)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Montant (€)</Label>
+                  <Input type="number" step="0.01" min="0.01" value={editCharge.montant} onChange={e => setEditCharge(ec => ec ? { ...ec, montant: e.target.value } : null)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date</Label>
+                  <Input type="date" value={editCharge.date_charge} onChange={e => setEditCharge(ec => ec ? { ...ec, date_charge: e.target.value } : null)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Périodicité</Label>
+                  <Select value={editCharge.periodicite} onValueChange={v => setEditCharge(e => e ? { ...e, periodicite: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PERIODICITE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Prestataire</Label>
+                  <Input value={editCharge.prestataire} onChange={e => setEditCharge(ec => ec ? { ...ec, prestataire: e.target.value } : null)} />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCharge(null)}>Annuler</Button>
+            <Button onClick={handleEdit} disabled={updateCharge.isPending}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Cancel Dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
         <AlertDialogContent>
