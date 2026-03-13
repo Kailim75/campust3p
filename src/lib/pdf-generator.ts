@@ -62,6 +62,14 @@ export interface CompanyInfo {
   email: string;
   siret: string;
   nda: string; // Numéro déclaration activité
+  // Identité juridique étendue (facture)
+  nom_legal?: string;
+  forme_juridique?: string;
+  region_declaration?: string;
+  responsable_legal_nom?: string;
+  responsable_legal_fonction?: string;
+  iban?: string;
+  bic?: string;
   // Visuels
   logo_url?: string;
   signature_cachet_url?: string;
