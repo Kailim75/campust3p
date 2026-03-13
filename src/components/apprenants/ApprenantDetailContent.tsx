@@ -56,6 +56,7 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
+import { SyncDriveFlowButton } from "./SyncDriveFlowButton";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
@@ -663,6 +664,10 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       {/* ─── FOOTER: Modifier / Archiver ─── */}
       {(onEdit || onClose) && (
         <div className="flex gap-2.5 p-3 sm:p-5 border-t border-border/60 bg-card">
+          <SyncDriveFlowButton
+            contactId={contact.id}
+            contactName={`${contact.prenom} ${contact.nom}`}
+          />
           {onEdit && (
             <Button className="flex-1 h-10 font-semibold" onClick={() => onEdit(contact)}>
               <Edit className="h-4 w-4 mr-2" />
