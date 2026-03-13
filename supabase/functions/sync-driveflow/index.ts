@@ -3,10 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const DRIVEFLOW_WEBHOOK_URL = 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
+const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
+const DRIVEFLOW_WEBHOOK_SECRET = Deno.env.get('DRIVEFLOW_WEBHOOK_SECRET') ?? Deno.env.get('WEBHOOK_SECRET');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -75,16 +76,24 @@ serve(async (req) => {
       },
     };
 
+    const driveFlowHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (DRIVEFLOW_WEBHOOK_SECRET) {
+      driveFlowHeaders['x-webhook-secret'] = DRIVEFLOW_WEBHOOK_SECRET;
+    }
+
     const driveFlowResponse = await fetch(DRIVEFLOW_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: driveFlowHeaders,
       body: JSON.stringify(payload),
     });
 
-    const driveFlowResult = await driveFlowResponse.json();
+    const driveFlowResult = await driveFlowResponse.json().catch(() => ({}));
 
-    if (!driveFlowResponse.ok || !driveFlowResult.success) {
-      throw new Error(driveFlowResult.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
+    if (!driveFlowResponse.ok || driveFlowResult?.success === false) {
+      throw new Error(driveFlowResult?.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
     }
 
     // Log the sync in contact history
