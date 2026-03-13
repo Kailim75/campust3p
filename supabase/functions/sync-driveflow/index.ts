@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
-const DRIVEFLOW_WEBHOOK_SECRET = Deno.env.get('DRIVEFLOW_WEBHOOK_SECRET') ?? Deno.env.get('WEBHOOK_SECRET');
+const DRIVEFLOW_API_KEY = Deno.env.get('DRIVEFLOW_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
