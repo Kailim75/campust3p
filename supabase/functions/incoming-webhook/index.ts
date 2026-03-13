@@ -78,7 +78,9 @@ serve(async (req) => {
             telephone: phone ? String(phone).substring(0, 20) : null,
             source: 'webhook',
             origine: 'site_web',
-            statut: 'En attente de validation',
+            statut: 'Inscrit',
+            statut_apprenant: 'actif',
+            formation: activity_type || null,
             centre_id: centreId,
             commentaires: activity_type ? `Activité: ${String(activity_type).substring(0, 100)}` : null,
           })
