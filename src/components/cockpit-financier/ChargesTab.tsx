@@ -412,6 +412,18 @@ export function ChargesTab({ range }: Props) {
                                 <Badge variant="outline" className="text-xs text-muted-foreground">Annulée</Badge>
                               ) : (
                                 <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCharge({
+                                    id: c.id,
+                                    categorie: c.categorie,
+                                    type_charge: c.type_charge,
+                                    libelle: c.libelle,
+                                    montant: String(c.montant),
+                                    date_charge: c.date_charge,
+                                    periodicite: c.periodicite,
+                                    prestataire: c.prestataire || "",
+                                  })}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCancelId(c.id)}>
                                     <Ban className="h-3.5 w-3.5 text-destructive" />
                                   </Button>
