@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info, GraduationCap, Car, Calculator } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info, GraduationCap, Car, Calculator, RefreshCw, CheckCircle2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { formatEuro, CHARGE_CATEGORIES, CHARGE_CATEGORY_ICONS } from "@/lib/formatFinancial";
@@ -301,6 +301,73 @@ export function ChargesTab({ range }: Props) {
     );
   }, [charges, recurring, now]);
 
+  // Auto-apply recurring charges for current month
+  const autoAppliedRef = useRef(false);
+  const [autoApplying, setAutoApplying] = useState(false);
+
+  useEffect(() => {
+    if (autoAppliedRef.current || isLoading || missingRecurring.length === 0) return;
+    autoAppliedRef.current = true;
+
+    const applyRecurring = async () => {
+      setAutoApplying(true);
+      let count = 0;
+      for (const r of missingRecurring) {
+        try {
+          await createCharge.mutateAsync({
+            categorie: r.categorie,
+            type_charge: r.type_charge,
+            libelle: r.libelle,
+            montant: Number(r.montant),
+            date_charge: format(now, "yyyy-MM-dd"),
+            periodicite: "unique", // Saisie unique pour le mois
+            prestataire: r.prestataire || undefined,
+            notes: `Report automatique — charge récurrente (${r.periodicite})`,
+          });
+          count++;
+        } catch {
+          // silently skip failed ones
+        }
+      }
+      setAutoApplying(false);
+      if (count > 0) {
+        toast.success(`${count} charge${count > 1 ? "s" : ""} récurrente${count > 1 ? "s" : ""} reportée${count > 1 ? "s" : ""} automatiquement`);
+      }
+    };
+
+    applyRecurring();
+  }, [isLoading, missingRecurring]);
+
+  const handleApplyRecurring = async () => {
+    if (missingRecurring.length === 0) {
+      toast.info("Toutes les charges récurrentes sont déjà saisies ce mois");
+      return;
+    }
+    setAutoApplying(true);
+    let count = 0;
+    for (const r of missingRecurring) {
+      try {
+        await createCharge.mutateAsync({
+          categorie: r.categorie,
+          type_charge: r.type_charge,
+          libelle: r.libelle,
+          montant: Number(r.montant),
+          date_charge: format(now, "yyyy-MM-dd"),
+          periodicite: "unique",
+          prestataire: r.prestataire || undefined,
+          notes: `Report manuel — charge récurrente (${r.periodicite})`,
+        });
+        count++;
+      } catch {
+        // skip
+      }
+    }
+    setAutoApplying(false);
+    if (count > 0) {
+      toast.success(`${count} charge${count > 1 ? "s" : ""} récurrente${count > 1 ? "s" : ""} reportée${count > 1 ? "s" : ""}`);
+    }
+  };
+
   // Budget lookup
   const budgetByCategory = useMemo(() => {
     const map: Record<string, number> = {};
@@ -451,37 +518,35 @@ export function ChargesTab({ range }: Props) {
       {/* SECTION C — Recurring */}
       {recurring.length > 0 && (
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Charges récurrentes actives</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Charges récurrentes actives</h3>
+            {missingRecurring.length > 0 ? (
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={handleApplyRecurring} disabled={autoApplying}>
+                {autoApplying ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                Reporter {missingRecurring.length} charge{missingRecurring.length > 1 ? "s" : ""} manquante{missingRecurring.length > 1 ? "s" : ""}
+              </Button>
+            ) : (
+              <Badge variant="outline" className="text-xs gap-1 text-green-700 border-green-300 dark:text-green-400 dark:border-green-700">
+                <CheckCircle2 className="h-3 w-3" /> Toutes reportées ce mois
+              </Badge>
+            )}
+          </div>
           <div className="space-y-2">
             {recurring.map(r => {
               const missing = missingRecurring.some(m => m.id === r.id);
               return (
-                <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+                <div key={r.id} className={`flex items-center gap-3 p-3 rounded-lg border bg-card ${missing ? "border-amber-300 dark:border-amber-700" : ""}`}>
                   <span className="text-sm font-medium flex-1">{r.libelle}</span>
                   <span className="text-sm font-semibold">{formatEuro(Number(r.montant))}</span>
                   <Badge variant="outline" className="text-xs">{PERIODICITE_LABELS[r.periodicite]}</Badge>
-                  {missing && (
+                  {missing ? (
                     <Badge variant="destructive" className="text-xs gap-1">
-                      <AlertTriangle className="h-3 w-3" /> Non saisie ce mois
+                      <AlertTriangle className="h-3 w-3" /> Non reportée
                     </Badge>
-                  )}
-                  {missing && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => setForm({
-                        categorie: r.categorie,
-                        type_charge: r.type_charge,
-                        libelle: r.libelle,
-                        montant: String(r.montant),
-                        date_charge: format(now, "yyyy-MM-dd"),
-                        periodicite: "unique",
-                        prestataire: r.prestataire || "",
-                      })}
-                    >
-                      Saisir
-                    </Button>
+                  ) : (
+                    <Badge variant="outline" className="text-xs gap-1 text-green-700 dark:text-green-400">
+                      <CheckCircle2 className="h-3 w-3" /> OK
+                    </Badge>
                   )}
                 </div>
               );
