@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info, GraduationCap, Car, Calculator } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Ban, AlertTriangle, Info, GraduationCap, Car, Calculator, RefreshCw, CheckCircle2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { formatEuro, CHARGE_CATEGORIES, CHARGE_CATEGORY_ICONS } from "@/lib/formatFinancial";
