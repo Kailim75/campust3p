@@ -84,13 +84,22 @@ serve(async (req) => {
       driveFlowHeaders['x-webhook-secret'] = DRIVEFLOW_WEBHOOK_SECRET;
     }
 
+    console.log('Sending to Drive Flow:', DRIVEFLOW_WEBHOOK_URL);
+    console.log('Payload:', JSON.stringify(payload));
+    console.log('Has webhook secret:', !!DRIVEFLOW_WEBHOOK_SECRET);
+
     const driveFlowResponse = await fetch(DRIVEFLOW_WEBHOOK_URL, {
       method: 'POST',
       headers: driveFlowHeaders,
       body: JSON.stringify(payload),
     });
 
-    const driveFlowResult = await driveFlowResponse.json().catch(() => ({}));
+    const responseText = await driveFlowResponse.text();
+    console.log('Drive Flow response status:', driveFlowResponse.status);
+    console.log('Drive Flow response body:', responseText);
+
+    let driveFlowResult: any = {};
+    try { driveFlowResult = JSON.parse(responseText); } catch {}
 
     if (!driveFlowResponse.ok || driveFlowResult?.success === false) {
       throw new Error(driveFlowResult?.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
