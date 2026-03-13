@@ -301,6 +301,73 @@ export function ChargesTab({ range }: Props) {
     );
   }, [charges, recurring, now]);
 
+  // Auto-apply recurring charges for current month
+  const autoAppliedRef = useRef(false);
+  const [autoApplying, setAutoApplying] = useState(false);
+
+  useEffect(() => {
+    if (autoAppliedRef.current || isLoading || missingRecurring.length === 0) return;
+    autoAppliedRef.current = true;
+
+    const applyRecurring = async () => {
+      setAutoApplying(true);
+      let count = 0;
+      for (const r of missingRecurring) {
+        try {
+          await createCharge.mutateAsync({
+            categorie: r.categorie,
+            type_charge: r.type_charge,
+            libelle: r.libelle,
+            montant: Number(r.montant),
+            date_charge: format(now, "yyyy-MM-dd"),
+            periodicite: "unique", // Saisie unique pour le mois
+            prestataire: r.prestataire || undefined,
+            notes: `Report automatique — charge récurrente (${r.periodicite})`,
+          });
+          count++;
+        } catch {
+          // silently skip failed ones
+        }
+      }
+      setAutoApplying(false);
+      if (count > 0) {
+        toast.success(`${count} charge${count > 1 ? "s" : ""} récurrente${count > 1 ? "s" : ""} reportée${count > 1 ? "s" : ""} automatiquement`);
+      }
+    };
+
+    applyRecurring();
+  }, [isLoading, missingRecurring]);
+
+  const handleApplyRecurring = async () => {
+    if (missingRecurring.length === 0) {
+      toast.info("Toutes les charges récurrentes sont déjà saisies ce mois");
+      return;
+    }
+    setAutoApplying(true);
+    let count = 0;
+    for (const r of missingRecurring) {
+      try {
+        await createCharge.mutateAsync({
+          categorie: r.categorie,
+          type_charge: r.type_charge,
+          libelle: r.libelle,
+          montant: Number(r.montant),
+          date_charge: format(now, "yyyy-MM-dd"),
+          periodicite: "unique",
+          prestataire: r.prestataire || undefined,
+          notes: `Report manuel — charge récurrente (${r.periodicite})`,
+        });
+        count++;
+      } catch {
+        // skip
+      }
+    }
+    setAutoApplying(false);
+    if (count > 0) {
+      toast.success(`${count} charge${count > 1 ? "s" : ""} récurrente${count > 1 ? "s" : ""} reportée${count > 1 ? "s" : ""}`);
+    }
+  };
+
   // Budget lookup
   const budgetByCategory = useMemo(() => {
     const map: Record<string, number> = {};
