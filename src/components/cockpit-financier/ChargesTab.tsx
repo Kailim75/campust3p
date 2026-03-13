@@ -173,6 +173,8 @@ export function ChargesTab({ range }: Props) {
   const createCharge = useCreateCharge();
   const cancelCharge = useCancelCharge();
 
+  const updateCharge = useUpdateCharge();
+
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -189,6 +191,18 @@ export function ChargesTab({ range }: Props) {
     prestataire: "",
   });
   const [cancelId, setCancelId] = useState<string | null>(null);
+
+  // Edit state
+  const [editCharge, setEditCharge] = useState<null | {
+    id: string;
+    categorie: string;
+    type_charge: string;
+    libelle: string;
+    montant: string;
+    date_charge: string;
+    periodicite: string;
+    prestataire: string;
+  }>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
