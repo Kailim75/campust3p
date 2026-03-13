@@ -40,6 +40,49 @@ serve(async (req) => {
     let result: any = { received: true };
 
     switch (event) {
+      // ─── Webhook plateforme conduite : student.created ───
+      case 'student.created': {
+        const { first_name, last_name, email: studentEmail, phone, activity_type } = data || {};
+        if (!first_name || !last_name || typeof first_name !== 'string' || typeof last_name !== 'string') {
+          return new Response(JSON.stringify({ success: false, error: 'data.first_name and data.last_name are required and must be non-empty strings' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Insérer dans la table contacts du CRM
+        const { data: newStudent, error: studentError } = await supabase
+          .from('contacts')
+          .insert({
+            prenom: String(first_name).substring(0, 100),
+            nom: String(last_name).substring(0, 100),
+            email: studentEmail ? String(studentEmail).substring(0, 255) : null,
+            telephone: phone ? String(phone).substring(0, 20) : null,
+            source: 'webhook',
+            origine: 'site_web',
+            statut: 'prospect',
+            commentaires: activity_type ? `Activité: ${String(activity_type).substring(0, 100)}` : null,
+          })
+          .select('id')
+          .single();
+
+        if (studentError) throw studentError;
+
+        // Historique
+        if (newStudent) {
+          await supabase.from('contact_historique').insert({
+            contact_id: newStudent.id,
+            type: 'formulaire',
+            titre: 'Élève créé via webhook conduite',
+            contenu: `Import automatique depuis plateforme conduite (${activity_type || 'non précisé'})`,
+            date_echange: new Date().toISOString(),
+          });
+        }
+
+        result = { contact_id: newStudent?.id };
+        break;
+      }
+
       // ─── Formulaire de contact depuis le site web ───
       case 'contact_form': {
         const { nom, prenom, email, telephone, message, formation, source } = data;
