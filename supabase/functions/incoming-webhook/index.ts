@@ -89,6 +89,23 @@ serve(async (req) => {
 
         if (studentError) throw studentError;
 
+        // Initialiser la progression côté conduite pour affichage immédiat dans l'onglet Élèves
+        if (newStudent?.id) {
+          const { error: progressionError } = await supabase
+            .from('progression_conduite')
+            .upsert({
+              apprenant_id: newStudent.id,
+              niveau_actuel: 'debutant',
+              heures_preventive_realisees: 0,
+              heures_ville_realisees: 0,
+              accompagnement_examen_fait: false,
+            }, { onConflict: 'apprenant_id' });
+
+          if (progressionError) {
+            console.error('Progression init error:', progressionError);
+          }
+        }
+
         // Historique
         if (newStudent) {
           await supabase.from('contact_historique').insert({

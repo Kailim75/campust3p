@@ -364,27 +364,52 @@ export function useElevesConduite() {
   return useQuery({
     queryKey: ["eleves-conduite"],
     queryFn: async () => {
-      // Get all reservations with contact info
-      const { data: reservations, error } = await supabase
-        .from("reservations_conduite")
-        .select("apprenant_id, statut, created_at, contacts:apprenant_id(id, prenom, nom, formation)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const [reservationsRes, progressionsRes, syncedContactsRes] = await Promise.all([
+        supabase
+          .from("reservations_conduite")
+          .select("apprenant_id, statut, created_at, contacts:apprenant_id(id, prenom, nom, formation)")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("progression_conduite")
+          .select("*"),
+        supabase
+          .from("contacts")
+          .select("id, prenom, nom, formation")
+          .eq("archived", false)
+          .is("deleted_at", null)
+          .eq("source", "webhook")
+          .eq("statut_apprenant", "actif")
+          .order("created_at", { ascending: false }),
+      ]);
 
-      // Get progressions
-      const { data: progressions } = await supabase
-        .from("progression_conduite")
-        .select("*");
+      if (reservationsRes.error) throw reservationsRes.error;
+      if (syncedContactsRes.error) throw syncedContactsRes.error;
+
+      const reservations = reservationsRes.data || [];
+      const progressions = progressionsRes.data || [];
+      const syncedContacts = syncedContactsRes.data || [];
+      const progressionMap = new Map((progressions as any[]).map((p: any) => [p.apprenant_id, p]));
 
       // Deduplicate by apprenant_id
       const eleveMap = new Map<string, any>();
-      (reservations || []).forEach((r: any) => {
+
+      (reservations as any[]).forEach((r: any) => {
         if (!eleveMap.has(r.apprenant_id) && r.contacts) {
-          const prog = (progressions || []).find((p: any) => p.apprenant_id === r.apprenant_id);
           eleveMap.set(r.apprenant_id, {
             ...r.contacts,
-            progression: prog || null,
+            progression: progressionMap.get(r.apprenant_id) || null,
             derniere_seance: r.created_at,
+          });
+        }
+      });
+
+      // Fallback: include synced contacts even without reservation yet
+      (syncedContacts as any[]).forEach((c: any) => {
+        if (!eleveMap.has(c.id)) {
+          eleveMap.set(c.id, {
+            ...c,
+            progression: progressionMap.get(c.id) || null,
+            derniere_seance: null,
           });
         }
       });
