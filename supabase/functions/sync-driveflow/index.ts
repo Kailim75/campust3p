@@ -76,16 +76,24 @@ serve(async (req) => {
       },
     };
 
+    const driveFlowHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (DRIVEFLOW_WEBHOOK_SECRET) {
+      driveFlowHeaders['x-webhook-secret'] = DRIVEFLOW_WEBHOOK_SECRET;
+    }
+
     const driveFlowResponse = await fetch(DRIVEFLOW_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: driveFlowHeaders,
       body: JSON.stringify(payload),
     });
 
-    const driveFlowResult = await driveFlowResponse.json();
+    const driveFlowResult = await driveFlowResponse.json().catch(() => ({}));
 
-    if (!driveFlowResponse.ok || !driveFlowResult.success) {
-      throw new Error(driveFlowResult.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
+    if (!driveFlowResponse.ok || driveFlowResult?.success === false) {
+      throw new Error(driveFlowResult?.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
     }
 
     // Log the sync in contact history
