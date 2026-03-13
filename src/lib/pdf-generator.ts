@@ -585,20 +585,7 @@ export function generateFacturePDF(
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
   doc.rect(0, 0, pageWidth, headerH, "F");
 
-  // Logo (left side of header) — white rounded background for visibility
-  const logoW = 24;
-  const logoH = 16;
-  const logoX = marginL + 1;
-  const logoY = (headerH - logoH) / 2;
-  const hasLogo = !!company.logo_url && imageCache.has(company.logo_url);
-  if (hasLogo) {
-    // White rounded pill behind logo
-    const pad = 2;
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(logoX - pad, logoY - pad, logoW + pad * 2, logoH + pad * 2, 3, 3, "F");
-    addLogoImage(doc, company, logoX, logoY, logoW, logoH);
-  }
-  const textStartX = hasLogo ? marginL + logoW + 8 : marginL;
+  const textStartX = marginL;
 
   // Enseigne (next to logo)
   doc.setFontSize(14);
