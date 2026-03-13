@@ -47,13 +47,8 @@ serve(async (req) => {
       });
     }
 
-    // Fetch contact data using service role for full access
-    const serviceClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    const { data: contact, error: contactError } = await serviceClient
+    // Fetch contact data
+    const { data: contact, error: contactError } = await supabase
       .from('contacts')
       .select('id, prenom, nom, email, telephone, formation')
       .eq('id', contact_id)
