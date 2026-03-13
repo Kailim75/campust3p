@@ -74,6 +74,30 @@ serve(async (req) => {
           });
         }
 
+        // Map activity_type to valid formation_type enum values
+        const ACTIVITY_TYPE_MAP: Record<string, string> = {
+          'auto_ecole': 'TAXI',
+          'taxi': 'TAXI',
+          'vtc': 'VTC',
+          'vmdtr': 'VMDTR',
+          'acc_vtc': 'ACC VTC',
+          'acc_vtc_75': 'ACC VTC 75',
+          'fc_taxi': 'Formation continue Taxi',
+          'fc_vtc': 'Formation continue VTC',
+          'mobilite_taxi': 'Mobilité Taxi',
+        };
+        const rawActivity = activity_type ? String(activity_type).trim() : null;
+        // Check if the value is already a valid enum, otherwise map it
+        const VALID_FORMATIONS = ['TAXI', 'VTC', 'VMDTR', 'ACC VTC', 'ACC VTC 75', 'Formation continue Taxi', 'Formation continue VTC', 'Mobilité Taxi'];
+        let mappedFormation: string | null = null;
+        if (rawActivity) {
+          if (VALID_FORMATIONS.includes(rawActivity)) {
+            mappedFormation = rawActivity;
+          } else {
+            mappedFormation = ACTIVITY_TYPE_MAP[rawActivity.toLowerCase()] || null;
+          }
+        }
+
         // Insérer dans la table contacts du CRM
         const { data: newStudent, error: studentError } = await supabase
           .from('contacts')
@@ -86,9 +110,9 @@ serve(async (req) => {
             origine: 'site_web',
             statut: 'En formation théorique',
             statut_apprenant: 'actif',
-            formation: activity_type || null,
+            formation: mappedFormation,
             centre_id: centreId,
-            commentaires: activity_type ? `Activité: ${String(activity_type).substring(0, 100)}` : null,
+            commentaires: rawActivity ? `Activité: ${rawActivity.substring(0, 100)}` : null,
           })
           .select('id')
           .single();
