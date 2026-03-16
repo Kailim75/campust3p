@@ -183,6 +183,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         date_fin: "",
         heure_debut: "09:00",
         heure_fin: "17:00",
+        horaire_type: "jour" as const,
         heure_debut_matin: "09:00",
         heure_fin_matin: "12:30",
         heure_debut_aprem: "13:30",
