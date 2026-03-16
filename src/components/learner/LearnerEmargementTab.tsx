@@ -281,7 +281,7 @@ export function LearnerEmargementTab({ contactId }: LearnerEmargementTabProps) {
               {signingEmargement && (
                 <>
                   {format(new Date(signingEmargement.date_emargement), "EEEE d MMMM yyyy", { locale: fr })} -{" "}
-                  {signingEmargement.periode === "matin" ? "Matin" : "Après-midi"}
+                  {signingEmargement.periode === "matin" ? "Matin" : signingEmargement.periode === "soir" ? "Soir" : "Après-midi"}
                 </>
               )}
             </DialogDescription>
