@@ -168,6 +168,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         session_date_fin: session.date_fin ? new Date(session.date_fin).toLocaleDateString("fr-FR") : "",
         formation_type: session.formation_type || "",
         lieu: session.lieu || "",
+        formateur_nom: formateurNom || "",
       },
     });
 
