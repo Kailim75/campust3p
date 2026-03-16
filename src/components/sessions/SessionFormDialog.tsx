@@ -498,6 +498,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                 />
               </div>
 
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {form.watch("horaire_type") === "soir" ? (
                   <>
                     <FormField
@@ -542,7 +543,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="heure_fin_matin"
@@ -556,7 +556,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="heure_debut_aprem"
@@ -570,7 +569,6 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name="heure_fin_aprem"
