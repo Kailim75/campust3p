@@ -171,15 +171,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const buildFacturePdfBase64 = (f: any): { base64: string; filename: string } | null => {
     if (!contact) return null;
     const company = centreToCompanyInfo(centreFormation);
-    const factureInfo: FactureInfo = {
-      numero_facture: f.numero_facture || "",
-      montant_total: Number(f.montant_total),
-      total_paye: (paiements || []).filter((p: any) => p.facture_id === f.id).reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
-      statut: f.statut,
-      type_financement: f.type_financement || "personnel",
-      date_emission: f.date_emission,
-      commentaires: f.commentaires,
-    };
+    const factureInfo = enrichFactureWithPayer(f);
     const contactInfo: ContactInfo = {
       nom: contact.nom, prenom: contact.prenom, email: contact.email || "", telephone: contact.telephone || "",
       rue: contact.rue || "", code_postal: contact.code_postal || "", ville: contact.ville || "",
