@@ -198,48 +198,69 @@ export function useGenerateEmargements() {
 
       const inscritContactIds = new Set(inscriptions.map(i => i.contact_id));
 
-      // Get existing emargements to find ones to remove (contacts no longer enrolled)
+      // Detect FC (formation continue) sessions - often held on weekends
+      const { data: sessionData, error: sessionError } = await supabase
+        .from("sessions")
+        .select("formation_type, horaire_type, heure_debut, heure_fin")
+        .eq("id", sessionId)
+        .single();
+
+      if (sessionError) throw sessionError;
+
+      const isFC = sessionData?.formation_type?.toUpperCase().startsWith("FC-");
+      const isSoir = sessionData?.horaire_type === "soir";
+      const expectedPeriods = isSoir ? ["soir"] : ["matin", "apres_midi"];
+
+      // Get existing emargements to find ones to remove or regenerate
       const { data: existingEmargements, error: existError } = await supabase
         .from("emargements")
-        .select("id, contact_id")
+        .select("id, contact_id, periode")
         .eq("session_id", sessionId)
         .is("deleted_at", null);
 
       if (existError) throw existError;
 
-      // Soft delete emargements for contacts no longer enrolled
-      const toDelete = (existingEmargements || []).filter(e => !inscritContactIds.has(e.contact_id));
+      const existingByContact = new Map<string, Set<string>>();
+      for (const emargement of existingEmargements || []) {
+        const periods = existingByContact.get(emargement.contact_id) || new Set<string>();
+        periods.add(emargement.periode);
+        existingByContact.set(emargement.contact_id, periods);
+      }
+
+      const hasExpectedPeriods = (contactId: string) => {
+        const periods = existingByContact.get(contactId);
+        if (!periods) return false;
+        if (periods.size !== expectedPeriods.length) return false;
+        return expectedPeriods.every((period) => periods.has(period));
+      };
+
+      // Soft delete emargements for contacts no longer enrolled or with outdated schedule periods
+      const toDelete = (existingEmargements || []).filter((e) => {
+        if (!inscritContactIds.has(e.contact_id)) return true;
+        return !hasExpectedPeriods(e.contact_id);
+      });
+
       if (toDelete.length > 0) {
-        const deleteIds = toDelete.map(e => e.id);
+        const deleteIds = toDelete.map((e) => e.id);
         const { error: delError } = await supabase
           .from("emargements")
-          .update({ 
+          .update({
             deleted_at: new Date().toISOString(),
-            deleted_by: null, // Could be enhanced to track user
-            delete_reason: "Contact désinscrit de la session"
+            deleted_by: null,
+            delete_reason: "Synchronisation des émargements avec les inscrits et les horaires de session",
           })
           .in("id", deleteIds);
         if (delError) throw delError;
       }
 
-      // Find contacts that already have emargements
-      const existingContactIds = new Set((existingEmargements || []).map(e => e.contact_id));
-      const newContactIds = [...inscritContactIds].filter(id => !existingContactIds.has(id));
-
-      // Detect FC (formation continue) sessions - often held on weekends
-      const { data: sessionData } = await supabase
-        .from("sessions")
-        .select("formation_type, horaire_type, heure_debut, heure_fin")
-        .eq("id", sessionId)
-        .single();
-      const isFC = sessionData?.formation_type?.toUpperCase().startsWith("FC-");
-      const isSoir = (sessionData as any)?.horaire_type === "soir";
+      // Contacts needing fresh emargements: missing or outdated periods
+      const contactIdsToGenerate = [...inscritContactIds].filter((contactId) => !hasExpectedPeriods(contactId));
 
       // Generate dates between start and end
       const dates: string[] = [];
       const start = new Date(dateDebut);
       const end = new Date(dateFin);
-      
+
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         // Skip weekends only for non-FC sessions
         if (isFC || (d.getDay() !== 0 && d.getDay() !== 6)) {
@@ -247,22 +268,19 @@ export function useGenerateEmargements() {
         }
       }
 
-      // Create emargements only for NEW contacts
       const emargements = [];
-      for (const contactId of newContactIds) {
+      for (const contactId of contactIdsToGenerate) {
         for (const date of dates) {
           if (isSoir) {
-            // Evening sessions: single "soir" period
             emargements.push({
               session_id: sessionId,
               contact_id: contactId,
               date_emargement: date,
               periode: "soir",
-              heure_debut: (sessionData as any)?.heure_debut?.slice(0, 5) || "18:00",
-              heure_fin: (sessionData as any)?.heure_fin?.slice(0, 5) || "21:30",
+              heure_debut: sessionData?.heure_debut?.slice(0, 5) || "18:00",
+              heure_fin: sessionData?.heure_fin?.slice(0, 5) || "21:30",
             });
           } else {
-            // Day sessions: matin + apres_midi
             for (const periode of ["matin", "apres_midi"] as const) {
               emargements.push({
                 session_id: sessionId,
