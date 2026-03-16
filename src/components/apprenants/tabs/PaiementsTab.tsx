@@ -129,10 +129,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     onError: () => toast.error("Erreur lors de l'ajout du versement"),
   });
 
-  const handlePrintFacture = (f: any) => {
-    if (!contact) { toast.error("Informations contact manquantes"); return; }
-    const company = centreToCompanyInfo(centreFormation);
-    const factureInfo: FactureInfo = {
+  const enrichFactureWithPayer = (f: any): FactureInfo => {
+    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
+      f.session_inscription, contact
+    );
+    return {
       numero_facture: f.numero_facture || "",
       montant_total: Number(f.montant_total),
       total_paye: (paiements || [])
@@ -142,7 +143,17 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       type_financement: f.type_financement || "personnel",
       date_emission: f.date_emission,
       commentaires: f.commentaires,
+      payer,
+      beneficiaire,
+      montant_pris_en_charge,
+      reste_a_charge,
     };
+  };
+
+  const handlePrintFacture = (f: any) => {
+    if (!contact) { toast.error("Informations contact manquantes"); return; }
+    const company = centreToCompanyInfo(centreFormation);
+    const factureInfo = enrichFactureWithPayer(f);
     const contactInfo: ContactInfo = {
       nom: contact.nom,
       prenom: contact.prenom,
