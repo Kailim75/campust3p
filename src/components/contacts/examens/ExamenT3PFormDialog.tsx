@@ -61,6 +61,7 @@ export function ExamenT3PFormDialog({
     centre_examen: examen?.centre_examen || "",
     departement: examen?.departement || "",
     numero_convocation: examen?.numero_convocation || "",
+    numero_dossier: examen?.numero_dossier || "",
     statut: (examen?.statut || "planifie") as ExamenT3PStatut,
     resultat: (examen?.resultat || "") as ExamenT3PResultat | "",
     score: examen?.score ?? null,
@@ -85,6 +86,7 @@ export function ExamenT3PFormDialog({
         centre_examen: examen.centre_examen || "",
         departement: examen.departement || "",
         numero_convocation: examen.numero_convocation || "",
+        numero_dossier: examen.numero_dossier || "",
         statut: examen.statut as ExamenT3PStatut,
         resultat: (examen.resultat || "") as ExamenT3PResultat | "",
         score: examen.score,
@@ -101,6 +103,7 @@ export function ExamenT3PFormDialog({
         centre_examen: "",
         departement: "",
         numero_convocation: "",
+        numero_dossier: "",
         statut: "planifie",
         resultat: "",
         score: null,
@@ -155,7 +158,7 @@ export function ExamenT3PFormDialog({
         observations: formData.observations || null,
         document_resultat_path: null,
         numero_tentative: tentativeNumber,
-        numero_dossier: null,
+        numero_dossier: formData.numero_dossier || null,
       };
 
       if (isEditing && examen) {
@@ -337,6 +340,18 @@ export function ExamenT3PFormDialog({
                 placeholder="Numéro de convocation"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="numero_dossier">N° Dossier</Label>
+            <Input
+              id="numero_dossier"
+              value={formData.numero_dossier}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, numero_dossier: e.target.value }))
+              }
+              placeholder="Ex: T3P-2025-001"
+            />
           </div>
 
           {/* Results section */}
