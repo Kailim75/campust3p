@@ -59,7 +59,6 @@ export interface FactureWithDetails extends Facture {
       company_name: string;
       email: string | null;
       address: string | null;
-      siret: string | null;
     } | null;
   } | null;
   total_paye: number;
