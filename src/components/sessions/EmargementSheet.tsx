@@ -253,15 +253,6 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
   /** Legacy DOCX generator fallback */
   const handleDownloadLegacyDocx = async () => {
     if (!emargements) return;
-    let formateurNom: string | undefined;
-    if (session.formateur_id) {
-      const { data: formateur } = await supabase
-        .from("formateurs")
-        .select("nom, prenom")
-        .eq("id", session.formateur_id)
-        .single();
-      if (formateur) formateurNom = `${formateur.prenom} ${formateur.nom}`;
-    }
 
     const { data: centre } = await supabase
       .from("centre_formation")
@@ -275,7 +266,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       date_fin: session.date_fin,
       lieu: session.lieu,
       formation_type: session.formation_type,
-      formateur_nom: formateurNom,
+      formateur_nom: formateurNom || undefined,
       centre_nom: centre?.nom_commercial || undefined,
       centre_adresse: centre?.adresse_complete || undefined,
       centre_nda: centre?.nda || undefined,
