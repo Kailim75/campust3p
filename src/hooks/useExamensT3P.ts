@@ -15,6 +15,7 @@ export interface ExamenT3P {
   centre_examen: string | null;
   departement: string | null;
   numero_convocation: string | null;
+  numero_dossier: string | null;
   statut: ExamenT3PStatut;
   resultat: ExamenT3PResultat | null;
   score: number | null;
