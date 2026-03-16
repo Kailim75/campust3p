@@ -155,6 +155,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         catalogue_formation_id: (session as any).catalogue_formation_id || "",
         date_debut: session.date_debut,
         date_fin: session.date_fin,
+        horaire_type: ((session as any).horaire_type || "jour") as "jour" | "soir",
         heure_debut: (session as any).heure_debut?.slice(0, 5) || "09:00",
         heure_fin: (session as any).heure_fin?.slice(0, 5) || "17:00",
         heure_debut_matin: (session as any).heure_debut_matin?.slice(0, 5) || "09:00",
