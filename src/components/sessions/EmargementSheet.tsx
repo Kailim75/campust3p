@@ -256,9 +256,23 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
 
     const { data: centre } = await supabase
       .from("centre_formation")
-      .select("nom_commercial, nda, siret, adresse_complete, telephone, email, qualiopi_numero, agrement_prefecture, code_rncp, code_rs")
+      .select("nom_commercial, nda, siret, adresse_complete, telephone, email, qualiopi_numero, agrement_prefecture, code_rncp, code_rs, agrements_autres")
       .limit(1)
       .single();
+
+    // Extract taxi/vtc/vmdtr numbers from agrements_autres
+    const agrementNumbers: Record<string, string> = {};
+    if (centre?.agrements_autres && Array.isArray(centre.agrements_autres)) {
+      const agrements = centre.agrements_autres as Array<{ nom?: string; numero?: string }>;
+      for (const ag of agrements) {
+        if (ag.nom && ag.numero) {
+          const key = ag.nom.toLowerCase();
+          if (key.includes("taxi")) agrementNumbers.taxi = ag.numero;
+          else if (key.includes("vtc")) agrementNumbers.vtc = ag.numero;
+          else if (key.includes("vmdtr")) agrementNumbers.vmdtr = ag.numero;
+        }
+      }
+    }
 
     const blob = await generateEmargementDocx(emargements, {
       nom: session.nom,
@@ -277,6 +291,9 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       centre_agrement_prefecture: centre?.agrement_prefecture || undefined,
       centre_code_rncp: centre?.code_rncp || undefined,
       centre_code_rs: centre?.code_rs || undefined,
+      agrement_taxi: agrementNumbers.taxi || undefined,
+      agrement_vtc: agrementNumbers.vtc || undefined,
+      agrement_vmdtr: agrementNumbers.vmdtr || undefined,
     });
 
     const url = URL.createObjectURL(blob);
