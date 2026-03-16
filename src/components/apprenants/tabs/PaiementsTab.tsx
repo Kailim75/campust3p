@@ -52,7 +52,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("factures")
-        .select("id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires")
+        .select(`
+          id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
+          session_inscription:session_inscriptions(
+            id, type_payeur, montant_pris_en_charge, reste_a_charge,
+            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
+          )
+        `)
         .eq("contact_id", contactId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
