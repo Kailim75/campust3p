@@ -146,13 +146,7 @@ export function useContactFactures(contactId: string | null) {
 
       const { data: factures, error } = await supabase
         .from("factures")
-        .select(`
-          *,
-          session_inscription:session_inscriptions(
-            id,
-            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-          )
-        `)
+        .select(FACTURE_SELECT)
         .eq("contact_id", contactId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
