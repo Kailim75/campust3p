@@ -60,6 +60,7 @@ interface EmargementSheetProps {
     lieu?: string;
     formation_type?: string;
     formateur_id?: string | null;
+    horaire_type?: string | null;
   };
 }
 
