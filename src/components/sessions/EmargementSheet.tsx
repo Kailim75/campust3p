@@ -193,24 +193,49 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         weekday: "long", day: "numeric", month: "long", year: "numeric",
       });
 
+      // Detect if this date has evening-only emargements
+      const isSoirDate = dateEmargs.every((e) => e.periode === "soir");
+
       tableHtml += `<h3 style="margin-top:20px;page-break-before:auto;">${dateFormatted}</h3>`;
       tableHtml += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px;">`;
-      tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
-      tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Présent</th>`;
-      tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Signature</th></tr></thead><tbody>`;
 
-      for (const contact of contactsList) {
-        if (!contact) continue;
-        const emarg = dateEmargs.find((e) => e.contact_id === contact.id);
-        const presentStr = emarg?.present ? "✓" : "—";
-        const signatureStr = emarg?.signature_url ? "Signé" : "";
+      if (isSoirDate) {
+        // Evening: single signature column
+        tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Soir — Signature</th></tr></thead><tbody>`;
 
-        tableHtml += `<tr>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;">${presentStr}</td>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:120px;">${signatureStr}</td>`;
-        tableHtml += `</tr>`;
+        for (const contact of contactsList) {
+          if (!contact) continue;
+          const emarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "soir");
+          const presentStr = emarg?.present ? "✓" : "—";
+          const signatureStr = emarg?.signature_url ? "Signé" : "";
+
+          tableHtml += `<tr>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:120px;">${signatureStr || presentStr}</td>`;
+          tableHtml += `</tr>`;
+        }
+      } else {
+        // Day: matin + après-midi columns
+        tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Matin</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Après-midi</th></tr></thead><tbody>`;
+
+        for (const contact of contactsList) {
+          if (!contact) continue;
+          const matinEmarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "matin");
+          const amEmarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "apres_midi");
+          const matinStr = matinEmarg?.signature_url ? "Signé" : matinEmarg?.present ? "✓" : "—";
+          const amStr = amEmarg?.signature_url ? "Signé" : amEmarg?.present ? "✓" : "—";
+
+          tableHtml += `<tr>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:100px;">${matinStr}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:100px;">${amStr}</td>`;
+          tableHtml += `</tr>`;
+        }
       }
+
       tableHtml += `</tbody></table>`;
     }
 
