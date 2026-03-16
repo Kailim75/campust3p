@@ -446,7 +446,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                 Planning
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="date_debut"
@@ -479,7 +479,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                   control={form.control}
                   name="horaire_type"
                   render={({ field }) => (
-                    <FormItem className="col-span-full">
+                    <FormItem>
                       <FormLabel>Type d'horaire</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
@@ -496,6 +496,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                     </FormItem>
                   )}
                 />
+              </div>
 
                 {form.watch("horaire_type") === "soir" ? (
                   <>
