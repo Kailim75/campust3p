@@ -184,11 +184,12 @@ export function useGenerateEmargements() {
       dateDebut: string;
       dateFin: string;
     }) => {
-      // Get all inscriptions for this session (all active statuses)
+      // Get all active inscriptions for this session
       const { data: inscriptions, error: inscError } = await supabase
         .from("session_inscriptions")
         .select("contact_id")
         .eq("session_id", sessionId)
+        .is("deleted_at", null)
         .in("statut", ["inscrit", "confirme", "present", "encours", "valide", "en_attente", "document"]);
 
       if (inscError) throw inscError;
@@ -211,33 +212,47 @@ export function useGenerateEmargements() {
       const isSoir = sessionData?.horaire_type === "soir";
       const expectedPeriods = isSoir ? ["soir"] : ["matin", "apres_midi"];
 
-      // Get existing emargements to find ones to remove or regenerate
+      // Get existing emargements
       const { data: existingEmargements, error: existError } = await supabase
         .from("emargements")
-        .select("id, contact_id, periode")
+        .select("id, contact_id, periode, date_emargement")
         .eq("session_id", sessionId)
         .is("deleted_at", null);
 
       if (existError) throw existError;
 
-      const existingByContact = new Map<string, Set<string>>();
-      for (const emargement of existingEmargements || []) {
-        const periods = existingByContact.get(emargement.contact_id) || new Set<string>();
-        periods.add(emargement.periode);
-        existingByContact.set(emargement.contact_id, periods);
+      // Build a map: contactId -> date -> Set<periode>
+      const existingMap = new Map<string, Map<string, Set<string>>>();
+      for (const e of existingEmargements || []) {
+        if (!existingMap.has(e.contact_id)) {
+          existingMap.set(e.contact_id, new Map());
+        }
+        const dateMap = existingMap.get(e.contact_id)!;
+        if (!dateMap.has(e.date_emargement)) {
+          dateMap.set(e.date_emargement, new Set());
+        }
+        dateMap.get(e.date_emargement)!.add(e.periode);
       }
 
-      const hasExpectedPeriods = (contactId: string) => {
-        const periods = existingByContact.get(contactId);
-        if (!periods) return false;
-        if (periods.size !== expectedPeriods.length) return false;
-        return expectedPeriods.every((period) => periods.has(period));
-      };
+      // Generate expected dates
+      const dates: string[] = [];
+      const start = new Date(dateDebut);
+      const end = new Date(dateFin);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        if (isFC || (d.getDay() !== 0 && d.getDay() !== 6)) {
+          dates.push(d.toISOString().split("T")[0]);
+        }
+      }
 
-      // Soft delete emargements for contacts no longer enrolled or with outdated schedule periods
+      // Identify emargements to soft-delete:
+      // 1. Contacts no longer enrolled
+      // 2. Emargements with wrong periods (e.g. matin/apres_midi when session is soir)
       const toDelete = (existingEmargements || []).filter((e) => {
+        // Not enrolled anymore
         if (!inscritContactIds.has(e.contact_id)) return true;
-        return !hasExpectedPeriods(e.contact_id);
+        // Wrong period type
+        if (!expectedPeriods.includes(e.periode)) return true;
+        return false;
       });
 
       if (toDelete.length > 0) {
@@ -253,42 +268,40 @@ export function useGenerateEmargements() {
         if (delError) throw delError;
       }
 
-      // Contacts needing fresh emargements: missing or outdated periods
-      const contactIdsToGenerate = [...inscritContactIds].filter((contactId) => !hasExpectedPeriods(contactId));
+      // Build set of existing valid emargements (after deletions) for fast lookup
+      const deletedIds = new Set(toDelete.map(e => e.id));
+      const remainingSet = new Set(
+        (existingEmargements || [])
+          .filter(e => !deletedIds.has(e.id))
+          .map(e => `${e.contact_id}|${e.date_emargement}|${e.periode}`)
+      );
 
-      // Generate dates between start and end
-      const dates: string[] = [];
-      const start = new Date(dateDebut);
-      const end = new Date(dateFin);
+      // Generate missing emargements for all enrolled contacts × dates × periods
+      const emargements: Array<{
+        session_id: string;
+        contact_id: string;
+        date_emargement: string;
+        periode: string;
+        heure_debut: string;
+        heure_fin: string;
+      }> = [];
 
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        // Skip weekends only for non-FC sessions
-        if (isFC || (d.getDay() !== 0 && d.getDay() !== 6)) {
-          dates.push(d.toISOString().split("T")[0]);
-        }
-      }
-
-      const emargements = [];
-      for (const contactId of contactIdsToGenerate) {
+      for (const contactId of inscritContactIds) {
         for (const date of dates) {
-          if (isSoir) {
-            emargements.push({
-              session_id: sessionId,
-              contact_id: contactId,
-              date_emargement: date,
-              periode: "soir",
-              heure_debut: sessionData?.heure_debut?.slice(0, 5) || "18:00",
-              heure_fin: sessionData?.heure_fin?.slice(0, 5) || "21:30",
-            });
-          } else {
-            for (const periode of ["matin", "apres_midi"] as const) {
+          for (const periode of expectedPeriods) {
+            const key = `${contactId}|${date}|${periode}`;
+            if (!remainingSet.has(key)) {
               emargements.push({
                 session_id: sessionId,
                 contact_id: contactId,
                 date_emargement: date,
                 periode,
-                heure_debut: periode === "matin" ? "09:00" : "14:00",
-                heure_fin: periode === "matin" ? "12:30" : "17:30",
+                heure_debut: isSoir
+                  ? (sessionData?.heure_debut?.slice(0, 5) || "18:00")
+                  : (periode === "matin" ? "09:00" : "14:00"),
+                heure_fin: isSoir
+                  ? (sessionData?.heure_fin?.slice(0, 5) || "21:30")
+                  : (periode === "matin" ? "12:30" : "17:30"),
               });
             }
           }
