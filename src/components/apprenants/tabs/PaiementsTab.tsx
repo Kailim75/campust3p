@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
 import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
+import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
