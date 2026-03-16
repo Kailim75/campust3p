@@ -73,8 +73,17 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
 
   // Fetch formateur name
   const [formateurNom, setFormateurNom] = useState<string | null>(null);
-  import("@/integrations/supabase/client").then(() => {});
-  // Use effect to fetch formateur
+  useEffect(() => {
+    if (!session.formateur_id) { setFormateurNom(null); return; }
+    supabase
+      .from("formateurs")
+      .select("nom, prenom")
+      .eq("id", session.formateur_id)
+      .single()
+      .then(({ data }) => {
+        if (data) setFormateurNom(`${data.prenom} ${data.nom}`);
+      });
+  }, [session.formateur_id]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [signatureDialog, setSignatureDialog] = useState<{
