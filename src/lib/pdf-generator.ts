@@ -144,6 +144,25 @@ export interface SessionInfoWithId extends SessionInfo {
   id?: string;
 }
 
+/** Info about the third-party payer (enterprise / OPCO / other funder) */
+export interface PayerInfo {
+  /** Company / funder name */
+  company_name: string;
+  /** Address */
+  address?: string;
+  /** Email */
+  email?: string;
+  /** SIRET or other identifier */
+  siret?: string;
+}
+
+/** Info about the beneficiary learner when payer differs */
+export interface BeneficiaireInfo {
+  nom: string;
+  prenom: string;
+  civilite?: string;
+}
+
 export interface FactureInfo {
   numero_facture: string;
   montant_total: number;
@@ -153,6 +172,14 @@ export interface FactureInfo {
   date_emission?: string;
   date_echeance?: string;
   commentaires?: string;
+  /** When the payer is a third party (enterprise, OPCO, etc.) */
+  payer?: PayerInfo;
+  /** The learner beneficiary — shown as mention when payer is a third party */
+  beneficiaire?: BeneficiaireInfo;
+  /** Montant pris en charge by third party */
+  montant_pris_en_charge?: number;
+  /** Reste à charge for the learner */
+  reste_a_charge?: number;
 }
 
 // Helper function to build accreditations line
