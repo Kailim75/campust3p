@@ -3,14 +3,14 @@ import { fr } from "date-fns/locale";
 import JSZip from "jszip";
 
 // ============================================================
-// FEUILLE D'ÉMARGEMENT DOCX — PREMIUM AUDIT-READY V2
+// FEUILLE D'ÉMARGEMENT DOCX — PREMIUM AUDIT-READY V3
 // Charte T3P : Vert Forêt (#1B4D3E), Crème (#F5EBD7), Or (#D4A853)
 // Design institutionnel sobre — filets fins, fond blanc dominant
+// Agréments Taxi / VTC / VMDTR intégrés
 // ============================================================
 
 const T3P = {
   forestGreen: "1B4D3E",
-  forestGreenLight: "2A6B54",
   cream: "F5EBD7",
   creamLight: "FBF7EF",
   gold: "D4A853",
@@ -26,8 +26,8 @@ const T3P = {
 
 const LAYOUT = {
   pageWidth: 10706,
-  blockSpacing: 100,
-  signatureRowHeight: 780,
+  blockSpacing: 90,
+  signatureRowHeight: 760,
   emptyRows: 3,
 };
 
@@ -77,6 +77,9 @@ interface SessionInfo {
   centre_agrement_prefecture?: string;
   centre_code_rncp?: string;
   centre_code_rs?: string;
+  agrement_taxi?: string;
+  agrement_vtc?: string;
+  agrement_vmdtr?: string;
 }
 
 export async function generateEmargementDocx(
@@ -158,7 +161,7 @@ function wrapDocument(bodyContent: string): string {
     ${bodyContent}
     <w:sectPr>
       <w:pgSz w:w="11906" w:h="16838"/>
-      <w:pgMar w:top="500" w:right="600" w:bottom="500" w:left="600" w:header="400" w:footer="400" w:gutter="0"/>
+      <w:pgMar w:top="460" w:right="560" w:bottom="460" w:left="560" w:header="360" w:footer="360" w:gutter="0"/>
     </w:sectPr>
   </w:body>
 </w:document>`;
@@ -184,30 +187,27 @@ function buildBody(
 
     const pageNum = pageIdx + 1;
 
-    // 1. Bandeau organisme avec agréments
+    // 1. Bandeau organisme
     xml += headerBand(session);
-    xml += goldAccentLine();
-    xml += spacer(60);
+    xml += spacer(50);
 
     // 2. Titre
     xml += titleBlock(session);
     xml += spacer(LAYOUT.blockSpacing);
 
-    // 3. Informations session du jour
+    // 3. Bloc session du jour
     xml += sessionInfoBlock(session, date);
     xml += spacer(LAYOUT.blockSpacing);
 
     // 4. Tableau émargement
     xml += emargementTable(date, contacts, emargements);
-    xml += spacer(Math.floor(LAYOUT.blockSpacing * 1.3));
+    xml += spacer(Math.floor(LAYOUT.blockSpacing * 1.4));
 
-    // 5. Signatures formateur / cachet
+    // 5. Signatures
     xml += signatureBlock();
-    xml += spacer(80);
+    xml += spacer(70);
 
     // 6. Pied de page
-    xml += goldAccentLine();
-    xml += spacer(40);
     xml += footerBlock(session, pageNum, totalPages);
   });
 
@@ -215,90 +215,114 @@ function buildBody(
 }
 
 // ══════════════════════════════════════════════════
-// 1. BANDEAU ORGANISME — vert forêt, agréments
+// 1. BANDEAU ORGANISME — 2 niveaux visuels
 // ══════════════════════════════════════════════════
 
 function headerBand(session: SessionInfo): string {
   const w = LAYOUT.pageWidth;
 
-  // Build content paragraphs for inside the cell
-  const paragraphs: string[] = [];
+  // ── Top band: vert forêt avec nom + coordonnées ──
+  const topParas: string[] = [];
 
-  // Organisation name — large, white, bold
   if (session.centre_nom) {
-    paragraphs.push(cellPara(esc(session.centre_nom), 26, T3P.white, true, "center", 0));
+    topParas.push(cellPara(esc(session.centre_nom), 28, T3P.white, true, "center", 0));
   }
 
-  // Address
   if (session.centre_adresse) {
-    paragraphs.push(cellPara(esc(session.centre_adresse), 15, T3P.creamLight, false, "center", 20));
+    topParas.push(cellPara(esc(session.centre_adresse), 14, T3P.creamLight, false, "center", 10));
   }
 
-  // Contact line: tel + email
   const contactParts = [
     session.centre_telephone ? `Tél. ${session.centre_telephone}` : "",
     session.centre_email || "",
   ].filter(Boolean);
   if (contactParts.length > 0) {
-    paragraphs.push(cellPara(esc(contactParts.join("  •  ")), 14, T3P.creamLight, false, "center", 10));
+    topParas.push(cellPara(esc(contactParts.join("  ·  ")), 13, T3P.creamLight, false, "center", 0));
   }
 
-  // Legal identifiers: SIRET + NDA
-  const legalParts: string[] = [];
-  if (session.centre_siret) legalParts.push(`SIRET : ${session.centre_siret}`);
-  if (session.centre_nda) legalParts.push(`N° de déclaration d'activité : ${session.centre_nda}`);
-  if (legalParts.length > 0) {
-    paragraphs.push(cellPara(esc(legalParts.join("  |  ")), 13, T3P.goldLight, false, "center", 20));
-  }
-
-  // Accreditations: Qualiopi, RNCP, RS, Agrément préfectoral
-  const accredParts: string[] = [];
-  if (session.centre_qualiopi) accredParts.push(`Qualiopi n° ${session.centre_qualiopi}`);
-  if (session.centre_code_rncp) accredParts.push(`RNCP ${session.centre_code_rncp}`);
-  if (session.centre_code_rs) accredParts.push(`RS ${session.centre_code_rs}`);
-  if (session.centre_agrement_prefecture) accredParts.push(`Agrément préfectoral : ${session.centre_agrement_prefecture}`);
-  if (accredParts.length > 0) {
-    paragraphs.push(cellPara(esc(accredParts.join("  |  ")), 13, T3P.goldLight, false, "center", 6));
-  }
-
-  // Wrap in single-cell table with forest green background
-  return `<w:tbl>
+  const topBand = `<w:tbl>
     <w:tblPr><w:tblW w:w="${w}" w:type="dxa"/><w:jc w:val="center"/></w:tblPr>
     <w:tblGrid><w:gridCol w:w="${w}"/></w:tblGrid>
     <w:tr><w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.forestGreen}"/>
-      <w:tcMar><w:top w:w="140" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:left w:w="200" w:type="dxa"/><w:right w:w="200" w:type="dxa"/></w:tcMar>
+      <w:tcMar><w:top w:w="120" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:left w:w="200" w:type="dxa"/><w:right w:w="200" w:type="dxa"/></w:tcMar>
     </w:tcPr>
-      ${paragraphs.join("")}
+      ${topParas.join("")}
     </w:tc></w:tr>
   </w:tbl>`;
+
+  // ── Bottom band: crème avec identifiants légaux + agréments ──
+  const bottomLines: string[] = [];
+
+  // Line 1: SIRET + NDA
+  const legalParts: string[] = [];
+  if (session.centre_siret) legalParts.push(`SIRET : ${session.centre_siret}`);
+  if (session.centre_nda) legalParts.push(`Déclaration d'activité n° ${session.centre_nda}`);
+  if (legalParts.length > 0) bottomLines.push(legalParts.join("  ·  "));
+
+  // Line 2: Certifications (Qualiopi, RNCP, RS)
+  const certParts: string[] = [];
+  if (session.centre_qualiopi) certParts.push(`Certifié Qualiopi n° ${session.centre_qualiopi}`);
+  if (session.centre_code_rncp) certParts.push(`RNCP ${session.centre_code_rncp}`);
+  if (session.centre_code_rs) certParts.push(`RS ${session.centre_code_rs}`);
+  if (certParts.length > 0) bottomLines.push(certParts.join("  ·  "));
+
+  // Line 3: Agréments métier (Taxi, VTC, VMDTR, Préfecture)
+  const agParts: string[] = [];
+  if (session.agrement_taxi) agParts.push(`Agrément Taxi : ${session.agrement_taxi}`);
+  if (session.agrement_vtc) agParts.push(`Agrément VTC : ${session.agrement_vtc}`);
+  if (session.agrement_vmdtr) agParts.push(`Agrément VMDTR : ${session.agrement_vmdtr}`);
+  if (session.centre_agrement_prefecture) agParts.push(`Agrément préfectoral : ${session.centre_agrement_prefecture}`);
+  if (agParts.length > 0) bottomLines.push(agParts.join("  ·  "));
+
+  let bottomBand = "";
+  if (bottomLines.length > 0) {
+    const bottomParas = bottomLines.map((line, i) =>
+      cellPara(esc(line), 12, T3P.warmGray700, false, "center", i < bottomLines.length - 1 ? 10 : 0)
+    ).join("");
+
+    bottomBand = `<w:tbl>
+      <w:tblPr><w:tblW w:w="${w}" w:type="dxa"/><w:jc w:val="center"/></w:tblPr>
+      <w:tblGrid><w:gridCol w:w="${w}"/></w:tblGrid>
+      <w:tr><w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.cream}"/>
+        <w:tcMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="200" w:type="dxa"/><w:right w:w="200" w:type="dxa"/></w:tcMar>
+        <w:tcBorders><w:bottom w:val="single" w:sz="6" w:space="0" w:color="${T3P.gold}"/></w:tcBorders>
+      </w:tcPr>
+        ${bottomParas}
+      </w:tc></w:tr>
+    </w:tbl>`;
+  } else {
+    // Just a gold accent line if no legal info
+    bottomBand = goldAccentLine();
+  }
+
+  return topBand + bottomBand;
 }
 
 // ══════════════════════════════════════════════════
-// 2. TITRE — FEUILLE D'ÉMARGEMENT + formation
+// 2. TITRE
 // ══════════════════════════════════════════════════
 
 function titleBlock(session: SessionInfo): string {
-  let xml = centeredParagraph("FEUILLE D'ÉMARGEMENT", 30, T3P.forestGreen, true, 0, 30);
+  let xml = centeredParagraph("FEUILLE D'ÉMARGEMENT", 30, T3P.forestGreen, true, 0, 24);
 
   const formationTitle = getFormationTitle(session.formation_type);
   if (formationTitle) {
-    xml += centeredParagraph(formationTitle, 17, T3P.warmGray700, true, 0, 16);
+    xml += centeredParagraph(formationTitle, 16, T3P.warmGray700, true, 0, 14);
   }
 
   if (session.nom) {
-    xml += centeredParagraph(`Réf. session : ${esc(session.nom)}`, 15, T3P.warmGray500, false, 0, 0);
+    xml += centeredParagraph(`Réf. session : ${esc(session.nom)}`, 14, T3P.warmGray500, false, 0, 0);
   }
 
   return xml;
 }
 
 // ══════════════════════════════════════════════════
-// 3. BLOC SESSION DU JOUR — clé-valeur propre
+// 3. BLOC SESSION DU JOUR
 // ══════════════════════════════════════════════════
 
 function sessionInfoBlock(session: SessionInfo, date: Date): string {
   const dayLabel = format(date, "EEEE dd MMMM yyyy", { locale: fr });
-  // Capitalize first letter
   const dayLabelCap = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
 
   const fields: { label: string; value: string }[] = [];
@@ -306,20 +330,20 @@ function sessionInfoBlock(session: SessionInfo, date: Date): string {
   if (session.lieu) fields.push({ label: "Lieu", value: session.lieu });
   if (session.formateur_nom) fields.push({ label: "Formateur", value: session.formateur_nom });
 
-  const colLabelW = 2000;
+  const colLabelW = 1800;
   const colValueW = LAYOUT.pageWidth - colLabelW;
 
   let rows = "";
   fields.forEach((f, idx) => {
     const bg = idx % 2 === 0 ? T3P.creamLight : T3P.white;
-    rows += `<w:tr><w:trPr><w:trHeight w:val="320" w:hRule="atLeast"/></w:trPr>
-      <w:tc><w:tcPr><w:tcW w:w="${colLabelW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.cream}"/><w:vAlign w:val="center"/>
+    rows += `<w:tr><w:trPr><w:trHeight w:val="300" w:hRule="atLeast"/></w:trPr>
+      <w:tc><w:tcPr><w:tcW w:w="${colLabelW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.forestGreen}"/><w:vAlign w:val="center"/>
         <w:tcMar><w:left w:w="120" w:type="dxa"/></w:tcMar>
       </w:tcPr>
-        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="17"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${esc(f.label)}</w:t></w:r></w:p>
+        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="${T3P.white}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${esc(f.label)}</w:t></w:r></w:p>
       </w:tc>
       <w:tc><w:tcPr><w:tcW w:w="${colValueW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/>
-        <w:tcMar><w:left w:w="120" w:type="dxa"/></w:tcMar>
+        <w:tcMar><w:left w:w="140" w:type="dxa"/></w:tcMar>
       </w:tcPr>
         <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="17"/><w:color w:val="${T3P.warmGray700}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(f.value)}</w:t></w:r></w:p>
       </w:tc>
@@ -329,12 +353,12 @@ function sessionInfoBlock(session: SessionInfo, date: Date): string {
   return `<w:tbl>
     <w:tblPr><w:tblW w:w="${LAYOUT.pageWidth}" w:type="dxa"/><w:jc w:val="center"/>
       <w:tblBorders>
-        <w:top w:val="single" w:sz="6" w:space="0" w:color="${T3P.gold}"/>
-        <w:left w:val="single" w:sz="4" w:space="0" w:color="${T3P.gold}"/>
-        <w:bottom w:val="single" w:sz="6" w:space="0" w:color="${T3P.gold}"/>
-        <w:right w:val="single" w:sz="4" w:space="0" w:color="${T3P.gold}"/>
+        <w:top w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+        <w:left w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
+        <w:bottom w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+        <w:right w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
         <w:insideH w:val="single" w:sz="2" w:space="0" w:color="${T3P.warmGray100}"/>
-        <w:insideV w:val="single" w:sz="2" w:space="0" w:color="${T3P.gold}"/>
+        <w:insideV w:val="single" w:sz="2" w:space="0" w:color="${T3P.forestGreen}"/>
       </w:tblBorders>
     </w:tblPr>
     <w:tblGrid><w:gridCol w:w="${colLabelW}"/><w:gridCol w:w="${colValueW}"/></w:tblGrid>
@@ -343,7 +367,7 @@ function sessionInfoBlock(session: SessionInfo, date: Date): string {
 }
 
 // ══════════════════════════════════════════════════
-// 4. TABLEAU ÉMARGEMENT — N° + Nom + Signatures
+// 4. TABLEAU ÉMARGEMENT
 // ══════════════════════════════════════════════════
 
 function emargementTable(
@@ -354,8 +378,8 @@ function emargementTable(
   const isSoir = emargements.some((e) => e.periode === "soir");
   const dateStr = format(date, "yyyy-MM-dd");
 
-  const numColW = 480;
-  const nameColW = 3700;
+  const numColW = 450;
+  const nameColW = 3600;
 
   if (isSoir) {
     const sigColW = LAYOUT.pageWidth - numColW - nameColW;
@@ -382,8 +406,8 @@ function buildTableXml(
   emargements: EmargementData[],
   periodes: string[]
 ): string {
-  // Header row — forest green background
-  let headerRow = `<w:tr><w:trPr><w:trHeight w:val="400" w:hRule="atLeast"/></w:trPr>`;
+  // Header row
+  let headerRow = `<w:tr><w:trPr><w:trHeight w:val="380" w:hRule="atLeast"/></w:trPr>`;
   headers.forEach((label, i) => {
     headerRow += `<w:tc><w:tcPr><w:tcW w:w="${colWidths[i]}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.forestGreen}"/><w:vAlign w:val="center"/></w:tcPr>
       <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="${T3P.white}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${esc(label)}</w:t></w:r></w:p>
@@ -400,7 +424,7 @@ function buildTableXml(
 
     // N°
     contactRows += `<w:tc><w:tcPr><w:tcW w:w="${colWidths[0]}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/></w:tcPr>
-      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${idx + 1}</w:t></w:r></w:p>
+      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="15"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${idx + 1}</w:t></w:r></w:p>
     </w:tc>`;
 
     // Nom Prénom
@@ -424,9 +448,8 @@ function buildTableXml(
   for (let i = 0; i < LAYOUT.emptyRows; i++) {
     const bg = (contacts.length + i) % 2 === 0 ? T3P.white : T3P.creamLight;
     emptyRows += `<w:tr><w:trPr><w:trHeight w:val="${LAYOUT.signatureRowHeight}" w:hRule="atLeast"/></w:trPr>`;
-    // N°
     emptyRows += `<w:tc><w:tcPr><w:tcW w:w="${colWidths[0]}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/></w:tcPr>
-      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="${T3P.warmGray300}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${contacts.length + i + 1}</w:t></w:r></w:p>
+      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="15"/><w:color w:val="${T3P.warmGray300}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>${contacts.length + i + 1}</w:t></w:r></w:p>
     </w:tc>`;
     for (let c = 1; c < colWidths.length; c++) {
       emptyRows += `<w:tc><w:tcPr><w:tcW w:w="${colWidths[c]}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p></w:tc>`;
@@ -451,7 +474,7 @@ function buildTableXml(
 }
 
 // ══════════════════════════════════════════════════
-// 5. BLOC SIGNATURES — formateur + cachet
+// 5. SIGNATURES
 // ══════════════════════════════════════════════════
 
 function signatureBlock(): string {
@@ -469,15 +492,15 @@ function signatureBlock(): string {
     <w:tblGrid><w:gridCol w:w="${colW}"/><w:gridCol w:w="${colW}"/></w:tblGrid>
     <w:tr>
       <w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.creamLight}"/>
-        <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="140" w:type="dxa"/></w:tcMar>
+        <w:tcMar><w:top w:w="70" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:left w:w="140" w:type="dxa"/></w:tcMar>
       </w:tcPr>
-        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Signature du formateur :</w:t></w:r></w:p>
+        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Signature du formateur :</w:t></w:r></w:p>
         <w:p/><w:p/><w:p/>
       </w:tc>
       <w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.creamLight}"/>
-        <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="140" w:type="dxa"/></w:tcMar>
+        <w:tcMar><w:top w:w="70" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="140" w:type="dxa"/></w:tcMar>
       </w:tcPr>
-        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Cachet de l'organisme :</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="${T3P.forestGreen}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>Cachet de l'organisme :</w:t></w:r></w:p>
         <w:p/><w:p/><w:p/>
       </w:tc>
     </w:tr>
@@ -485,7 +508,7 @@ function signatureBlock(): string {
 }
 
 // ══════════════════════════════════════════════════
-// 6. PIED DE PAGE — centre + date + page X/Y
+// 6. PIED DE PAGE
 // ══════════════════════════════════════════════════
 
 function footerBlock(session: SessionInfo, pageNum: number, totalPages: number): string {
@@ -495,18 +518,19 @@ function footerBlock(session: SessionInfo, pageNum: number, totalPages: number):
 
   const colW = Math.floor(LAYOUT.pageWidth / 3);
 
-  return `<w:tbl>
+  return `${goldAccentLine()}
+  <w:tbl>
     <w:tblPr><w:tblW w:w="${LAYOUT.pageWidth}" w:type="dxa"/><w:jc w:val="center"/></w:tblPr>
     <w:tblGrid><w:gridCol w:w="${colW}"/><w:gridCol w:w="${colW}"/><w:gridCol w:w="${colW}"/></w:tblGrid>
     <w:tr>
       <w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/></w:tcPr>
-        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="14"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${left}</w:t></w:r></w:p>
+        <w:p><w:pPr><w:spacing w:before="40" w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="13"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${left}</w:t></w:r></w:p>
       </w:tc>
       <w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/></w:tcPr>
-        <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="14"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(center)}</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="13"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(center)}</w:t></w:r></w:p>
       </w:tc>
       <w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/></w:tcPr>
-        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="14"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(right)}</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:before="40" w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="13"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(right)}</w:t></w:r></w:p>
       </w:tc>
     </w:tr>
   </w:tbl>`;
@@ -520,7 +544,7 @@ function goldAccentLine(): string {
   return `<w:tbl>
     <w:tblPr><w:tblW w:w="${LAYOUT.pageWidth}" w:type="dxa"/><w:jc w:val="center"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr>
     <w:tblGrid><w:gridCol w:w="${LAYOUT.pageWidth}"/></w:tblGrid>
-    <w:tr><w:trPr><w:trHeight w:val="24" w:hRule="exact"/></w:trPr>
+    <w:tr><w:trPr><w:trHeight w:val="20" w:hRule="exact"/></w:trPr>
       <w:tc><w:tcPr><w:tcW w:w="${LAYOUT.pageWidth}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${T3P.gold}"/></w:tcPr>
         <w:p><w:pPr><w:spacing w:after="0" w:line="20" w:lineRule="exact"/></w:pPr></w:p>
       </w:tc>
@@ -554,8 +578,8 @@ function sigStatus(emargement?: EmargementData): { text: string; color: string }
 
 function sigCell(width: number, bg: string, status: { text: string; color: string }): string {
   const rpr = status.color
-    ? `<w:sz w:val="16"/><w:color w:val="${status.color}"/><w:b/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>`
-    : `<w:sz w:val="16"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>`;
+    ? `<w:sz w:val="15"/><w:color w:val="${status.color}"/><w:b/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>`
+    : `<w:sz w:val="15"/><w:color w:val="${T3P.warmGray500}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>`;
   return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/></w:tcPr>
     <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr>${rpr}</w:rPr><w:t xml:space="preserve">${esc(status.text)}</w:t></w:r></w:p>
   </w:tc>`;
