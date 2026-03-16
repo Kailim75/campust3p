@@ -195,6 +195,9 @@ export function FactureDetailSheet({
         email: facture.contact.email || undefined,
         telephone: facture.contact.telephone || undefined,
       };
+      const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = extractPayerInfo(
+        facture.session_inscription, facture.contact
+      );
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -204,6 +207,10 @@ export function FactureDetailSheet({
         date_emission: facture.date_emission || undefined,
         date_echeance: facture.date_echeance || undefined,
         commentaires: facture.commentaires || undefined,
+        payer,
+        beneficiaire,
+        montant_pris_en_charge: mpc,
+        reste_a_charge: rac,
       };
       const session = facture.session_inscription?.session;
       const sessionInfo = session ? {
