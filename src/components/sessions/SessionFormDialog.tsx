@@ -53,6 +53,7 @@ const sessionSchema = z.object({
   catalogue_formation_id: z.string().optional(),
   date_debut: z.string().min(1, "La date de début est requise"),
   date_fin: z.string().min(1, "La date de fin est requise"),
+  horaire_type: z.enum(["jour", "soir"]).default("jour"),
   heure_debut: z.string().default("09:00"),
   heure_fin: z.string().default("17:00"),
   heure_debut_matin: z.string().default("09:00"),
