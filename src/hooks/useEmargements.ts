@@ -308,45 +308,6 @@ export function useGenerateEmargements() {
         }
       }
 
-      // Generate dates between start and end
-      const dates: string[] = [];
-      const start = new Date(dateDebut);
-      const end = new Date(dateFin);
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        // Skip weekends only for non-FC sessions
-        if (isFC || (d.getDay() !== 0 && d.getDay() !== 6)) {
-          dates.push(d.toISOString().split("T")[0]);
-        }
-      }
-
-      const emargements = [];
-      for (const contactId of contactIdsToGenerate) {
-        for (const date of dates) {
-          if (isSoir) {
-            emargements.push({
-              session_id: sessionId,
-              contact_id: contactId,
-              date_emargement: date,
-              periode: "soir",
-              heure_debut: sessionData?.heure_debut?.slice(0, 5) || "18:00",
-              heure_fin: sessionData?.heure_fin?.slice(0, 5) || "21:30",
-            });
-          } else {
-            for (const periode of ["matin", "apres_midi"] as const) {
-              emargements.push({
-                session_id: sessionId,
-                contact_id: contactId,
-                date_emargement: date,
-                periode,
-                heure_debut: periode === "matin" ? "09:00" : "14:00",
-                heure_fin: periode === "matin" ? "12:30" : "17:30",
-              });
-            }
-          }
-        }
-      }
-
       // Insert in batches
       if (emargements.length > 0) {
         const batchSize = 50;
