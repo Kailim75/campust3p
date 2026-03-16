@@ -256,7 +256,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
 
     const { data: centre } = await supabase
       .from("centre_formation")
-      .select("nom_commercial, nda, siret, adresse_complete, telephone, email")
+      .select("nom_commercial, nda, siret, adresse_complete, telephone, email, qualiopi_numero, agrement_prefecture, code_rncp, code_rs")
       .limit(1)
       .single();
 
@@ -273,6 +273,10 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       centre_siret: centre?.siret || undefined,
       centre_telephone: centre?.telephone || undefined,
       centre_email: centre?.email || undefined,
+      centre_qualiopi: centre?.qualiopi_numero || undefined,
+      centre_agrement_prefecture: centre?.agrement_prefecture || undefined,
+      centre_code_rncp: centre?.code_rncp || undefined,
+      centre_code_rs: centre?.code_rs || undefined,
     });
 
     const url = URL.createObjectURL(blob);
