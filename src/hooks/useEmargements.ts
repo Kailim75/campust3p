@@ -58,7 +58,7 @@ export function useCreateEmargement() {
       session_id: string;
       contact_id: string;
       date_emargement: string;
-      periode: "matin" | "apres_midi";
+      periode: "matin" | "apres_midi" | "soir";
       heure_debut?: string;
       heure_fin?: string;
     }) => {
