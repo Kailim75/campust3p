@@ -54,6 +54,8 @@ interface EmargementData {
   contact_id: string;
   date_emargement: string;
   periode: "matin" | "apres_midi" | "soir";
+  heure_debut?: string | null;
+  heure_fin?: string | null;
   present: boolean;
   signature_url: string | null;
   date_signature: string | null;
