@@ -40,7 +40,7 @@ interface EmargementData {
   id: string;
   contact_id: string;
   date_emargement: string;
-  periode: "matin" | "apres_midi";
+  periode: "matin" | "apres_midi" | "soir";
   present: boolean;
   signature_url: string | null;
   date_signature: string | null;
@@ -277,7 +277,60 @@ function dayEmargementTable(
   emargements: EmargementData[]
 ): string {
   const totalWidth = 10706;
+  // Detect if this is a "soir" session (all emargements have periode === "soir")
+  const isSoir = emargements.some(e => e.periode === "soir");
+  
   const nameColW = 4000;
+
+  if (isSoir) {
+    // Evening session: single signature column
+    const sigColW = totalWidth - nameColW;
+    const dateStr = format(date, "yyyy-MM-dd");
+
+    let headerRow = `<w:tr><w:trPr><w:trHeight w:val="400" w:hRule="atLeast"/></w:trPr>`;
+    headerRow += headerCell(nameColW, "Nom et Prénom");
+    headerRow += headerCell(sigColW, "Soir");
+    headerRow += `</w:tr>`;
+
+    let contactRows = "";
+    contacts.forEach((contact, idx) => {
+      const bg = idx % 2 === 0 ? T3P.white : T3P.creamLight;
+      const soirEmarg = emargements.find(e => e.date_emargement === dateStr && e.contact_id === contact.id && e.periode === "soir");
+
+      contactRows += `<w:tr><w:trPr><w:trHeight w:val="600" w:hRule="atLeast"/></w:trPr>`;
+      contactRows += `<w:tc><w:tcPr><w:tcW w:w="${nameColW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/><w:vAlign w:val="center"/><w:tcMar><w:left w:w="80" w:type="dxa"/></w:tcMar></w:tcPr>
+        <w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="18"/><w:color w:val="${T3P.warmGray700}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">${esc(contact.nom.toUpperCase())} ${esc(contact.prenom)}</w:t></w:r></w:p>
+      </w:tc>`;
+      contactRows += sigCell(sigColW, bg, sigStatus(soirEmarg));
+      contactRows += `</w:tr>`;
+    });
+
+    let emptyRows = "";
+    for (let i = 0; i < 3; i++) {
+      const bg = (contacts.length + i) % 2 === 0 ? T3P.white : T3P.creamLight;
+      emptyRows += `<w:tr><w:trPr><w:trHeight w:val="600" w:hRule="atLeast"/></w:trPr>`;
+      emptyRows += `<w:tc><w:tcPr><w:tcW w:w="${nameColW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p></w:tc>`;
+      emptyRows += `<w:tc><w:tcPr><w:tcW w:w="${sigColW}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${bg}"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p></w:tc>`;
+      emptyRows += `</w:tr>`;
+    }
+
+    return `<w:tbl>
+      <w:tblPr><w:tblW w:w="${totalWidth}" w:type="dxa"/><w:jc w:val="center"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:left w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:bottom w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:right w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:insideV w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid><w:gridCol w:w="${nameColW}"/><w:gridCol w:w="${sigColW}"/></w:tblGrid>
+      ${headerRow}${contactRows}${emptyRows}
+    </w:tbl>`;
+  }
+
+  // Day session: matin + apres_midi columns
   const sigColW = Math.floor((totalWidth - nameColW) / 2);
   const dateStr = format(date, "yyyy-MM-dd");
 

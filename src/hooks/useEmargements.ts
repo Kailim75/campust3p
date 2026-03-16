@@ -7,7 +7,7 @@ export interface Emargement {
   session_id: string;
   contact_id: string;
   date_emargement: string;
-  periode: "matin" | "apres_midi";
+  periode: "matin" | "apres_midi" | "soir";
   heure_debut: string | null;
   heure_fin: string | null;
   present: boolean;
@@ -58,7 +58,7 @@ export function useCreateEmargement() {
       session_id: string;
       contact_id: string;
       date_emargement: string;
-      periode: "matin" | "apres_midi";
+      periode: "matin" | "apres_midi" | "soir";
       heure_debut?: string;
       heure_fin?: string;
     }) => {
@@ -228,10 +228,11 @@ export function useGenerateEmargements() {
       // Detect FC (formation continue) sessions - often held on weekends
       const { data: sessionData } = await supabase
         .from("sessions")
-        .select("formation_type")
+        .select("formation_type, horaire_type, heure_debut, heure_fin")
         .eq("id", sessionId)
         .single();
       const isFC = sessionData?.formation_type?.toUpperCase().startsWith("FC-");
+      const isSoir = (sessionData as any)?.horaire_type === "soir";
 
       // Generate dates between start and end
       const dates: string[] = [];
@@ -249,15 +250,28 @@ export function useGenerateEmargements() {
       const emargements = [];
       for (const contactId of newContactIds) {
         for (const date of dates) {
-          for (const periode of ["matin", "apres_midi"] as const) {
+          if (isSoir) {
+            // Evening sessions: single "soir" period
             emargements.push({
               session_id: sessionId,
               contact_id: contactId,
               date_emargement: date,
-              periode,
-              heure_debut: periode === "matin" ? "09:00" : "14:00",
-              heure_fin: periode === "matin" ? "12:30" : "17:30",
+              periode: "soir",
+              heure_debut: (sessionData as any)?.heure_debut?.slice(0, 5) || "18:00",
+              heure_fin: (sessionData as any)?.heure_fin?.slice(0, 5) || "21:30",
             });
+          } else {
+            // Day sessions: matin + apres_midi
+            for (const periode of ["matin", "apres_midi"] as const) {
+              emargements.push({
+                session_id: sessionId,
+                contact_id: contactId,
+                date_emargement: date,
+                periode,
+                heure_debut: periode === "matin" ? "09:00" : "14:00",
+                heure_fin: periode === "matin" ? "12:30" : "17:30",
+              });
+            }
           }
         }
       }

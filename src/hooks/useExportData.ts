@@ -106,7 +106,7 @@ export function useExportData() {
         const contact = e.contact as any;
         return {
           "Date": format(new Date(e.date_emargement), "dd/MM/yyyy", { locale: fr }),
-          "Période": e.periode === "matin" ? "Matin" : "Après-midi",
+          "Période": e.periode === "matin" ? "Matin" : e.periode === "soir" ? "Soir" : "Après-midi",
           "Heure début": e.heure_debut || "",
           "Heure fin": e.heure_fin || "",
           "Prénom": contact?.prenom || "",

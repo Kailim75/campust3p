@@ -60,6 +60,7 @@ interface EmargementSheetProps {
     lieu?: string;
     formation_type?: string;
     formateur_id?: string | null;
+    horaire_type?: string | null;
   };
 }
 
@@ -382,51 +383,102 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Stagiaire</TableHead>
-                  <TableHead className="text-center">18h00 - 21h30 — Signature</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contacts.map((contact) => {
-                  const morningEmarg = dateEmargements.find(
-                    (e) => e.contact_id === contact?.id && e.periode === "matin"
-                  );
-                  const afternoonEmarg = dateEmargements.find(
-                    (e) => e.contact_id === contact?.id && e.periode === "apres_midi"
-                  );
-                  // Use whichever has signature/presence
-                  const bestEmarg = (morningEmarg?.signature_url || morningEmarg?.present) ? morningEmarg : afternoonEmarg;
+            {(() => {
+              const isSoir = (session as any).horaire_type === "soir" || dateEmargements.some((e) => e.periode === "soir");
+              
+              if (isSoir) {
+                // Evening session: single column
+                return (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Stagiaire</TableHead>
+                        <TableHead className="text-center">Soir — Signature</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contacts.map((contact) => {
+                        const soirEmarg = dateEmargements.find(
+                          (e) => e.contact_id === contact?.id && e.periode === "soir"
+                        );
+                        return (
+                          <TableRow key={contact?.id}>
+                            <TableCell className="font-medium">
+                              {contact?.prenom} {contact?.nom}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {soirEmarg && (
+                                <EmargementCell
+                                  emargement={soirEmarg}
+                                  onSign={() =>
+                                    setSignatureDialog({
+                                      open: true,
+                                      emargementId: soirEmarg.id,
+                                      contactName: `${contact?.prenom} ${contact?.nom}`,
+                                    })
+                                  }
+                                  onToggle={(present) =>
+                                    handleTogglePresence(soirEmarg.id, present)
+                                  }
+                                />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                );
+              }
 
-                  return (
-                    <TableRow key={contact?.id}>
-                      <TableCell className="font-medium">
-                        {contact?.prenom} {contact?.nom}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {bestEmarg && (
-                          <EmargementCell
-                            emargement={bestEmarg}
-                            onSign={() =>
-                              setSignatureDialog({
-                                open: true,
-                                emargementId: bestEmarg.id,
-                                contactName: `${contact?.prenom} ${contact?.nom}`,
-                              })
-                            }
-                            onToggle={(present) =>
-                              handleTogglePresence(bestEmarg.id, present)
-                            }
-                          />
-                        )}
-                      </TableCell>
+              // Day session: merged matin/apres-midi
+              return (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Stagiaire</TableHead>
+                      <TableHead className="text-center">Signature</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {contacts.map((contact) => {
+                      const morningEmarg = dateEmargements.find(
+                        (e) => e.contact_id === contact?.id && e.periode === "matin"
+                      );
+                      const afternoonEmarg = dateEmargements.find(
+                        (e) => e.contact_id === contact?.id && e.periode === "apres_midi"
+                      );
+                      const bestEmarg = (morningEmarg?.signature_url || morningEmarg?.present) ? morningEmarg : afternoonEmarg;
+
+                      return (
+                        <TableRow key={contact?.id}>
+                          <TableCell className="font-medium">
+                            {contact?.prenom} {contact?.nom}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {bestEmarg && (
+                              <EmargementCell
+                                emargement={bestEmarg}
+                                onSign={() =>
+                                  setSignatureDialog({
+                                    open: true,
+                                    emargementId: bestEmarg.id,
+                                    contactName: `${contact?.prenom} ${contact?.nom}`,
+                                  })
+                                }
+                                onToggle={(present) =>
+                                  handleTogglePresence(bestEmarg.id, present)
+                                }
+                              />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              );
+            })()}
           </CardContent>
         </Card>
       ) : selectedDate ? (
