@@ -7,7 +7,7 @@ export interface Emargement {
   session_id: string;
   contact_id: string;
   date_emargement: string;
-  periode: "matin" | "apres_midi";
+  periode: "matin" | "apres_midi" | "soir";
   heure_debut: string | null;
   heure_fin: string | null;
   present: boolean;
