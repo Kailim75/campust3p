@@ -92,6 +92,15 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
     contactName: string;
   } | null>(null);
 
+  // Auto-select first date or today when emargements load
+  useEffect(() => {
+    if (!emargements || emargements.length === 0 || selectedDate) return;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const availableDates = [...new Set(emargements.map((e) => e.date_emargement))].sort();
+    const matchToday = availableDates.find((d) => d === today);
+    setSelectedDate(matchToday || availableDates[0] || null);
+  }, [emargements, selectedDate]);
+
   // Get unique dates from session range
   // Don't filter weekends for FC sessions (often held on Saturdays)
   const isFC = session.formation_type?.toUpperCase().startsWith("FC-");
@@ -184,24 +193,49 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         weekday: "long", day: "numeric", month: "long", year: "numeric",
       });
 
+      // Detect if this date has evening-only emargements
+      const isSoirDate = dateEmargs.every((e) => e.periode === "soir");
+
       tableHtml += `<h3 style="margin-top:20px;page-break-before:auto;">${dateFormatted}</h3>`;
       tableHtml += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px;">`;
-      tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
-      tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Présent</th>`;
-      tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Signature</th></tr></thead><tbody>`;
 
-      for (const contact of contactsList) {
-        if (!contact) continue;
-        const emarg = dateEmargs.find((e) => e.contact_id === contact.id);
-        const presentStr = emarg?.present ? "✓" : "—";
-        const signatureStr = emarg?.signature_url ? "Signé" : "";
+      if (isSoirDate) {
+        // Evening: single signature column
+        tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Soir — Signature</th></tr></thead><tbody>`;
 
-        tableHtml += `<tr>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;">${presentStr}</td>`;
-        tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:120px;">${signatureStr}</td>`;
-        tableHtml += `</tr>`;
+        for (const contact of contactsList) {
+          if (!contact) continue;
+          const emarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "soir");
+          const presentStr = emarg?.present ? "✓" : "—";
+          const signatureStr = emarg?.signature_url ? "Signé" : "";
+
+          tableHtml += `<tr>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:120px;">${signatureStr || presentStr}</td>`;
+          tableHtml += `</tr>`;
+        }
+      } else {
+        // Day: matin + après-midi columns
+        tableHtml += `<thead><tr><th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:left;">Stagiaire</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Matin</th>`;
+        tableHtml += `<th style="border:1px solid #333;padding:6px 8px;background:#f5f5f5;text-align:center;">Après-midi</th></tr></thead><tbody>`;
+
+        for (const contact of contactsList) {
+          if (!contact) continue;
+          const matinEmarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "matin");
+          const amEmarg = dateEmargs.find((e) => e.contact_id === contact.id && e.periode === "apres_midi");
+          const matinStr = matinEmarg?.signature_url ? "Signé" : matinEmarg?.present ? "✓" : "—";
+          const amStr = amEmarg?.signature_url ? "Signé" : amEmarg?.present ? "✓" : "—";
+
+          tableHtml += `<tr>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;">${contact.prenom || ""} ${contact.nom || ""}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:100px;">${matinStr}</td>`;
+          tableHtml += `<td style="border:1px solid #333;padding:6px 8px;text-align:center;min-width:100px;">${amStr}</td>`;
+          tableHtml += `</tr>`;
+        }
       }
+
       tableHtml += `</tbody></table>`;
     }
 
@@ -219,15 +253,6 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
   /** Legacy DOCX generator fallback */
   const handleDownloadLegacyDocx = async () => {
     if (!emargements) return;
-    let formateurNom: string | undefined;
-    if (session.formateur_id) {
-      const { data: formateur } = await supabase
-        .from("formateurs")
-        .select("nom, prenom")
-        .eq("id", session.formateur_id)
-        .single();
-      if (formateur) formateurNom = `${formateur.prenom} ${formateur.nom}`;
-    }
 
     const { data: centre } = await supabase
       .from("centre_formation")
@@ -241,7 +266,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       date_fin: session.date_fin,
       lieu: session.lieu,
       formation_type: session.formation_type,
-      formateur_nom: formateurNom,
+      formateur_nom: formateurNom || undefined,
       centre_nom: centre?.nom_commercial || undefined,
       centre_adresse: centre?.adresse_complete || undefined,
       centre_nda: centre?.nda || undefined,
@@ -314,7 +339,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{contacts.length}</p>
                 <p className="text-xs text-muted-foreground">Stagiaires</p>
@@ -407,7 +432,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
           </CardHeader>
           <CardContent>
             {(() => {
-              const isSoir = (session as any).horaire_type === "soir" || dateEmargements.some((e) => e.periode === "soir");
+              const isSoir = session.horaire_type === "soir" || dateEmargements.some((e) => e.periode === "soir");
               
               if (isSoir) {
                 // Evening session: single column
