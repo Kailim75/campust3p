@@ -317,9 +317,15 @@ function dayEmargementTable(
     return `<w:tbl>
       <w:tblPr><w:tblW w:w="${totalWidth}" w:type="dxa"/><w:jc w:val="center"/>
         <w:tblBorders>
-          ${["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:space="0" w:color="${T3P.warmGray300}"/>`).join("")}
+          <w:top w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:left w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:bottom w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:right w:val="single" w:sz="6" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
+          <w:insideV w:val="single" w:sz="4" w:space="0" w:color="${T3P.forestGreen}"/>
         </w:tblBorders>
       </w:tblPr>
+      <w:tblGrid><w:gridCol w:w="${nameColW}"/><w:gridCol w:w="${sigColW}"/></w:tblGrid>
       ${headerRow}${contactRows}${emptyRows}
     </w:tbl>`;
   }
