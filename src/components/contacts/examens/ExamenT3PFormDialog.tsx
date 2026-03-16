@@ -61,6 +61,7 @@ export function ExamenT3PFormDialog({
     centre_examen: examen?.centre_examen || "",
     departement: examen?.departement || "",
     numero_convocation: examen?.numero_convocation || "",
+    numero_dossier: examen?.numero_dossier || "",
     statut: (examen?.statut || "planifie") as ExamenT3PStatut,
     resultat: (examen?.resultat || "") as ExamenT3PResultat | "",
     score: examen?.score ?? null,
