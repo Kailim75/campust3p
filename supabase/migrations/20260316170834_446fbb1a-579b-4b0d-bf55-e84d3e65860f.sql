@@ -1,0 +1,1 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS horaire_type TEXT NOT NULL DEFAULT 'jour';

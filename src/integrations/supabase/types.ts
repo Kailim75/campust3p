@@ -5932,6 +5932,7 @@ export type Database = {
           heure_fin: string | null
           heure_fin_aprem: string | null
           heure_fin_matin: string | null
+          horaire_type: string
           id: string
           lieu: string | null
           nom: string
@@ -5972,6 +5973,7 @@ export type Database = {
           heure_fin?: string | null
           heure_fin_aprem?: string | null
           heure_fin_matin?: string | null
+          horaire_type?: string
           id?: string
           lieu?: string | null
           nom: string
@@ -6012,6 +6014,7 @@ export type Database = {
           heure_fin?: string | null
           heure_fin_aprem?: string | null
           heure_fin_matin?: string | null
+          horaire_type?: string
           id?: string
           lieu?: string | null
           nom?: string
