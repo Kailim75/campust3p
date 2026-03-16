@@ -1029,7 +1029,30 @@ export function generateFacturePDF(
     yPos += splitComments.length * 4 + 5;
   }
 
-  // ── G. FOOTER JURIDIQUE & MENTIONS DE RÈGLEMENT ────────────────
+  // ── F bis. MENTION BÉNÉFICIAIRE / PAYEUR TIERS ─────────────────
+  if (hasPayer && facture.beneficiaire) {
+    const benefFullName = `${facture.beneficiaire.civilite ? facture.beneficiaire.civilite + " " : ""}${facture.beneficiaire.prenom} ${facture.beneficiaire.nom}`.trim();
+    const payerName = facture.payer!.company_name;
+
+    doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+    doc.roundedRect(marginL, yPos - 2, contentW, 14, 1.5, 1.5, "F");
+    doc.setFillColor(COLORS.forestGreenLight.r, COLORS.forestGreenLight.g, COLORS.forestGreenLight.b);
+    doc.rect(marginL, yPos - 2, 2, 14, "F");
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("Formation suivie par", marginL + 5, yPos + 3);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    const mentionText = `${benefFullName}, prise en charge par ${payerName}`;
+    doc.text(mentionText, marginL + 5, yPos + 8);
+
+    yPos += 18;
+  }
+
+
   // Fixed position near bottom, stable for PDF export
   const footerStartY = 235;
   doc.setFontSize(7);
