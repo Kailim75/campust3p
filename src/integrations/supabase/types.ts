@@ -5808,13 +5808,18 @@ export type Database = {
           deleted_by: string | null
           documents_envoyes: string[] | null
           id: string
+          montant_formation: number | null
+          montant_pris_en_charge: number | null
+          payeur_partner_id: string | null
           qualification_source: string | null
           qualified_at: string | null
           qualified_by: string | null
+          reste_a_charge: number | null
           session_id: string
           statut: string
           statut_paiement: string | null
           track: Database["public"]["Enums"]["formation_track"]
+          type_payeur: string
           updated_at: string
         }
         Insert: {
@@ -5829,13 +5834,18 @@ export type Database = {
           deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
+          montant_formation?: number | null
+          montant_pris_en_charge?: number | null
+          payeur_partner_id?: string | null
           qualification_source?: string | null
           qualified_at?: string | null
           qualified_by?: string | null
+          reste_a_charge?: number | null
           session_id: string
           statut?: string
           statut_paiement?: string | null
           track?: Database["public"]["Enums"]["formation_track"]
+          type_payeur?: string
           updated_at?: string
         }
         Update: {
@@ -5850,13 +5860,18 @@ export type Database = {
           deleted_by?: string | null
           documents_envoyes?: string[] | null
           id?: string
+          montant_formation?: number | null
+          montant_pris_en_charge?: number | null
+          payeur_partner_id?: string | null
           qualification_source?: string | null
           qualified_at?: string | null
           qualified_by?: string | null
+          reste_a_charge?: number | null
           session_id?: string
           statut?: string
           statut_paiement?: string | null
           track?: Database["public"]["Enums"]["formation_track"]
+          type_payeur?: string
           updated_at?: string
         }
         Relationships: [
@@ -5865,6 +5880,20 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_inscriptions_payeur_partner_id_fkey"
+            columns: ["payeur_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partner_stats"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "session_inscriptions_payeur_partner_id_fkey"
+            columns: ["payeur_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {

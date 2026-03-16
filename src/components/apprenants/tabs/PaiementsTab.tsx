@@ -22,6 +22,7 @@ import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { formatPhoneForWhatsApp } from "@/lib/phone-utils";
+import { FinancementSection } from "./FinancementSection";
 
 interface PaiementsTabProps {
   contactId: string;
@@ -196,6 +197,15 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
   return (
     <div className="space-y-5">
+      {/* Financement Section */}
+      <div>
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Financement</h3>
+        <FinancementSection contactId={contactId} />
+      </div>
+
+      {/* Separator */}
+      <div className="border-t" />
+
       {/* Summary header */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 text-center">
