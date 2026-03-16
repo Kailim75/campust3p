@@ -188,14 +188,7 @@ export function useFacture(id: string | null) {
 
       const { data, error } = await supabase
         .from("factures")
-        .select(`
-          *,
-          contact:contacts(id, nom, prenom, email, telephone),
-          session_inscription:session_inscriptions(
-            id,
-            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-          )
-        `)
+        .select(FACTURE_SELECT)
         .eq("id", id)
         .maybeSingle();
 
