@@ -1,0 +1,1 @@
+ALTER TABLE public.examens_t3p ADD COLUMN IF NOT EXISTS numero_dossier TEXT DEFAULT NULL;

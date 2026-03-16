@@ -2531,6 +2531,7 @@ export type Database = {
           heure_examen: string | null
           id: string
           numero_convocation: string | null
+          numero_dossier: string | null
           numero_tentative: number
           observations: string | null
           resultat: string | null
@@ -2551,6 +2552,7 @@ export type Database = {
           heure_examen?: string | null
           id?: string
           numero_convocation?: string | null
+          numero_dossier?: string | null
           numero_tentative?: number
           observations?: string | null
           resultat?: string | null
@@ -2571,6 +2573,7 @@ export type Database = {
           heure_examen?: string | null
           id?: string
           numero_convocation?: string | null
+          numero_dossier?: string | null
           numero_tentative?: number
           observations?: string | null
           resultat?: string | null
