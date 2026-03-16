@@ -202,7 +202,8 @@ export function useGenerateEmargements() {
       const { data: existingEmargements, error: existError } = await supabase
         .from("emargements")
         .select("id, contact_id")
-        .eq("session_id", sessionId);
+        .eq("session_id", sessionId)
+        .is("deleted_at", null);
 
       if (existError) throw existError;
 

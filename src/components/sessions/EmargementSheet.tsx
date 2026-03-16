@@ -432,7 +432,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
           </CardHeader>
           <CardContent>
             {(() => {
-              const isSoir = (session as any).horaire_type === "soir" || dateEmargements.some((e) => e.periode === "soir");
+              const isSoir = session.horaire_type === "soir" || dateEmargements.some((e) => e.periode === "soir");
               
               if (isSoir) {
                 // Evening session: single column
