@@ -22,6 +22,7 @@ import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { formatPhoneForWhatsApp } from "@/lib/phone-utils";
+import { FinancementSection } from "./FinancementSection";
 
 interface PaiementsTabProps {
   contactId: string;
