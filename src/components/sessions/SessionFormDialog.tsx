@@ -96,6 +96,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
       catalogue_formation_id: "",
       date_debut: "",
       date_fin: "",
+      horaire_type: "jour" as const,
       heure_debut: "09:00",
       heure_fin: "17:00",
       heure_debut_matin: "09:00",
