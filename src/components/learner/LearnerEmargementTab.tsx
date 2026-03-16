@@ -229,8 +229,8 @@ export function LearnerEmargementTab({ contactId }: LearnerEmargementTabProps) {
                           <div className="flex items-center justify-between">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <Badge variant={em.periode === "matin" ? "default" : "secondary"}>
-                                  {em.periode === "matin" ? "Matin" : "Après-midi"}
+                                <Badge variant={em.periode === "matin" ? "default" : em.periode === "soir" ? "outline" : "secondary"}>
+                                  {em.periode === "matin" ? "Matin" : em.periode === "soir" ? "Soir" : "Après-midi"}
                                 </Badge>
                                 {isSigned ? (
                                   <Check className="h-4 w-4 text-success" />
