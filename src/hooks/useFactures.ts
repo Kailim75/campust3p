@@ -29,9 +29,18 @@ export interface FactureWithDetails extends Facture {
     prenom: string;
     email: string | null;
     telephone: string | null;
+    civilite?: string | null;
+    rue?: string | null;
+    code_postal?: string | null;
+    ville?: string | null;
   } | null;
   session_inscription: {
     id: string;
+    type_payeur: string | null;
+    payeur_partner_id: string | null;
+    montant_formation: number | null;
+    montant_pris_en_charge: number | null;
+    reste_a_charge: number | null;
     session: {
       id: string;
       nom: string;
@@ -44,6 +53,13 @@ export interface FactureWithDetails extends Facture {
         intitule: string;
         code: string;
       } | null;
+    } | null;
+    payeur_partner: {
+      id: string;
+      company_name: string;
+      email: string | null;
+      address: string | null;
+      siret: string | null;
     } | null;
   } | null;
   total_paye: number;
