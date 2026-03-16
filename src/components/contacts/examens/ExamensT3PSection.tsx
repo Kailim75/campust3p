@@ -303,6 +303,12 @@ function ExamenT3PCard({ examen, onEdit, onDelete }: ExamenT3PCardProps) {
               <span>{examen.numero_convocation}</span>
             </div>
           )}
+          {examen.numero_dossier && (
+            <div className="flex items-center gap-1.5 text-foreground font-medium">
+              <Hash className="h-3.5 w-3.5 text-primary" />
+              <span className="font-mono text-xs">Dossier : {examen.numero_dossier}</span>
+            </div>
+          )}
         </div>
 
         {examen.score !== null && (

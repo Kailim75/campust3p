@@ -342,6 +342,18 @@ export function ExamenT3PFormDialog({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="numero_dossier">N° Dossier</Label>
+            <Input
+              id="numero_dossier"
+              value={formData.numero_dossier}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, numero_dossier: e.target.value }))
+              }
+              placeholder="Ex: T3P-2025-001"
+            />
+          </div>
+
           {/* Results section */}
           {["passe", "reussi", "echoue"].includes(formData.statut) && (
             <div className="border-t pt-4 space-y-3">
