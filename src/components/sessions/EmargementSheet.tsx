@@ -71,6 +71,11 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
   const togglePresence = useTogglePresence();
   const { data: publishedTemplate } = usePublishedTemplate("emargement");
 
+  // Fetch formateur name
+  const [formateurNom, setFormateurNom] = useState<string | null>(null);
+  import("@/integrations/supabase/client").then(() => {});
+  // Use effect to fetch formateur
+
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [signatureDialog, setSignatureDialog] = useState<{
     open: boolean;
