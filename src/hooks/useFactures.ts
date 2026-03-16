@@ -87,6 +87,21 @@ export interface FactureUpdate {
   date_echeance?: string | null;
   commentaires?: string | null;
 }
+// Shared select for facture queries with financing data
+const FACTURE_SELECT = `
+  *,
+  contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
+  session_inscription:session_inscriptions(
+    id,
+    type_payeur,
+    payeur_partner_id,
+    montant_formation,
+    montant_pris_en_charge,
+    reste_a_charge,
+    session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code)),
+    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret)
+  )
+`;
 
 // Fetch all factures with contact, session details and payment totals in parallel
 export function useFactures() {
