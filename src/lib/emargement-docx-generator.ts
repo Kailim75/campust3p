@@ -326,6 +326,7 @@ function sessionInfoBlock(session: SessionInfo, date: Date): string {
   const dayLabelCap = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
 
   const fields: { label: string; value: string }[] = [];
+  if (session.nom) fields.push({ label: "Module", value: session.nom });
   fields.push({ label: "Date", value: dayLabelCap });
   if (session.lieu) fields.push({ label: "Lieu", value: session.lieu });
   if (session.formateur_nom) fields.push({ label: "Formateur", value: session.formateur_nom });
