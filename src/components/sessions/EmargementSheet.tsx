@@ -92,6 +92,15 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
     contactName: string;
   } | null>(null);
 
+  // Auto-select first date or today when emargements load
+  useEffect(() => {
+    if (!emargements || emargements.length === 0 || selectedDate) return;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const availableDates = [...new Set(emargements.map((e) => e.date_emargement))].sort();
+    const matchToday = availableDates.find((d) => d === today);
+    setSelectedDate(matchToday || availableDates[0] || null);
+  }, [emargements, selectedDate]);
+
   // Get unique dates from session range
   // Don't filter weekends for FC sessions (often held on Saturdays)
   const isFC = session.formation_type?.toUpperCase().startsWith("FC-");
