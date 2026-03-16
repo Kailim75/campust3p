@@ -477,59 +477,114 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
                 <FormField
                   control={form.control}
-                  name="heure_debut_matin"
+                  name="horaire_type"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Début matin</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="time" />
-                      </FormControl>
+                    <FormItem className="col-span-full">
+                      <FormLabel>Type d'horaire</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="jour">Journée (Matin + Après-midi)</SelectItem>
+                          <SelectItem value="soir">Soir uniquement</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="heure_fin_matin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fin matin</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="time" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch("horaire_type") === "soir" ? (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="heure_debut"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Heure début soir</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" defaultValue="18:00" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="heure_fin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Heure fin soir</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" defaultValue="21:30" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="heure_debut_matin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Début matin</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="heure_debut_aprem"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Début après-midi</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="time" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="heure_fin_matin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fin matin</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="heure_fin_aprem"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fin après-midi</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="time" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="heure_debut_aprem"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Début après-midi</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="heure_fin_aprem"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fin après-midi</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="time" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
