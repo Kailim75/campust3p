@@ -733,7 +733,8 @@ export function generateFacturePDF(
 
   const emitterEndY = yPos;
 
-  // --- Client (droite) ---
+  // --- Client / Payeur (droite) ---
+  const hasPayer = !!facture.payer;
   yPos = blockStartY;
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -741,38 +742,87 @@ export function generateFacturePDF(
   doc.text("FACTURÉ À", colRightX, yPos);
   yPos += 5;
 
-  // Client box background
-  const clientBoxH = 28;
+  // Compute dynamic box height based on content
+  const clientBoxH = hasPayer ? 42 : 28;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(colRightX - 3, yPos - 4, colW + 6, clientBoxH, 2, 2, "F");
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.rect(colRightX - 3, yPos - 4, 2, clientBoxH, "F");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  const clientName = `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
-  doc.text(clientName, colRightX + 2, yPos);
-  yPos += 4.5;
+  if (hasPayer) {
+    // ── Payer is a third party (enterprise, OPCO, etc.) ──
+    const payer = facture.payer!;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+    doc.text(payer.company_name, colRightX + 2, yPos);
+    yPos += 4.5;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
 
-  if (contact.rue) {
-    doc.text(contact.rue, colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.code_postal || contact.ville) {
-    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.email) {
-    doc.text(contact.email, colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.telephone) {
-    doc.text(contact.telephone, colRightX + 2, yPos);
+    if (payer.address) {
+      const wrappedPayerAddr = doc.splitTextToSize(payer.address, colW - 6);
+      wrappedPayerAddr.forEach((line: string) => {
+        doc.text(line, colRightX + 2, yPos);
+        yPos += 4;
+      });
+    }
+    if (payer.email) {
+      doc.text(payer.email, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (payer.siret) {
+      doc.text(`SIRET : ${payer.siret}`, colRightX + 2, yPos);
+      yPos += 4;
+    }
+
+    // ── Beneficiary learner mention ──
+    yPos += 1;
+    doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+    doc.roundedRect(colRightX - 1, yPos - 3, colW + 2, 12, 1, 1, "F");
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("BÉNÉFICIAIRE", colRightX + 2, yPos + 1);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    const benefName = facture.beneficiaire
+      ? `${facture.beneficiaire.civilite ? facture.beneficiaire.civilite + " " : ""}${facture.beneficiaire.prenom} ${facture.beneficiaire.nom}`.trim()
+      : `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
+    doc.text(benefName, colRightX + 2, yPos + 6);
+  } else {
+    // ── Standard: learner is the payer ──
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+    const clientName = `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
+    doc.text(clientName, colRightX + 2, yPos);
+    yPos += 4.5;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+    if (contact.rue) {
+      doc.text(contact.rue, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.code_postal || contact.ville) {
+      doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.email) {
+      doc.text(contact.email, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.telephone) {
+      doc.text(contact.telephone, colRightX + 2, yPos);
+    }
   }
 
   yPos = Math.max(emitterEndY, blockStartY + clientBoxH + 5) + 4;
