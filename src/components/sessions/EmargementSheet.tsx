@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, eachDayOfInterval, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +70,20 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
   const signEmargement = useSignEmargement();
   const togglePresence = useTogglePresence();
   const { data: publishedTemplate } = usePublishedTemplate("emargement");
+
+  // Fetch formateur name
+  const [formateurNom, setFormateurNom] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session.formateur_id) { setFormateurNom(null); return; }
+    supabase
+      .from("formateurs")
+      .select("nom, prenom")
+      .eq("id", session.formateur_id)
+      .single()
+      .then(({ data }) => {
+        if (data) setFormateurNom(`${data.prenom} ${data.nom}`);
+      });
+  }, [session.formateur_id]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [signatureDialog, setSignatureDialog] = useState<{
@@ -154,6 +168,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         session_date_fin: session.date_fin ? new Date(session.date_fin).toLocaleDateString("fr-FR") : "",
         formation_type: session.formation_type || "",
         lieu: session.lieu || "",
+        formateur_nom: formateurNom || "",
       },
     });
 
@@ -275,6 +290,14 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
 
   return (
     <div className="space-y-4">
+      {/* Formateur info */}
+      {formateurNom && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>Formateur : <strong className="text-foreground">{formateurNom}</strong></span>
+        </div>
+      )}
+
       {/* Stats header */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
