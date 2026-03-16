@@ -38,6 +38,7 @@ import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { generateFacturePDF } from "@/lib/pdf-generator";
+import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
@@ -151,6 +152,9 @@ export function FactureDetailSheet({
       email: facture.contact.email || undefined,
       telephone: facture.contact.telephone || undefined,
     };
+    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
+      facture.session_inscription, facture.contact
+    );
     const factureInfo = {
       numero_facture: facture.numero_facture,
       montant_total: Number(facture.montant_total),
@@ -160,6 +164,10 @@ export function FactureDetailSheet({
       date_emission: facture.date_emission || undefined,
       date_echeance: facture.date_echeance || undefined,
       commentaires: facture.commentaires || undefined,
+      payer,
+      beneficiaire,
+      montant_pris_en_charge,
+      reste_a_charge,
     };
     const session = facture.session_inscription?.session;
     const sessionInfo = session ? {
@@ -187,6 +195,9 @@ export function FactureDetailSheet({
         email: facture.contact.email || undefined,
         telephone: facture.contact.telephone || undefined,
       };
+      const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = extractPayerInfo(
+        facture.session_inscription, facture.contact
+      );
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -196,6 +207,10 @@ export function FactureDetailSheet({
         date_emission: facture.date_emission || undefined,
         date_echeance: facture.date_echeance || undefined,
         commentaires: facture.commentaires || undefined,
+        payer,
+        beneficiaire,
+        montant_pris_en_charge: mpc,
+        reste_a_charge: rac,
       };
       const session = facture.session_inscription?.session;
       const sessionInfo = session ? {

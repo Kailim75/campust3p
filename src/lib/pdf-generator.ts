@@ -144,6 +144,25 @@ export interface SessionInfoWithId extends SessionInfo {
   id?: string;
 }
 
+/** Info about the third-party payer (enterprise / OPCO / other funder) */
+export interface PayerInfo {
+  /** Company / funder name */
+  company_name: string;
+  /** Address */
+  address?: string;
+  /** Email */
+  email?: string;
+  /** SIRET or other identifier */
+  siret?: string;
+}
+
+/** Info about the beneficiary learner when payer differs */
+export interface BeneficiaireInfo {
+  nom: string;
+  prenom: string;
+  civilite?: string;
+}
+
 export interface FactureInfo {
   numero_facture: string;
   montant_total: number;
@@ -153,6 +172,14 @@ export interface FactureInfo {
   date_emission?: string;
   date_echeance?: string;
   commentaires?: string;
+  /** When the payer is a third party (enterprise, OPCO, etc.) */
+  payer?: PayerInfo;
+  /** The learner beneficiary — shown as mention when payer is a third party */
+  beneficiaire?: BeneficiaireInfo;
+  /** Montant pris en charge by third party */
+  montant_pris_en_charge?: number;
+  /** Reste à charge for the learner */
+  reste_a_charge?: number;
 }
 
 // Helper function to build accreditations line
@@ -706,7 +733,8 @@ export function generateFacturePDF(
 
   const emitterEndY = yPos;
 
-  // --- Client (droite) ---
+  // --- Client / Payeur (droite) ---
+  const hasPayer = !!facture.payer;
   yPos = blockStartY;
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -714,38 +742,87 @@ export function generateFacturePDF(
   doc.text("FACTURÉ À", colRightX, yPos);
   yPos += 5;
 
-  // Client box background
-  const clientBoxH = 28;
+  // Compute dynamic box height based on content
+  const clientBoxH = hasPayer ? 42 : 28;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(colRightX - 3, yPos - 4, colW + 6, clientBoxH, 2, 2, "F");
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.rect(colRightX - 3, yPos - 4, 2, clientBoxH, "F");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  const clientName = `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
-  doc.text(clientName, colRightX + 2, yPos);
-  yPos += 4.5;
+  if (hasPayer) {
+    // ── Payer is a third party (enterprise, OPCO, etc.) ──
+    const payer = facture.payer!;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+    doc.text(payer.company_name, colRightX + 2, yPos);
+    yPos += 4.5;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
 
-  if (contact.rue) {
-    doc.text(contact.rue, colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.code_postal || contact.ville) {
-    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.email) {
-    doc.text(contact.email, colRightX + 2, yPos);
-    yPos += 4;
-  }
-  if (contact.telephone) {
-    doc.text(contact.telephone, colRightX + 2, yPos);
+    if (payer.address) {
+      const wrappedPayerAddr = doc.splitTextToSize(payer.address, colW - 6);
+      wrappedPayerAddr.forEach((line: string) => {
+        doc.text(line, colRightX + 2, yPos);
+        yPos += 4;
+      });
+    }
+    if (payer.email) {
+      doc.text(payer.email, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (payer.siret) {
+      doc.text(`SIRET : ${payer.siret}`, colRightX + 2, yPos);
+      yPos += 4;
+    }
+
+    // ── Beneficiary learner mention ──
+    yPos += 1;
+    doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+    doc.roundedRect(colRightX - 1, yPos - 3, colW + 2, 12, 1, 1, "F");
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("BÉNÉFICIAIRE", colRightX + 2, yPos + 1);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    const benefName = facture.beneficiaire
+      ? `${facture.beneficiaire.civilite ? facture.beneficiaire.civilite + " " : ""}${facture.beneficiaire.prenom} ${facture.beneficiaire.nom}`.trim()
+      : `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
+    doc.text(benefName, colRightX + 2, yPos + 6);
+  } else {
+    // ── Standard: learner is the payer ──
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+    const clientName = `${contact.civilite ? contact.civilite + " " : ""}${contact.prenom} ${contact.nom}`.trim();
+    doc.text(clientName, colRightX + 2, yPos);
+    yPos += 4.5;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+    if (contact.rue) {
+      doc.text(contact.rue, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.code_postal || contact.ville) {
+      doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.email) {
+      doc.text(contact.email, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (contact.telephone) {
+      doc.text(contact.telephone, colRightX + 2, yPos);
+    }
   }
 
   yPos = Math.max(emitterEndY, blockStartY + clientBoxH + 5) + 4;
@@ -952,7 +1029,30 @@ export function generateFacturePDF(
     yPos += splitComments.length * 4 + 5;
   }
 
-  // ── G. FOOTER JURIDIQUE & MENTIONS DE RÈGLEMENT ────────────────
+  // ── F bis. MENTION BÉNÉFICIAIRE / PAYEUR TIERS ─────────────────
+  if (hasPayer && facture.beneficiaire) {
+    const benefFullName = `${facture.beneficiaire.civilite ? facture.beneficiaire.civilite + " " : ""}${facture.beneficiaire.prenom} ${facture.beneficiaire.nom}`.trim();
+    const payerName = facture.payer!.company_name;
+
+    doc.setFillColor(COLORS.cream.r, COLORS.cream.g, COLORS.cream.b);
+    doc.roundedRect(marginL, yPos - 2, contentW, 14, 1.5, 1.5, "F");
+    doc.setFillColor(COLORS.forestGreenLight.r, COLORS.forestGreenLight.g, COLORS.forestGreenLight.b);
+    doc.rect(marginL, yPos - 2, 2, 14, "F");
+
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+    doc.text("Formation suivie par", marginL + 5, yPos + 3);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+    const mentionText = `${benefFullName}, prise en charge par ${payerName}`;
+    doc.text(mentionText, marginL + 5, yPos + 8);
+
+    yPos += 18;
+  }
+
+
   // Fixed position near bottom, stable for PDF export
   const footerStartY = 235;
   doc.setFontSize(7);

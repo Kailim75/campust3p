@@ -29,9 +29,18 @@ export interface FactureWithDetails extends Facture {
     prenom: string;
     email: string | null;
     telephone: string | null;
+    civilite?: string | null;
+    rue?: string | null;
+    code_postal?: string | null;
+    ville?: string | null;
   } | null;
   session_inscription: {
     id: string;
+    type_payeur: string | null;
+    payeur_partner_id: string | null;
+    montant_formation: number | null;
+    montant_pris_en_charge: number | null;
+    reste_a_charge: number | null;
     session: {
       id: string;
       nom: string;
@@ -44,6 +53,12 @@ export interface FactureWithDetails extends Facture {
         intitule: string;
         code: string;
       } | null;
+    } | null;
+    payeur_partner: {
+      id: string;
+      company_name: string;
+      email: string | null;
+      address: string | null;
     } | null;
   } | null;
   total_paye: number;
@@ -71,6 +86,21 @@ export interface FactureUpdate {
   date_echeance?: string | null;
   commentaires?: string | null;
 }
+// Shared select for facture queries with financing data
+const FACTURE_SELECT = `
+  *,
+  contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
+  session_inscription:session_inscriptions(
+    id,
+    type_payeur,
+    payeur_partner_id,
+    montant_formation,
+    montant_pris_en_charge,
+    reste_a_charge,
+    session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code)),
+    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
+  )
+`;
 
 // Fetch all factures with contact, session details and payment totals in parallel
 export function useFactures() {
@@ -81,14 +111,7 @@ export function useFactures() {
       const [facturesRes, paiementsRes] = await Promise.all([
         supabase
           .from("factures")
-          .select(`
-            *,
-            contact:contacts(id, nom, prenom, email, telephone),
-            session_inscription:session_inscriptions(
-              id,
-              session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-            )
-          `)
+          .select(FACTURE_SELECT)
           .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         supabase
@@ -123,13 +146,7 @@ export function useContactFactures(contactId: string | null) {
 
       const { data: factures, error } = await supabase
         .from("factures")
-        .select(`
-          *,
-          session_inscription:session_inscriptions(
-            id,
-            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-          )
-        `)
+        .select(FACTURE_SELECT)
         .eq("contact_id", contactId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
@@ -171,14 +188,7 @@ export function useFacture(id: string | null) {
 
       const { data, error } = await supabase
         .from("factures")
-        .select(`
-          *,
-          contact:contacts(id, nom, prenom, email, telephone),
-          session_inscription:session_inscriptions(
-            id,
-            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
-          )
-        `)
+        .select(FACTURE_SELECT)
         .eq("id", id)
         .maybeSingle();
 

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
 import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
+import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -51,7 +52,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("factures")
-        .select("id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires")
+        .select(`
+          id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
+          session_inscription:session_inscriptions(
+            id, type_payeur, montant_pris_en_charge, reste_a_charge,
+            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
+          )
+        `)
         .eq("contact_id", contactId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
@@ -122,10 +129,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     onError: () => toast.error("Erreur lors de l'ajout du versement"),
   });
 
-  const handlePrintFacture = (f: any) => {
-    if (!contact) { toast.error("Informations contact manquantes"); return; }
-    const company = centreToCompanyInfo(centreFormation);
-    const factureInfo: FactureInfo = {
+  const enrichFactureWithPayer = (f: any): FactureInfo => {
+    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
+      f.session_inscription, contact
+    );
+    return {
       numero_facture: f.numero_facture || "",
       montant_total: Number(f.montant_total),
       total_paye: (paiements || [])
@@ -135,7 +143,17 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       type_financement: f.type_financement || "personnel",
       date_emission: f.date_emission,
       commentaires: f.commentaires,
+      payer,
+      beneficiaire,
+      montant_pris_en_charge,
+      reste_a_charge,
     };
+  };
+
+  const handlePrintFacture = (f: any) => {
+    if (!contact) { toast.error("Informations contact manquantes"); return; }
+    const company = centreToCompanyInfo(centreFormation);
+    const factureInfo = enrichFactureWithPayer(f);
     const contactInfo: ContactInfo = {
       nom: contact.nom,
       prenom: contact.prenom,
@@ -153,15 +171,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const buildFacturePdfBase64 = (f: any): { base64: string; filename: string } | null => {
     if (!contact) return null;
     const company = centreToCompanyInfo(centreFormation);
-    const factureInfo: FactureInfo = {
-      numero_facture: f.numero_facture || "",
-      montant_total: Number(f.montant_total),
-      total_paye: (paiements || []).filter((p: any) => p.facture_id === f.id).reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
-      statut: f.statut,
-      type_financement: f.type_financement || "personnel",
-      date_emission: f.date_emission,
-      commentaires: f.commentaires,
-    };
+    const factureInfo = enrichFactureWithPayer(f);
     const contactInfo: ContactInfo = {
       nom: contact.nom, prenom: contact.prenom, email: contact.email || "", telephone: contact.telephone || "",
       rue: contact.rue || "", code_postal: contact.code_postal || "", ville: contact.ville || "",
