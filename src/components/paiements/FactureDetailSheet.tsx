@@ -38,6 +38,7 @@ import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { generateFacturePDF } from "@/lib/pdf-generator";
+import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
