@@ -103,6 +103,7 @@ export function ExamenT3PFormDialog({
         centre_examen: "",
         departement: "",
         numero_convocation: "",
+        numero_dossier: "",
         statut: "planifie",
         resultat: "",
         score: null,
