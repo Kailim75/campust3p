@@ -54,6 +54,8 @@ interface EmargementData {
   contact_id: string;
   date_emargement: string;
   periode: "matin" | "apres_midi" | "soir";
+  heure_debut?: string | null;
+  heure_fin?: string | null;
   present: boolean;
   signature_url: string | null;
   date_signature: string | null;
@@ -379,6 +381,20 @@ function emargementTable(
   const isSoir = emargements.some((e) => e.periode === "soir");
   const dateStr = format(date, "yyyy-MM-dd");
 
+  // Helper to build period label with hours
+  const getPeriodLabel = (periode: string): string => {
+    const dayEmargements = emargements.filter(
+      (e) => e.date_emargement === dateStr && e.periode === periode
+    );
+    const sample = dayEmargements.find((e) => e.heure_debut && e.heure_fin);
+    if (sample?.heure_debut && sample?.heure_fin) {
+      return `Émargement — ${sample.heure_debut} - ${sample.heure_fin}`;
+    }
+    if (periode === "soir") return "Émargement — Soir";
+    if (periode === "matin") return "Émargement — Matin";
+    return "Émargement — Après-midi";
+  };
+
   const numColW = 450;
   const nameColW = 3600;
 
@@ -386,7 +402,7 @@ function emargementTable(
     const sigColW = LAYOUT.pageWidth - numColW - nameColW;
     return buildTableXml(
       [numColW, nameColW, sigColW],
-      ["N°", "Nom et Prénom", "Émargement — Soir"],
+      ["N°", "Nom et Prénom", getPeriodLabel("soir")],
       contacts, dateStr, emargements, ["soir"]
     );
   }
@@ -394,7 +410,7 @@ function emargementTable(
   const sigColW = Math.floor((LAYOUT.pageWidth - numColW - nameColW) / 2);
   return buildTableXml(
     [numColW, nameColW, sigColW, sigColW],
-    ["N°", "Nom et Prénom", "Émargement — Matin", "Émargement — Après-midi"],
+    ["N°", "Nom et Prénom", getPeriodLabel("matin"), getPeriodLabel("apres_midi")],
     contacts, dateStr, emargements, ["matin", "apres_midi"]
   );
 }
