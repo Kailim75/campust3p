@@ -290,6 +290,14 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
 
   return (
     <div className="space-y-4">
+      {/* Formateur info */}
+      {formateurNom && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>Formateur : <strong className="text-foreground">{formateurNom}</strong></span>
+        </div>
+      )}
+
       {/* Stats header */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
