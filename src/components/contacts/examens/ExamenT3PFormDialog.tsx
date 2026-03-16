@@ -158,7 +158,7 @@ export function ExamenT3PFormDialog({
         observations: formData.observations || null,
         document_resultat_path: null,
         numero_tentative: tentativeNumber,
-        numero_dossier: null,
+        numero_dossier: formData.numero_dossier || null,
       };
 
       if (isEditing && examen) {
