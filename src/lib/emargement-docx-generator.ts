@@ -40,7 +40,7 @@ interface EmargementData {
   id: string;
   contact_id: string;
   date_emargement: string;
-  periode: "matin" | "apres_midi";
+  periode: "matin" | "apres_midi" | "soir";
   present: boolean;
   signature_url: string | null;
   date_signature: string | null;
