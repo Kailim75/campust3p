@@ -339,7 +339,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{contacts.length}</p>
                 <p className="text-xs text-muted-foreground">Stagiaires</p>
