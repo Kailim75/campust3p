@@ -249,8 +249,8 @@ export function useSessionAlerts() {
       const { data: sessions, error: sessionsError } = await supabase
         .from("sessions")
         .select("*")
-        .in("statut", ["a_venir", "en_cours"])
-        .gte("date_debut", today.toISOString().split("T")[0]);
+        .in("statut", ["a_venir"])
+        .eq("archived", false);
 
       if (sessionsError) throw sessionsError;
 
