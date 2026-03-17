@@ -249,15 +249,16 @@ export function useSessionAlerts() {
       const { data: sessions, error: sessionsError } = await supabase
         .from("sessions")
         .select("*")
-        .in("statut", ["a_venir", "en_cours"])
-        .gte("date_debut", today.toISOString().split("T")[0]);
+        .in("statut", ["a_venir"])
+        .eq("archived", false);
 
       if (sessionsError) throw sessionsError;
 
       // Fetch inscription counts
       const { data: inscriptions, error: inscriptionsError } = await supabase
         .from("session_inscriptions")
-        .select("session_id");
+        .select("session_id")
+        .is("deleted_at", null);
 
       if (inscriptionsError) throw inscriptionsError;
 
@@ -420,6 +421,7 @@ export function useDocumentAlerts() {
           date_expiration,
           contact:contacts (id, nom, prenom)
         `)
+        .is("deleted_at", null)
         .not("date_expiration", "is", null);
 
       if (error) throw error;
@@ -492,12 +494,15 @@ export function useRappelAlerts() {
         const daysUntil = differenceInDays(startOfDay(rappelDate), today);
         const overdue = isBefore(rappelDate, today) && !isToday(rappelDate);
 
+        // Skip rappels older than 30 days (stale)
+        if (daysUntil < -30) return;
+
         // Show if overdue or within 7 days
         if (daysUntil <= 7) {
           alerts.push({
             id: `rappel_contact_${r.id}`,
             type: "rappel",
-            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            priority: overdue ? (daysUntil < -7 ? "medium" : "high") : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
             title: overdue ? "Rappel en retard" : isToday(rappelDate) ? "Rappel aujourd'hui" : "Rappel à venir",
             description: `${fullName} — ${r.rappel_description || r.titre}`,
             daysUntilExpiry: daysUntil,
@@ -527,11 +532,14 @@ export function useRappelAlerts() {
         const daysUntil = differenceInDays(startOfDay(relanceDate), today);
         const overdue = isBefore(relanceDate, today) && !isToday(relanceDate);
 
+        // Skip prospect relances older than 30 days
+        if (daysUntil < -30) return;
+
         if (daysUntil <= 7) {
           alerts.push({
             id: `rappel_prospect_${p.id}`,
             type: "rappel",
-            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            priority: overdue ? (daysUntil < -7 ? "medium" : "high") : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
             title: overdue ? "Relance prospect en retard" : isToday(relanceDate) ? "Relance prospect aujourd'hui" : "Relance prospect à venir",
             description: `${fullName} — Relance prévue`,
             daysUntilExpiry: daysUntil,
