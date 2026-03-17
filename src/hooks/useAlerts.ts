@@ -492,12 +492,15 @@ export function useRappelAlerts() {
         const daysUntil = differenceInDays(startOfDay(rappelDate), today);
         const overdue = isBefore(rappelDate, today) && !isToday(rappelDate);
 
+        // Skip rappels older than 30 days (stale)
+        if (daysUntil < -30) return;
+
         // Show if overdue or within 7 days
         if (daysUntil <= 7) {
           alerts.push({
             id: `rappel_contact_${r.id}`,
             type: "rappel",
-            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            priority: overdue ? (daysUntil < -7 ? "medium" : "high") : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
             title: overdue ? "Rappel en retard" : isToday(rappelDate) ? "Rappel aujourd'hui" : "Rappel à venir",
             description: `${fullName} — ${r.rappel_description || r.titre}`,
             daysUntilExpiry: daysUntil,
