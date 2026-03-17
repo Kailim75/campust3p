@@ -257,7 +257,8 @@ export function useSessionAlerts() {
       // Fetch inscription counts
       const { data: inscriptions, error: inscriptionsError } = await supabase
         .from("session_inscriptions")
-        .select("session_id");
+        .select("session_id")
+        .is("deleted_at", null);
 
       if (inscriptionsError) throw inscriptionsError;
 
