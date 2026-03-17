@@ -421,6 +421,7 @@ export function useDocumentAlerts() {
           date_expiration,
           contact:contacts (id, nom, prenom)
         `)
+        .is("deleted_at", null)
         .not("date_expiration", "is", null);
 
       if (error) throw error;
