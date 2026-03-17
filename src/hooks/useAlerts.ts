@@ -530,11 +530,14 @@ export function useRappelAlerts() {
         const daysUntil = differenceInDays(startOfDay(relanceDate), today);
         const overdue = isBefore(relanceDate, today) && !isToday(relanceDate);
 
+        // Skip prospect relances older than 30 days
+        if (daysUntil < -30) return;
+
         if (daysUntil <= 7) {
           alerts.push({
             id: `rappel_prospect_${p.id}`,
             type: "rappel",
-            priority: overdue ? "high" : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
+            priority: overdue ? (daysUntil < -7 ? "medium" : "high") : daysUntil <= 0 ? "high" : daysUntil <= 2 ? "medium" : "low",
             title: overdue ? "Relance prospect en retard" : isToday(relanceDate) ? "Relance prospect aujourd'hui" : "Relance prospect à venir",
             description: `${fullName} — Relance prévue`,
             daysUntilExpiry: daysUntil,
