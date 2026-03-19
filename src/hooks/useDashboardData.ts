@@ -112,6 +112,16 @@ export interface DashboardMetrics {
   dossiersContinuManquants: number;
   nouveauxProspects: number;
   nouveauxProspectsPrev: number;
+  // NEW — Strategic KPIs
+  caFacture: number;
+  caFacturePrev: number;
+  inscriptionsCount: number;
+  inscriptionsCountPrev: number;
+  panierMoyen: number;
+  panierMoyenPrev: number;
+  resteAEncaisser: number;
+  tauxRemplissageGlobal: number;
+  tauxRemplissageGlobalPrev: number;
 }
 
 export interface ActionItem {
