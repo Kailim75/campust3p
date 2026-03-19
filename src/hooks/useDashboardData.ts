@@ -157,12 +157,22 @@ export interface TopFacture {
   ageDays: number;
 }
 
+export interface FormationBreakdown {
+  formation_type: string;
+  inscriptions: number;
+  caFacture: number;
+  encaisse: number;
+  places: number;
+  inscrits: number;
+}
+
 export interface DashboardData {
   metrics: DashboardMetrics;
   todayActions: ActionItem[];
   todayActionCount: number;
   upcomingSessions: UpcomingSession[];
   topFactures: TopFacture[];
+  formationBreakdown: FormationBreakdown[];
 }
 
 // ─── Centralized fetch ───
