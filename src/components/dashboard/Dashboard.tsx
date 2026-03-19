@@ -1,15 +1,13 @@
 /**
- * Dashboard — Main orchestrator component.
+ * Dashboard — Main orchestrator component (cockpit de pilotage).
  * 
- * REFACTORED:
- * - Uses centralized useDashboardData (10 queries instead of ~36)
- * - Removed inline useTodayActionCount (was duplicating queries)
- * - Added DashboardSynthesisBar for direction-level overview
- * - Merged Pilotage + Risk KPIs into DashboardKPIGrid (6 cards)
- * - Added DashboardSessionsPanel + DashboardFinancePanel (2-col grid)
- * - ActionPanelToday promoted to full width
- * - All interactive elements have aria-labels
- * - Focus-visible styles on all buttons
+ * Architecture:
+ * Level 0 — Sticky header with period picker + CTA
+ * Level 1 — Synthesis bar (health overview)
+ * Level 2 — 8 KPI cards (financial + operational)
+ * Level 3 — CA evolution chart + Formation breakdown (2-col)
+ * Level 4 — "À traiter aujourd'hui" (full width)
+ * Level 5 — Sessions + Finance panels (2-col)
  * 
  * PRESERVED:
  * - DashboardPeriodPicker and useDashboardPeriodV2 (untouched)
@@ -26,7 +24,9 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
 import { DashboardPeriodPicker } from "./DashboardPeriodPicker";
 import { DashboardSynthesisBar } from "./DashboardSynthesisBar";
-import { DashboardKPIGrid } from "./DashboardKPIGrid";
+import { DashboardKPIGridV2 } from "./DashboardKPIGridV2";
+import { DashboardCAChart } from "./DashboardCAChart";
+import { DashboardFormationBreakdown } from "./DashboardFormationBreakdown";
 import { ActionPanelToday } from "./ActionPanelToday";
 import { DashboardSessionsPanel } from "./DashboardSessionsPanel";
 import { DashboardFinancePanel } from "./DashboardFinancePanel";
@@ -154,44 +154,33 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
           <div className="px-6 lg:px-8 py-2 flex items-center gap-6 text-xs">
             <span className="text-muted-foreground font-medium">Résumé</span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Encaissements</span>
+              <span className="text-muted-foreground">Encaissé</span>
               <span className="font-semibold text-foreground">
                 {formatEur(metrics?.encaissements ?? 0)}
               </span>
             </span>
             <span className="text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Factures</span>
+              <span className="text-muted-foreground">Facturé</span>
               <span className="font-semibold text-foreground">
-                {metrics?.facturesEnAttente ?? 0}
+                {formatEur(metrics?.caFacture ?? 0)}
               </span>
             </span>
             <span className="text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Retards</span>
-              <span
-                className={cn(
-                  "font-semibold",
-                  (metrics?.paiementsRetard ?? 0) > 0
-                    ? "text-destructive"
-                    : "text-foreground"
-                )}
-              >
-                {metrics?.paiementsRetard ?? 0}
+              <span className="text-muted-foreground">Inscriptions</span>
+              <span className="font-semibold text-foreground">
+                {metrics?.inscriptionsCount ?? 0}
               </span>
             </span>
             <span className="text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Sessions</span>
-              <span
-                className={cn(
-                  "font-semibold",
-                  (metrics?.sessionsRisque ?? 0) > 0
-                    ? "text-warning"
-                    : "text-foreground"
-                )}
-              >
-                {metrics?.sessionsRisque ?? 0} à risque
+              <span className="text-muted-foreground">Remplissage</span>
+              <span className={cn(
+                "font-semibold",
+                (metrics?.tauxRemplissageGlobal ?? 0) < 50 ? "text-warning" : "text-foreground"
+              )}>
+                {metrics?.tauxRemplissageGlobal ?? 0} %
               </span>
             </span>
           </div>
@@ -203,16 +192,43 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
         {/* Level 1 — Synthesis bar */}
         <DashboardSynthesisBar metrics={metrics} isLoading={isLoading} />
 
-        {/* Level 1 — KPI Grid (6 cards) */}
+        {/* Level 2 — KPI Grid (8 cards, 4×2) */}
         <div ref={kpiRef}>
-          <DashboardKPIGrid
+          <DashboardKPIGridV2
             metrics={metrics}
             isLoading={isLoading}
             onNavigate={handleNavigate}
           />
         </div>
 
-        {/* Level 2 — "À traiter aujourd'hui" (full width, primary action zone) */}
+        {/* Level 3 — CA Evolution + Formation Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <section aria-labelledby="ca-chart-title">
+            <h2
+              id="ca-chart-title"
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+            >
+              Évolution du chiffre d'affaires
+            </h2>
+            <DashboardCAChart />
+          </section>
+
+          <section aria-labelledby="formation-breakdown-title">
+            <h2
+              id="formation-breakdown-title"
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+            >
+              Performance par formation
+            </h2>
+            <DashboardFormationBreakdown
+              data={dashboardData?.formationBreakdown ?? []}
+              isLoading={isLoading}
+              onNavigate={handleNavigate}
+            />
+          </section>
+        </div>
+
+        {/* Level 4 — "À traiter aujourd'hui" (full width, primary action zone) */}
         <section aria-labelledby="today-actions-title">
           <h2
             id="today-actions-title"
@@ -226,7 +242,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
           />
         </section>
 
-        {/* Level 3 — Two-column grid: Sessions | Finance */}
+        {/* Level 5 — Two-column grid: Sessions | Finance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section aria-labelledby="sessions-panel-title">
             <h2
