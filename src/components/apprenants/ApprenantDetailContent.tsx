@@ -52,6 +52,7 @@ import { computeTrackCompletion } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
