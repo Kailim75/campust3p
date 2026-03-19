@@ -4,6 +4,7 @@ import { DocumentGenerationError } from "./documentErrors";
 export type DocumentType =
   | "facture"
   | "attestation"
+  | "attestation_presence"
   | "convention"
   | "contrat"
   | "convocation"
@@ -12,6 +13,7 @@ export type DocumentType =
 const DOCUMENT_LABELS: Record<DocumentType, string> = {
   facture: "Facture",
   attestation: "Attestation",
+  attestation_presence: "Attestation de présence",
   convention: "Convention de formation",
   contrat: "Contrat de formation",
   convocation: "Convocation",

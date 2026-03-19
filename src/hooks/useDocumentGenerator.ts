@@ -7,6 +7,7 @@ import {
   generateContratFormationPDF as generateContratPDFLegacy,
   generateConvocationPDF,
   generateProgrammePDF,
+  generateAttestationPresencePDF,
   downloadPDF,
   preloadCompanyImages,
   type ContactInfo,
