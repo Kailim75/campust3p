@@ -104,6 +104,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
+  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
   const { data: envoiEvents = [] } = useDocumentEnvoiHistory(contact?.id);
 
