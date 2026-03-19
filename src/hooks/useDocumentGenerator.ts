@@ -142,6 +142,15 @@ export function useDocumentGenerator() {
             filename = `programme-${session.nom.replace(/\s+/g, "-")}.pdf`;
             break;
 
+          case "attestation_presence":
+            if (!session) {
+              toast.error(getErrorMessage("MISSING_SESSION"));
+              return null;
+            }
+            doc = generateAttestationPresencePDF(contact, session, company);
+            filename = `attestation-presence-${contact.nom}-${contact.prenom}.pdf`;
+            break;
+
           default:
             toast.error("Type de document non supporté");
             return null;
