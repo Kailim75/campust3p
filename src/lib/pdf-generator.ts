@@ -2878,6 +2878,173 @@ function getFinancementLabel(type: string): string {
   return labels[type] || type;
 }
 
+// ==================== ATTESTATION DE PRÉSENCE PDF ====================
+// Document justificatif pour employeur / France Travail
+export function generateAttestationPresencePDF(
+  contact: ContactInfo,
+  session: SessionInfo,
+  company: CompanyInfo = DEFAULT_COMPANY
+): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  const headerEndY = addHeader(doc, company);
+
+  // Title
+  let yPos = addDocumentTitle(
+    doc,
+    "ATTESTATION DE PRÉSENCE",
+    headerEndY,
+    "Document justificatif pour employeur / France Travail"
+  );
+
+  // Body
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+
+  const text1 = `Je soussigné(e), ${company.responsable_legal_nom || "le responsable"}, ${company.responsable_legal_fonction || "Directeur"} de ${company.name}, organisme de formation enregistré sous le numéro de déclaration d'activité ${company.nda}, certifie que :`;
+  const splitText1 = doc.splitTextToSize(text1, pageWidth - 40);
+  doc.text(splitText1, 20, yPos);
+  yPos += splitText1.length * 7 + 15;
+
+  // Participant name badge
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
+  const nameWidth = doc.getTextWidth(fullName) + 40;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 16, 3, 3, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text(fullName, pageWidth / 2, yPos + 4, { align: "center" });
+
+  yPos += 15;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+
+  if (contact.date_naissance) {
+    doc.text(
+      `Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`,
+      pageWidth / 2,
+      yPos,
+      { align: "center" }
+    );
+    yPos += 8;
+  }
+
+  if (contact.rue || contact.code_postal || contact.ville) {
+    const adresseParticipant = [contact.rue, `${contact.code_postal || ""} ${contact.ville || ""}`.trim()].filter(Boolean).join(", ");
+    doc.text(`Demeurant : ${adresseParticipant}`, pageWidth / 2, yPos, { align: "center" });
+    yPos += 8;
+  }
+
+  yPos += 8;
+  doc.setFontSize(11);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text("a été présent(e) à la formation suivante :", pageWidth / 2, yPos, { align: "center" });
+
+  // Formation detail box
+  yPos += 12;
+  const hoursText = formatSessionHours(session);
+  let boxContentH = 18;
+  boxContentH += 14; // formation name
+  boxContentH += 12; // dates
+  if (session.duree_heures) boxContentH += 10;
+  if (hoursText) boxContentH += 10;
+  if (session.lieu || session.adresse_rue) boxContentH += 10;
+  boxContentH += 8;
+  const boxH = boxContentH;
+
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(30, yPos, pageWidth - 60, boxH, 4, 4, "F");
+
+  // Left accent bar
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.roundedRect(30, yPos, 4, boxH, 2, 2, "F");
+
+  yPos += 15;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  const sessionNameLines = doc.splitTextToSize(session.nom, pageWidth - 80);
+  doc.text(sessionNameLines, pageWidth / 2, yPos, { align: "center" });
+
+  yPos += sessionNameLines.length * 6 + 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text(
+    `Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`,
+    pageWidth / 2,
+    yPos,
+    { align: "center" }
+  );
+
+  if (hoursText) {
+    yPos += 10;
+    doc.text(`Horaires : ${hoursText}`, pageWidth / 2, yPos, { align: "center" });
+  }
+
+  if (session.duree_heures) {
+    yPos += 10;
+    doc.text(`Durée totale : ${session.duree_heures} heures`, pageWidth / 2, yPos, { align: "center" });
+  }
+
+  const fullAddress = formatFullAddress(session);
+  if (fullAddress) {
+    yPos += 10;
+    doc.text(`Lieu : ${fullAddress}`, pageWidth / 2, yPos, { align: "center" });
+  }
+
+  // Legal mention
+  yPos += 30;
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  const legalText = "Cette attestation est délivrée pour servir et valoir ce que de droit, notamment auprès de l'employeur ou de France Travail.";
+  const splitLegal = doc.splitTextToSize(legalText, pageWidth - 40);
+  doc.text(splitLegal, 20, yPos);
+
+  // Date and signature
+  yPos += splitLegal.length * 6 + 20;
+  doc.setFontSize(11);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+
+  // Extract city from company address
+  const addressParts = company.address.split(",").map((p) => p.trim());
+  const cityPart = addressParts.length > 1 ? addressParts[addressParts.length - 1].replace(/^\d{5}\s*/, "") : "Paris";
+  doc.text(`Fait à ${cityPart}, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, pageWidth - 30, yPos, { align: "right" });
+
+  yPos += 15;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text(company.responsable_legal_nom || "Le Directeur de l'organisme", pageWidth - 30, yPos, { align: "right" });
+
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  doc.text(company.responsable_legal_fonction || "", pageWidth - 30, yPos, { align: "right" });
+
+  // Stamp
+  yPos += 8;
+  const stampAdded = addStampImage(doc, company, pageWidth - 65, yPos, 35, 22);
+
+  yPos += stampAdded ? 26 : 12;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  if (!stampAdded) {
+    doc.text("Signature et cachet", pageWidth - 30, yPos, { align: "right" });
+  }
+
+  addFooter(doc);
+
+  return doc;
+}
+
 // Export to download
 export function downloadPDF(doc: jsPDF, filename: string) {
   doc.save(filename);

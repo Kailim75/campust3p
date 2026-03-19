@@ -52,6 +52,7 @@ import { computeTrackCompletion } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { computeContactUrgency } from "@/lib/urgency-utils";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
@@ -103,6 +104,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
+  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
   const { data: envoiEvents = [] } = useDocumentEnvoiHistory(contact?.id);
 
@@ -555,7 +557,55 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <FileText className="h-3 w-3 mr-1" /> Générer doc
           </Button>
 
-          {/* Enquête satisfaction */}
+          {/* Attestation de présence */}
+          {activeEnrollment?.session && (
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={async () => {
+                if (!contact) return;
+                // Fetch full session data
+                const { data: fullSession } = await supabase
+                  .from("sessions")
+                  .select("*")
+                  .eq("id", activeEnrollment.session_id)
+                  .single();
+                if (!fullSession) {
+                  toast.error("Session introuvable");
+                  return;
+                }
+                generateDocument("attestation_presence", {
+                  civilite: contact.civilite || undefined,
+                  nom: contact.nom,
+                  prenom: contact.prenom,
+                  email: contact.email || undefined,
+                  telephone: contact.telephone || undefined,
+                  rue: contact.rue || undefined,
+                  code_postal: contact.code_postal || undefined,
+                  ville: contact.ville || undefined,
+                  date_naissance: contact.date_naissance || undefined,
+                  ville_naissance: contact.ville_naissance || undefined,
+                }, {
+                  nom: fullSession.nom,
+                  formation_type: fullSession.formation_type,
+                  date_debut: fullSession.date_debut,
+                  date_fin: fullSession.date_fin,
+                  lieu: fullSession.lieu || undefined,
+                  duree_heures: fullSession.duree_heures || undefined,
+                  heure_debut: fullSession.heure_debut || undefined,
+                  heure_fin: fullSession.heure_fin || undefined,
+                  heure_debut_matin: fullSession.heure_debut_matin || undefined,
+                  heure_fin_matin: fullSession.heure_fin_matin || undefined,
+                  heure_debut_aprem: fullSession.heure_debut_aprem || undefined,
+                  heure_fin_aprem: fullSession.heure_fin_aprem || undefined,
+                  adresse_rue: fullSession.adresse_rue || undefined,
+                  adresse_code_postal: fullSession.adresse_code_postal || undefined,
+                  adresse_ville: fullSession.adresse_ville || undefined,
+                });
+              }}
+            >
+              <FileCheck className="h-3 w-3 mr-1" /> Att. présence
+            </Button>
+          )}
+
           <Button size="sm" variant="outline" className="text-xs"
             onClick={() => setEnqueteDialogOpen(true)}
           >
