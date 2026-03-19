@@ -417,6 +417,77 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const nouveauxProspectsPrev = (prevProspectsRes.data || []).length;
 
   // ═══════════════════════════════════════════
+  // NEW STRATEGIC KPIs
+  // ═══════════════════════════════════════════
+
+  // ── CA Facturé (period) — total des factures émises ──
+  const facturesPeriod = factures.filter(
+    (f) => f.statut !== "brouillon" && f.date_emission && f.date_emission >= fromStr && f.date_emission <= toStr && Number(f.montant_total || 0) > 0
+  );
+  const caFacture = facturesPeriod.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+
+  // CA Facturé previous (approximation from previous paiements query period)
+  const facturesPrev = factures.filter(
+    (f) => f.statut !== "brouillon" && f.date_emission && f.date_emission >= prevFromStr && f.date_emission <= prevToStr && Number(f.montant_total || 0) > 0
+  );
+  const caFacturePrev = facturesPrev.reduce((s, f) => s + Number(f.montant_total || 0), 0);
+
+  // ── Inscriptions count (period) ──
+  const inscriptionsCount = inscriptions.filter(
+    (i) => i.date_inscription >= fromStr && i.date_inscription <= toStr
+  ).length;
+  const inscriptionsCountPrev = inscriptions.filter(
+    (i) => i.date_inscription >= prevFromStr && i.date_inscription <= prevToStr
+  ).length;
+
+  // ── Panier moyen = CA facturé / inscriptions (period) ──
+  const panierMoyen = inscriptionsCount > 0 ? Math.round(caFacture / inscriptionsCount) : 0;
+  const panierMoyenPrev = inscriptionsCountPrev > 0 ? Math.round(caFacturePrev / inscriptionsCountPrev) : 0;
+
+  // ── Reste à encaisser = factures émises non soldées ──
+  const totalPaiementsParFacture = new Map<string, number>();
+  paiements.forEach((p) => {
+    totalPaiementsParFacture.set(p.facture_id, (totalPaiementsParFacture.get(p.facture_id) || 0) + Number(p.montant || 0));
+  });
+  const resteAEncaisser = factures
+    .filter((f) => (f.statut === "emise" || f.statut === "partiel") && Number(f.montant_total || 0) > 0)
+    .reduce((s, f) => {
+      const paye = totalPaiementsParFacture.get(f.id) || 0;
+      return s + Math.max(0, Number(f.montant_total) - paye);
+    }, 0);
+
+  // ── Taux de remplissage global (sessions actives) ──
+  const sessionsAvecCapacite = activeSessions.filter((s) => (s.places_totales || 0) > 0);
+  const totalPlaces = sessionsAvecCapacite.reduce((s, se) => s + (se.places_totales || 0), 0);
+  const totalInscrits = sessionsAvecCapacite.reduce((s, se) => s + (inscriptionCounts[se.id] || 0), 0);
+  const tauxRemplissageGlobal = totalPlaces > 0 ? Math.round((totalInscrits / totalPlaces) * 100) : 0;
+  const tauxRemplissageGlobalPrev = tauxRemplissageGlobal; // snapshot
+
+  // ═══════════════════════════════════════════
+  // FORMATION BREAKDOWN
+  // ═══════════════════════════════════════════
+
+  const fbMap = new Map<string, FormationBreakdown>();
+  // From sessions + inscriptions
+  sessions.forEach((s) => {
+    const ft = s.formation_type || "Non défini";
+    if (!fbMap.has(ft)) fbMap.set(ft, { formation_type: ft, inscriptions: 0, caFacture: 0, encaisse: 0, places: 0, inscrits: 0 });
+    const entry = fbMap.get(ft)!;
+    entry.places += s.places_totales || 0;
+    entry.inscrits += inscriptionCounts[s.id] || 0;
+  });
+  // Count inscriptions per formation from session data
+  inscriptions.forEach((i) => {
+    const session = sessions.find((s) => s.id === i.session_id);
+    const ft = session?.formation_type || "Non défini";
+    if (!fbMap.has(ft)) fbMap.set(ft, { formation_type: ft, inscriptions: 0, caFacture: 0, encaisse: 0, places: 0, inscrits: 0 });
+    fbMap.get(ft)!.inscriptions++;
+  });
+  // CA per formation from factures (via session_inscriptions link not available here, approximate from inscriptions)
+  // Note: We don't have facture→session_type link in this query, so we skip CA breakdown for now
+  const formationBreakdown = Array.from(fbMap.values()).sort((a, b) => b.inscriptions - a.inscriptions);
+
+  // ═══════════════════════════════════════════
   // TODAY ACTIONS
   // ═══════════════════════════════════════════
 
