@@ -674,11 +674,21 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       dossiersContinuManquants,
       nouveauxProspects,
       nouveauxProspectsPrev,
+      caFacture,
+      caFacturePrev,
+      inscriptionsCount,
+      inscriptionsCountPrev,
+      panierMoyen,
+      panierMoyenPrev,
+      resteAEncaisser,
+      tauxRemplissageGlobal,
+      tauxRemplissageGlobalPrev,
     },
     todayActions: limitedActions,
     todayActionCount,
     upcomingSessions,
     topFactures,
+    formationBreakdown,
   };
 }
 
