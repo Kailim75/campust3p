@@ -18,6 +18,7 @@ import {
   Bell,
   Webhook,
   CreditCard as CreditCardIcon,
+  Palette,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
@@ -27,6 +28,7 @@ import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
 import { NotificationSettings } from "./NotificationSettings";
+import { CustomizationSettings } from "./CustomizationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -396,10 +398,14 @@ export function SettingsPage() {
 
       <main className="p-6 animate-fade-in">
         <Tabs defaultValue="centre" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
             <TabsTrigger value="centre" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Centre</span>
+            </TabsTrigger>
+            <TabsTrigger value="personnalisation" className="gap-2">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Apparence</span>
             </TabsTrigger>
             <TabsTrigger value="contacts" className="gap-2">
               <Users className="h-4 w-4" />
@@ -430,6 +436,11 @@ export function SettingsPage() {
           {/* Tab: Centre de Formation */}
           <TabsContent value="centre" className="space-y-6">
             <CentreFormationSettings />
+          </TabsContent>
+
+          {/* Tab: Personnalisation */}
+          <TabsContent value="personnalisation" className="space-y-6">
+            <CustomizationSettings />
           </TabsContent>
 
           {/* Tab: Contacts Import/Export */}
