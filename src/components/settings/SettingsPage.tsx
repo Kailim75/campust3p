@@ -438,6 +438,11 @@ export function SettingsPage() {
             <CentreFormationSettings />
           </TabsContent>
 
+          {/* Tab: Personnalisation */}
+          <TabsContent value="personnalisation" className="space-y-6">
+            <CustomizationSettings />
+          </TabsContent>
+
           {/* Tab: Contacts Import/Export */}
           <TabsContent value="contacts" className="space-y-6">
             <Card>
