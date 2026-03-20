@@ -16,6 +16,12 @@ import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { CentreProvider } from "@/contexts/CentreContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { MainApp } from "@/components/MainApp";
+import { useCrmCustomization } from "@/hooks/useCrmCustomization";
+
+function CrmCustomizationInit() {
+  useCrmCustomization();
+  return null;
+}
 
 // Lazy loaded pages
 const Index = lazy(() => import("./pages/Index"));
