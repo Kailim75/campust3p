@@ -201,9 +201,7 @@ const Index = () => {
     onNewContact: () => setActiveSection("contacts"),
     onNewSession: () => setActiveSection("sessions"),
     onNewPayment: () => setActiveSection("finances"),
-    onSearch: () => {
-      document.querySelector<HTMLButtonElement>("[data-global-search]")?.click();
-    },
+    onSearch: () => setCommandPaletteOpen(true),
     onHelp: () => setShortcutsDialogOpen(true),
   });
 
