@@ -18,6 +18,7 @@ import {
   Bell,
   Webhook,
   CreditCard as CreditCardIcon,
+  Palette,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
