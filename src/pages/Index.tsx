@@ -109,6 +109,7 @@ const Index = () => {
   const [activeSection, setActiveSectionState] = useState<string>(getInitialSection);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
