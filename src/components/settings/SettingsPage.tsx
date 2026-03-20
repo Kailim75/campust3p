@@ -28,6 +28,7 @@ import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
 import { NotificationSettings } from "./NotificationSettings";
+import { CustomizationSettings } from "./CustomizationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
