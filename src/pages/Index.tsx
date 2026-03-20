@@ -316,6 +316,12 @@ const Index = () => {
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onNavigate={setActiveSection}
+        onOpenContact={(id) => { setActiveSection("contacts"); setSelectedContactId(id); }}
+      />
     </div>
   );
 };
