@@ -9,6 +9,7 @@ import { OnboardingTour, useOnboarding } from "@/components/onboarding/Onboardin
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
