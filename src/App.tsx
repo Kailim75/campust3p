@@ -111,6 +111,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
       <TooltipProvider>
+        <CrmCustomizationInit />
         <Toaster />
         <Sonner />
         <AppErrorBoundary>
