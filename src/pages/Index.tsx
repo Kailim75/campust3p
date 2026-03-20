@@ -9,6 +9,7 @@ import { OnboardingTour, useOnboarding } from "@/components/onboarding/Onboardin
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -108,6 +109,7 @@ const Index = () => {
   const [activeSection, setActiveSectionState] = useState<string>(getInitialSection);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
@@ -199,9 +201,7 @@ const Index = () => {
     onNewContact: () => setActiveSection("contacts"),
     onNewSession: () => setActiveSection("sessions"),
     onNewPayment: () => setActiveSection("finances"),
-    onSearch: () => {
-      document.querySelector<HTMLButtonElement>("[data-global-search]")?.click();
-    },
+    onSearch: () => setCommandPaletteOpen(true),
     onHelp: () => setShortcutsDialogOpen(true),
   });
 
@@ -316,6 +316,12 @@ const Index = () => {
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onNavigate={setActiveSection}
+        onOpenContact={(id) => { setActiveSection("contacts"); setSelectedContactId(id); }}
+      />
     </div>
   );
 };
