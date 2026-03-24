@@ -451,62 +451,71 @@ export function SessionsGroupedTable({
           </Table>
         ) : (
           <div className="divide-y divide-border">
-            {groupedSessions.map((group) => (
-              <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-                    {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                    <div className="flex items-center gap-2">
-                      {group.badgeClass ? (
-                        <Badge variant="outline" className={cn("text-sm", group.badgeClass)}>{group.label}</Badge>
-                      ) : (
-                        <span className="font-semibold text-foreground">{group.label}</span>
-                      )}
-                    </div>
-                    <Badge variant="secondary" className="ml-2">
-                      {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground ml-auto mr-4 flex items-center gap-3">
-                      <span>
-                        {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
-                        {' / '}
-                        {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
-                      </span>
-                      {Object.keys(financials).length > 0 && (
-                        <span className="text-success font-medium">
-                          {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+            {groupedSessions.map((group) => {
+              const isMonthGroup = groupBy === "month";
+              return (
+                <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
+                  <CollapsibleTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors",
+                      isMonthGroup && "border-l-4 border-l-primary/30 bg-muted/20"
+                    )}>
+                      {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      <div className="flex items-center gap-2">
+                        {group.badgeClass ? (
+                          <Badge variant="outline" className={cn("text-sm", group.badgeClass)}>{group.label}</Badge>
+                        ) : (
+                          <span className={cn(
+                            "font-semibold text-foreground",
+                            isMonthGroup && "text-base uppercase tracking-wide"
+                          )}>{group.label}</span>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="ml-2">
+                        {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground/70 ml-auto mr-4 flex items-center gap-3">
+                        <span>
+                          {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
+                          {' / '}
+                          {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
                         </span>
-                      )}
-                    </span>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <Table>
-                    {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
-                    <TableBody>
-                      {group.sessions.map((session) => (
-                        <SessionRow
-                          key={session.id}
-                          session={session}
-                          inscriptionsCounts={inscriptionsCounts}
-                          financials={financials}
-                          showProfitability={showProfitability}
-                          isActive={activeSessionId === session.id}
-                          isCritical={isSessionCritical(session, inscriptionsCounts)}
-                          hideFormation={groupBy === "formation"}
-                          hideStatus={groupBy === "status"}
-                          hideLieu={groupBy === "lieu"}
-                          onViewDetail={onViewDetail}
-                          onEdit={onEdit}
-                          onDuplicate={onDuplicate}
-                          onDelete={onDelete}
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
+                        {Object.keys(financials).length > 0 && (
+                          <span className="text-success font-medium">
+                            {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <Table>
+                      {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
+                      <TableBody>
+                        {group.sessions.map((session) => (
+                          <SessionRow
+                            key={session.id}
+                            session={session}
+                            inscriptionsCounts={inscriptionsCounts}
+                            financials={financials}
+                            showProfitability={showProfitability}
+                            isActive={activeSessionId === session.id}
+                            isCritical={isSessionCritical(session, inscriptionsCounts)}
+                            hideFormation={groupBy === "formation"}
+                            hideStatus={groupBy === "status"}
+                            hideLieu={groupBy === "lieu"}
+                            onViewDetail={onViewDetail}
+                            onEdit={onEdit}
+                            onDuplicate={onDuplicate}
+                            onDelete={onDelete}
+                          />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
           </div>
         )}
 
@@ -531,6 +540,35 @@ function getBusinessPriority(session: Session, inscriptionsCounts: Record<string
     return { emoji: "🟡", label: "À surveiller", class: "bg-warning/10 text-warning border-warning/20" };
   }
   return { emoji: "🟢", label: "OK", class: "bg-success/10 text-success border-success/20" };
+}
+
+/** Unified fill-rate color: red < 50, warning 50-69, success 70-99, strong-success ≥ 100 */
+function getFillColor(fillRate: number) {
+  if (fillRate >= 100) return { text: "text-emerald-600 dark:text-emerald-400", bar: "[&>div]:bg-emerald-600 dark:[&>div]:bg-emerald-400" };
+  if (fillRate >= 70) return { text: "text-success", bar: "[&>div]:bg-success" };
+  if (fillRate >= 50) return { text: "text-warning", bar: "[&>div]:bg-warning" };
+  return { text: "text-destructive", bar: "[&>div]:bg-destructive" };
+}
+
+/** Micro-synthesis: one-line business interpretation */
+function getMicroSynthesis(session: Session, fillRate: number, fin?: SessionFinancialData): string {
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+  if (session.statut === 'annulee') return "Session annulée";
+  if (session.statut === 'terminee') {
+    if (fillRate >= 80 && fin && fin.ca_securise > 0) return "Session terminée — rentable";
+    if (fillRate < 50) return "Session terminée — faible performance";
+    return "Session terminée";
+  }
+  if (fillRate >= 100 && fin && fin.ca_securise > 0) return "Session complète — rentable";
+  if (fillRate >= 100) return "Session complète";
+  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) return "Remplissage insuffisant — à risque";
+  if (fillRate < 50 && daysUntil <= 7 && daysUntil >= 0) return "Démarrage imminent — critique";
+  if (daysUntil <= 7 && daysUntil >= 0 && fillRate < 70) return "Démarrage proche — attention";
+  if (fillRate < 50) return "Remplissage insuffisant";
+  if (fillRate < 70) return "Remplissage en cours";
+  return "Bonne trajectoire";
 }
 
 interface SessionRowProps {
@@ -558,9 +596,12 @@ function SessionRow({
   const inscrits = inscriptionsCounts[session.id] || 0;
   const fin = financials[session.id];
   const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
+  const fillColor = getFillColor(fillRate);
   const priority = getBusinessPriority(session, inscriptionsCounts);
-  const isFull = inscrits >= session.places_totales && session.places_totales > 0;
-  const isNearFull = fillRate >= 80 && !isFull;
+  const synthesis = getMicroSynthesis(session, fillRate, fin);
+
+  // Month display from date_debut
+  const monthLabel = format(new Date(session.date_debut), 'MMM yyyy', { locale: fr });
 
   return (
     <TableRow
@@ -588,14 +629,18 @@ function SessionRow({
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Month — dominant */}
+            <span className="text-xs font-semibold uppercase text-foreground tracking-wide">
+              {monthLabel}
+            </span>
             {session.numero_session && (
-              <span className="text-xs text-muted-foreground font-mono">{session.numero_session}</span>
+              <span className="text-[10px] text-muted-foreground/70 font-mono">{session.numero_session}</span>
             )}
             <Badge variant="outline" className={cn("text-[10px]", formationColor.badge)}>
               {getFormationLabel(session.formation_type)}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {format(new Date(session.date_debut), 'dd/MM/yy', { locale: fr })} – {format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}
@@ -612,54 +657,46 @@ function SessionRow({
 
       {/* ──── ZONE 2 — PERFORMANCE (≈35%) ──── */}
       <TableCell className="py-4">
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {/* Fill rate */}
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className={cn(
-                  "text-sm font-semibold tabular-nums",
-                  isFull ? "text-destructive" : isNearFull ? "text-warning" : "text-foreground"
-                )}>
+                <span className={cn("text-sm font-semibold tabular-nums", fillColor.text)}>
                   {inscrits} / {session.places_totales} places
                 </span>
-                <span className={cn(
-                  "text-xs font-medium tabular-nums",
-                  fillRate < 50 ? "text-destructive" : fillRate < 70 ? "text-warning" : "text-success"
-                )}>
+                <span className={cn("text-xs font-medium tabular-nums", fillColor.text)}>
                   {fillRate}%
                 </span>
               </div>
               <Progress
-                value={fillRate}
-                className={cn(
-                  "h-2.5 w-full",
-                  isFull && "[&>div]:bg-destructive",
-                  isNearFull && "[&>div]:bg-warning",
-                  !isFull && !isNearFull && fillRate < 50 && "[&>div]:bg-destructive",
-                  !isFull && !isNearFull && fillRate >= 50 && fillRate < 70 && "[&>div]:bg-warning",
-                  !isFull && !isNearFull && fillRate >= 70 && "[&>div]:bg-success",
-                )}
+                value={Math.min(fillRate, 100)}
+                className={cn("h-2.5 w-full", fillColor.bar)}
               />
             </div>
           </div>
           {/* Financial row */}
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
             {fin && fin.nb_payes > 0 ? (
-              <span className="text-muted-foreground">
-                💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}
-              </span>
+              <span>💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}</span>
             ) : (
-              <span className="text-muted-foreground">💳 —</span>
+              <span>💳 —</span>
             )}
             {fin && fin.ca_securise > 0 ? (
               <span className="font-medium text-success">
-                {fin.ca_securise.toLocaleString('fr-FR')} € sécurisés
+                {fin.ca_securise.toLocaleString('fr-FR')} €
               </span>
             ) : (
-              <span className="text-muted-foreground">—</span>
+              <span>—</span>
             )}
           </div>
+          {/* Micro-synthesis */}
+          <p className={cn(
+            "text-[11px] italic leading-tight",
+            isCritical ? "text-destructive" : "text-muted-foreground"
+          )}>
+            {synthesis}
+          </p>
         </div>
       </TableCell>
 

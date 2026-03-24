@@ -43,6 +43,32 @@ function getMobilePriority(fillRate: number, session: Session) {
   return { emoji: "🟢", label: "OK", class: "bg-success/10 text-success border-success/20" };
 }
 
+function getFillColor(fillRate: number) {
+  if (fillRate >= 100) return { text: "text-emerald-600 dark:text-emerald-400", bar: "[&>div]:bg-emerald-600 dark:[&>div]:bg-emerald-400" };
+  if (fillRate >= 70) return { text: "text-success", bar: "[&>div]:bg-success" };
+  if (fillRate >= 50) return { text: "text-warning", bar: "[&>div]:bg-warning" };
+  return { text: "text-destructive", bar: "[&>div]:bg-destructive" };
+}
+
+function getMobileSynthesis(session: Session, fillRate: number, fin?: SessionFinancialData): string {
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+  if (session.statut === 'annulee') return "Session annulée";
+  if (session.statut === 'terminee') {
+    if (fillRate >= 80 && fin && fin.ca_securise > 0) return "Terminée — rentable";
+    if (fillRate < 50) return "Terminée — faible performance";
+    return "Terminée";
+  }
+  if (fillRate >= 100 && fin && fin.ca_securise > 0) return "Complète — rentable";
+  if (fillRate >= 100) return "Complète";
+  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) return "Insuffisant — à risque";
+  if (daysUntil <= 7 && daysUntil >= 0 && fillRate < 70) return "Démarrage proche — attention";
+  if (fillRate < 50) return "Remplissage insuffisant";
+  if (fillRate < 70) return "En cours de remplissage";
+  return "Bonne trajectoire";
+}
+
 export function SessionCardMobile({
   session,
   inscrits,
@@ -58,9 +84,10 @@ export function SessionCardMobile({
 }: SessionCardMobileProps) {
   const formationColor = getFormationColor(session.formation_type);
   const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
-  const isFull = inscrits >= session.places_totales && session.places_totales > 0;
-  const isNearFull = fillRate >= 80 && !isFull;
+  const fillColor = getFillColor(fillRate);
   const priority = getMobilePriority(fillRate, session);
+  const synthesis = getMobileSynthesis(session, fillRate, financial);
+  const monthLabel = format(new Date(session.date_debut), 'MMM yyyy', { locale: fr });
 
   return (
     <div
@@ -85,8 +112,9 @@ export function SessionCardMobile({
               )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="text-xs font-semibold uppercase text-foreground tracking-wide">{monthLabel}</span>
               {session.numero_session && (
-                <span className="text-xs text-muted-foreground font-mono">{session.numero_session}</span>
+                <span className="text-[10px] text-muted-foreground/70 font-mono">{session.numero_session}</span>
               )}
               <Badge variant="outline" className={cn("text-[10px]", formationColor.badge)}>
                 {getFormationLabel(session.formation_type)}
@@ -95,7 +123,7 @@ export function SessionCardMobile({
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
         </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground mt-1.5">
+        <div className="flex items-center gap-1.5 text-muted-foreground/70 mt-1.5">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span className="text-xs">
             {format(new Date(session.date_debut), 'dd/MM/yyyy', { locale: fr })}
@@ -107,34 +135,21 @@ export function SessionCardMobile({
 
       {/* ──── ZONE 2 — PERFORMANCE (focus) ──── */}
       <div className="px-3 pb-2">
-        <div className="bg-muted/30 rounded-md p-2.5 space-y-2">
+        <div className="bg-muted/30 rounded-md p-2.5 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className={cn(
-              "text-sm font-semibold tabular-nums",
-              isFull ? "text-destructive" : isNearFull ? "text-warning" : "text-foreground"
-            )}>
+            <span className={cn("text-sm font-semibold tabular-nums", fillColor.text)}>
               {inscrits} / {session.places_totales} places
             </span>
-            <span className={cn(
-              "text-xs font-medium tabular-nums",
-              fillRate < 50 ? "text-destructive" : fillRate < 70 ? "text-warning" : "text-success"
-            )}>
+            <span className={cn("text-xs font-medium tabular-nums", fillColor.text)}>
               {fillRate}%
             </span>
           </div>
           <Progress
-            value={fillRate}
-            className={cn(
-              "h-3 w-full",
-              isFull && "[&>div]:bg-destructive",
-              isNearFull && "[&>div]:bg-warning",
-              !isFull && !isNearFull && fillRate < 50 && "[&>div]:bg-destructive",
-              !isFull && !isNearFull && fillRate >= 50 && fillRate < 70 && "[&>div]:bg-warning",
-              !isFull && !isNearFull && fillRate >= 70 && "[&>div]:bg-success",
-            )}
+            value={Math.min(fillRate, 100)}
+            className={cn("h-3 w-full", fillColor.bar)}
           />
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground/70">
               💳 {financial && financial.nb_payes > 0 ? `${financial.nb_payes} payé${financial.nb_payes > 1 ? 's' : ''}` : '—'}
             </span>
             {financial && financial.ca_securise > 0 ? (
@@ -142,9 +157,16 @@ export function SessionCardMobile({
                 {financial.ca_securise.toLocaleString('fr-FR')} €
               </span>
             ) : (
-              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground/70">—</span>
             )}
           </div>
+          {/* Micro-synthesis */}
+          <p className={cn(
+            "text-[11px] italic leading-tight",
+            isCritical ? "text-destructive" : "text-muted-foreground"
+          )}>
+            {synthesis}
+          </p>
         </div>
       </div>
 
