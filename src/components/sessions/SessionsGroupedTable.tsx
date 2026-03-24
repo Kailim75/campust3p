@@ -451,62 +451,71 @@ export function SessionsGroupedTable({
           </Table>
         ) : (
           <div className="divide-y divide-border">
-            {groupedSessions.map((group) => (
-              <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-                    {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                    <div className="flex items-center gap-2">
-                      {group.badgeClass ? (
-                        <Badge variant="outline" className={cn("text-sm", group.badgeClass)}>{group.label}</Badge>
-                      ) : (
-                        <span className="font-semibold text-foreground">{group.label}</span>
-                      )}
-                    </div>
-                    <Badge variant="secondary" className="ml-2">
-                      {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground ml-auto mr-4 flex items-center gap-3">
-                      <span>
-                        {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
-                        {' / '}
-                        {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
-                      </span>
-                      {Object.keys(financials).length > 0 && (
-                        <span className="text-success font-medium">
-                          {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+            {groupedSessions.map((group) => {
+              const isMonthGroup = groupBy === "month";
+              return (
+                <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
+                  <CollapsibleTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors",
+                      isMonthGroup && "border-l-4 border-l-primary/30 bg-muted/20"
+                    )}>
+                      {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      <div className="flex items-center gap-2">
+                        {group.badgeClass ? (
+                          <Badge variant="outline" className={cn("text-sm", group.badgeClass)}>{group.label}</Badge>
+                        ) : (
+                          <span className={cn(
+                            "font-semibold text-foreground",
+                            isMonthGroup && "text-base uppercase tracking-wide"
+                          )}>{group.label}</span>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="ml-2">
+                        {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground/70 ml-auto mr-4 flex items-center gap-3">
+                        <span>
+                          {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
+                          {' / '}
+                          {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
                         </span>
-                      )}
-                    </span>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <Table>
-                    {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
-                    <TableBody>
-                      {group.sessions.map((session) => (
-                        <SessionRow
-                          key={session.id}
-                          session={session}
-                          inscriptionsCounts={inscriptionsCounts}
-                          financials={financials}
-                          showProfitability={showProfitability}
-                          isActive={activeSessionId === session.id}
-                          isCritical={isSessionCritical(session, inscriptionsCounts)}
-                          hideFormation={groupBy === "formation"}
-                          hideStatus={groupBy === "status"}
-                          hideLieu={groupBy === "lieu"}
-                          onViewDetail={onViewDetail}
-                          onEdit={onEdit}
-                          onDuplicate={onDuplicate}
-                          onDelete={onDelete}
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
+                        {Object.keys(financials).length > 0 && (
+                          <span className="text-success font-medium">
+                            {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <Table>
+                      {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
+                      <TableBody>
+                        {group.sessions.map((session) => (
+                          <SessionRow
+                            key={session.id}
+                            session={session}
+                            inscriptionsCounts={inscriptionsCounts}
+                            financials={financials}
+                            showProfitability={showProfitability}
+                            isActive={activeSessionId === session.id}
+                            isCritical={isSessionCritical(session, inscriptionsCounts)}
+                            hideFormation={groupBy === "formation"}
+                            hideStatus={groupBy === "status"}
+                            hideLieu={groupBy === "lieu"}
+                            onViewDetail={onViewDetail}
+                            onEdit={onEdit}
+                            onDuplicate={onDuplicate}
+                            onDelete={onDelete}
+                          />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
           </div>
         )}
 
