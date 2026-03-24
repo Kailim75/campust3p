@@ -226,41 +226,19 @@ export function SessionsGroupedTable({
   const renderHeaders = (hideFormation = false, hideStatus = false, hideLieu = false) => (
     <TableHeader>
       <TableRow className="bg-muted/50">
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('nom')}>
+        {/* ZONE 1 — IDENTITÉ */}
+        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[40%]" onClick={() => handleSort('nom')}>
           <div className="flex items-center">Session<SortIcon field="nom" /></div>
         </TableHead>
-        {!hideFormation && (
-          <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('formation_type')}>
-            <div className="flex items-center">Formation<SortIcon field="formation_type" /></div>
-          </TableHead>
-        )}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('date_debut')}>
-          <div className="flex items-center">Dates<SortIcon field="date_debut" /></div>
+        {/* ZONE 2 — PERFORMANCE */}
+        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[35%]" onClick={() => handleSort('inscrits')}>
+          <div className="flex items-center">Performance<SortIcon field="inscrits" /></div>
         </TableHead>
-        {!hideLieu && (
-          <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('lieu')}>
-            <div className="flex items-center">Lieu<SortIcon field="lieu" /></div>
-          </TableHead>
-        )}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('inscrits')}>
-          <div className="flex items-center">Inscrits<SortIcon field="inscrits" /></div>
+        {/* ZONE 3 — STATUT & PRIORITÉ */}
+        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('statut')}>
+          <div className="flex items-center">Statut & Priorité<SortIcon field="statut" /></div>
         </TableHead>
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('score')}>
-          <div className="flex items-center">Santé<SortIcon field="score" /></div>
-        </TableHead>
-        {!hideStatus && (
-          <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('statut')}>
-            <div className="flex items-center">Statut<SortIcon field="statut" /></div>
-          </TableHead>
-        )}
-        {showProfitability && (
-          <>
-            <TableHead className="font-semibold text-right">CA sécurisé</TableHead>
-            <TableHead className="font-semibold text-right">CA potentiel</TableHead>
-            <TableHead className="font-semibold text-right">Marge est.</TableHead>
-          </>
-        )}
-        <TableHead className="text-right font-semibold">Actions</TableHead>
+        <TableHead className="text-right font-semibold w-[100px]">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
