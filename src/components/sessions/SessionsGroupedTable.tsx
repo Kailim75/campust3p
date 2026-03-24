@@ -519,6 +519,21 @@ export function SessionsGroupedTable({
   );
 }
 
+function getBusinessPriority(session: Session, inscriptionsCounts: Record<string, number>) {
+  const inscrits = inscriptionsCounts[session.id] || 0;
+  const fillRate = session.places_totales > 0 ? (inscrits / session.places_totales) * 100 : 100;
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) {
+    return { emoji: "🔴", label: "Risque élevé", class: "bg-destructive/10 text-destructive border-destructive/20" };
+  }
+  if (fillRate < 70) {
+    return { emoji: "🟡", label: "À surveiller", class: "bg-warning/10 text-warning border-warning/20" };
+  }
+  return { emoji: "🟢", label: "OK", class: "bg-success/10 text-success border-success/20" };
+}
+
 interface SessionRowProps {
   session: Session;
   inscriptionsCounts: Record<string, number>;
@@ -543,107 +558,128 @@ function SessionRow({
   const formationColor = getFormationColor(session.formation_type);
   const inscrits = inscriptionsCounts[session.id] || 0;
   const fin = financials[session.id];
-  const health = getSessionHealth(session, inscriptionsCounts, financials);
-  const prix = Number(session.prix) || 0;
-  const caPotentiel = inscrits * prix;
-  const margeEstimee = fin ? fin.ca_securise - (Number((session as any).cout_session) || 0) : 0;
+  const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
+  const priority = getBusinessPriority(session, inscriptionsCounts);
+  const isFull = inscrits >= session.places_totales && session.places_totales > 0;
+  const isNearFull = fillRate >= 80 && !isFull;
 
   return (
     <TableRow
       className={cn(
-        "table-row-hover transition-colors cursor-pointer group/row even:bg-muted/20",
+        "transition-colors cursor-pointer group/row",
+        isCritical
+          ? "bg-destructive/[0.04] border-l-[3px] border-l-destructive hover:bg-destructive/[0.07]"
+          : "hover:bg-muted/40 even:bg-muted/20",
         isActive && "bg-primary/5 ring-1 ring-inset ring-primary/20",
-        isCritical && "bg-destructive/5 ring-1 ring-inset ring-destructive/30"
       )}
       onClick={() => onViewDetail(session)}
     >
-      <TableCell className="relative">
-        <div className={cn("absolute left-0 top-2 bottom-2 w-1 rounded-r-full", formationColor.dot)} />
-        <div className="pl-3">
+      {/* ──── ZONE 1 — IDENTITÉ (≈40%) ──── */}
+      <TableCell className="py-4">
+        <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full", formationColor.dot)} />
+        <div className="pl-3 space-y-1">
           <div className="flex items-center gap-2">
-            <p className="font-medium text-foreground group-hover/row:text-primary transition-colors">{session.nom}</p>
+            <p className="font-medium text-foreground truncate max-w-[220px] group-hover/row:text-primary transition-colors">
+              {session.nom}
+            </p>
             {isCritical && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-destructive/20 gap-0.5">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-destructive/20 gap-0.5 shrink-0">
                 <AlertTriangle className="h-3 w-3" /> Critique
               </Badge>
             )}
           </div>
-          {session.numero_session && (
-            <p className="text-xs text-muted-foreground font-mono">{session.numero_session}</p>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {session.numero_session && (
+              <span className="text-xs text-muted-foreground font-mono">{session.numero_session}</span>
+            )}
+            <Badge variant="outline" className={cn("text-[10px]", formationColor.badge)}>
+              {getFormationLabel(session.formation_type)}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(new Date(session.date_debut), 'dd/MM/yy', { locale: fr })} – {format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}
+            </span>
+            {(session.adresse_ville || session.lieu) && (
+              <span className="flex items-center gap-1 truncate max-w-[120px]">
+                <MapPin className="h-3 w-3" />
+                {session.adresse_ville || session.lieu}
+              </span>
+            )}
+          </div>
         </div>
       </TableCell>
 
-      {!hideFormation && (
-        <TableCell>
-          <Badge variant="outline" className={cn("text-xs", formationColor.badge)}>
-            {getFormationLabel(session.formation_type)}
-          </Badge>
-        </TableCell>
-      )}
-
-      <TableCell>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span className="text-sm">
-            {format(new Date(session.date_debut), 'dd/MM/yyyy', { locale: fr })}
-            {' - '}
-            {format(new Date(session.date_fin), 'dd/MM/yyyy', { locale: fr })}
-          </span>
-        </div>
-      </TableCell>
-
-      {!hideLieu && (
-        <TableCell>
-          {(session.adresse_ville || session.lieu) ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span className="text-sm">{session.adresse_ville || session.lieu}</span>
+      {/* ──── ZONE 2 — PERFORMANCE (≈35%) ──── */}
+      <TableCell className="py-4">
+        <div className="space-y-2">
+          {/* Fill rate */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className={cn(
+                  "text-sm font-semibold tabular-nums",
+                  isFull ? "text-destructive" : isNearFull ? "text-warning" : "text-foreground"
+                )}>
+                  {inscrits} / {session.places_totales} places
+                </span>
+                <span className={cn(
+                  "text-xs font-medium tabular-nums",
+                  fillRate < 50 ? "text-destructive" : fillRate < 70 ? "text-warning" : "text-success"
+                )}>
+                  {fillRate}%
+                </span>
+              </div>
+              <Progress
+                value={fillRate}
+                className={cn(
+                  "h-2.5 w-full",
+                  isFull && "[&>div]:bg-destructive",
+                  isNearFull && "[&>div]:bg-warning",
+                  !isFull && !isNearFull && fillRate < 50 && "[&>div]:bg-destructive",
+                  !isFull && !isNearFull && fillRate >= 50 && fillRate < 70 && "[&>div]:bg-warning",
+                  !isFull && !isNearFull && fillRate >= 70 && "[&>div]:bg-success",
+                )}
+              />
             </div>
-          ) : '-'}
-        </TableCell>
-      )}
-
-      <TableCell>
-        <SessionEnrollmentBadge
-          enrolled={inscrits}
-          total={session.places_totales}
-          financial={fin}
-        />
+          </div>
+          {/* Financial row */}
+          <div className="flex items-center gap-4 text-xs">
+            {fin && fin.nb_payes > 0 ? (
+              <span className="text-muted-foreground">
+                💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">💳 —</span>
+            )}
+            {fin && fin.ca_securise > 0 ? (
+              <span className="font-medium text-success">
+                {fin.ca_securise.toLocaleString('fr-FR')} € sécurisés
+              </span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+          </div>
+        </div>
       </TableCell>
 
-      <TableCell>
-        <SessionHealthBadge health={health} compact />
-      </TableCell>
-
-      {!hideStatus && (
-        <TableCell>
+      {/* ──── ZONE 3 — STATUT & PRIORITÉ (≈25%) ──── */}
+      <TableCell className="py-4">
+        <div className="space-y-2">
           <Badge variant="outline" className={cn("text-xs", statusConfig[session.statut]?.class)}>
             {statusConfig[session.statut]?.label || session.statut}
           </Badge>
-        </TableCell>
-      )}
+          <div>
+            <Badge variant="outline" className={cn("text-xs gap-1", priority.class)}>
+              {priority.emoji} {priority.label}
+            </Badge>
+          </div>
+        </div>
+      </TableCell>
 
-      {showProfitability && (
-        <>
-          <TableCell className="text-right text-sm font-medium text-success">
-            {(fin?.ca_securise || 0).toLocaleString('fr-FR')} €
-          </TableCell>
-          <TableCell className="text-right text-sm text-muted-foreground">
-            {caPotentiel.toLocaleString('fr-FR')} €
-          </TableCell>
-          <TableCell className="text-right text-sm">
-            <span className={cn(
-              "font-medium",
-              margeEstimee > 0 ? "text-success" : margeEstimee < 0 ? "text-destructive" : "text-muted-foreground"
-            )}>
-              {margeEstimee.toLocaleString('fr-FR')} €
-            </span>
-          </TableCell>
-        </>
-      )}
-
-      <TableCell className="text-right">
+      {/* ──── ACTIONS ──── */}
+      <TableCell className="text-right py-4">
         <div className="flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(session); }} title="Modifier">
             <Edit className="h-4 w-4" />
