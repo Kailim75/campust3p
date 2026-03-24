@@ -587,9 +587,12 @@ function SessionRow({
   const inscrits = inscriptionsCounts[session.id] || 0;
   const fin = financials[session.id];
   const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
+  const fillColor = getFillColor(fillRate);
   const priority = getBusinessPriority(session, inscriptionsCounts);
-  const isFull = inscrits >= session.places_totales && session.places_totales > 0;
-  const isNearFull = fillRate >= 80 && !isFull;
+  const synthesis = getMicroSynthesis(session, fillRate, fin);
+
+  // Month display from date_debut
+  const monthLabel = format(new Date(session.date_debut), 'MMM yyyy', { locale: fr });
 
   return (
     <TableRow
@@ -617,14 +620,18 @@ function SessionRow({
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Month — dominant */}
+            <span className="text-xs font-semibold uppercase text-foreground tracking-wide">
+              {monthLabel}
+            </span>
             {session.numero_session && (
-              <span className="text-xs text-muted-foreground font-mono">{session.numero_session}</span>
+              <span className="text-[10px] text-muted-foreground/70 font-mono">{session.numero_session}</span>
             )}
             <Badge variant="outline" className={cn("text-[10px]", formationColor.badge)}>
               {getFormationLabel(session.formation_type)}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {format(new Date(session.date_debut), 'dd/MM/yy', { locale: fr })} – {format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}
@@ -641,54 +648,46 @@ function SessionRow({
 
       {/* ──── ZONE 2 — PERFORMANCE (≈35%) ──── */}
       <TableCell className="py-4">
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {/* Fill rate */}
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className={cn(
-                  "text-sm font-semibold tabular-nums",
-                  isFull ? "text-destructive" : isNearFull ? "text-warning" : "text-foreground"
-                )}>
+                <span className={cn("text-sm font-semibold tabular-nums", fillColor.text)}>
                   {inscrits} / {session.places_totales} places
                 </span>
-                <span className={cn(
-                  "text-xs font-medium tabular-nums",
-                  fillRate < 50 ? "text-destructive" : fillRate < 70 ? "text-warning" : "text-success"
-                )}>
+                <span className={cn("text-xs font-medium tabular-nums", fillColor.text)}>
                   {fillRate}%
                 </span>
               </div>
               <Progress
-                value={fillRate}
-                className={cn(
-                  "h-2.5 w-full",
-                  isFull && "[&>div]:bg-destructive",
-                  isNearFull && "[&>div]:bg-warning",
-                  !isFull && !isNearFull && fillRate < 50 && "[&>div]:bg-destructive",
-                  !isFull && !isNearFull && fillRate >= 50 && fillRate < 70 && "[&>div]:bg-warning",
-                  !isFull && !isNearFull && fillRate >= 70 && "[&>div]:bg-success",
-                )}
+                value={Math.min(fillRate, 100)}
+                className={cn("h-2.5 w-full", fillColor.bar)}
               />
             </div>
           </div>
           {/* Financial row */}
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
             {fin && fin.nb_payes > 0 ? (
-              <span className="text-muted-foreground">
-                💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}
-              </span>
+              <span>💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}</span>
             ) : (
-              <span className="text-muted-foreground">💳 —</span>
+              <span>💳 —</span>
             )}
             {fin && fin.ca_securise > 0 ? (
               <span className="font-medium text-success">
-                {fin.ca_securise.toLocaleString('fr-FR')} € sécurisés
+                {fin.ca_securise.toLocaleString('fr-FR')} €
               </span>
             ) : (
-              <span className="text-muted-foreground">—</span>
+              <span>—</span>
             )}
           </div>
+          {/* Micro-synthesis */}
+          <p className={cn(
+            "text-[11px] italic leading-tight",
+            isCritical ? "text-destructive" : "text-muted-foreground"
+          )}>
+            {synthesis}
+          </p>
         </div>
       </TableCell>
 
