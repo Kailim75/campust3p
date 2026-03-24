@@ -25,8 +25,6 @@ import {
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { SessionEnrollmentBadge } from "./SessionEnrollmentBadge";
-import { SessionHealthBadge } from "./SessionHealthBadge";
 import { SessionCardMobile } from "./SessionCardMobile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Session } from "@/hooks/useSessions";
