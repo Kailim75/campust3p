@@ -35,6 +35,7 @@ import {
   Check,
   Undo2,
   UserX,
+  Download,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
