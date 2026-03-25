@@ -326,6 +326,37 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     });
   };
 
+  // ─── Export admis to Excel ───
+  const handleExportAdmis = async (type: "theorie" | "pratique") => {
+    const sourceIds = type === "pratique" ? pratiqueEligibleIds : contactIds;
+    const admisStudents = inscrits?.filter(
+      (i) => sourceIds.includes(i.contact_id) && examResults[i.contact_id]?.[type] === "admis"
+    );
+    if (!admisStudents?.length) {
+      toast.error("Aucun apprenant admis à exporter");
+      return;
+    }
+    const XLSX = await import("xlsx");
+    const data = admisStudents.map((i) => ({
+      "Prénom": i.contact?.prenom || "",
+      "Nom": i.contact?.nom || "",
+      "Email": i.contact?.email || "-",
+      "Téléphone": i.contact?.telephone || "-",
+      "Formation": (i.contact as any)?.formation || session?.formation_type || "",
+      "Examen": type === "theorie" ? "Théorie" : "Pratique",
+      "Résultat": "Admis",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Admis");
+    worksheet["!cols"] = [
+      { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 12 }, { wch: 10 },
+    ];
+    const sessionLabel = (session?.nom || "session").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 25);
+    XLSX.writeFile(workbook, `admis_${type}_${sessionLabel}_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    toast.success(`${admisStudents.length} apprenant(s) exporté(s)`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
