@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+type ExamResultValue = 'admis' | 'ajourne' | 'absent' | null;
+
 interface ExamResult {
-  theorie: 'admis' | 'ajourne' | null;
-  pratique: 'admis' | 'ajourne' | null;
+  theorie: ExamResultValue;
+  pratique: ExamResultValue;
 }
 
 export function useInscritsExamResults(contactIds: string[]) {
@@ -57,7 +59,7 @@ export function useInscritsExamResults(contactIds: string[]) {
     }: {
       contactId: string;
       type: 'theorie' | 'pratique';
-      value: 'admis' | 'ajourne' | null;
+      value: ExamResultValue;
       formationType?: string;
     }) => {
       const table = type === 'theorie' ? 'examens_t3p' : 'examens_pratique';
@@ -88,7 +90,7 @@ export function useInscritsExamResults(contactIds: string[]) {
         if (existing && existing.length > 0) {
           const { error } = await supabase
             .from(table)
-            .update({ resultat: value, statut: value === 'admis' ? 'reussi' : 'echoue' })
+            .update({ resultat: value, statut: value === 'admis' ? 'reussi' : value === 'absent' ? 'absent' : 'echoue' })
             .eq('id', existing[0].id);
           if (error) throw error;
         } else {
@@ -99,7 +101,7 @@ export function useInscritsExamResults(contactIds: string[]) {
               resultat: value,
               date_examen: today,
               type_formation: formationType || 'VTC',
-              statut: value === 'admis' ? 'reussi' : 'echoue',
+              statut: value === 'admis' ? 'reussi' : value === 'absent' ? 'absent' : 'echoue',
             });
             if (error) throw error;
           } else {
@@ -121,7 +123,7 @@ export function useInscritsExamResults(contactIds: string[]) {
               resultat: value,
               date_examen: today,
               type_examen: 'initial',
-              statut: value === 'admis' ? 'reussi' : 'echoue',
+              statut: value === 'admis' ? 'reussi' : value === 'absent' ? 'absent' : 'echoue',
             });
             if (error) throw error;
           }
