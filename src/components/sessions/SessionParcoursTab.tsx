@@ -743,6 +743,27 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      if (confirm(`Annuler le résultat "Échoué" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
+                        setExamResult({
+                          contactId: inscrit.contact_id,
+                          type,
+                          value: null,
+                          formationType:
+                            inscrit.contact?.formation ||
+                            session?.formation_type ||
+                            "VTC",
+                        });
+                      }
+                    }}
+                  >
+                    <Undo2 className="h-3 w-3 mr-0.5" />
+                    Corriger
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     className="h-6 text-[10px] px-2 text-warning"
                     onClick={() =>
                       handleReprogrammer(
