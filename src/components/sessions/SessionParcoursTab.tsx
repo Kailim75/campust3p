@@ -501,15 +501,26 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               )}
             </div>
             {pratiqueStats.admis > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
-                onClick={() => handleBulkFelicitations("pratique")}
-              >
-                <Send className="h-3 w-3" />
-                Féliciter ({pratiqueStats.admis})
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleExportAdmis("pratique")}
+                >
+                  <Download className="h-3 w-3" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
+                  onClick={() => handleBulkFelicitations("pratique")}
+                >
+                  <Send className="h-3 w-3" />
+                  Féliciter ({pratiqueStats.admis})
+                </Button>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
