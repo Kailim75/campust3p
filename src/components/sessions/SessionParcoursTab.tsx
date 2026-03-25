@@ -35,6 +35,7 @@ import {
   Check,
   Undo2,
   UserX,
+  Download,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
@@ -43,6 +44,7 @@ import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
 import { createAutoNote, fetchTodayAutoNotes, isHandledToday, type ActionCategory } from "@/lib/aujourdhui-actions";
+import { format } from "date-fns";
 import { shouldReactivate } from "@/lib/automationRules";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -324,6 +326,37 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     });
   };
 
+  // ─── Export admis to Excel ───
+  const handleExportAdmis = async (type: "theorie" | "pratique") => {
+    const sourceIds = type === "pratique" ? pratiqueEligibleIds : contactIds;
+    const admisStudents = inscrits?.filter(
+      (i) => sourceIds.includes(i.contact_id) && examResults[i.contact_id]?.[type] === "admis"
+    );
+    if (!admisStudents?.length) {
+      toast.error("Aucun apprenant admis à exporter");
+      return;
+    }
+    const XLSX = await import("xlsx");
+    const data = admisStudents.map((i) => ({
+      "Prénom": i.contact?.prenom || "",
+      "Nom": i.contact?.nom || "",
+      "Email": i.contact?.email || "-",
+      "Téléphone": i.contact?.telephone || "-",
+      "Formation": (i.contact as any)?.formation || session?.formation_type || "",
+      "Examen": type === "theorie" ? "Théorie" : "Pratique",
+      "Résultat": "Admis",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Admis");
+    worksheet["!cols"] = [
+      { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 12 }, { wch: 10 },
+    ];
+    const sessionLabel = (session?.nom || "session").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 25);
+    XLSX.writeFile(workbook, `admis_${type}_${sessionLabel}_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    toast.success(`${admisStudents.length} apprenant(s) exporté(s)`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -364,15 +397,26 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               Théorie
             </div>
             {theorieStats.admis > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
-                onClick={() => handleBulkFelicitations("theorie")}
-              >
-                <Send className="h-3 w-3" />
-                Féliciter ({theorieStats.admis})
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleExportAdmis("theorie")}
+                >
+                  <Download className="h-3 w-3" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
+                  onClick={() => handleBulkFelicitations("theorie")}
+                >
+                  <Send className="h-3 w-3" />
+                  Féliciter ({theorieStats.admis})
+                </Button>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
@@ -457,15 +501,26 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               )}
             </div>
             {pratiqueStats.admis > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
-                onClick={() => handleBulkFelicitations("pratique")}
-              >
-                <Send className="h-3 w-3" />
-                Féliciter ({pratiqueStats.admis})
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleExportAdmis("pratique")}
+                >
+                  <Download className="h-3 w-3" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
+                  onClick={() => handleBulkFelicitations("pratique")}
+                >
+                  <Send className="h-3 w-3" />
+                  Féliciter ({pratiqueStats.admis})
+                </Button>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
