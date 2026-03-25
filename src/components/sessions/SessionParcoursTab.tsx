@@ -397,15 +397,26 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               Théorie
             </div>
             {theorieStats.admis > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
-                onClick={() => handleBulkFelicitations("theorie")}
-              >
-                <Send className="h-3 w-3" />
-                Féliciter ({theorieStats.admis})
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleExportAdmis("theorie")}
+                >
+                  <Download className="h-3 w-3" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10"
+                  onClick={() => handleBulkFelicitations("theorie")}
+                >
+                  <Send className="h-3 w-3" />
+                  Féliciter ({theorieStats.admis})
+                </Button>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
