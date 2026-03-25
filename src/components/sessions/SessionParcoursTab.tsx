@@ -853,6 +853,76 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     );
   };
 
+  // ─── Absent list ───
+  const renderAbsentList = (
+    students: typeof inscrits | undefined,
+    type: "theorie" | "pratique"
+  ) => {
+    if (!students?.length) return null;
+    return (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-warning uppercase tracking-wide">
+          Absent ({students.length})
+        </p>
+        <div className="space-y-1.5">
+          {students.map((inscrit) => (
+            <div
+              key={inscrit.contact_id}
+              className="flex flex-col p-2 rounded-lg border border-warning/20 bg-warning/5 gap-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserX className="h-4 w-4 text-warning" />
+                  <span className="text-sm">
+                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                  </span>
+                </div>
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      if (confirm(`Annuler le statut "Absent" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
+                        setExamResult({
+                          contactId: inscrit.contact_id,
+                          type,
+                          value: null,
+                          formationType:
+                            inscrit.contact?.formation ||
+                            session?.formation_type ||
+                            "VTC",
+                        });
+                      }
+                    }}
+                  >
+                    <Undo2 className="h-3 w-3 mr-0.5" />
+                    Corriger
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-warning"
+                    onClick={() =>
+                      handleReprogrammer(
+                        inscrit.contact_id,
+                        `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                        type
+                      )
+                    }
+                  >
+                    <RotateCcw className="h-3 w-3 mr-0.5" />
+                    Reprogrammer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const lockedInscrits = inscrits?.filter(
     (i) => pratiqueLockedIds.includes(i.contact_id)
   );
