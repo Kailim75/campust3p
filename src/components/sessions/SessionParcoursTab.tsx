@@ -576,6 +576,25 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                   <XCircle className="h-3 w-3 mr-0.5" />
                   Échoué
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 border-warning text-warning hover:bg-warning/10"
+                  onClick={() =>
+                    setExamResult({
+                      contactId: inscrit.contact_id,
+                      type,
+                      value: "absent",
+                      formationType:
+                        inscrit.contact?.formation ||
+                        session?.formation_type ||
+                        "VTC",
+                    })
+                  }
+                >
+                  <UserX className="h-3 w-3 mr-0.5" />
+                  Absent
+                </Button>
               </div>
             </div>
           ))}
