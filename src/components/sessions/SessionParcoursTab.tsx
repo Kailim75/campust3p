@@ -34,6 +34,7 @@ import {
   CreditCard,
   Check,
   Undo2,
+  UserX,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
@@ -92,11 +93,12 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
 
   // Compute théorie counters
   const theorieStats = useMemo(() => {
-    const stats = { pending: 0, admis: 0, ajourne: 0 };
+    const stats = { pending: 0, admis: 0, ajourne: 0, absent: 0 };
     contactIds.forEach((id) => {
       const r = examResults[id]?.theorie;
       if (r === "admis") stats.admis++;
       else if (r === "ajourne") stats.ajourne++;
+      else if (r === "absent") stats.absent++;
       else stats.pending++;
     });
     return stats;
@@ -112,11 +114,12 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   }, [contactIds, examResults]);
 
   const pratiqueStats = useMemo(() => {
-    const stats = { pending: 0, admis: 0, ajourne: 0 };
+    const stats = { pending: 0, admis: 0, ajourne: 0, absent: 0 };
     pratiqueEligibleIds.forEach((id) => {
       const r = examResults[id]?.pratique;
       if (r === "admis") stats.admis++;
       else if (r === "ajourne") stats.ajourne++;
+      else if (r === "absent") stats.absent++;
       else stats.pending++;
     });
     return stats;
