@@ -351,6 +351,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     const ajourneInscrits = inscrits?.filter(
       (i) => examResults[i.contact_id]?.theorie === "ajourne"
     );
+    const absentInscrits = inscrits?.filter(
+      (i) => examResults[i.contact_id]?.theorie === "absent"
+    );
 
     return (
       <Card>
@@ -374,7 +377,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="text-center p-2 rounded-lg bg-muted/50">
               <p className="text-lg font-bold text-muted-foreground">{theorieStats.pending}</p>
               <p className="text-[10px] text-muted-foreground">En attente</p>
@@ -387,11 +390,16 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               <p className="text-lg font-bold text-destructive">{theorieStats.ajourne}</p>
               <p className="text-[10px] text-destructive">Échoué</p>
             </div>
+            <div className="text-center p-2 rounded-lg bg-warning/10">
+              <p className="text-lg font-bold text-warning">{theorieStats.absent}</p>
+              <p className="text-[10px] text-warning">Absent</p>
+            </div>
           </div>
 
           {renderPendingList(pendingInscrits, "theorie")}
           {renderAdmisList(admisInscrits, "theorie")}
           {renderAjourneList(ajourneInscrits, "theorie")}
+          {renderAbsentList(absentInscrits, "theorie")}
         </CardContent>
       </Card>
     );
