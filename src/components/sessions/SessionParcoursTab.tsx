@@ -44,6 +44,7 @@ import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
 import { createAutoNote, fetchTodayAutoNotes, isHandledToday, type ActionCategory } from "@/lib/aujourdhui-actions";
+import { format } from "date-fns";
 import { shouldReactivate } from "@/lib/automationRules";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
