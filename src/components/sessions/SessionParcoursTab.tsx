@@ -34,6 +34,7 @@ import {
   CreditCard,
   Check,
   Undo2,
+  UserX,
 } from "lucide-react";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { useInscritsExamResults } from "@/hooks/useInscritsExamResults";
@@ -92,11 +93,12 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
 
   // Compute théorie counters
   const theorieStats = useMemo(() => {
-    const stats = { pending: 0, admis: 0, ajourne: 0 };
+    const stats = { pending: 0, admis: 0, ajourne: 0, absent: 0 };
     contactIds.forEach((id) => {
       const r = examResults[id]?.theorie;
       if (r === "admis") stats.admis++;
       else if (r === "ajourne") stats.ajourne++;
+      else if (r === "absent") stats.absent++;
       else stats.pending++;
     });
     return stats;
@@ -112,11 +114,12 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   }, [contactIds, examResults]);
 
   const pratiqueStats = useMemo(() => {
-    const stats = { pending: 0, admis: 0, ajourne: 0 };
+    const stats = { pending: 0, admis: 0, ajourne: 0, absent: 0 };
     pratiqueEligibleIds.forEach((id) => {
       const r = examResults[id]?.pratique;
       if (r === "admis") stats.admis++;
       else if (r === "ajourne") stats.ajourne++;
+      else if (r === "absent") stats.absent++;
       else stats.pending++;
     });
     return stats;
@@ -348,6 +351,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     const ajourneInscrits = inscrits?.filter(
       (i) => examResults[i.contact_id]?.theorie === "ajourne"
     );
+    const absentInscrits = inscrits?.filter(
+      (i) => examResults[i.contact_id]?.theorie === "absent"
+    );
 
     return (
       <Card>
@@ -371,7 +377,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="text-center p-2 rounded-lg bg-muted/50">
               <p className="text-lg font-bold text-muted-foreground">{theorieStats.pending}</p>
               <p className="text-[10px] text-muted-foreground">En attente</p>
@@ -384,11 +390,16 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               <p className="text-lg font-bold text-destructive">{theorieStats.ajourne}</p>
               <p className="text-[10px] text-destructive">Échoué</p>
             </div>
+            <div className="text-center p-2 rounded-lg bg-warning/10">
+              <p className="text-lg font-bold text-warning">{theorieStats.absent}</p>
+              <p className="text-[10px] text-warning">Absent</p>
+            </div>
           </div>
 
           {renderPendingList(pendingInscrits, "theorie")}
           {renderAdmisList(admisInscrits, "theorie")}
           {renderAjourneList(ajourneInscrits, "theorie")}
+          {renderAbsentList(absentInscrits, "theorie")}
         </CardContent>
       </Card>
     );
@@ -412,6 +423,9 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     );
     const ajourneInscrits = eligibleInscrits?.filter(
       (i) => examResults[i.contact_id]?.pratique === "ajourne"
+    );
+    const absentInscrits = eligibleInscrits?.filter(
+      (i) => examResults[i.contact_id]?.pratique === "absent"
     );
 
     return (
@@ -456,7 +470,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="text-center p-2 rounded-lg bg-muted/50">
               <p className="text-lg font-bold text-muted-foreground">{pratiqueStats.pending}</p>
               <p className="text-[10px] text-muted-foreground">En attente</p>
@@ -468,6 +482,10 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
             <div className="text-center p-2 rounded-lg bg-destructive/10">
               <p className="text-lg font-bold text-destructive">{pratiqueStats.ajourne}</p>
               <p className="text-[10px] text-destructive">Échoué</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-warning/10">
+              <p className="text-lg font-bold text-warning">{pratiqueStats.absent}</p>
+              <p className="text-[10px] text-warning">Absent</p>
             </div>
           </div>
 
@@ -481,6 +499,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           {renderPendingList(pendingInscrits, "pratique")}
           {renderAdmisList(admisInscrits, "pratique")}
           {renderAjourneList(ajourneInscrits, "pratique")}
+          {renderAbsentList(absentInscrits, "pratique")}
         </CardContent>
       </Card>
     );
@@ -556,6 +575,25 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                 >
                   <XCircle className="h-3 w-3 mr-0.5" />
                   Échoué
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 border-warning text-warning hover:bg-warning/10"
+                  onClick={() =>
+                    setExamResult({
+                      contactId: inscrit.contact_id,
+                      type,
+                      value: "absent",
+                      formationType:
+                        inscrit.contact?.formation ||
+                        session?.formation_type ||
+                        "VTC",
+                    })
+                  }
+                >
+                  <UserX className="h-3 w-3 mr-0.5" />
+                  Absent
                 </Button>
               </div>
             </div>
@@ -810,6 +848,76 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
             </div>
             );
           })}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Absent list ───
+  const renderAbsentList = (
+    students: typeof inscrits | undefined,
+    type: "theorie" | "pratique"
+  ) => {
+    if (!students?.length) return null;
+    return (
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-warning uppercase tracking-wide">
+          Absent ({students.length})
+        </p>
+        <div className="space-y-1.5">
+          {students.map((inscrit) => (
+            <div
+              key={inscrit.contact_id}
+              className="flex flex-col p-2 rounded-lg border border-warning/20 bg-warning/5 gap-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserX className="h-4 w-4 text-warning" />
+                  <span className="text-sm">
+                    {inscrit.contact?.prenom} {inscrit.contact?.nom}
+                  </span>
+                </div>
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      if (confirm(`Annuler le statut "Absent" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
+                        setExamResult({
+                          contactId: inscrit.contact_id,
+                          type,
+                          value: null,
+                          formationType:
+                            inscrit.contact?.formation ||
+                            session?.formation_type ||
+                            "VTC",
+                        });
+                      }
+                    }}
+                  >
+                    <Undo2 className="h-3 w-3 mr-0.5" />
+                    Corriger
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-2 text-warning"
+                    onClick={() =>
+                      handleReprogrammer(
+                        inscrit.contact_id,
+                        `${inscrit.contact?.prenom} ${inscrit.contact?.nom}`,
+                        type
+                      )
+                    }
+                  >
+                    <RotateCcw className="h-3 w-3 mr-0.5" />
+                    Reprogrammer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
