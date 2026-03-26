@@ -284,6 +284,9 @@ export function useGenerateEmargements() {
         periode: string;
         heure_debut: string;
         heure_fin: string;
+        deleted_at: null;
+        delete_reason: null;
+        deleted_by: null;
       }> = [];
 
       for (const contactId of inscritContactIds) {
@@ -302,20 +305,22 @@ export function useGenerateEmargements() {
                 heure_fin: isSoir
                   ? (sessionData?.heure_fin?.slice(0, 5) || "21:30")
                   : (periode === "matin" ? "12:30" : "17:30"),
+                deleted_at: null,
+                delete_reason: null,
+                deleted_by: null,
               });
             }
           }
         }
       }
 
-      // Insert in batches
+      // Upsert in batches - reactivates soft-deleted records too
       if (emargements.length > 0) {
         const batchSize = 50;
         for (let i = 0; i < emargements.length; i += batchSize) {
           const batch = emargements.slice(i, i + batchSize);
           const { error } = await supabase.from("emargements").upsert(batch, {
             onConflict: "session_id,contact_id,date_emargement,periode",
-            ignoreDuplicates: true,
           });
           if (error) throw error;
         }
