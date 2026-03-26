@@ -313,8 +313,11 @@ export function useGenerateEmargements() {
         const batchSize = 50;
         for (let i = 0; i < emargements.length; i += batchSize) {
           const batch = emargements.slice(i, i + batchSize);
-          const { error } = await supabase.from("emargements").insert(batch);
-          if (error && !error.message.includes("duplicate")) throw error;
+          const { error } = await supabase.from("emargements").upsert(batch, {
+            onConflict: "session_id,contact_id,date_emargement,periode",
+            ignoreDuplicates: true,
+          });
+          if (error) throw error;
         }
       }
 
