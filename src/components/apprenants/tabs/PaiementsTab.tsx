@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
+import { getUserCentreId } from "@/utils/getCentreId";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
@@ -108,11 +109,38 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
   const addPaiement = useMutation({
     mutationFn: async () => {
-      const factureId = formData.factureId || factures?.[0]?.id;
-      if (!factureId) throw new Error("Aucune facture");
+      let factureId = formData.factureId;
+      const montant = parseFloat(formData.montant);
+
+      // If "new" selected, create a facture first
+      if (factureId === "__new__" || (!factureId && (!factures || factures.length === 0))) {
+        const { data: numero } = await supabase.rpc("generate_numero_facture");
+        const centreId = await getUserCentreId();
+        const today = new Date().toISOString().split("T")[0];
+        const { data: newFacture, error: fErr } = await supabase
+          .from("factures")
+          .insert({
+            contact_id: contactId,
+            numero_facture: numero || `FAC-${Date.now()}`,
+            montant_total: montant,
+            statut: "emise" as any,
+            type_financement: "personnel" as any,
+            date_emission: today,
+            centre_id: centreId,
+          } as any)
+          .select("id")
+          .single();
+        if (fErr) throw fErr;
+        factureId = newFacture.id;
+      } else if (!factureId) {
+        factureId = factures?.[0]?.id;
+      }
+
+      if (!factureId) throw new Error("Aucune facture sélectionnée");
+
       const { error } = await supabase.from("paiements").insert({
         facture_id: factureId,
-        montant: parseFloat(formData.montant),
+        montant,
         mode_paiement: formData.mode as any,
         reference: formData.reference || null,
         date_paiement: new Date().toISOString().split("T")[0],
@@ -122,11 +150,12 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["apprenant-paiements", contactId] });
       queryClient.invalidateQueries({ queryKey: ["apprenant-factures", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
       toast.success("Versement ajouté");
       setShowForm(false);
       setFormData({ montant: "", mode: "cb", reference: "", factureId: "" });
     },
-    onError: (error: Error) => toast.error("Erreur lors de l'ajout du versement : " + error.message),
+    onError: (error: Error) => toast.error("Erreur : " + error.message),
   });
 
   const enrichFactureWithPayer = (f: any): FactureInfo => {
@@ -255,6 +284,12 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
               <Select value={formData.factureId || (factures?.length === 1 ? factures[0].id : "")} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__new__">
+                    <span className="flex items-center gap-1.5">
+                      <Plus className="h-3.5 w-3.5" />
+                      Créer une nouvelle facture
+                    </span>
+                  </SelectItem>
                   {(factures || []).map((f: any) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
@@ -286,8 +321,8 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!formData.montant || (!formData.factureId && (factures || []).length !== 1) || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
-              {addPaiement.isPending ? "..." : "Enregistrer"}
+            <Button size="sm" disabled={!formData.montant || !formData.factureId || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+              {addPaiement.isPending ? "..." : formData.factureId === "__new__" ? "Créer facture & enregistrer" : "Enregistrer"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
           </div>
