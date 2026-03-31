@@ -45,7 +45,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [editingFacture, setEditingFacture] = useState<any>(null);
-  const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "" });
+  const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "", factureId: "" });
 
   const { data: factures, isLoading: facturesLoading } = useQuery({
     queryKey: ["apprenant-factures", contactId],
@@ -108,7 +108,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
   const addPaiement = useMutation({
     mutationFn: async () => {
-      const factureId = factures?.[0]?.id;
+      const factureId = formData.factureId || factures?.[0]?.id;
       if (!factureId) throw new Error("Aucune facture");
       const { error } = await supabase.from("paiements").insert({
         facture_id: factureId,
@@ -124,9 +124,9 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       queryClient.invalidateQueries({ queryKey: ["apprenant-factures", contactId] });
       toast.success("Versement ajouté");
       setShowForm(false);
-      setFormData({ montant: "", mode: "cb", reference: "" });
+      setFormData({ montant: "", mode: "cb", reference: "", factureId: "" });
     },
-    onError: () => toast.error("Erreur lors de l'ajout du versement"),
+    onError: (error: Error) => toast.error("Erreur lors de l'ajout du versement : " + error.message),
   });
 
   const enrichFactureWithPayer = (f: any): FactureInfo => {
@@ -249,7 +249,20 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
       {showForm && (
         <Card className="p-4 space-y-3 border-primary/20">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label className="text-xs">Facture</Label>
+              <Select value={formData.factureId || (factures?.length === 1 ? factures[0].id : "")} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
+                <SelectContent>
+                  {(factures || []).map((f: any) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">Montant (€)</Label>
               <Input type="number" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
@@ -267,13 +280,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs">Référence</Label>
               <Input className="h-9" value={formData.reference} onChange={(e) => setFormData((p) => ({ ...p, reference: e.target.value }))} placeholder="Réf. Alma/CPF" />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!formData.montant || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+            <Button size="sm" disabled={!formData.montant || (!formData.factureId && (factures || []).length !== 1) || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
               {addPaiement.isPending ? "..." : "Enregistrer"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
