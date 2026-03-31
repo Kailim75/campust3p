@@ -108,7 +108,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
   const addPaiement = useMutation({
     mutationFn: async () => {
-      const factureId = factures?.[0]?.id;
+      const factureId = formData.factureId || factures?.[0]?.id;
       if (!factureId) throw new Error("Aucune facture");
       const { error } = await supabase.from("paiements").insert({
         facture_id: factureId,
@@ -124,9 +124,9 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       queryClient.invalidateQueries({ queryKey: ["apprenant-factures", contactId] });
       toast.success("Versement ajouté");
       setShowForm(false);
-      setFormData({ montant: "", mode: "cb", reference: "" });
+      setFormData({ montant: "", mode: "cb", reference: "", factureId: "" });
     },
-    onError: () => toast.error("Erreur lors de l'ajout du versement"),
+    onError: (error: Error) => toast.error("Erreur lors de l'ajout du versement : " + error.message),
   });
 
   const enrichFactureWithPayer = (f: any): FactureInfo => {
