@@ -321,8 +321,8 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!formData.montant || (!formData.factureId && (factures || []).length !== 1) || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
-              {addPaiement.isPending ? "..." : "Enregistrer"}
+            <Button size="sm" disabled={!formData.montant || !formData.factureId || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+              {addPaiement.isPending ? "..." : formData.factureId === "__new__" ? "Créer facture & enregistrer" : "Enregistrer"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
           </div>
