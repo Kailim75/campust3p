@@ -249,7 +249,20 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
 
       {showForm && (
         <Card className="p-4 space-y-3 border-primary/20">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label className="text-xs">Facture</Label>
+              <Select value={formData.factureId || (factures?.length === 1 ? factures[0].id : "")} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
+                <SelectContent>
+                  {(factures || []).map((f: any) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">Montant (€)</Label>
               <Input type="number" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
@@ -267,13 +280,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs">Référence</Label>
               <Input className="h-9" value={formData.reference} onChange={(e) => setFormData((p) => ({ ...p, reference: e.target.value }))} placeholder="Réf. Alma/CPF" />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!formData.montant || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+            <Button size="sm" disabled={!formData.montant || (!formData.factureId && (factures || []).length !== 1) || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
               {addPaiement.isPending ? "..." : "Enregistrer"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
