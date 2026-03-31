@@ -45,7 +45,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [editingFacture, setEditingFacture] = useState<any>(null);
-  const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "" });
+  const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "", factureId: "" });
 
   const { data: factures, isLoading: facturesLoading } = useQuery({
     queryKey: ["apprenant-factures", contactId],
