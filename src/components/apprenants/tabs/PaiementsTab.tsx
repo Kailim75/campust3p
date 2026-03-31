@@ -284,6 +284,12 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
               <Select value={formData.factureId || (factures?.length === 1 ? factures[0].id : "")} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__new__">
+                    <span className="flex items-center gap-1.5">
+                      <Plus className="h-3.5 w-3.5" />
+                      Créer une nouvelle facture
+                    </span>
+                  </SelectItem>
                   {(factures || []).map((f: any) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
