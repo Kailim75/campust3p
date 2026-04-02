@@ -774,11 +774,16 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
         </DragDropContext>
       </div>
 
-      {/* Detail Sheet */}
+      {/* Detail Sheets */}
       <ApprenantDetailSheet
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+      <ProspectDetailSheet
+        prospect={viewingProspect}
+        open={prospectDetailOpen}
+        onOpenChange={setProspectDetailOpen}
       />
     </div>
   );
