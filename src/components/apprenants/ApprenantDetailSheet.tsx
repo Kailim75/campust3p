@@ -14,6 +14,7 @@ interface ApprenantDetailSheetProps {
   contactId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (contact: any) => void;
 }
 
 export function ApprenantDetailSheet({ contactId, open, onOpenChange }: ApprenantDetailSheetProps) {
