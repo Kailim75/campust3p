@@ -544,7 +544,10 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
 
   const reprogramItems = rawReprogram;
-  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length;
+  // Use allCmaFiltered (full count) not cmaItems (sliced) for accurate counter
+  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + qualiopiSessions.length;
+  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + qualiopiSessions.length;
+  const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   // ─── Action handlers with EmailComposerModal ───
   const handleCmaRelanceDocs = (item: any) => {
