@@ -308,7 +308,7 @@ export function ProspectsPage() {
         </TabsContent>
 
         <TabsContent value="kanban" className="mt-6">
-          <ProspectsKanban />
+          <ProspectsKanban onViewDetail={handleViewDetail} />
         </TabsContent>
 
         <TabsContent value="pipeline" className="mt-6">
