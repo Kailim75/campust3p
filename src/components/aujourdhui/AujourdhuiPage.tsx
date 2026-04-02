@@ -757,9 +757,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
             <div className="divide-y max-h-80 overflow-y-auto">
               {cmaItems.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                  {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dossier dans cette catégorie"}
+                <div className="p-5 text-center text-muted-foreground text-xs">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
+                  {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dans cette catégorie"}
                 </div>
               ) : cmaItems.map((item) => {
                 const relancedToday = isCmaRelancedToday(item.id);
