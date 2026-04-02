@@ -42,9 +42,6 @@ export function useCreateUser() {
 
       const response = await supabase.functions.invoke("create-user", {
         body: { email, password, role },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (response.error) {
