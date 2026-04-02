@@ -241,9 +241,11 @@ function useAujourdhuiData() {
         })
         .slice(0, 10);
 
-      // ─── Bloc D: Critiques ───
+      // ─── Bloc D: Critiques (deduplicated — exclude contacts already in CMA) ───
+      const cmaContactIds = new Set(cmaItems.map(c => c.id));
       const critiques = contacts
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
+        .filter(c => !cmaContactIds.has(c.id))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
