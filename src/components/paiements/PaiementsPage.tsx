@@ -760,6 +760,14 @@ export function PaiementsPage() {
         open={showFactureLibre}
         onOpenChange={setShowFactureLibre}
       />
+
+      <BulkEmitConfirmDialog
+        open={showBulkEmitDialog}
+        onOpenChange={setShowBulkEmitDialog}
+        brouillons={brouillons}
+        onConfirm={handleBulkEmitConfirm}
+        isPending={bulkEmit.isPending}
+      />
     </div>
   );
 }
