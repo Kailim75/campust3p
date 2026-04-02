@@ -6950,6 +6950,9 @@ export type Database = {
           logo_url: string | null
           max_contacts: number | null
           max_users: number | null
+          nb_contacts: number | null
+          nb_sessions: number | null
+          nb_users: number | null
           nda: string | null
           nom: string | null
           nom_commercial: string | null
@@ -6962,9 +6965,6 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           telephone: string | null
-          total_contacts: number | null
-          total_sessions: number | null
-          total_users: number | null
           updated_at: string | null
         }
         Relationships: []
