@@ -37,7 +37,11 @@ const COLUMNS: { id: ProspectStatus; label: string; color: string }[] = [
   { id: "perdu", label: "Perdu", color: "bg-gray-500" },
 ];
 
-export function ProspectsKanban() {
+interface ProspectsKanbanProps {
+  onViewDetail?: (prospect: Prospect) => void;
+}
+
+export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
   const { data: prospects = [], isLoading } = useProspects();
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
@@ -148,7 +152,8 @@ export function ProspectsKanban() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`p-3 cursor-grab active:cursor-grabbing ${
+                                onClick={() => onViewDetail?.(prospect)}
+                                className={`p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${
                                   snapshot.isDragging ? "shadow-lg rotate-2" : ""
                                 }`}
                               >
@@ -158,7 +163,7 @@ export function ProspectsKanban() {
                                   </div>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
                                         <MoreHorizontal className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>

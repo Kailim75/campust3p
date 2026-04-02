@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
+import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 import { toast } from "sonner";
 
 // ─── CONSTANTS ───────────────────────────────────────────
@@ -679,10 +680,16 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
 
   // ─── CARD CLICK ────────────────────────────────────────
 
+  const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
+  const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
+
   const handleCardClick = (item: PipelineItem) => {
     if (item.type === "contact" && item.originalContact) {
       setSelectedContactId(item.originalContact.id);
       setDetailOpen(true);
+    } else if (item.type === "prospect" && item.originalProspect) {
+      setViewingProspect(item.originalProspect);
+      setProspectDetailOpen(true);
     }
   };
 
@@ -748,6 +755,7 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
             <Users className="h-3.5 w-3.5" />
             <span className="tabular-nums font-medium">{allItems.length}</span>
             <span>dans le pipeline</span>
+            <span className="text-[10px] opacity-70">({prospects.filter(p => !p.converted_contact_id).length} prospects + {contacts.length} apprenants)</span>
           </div>
         </div>
 
@@ -766,11 +774,16 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
         </DragDropContext>
       </div>
 
-      {/* Detail Sheet */}
+      {/* Detail Sheets */}
       <ApprenantDetailSheet
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+      <ProspectDetailSheet
+        prospect={viewingProspect}
+        open={prospectDetailOpen}
+        onOpenChange={setProspectDetailOpen}
       />
     </div>
   );

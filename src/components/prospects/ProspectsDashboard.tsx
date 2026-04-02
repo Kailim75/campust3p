@@ -202,29 +202,37 @@ export function ProspectsDashboard() {
             <CardTitle className="text-base">Évolution des conversions</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={analytics.conversionTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" fontSize={12} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#3b82f6"
-                  name="Total"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="converted"
-                  stroke="#22c55e"
-                  name="Convertis"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {analytics.conversionTrend.every(d => d.total === 0 && d.converted === 0) ? (
+              <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
+                <TrendingUp className="h-10 w-10 opacity-20 mb-3" />
+                <p className="text-sm font-medium">Pas encore de données</p>
+                <p className="text-xs">Les conversions apparaîtront ici au fil du temps</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={analytics.conversionTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#3b82f6"
+                    name="Total"
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="converted"
+                    stroke="#22c55e"
+                    name="Convertis"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

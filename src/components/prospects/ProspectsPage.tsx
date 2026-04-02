@@ -99,7 +99,7 @@ export function ProspectsPage() {
   const markDone = useMarkProspectDone();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("actifs");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -145,6 +145,9 @@ export function ProspectsPage() {
     const weekE = endOfDay(addDays(todayS, 6));
 
     return prospects.filter((p) => {
+      if (quickFilter === "actifs") {
+        return p.statut !== "converti" && p.statut !== "perdu";
+      }
       if (quickFilter === "overdue") {
         return p.next_action_at && isBefore(new Date(p.next_action_at), now) && p.statut !== "converti" && p.statut !== "perdu";
       }
@@ -161,7 +164,7 @@ export function ProspectsPage() {
       if (quickFilter === "mine") {
         return currentUserId && p.assigned_to === currentUserId;
       }
-      return true;
+      return true; // "all"
     });
   }, [prospects, quickFilter, currentUserId]);
 
@@ -308,7 +311,7 @@ export function ProspectsPage() {
         </TabsContent>
 
         <TabsContent value="kanban" className="mt-6">
-          <ProspectsKanban />
+          <ProspectsKanban onViewDetail={handleViewDetail} />
         </TabsContent>
 
         <TabsContent value="pipeline" className="mt-6">
@@ -554,7 +557,16 @@ export function ProspectsPage() {
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
-                          {getLeadAge(prospect.created_at)}
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-default">{getLeadAge(prospect.created_at)}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Créé le {new Date(prospect.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-0.5">
