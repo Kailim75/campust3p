@@ -468,18 +468,42 @@ export function PaiementsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Bulk emit brouillons */}
+            {/* Brouillon quick filter + bulk emit */}
             {brouillonCount > 0 && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-9"
-                onClick={handleBulkEmit}
-                disabled={bulkEmit.isPending}
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                {bulkEmit.isPending ? "Émission..." : `Émettre ${brouillonCount} brouillon${brouillonCount > 1 ? "s" : ""}`}
-              </Button>
+              <TooltipProvider>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-muted-foreground"
+                        onClick={() => {
+                          setStatutFilter("brouillon");
+                          setActiveTab("tous");
+                        }}
+                      >
+                        <HelpCircle className="h-3.5 w-3.5 mr-1" />
+                        {brouillonCount} brouillon{brouillonCount > 1 ? "s" : ""}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[250px] text-xs">
+                      <p className="font-medium mb-1">Factures brouillon</p>
+                      <p className="text-muted-foreground">Factures créées mais non émises. Elles ne sont pas visibles par les clients et n'apparaissent pas dans les exports comptables.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
+                    onClick={handleBulkEmit}
+                    disabled={bulkEmit.isPending}
+                  >
+                    <Zap className="h-4 w-4 mr-1.5" />
+                    {bulkEmit.isPending ? "Émission…" : "Émettre tout"}
+                  </Button>
+                </div>
+              </TooltipProvider>
             )}
 
             {/* Results count */}
