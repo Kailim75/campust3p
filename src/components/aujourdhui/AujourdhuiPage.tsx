@@ -879,21 +879,16 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {rdvToday.length === 0 ? (
-                <div className="p-6 text-center space-y-3">
-                  <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
-                  <div className="flex justify-center gap-2">
-                    {onNavigate && (
-                      <>
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => { onNavigate("prospects-agenda"); }}>
-                          <CalendarCheck className="h-3 w-3 mr-1" /> Planifier un RDV
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-xs" onClick={() => onNavigate("prospects")}>
-                          <RotateCcw className="h-3 w-3 mr-1" /> Relancer prospects
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                <div className="p-4 text-center space-y-2">
+                  <Calendar className="h-6 w-6 mx-auto text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
+                  {onNavigate && (
+                    <div className="flex justify-center gap-2">
+                      <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => { onNavigate("prospects-agenda"); }}>
+                        <CalendarCheck className="h-3 w-3 mr-1" /> Planifier
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : rdvToday.map((p) => {
                 const handledToday = isRdvHandledToday(p.id);
