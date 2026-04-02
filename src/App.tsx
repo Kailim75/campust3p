@@ -70,6 +70,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Lazy load full page
+const ApprenantFullPage = lazy(() => import("./components/apprenants/ApprenantFullPage").then(m => ({ default: m.ApprenantFullPage })));
+
 // Explicit app section routes (phase 2 incremental routing migration)
 const APP_SECTION_PATHS = [
   "/",
