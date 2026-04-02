@@ -13,6 +13,8 @@ import { DashboardMetrics } from "@/hooks/useDashboardData";
 import { formatEur, formatDelta, formatCountDelta } from "@/lib/format-currency";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { forwardRef } from "react";
+import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
+import { isAfter, endOfMonth, startOfMonth } from "date-fns";
 
 interface Props {
   metrics: DashboardMetrics | undefined;
