@@ -52,6 +52,7 @@ export function CentreFormationSettings() {
   const { centreFormation, isLoading, save, isSaving } = useCentreFormation();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCachet, setUploadingCachet] = useState(false);
+  const [showIban, setShowIban] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const cachetInputRef = useRef<HTMLInputElement>(null);
 
