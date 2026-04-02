@@ -599,19 +599,20 @@ export function PaiementsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ / {Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                        <div>
+                          <p className="font-bold text-foreground">
+                            {Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
                           </p>
-                          <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all",
-                                paidPercentage >= 100 ? "bg-success" : paidPercentage > 0 ? "bg-warning" : "bg-destructive"
-                              )}
-                              style={{ width: `${Math.min(paidPercentage, 100)}%` }}
-                            />
-                          </div>
+                          {facture.statut !== "brouillon" && facture.statut !== "annulee" && (
+                            <p className={cn(
+                              "text-xs",
+                              montantRestant <= 0 ? "text-success" : "text-muted-foreground"
+                            )}>
+                              {montantRestant <= 0
+                                ? "✓ Soldée"
+                                : `Reste ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
