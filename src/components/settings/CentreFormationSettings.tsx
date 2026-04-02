@@ -436,7 +436,24 @@ export function CentreFormationSettings() {
                     <FormItem>
                       <FormLabel>IBAN *</FormLabel>
                       <FormControl>
-                        <Input placeholder="FR76 1234 5678 9012 3456 7890 123" {...field} />
+                        <div className="relative">
+                          <Input
+                            placeholder="FR76 1234 5678 9012 3456 7890 123"
+                            {...field}
+                            type={showIban ? "text" : "password"}
+                            autoComplete="off"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                            onClick={() => setShowIban(!showIban)}
+                            tabIndex={-1}
+                          >
+                            {showIban ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
