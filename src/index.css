@@ -20,38 +20,38 @@
 @layer base {
   :root {
     /* ── FONDS ── */
-    --background: 210 40% 98%;
-    --background-subtle: 210 40% 96%;
+    --background: 220 20% 97%;
+    --background-subtle: 220 18% 95%;
     --surface: 0 0% 100%;
-    --surface-hover: 210 40% 96%;
-    --surface-warm: 210 33% 95%;
+    --surface-hover: 220 18% 96%;
+    --surface-warm: 220 14% 95%;
 
-    /* ── PRIMAIRE : Bleu nuit / Anthracite ── */
-    --primary: 222 47% 11%;
-    --primary-hover: 222 44% 16%;
-    --primary-active: 222 50% 8%;
+    /* ── PRIMAIRE : Bleu action ── */
+    --primary: 205 72% 38%;
+    --primary-hover: 205 73% 33%;
+    --primary-active: 205 75% 28%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 214 32% 94%;
-    --primary-border: 214 25% 80%;
-    --primary-mid: 215 20% 40%;
+    --primary-subtle: 205 50% 94%;
+    --primary-border: 205 40% 78%;
+    --primary-mid: 205 40% 50%;
 
-    /* ── CTA : Teal tech ── */
-    --cta: 173 58% 39%;
-    --cta-hover: 173 62% 32%;
+    /* ── CTA : Identique au primary pour cohérence ── */
+    --cta: 205 72% 38%;
+    --cta-hover: 205 73% 33%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
     --secondary: 214 32% 91%;
     --secondary-hover: 214 25% 87%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 215 25% 20%;
 
     /* ── ACCENT ── */
     --accent: 214 32% 91%;
     --accent-hover: 214 25% 87%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 215 25% 20%;
 
     /* ── TEXTES ── */
-    --foreground: 220 54% 8%;
+    --foreground: 222 47% 11%;
     --foreground-secondary: 215 16% 35%;
     --muted: 214 32% 91%;
     --muted-foreground: 215 16% 43%;
@@ -59,9 +59,9 @@
 
     --header-gradient: linear-gradient(135deg, hsl(222 47% 11%), hsl(222 44% 16%));
     --card: 0 0% 100%;
-    --card-foreground: 220 54% 8%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 54% 8%;
+    --popover-foreground: 222 47% 11%;
 
     /* ── BORDURES ── */
     --border: 214 32% 91%;
@@ -69,29 +69,29 @@
     --border-strong: 215 20% 75%;
     --input: 214 32% 91%;
 
-    /* ── ÉTATS ── */
-    --success: 156 72% 36%;
+    /* ── ÉTATS SÉMANTIQUES ── */
+    --success: 142 72% 36%;
     --success-foreground: 0 0% 100%;
-    --success-subtle: 156 48% 94%;
-    --success-border: 156 40% 75%;
+    --success-subtle: 142 48% 94%;
+    --success-border: 142 40% 75%;
 
     --warning: 37 91% 44%;
     --warning-foreground: 0 0% 100%;
     --warning-subtle: 37 80% 94%;
     --warning-border: 37 60% 75%;
 
-    --destructive: 3 55% 51%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-subtle: 3 60% 96%;
-    --destructive-border: 3 45% 82%;
+    --destructive-subtle: 0 60% 96%;
+    --destructive-border: 0 45% 82%;
 
-    --info: 210 70% 52%;
+    --info: 189 94% 37%;
     --info-foreground: 0 0% 100%;
-    --info-subtle: 210 70% 95%;
-    --info-border: 210 50% 80%;
+    --info-subtle: 189 70% 95%;
+    --info-border: 189 50% 78%;
 
     /* ── Ring & Radius ── */
-    --ring: 173 58% 39%;
+    --ring: 205 72% 38%;
     --radius: 0.75rem;
 
     /* ── OMBRES ── */
@@ -100,7 +100,7 @@
     --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
     --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
     --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
-    --shadow-focus: 0 0 0 3px hsl(173 58% 39% / 0.2);
+    --shadow-focus: 0 0 0 3px hsl(205 72% 38% / 0.2);
 
     /* ── Sidebar : Dark premium ── */
     --sidebar-background: 222 47% 11%;
@@ -136,13 +136,14 @@
     --popover-foreground: 220 15% 90%;
 
     /* ── PRIMAIRE ── */
-    --primary: 220 20% 70%;
-    --primary-foreground: 220 20% 7%;
-    --primary-subtle: 220 18% 16%;
+    --primary: 205 60% 50%;
+    --primary-hover: 205 55% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-subtle: 205 30% 18%;
 
     /* ── CTA ── */
-    --cta: 173 50% 45%;
-    --cta-hover: 173 50% 40%;
+    --cta: 205 60% 50%;
+    --cta-hover: 205 55% 45%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
@@ -154,13 +155,13 @@
     --accent-foreground: 220 15% 90%;
 
     /* ── ÉTATS ── */
-    --success: 156 72% 36%;
+    --success: 142 72% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 37 91% 44%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 3 55% 51%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
-    --info: 210 70% 52%;
+    --info: 189 94% 37%;
     --info-foreground: 0 0% 100%;
 
     /* ── BORDURES ── */
@@ -170,21 +171,21 @@
     --input: 0 0% 100% / 0.08;
 
     /* ── Ring ── */
-    --ring: 173 50% 45%;
+    --ring: 205 60% 50%;
 
     /* ── Sidebar ── */
     --sidebar-background: 220 22% 9%;
     --sidebar-foreground: 220 12% 65%;
-    --sidebar-primary: 173 50% 45%;
+    --sidebar-primary: 205 60% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 100% / 0.06;
     --sidebar-accent-foreground: 220 15% 90%;
     --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 173 50% 45%;
+    --sidebar-ring: 205 60% 50%;
     --sidebar-active: 0 0% 100% / 0.1;
 
     /* ── Shadows ── */
-    --shadow-focus: 0 0 0 3px hsl(173 50% 45% / 0.25);
+    --shadow-focus: 0 0 0 3px hsl(205 60% 50% / 0.25);
   }
 }
 
@@ -273,7 +274,7 @@
   }
 
   .sidebar-item.active {
-    background: hsl(173 58% 39% / 0.12);
+    background: hsl(205 72% 38% / 0.12);
     color: hsl(0 0% 100%);
     border-left: 2.5px solid hsl(var(--cta));
     padding-left: 9.5px;
@@ -396,12 +397,12 @@
     font-size: 13px;
     border-radius: 10px;
     padding: 8px 16px;
-    box-shadow: 0 4px 6px -1px hsl(173 58% 39% / 0.3), 0 2px 4px -2px hsl(173 58% 39% / 0.15);
+    box-shadow: 0 4px 6px -1px hsl(205 72% 38% / 0.3), 0 2px 4px -2px hsl(205 72% 38% / 0.15);
   }
 
   .btn-cta:hover {
     background: hsl(var(--cta-hover));
-    box-shadow: 0 10px 25px -3px hsl(173 58% 39% / 0.35), 0 4px 6px -4px hsl(173 58% 39% / 0.2);
+    box-shadow: 0 10px 25px -3px hsl(205 72% 38% / 0.35), 0 4px 6px -4px hsl(205 72% 38% / 0.2);
     transform: translateY(-1px);
   }
 

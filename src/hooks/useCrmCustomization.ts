@@ -12,8 +12,8 @@ export interface CrmCustomization {
 const STORAGE_KEY = "crm-customization";
 
 const defaults: CrmCustomization = {
-  primaryColor: "222 47% 11%",
-  ctaColor: "173 58% 39%",
+  primaryColor: "205 72% 38%",
+  ctaColor: "205 72% 38%",
   sidebarStyle: "dark",
   fontFamily: "inter",
   borderRadius: "default",
