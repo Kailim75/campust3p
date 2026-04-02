@@ -266,10 +266,11 @@ export function PaiementsPage() {
                 <Euro className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">CA ce mois</p>
+                <p className="text-sm text-muted-foreground">CA facturé</p>
                 <p className="text-2xl font-display font-bold text-foreground">
                   {(stats?.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Toutes factures actives</p>
               </div>
             </div>
           </div>
@@ -283,6 +284,7 @@ export function PaiementsPage() {
                 <p className="text-2xl font-display font-bold text-success">
                   {(stats?.paye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Tous paiements reçus</p>
               </div>
             </div>
           </div>
@@ -292,10 +294,11 @@ export function PaiementsPage() {
                 <Euro className="h-6 w-6 text-destructive" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">En attente</p>
+                <p className="text-sm text-muted-foreground">Reste à encaisser</p>
                 <p className="text-2xl font-display font-bold text-destructive">
                   {(stats?.impaye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Factures émises non soldées</p>
               </div>
             </div>
           </div>
