@@ -378,7 +378,13 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
             const formationClass = contact.formation
               ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
               : "";
-            const payLabel = contact.totalFacture > 0 ? `${contact.totalPaye}€/${contact.totalFacture}€` : null;
+            const payLabel = (() => {
+              if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };
+              if (contact.totalPaye >= contact.totalFacture) return { text: "Soldé", cls: "text-success" };
+              if (contact.totalPaye > 0) return { text: `Partiel · ${contact.totalFacture - contact.totalPaye}€`, cls: "text-warning" };
+              if (contact.paymentStatus === "retard") return { text: `Impayé · ${contact.totalFacture}€`, cls: "text-destructive" };
+              return { text: `En attente · ${contact.totalFacture}€`, cls: "text-muted-foreground" };
+            })();
             return (
               <Card
                 key={contact.id}
