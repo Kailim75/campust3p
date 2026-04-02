@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Header } from "@/components/layout/Header";
+import { useAlmaMode } from "@/hooks/useAlmaMode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
