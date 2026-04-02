@@ -145,6 +145,9 @@ export function ProspectsPage() {
     const weekE = endOfDay(addDays(todayS, 6));
 
     return prospects.filter((p) => {
+      if (quickFilter === "actifs") {
+        return p.statut !== "converti" && p.statut !== "perdu";
+      }
       if (quickFilter === "overdue") {
         return p.next_action_at && isBefore(new Date(p.next_action_at), now) && p.statut !== "converti" && p.statut !== "perdu";
       }
@@ -161,7 +164,7 @@ export function ProspectsPage() {
       if (quickFilter === "mine") {
         return currentUserId && p.assigned_to === currentUserId;
       }
-      return true;
+      return true; // "all"
     });
   }, [prospects, quickFilter, currentUserId]);
 
