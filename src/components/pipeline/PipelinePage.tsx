@@ -754,6 +754,7 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
             <Users className="h-3.5 w-3.5" />
             <span className="tabular-nums font-medium">{allItems.length}</span>
             <span>dans le pipeline</span>
+            <span className="text-[10px] opacity-70">({prospects.filter(p => !p.converted_contact_id).length} prospects + {contacts.length} apprenants)</span>
           </div>
         </div>
 
