@@ -47,6 +47,7 @@ interface RawFacture {
   numero_facture: string;
   contact_id: string | null;
   date_emission: string | null;
+  contact: { nom: string; prenom: string } | null;
 }
 
 interface RawPaiement {
