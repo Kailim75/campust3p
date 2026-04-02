@@ -215,7 +215,21 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
           />
         </div>
 
-        {/* Level 3 — CA Evolution + Formation Breakdown */}
+        {/* Level 3 — "À traiter aujourd'hui" (full width, primary action zone — promoted above charts) */}
+        <section aria-labelledby="today-actions-title">
+          <h2
+            id="today-actions-title"
+            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+          >
+            À traiter aujourd'hui
+          </h2>
+          <ActionPanelToday
+            onNavigate={handleNavigate}
+            onOpenContact={handleOpenContact}
+          />
+        </section>
+
+        {/* Level 4 — CA Evolution + Formation Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section aria-labelledby="ca-chart-title">
             <h2
@@ -241,20 +255,6 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
             />
           </section>
         </div>
-
-        {/* Level 4 — "À traiter aujourd'hui" (full width, primary action zone) */}
-        <section aria-labelledby="today-actions-title">
-          <h2
-            id="today-actions-title"
-            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-          >
-            À traiter aujourd'hui
-          </h2>
-          <ActionPanelToday
-            onNavigate={handleNavigate}
-            onOpenContact={handleOpenContact}
-          />
-        </section>
 
         {/* Level 5 — Two-column grid: Sessions | Finance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
