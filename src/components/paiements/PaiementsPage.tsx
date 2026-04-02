@@ -72,6 +72,7 @@ export function PaiementsPage() {
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
   const [showFECDialog, setShowFECDialog] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
+  const [showBulkEmitDialog, setShowBulkEmitDialog] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
 
@@ -85,16 +86,21 @@ export function PaiementsPage() {
   const { data: stats } = useFacturesStats();
   const bulkEmit = useBulkEmitFactures();
 
-  const brouillonCount = factures.filter(f => f.statut === "brouillon").length;
+  const brouillons = factures.filter(f => f.statut === "brouillon");
+  const brouillonCount = brouillons.length;
 
   const handleBulkEmit = () => {
-    const brouillons = factures.filter(f => f.statut === "brouillon");
-    if (brouillons.length === 0) {
+    if (brouillonCount === 0) {
       toast.info("Aucune facture brouillon à émettre");
       return;
     }
-    if (!confirm(`Émettre ${brouillons.length} facture(s) brouillon ? Cette action est irréversible.`)) return;
-    bulkEmit.mutate(brouillons.map(f => f.id));
+    setShowBulkEmitDialog(true);
+  };
+
+  const handleBulkEmitConfirm = () => {
+    bulkEmit.mutate(brouillons.map(f => f.id), {
+      onSuccess: () => setShowBulkEmitDialog(false),
+    });
   };
 
   // Filtered factures
