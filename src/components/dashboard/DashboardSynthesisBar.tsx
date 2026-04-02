@@ -64,6 +64,18 @@ function getStatuses(m: DashboardMetrics): StatusItem[] {
     items.push({ label: "Finance", status: "ok", detail: "Sous contrôle" });
   }
 
+  // Qualiopi (if checklist items exist)
+  if (m.qualiopiTotal > 0) {
+    const pct = Math.round((m.qualiopiValide / m.qualiopiTotal) * 100);
+    if (pct >= 80) {
+      items.push({ label: "Qualiopi", status: "ok", detail: `${pct}% conforme` });
+    } else if (pct >= 50) {
+      items.push({ label: "Qualiopi", status: "warning", detail: `${pct}% conforme` });
+    } else {
+      items.push({ label: "Qualiopi", status: "critical", detail: `${pct}% conforme` });
+    }
+  }
+
   return items;
 }
 
