@@ -76,9 +76,6 @@ export function useDeleteUser() {
 
       const response = await supabase.functions.invoke("delete-user", {
         body: { userId },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (response.error) {
