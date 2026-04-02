@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap, AlertTriangle } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap, AlertTriangle, HelpCircle, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
