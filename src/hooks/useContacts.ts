@@ -66,13 +66,13 @@ export function useContactsPaginated({
       }
 
       if (statusFilter && statusFilter !== "all") {
-        countQuery = countQuery.eq("statut", statusFilter);
-        dataQuery = dataQuery.eq("statut", statusFilter);
+        countQuery = countQuery.eq("statut", statusFilter as any);
+        dataQuery = dataQuery.eq("statut", statusFilter as any);
       }
 
       if (formationFilter && formationFilter !== "all") {
-        countQuery = countQuery.eq("formation", formationFilter);
-        dataQuery = dataQuery.eq("formation", formationFilter);
+        countQuery = countQuery.eq("formation", formationFilter as any);
+        dataQuery = dataQuery.eq("formation", formationFilter as any);
       }
 
       const from = (page - 1) * pageSize;
