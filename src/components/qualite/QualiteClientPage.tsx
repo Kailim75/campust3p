@@ -232,7 +232,36 @@ export default function QualiteClientPage() {
                 <p className="text-muted-foreground text-center mt-2 max-w-md">
                   Les indicateurs de qualité apparaîtront ici une fois que vos stagiaires auront répondu aux questionnaires de satisfaction.
                 </p>
-                <Button className="mt-4" onClick={() => setSatisfactionDialogOpen(true)}>
+
+                {/* Mini guide 3 étapes */}
+                <div className="mt-6 w-full max-w-md space-y-3">
+                  <p className="text-sm font-medium text-center text-muted-foreground">Comment démarrer ?</p>
+                  <div className="grid gap-2">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">1</span>
+                      <div>
+                        <p className="text-sm font-medium">Envoyez un questionnaire</p>
+                        <p className="text-xs text-muted-foreground">Distribuez le lien d'enquête à vos stagiaires en fin de session</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">2</span>
+                      <div>
+                        <p className="text-sm font-medium">Collectez les réponses</p>
+                        <p className="text-xs text-muted-foreground">Les résultats s'agrègent automatiquement ici</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">3</span>
+                      <div>
+                        <p className="text-sm font-medium">Analysez et améliorez</p>
+                        <p className="text-xs text-muted-foreground">Identifiez les axes d'amélioration pour vos formations</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Button className="mt-6" onClick={() => setSatisfactionDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter une réponse manuellement
                 </Button>

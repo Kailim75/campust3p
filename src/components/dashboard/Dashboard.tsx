@@ -36,6 +36,7 @@ import { useCurrentUserRole } from "@/hooks/useUsers";
 import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
 import { ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEur } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
@@ -128,17 +129,30 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
 
           {/* Admin diagnostic chip */}
           {isAdminOrStaff && diagnostic && diagnostic.counts.total > 0 && (
-            <button
-              onClick={() => onNavigate?.("alertes")}
-              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-              aria-label={`Diagnostic administrateur, ${diagnostic.counts.total} anomalies détectées`}
-            >
-              <ShieldAlert className="h-3.5 w-3.5" />
-              Diagnostic
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                {diagnostic.counts.total}
-              </Badge>
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onNavigate?.("alertes")}
+                    className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+                    aria-label={`Diagnostic administrateur, ${diagnostic.counts.total} anomalies détectées`}
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                    Diagnostic
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                      {diagnostic.counts.total}
+                    </Badge>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs max-w-[200px]">
+                  <p className="font-medium mb-1">Anomalies détectées</p>
+                  {diagnostic.counts.blockers > 0 && <p>🔴 {diagnostic.counts.blockers} critique{diagnostic.counts.blockers > 1 ? 's' : ''}</p>}
+                  {diagnostic.counts.warnings > 0 && <p>⚠️ {diagnostic.counts.warnings} avertissement{diagnostic.counts.warnings > 1 ? 's' : ''}</p>}
+                  {diagnostic.counts.infos > 0 && <p>ℹ️ {diagnostic.counts.infos} info{diagnostic.counts.infos > 1 ? 's' : ''}</p>}
+                  <p className="text-muted-foreground mt-1">Cliquer pour voir le détail</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
 

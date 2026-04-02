@@ -22,6 +22,7 @@ interface AppBreadcrumbProps {
 // Configuration des sections avec leurs labels et onglets
 const sectionConfig: Record<string, { label: string; icon?: string; tabs?: Record<string, string> }> = {
   dashboard: { label: "Tableau de bord" },
+  aujourdhui: { label: "Aujourd'hui" },
   contacts: { 
     label: "Apprenants",
     tabs: {
@@ -48,11 +49,14 @@ const sectionConfig: Record<string, { label: string; icon?: string; tabs?: Recor
       devis: "Devis",
     }
   },
+  tresorerie: { label: "Trésorerie" },
   communications: { label: "Communications" },
   alertes: { label: "Alertes" },
   settings: { label: "Paramètres" },
   corbeille: { label: "Corbeille" },
   workflows: { label: "Workflows" },
+  partners: { label: "Partenaires" },
+  planning: { label: "Planning conduite" },
   qualite: { 
     label: "Centre Qualiopi",
     tabs: {

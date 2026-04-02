@@ -396,6 +396,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [includeInactive, setIncludeInactive] = useState(false);
   const [showHandled, setShowHandled] = useState(false);
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
+  const [cmaExpanded, setCmaExpanded] = useState(false);
+  const CMA_INITIAL_LIMIT = 5;
 
   // ─── Bulk selection state ───
   const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
@@ -518,7 +520,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   // Anti-double-relance: filter handled items
   const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)));
   // Apply CMA sub-filter
-  const cmaItems = (cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter)).slice(0, 15);
+  const allCmaFiltered = cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter);
+  const cmaItems = cmaExpanded ? allCmaFiltered : allCmaFiltered.slice(0, CMA_INITIAL_LIMIT);
+  const cmaHiddenCount = allCmaFiltered.length - cmaItems.length;
   // CMA sub-filter counts
   const cmaCountAll = filteredCma.length;
   const cmaCountDocs = filteredCma.filter(c => c.cmaCategory === "docs_manquants").length;
@@ -817,6 +821,30 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                 );
               })}
             </div>
+            {cmaHiddenCount > 0 && (
+              <div className="px-5 py-3 border-t bg-muted/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCmaExpanded(true)}
+                >
+                  Afficher {cmaHiddenCount} autre{cmaHiddenCount > 1 ? 's' : ''} dossier{cmaHiddenCount > 1 ? 's' : ''}
+                </Button>
+              </div>
+            )}
+            {cmaExpanded && allCmaFiltered.length > CMA_INITIAL_LIMIT && (
+              <div className="px-5 py-2 border-t bg-muted/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCmaExpanded(false)}
+                >
+                  Réduire
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* ─── BLOC B: RDV du jour ─── */}

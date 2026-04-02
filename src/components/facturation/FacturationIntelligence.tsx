@@ -3,9 +3,10 @@ import { differenceInDays } from "date-fns";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, TrendingUp, Lightbulb, ShieldAlert, Send } from "lucide-react";
+import { AlertTriangle, TrendingUp, Lightbulb, ShieldAlert, Send, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FactureWithDetails } from "@/hooks/useFactures";
 
 interface FacturationIntelligenceProps {
@@ -158,6 +159,24 @@ export function FacturationIntelligence({ factures, onRelance }: FacturationInte
         <div className="flex items-center gap-2 mb-3">
           <ShieldAlert className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Score Trésorerie</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1.5">
+                <p className="font-semibold">Comment est calculé ce score ?</p>
+                <ul className="space-y-0.5 text-muted-foreground">
+                  <li>• Base de 100, réduit par facture impayée (-5)</li>
+                  <li>• Retard &gt;10j : -10 pts, &gt;20j : -15 pts</li>
+                  <li>• Montant &gt;1 000€ restant : -10 pts</li>
+                </ul>
+                <p className="text-muted-foreground pt-1 border-t border-border">
+                  {risk.score > 75 ? "✅ Situation saine" : risk.score >= 50 ? "⚠️ Vigilance requise, des factures sont en retard" : "🔴 Situation critique, relancer les impayés"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="flex items-end gap-3">
           <span className={cn("text-4xl font-display font-bold", risk.color)}>
