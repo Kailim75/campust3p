@@ -162,15 +162,16 @@ export function ApprenantTableRow({
 
       {/* Paiement */}
       <TableCell className="py-2">
-        {contact.totalFacture > 0 ? (
-          <div className="flex flex-col">
-            <span className={cn("text-xs font-mono", payConfig.className)}>
-              {contact.totalPaye}€ / {contact.totalFacture}€
+        <div className="flex flex-col">
+          <span className={cn("text-xs", payDisplay.className)}>
+            {payDisplay.label}
+          </span>
+          {payDisplay.sublabel && (
+            <span className="text-[10px] text-muted-foreground">
+              {payDisplay.sublabel}
             </span>
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
+          )}
+        </div>
       </TableCell>
 
       {/* Actions (hover) */}
