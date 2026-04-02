@@ -154,7 +154,7 @@ export function VueEnsembleTab({ range }: Props) {
           ) : (
             <Badge className="mt-2 bg-green-600 text-white hover:bg-green-700">✅ Bénéficiaire</Badge>
           )}
-          {resD !== null && <DeltaBadge delta={resD} className="mt-1" />}
+          {resD !== null && <DeltaBadge delta={resD} className="mt-1" isPartial={isPartialMonth} />}
         </Card>
 
         {/* Seuil de rentabilité */}
