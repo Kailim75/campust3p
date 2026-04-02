@@ -1,36 +1,37 @@
-## Phase 1 — Sécurité critique
+## Plan d'implémentation — Module Apprenants
 
-### 1. Sécuriser les credentials
-- ⚠️ `.gitignore` est en lecture seule (géré par Lovable) — `.env` est déjà auto-généré et non versionné
-- Créer `.env.example` avec des placeholders
-- `client.ts` est auto-généré — ne pas modifier
+### 1. Pagination serveur enrichie
+- Étendre `useContactsPaginated` avec les enrichments (session, paiement, documents, exam, progression) en conservant les lookups par batch
+- Mettre à jour `ApprenantsPage` pour utiliser la pagination au lieu de `useEnrichedContacts`
+- Ajouter contrôles de pagination (précédent/suivant/total)
+- Conserver tous les filtres existants (activité, formation, quick filters, recherche)
 
-### 2. Activer JWT sur les Edge Functions
-- Mettre `verify_jwt = true` dans `config.toml` pour toutes les fonctions sauf `incoming-webhook` et `public-sign-document`
-- ⚠️ Note : le système Lovable Cloud déploie les fonctions avec `verify_jwt = false` par défaut car la validation JWT se fait en code via `getClaims()`. Changer cela pourrait casser les appels existants. **Recommandation : vérifier que chaque fonction valide déjà le JWT en code avant de changer le config.**
+### 2. Cellule paiement plus lisible
+- Remplacer `totalPaye€ / totalFacture€` par des labels sémantiques :
+  - **Soldé** (vert) si payé ≥ facturé
+  - **Partiel** (orange) avec montant restant
+  - **Impayé** (rouge) si échéance passée
+  - **Non facturé** (gris) si pas de facture
+- Appliquer dans `ApprenantTableRow` et les cartes mobile
 
-### 3. Audit RLS
-- Lancer le linter Supabase pour identifier les politiques `USING(true)` réelles
-- Créer une migration ciblée (les tables critiques utilisent déjà `has_centre_access()`)
+### 3. Page dédiée `/contacts/:id`
+- Créer `ApprenantFullPage.tsx` qui réutilise `ApprenantDetailContent` existant dans un layout pleine page
+- Ajouter la route `/contacts/:id` dans `App.tsx`
+- Navigation retour vers `/contacts` avec préservation du contexte
+- Header page avec nom + bouton retour
 
-### 4. Renforcer ProtectedRoute
-- Ajouter timeout 5s + splash screen
+### 4. Quickview allégé
+- Créer `ApprenantQuickView.tsx` — version résumée pour le Sheet :
+  - Identité (avatar, nom, badges statut + formation)
+  - Pipeline stepper compact
+  - Info clé : session, paiement, dossier (1 ligne chacun)
+  - CTA principal unique (prochaine étape workflow)
+  - Boutons contact rapide (tel, email, WhatsApp)
+  - **Bouton "Voir la fiche complète"** → navigue vers `/contacts/:id`
+- Le Sheet utilise ce quickview au lieu de `ApprenantDetailContent`
 
-### 5. Documentation mot de passe compromis
-- Ajouter note dans README
-
-## Phase 2 — UX/UI
-
-### 6-9. QualitéClient, PDFs, Pagination, Mobile
-- Chacun est un chantier significatif — à traiter un par un
-
-### 10. Refactoriser useSessions
-- Découper en hooks spécialisés
-
-## Phase 3 — Qualité
-### 11-13. EmptyStates, Skeletons, Accessibilité
-- Amélioration incrémentale
-
----
-
-**⚠️ Réaliste :** Ce plan représente ~20-30 modifications de fichiers. Je propose de commencer par les items **2, 4, 5, 10** (faisables immédiatement) et l'audit RLS (item 3). Les items 6-9 et 11-13 nécessiteront des passes séparées.
+### 5. Non-régression
+- Tous les hooks existants préservés
+- `ApprenantDetailContent` inchangé (réutilisé tel quel dans la page dédiée)
+- Filtres, tri, mode expert, bulk actions préservés
+- Mobile : cartes existantes + quickview drawer préservé

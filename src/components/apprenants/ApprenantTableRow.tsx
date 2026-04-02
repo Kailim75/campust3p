@@ -41,12 +41,14 @@ function getPedagogicalStatus(statut: string | null): { label: string; className
   }
 }
 
-const PAYMENT_CONFIG: Record<string, { label: string; className: string }> = {
-  paye: { label: "Payé", className: "text-emerald-600" },
-  partiel: { label: "Partiel", className: "text-amber-600" },
-  retard: { label: "En retard", className: "text-destructive font-semibold" },
-  attente: { label: "En attente", className: "text-muted-foreground" },
-};
+function getPaymentDisplay(status: string, totalFacture: number, totalPaye: number): { label: string; sublabel?: string; className: string } {
+  if (totalFacture <= 0) return { label: "Non facturé", className: "text-muted-foreground" };
+  if (totalPaye >= totalFacture) return { label: "Soldé", className: "text-success font-medium" };
+  const restant = totalFacture - totalPaye;
+  if (totalPaye > 0) return { label: "Partiel", sublabel: `${restant}€ restant`, className: "text-warning font-medium" };
+  if (status === "retard") return { label: "Impayé", sublabel: `${totalFacture}€`, className: "text-destructive font-semibold" };
+  return { label: "En attente", sublabel: `${totalFacture}€`, className: "text-muted-foreground" };
+}
 
 interface ApprenantTableRowProps {
   contact: EnrichedContact;
@@ -65,7 +67,7 @@ export function ApprenantTableRow({
 }: ApprenantTableRowProps) {
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
   const pedStatus = getPedagogicalStatus(contact.statut);
-  const payConfig = PAYMENT_CONFIG[contact.paymentStatus];
+  const payDisplay = getPaymentDisplay(contact.paymentStatus, contact.totalFacture, contact.totalPaye);
   const formationClass = contact.formation
     ? FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray"
     : "";
@@ -160,15 +162,16 @@ export function ApprenantTableRow({
 
       {/* Paiement */}
       <TableCell className="py-2">
-        {contact.totalFacture > 0 ? (
-          <div className="flex flex-col">
-            <span className={cn("text-xs font-mono", payConfig.className)}>
-              {contact.totalPaye}€ / {contact.totalFacture}€
+        <div className="flex flex-col">
+          <span className={cn("text-xs", payDisplay.className)}>
+            {payDisplay.label}
+          </span>
+          {payDisplay.sublabel && (
+            <span className="text-[10px] text-muted-foreground">
+              {payDisplay.sublabel}
             </span>
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
+          )}
+        </div>
       </TableCell>
 
       {/* Actions (hover) */}

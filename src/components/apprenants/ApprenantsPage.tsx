@@ -166,7 +166,17 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     });
   }, [contacts, search, formationFilter, quickFilter, activityFilter]);
 
-  const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+  // Client-side pagination
+  const PAGE_SIZE = 30;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, formationFilter, quickFilter, activityFilter]);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginatedFiltered = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  const allSelected = paginatedFiltered.length > 0 && paginatedFiltered.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0;
 
   const toggleSelectAll = () => {
@@ -314,7 +324,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((contact) => (
+              {paginatedFiltered.map((contact) => (
                 <ApprenantTableRow
                   key={contact.id}
                   contact={contact}
@@ -354,9 +364,26 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           </Table>
         </div>
 
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-3">
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} résultat{filtered.length > 1 ? "s" : ""} · page {page}/{totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                Précédent
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                Suivant
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
-          {filtered.length === 0 && (
+          {paginatedFiltered.length === 0 && (
             <EmptyState
               icon={search || quickFilter !== "all" ? FileWarning : Users}
               title={search || quickFilter !== "all" ? "Aucun résultat" : "Aucun apprenant"}
@@ -373,12 +400,18 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               variant="minimal"
             />
           )}
-          {filtered.map((contact) => {
+          {paginatedFiltered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
             const formationClass = contact.formation
               ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
               : "";
-            const payLabel = contact.totalFacture > 0 ? `${contact.totalPaye}€/${contact.totalFacture}€` : null;
+            const payLabel = (() => {
+              if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };
+              if (contact.totalPaye >= contact.totalFacture) return { text: "Soldé", cls: "text-success" };
+              if (contact.totalPaye > 0) return { text: `Partiel · ${contact.totalFacture - contact.totalPaye}€`, cls: "text-warning" };
+              if (contact.paymentStatus === "retard") return { text: `Impayé · ${contact.totalFacture}€`, cls: "text-destructive" };
+              return { text: `En attente · ${contact.totalFacture}€`, cls: "text-muted-foreground" };
+            })();
             return (
               <Card
                 key={contact.id}
@@ -402,16 +435,9 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                       {contact.sessionName || contact.email || contact.telephone || "—"}
                     </p>
                   </div>
-                  {payLabel && (
-                    <span className={cn("text-xs font-mono", {
-                      "text-emerald-600": contact.paymentStatus === "paye",
-                      "text-amber-600": contact.paymentStatus === "partiel",
-                      "text-destructive": contact.paymentStatus === "retard",
-                      "text-muted-foreground": contact.paymentStatus === "attente",
-                    })}>
-                      {payLabel}
-                    </span>
-                  )}
+                  <span className={cn("text-xs font-medium", payLabel.cls)}>
+                    {payLabel.text}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {contact.formation && <span className={formationClass}>{contact.formation}</span>}
