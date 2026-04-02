@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Landmark, CalendarDays } from "lucide-react";
+import { Landmark, CalendarDays, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { computePeriodRange, type Periode } from "@/hooks/useFinancialData";
+import { useAlmaMode } from "@/hooks/useAlmaMode";
 import { VueEnsembleTab } from "./VueEnsembleTab";
 import { RevenusTab } from "./RevenusTab";
 import { ChargesTab } from "./ChargesTab";
@@ -11,9 +12,21 @@ import { PrevisionnelTab } from "./PrevisionnelTab";
 export function CockpitFinancierPage() {
   const [periode, setPeriode] = useState<Periode>("mois");
   const range = useMemo(() => computePeriodRange(periode), [periode]);
+  const { isSandbox } = useAlmaMode();
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {/* Alma sandbox warning — non-dismissible */}
+      {isSandbox && (
+        <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-destructive/50 bg-destructive/5">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold text-destructive">Alma en mode TEST</span>
+            <span className="text-muted-foreground"> — Les paiements Alma ne sont pas réels. Basculez en mode Live dans les paramètres Alma avant de facturer.</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
