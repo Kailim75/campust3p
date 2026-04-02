@@ -274,7 +274,7 @@
   }
 
   .sidebar-item.active {
-    background: hsl(173 58% 39% / 0.12);
+    background: hsl(205 72% 38% / 0.12);
     color: hsl(0 0% 100%);
     border-left: 2.5px solid hsl(var(--cta));
     padding-left: 9.5px;
