@@ -72,7 +72,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "CA encaissé",
       icon: Euro,
       displayValue: formatEur(m?.encaissements ?? 0),
-      delta: formatDelta(m?.encaissements ?? 0, m?.encaissementsPrev ?? 0),
+      delta: formatDelta(m?.encaissements ?? 0, m?.encaissementsPrev ?? 0, { isPartialPeriod }),
       variant: "success",
       value: m?.encaissements ?? 0,
       ariaLabel: `CA encaissé : ${formatEur(m?.encaissements ?? 0)}`,
