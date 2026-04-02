@@ -611,27 +611,7 @@ export function SettingsPage() {
               </Card>
 
               {/* Alma */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CreditCardIcon className="h-5 w-5 text-accent" />
-                    Alma
-                  </CardTitle>
-                  <CardDescription>
-                    Paiement en plusieurs fois pour vos apprenants
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Badge className="bg-success/10 text-success">Actif</Badge>
-                  <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Mode</p>
-                    <p className="text-sm font-medium">Sandbox (test)</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Paiement en 3x et 4x disponible via l'edge function <code>alma-payment</code>
-                  </p>
-                </CardContent>
-              </Card>
+              <AlmaStatusCard />
 
               {/* n8n */}
               <Card>
