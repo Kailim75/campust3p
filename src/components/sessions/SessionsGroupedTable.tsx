@@ -21,7 +21,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Calendar, MapPin, Edit, Trash2, Copy, ChevronDown, ChevronRight,
-  Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle,
+  Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
