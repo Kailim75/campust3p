@@ -152,7 +152,8 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`p-3 cursor-grab active:cursor-grabbing ${
+                                onClick={() => onViewDetail?.(prospect)}
+                                className={`p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${
                                   snapshot.isDragging ? "shadow-lg rotate-2" : ""
                                 }`}
                               >

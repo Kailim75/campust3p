@@ -554,7 +554,14 @@ export function ProspectsPage() {
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
-                          {getLeadAge(prospect.created_at)}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-default">{getLeadAge(prospect.created_at)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Créé le {new Date(prospect.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-0.5">
