@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
-import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
