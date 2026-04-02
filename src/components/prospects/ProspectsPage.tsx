@@ -99,7 +99,7 @@ export function ProspectsPage() {
   const markDone = useMarkProspectDone();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("actifs");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
