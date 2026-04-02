@@ -275,6 +275,19 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .is("deleted_at", null)
       .gte("date_paiement", prevFromStr)
       .lte("date_paiement", prevToStr),
+
+    // 11. Qualiopi compliance items (obligatoire only)
+    supabase
+      .from("compliance_checklist_items")
+      .select("id")
+      .eq("categorie", "qualiopi")
+      .eq("criticite", "obligatoire")
+      .eq("actif", true),
+
+    // 12. Qualiopi compliance validations (valide)
+    supabase
+      .from("compliance_validations")
+      .select("item_id, statut"),
   ]);
 
   // ─── Raw data extraction with null safety ───
