@@ -364,9 +364,26 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           </Table>
         </div>
 
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-3">
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} résultat{filtered.length > 1 ? "s" : ""} · page {page}/{totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                Précédent
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                Suivant
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
-          {filtered.length === 0 && (
+          {paginatedFiltered.length === 0 && (
             <EmptyState
               icon={search || quickFilter !== "all" ? FileWarning : Users}
               title={search || quickFilter !== "all" ? "Aucun résultat" : "Aucun apprenant"}
@@ -383,7 +400,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               variant="minimal"
             />
           )}
-          {filtered.map((contact) => {
+          {paginatedFiltered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
             const formationClass = contact.formation
               ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
