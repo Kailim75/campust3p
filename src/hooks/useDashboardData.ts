@@ -650,6 +650,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       ageDays: f.date_echeance
         ? Math.max(0, differenceInDays(today, new Date(f.date_echeance)))
         : 0,
+      contactName: f.contact ? `${f.contact.prenom || ""} ${f.contact.nom || ""}`.trim() : undefined,
     }));
 
   // ═══════════════════════════════════════════
