@@ -672,6 +672,18 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     }));
 
   // ═══════════════════════════════════════════
+  // QUALIOPI COMPLIANCE
+  // ═══════════════════════════════════════════
+
+  const qualiopiItems = qualiopiItemsRes.data || [];
+  const qualiopiValidations = qualiopiValidationsRes.data || [];
+  const qualiopiItemIds = new Set(qualiopiItems.map((i: any) => i.id));
+  const qualiopiTotal = qualiopiItems.length;
+  const qualiopiValide = qualiopiValidations.filter(
+    (v: any) => qualiopiItemIds.has(v.item_id) && v.statut === "valide"
+  ).length;
+
+  // ═══════════════════════════════════════════
 
   return {
     metrics: {
@@ -704,6 +716,8 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       resteAEncaisser,
       tauxRemplissageGlobal,
       tauxRemplissageGlobalPrev,
+      qualiopiTotal,
+      qualiopiValide,
     },
     todayActions: limitedActions,
     todayActionCount,
