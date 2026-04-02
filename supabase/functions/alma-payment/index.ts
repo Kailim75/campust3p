@@ -68,6 +68,12 @@ serve(async (req) => {
     let result;
 
     switch (action) {
+      case 'check_mode': {
+        // Lightweight check returning the current Alma mode without any API call
+        result = { mode: almaMode, api_url: ALMA_API_URL };
+        break;
+      }
+
       case 'eligibility': {
         // Vérifier l'éligibilité au paiement en plusieurs fois
         const response = await fetch(`${ALMA_API_URL}/payments/eligibility`, {
