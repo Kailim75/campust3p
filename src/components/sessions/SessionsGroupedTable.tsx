@@ -223,22 +223,20 @@ export function SessionsGroupedTable({
     return sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  const renderHeaders = (hideFormation = false, hideStatus = false, hideLieu = false) => (
+  const renderHeaders = () => (
     <TableHeader>
-      <TableRow className="bg-muted/50">
-        {/* ZONE 1 — IDENTITÉ */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[40%]" onClick={() => handleSort('nom')}>
-          <div className="flex items-center">Session<SortIcon field="nom" /></div>
+      <TableRow className="bg-muted/30 border-b border-border/60">
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 pl-4" onClick={() => handleSort('nom')}>
+          <div className="flex items-center gap-1">Session<SortIcon field="nom" /></div>
         </TableHead>
-        {/* ZONE 2 — PERFORMANCE */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[35%]" onClick={() => handleSort('inscrits')}>
-          <div className="flex items-center">Performance<SortIcon field="inscrits" /></div>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[110px]" onClick={() => handleSort('inscrits')}>
+          <div className="flex items-center gap-1">Remplissage<SortIcon field="inscrits" /></div>
         </TableHead>
-        {/* ZONE 3 — STATUT & PRIORITÉ */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('statut')}>
-          <div className="flex items-center">Statut & Priorité<SortIcon field="statut" /></div>
+        <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[100px]" onClick={() => handleSort('statut')}>
+          <div className="flex items-center gap-1">Statut<SortIcon field="statut" /></div>
         </TableHead>
-        <TableHead className="text-right font-semibold w-[100px]">Actions</TableHead>
+        <TableHead className="text-right font-medium text-xs py-2 w-[80px] pr-3">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -495,7 +493,7 @@ export function SessionsGroupedTable({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <Table>
-                      {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
+                      {renderHeaders()}
                       <TableBody>
                         {group.sessions.map((session) => (
                           <SessionRow
@@ -506,9 +504,6 @@ export function SessionsGroupedTable({
                             showProfitability={showProfitability}
                             isActive={activeSessionId === session.id}
                             isCritical={isSessionCritical(session, inscriptionsCounts)}
-                            hideFormation={groupBy === "formation"}
-                            hideStatus={groupBy === "status"}
-                            hideLieu={groupBy === "lieu"}
                             onViewDetail={onViewDetail}
                             onEdit={onEdit}
                             onDuplicate={onDuplicate}
@@ -591,161 +586,126 @@ interface SessionRowProps {
   onEdit: (session: Session) => void;
   onDuplicate: (session: Session) => void;
   onDelete: (id: string) => void;
-  hideFormation?: boolean;
-  hideStatus?: boolean;
-  hideLieu?: boolean;
 }
 
 function SessionRow({
   session, inscriptionsCounts, financials, showProfitability,
   isActive, isCritical, onViewDetail, onEdit, onDuplicate, onDelete,
-  hideFormation, hideStatus, hideLieu,
 }: SessionRowProps) {
   const formationColor = getFormationColor(session.formation_type);
   const inscrits = inscriptionsCounts[session.id] || 0;
   const fin = financials[session.id];
   const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
   const fillColor = getFillColor(fillRate);
-  const priority = getBusinessPriority(session, inscriptionsCounts);
-  const synthesis = getMicroSynthesis(session, fillRate, fin);
+  const lieu = session.adresse_ville || session.lieu;
 
-  // Month display from date_debut
-  const monthLabel = format(new Date(session.date_debut), 'MMM yyyy', { locale: fr });
+  const dateRange = `${format(new Date(session.date_debut), 'dd/MM', { locale: fr })}–${format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}`;
 
   return (
     <TableRow
       className={cn(
-        "transition-colors cursor-pointer group/row",
+        "transition-colors cursor-pointer group/row border-b border-border/40",
         isCritical
-          ? "bg-destructive/[0.04] border-l-[3px] border-l-destructive hover:bg-destructive/[0.07]"
-          : "hover:bg-muted/40 even:bg-muted/20",
+          ? "bg-destructive/[0.03] border-l-[3px] border-l-destructive hover:bg-destructive/[0.06]"
+          : "hover:bg-muted/30",
         isActive && "bg-primary/5 ring-1 ring-inset ring-primary/20",
       )}
       onClick={() => onViewDetail(session)}
     >
-      {/* ──── ZONE 1 — IDENTITÉ (≈40%) ──── */}
-      <TableCell className="py-4">
-        <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full", formationColor.dot)} />
-        <div className="pl-3 space-y-1">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-foreground truncate max-w-[220px] group-hover/row:text-primary transition-colors">
-              {session.nom}
-            </p>
-            {isCritical && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-destructive/20 gap-0.5 shrink-0">
-                <AlertTriangle className="h-3 w-3" /> Critique
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Month — dominant */}
-            <span className="text-xs font-semibold uppercase text-foreground tracking-wide">
-              {monthLabel}
-            </span>
-            {session.numero_session && (
-              <span className="text-[10px] text-muted-foreground/70 font-mono">{session.numero_session}</span>
-            )}
-            <Badge variant="outline" className={cn("text-[10px]", formationColor.badge)}>
+      {/* COL 1 — SESSION */}
+      <TableCell className="py-2 pl-4 pr-2">
+        <div className={cn("absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full", formationColor.dot)} />
+        <div className="pl-2 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className={cn("text-[9px] px-1 py-0 shrink-0 leading-tight", formationColor.badge)}>
               {getFormationLabel(session.formation_type)}
             </Badge>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {format(new Date(session.date_debut), 'dd/MM/yy', { locale: fr })} – {format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}
+            <span className="font-medium text-[13px] text-foreground truncate leading-tight group-hover/row:text-primary transition-colors">
+              {session.nom}
             </span>
-            {(session.adresse_ville || session.lieu) && (
-              <span className="flex items-center gap-1 truncate max-w-[120px]">
-                <MapPin className="h-3 w-3" />
-                {session.adresse_ville || session.lieu}
+            {isCritical && (
+              <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground/70 leading-tight">
+            {session.numero_session && (
+              <span className="font-mono">{session.numero_session}</span>
+            )}
+            {session.numero_session && <span>·</span>}
+            <span>{dateRange}</span>
+            {lieu && (
+              <>
+                <span>·</span>
+                <span className="truncate max-w-[100px]">{lieu}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </TableCell>
+
+      {/* COL 2 — REMPLISSAGE */}
+      <TableCell className="py-2 px-2">
+        <div className="flex items-center gap-2">
+          <div className={cn("h-2 w-2 rounded-full shrink-0", 
+            fillRate >= 100 ? "bg-emerald-500" : fillRate >= 70 ? "bg-success" : fillRate >= 50 ? "bg-warning" : "bg-destructive"
+          )} />
+          <span className={cn("text-[13px] font-semibold tabular-nums", fillColor.text)}>
+            {inscrits}/{session.places_totales}
+          </span>
+          <span className={cn("text-[11px] tabular-nums", fillColor.text)}>
+            {fillRate}%
+          </span>
+        </div>
+      </TableCell>
+
+      {/* COL 3 — CA */}
+      <TableCell className="py-2 px-2">
+        {fin && fin.ca_securise > 0 ? (
+          <div className="min-w-0">
+            <span className="text-[13px] font-semibold text-success tabular-nums">
+              {fin.ca_securise.toLocaleString('fr-FR')} €
+            </span>
+            {fin.nb_payes > 0 && (
+              <span className="text-[11px] text-muted-foreground/70 ml-1">
+                ({fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''})
               </span>
             )}
           </div>
-        </div>
+        ) : (
+          <span className="text-[12px] text-muted-foreground/50">—</span>
+        )}
       </TableCell>
 
-      {/* ──── ZONE 2 — PERFORMANCE (≈35%) ──── */}
-      <TableCell className="py-4">
-        <div className="space-y-1.5">
-          {/* Fill rate */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <span className={cn("text-sm font-semibold tabular-nums", fillColor.text)}>
-                  {inscrits} / {session.places_totales} places
-                </span>
-                <span className={cn("text-xs font-medium tabular-nums", fillColor.text)}>
-                  {fillRate}%
-                </span>
-              </div>
-              <Progress
-                value={Math.min(fillRate, 100)}
-                className={cn("h-2.5 w-full", fillColor.bar)}
-              />
-            </div>
-          </div>
-          {/* Financial row */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
-            {fin && fin.nb_payes > 0 ? (
-              <span>💳 {fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''}</span>
-            ) : (
-              <span>💳 —</span>
-            )}
-            {fin && fin.ca_securise > 0 ? (
-              <span className="font-medium text-success">
-                {fin.ca_securise.toLocaleString('fr-FR')} €
-              </span>
-            ) : (
-              <span>—</span>
-            )}
-          </div>
-          {/* Micro-synthesis */}
-          <p className={cn(
-            "text-[11px] italic leading-tight",
-            isCritical ? "text-destructive" : "text-muted-foreground"
-          )}>
-            {synthesis}
-          </p>
-        </div>
+      {/* COL 4 — STATUT */}
+      <TableCell className="py-2 px-2">
+        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
+          {statusConfig[session.statut]?.label || session.statut}
+        </Badge>
       </TableCell>
 
-      {/* ──── ZONE 3 — STATUT & PRIORITÉ (≈25%) ──── */}
-      <TableCell className="py-4">
-        <div className="space-y-2">
-          <Badge variant="outline" className={cn("text-xs", statusConfig[session.statut]?.class)}>
-            {statusConfig[session.statut]?.label || session.statut}
-          </Badge>
-          <div>
-            <Badge variant="outline" className={cn("text-xs gap-1", priority.class)}>
-              {priority.emoji} {priority.label}
-            </Badge>
-          </div>
-        </div>
-      </TableCell>
-
-      {/* ──── ACTIONS ──── */}
-      <TableCell className="text-right py-4">
-        <div className="flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(session); }} title="Modifier">
-            <Edit className="h-4 w-4" />
+      {/* COL 5 — ACTIONS */}
+      <TableCell className="text-right py-2 pr-3">
+        <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(session); }} title="Modifier">
+            <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDuplicate(session); }} title="Dupliquer">
-            <Copy className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onDuplicate(session); }} title="Dupliquer">
+            <Copy className="h-3.5 w-3.5" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                <Trash2 className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Envoyer à la corbeille ?</AlertDialogTitle>
-                <AlertDialogDescription>La session « {session.nom} » sera envoyée à la corbeille avec ses inscriptions et émargements. Vous pourrez la restaurer ultérieurement.</AlertDialogDescription>
+                <AlertDialogDescription>La session « {session.nom} » sera envoyée à la corbeille.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(session.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Envoyer à la corbeille</AlertDialogAction>
+                <AlertDialogAction onClick={() => onDelete(session.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
