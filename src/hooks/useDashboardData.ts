@@ -193,7 +193,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const prevToStr = prev.to.toISOString().split("T")[0];
   const in7days = format(addDays(today, 7), "yyyy-MM-dd");
 
-  // ─── 10 batched queries (down from ~36) ───
+  // ─── 12 batched queries ───
   const [
     prospectsRes,
     facturesRes,
@@ -205,6 +205,8 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     cartesRes,
     prevProspectsRes,
     prevPaiementsRes,
+    qualiopiItemsRes,
+    qualiopiValidationsRes,
   ] = await Promise.all([
     // 1. Prospects (active, not converted/lost)
     supabase
