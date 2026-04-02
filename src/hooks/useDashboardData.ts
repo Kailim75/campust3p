@@ -211,12 +211,12 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .order("date_prochaine_relance", { ascending: true })
       .limit(100),
 
-    // 2. Factures (active, not deleted, not cancelled)
+    // 2. Factures (active, not deleted, not cancelled) — with contact name for finance panel
     // IMPORTANT: We do NOT filter to "emise" only here — we need broader data
     // for paiementsRetard calc. We filter brouillons in the metric computation.
     supabase
       .from("factures")
-      .select("id, statut, date_echeance, montant_total, numero_facture, contact_id, date_emission")
+      .select("id, statut, date_echeance, montant_total, numero_facture, contact_id, date_emission, contact:contacts(nom, prenom)")
       .is("deleted_at", null)
       .not("statut", "eq", "annulee"),
 
