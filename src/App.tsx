@@ -95,6 +95,7 @@ const APP_SECTION_PATHS = [
   "/partenaires",
   "/formateurs",
   "/planning-conduite",
+  "/parametres", // alias for /settings
   
   "/security",
   "/corbeille",

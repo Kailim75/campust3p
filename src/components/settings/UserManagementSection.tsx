@@ -217,45 +217,60 @@ export function UserManagementSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>
-                    {user.role === "admin" ? (
-                      <Badge className="bg-primary">
-                        <ShieldCheck className="h-3 w-3 mr-1" />
-                        Admin
-                      </Badge>
-                    ) : user.role === "staff" ? (
-                      <Badge variant="secondary">
-                        <Shield className="h-3 w-3 mr-1" />
-                        Staff
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Sans rôle</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(user.created_at), "dd MMM yyyy", { locale: fr })}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.last_sign_in_at 
-                      ? format(new Date(user.last_sign_in_at), "dd MMM yyyy HH:mm", { locale: fr })
-                      : "Jamais"
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setUserToDelete(user.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+              {users && users.length > 0 ? (
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell>
+                      {user.role === "admin" ? (
+                        <Badge className="bg-primary">
+                          <ShieldCheck className="h-3 w-3 mr-1" />
+                          Admin
+                        </Badge>
+                      ) : user.role === "staff" ? (
+                        <Badge variant="secondary">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Staff
+                        </Badge>
+                      ) : user.role === "super_admin" ? (
+                        <Badge className="bg-primary">
+                          <ShieldCheck className="h-3 w-3 mr-1" />
+                          Super Admin
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Sans rôle</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(user.created_at), "dd MMM yyyy", { locale: fr })}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.last_sign_in_at 
+                        ? format(new Date(user.last_sign_in_at), "dd MMM yyyy HH:mm", { locale: fr })
+                        : "Jamais"
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setUserToDelete(user.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm font-medium">Aucun utilisateur trouvé</p>
+                    <p className="text-xs mt-1">Créez un premier utilisateur avec le bouton ci-dessus</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         )}

@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
-import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,7 @@ export function CentreFormationSettings() {
   const { centreFormation, isLoading, save, isSaving } = useCentreFormation();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCachet, setUploadingCachet] = useState(false);
+  const [showIban, setShowIban] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const cachetInputRef = useRef<HTMLInputElement>(null);
 
@@ -435,7 +436,24 @@ export function CentreFormationSettings() {
                     <FormItem>
                       <FormLabel>IBAN *</FormLabel>
                       <FormControl>
-                        <Input placeholder="FR76 1234 5678 9012 3456 7890 123" {...field} />
+                        <div className="relative">
+                          <Input
+                            placeholder="FR76 1234 5678 9012 3456 7890 123"
+                            {...field}
+                            type={showIban ? "text" : "password"}
+                            autoComplete="off"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                            onClick={() => setShowIban(!showIban)}
+                            tabIndex={-1}
+                          >
+                            {showIban ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
