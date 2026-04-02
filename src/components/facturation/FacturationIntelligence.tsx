@@ -150,7 +150,28 @@ export function FacturationIntelligence({ factures, onRelance }: FacturationInte
   const projection = useMemo(() => computeProjection(factures), [factures]);
 
   const hasData = factures.some(f => ["emise", "partiel", "impayee"].includes(f.statut));
-  if (!hasData) return null;
+  const hasAnyFacture = factures.length > 0;
+
+  // No unpaid invoices: show healthy or onboarding state
+  if (!hasData) {
+    if (!hasAnyFacture) return null; // No factures at all
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="card-elevated p-5 border-l-4 border-l-success">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Score Trésorerie</h3>
+          </div>
+          <div className="flex items-end gap-3">
+            <span className="text-4xl font-display font-bold text-success">100</span>
+            <span className="text-muted-foreground text-sm mb-1">/ 100</span>
+            <Badge variant="outline" className="ml-auto text-xs text-success">Bon</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">✅ Aucune facture impayée — situation saine</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -172,7 +193,7 @@ export function FacturationIntelligence({ factures, onRelance }: FacturationInte
                   <li>• Montant &gt;1 000€ restant : -10 pts</li>
                 </ul>
                 <p className="text-muted-foreground pt-1 border-t border-border">
-                  {risk.score > 75 ? "✅ Situation saine" : risk.score >= 50 ? "⚠️ Vigilance requise, des factures sont en retard" : "🔴 Situation critique, relancer les impayés"}
+                  Basé sur les factures émises non soldées
                 </p>
               </TooltipContent>
             </Tooltip>

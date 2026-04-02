@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap, AlertTriangle } from "lucide-react";
+import { Euro, FileText, MoreHorizontal, Send, Filter, X, CalendarIcon, Download, FileSpreadsheet, TrendingUp, Zap, AlertTriangle, HelpCircle, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -44,6 +44,8 @@ import { PaiementFormDialog } from "./PaiementFormDialog";
 import { ExportFECDialog } from "./ExportFECDialog";
 import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
+import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
@@ -70,6 +72,7 @@ export function PaiementsPage() {
   const [paiementMontantRestant, setPaiementMontantRestant] = useState(0);
   const [showFECDialog, setShowFECDialog] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
+  const [showBulkEmitDialog, setShowBulkEmitDialog] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
 
@@ -83,16 +86,21 @@ export function PaiementsPage() {
   const { data: stats } = useFacturesStats();
   const bulkEmit = useBulkEmitFactures();
 
-  const brouillonCount = factures.filter(f => f.statut === "brouillon").length;
+  const brouillons = factures.filter(f => f.statut === "brouillon");
+  const brouillonCount = brouillons.length;
 
   const handleBulkEmit = () => {
-    const brouillons = factures.filter(f => f.statut === "brouillon");
-    if (brouillons.length === 0) {
+    if (brouillonCount === 0) {
       toast.info("Aucune facture brouillon à émettre");
       return;
     }
-    if (!confirm(`Émettre ${brouillons.length} facture(s) brouillon ? Cette action est irréversible.`)) return;
-    bulkEmit.mutate(brouillons.map(f => f.id));
+    setShowBulkEmitDialog(true);
+  };
+
+  const handleBulkEmitConfirm = () => {
+    bulkEmit.mutate(brouillons.map(f => f.id), {
+      onSuccess: () => setShowBulkEmitDialog(false),
+    });
   };
 
   // Filtered factures
@@ -258,10 +266,11 @@ export function PaiementsPage() {
                 <Euro className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">CA ce mois</p>
+                <p className="text-sm text-muted-foreground">CA facturé</p>
                 <p className="text-2xl font-display font-bold text-foreground">
                   {(stats?.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Toutes factures actives</p>
               </div>
             </div>
           </div>
@@ -275,6 +284,7 @@ export function PaiementsPage() {
                 <p className="text-2xl font-display font-bold text-success">
                   {(stats?.paye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Tous paiements reçus</p>
               </div>
             </div>
           </div>
@@ -284,10 +294,11 @@ export function PaiementsPage() {
                 <Euro className="h-6 w-6 text-destructive" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">En attente</p>
+                <p className="text-sm text-muted-foreground">Reste à encaisser</p>
                 <p className="text-2xl font-display font-bold text-destructive">
                   {(stats?.impaye || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
+                <p className="text-[11px] text-muted-foreground">Factures émises non soldées</p>
               </div>
             </div>
           </div>
@@ -457,18 +468,42 @@ export function PaiementsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Bulk emit brouillons */}
+            {/* Brouillon quick filter + bulk emit */}
             {brouillonCount > 0 && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-9"
-                onClick={handleBulkEmit}
-                disabled={bulkEmit.isPending}
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                {bulkEmit.isPending ? "Émission..." : `Émettre ${brouillonCount} brouillon${brouillonCount > 1 ? "s" : ""}`}
-              </Button>
+              <TooltipProvider>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-muted-foreground"
+                        onClick={() => {
+                          setStatutFilter("brouillon");
+                          setActiveTab("tous");
+                        }}
+                      >
+                        <HelpCircle className="h-3.5 w-3.5 mr-1" />
+                        {brouillonCount} brouillon{brouillonCount > 1 ? "s" : ""}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[250px] text-xs">
+                      <p className="font-medium mb-1">Factures brouillon</p>
+                      <p className="text-muted-foreground">Factures créées mais non émises. Elles ne sont pas visibles par les clients et n'apparaissent pas dans les exports comptables.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
+                    onClick={handleBulkEmit}
+                    disabled={bulkEmit.isPending}
+                  >
+                    <Zap className="h-4 w-4 mr-1.5" />
+                    {bulkEmit.isPending ? "Émission…" : "Émettre tout"}
+                  </Button>
+                </div>
+              </TooltipProvider>
             )}
 
             {/* Results count */}
@@ -564,19 +599,20 @@ export function PaiementsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {facture.total_paye.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ / {Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                        <div>
+                          <p className="font-bold text-foreground">
+                            {Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
                           </p>
-                          <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all",
-                                paidPercentage >= 100 ? "bg-success" : paidPercentage > 0 ? "bg-warning" : "bg-destructive"
-                              )}
-                              style={{ width: `${Math.min(paidPercentage, 100)}%` }}
-                            />
-                          </div>
+                          {facture.statut !== "brouillon" && facture.statut !== "annulee" && (
+                            <p className={cn(
+                              "text-xs",
+                              montantRestant <= 0 ? "text-success" : "text-muted-foreground"
+                            )}>
+                              {montantRestant <= 0
+                                ? "✓ Soldée"
+                                : `Reste ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -593,9 +629,23 @@ export function PaiementsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {facture.date_echeance
-                          ? format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
-                          : "—"}
+                        {facture.date_echeance ? (
+                          format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
+                        ) : facture.statut === "emise" || facture.statut === "partiel" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-warning/40 text-warning cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(facture);
+                            }}
+                          >
+                            <AlertCircle className="h-3 w-3 mr-0.5" />
+                            Non définie
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -709,6 +759,14 @@ export function PaiementsPage() {
       <FactureLibreDialog
         open={showFactureLibre}
         onOpenChange={setShowFactureLibre}
+      />
+
+      <BulkEmitConfirmDialog
+        open={showBulkEmitDialog}
+        onOpenChange={setShowBulkEmitDialog}
+        brouillons={brouillons}
+        onConfirm={handleBulkEmitConfirm}
+        isPending={bulkEmit.isPending}
       />
     </div>
   );

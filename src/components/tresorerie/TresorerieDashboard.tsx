@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useTresorerieStats, useTransactionsBancaires } from "@/hooks/useTresorerie";
 import { formatEuro } from "@/lib/formatFinancial";
 import {
@@ -10,6 +11,9 @@ import {
   AlertTriangle,
   TrendingUp,
   Wallet,
+  Upload,
+  FileSpreadsheet,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -24,7 +28,11 @@ import {
 } from "recharts";
 import { useMemo } from "react";
 
-export function TresorerieDashboard() {
+interface TresorerieDashboardProps {
+  onNavigateToImport?: () => void;
+}
+
+export function TresorerieDashboard({ onNavigateToImport }: TresorerieDashboardProps) {
   const { data: stats, isLoading } = useTresorerieStats();
   const { data: allTxs } = useTransactionsBancaires();
 
@@ -35,7 +43,6 @@ export function TresorerieDashboard() {
 
     allTxs.slice(0, 200).forEach((tx) => {
       const d = new Date(tx.date_operation);
-      // Week key
       const weekStart = new Date(d);
       weekStart.setDate(d.getDate() - d.getDay() + 1);
       const key = weekStart.toISOString().split("T")[0];
@@ -49,6 +56,8 @@ export function TresorerieDashboard() {
     return Object.values(grouped).reverse().slice(-12);
   }, [allTxs]);
 
+  const hasNoData = !isLoading && (!allTxs || allTxs.length === 0);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -60,6 +69,64 @@ export function TresorerieDashboard() {
           </Card>
         ))}
       </div>
+    );
+  }
+
+  // === ONBOARDING: no bank data ===
+  if (hasNoData) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
+          <div className="p-4 rounded-full bg-muted">
+            <Wallet className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="space-y-1.5 max-w-md">
+            <h3 className="text-lg font-semibold text-foreground">Trésorerie non configurée</h3>
+            <p className="text-sm text-muted-foreground">
+              Importez votre premier relevé bancaire pour activer le suivi de trésorerie : solde, flux, rapprochement.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg mt-2">
+            <div className="flex items-start gap-2 text-left p-3 rounded-lg bg-muted/50">
+              <div className="p-1.5 rounded bg-primary/10 shrink-0 mt-0.5">
+                <Upload className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-medium">1. Importer</p>
+                <p className="text-[11px] text-muted-foreground">Relevé CSV (format BNP)</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 text-left p-3 rounded-lg bg-muted/50">
+              <div className="p-1.5 rounded bg-primary/10 shrink-0 mt-0.5">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-medium">2. Vérifier</p>
+                <p className="text-[11px] text-muted-foreground">Aperçu avant validation</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 text-left p-3 rounded-lg bg-muted/50">
+              <div className="p-1.5 rounded bg-primary/10 shrink-0 mt-0.5">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-medium">3. Analyser</p>
+                <p className="text-[11px] text-muted-foreground">Solde, flux, rapprochement</p>
+              </div>
+            </div>
+          </div>
+          {onNavigateToImport ? (
+            <Button onClick={onNavigateToImport} className="mt-2">
+              <Upload className="h-4 w-4 mr-2" />
+              Importer un relevé bancaire
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-2">
+              Rendez-vous dans l'onglet « Import relevés » pour commencer.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     );
   }
 
