@@ -629,9 +629,23 @@ export function PaiementsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {facture.date_echeance
-                          ? format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
-                          : "—"}
+                        {facture.date_echeance ? (
+                          format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
+                        ) : facture.statut === "emise" || facture.statut === "partiel" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-warning/40 text-warning cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(facture);
+                            }}
+                          >
+                            <AlertCircle className="h-3 w-3 mr-0.5" />
+                            Non définie
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
