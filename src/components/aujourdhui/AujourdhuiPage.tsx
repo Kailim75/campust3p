@@ -975,8 +975,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {relances.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                <div className="p-5 text-center text-muted-foreground text-xs">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
                   Toutes les relances sont à jour
                 </div>
               ) : relances.map((p) => {
