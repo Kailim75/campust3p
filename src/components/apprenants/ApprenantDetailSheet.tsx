@@ -17,7 +17,7 @@ interface ApprenantDetailSheetProps {
   onEdit?: (contact: any) => void;
 }
 
-export function ApprenantDetailSheet({ contactId, open, onOpenChange }: ApprenantDetailSheetProps) {
+export function ApprenantDetailSheet({ contactId, open, onOpenChange, onEdit }: ApprenantDetailSheetProps) {
   const { data: contact, isLoading } = useContact(contactId);
   const isMobile = useIsMobile();
 
