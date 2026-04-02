@@ -1,38 +1,36 @@
+## Phase 1 — Sécurité critique
 
+### 1. Sécuriser les credentials
+- ⚠️ `.gitignore` est en lecture seule (géré par Lovable) — `.env` est déjà auto-généré et non versionné
+- Créer `.env.example` avec des placeholders
+- `client.ts` est auto-généré — ne pas modifier
 
-## Analyse : votre migration n'est pas compatible avec ce projet
+### 2. Activer JWT sur les Edge Functions
+- Mettre `verify_jwt = true` dans `config.toml` pour toutes les fonctions sauf `incoming-webhook` et `public-sign-document`
+- ⚠️ Note : le système Lovable Cloud déploie les fonctions avec `verify_jwt = false` par défaut car la validation JWT se fait en code via `getClaims()`. Changer cela pourrait casser les appels existants. **Recommandation : vérifier que chaque fonction valide déjà le JWT en code avant de changer le config.**
 
-Votre SQL fait référence à `org_id` et `get_user_org_id()` — **ces concepts n'existent pas dans T3P Campus**. Le projet utilise un modèle multi-tenant basé sur `centre_id` (pas `org_id`), avec les fonctions `get_user_centre_id()` et `has_centre_access()`.
+### 3. Audit RLS
+- Lancer le linter Supabase pour identifier les politiques `USING(true)` réelles
+- Créer une migration ciblée (les tables critiques utilisent déjà `has_centre_access()`)
 
-### État actuel de la table `prospects`
+### 4. Renforcer ProtectedRoute
+- Ajouter timeout 5s + splash screen
 
-| Élément | Statut |
-|---------|--------|
-| Colonne `centre_id` | ✅ Existe déjà (uuid, nullable) |
-| Colonne `org_id` | ❌ N'existe pas |
-| Fonction `get_user_org_id()` | ❌ N'existe pas |
-| Trigger `trg_auto_set_prospect_centre_id` | ✅ Existe déjà (auto-remplit `centre_id` via `user_centres`) |
-| RLS | ✅ Activé — policies `admin` et `staff` via `has_role()` |
+### 5. Documentation mot de passe compromis
+- Ajouter note dans README
 
-### Ce qui est déjà en place (équivalent exact de votre demande)
+## Phase 2 — UX/UI
 
-1. **`centre_id`** sur `prospects` = votre `org_id`
-2. **Trigger `trg_auto_set_prospect_centre_id`** = votre `trg_set_prospect_org_id` — remplit automatiquement `centre_id` à l'insertion
-3. **RLS** — accès admin/staff déjà configuré
+### 6-9. QualitéClient, PDFs, Pagination, Mobile
+- Chacun est un chantier significatif — à traiter un par un
 
-### Ce qui pourrait être amélioré
+### 10. Refactoriser useSessions
+- Découper en hooks spécialisés
 
-Les policies actuelles filtrent par **rôle** (`admin`/`staff`) mais pas par **centre**. Un admin peut voir les prospects de tous les centres. Si vous souhaitez un **isolement strict par centre**, les policies devraient inclure un filtre `centre_id = get_user_centre_id()` en plus du rôle, ou utiliser `has_centre_access(centre_id)`.
+## Phase 3 — Qualité
+### 11-13. EmptyStates, Skeletons, Accessibilité
+- Amélioration incrémentale
 
-### Plan proposé
+---
 
-**Renforcer les RLS prospects avec isolation par centre** (si souhaité) :
-
-1. Remplacer les 2 policies existantes par des policies combinant rôle + centre :
-   - `admin`/`staff` : `has_role(auth.uid(), 'admin') AND has_centre_access(prospects.centre_id)` (les super_admins passent via `has_centre_access` qui inclut `is_super_admin()`)
-   - Conserver le trigger existant pour auto-remplir `centre_id`
-
-2. Aucune création de colonne `org_id` ni de fonction `get_user_org_id()` — utiliser l'infrastructure existante.
-
-**Aucun changement de code applicatif requis** — les hooks (`useProspects`, etc.) fonctionnent déjà sans filtre client-side car le RLS s'en charge.
-
+**⚠️ Réaliste :** Ce plan représente ~20-30 modifications de fichiers. Je propose de commencer par les items **2, 4, 5, 10** (faisables immédiatement) et l'audit RLS (item 3). Les items 6-9 et 11-13 nécessiteront des passes séparées.
