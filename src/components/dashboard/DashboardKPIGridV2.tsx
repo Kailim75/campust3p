@@ -56,6 +56,12 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
     );
   }
 
+  const { period } = useDashboardPeriodV2();
+  
+  // Detect partial period: current month where end is in the future
+  const isPartialPeriod = period.range === "month" && isAfter(endOfMonth(new Date()), new Date()) && 
+    period.from.getTime() === startOfMonth(new Date()).getTime();
+
   const m = metrics;
   const dossiersTotal = (m?.dossiersInitialManquants ?? 0) + (m?.dossiersContinuManquants ?? 0);
 
