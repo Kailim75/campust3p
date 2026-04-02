@@ -396,6 +396,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const [includeInactive, setIncludeInactive] = useState(false);
   const [showHandled, setShowHandled] = useState(false);
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
+  const [cmaExpanded, setCmaExpanded] = useState(false);
+  const CMA_INITIAL_LIMIT = 5;
 
   // ─── Bulk selection state ───
   const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
