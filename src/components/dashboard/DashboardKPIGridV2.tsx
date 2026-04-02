@@ -113,7 +113,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       icon: ShoppingCart,
       displayValue: (m?.panierMoyen ?? 0) > 0 ? formatEur(m?.panierMoyen ?? 0) : "—",
       delta: (m?.panierMoyen ?? 0) > 0 && (m?.panierMoyenPrev ?? 0) > 0 
-        ? formatDelta(m?.panierMoyen ?? 0, m?.panierMoyenPrev ?? 0) 
+        ? formatDelta(m?.panierMoyen ?? 0, m?.panierMoyenPrev ?? 0, { isPartialPeriod }) 
         : null,
       variant: "default",
       value: m?.panierMoyen ?? 0,
