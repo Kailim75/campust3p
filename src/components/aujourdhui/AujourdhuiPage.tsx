@@ -520,7 +520,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   // Anti-double-relance: filter handled items
   const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)));
   // Apply CMA sub-filter
-  const cmaItems = (cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter)).slice(0, 15);
+  const allCmaFiltered = cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter);
+  const cmaItems = cmaExpanded ? allCmaFiltered : allCmaFiltered.slice(0, CMA_INITIAL_LIMIT);
+  const cmaHiddenCount = allCmaFiltered.length - cmaItems.length;
   // CMA sub-filter counts
   const cmaCountAll = filteredCma.length;
   const cmaCountDocs = filteredCma.filter(c => c.cmaCategory === "docs_manquants").length;
