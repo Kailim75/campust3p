@@ -85,11 +85,21 @@ export default function QualiopiSessionsNonConformes({ sessions, maxItems = 10, 
                   <Badge variant={session.nbProblemes >= 3 ? 'destructive' : 'secondary'} className="text-xs">
                     {session.nbProblemes} problème{session.nbProblemes > 1 ? 's' : ''}
                   </Badge>
-                  {session.actionRecommandee && (
+                  {session.actionRecommandee && onNavigateToSession ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-primary font-medium gap-1 px-2"
+                      onClick={() => onNavigateToSession(session.id)}
+                    >
+                      {session.actionRecommandee}
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  ) : session.actionRecommandee ? (
                     <p className="text-xs text-primary font-medium text-right max-w-[160px]">
                       → {session.actionRecommandee}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
