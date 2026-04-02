@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
+import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 import { toast } from "sonner";
 
 // ─── CONSTANTS ───────────────────────────────────────────
