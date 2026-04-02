@@ -6065,6 +6065,7 @@ export type Database = {
       }
       signature_requests: {
         Row: {
+          access_token: string | null
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -6087,6 +6088,7 @@ export type Database = {
           user_agent_signature: string | null
         }
         Insert: {
+          access_token?: string | null
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -6109,6 +6111,7 @@ export type Database = {
           user_agent_signature?: string | null
         }
         Update: {
+          access_token?: string | null
           commentaires?: string | null
           contact_id?: string
           created_at?: string
@@ -6937,45 +6940,32 @@ export type Database = {
       centres_stats: {
         Row: {
           actif: boolean | null
+          adresse_complete: string | null
           ca_total: number | null
           created_at: string | null
+          email: string | null
           health_score: number | null
           id: string | null
           last_activity_at: string | null
-          nb_contacts: number | null
-          nb_sessions: number | null
-          nb_users: number | null
+          logo_url: string | null
+          max_contacts: number | null
+          max_users: number | null
+          nda: string | null
           nom: string | null
+          nom_commercial: string | null
           onboarding_completed_at: string | null
+          plan_end_date: string | null
+          plan_start_date: string | null
           plan_type: string | null
-        }
-        Insert: {
-          actif?: boolean | null
-          ca_total?: never
-          created_at?: string | null
-          health_score?: number | null
-          id?: string | null
-          last_activity_at?: string | null
-          nb_contacts?: never
-          nb_sessions?: never
-          nb_users?: never
-          nom?: string | null
-          onboarding_completed_at?: string | null
-          plan_type?: string | null
-        }
-        Update: {
-          actif?: boolean | null
-          ca_total?: never
-          created_at?: string | null
-          health_score?: number | null
-          id?: string | null
-          last_activity_at?: string | null
-          nb_contacts?: never
-          nb_sessions?: never
-          nb_users?: never
-          nom?: string | null
-          onboarding_completed_at?: string | null
-          plan_type?: string | null
+          settings: Json | null
+          siret: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          telephone: string | null
+          total_contacts: number | null
+          total_sessions: number | null
+          total_users: number | null
+          updated_at: string | null
         }
         Relationships: []
       }
