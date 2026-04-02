@@ -223,22 +223,20 @@ export function SessionsGroupedTable({
     return sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  const renderHeaders = (hideFormation = false, hideStatus = false, hideLieu = false) => (
+  const renderHeaders = () => (
     <TableHeader>
-      <TableRow className="bg-muted/50">
-        {/* ZONE 1 — IDENTITÉ */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[40%]" onClick={() => handleSort('nom')}>
-          <div className="flex items-center">Session<SortIcon field="nom" /></div>
+      <TableRow className="bg-muted/30 border-b border-border/60">
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 pl-4" onClick={() => handleSort('nom')}>
+          <div className="flex items-center gap-1">Session<SortIcon field="nom" /></div>
         </TableHead>
-        {/* ZONE 2 — PERFORMANCE */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80 w-[35%]" onClick={() => handleSort('inscrits')}>
-          <div className="flex items-center">Performance<SortIcon field="inscrits" /></div>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[110px]" onClick={() => handleSort('inscrits')}>
+          <div className="flex items-center gap-1">Remplissage<SortIcon field="inscrits" /></div>
         </TableHead>
-        {/* ZONE 3 — STATUT & PRIORITÉ */}
-        <TableHead className="font-semibold cursor-pointer hover:bg-muted/80" onClick={() => handleSort('statut')}>
-          <div className="flex items-center">Statut & Priorité<SortIcon field="statut" /></div>
+        <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[100px]" onClick={() => handleSort('statut')}>
+          <div className="flex items-center gap-1">Statut<SortIcon field="statut" /></div>
         </TableHead>
-        <TableHead className="text-right font-semibold w-[100px]">Actions</TableHead>
+        <TableHead className="text-right font-medium text-xs py-2 w-[80px] pr-3">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
