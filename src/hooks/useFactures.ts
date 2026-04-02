@@ -342,12 +342,20 @@ export function useFacturesStats() {
       if (facturesRes.error) throw facturesRes.error;
       if (paiementsRes.error) throw paiementsRes.error;
 
+      // Exclude brouillons from totals — they are not yet committed revenue
+      const allFactures = facturesRes.data || [];
+      const activeFactures = allFactures.filter(f => f.statut !== "brouillon");
+      const brouillonCount = allFactures.length - activeFactures.length;
+      const brouillonMontant = allFactures
+        .filter(f => f.statut === "brouillon")
+        .reduce((s, f) => s + Number(f.montant_total), 0);
+
       let total = 0;
-      for (const f of facturesRes.data || []) total += Number(f.montant_total);
+      for (const f of activeFactures) total += Number(f.montant_total);
       let paye = 0;
       for (const p of paiementsRes.data || []) paye += Number(p.montant);
 
-      return { total, paye, impaye: total - paye };
+      return { total, paye, impaye: total - paye, brouillonCount, brouillonMontant };
     },
   });
 }

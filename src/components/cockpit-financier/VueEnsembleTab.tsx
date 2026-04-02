@@ -107,6 +107,10 @@ export function VueEnsembleTab({ range }: Props) {
     );
   }
 
+  // Detect partial month (first 5 days)
+  const dayOfMonth = new Date().getDate();
+  const isPartialMonth = dayOfMonth <= 5;
+
   const caD = computeDelta(kpis.ca, kpis.caPrev);
   const chD = computeDelta(kpis.totalCharges, kpis.totalChargesPrev);
   const resD = computeDelta(kpis.resultat, kpis.resultatPrev);
@@ -124,7 +128,7 @@ export function VueEnsembleTab({ range }: Props) {
             <p>Alma : {formatEuro(kpis.caAlma)}</p>
             <p>CPF : {formatEuro(kpis.caCpf)}</p>
           </div>
-          {caD !== null && <DeltaBadge delta={caD} />}
+          {caD !== null && <DeltaBadge delta={caD} isPartial={isPartialMonth} />}
         </Card>
 
         {/* Charges */}
@@ -135,7 +139,7 @@ export function VueEnsembleTab({ range }: Props) {
             <p>Fixes : {formatEuro(kpis.chargesFixes)}</p>
             <p>Variables : {formatEuro(kpis.chargesVars)}</p>
           </div>
-          {chD !== null && <DeltaBadge delta={chD} invert />}
+          {chD !== null && <DeltaBadge delta={chD} invert isPartial={isPartialMonth} />}
         </Card>
 
         {/* Résultat */}
@@ -150,7 +154,7 @@ export function VueEnsembleTab({ range }: Props) {
           ) : (
             <Badge className="mt-2 bg-green-600 text-white hover:bg-green-700">✅ Bénéficiaire</Badge>
           )}
-          {resD !== null && <DeltaBadge delta={resD} className="mt-1" />}
+          {resD !== null && <DeltaBadge delta={resD} className="mt-1" isPartial={isPartialMonth} />}
         </Card>
 
         {/* Seuil de rentabilité */}
@@ -291,7 +295,14 @@ export function VueEnsembleTab({ range }: Props) {
   );
 }
 
-function DeltaBadge({ delta, invert, className }: { delta: number; invert?: boolean; className?: string }) {
+function DeltaBadge({ delta, invert, className, isPartial }: { delta: number; invert?: boolean; className?: string; isPartial?: boolean }) {
+  if (isPartial) {
+    return (
+      <div className={`flex items-center gap-1 text-xs font-medium text-muted-foreground ${className || ""}`}>
+        <span>en cours (partiel)</span>
+      </div>
+    );
+  }
   const positive = invert ? delta < 0 : delta >= 0;
   return (
     <div className={`flex items-center gap-1 text-xs font-medium ${positive ? "text-green-600" : "text-destructive"} ${className || ""}`}>
