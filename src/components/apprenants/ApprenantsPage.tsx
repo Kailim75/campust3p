@@ -324,7 +324,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((contact) => (
+              {paginatedFiltered.map((contact) => (
                 <ApprenantTableRow
                   key={contact.id}
                   contact={contact}
