@@ -182,12 +182,13 @@ export function SessionsPage() {
             icon={BookOpen}
             title="Aucune session créée"
             description="Créez votre première session de formation pour commencer à gérer vos inscriptions."
-          >
-            <EmptyStateAction
-              label="Créer ma première session"
-              onClick={handleAddNew}
-            />
-          </EmptyState>
+            action={
+              <EmptyStateAction
+                label="Créer ma première session"
+                onClick={handleAddNew}
+              />
+            }
+          />
         )}
       </main>
 
