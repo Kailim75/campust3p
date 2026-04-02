@@ -251,7 +251,7 @@ export function ContactsTable() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportFilteredContacts(contacts)}>
                 <FileText className="h-4 w-4 mr-2" />
-                Exporter la sélection ({totalCount})
+                Exporter cette page ({contacts.length})
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportContacts()}>
                 <FileText className="h-4 w-4 mr-2" />
