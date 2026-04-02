@@ -1,67 +1,67 @@
 project_id = "zhgbbujqapcigmduuqiy"
 
 [functions.send-automated-emails]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-exam-reminders]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.delete-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.list-users]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-notifications]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-signature-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-assistant]
-verify_jwt = false
+verify_jwt = true
 
 [functions.execute-workflow]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-enquete-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.alma-payment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.incoming-webhook]
 verify_jwt = false
 
 [functions.prospect-scoring]
-verify_jwt = false
+verify_jwt = true
 
 [functions.centre-scoring]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-template-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ia-action-plan]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ia-predictive-analysis]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-workflow-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-audit-pack]
-verify_jwt = false
+verify_jwt = true
 
 [functions.bulk-send-documents]
-verify_jwt = false
+verify_jwt = true
 
 [functions.public-sign-document]
 verify_jwt = false
 
 [functions.sync-driveflow]
-verify_jwt = false
+verify_jwt = true
