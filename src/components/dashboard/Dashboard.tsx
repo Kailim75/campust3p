@@ -135,21 +135,21 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
                   <button
                     onClick={() => onNavigate?.("alertes")}
                     className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                    aria-label={`Diagnostic administrateur, ${diagnostic.counts.total} anomalies détectées`}
+                    aria-label={`Anomalies détectées : ${diagnostic.counts.total}. Cliquer pour résoudre.`}
                   >
                     <ShieldAlert className="h-3.5 w-3.5" />
-                    Diagnostic
+                    Anomalies à traiter
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                       {diagnostic.counts.total}
                     </Badge>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs max-w-[200px]">
-                  <p className="font-medium mb-1">Anomalies détectées</p>
-                  {diagnostic.counts.blockers > 0 && <p>🔴 {diagnostic.counts.blockers} critique{diagnostic.counts.blockers > 1 ? 's' : ''}</p>}
-                  {diagnostic.counts.warnings > 0 && <p>⚠️ {diagnostic.counts.warnings} avertissement{diagnostic.counts.warnings > 1 ? 's' : ''}</p>}
-                  {diagnostic.counts.infos > 0 && <p>ℹ️ {diagnostic.counts.infos} info{diagnostic.counts.infos > 1 ? 's' : ''}</p>}
-                  <p className="text-muted-foreground mt-1">Cliquer pour voir le détail</p>
+                <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                  <p className="font-medium mb-1">Points de vigilance détectés</p>
+                  {diagnostic.counts.blockers > 0 && <p>🔴 {diagnostic.counts.blockers} bloquant{diagnostic.counts.blockers > 1 ? 's' : ''} (action requise)</p>}
+                  {diagnostic.counts.warnings > 0 && <p>⚠️ {diagnostic.counts.warnings} à corriger</p>}
+                  {diagnostic.counts.infos > 0 && <p>ℹ️ {diagnostic.counts.infos} informatif{diagnostic.counts.infos > 1 ? 's' : ''}</p>}
+                  <p className="text-muted-foreground mt-1">Cliquer pour voir et résoudre →</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -215,7 +215,21 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
           />
         </div>
 
-        {/* Level 3 — CA Evolution + Formation Breakdown */}
+        {/* Level 3 — "À traiter aujourd'hui" (full width, primary action zone — promoted above charts) */}
+        <section aria-labelledby="today-actions-title">
+          <h2
+            id="today-actions-title"
+            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+          >
+            À traiter aujourd'hui
+          </h2>
+          <ActionPanelToday
+            onNavigate={handleNavigate}
+            onOpenContact={handleOpenContact}
+          />
+        </section>
+
+        {/* Level 4 — CA Evolution + Formation Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section aria-labelledby="ca-chart-title">
             <h2
@@ -241,20 +255,6 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
             />
           </section>
         </div>
-
-        {/* Level 4 — "À traiter aujourd'hui" (full width, primary action zone) */}
-        <section aria-labelledby="today-actions-title">
-          <h2
-            id="today-actions-title"
-            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-          >
-            À traiter aujourd'hui
-          </h2>
-          <ActionPanelToday
-            onNavigate={handleNavigate}
-            onOpenContact={handleOpenContact}
-          />
-        </section>
 
         {/* Level 5 — Two-column grid: Sessions | Finance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

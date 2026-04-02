@@ -98,19 +98,28 @@ export function DashboardFormationBreakdown({ data, isLoading, onNavigate }: Pro
         <div className="space-y-3">
           {data.slice(0, 6).map((item, idx) => {
             const fillPercent = item.places > 0 ? Math.round((item.inscrits / item.places) * 100) : 0;
+            const isUndefined = item.formation_type === "Non défini";
 
             return (
               <button
                 key={item.formation_type}
                 onClick={() => onNavigate("sessions", { formation: item.formation_type })}
-                className="w-full text-left group hover:bg-muted/30 rounded-lg px-3 py-2 transition-colors"
+                className={cn(
+                  "w-full text-left group hover:bg-muted/30 rounded-lg px-3 py-2 transition-colors",
+                  isUndefined && "opacity-60 border border-dashed border-border"
+                )}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", COLORS[idx % COLORS.length])} />
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {item.formation_type}
+                    <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", isUndefined ? "bg-muted-foreground/40" : COLORS[idx % COLORS.length])} />
+                    <span className={cn("text-sm font-medium truncate", isUndefined ? "text-muted-foreground italic" : "text-foreground")}>
+                      {isUndefined ? "Non classé" : item.formation_type}
                     </span>
+                    {isUndefined && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        À classifier
+                      </span>
+                    )}
                   </div>
                   <span className="text-sm font-semibold text-foreground shrink-0 ml-2">
                     {metric === "inscriptions"

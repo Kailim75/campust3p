@@ -13,6 +13,8 @@ import { DashboardMetrics } from "@/hooks/useDashboardData";
 import { formatEur, formatDelta, formatCountDelta } from "@/lib/format-currency";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { forwardRef } from "react";
+import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
+import { isAfter, endOfMonth, startOfMonth } from "date-fns";
 
 interface Props {
   metrics: DashboardMetrics | undefined;
@@ -54,6 +56,12 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
     );
   }
 
+  const { period } = useDashboardPeriodV2();
+  
+  // Detect partial period: current month where end is in the future
+  const isPartialPeriod = period.range === "month" && isAfter(endOfMonth(new Date()), new Date()) && 
+    period.from.getTime() === startOfMonth(new Date()).getTime();
+
   const m = metrics;
   const dossiersTotal = (m?.dossiersInitialManquants ?? 0) + (m?.dossiersContinuManquants ?? 0);
 
@@ -64,7 +72,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "CA encaissé",
       icon: Euro,
       displayValue: formatEur(m?.encaissements ?? 0),
-      delta: formatDelta(m?.encaissements ?? 0, m?.encaissementsPrev ?? 0),
+      delta: formatDelta(m?.encaissements ?? 0, m?.encaissementsPrev ?? 0, { isPartialPeriod }),
       variant: "success",
       value: m?.encaissements ?? 0,
       ariaLabel: `CA encaissé : ${formatEur(m?.encaissements ?? 0)}`,
@@ -76,7 +84,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "CA facturé",
       icon: FileText,
       displayValue: formatEur(m?.caFacture ?? 0),
-      delta: formatDelta(m?.caFacture ?? 0, m?.caFacturePrev ?? 0),
+      delta: formatDelta(m?.caFacture ?? 0, m?.caFacturePrev ?? 0, { isPartialPeriod }),
       variant: "default",
       value: m?.caFacture ?? 0,
       ariaLabel: `CA facturé : ${formatEur(m?.caFacture ?? 0)}`,
@@ -105,7 +113,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       icon: ShoppingCart,
       displayValue: (m?.panierMoyen ?? 0) > 0 ? formatEur(m?.panierMoyen ?? 0) : "—",
       delta: (m?.panierMoyen ?? 0) > 0 && (m?.panierMoyenPrev ?? 0) > 0 
-        ? formatDelta(m?.panierMoyen ?? 0, m?.panierMoyenPrev ?? 0) 
+        ? formatDelta(m?.panierMoyen ?? 0, m?.panierMoyenPrev ?? 0, { isPartialPeriod }) 
         : null,
       variant: "default",
       value: m?.panierMoyen ?? 0,
@@ -119,7 +127,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "Inscriptions",
       icon: Users,
       displayValue: String(m?.inscriptionsCount ?? 0),
-      delta: formatCountDelta(m?.inscriptionsCount ?? 0, m?.inscriptionsCountPrev ?? 0),
+      delta: formatCountDelta(m?.inscriptionsCount ?? 0, m?.inscriptionsCountPrev ?? 0, { isPartialPeriod }),
       variant: "default",
       value: m?.inscriptionsCount ?? 0,
       ariaLabel: `Inscriptions : ${m?.inscriptionsCount ?? 0}`,

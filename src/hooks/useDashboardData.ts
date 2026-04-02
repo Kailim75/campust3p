@@ -47,6 +47,7 @@ interface RawFacture {
   numero_facture: string;
   contact_id: string | null;
   date_emission: string | null;
+  contact: { nom: string; prenom: string } | null;
 }
 
 interface RawPaiement {
@@ -122,6 +123,9 @@ export interface DashboardMetrics {
   resteAEncaisser: number;
   tauxRemplissageGlobal: number;
   tauxRemplissageGlobalPrev: number;
+  // Qualiopi
+  qualiopiTotal: number;
+  qualiopiValide: number;
 }
 
 export interface ActionItem {
@@ -155,6 +159,7 @@ export interface TopFacture {
   numero_facture: string;
   montant_total: number;
   ageDays: number;
+  contactName?: string;
 }
 
 export interface FormationBreakdown {
@@ -188,7 +193,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const prevToStr = prev.to.toISOString().split("T")[0];
   const in7days = format(addDays(today, 7), "yyyy-MM-dd");
 
-  // ─── 10 batched queries (down from ~36) ───
+  // ─── 12 batched queries ───
   const [
     prospectsRes,
     facturesRes,
@@ -200,6 +205,8 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     cartesRes,
     prevProspectsRes,
     prevPaiementsRes,
+    qualiopiItemsRes,
+    qualiopiValidationsRes,
   ] = await Promise.all([
     // 1. Prospects (active, not converted/lost)
     supabase
@@ -210,12 +217,12 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .order("date_prochaine_relance", { ascending: true })
       .limit(100),
 
-    // 2. Factures (active, not deleted, not cancelled)
+    // 2. Factures (active, not deleted, not cancelled) — with contact name for finance panel
     // IMPORTANT: We do NOT filter to "emise" only here — we need broader data
     // for paiementsRetard calc. We filter brouillons in the metric computation.
     supabase
       .from("factures")
-      .select("id, statut, date_echeance, montant_total, numero_facture, contact_id, date_emission")
+      .select("id, statut, date_echeance, montant_total, numero_facture, contact_id, date_emission, contact:contacts(nom, prenom)")
       .is("deleted_at", null)
       .not("statut", "eq", "annulee"),
 
@@ -270,6 +277,19 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .is("deleted_at", null)
       .gte("date_paiement", prevFromStr)
       .lte("date_paiement", prevToStr),
+
+    // 11. Qualiopi compliance items (obligatoire only)
+    supabase
+      .from("compliance_checklist_items")
+      .select("id")
+      .eq("categorie", "qualiopi")
+      .eq("criticite", "obligatoire")
+      .eq("actif", true),
+
+    // 12. Qualiopi compliance validations (valide)
+    supabase
+      .from("compliance_validations")
+      .select("item_id, statut"),
   ]);
 
   // ─── Raw data extraction with null safety ───
@@ -648,7 +668,20 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       ageDays: f.date_echeance
         ? Math.max(0, differenceInDays(today, new Date(f.date_echeance)))
         : 0,
+      contactName: f.contact ? `${f.contact.prenom || ""} ${f.contact.nom || ""}`.trim() : undefined,
     }));
+
+  // ═══════════════════════════════════════════
+  // QUALIOPI COMPLIANCE
+  // ═══════════════════════════════════════════
+
+  const qualiopiItems = qualiopiItemsRes.data || [];
+  const qualiopiValidations = qualiopiValidationsRes.data || [];
+  const qualiopiItemIds = new Set(qualiopiItems.map((i: any) => i.id));
+  const qualiopiTotal = qualiopiItems.length;
+  const qualiopiValide = qualiopiValidations.filter(
+    (v: any) => qualiopiItemIds.has(v.item_id) && v.statut === "valide"
+  ).length;
 
   // ═══════════════════════════════════════════
 
@@ -683,6 +716,8 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       resteAEncaisser,
       tauxRemplissageGlobal,
       tauxRemplissageGlobalPrev,
+      qualiopiTotal,
+      qualiopiValide,
     },
     todayActions: limitedActions,
     todayActionCount,

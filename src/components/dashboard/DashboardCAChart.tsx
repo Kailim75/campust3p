@@ -75,15 +75,18 @@ export function DashboardCAChart() {
 
         <ResponsiveContainer width="100%" height={250}>
           {viewMode === "ca" ? (
-            <ComposedChart data={monthlyCA || []}>
+            <ComposedChart data={(monthlyCA || []).map((d: any, i: number, arr: any[]) => ({
+              ...d,
+              isCurrentMonth: i === arr.length - 1,
+            }))}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
               <XAxis dataKey="moisLabel" fontSize={11} tickLine={false} className="text-muted-foreground" />
               <YAxis fontSize={11} tickLine={false} className="text-muted-foreground" tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
               <Tooltip
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-                formatter={(value: number, name: string) => [
+                formatter={(value: number, name: string, props: any) => [
                   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value),
-                  name === "ca" ? "Facturé" : "Encaissé",
+                  (name === "ca" ? "Facturé" : "Encaissé") + (props?.payload?.isCurrentMonth ? " (en cours)" : ""),
                 ]}
               />
               <Legend formatter={(value) => (value === "ca" ? "Facturé" : "Encaissé")} />
