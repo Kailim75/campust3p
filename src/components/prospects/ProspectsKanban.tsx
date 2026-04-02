@@ -37,7 +37,11 @@ const COLUMNS: { id: ProspectStatus; label: string; color: string }[] = [
   { id: "perdu", label: "Perdu", color: "bg-gray-500" },
 ];
 
-export function ProspectsKanban() {
+interface ProspectsKanbanProps {
+  onViewDetail?: (prospect: Prospect) => void;
+}
+
+export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
   const { data: prospects = [], isLoading } = useProspects();
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
