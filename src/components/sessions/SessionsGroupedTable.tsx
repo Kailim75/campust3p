@@ -416,7 +416,11 @@ export function SessionsGroupedTable({
           )}
 
           {sortedSessions.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">Aucune session trouvée</div>
+            <EmptyState
+              icon={BookOpen}
+              title="Aucune session trouvée"
+              description="Modifiez vos filtres ou créez une nouvelle session"
+            />
           )}
         </div>
       </TooltipProvider>
