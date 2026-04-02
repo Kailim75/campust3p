@@ -19,11 +19,7 @@ export function useUsers() {
         throw new Error("Non authentifié");
       }
 
-      const response = await supabase.functions.invoke("list-users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await supabase.functions.invoke("list-users");
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -46,9 +42,6 @@ export function useCreateUser() {
 
       const response = await supabase.functions.invoke("create-user", {
         body: { email, password, role },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (response.error) {
@@ -83,9 +76,6 @@ export function useDeleteUser() {
 
       const response = await supabase.functions.invoke("delete-user", {
         body: { userId },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (response.error) {
