@@ -27,7 +27,14 @@ export function formatDelta(
 }
 
 /** Format a count delta: "+3" or "-2" — returns "—" if previous is 0 and current is 0 */
-export function formatCountDelta(current: number, previous: number): { text: string; positive: boolean; tooltip?: string } {
+export function formatCountDelta(
+  current: number,
+  previous: number,
+  options?: { isPartialPeriod?: boolean }
+): { text: string; positive: boolean; tooltip?: string } {
+  if (options?.isPartialPeriod) {
+    return { text: "en cours", positive: true, tooltip: "Mois en cours — comparaison non significative" };
+  }
   if (previous === 0 && current === 0) return { text: "—", positive: true, tooltip: "Période précédente à 0" };
   if (previous === 0) return { text: "—", positive: true, tooltip: "Période précédente à 0" };
   const diff = current - previous;
