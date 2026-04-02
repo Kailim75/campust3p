@@ -36,6 +36,7 @@ import { useCurrentUserRole } from "@/hooks/useUsers";
 import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
 import { ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEur } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
