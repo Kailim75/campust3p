@@ -128,7 +128,7 @@ export function VueEnsembleTab({ range }: Props) {
             <p>Alma : {formatEuro(kpis.caAlma)}</p>
             <p>CPF : {formatEuro(kpis.caCpf)}</p>
           </div>
-          {caD !== null && <DeltaBadge delta={caD} />}
+          {caD !== null && <DeltaBadge delta={caD} isPartial={isPartialMonth} />}
         </Card>
 
         {/* Charges */}
