@@ -493,7 +493,7 @@ export function SessionsGroupedTable({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <Table>
-                      {renderHeaders(groupBy === "formation", groupBy === "status", groupBy === "lieu")}
+                      {renderHeaders()}
                       <TableBody>
                         {group.sessions.map((session) => (
                           <SessionRow
@@ -504,9 +504,6 @@ export function SessionsGroupedTable({
                             showProfitability={showProfitability}
                             isActive={activeSessionId === session.id}
                             isCritical={isSessionCritical(session, inscriptionsCounts)}
-                            hideFormation={groupBy === "formation"}
-                            hideStatus={groupBy === "status"}
-                            hideLieu={groupBy === "lieu"}
                             onViewDetail={onViewDetail}
                             onEdit={onEdit}
                             onDuplicate={onDuplicate}
