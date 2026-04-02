@@ -9,7 +9,14 @@ export function formatEur(value: number): string {
 }
 
 /** Format a delta as "+12 %" or "-3 %" — returns "—" if previous is 0 */
-export function formatDelta(current: number, previous: number): { text: string; positive: boolean; tooltip?: string } {
+export function formatDelta(
+  current: number,
+  previous: number,
+  options?: { isPartialPeriod?: boolean }
+): { text: string; positive: boolean; tooltip?: string } {
+  if (options?.isPartialPeriod) {
+    return { text: "en cours", positive: true, tooltip: "Mois en cours — comparaison non significative" };
+  }
   if (previous === 0 && current === 0) return { text: "—", positive: true, tooltip: "Période précédente à 0" };
   if (previous === 0) return { text: "—", positive: true, tooltip: "Période précédente à 0" };
   const pct = Math.round(((current - previous) / previous) * 100);
