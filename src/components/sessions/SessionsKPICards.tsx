@@ -69,124 +69,104 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Taux de remplissage */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Card className="card-elevated group hover:shadow-md transition-shadow cursor-help">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={cn("p-2.5 rounded-xl", fillBg)}>
-                      <Users className={cn("h-5 w-5", fillColor)} />
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg shrink-0", fillBg)}>
+                      <Users className={cn("h-4 w-4", fillColor)} />
                     </div>
-                    <span className={cn("text-xs font-medium", fillColor)}>
-                      {upcomingInscrits}/{upcomingPlaces}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-xl font-bold tracking-tight leading-none", fillColor)}>{avgFillRate}%</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Remplissage · {upcomingInscrits}/{upcomingPlaces}</p>
+                    </div>
                   </div>
-                  <p className={cn("text-2xl font-bold tracking-tight", fillColor)}>{avgFillRate}%</p>
-                  <p className="text-xs text-muted-foreground mt-1">Taux de remplissage</p>
-                  {sessionsUnder50.length > 0 && (
-                    <p className="text-xs text-warning font-medium mt-1">
-                      {sessionsUnder50.length} session{sessionsUnder50.length > 1 ? 's' : ''} sous 50%
-                    </p>
-                  )}
-                  <Progress value={avgFillRate} className="mt-2 h-2" />
                 </CardContent>
               </Card>
             </TooltipTrigger>
             <TooltipContent>
               <p>{upcomingInscrits} inscrits sur {upcomingPlaces} places (sessions ouvertes)</p>
+              {sessionsUnder50.length > 0 && <p className="text-warning">{sessionsUnder50.length} session{sessionsUnder50.length > 1 ? 's' : ''} sous 50%</p>}
             </TooltipContent>
           </Tooltip>
 
           {/* CA sécurisé */}
           <Card className="card-elevated group hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2.5 rounded-xl bg-success/10">
-                  <ShieldCheck className="h-5 w-5 text-success" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-success/10 shrink-0">
+                  <ShieldCheck className="h-4 w-4 text-success" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl font-bold tracking-tight text-success leading-none">
+                    {caSecuriseTotal.toLocaleString('fr-FR')} €
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">CA sécurisé</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold tracking-tight text-success">
-                {caSecuriseTotal.toLocaleString('fr-FR')} €
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">CA sécurisé</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Paiements validés uniquement
-              </p>
             </CardContent>
           </Card>
 
           {/* CA prévisionnel */}
           <Card className="card-elevated group hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2.5 rounded-xl bg-primary/10">
-                  <DollarSign className="h-5 w-5 text-primary" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl font-bold tracking-tight leading-none">
+                    {caPrevisionnel.toLocaleString('fr-FR')} €
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Prévisionnel · {caSecuriseTotal.toLocaleString('fr-FR')} € sécurisés</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold tracking-tight">
-                {caPrevisionnel.toLocaleString('fr-FR')} €
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">CA prévisionnel</p>
-              <p className="text-xs text-success font-medium mt-1">
-                dont {caSecuriseTotal.toLocaleString('fr-FR')} € sécurisés
-              </p>
             </CardContent>
           </Card>
 
           {/* Projection mensuelle */}
           <Card className="card-elevated group hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2.5 rounded-xl bg-info/10">
-                  <Target className="h-5 w-5 text-info" />
+            <CardContent className="p-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-info/10 shrink-0">
+                  <Target className="h-4 w-4 text-info" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl font-bold tracking-tight leading-none">
+                    {projectionMois.toLocaleString('fr-FR')} €
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Projection · J{dayOfMonth}/{daysInMonth}</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold tracking-tight">
-                {projectionMois.toLocaleString('fr-FR')} €
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Projection fin de mois</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Basé sur {caSecuriseMois.toLocaleString('fr-FR')} € sécurisés (J{dayOfMonth}/{daysInMonth})
-              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Alert banner */}
+        {/* Alert banner — compact */}
         {sessionsCritiques.length > 0 && (
-          <Card className="border-destructive/40 bg-destructive/5 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-destructive/10 shrink-0 mt-0.5">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-destructive">
-                    {sessionsCritiques.length} session{sessionsCritiques.length > 1 ? 's' : ''} critique{sessionsCritiques.length > 1 ? 's' : ''} — Action immédiate
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">
-                    Remplissage &lt;50% et démarrage &lt;14j : {sessionsCritiques.map(s => s.nom).join(', ')}
-                  </p>
-                </div>
-                {onToggleCritical && (
-                  <button
-                    onClick={onToggleCritical}
-                    className={cn(
-                      "shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                      criticalOnly
-                        ? "bg-destructive text-destructive-foreground"
-                        : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                    )}
-                  >
-                    {criticalOnly ? "Tout afficher" : "Filtrer critiques"}
-                  </button>
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-destructive/30 bg-destructive/5">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-xs font-medium text-destructive flex-1 min-w-0 truncate">
+              {sessionsCritiques.length} session{sessionsCritiques.length > 1 ? 's' : ''} critique{sessionsCritiques.length > 1 ? 's' : ''} — {sessionsCritiques.map(s => s.nom).join(', ')}
+            </p>
+            {onToggleCritical && (
+              <button
+                onClick={onToggleCritical}
+                className={cn(
+                  "shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                  criticalOnly
+                    ? "bg-destructive text-destructive-foreground"
+                    : "bg-destructive/10 text-destructive hover:bg-destructive/20"
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              >
+                {criticalOnly ? "Tout afficher" : "Filtrer"}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </TooltipProvider>
