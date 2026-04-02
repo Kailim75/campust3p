@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CalendarCheck, CalendarDays, User } from "lucide-react";
 
-export type QuickFilter = "all" | "overdue" | "today" | "week" | "mine";
+export type QuickFilter = "all" | "actifs" | "overdue" | "today" | "week" | "mine";
 
 interface ProspectQuickFiltersProps {
   activeFilter: QuickFilter;
