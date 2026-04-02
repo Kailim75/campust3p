@@ -88,10 +88,20 @@ export function DashboardFinancePanel({ metrics, topFactures, isLoading, onNavig
                 aria-label={`Facture ${f.numero_facture}, montant ${formatEur(f.montant_total)}`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {f.numero_facture}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {f.numero_facture}
+                    </p>
+                    {f.contactName && (
+                      <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                        · {f.contactName}
+                      </span>
+                    )}
+                  </div>
+                  <p className={cn(
+                    "text-xs",
+                    f.ageDays > 0 ? "text-destructive font-medium" : "text-muted-foreground"
+                  )}>
                     {f.ageDays > 0 ? `${f.ageDays}j de retard` : "En attente"}
                   </p>
                 </div>
