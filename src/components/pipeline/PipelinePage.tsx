@@ -679,10 +679,16 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
 
   // ─── CARD CLICK ────────────────────────────────────────
 
+  const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
+  const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
+
   const handleCardClick = (item: PipelineItem) => {
     if (item.type === "contact" && item.originalContact) {
       setSelectedContactId(item.originalContact.id);
       setDetailOpen(true);
+    } else if (item.type === "prospect" && item.originalProspect) {
+      setViewingProspect(item.originalProspect);
+      setProspectDetailOpen(true);
     }
   };
 
