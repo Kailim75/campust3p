@@ -408,16 +408,9 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                       {contact.sessionName || contact.email || contact.telephone || "—"}
                     </p>
                   </div>
-                  {payLabel && (
-                    <span className={cn("text-xs font-mono", {
-                      "text-emerald-600": contact.paymentStatus === "paye",
-                      "text-amber-600": contact.paymentStatus === "partiel",
-                      "text-destructive": contact.paymentStatus === "retard",
-                      "text-muted-foreground": contact.paymentStatus === "attente",
-                    })}>
-                      {payLabel}
-                    </span>
-                  )}
+                  <span className={cn("text-xs font-medium", payLabel.cls)}>
+                    {payLabel.text}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {contact.formation && <span className={formationClass}>{contact.formation}</span>}
