@@ -166,7 +166,17 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     });
   }, [contacts, search, formationFilter, quickFilter, activityFilter]);
 
-  const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+  // Client-side pagination
+  const PAGE_SIZE = 30;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, formationFilter, quickFilter, activityFilter]);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginatedFiltered = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  const allSelected = paginatedFiltered.length > 0 && paginatedFiltered.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0;
 
   const toggleSelectAll = () => {
