@@ -80,6 +80,46 @@ const STATUT_VALUES = ["En attente de validation", "Client", "Bravo"];
 const FORMATION_VALUES = ["TAXI", "VTC", "VMDTR", "ACC VTC", "ACC VTC 75", "Formation continue Taxi", "Formation continue VTC", "Mobilité Taxi"];
 const CIVILITE_VALUES = ["M.", "Mme"];
 
+function AlmaStatusCard() {
+  const { mode, isSandbox, isLoading } = useAlmaMode();
+  
+  const statusBadge = isLoading ? (
+    <Badge variant="outline" className="gap-1"><Loader2 className="h-3 w-3 animate-spin" />Détection…</Badge>
+  ) : mode === "live" ? (
+    <Badge className="bg-success/10 text-success">Production</Badge>
+  ) : isSandbox ? (
+    <Badge className="bg-warning/10 text-warning border-warning/30">Sandbox (test)</Badge>
+  ) : (
+    <Badge variant="outline">Non configuré</Badge>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <CreditCardIcon className="h-5 w-5 text-accent" />
+          Alma
+        </CardTitle>
+        <CardDescription>Paiement en plusieurs fois pour vos apprenants</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {statusBadge}
+        {isSandbox && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Alma est en mode test. Les paiements ne sont pas réels.
+            </AlertDescription>
+          </Alert>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Paiement en 3x et 4x via l'intégration Alma
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
