@@ -123,6 +123,9 @@ export interface DashboardMetrics {
   resteAEncaisser: number;
   tauxRemplissageGlobal: number;
   tauxRemplissageGlobalPrev: number;
+  // Qualiopi
+  qualiopiTotal: number;
+  qualiopiValide: number;
 }
 
 export interface ActionItem {
