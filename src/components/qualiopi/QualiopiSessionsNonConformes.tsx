@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle2, XCircle, FileText, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, FileText, ChevronRight, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -10,9 +10,10 @@ import type { SessionConformite } from '@/hooks/useQualiopiCentreData';
 interface Props {
   sessions: SessionConformite[];
   maxItems?: number;
+  onNavigateToSession?: (sessionId: string) => void;
 }
 
-export default function QualiopiSessionsNonConformes({ sessions, maxItems = 10 }: Props) {
+export default function QualiopiSessionsNonConformes({ sessions, maxItems = 10, onNavigateToSession }: Props) {
   const displayed = sessions.slice(0, maxItems);
 
   if (displayed.length === 0) {
