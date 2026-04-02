@@ -127,7 +127,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "Inscriptions",
       icon: Users,
       displayValue: String(m?.inscriptionsCount ?? 0),
-      delta: formatCountDelta(m?.inscriptionsCount ?? 0, m?.inscriptionsCountPrev ?? 0),
+      delta: formatCountDelta(m?.inscriptionsCount ?? 0, m?.inscriptionsCountPrev ?? 0, { isPartialPeriod }),
       variant: "default",
       value: m?.inscriptionsCount ?? 0,
       ariaLabel: `Inscriptions : ${m?.inscriptionsCount ?? 0}`,
