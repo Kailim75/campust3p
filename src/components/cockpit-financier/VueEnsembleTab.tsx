@@ -139,7 +139,7 @@ export function VueEnsembleTab({ range }: Props) {
             <p>Fixes : {formatEuro(kpis.chargesFixes)}</p>
             <p>Variables : {formatEuro(kpis.chargesVars)}</p>
           </div>
-          {chD !== null && <DeltaBadge delta={chD} invert />}
+          {chD !== null && <DeltaBadge delta={chD} invert isPartial={isPartialMonth} />}
         </Card>
 
         {/* Résultat */}
