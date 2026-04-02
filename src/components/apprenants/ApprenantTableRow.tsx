@@ -67,7 +67,7 @@ export function ApprenantTableRow({
 }: ApprenantTableRowProps) {
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
   const pedStatus = getPedagogicalStatus(contact.statut);
-  const payConfig = PAYMENT_CONFIG[contact.paymentStatus];
+  const payDisplay = getPaymentDisplay(contact.paymentStatus, contact.totalFacture, contact.totalPaye);
   const formationClass = contact.formation
     ? FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray"
     : "";
