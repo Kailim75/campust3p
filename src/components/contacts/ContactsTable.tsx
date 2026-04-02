@@ -151,7 +151,7 @@ export function ContactsTable() {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       // Select all paginated items
-      setSelectedIds(new Set(pagination.paginatedItems.map((c) => c.id)));
+      setSelectedIds(new Set(contacts.map((c) => c.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -249,9 +249,9 @@ export function ContactsTable() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => exportFilteredContacts(filteredContacts)}>
+              <DropdownMenuItem onClick={() => exportFilteredContacts(contacts)}>
                 <FileText className="h-4 w-4 mr-2" />
-                Exporter la sélection ({filteredContacts.length})
+                Exporter la sélection ({totalCount})
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportContacts()}>
                 <FileText className="h-4 w-4 mr-2" />
@@ -268,7 +268,7 @@ export function ContactsTable() {
 
         {/* Stats */}
         <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{filteredContacts.length} contact{filteredContacts.length > 1 ? 's' : ''}</span>
+          <span>{totalCount} contact{totalCount > 1 ? 's' : ''}</span>
         </div>
 
         {/* Bulk Actions Bar */}
@@ -296,7 +296,7 @@ export function ContactsTable() {
                   <Skeleton className="h-16 w-full" />
                 </div>
               ))
-            ) : filteredContacts.length === 0 ? (
+            ) : totalCount === 0 ? (
               <EmptyState
                 icon={Users}
                 title="Aucun contact trouvé"
@@ -304,7 +304,7 @@ export function ContactsTable() {
               />
             ) : (
               <>
-                {pagination.paginatedItems.map((contact) => (
+                {contacts.map((contact) => (
                   <ContactMobileCard
                     key={contact.id}
                     contact={contact}
@@ -320,18 +320,18 @@ export function ContactsTable() {
                   />
                 ))}
                 <PaginationControls
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  totalItems={pagination.totalItems}
-                  startIndex={pagination.startIndex}
-                  endIndex={pagination.endIndex}
-                  pageSize={pagination.pageSize}
-                  hasNextPage={pagination.hasNextPage}
-                  hasPreviousPage={pagination.hasPreviousPage}
-                  onNextPage={pagination.nextPage}
-                  onPreviousPage={pagination.previousPage}
-                  onGoToPage={pagination.goToPage}
-                  onPageSizeChange={pagination.setPageSize}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalCount}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  pageSize={pageSize}
+                  hasNextPage={(currentPage < totalPages)}
+                  hasPreviousPage={(currentPage > 1)}
+                  onNextPage={(() => setCurrentPage(p => Math.min(p + 1, totalPages)))}
+                  onPreviousPage={(() => setCurrentPage(p => Math.max(p - 1, 1)))}
+                  onGoToPage={((p: number) => setCurrentPage(Math.max(1, Math.min(p, totalPages))))}
+                  onPageSizeChange={((s: number) => { setPageSize(s); setCurrentPage(1); })}
                 />
               </>
             )}
@@ -385,7 +385,7 @@ export function ContactsTable() {
                     </TableRow>
                   ))
                 ) : (
-                  pagination.paginatedItems.map((contact) => {
+                  contacts.map((contact) => {
                     const initials = `${contact.prenom?.[0] ?? ''}${contact.nom?.[0] ?? ''}`.toUpperCase();
                     const status = contact.statut ?? "En attente de validation";
                     const isSelected = selectedIds.has(contact.id);
@@ -510,7 +510,7 @@ export function ContactsTable() {
               </TableBody>
             </Table>
 
-            {!isLoading && filteredContacts.length === 0 ? (
+            {!isLoading && totalCount === 0 ? (
               <EmptyState
                 icon={Users}
                 title="Aucun contact trouvé"
@@ -519,18 +519,18 @@ export function ContactsTable() {
               />
             ) : !isLoading && (
               <PaginationControls
-                currentPage={pagination.currentPage}
-                totalPages={pagination.totalPages}
-                totalItems={pagination.totalItems}
-                startIndex={pagination.startIndex}
-                endIndex={pagination.endIndex}
-                pageSize={pagination.pageSize}
-                hasNextPage={pagination.hasNextPage}
-                hasPreviousPage={pagination.hasPreviousPage}
-                onNextPage={pagination.nextPage}
-                onPreviousPage={pagination.previousPage}
-                onGoToPage={pagination.goToPage}
-                onPageSizeChange={pagination.setPageSize}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalCount}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                pageSize={pageSize}
+                hasNextPage={(currentPage < totalPages)}
+                hasPreviousPage={(currentPage > 1)}
+                onNextPage={(() => setCurrentPage(p => Math.min(p + 1, totalPages)))}
+                onPreviousPage={(() => setCurrentPage(p => Math.max(p - 1, 1)))}
+                onGoToPage={((p: number) => setCurrentPage(Math.max(1, Math.min(p, totalPages))))}
+                onPageSizeChange={((s: number) => { setPageSize(s); setCurrentPage(1); })}
                 className="px-4 border-t"
               />
             )}
