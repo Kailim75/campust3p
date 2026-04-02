@@ -258,6 +258,25 @@ export function PaiementsPage() {
       />
 
       <main className="p-6 animate-fade-in">
+        {/* Brouillon warning banner */}
+        {(stats?.brouillonCount ?? 0) >= 5 && (
+          <div className="flex items-center gap-3 p-3 rounded-xl border border-warning/30 bg-warning/5 mb-4">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+            <div className="flex-1 text-sm">
+              <span className="font-medium text-foreground">{stats?.brouillonCount} factures brouillon</span>
+              <span className="text-muted-foreground"> ({(stats?.brouillonMontant || 0).toLocaleString("fr-FR")}€) en attente d'émission</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-warning/40 text-warning hover:bg-warning/10"
+              onClick={() => { setStatutFilter("brouillon"); setActiveTab("tous"); }}
+            >
+              Voir les brouillons
+            </Button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="card-elevated p-5">
@@ -270,7 +289,7 @@ export function PaiementsPage() {
                 <p className="text-2xl font-display font-bold text-foreground">
                   {(stats?.total || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
                 </p>
-                <p className="text-[11px] text-muted-foreground">Toutes factures actives</p>
+                <p className="text-[11px] text-muted-foreground">Hors brouillons</p>
               </div>
             </div>
           </div>

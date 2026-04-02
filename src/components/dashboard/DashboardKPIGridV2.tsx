@@ -99,13 +99,17 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       delta: null,
       variant: (m?.resteAEncaisser ?? 0) > 0 ? "warning" : "default",
       value: m?.resteAEncaisser ?? 0,
-      ariaLabel: `Reste à encaisser : ${formatEur(m?.resteAEncaisser ?? 0)}`,
+      ariaLabel: `Reste à encaisser : ${formatEur(m?.resteAEncaisser ?? 0)}. Factures émises ou partiellement payées, hors brouillons.`,
       onClick: () => onNavigate("finances", { tab: "factures", status: "emise" }),
-      extra: (m?.paiementsRetard ?? 0) > 0 ? (
-        <p className="text-[11px] text-destructive mt-0.5">
-          dont {formatEur(m?.paiementsRetardMontant ?? 0)} en retard
-        </p>
-      ) : null,
+      extra: (
+        <>
+          {(m?.paiementsRetard ?? 0) > 0 && (
+            <p className="text-[11px] text-destructive mt-0.5">
+              dont {formatEur(m?.paiementsRetardMontant ?? 0)} en retard
+            </p>
+          )}
+        </>
+      ),
     },
     {
       key: "panierMoyen",
