@@ -93,7 +93,7 @@ export default {
         'soft': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
         'elevated': '0 10px 25px -3px rgba(0,0,0,0.08)',
         'card': '0 1px 2px rgba(0,0,0,0.04)',
-        'focus': '0 0 0 3px hsl(173 58% 39% / 0.2)',
+        'focus': '0 0 0 3px hsl(205 72% 38% / 0.2)',
       },
       keyframes: {
         "accordion-down": {
