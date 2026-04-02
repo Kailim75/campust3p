@@ -155,6 +155,7 @@ export interface TopFacture {
   numero_facture: string;
   montant_total: number;
   ageDays: number;
+  contactName?: string;
 }
 
 export interface FormationBreakdown {
