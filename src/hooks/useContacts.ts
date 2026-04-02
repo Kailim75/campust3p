@@ -25,6 +25,76 @@ export function useContacts() {
   });
 }
 
+export interface UseContactsPaginatedOptions {
+  page: number;
+  pageSize: number;
+  search?: string;
+  statusFilter?: string;
+  formationFilter?: string;
+}
+
+export function useContactsPaginated({
+  page,
+  pageSize,
+  search,
+  statusFilter,
+  formationFilter,
+}: UseContactsPaginatedOptions) {
+  return useQuery({
+    queryKey: ["contacts", "paginated", page, pageSize, search, statusFilter, formationFilter],
+    queryFn: async () => {
+      // Count query
+      let countQuery = supabase
+        .from("contacts")
+        .select("*", { count: "exact", head: true })
+        .eq("archived", false)
+        .is("deleted_at", null);
+
+      // Data query
+      let dataQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("archived", false)
+        .is("deleted_at", null);
+
+      // Apply filters to both queries
+      if (search && search.trim()) {
+        const s = `%${search.trim()}%`;
+        const filter = `nom.ilike.${s},prenom.ilike.${s},email.ilike.${s}`;
+        countQuery = countQuery.or(filter);
+        dataQuery = dataQuery.or(filter);
+      }
+
+      if (statusFilter && statusFilter !== "all") {
+        countQuery = countQuery.eq("statut", statusFilter);
+        dataQuery = dataQuery.eq("statut", statusFilter);
+      }
+
+      if (formationFilter && formationFilter !== "all") {
+        countQuery = countQuery.eq("formation", formationFilter);
+        dataQuery = dataQuery.eq("formation", formationFilter);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const [countRes, dataRes] = await Promise.all([
+        countQuery,
+        dataQuery.order("created_at", { ascending: false }).range(from, to),
+      ]);
+
+      if (countRes.error) throw countRes.error;
+      if (dataRes.error) throw dataRes.error;
+
+      return {
+        data: dataRes.data as Contact[],
+        totalCount: countRes.count ?? 0,
+      };
+    },
+    placeholderData: (prev) => prev,
+  });
+}
+
 export function useRecentContacts(limit = 5) {
   return useQuery({
     queryKey: ["contacts", "recent", limit],
