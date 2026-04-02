@@ -136,13 +136,14 @@
     --popover-foreground: 220 15% 90%;
 
     /* ── PRIMAIRE ── */
-    --primary: 220 20% 70%;
-    --primary-foreground: 220 20% 7%;
-    --primary-subtle: 220 18% 16%;
+    --primary: 205 60% 50%;
+    --primary-hover: 205 55% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-subtle: 205 30% 18%;
 
     /* ── CTA ── */
-    --cta: 173 50% 45%;
-    --cta-hover: 173 50% 40%;
+    --cta: 205 60% 50%;
+    --cta-hover: 205 55% 45%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
@@ -154,13 +155,13 @@
     --accent-foreground: 220 15% 90%;
 
     /* ── ÉTATS ── */
-    --success: 156 72% 36%;
+    --success: 142 72% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 37 91% 44%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 3 55% 51%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
-    --info: 210 70% 52%;
+    --info: 189 94% 37%;
     --info-foreground: 0 0% 100%;
 
     /* ── BORDURES ── */
@@ -170,21 +171,21 @@
     --input: 0 0% 100% / 0.08;
 
     /* ── Ring ── */
-    --ring: 173 50% 45%;
+    --ring: 205 60% 50%;
 
     /* ── Sidebar ── */
     --sidebar-background: 220 22% 9%;
     --sidebar-foreground: 220 12% 65%;
-    --sidebar-primary: 173 50% 45%;
+    --sidebar-primary: 205 60% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 100% / 0.06;
     --sidebar-accent-foreground: 220 15% 90%;
     --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 173 50% 45%;
+    --sidebar-ring: 205 60% 50%;
     --sidebar-active: 0 0% 100% / 0.1;
 
     /* ── Shadows ── */
-    --shadow-focus: 0 0 0 3px hsl(173 50% 45% / 0.25);
+    --shadow-focus: 0 0 0 3px hsl(205 60% 50% / 0.25);
   }
 }
 
