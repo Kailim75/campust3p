@@ -295,7 +295,14 @@ export function VueEnsembleTab({ range }: Props) {
   );
 }
 
-function DeltaBadge({ delta, invert, className }: { delta: number; invert?: boolean; className?: string }) {
+function DeltaBadge({ delta, invert, className, isPartial }: { delta: number; invert?: boolean; className?: string; isPartial?: boolean }) {
+  if (isPartial) {
+    return (
+      <div className={`flex items-center gap-1 text-xs font-medium text-muted-foreground ${className || ""}`}>
+        <span>en cours (partiel)</span>
+      </div>
+    );
+  }
   const positive = invert ? delta < 0 : delta >= 0;
   return (
     <div className={`flex items-center gap-1 text-xs font-medium ${positive ? "text-green-600" : "text-destructive"} ${className || ""}`}>
