@@ -821,6 +821,30 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                 );
               })}
             </div>
+            {cmaHiddenCount > 0 && (
+              <div className="px-5 py-3 border-t bg-muted/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCmaExpanded(true)}
+                >
+                  Afficher {cmaHiddenCount} autre{cmaHiddenCount > 1 ? 's' : ''} dossier{cmaHiddenCount > 1 ? 's' : ''}
+                </Button>
+              </div>
+            )}
+            {cmaExpanded && allCmaFiltered.length > CMA_INITIAL_LIMIT && (
+              <div className="px-5 py-2 border-t bg-muted/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCmaExpanded(false)}
+                >
+                  Réduire
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* ─── BLOC B: RDV du jour ─── */}
