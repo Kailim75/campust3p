@@ -69,10 +69,35 @@ const formationLabels: Record<string, string> = {
 
 export function ContactsTable() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: contacts, isLoading, error } = useContacts();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formationFilter, setFormationFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
+
+  // Debounce search for server queries
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter, formationFilter]);
+  
+  // Server-side paginated query
+  const { data: paginatedResult, isLoading, error } = useContactsPaginated({
+    page: currentPage,
+    pageSize,
+    search: debouncedSearch,
+    statusFilter,
+    formationFilter,
+  });
+
+  // Keep full contacts list for formation filter options & exports
+  const { data: allContacts } = useContacts();
+
+  const contacts = paginatedResult?.data ?? [];
+  const totalCount = paginatedResult?.totalCount ?? 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startIndex = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endIndex = Math.min(currentPage * pageSize, totalCount);
   
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -96,9 +121,7 @@ export function ContactsTable() {
 
   const handleCallClick = (contact: Contact) => {
     if (contact.telephone) {
-      // Open the phone dialer
       window.open(`tel:${contact.telephone}`, '_blank');
-      // Then open the call log dialog
       setCallLogContact(contact);
       setCallLogOpen(true);
     }
@@ -110,38 +133,19 @@ export function ContactsTable() {
     if (idFromUrl) {
       setSelectedContactId(idFromUrl);
       setDetailOpen(true);
-      // Clear the URL parameter
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
-  const filteredContacts = (contacts ?? []).filter((contact) => {
-    const matchesSearch =
-      contact.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    
-    const matchesStatus = statusFilter === "all" || contact.statut === statusFilter;
-    const matchesFormation = formationFilter === "all" || contact.formation === formationFilter;
-    
-    return matchesSearch && matchesStatus && matchesFormation;
-  });
+  const formations = [...new Set(allContacts?.map((c) => c.formation).filter(Boolean) ?? [])];
 
-  // Pagination
-  const pagination = usePagination({
-    items: filteredContacts,
-    defaultPageSize: 25,
-  });
-
-  const formations = [...new Set(contacts?.map((c) => c.formation).filter(Boolean) ?? [])];
-
-  // Get selected contacts for bulk operations (from paginated items for better UX)
+  // Get selected contacts for bulk operations
   const selectedContacts = useMemo(() => {
-    return filteredContacts.filter((c) => selectedIds.has(c.id));
-  }, [filteredContacts, selectedIds]);
+    return contacts.filter((c) => selectedIds.has(c.id));
+  }, [contacts, selectedIds]);
 
-  // Check if all visible (paginated) contacts are selected
-  const allSelected = pagination.paginatedItems.length > 0 && pagination.paginatedItems.every((c) => selectedIds.has(c.id));
+  // Check if all visible contacts are selected
+  const allSelected = contacts.length > 0 && contacts.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0 && !allSelected;
 
   const handleSelectAll = (checked: boolean) => {
