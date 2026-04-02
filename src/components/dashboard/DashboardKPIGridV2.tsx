@@ -84,7 +84,7 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       label: "CA facturé",
       icon: FileText,
       displayValue: formatEur(m?.caFacture ?? 0),
-      delta: formatDelta(m?.caFacture ?? 0, m?.caFacturePrev ?? 0),
+      delta: formatDelta(m?.caFacture ?? 0, m?.caFacturePrev ?? 0, { isPartialPeriod }),
       variant: "default",
       value: m?.caFacture ?? 0,
       ariaLabel: `CA facturé : ${formatEur(m?.caFacture ?? 0)}`,
