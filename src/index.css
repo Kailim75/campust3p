@@ -397,12 +397,12 @@
     font-size: 13px;
     border-radius: 10px;
     padding: 8px 16px;
-    box-shadow: 0 4px 6px -1px hsl(173 58% 39% / 0.3), 0 2px 4px -2px hsl(173 58% 39% / 0.15);
+    box-shadow: 0 4px 6px -1px hsl(205 72% 38% / 0.3), 0 2px 4px -2px hsl(205 72% 38% / 0.15);
   }
 
   .btn-cta:hover {
     background: hsl(var(--cta-hover));
-    box-shadow: 0 10px 25px -3px hsl(173 58% 39% / 0.35), 0 4px 6px -4px hsl(173 58% 39% / 0.2);
+    box-shadow: 0 10px 25px -3px hsl(205 72% 38% / 0.35), 0 4px 6px -4px hsl(205 72% 38% / 0.2);
     transform: translateY(-1px);
   }
 
