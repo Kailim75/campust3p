@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +21,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Calendar, MapPin, Edit, Trash2, Copy, ChevronDown, ChevronRight,
-  Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle,
+  Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -415,7 +416,11 @@ export function SessionsGroupedTable({
           )}
 
           {sortedSessions.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">Aucune session trouvée</div>
+            <EmptyState
+              icon={BookOpen}
+              title="Aucune session trouvée"
+              description="Modifiez vos filtres ou créez une nouvelle session"
+            />
           )}
         </div>
       </TooltipProvider>
@@ -520,7 +525,11 @@ export function SessionsGroupedTable({
         )}
 
         {sortedSessions.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">Aucune session trouvée</div>
+          <EmptyState
+            icon={BookOpen}
+            title="Aucune session trouvée"
+            description="Modifiez vos filtres ou créez une nouvelle session"
+          />
         )}
       </div>
     </TooltipProvider>

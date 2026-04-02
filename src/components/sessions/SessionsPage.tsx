@@ -17,6 +17,8 @@ import { SessionsGroupedTable } from "./SessionsGroupedTable";
 import { SessionsKanban } from "./SessionsKanban";
 import { SessionsToolbar } from "./SessionsToolbar";
 import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
+import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
+import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export function SessionsPage() {
@@ -176,20 +178,17 @@ export function SessionsPage() {
 
         {/* État vide engageant */}
         {!isLoading && sessions && sessions.length === 0 && (
-          <div className="card-elevated p-12 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Aucune session créée</h3>
-              <p className="text-sm text-muted-foreground mt-1">Créez votre première session de formation pour commencer à gérer vos inscriptions.</p>
-            </div>
-            <button onClick={handleAddNew} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-              Créer ma première session
-            </button>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="Aucune session créée"
+            description="Créez votre première session de formation pour commencer à gérer vos inscriptions."
+            action={
+              <EmptyStateAction
+                label="Créer ma première session"
+                onClick={handleAddNew}
+              />
+            }
+          />
         )}
       </main>
 
