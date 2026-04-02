@@ -377,7 +377,7 @@ function useAujourdhuiData() {
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + qualiopiSessions.length,
       };
     },
     staleTime: 30_000,
