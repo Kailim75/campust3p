@@ -156,6 +156,17 @@ const App = () => (
                   }
                 />
 
+                {/* Apprenant full page */}
+                <Route path="/contacts/:id" element={
+                  <ProtectedRoute>
+                    <CentreProvider>
+                      <AdminModeProvider>
+                        <ApprenantFullPage />
+                      </AdminModeProvider>
+                    </CentreProvider>
+                  </ProtectedRoute>
+                } />
+
                 {/* Main app explicit routes */}
                 {APP_SECTION_PATHS.map((path) => (
                   <Route key={path} path={path} element={<AppShellRoute />} />
