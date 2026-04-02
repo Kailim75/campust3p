@@ -107,6 +107,10 @@ export function VueEnsembleTab({ range }: Props) {
     );
   }
 
+  // Detect partial month (first 5 days)
+  const dayOfMonth = new Date().getDate();
+  const isPartialMonth = dayOfMonth <= 5;
+
   const caD = computeDelta(kpis.ca, kpis.caPrev);
   const chD = computeDelta(kpis.totalCharges, kpis.totalChargesPrev);
   const resD = computeDelta(kpis.resultat, kpis.resultatPrev);
