@@ -45,11 +45,9 @@ import { BulkEnrollDialog } from "./BulkEnrollDialog";
 import { BulkSendDocumentsDialog } from "./BulkSendDocumentsDialog";
 import { ContactMobileCard } from "./ContactMobileCard";
 import { CallLogDialog } from "./CallLogDialog";
-import { useExportData } from "@/hooks/useExportData";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { usePagination } from "@/hooks/usePagination";
-import { PaginationControls } from "@/components/ui/pagination-controls";
 import { EmptyState } from "@/components/ui/empty-state";
+
+// Remove unused usePagination and client-side PaginationControls imports were kept above
 
 const statusConfig = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info border-info/20" },
