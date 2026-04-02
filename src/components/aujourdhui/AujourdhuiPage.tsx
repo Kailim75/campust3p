@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
@@ -240,9 +241,11 @@ function useAujourdhuiData() {
         })
         .slice(0, 10);
 
-      // ─── Bloc D: Critiques ───
+      // ─── Bloc D: Critiques (deduplicated — exclude contacts already in CMA) ───
+      const cmaContactIds = new Set(cmaItems.map(c => c.id));
       const critiques = contacts
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
+        .filter(c => !cmaContactIds.has(c.id))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
@@ -374,7 +377,7 @@ function useAujourdhuiData() {
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + qualiopiSessions.length,
       };
     },
     staleTime: 30_000,
@@ -541,7 +544,10 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
 
   const reprogramItems = rawReprogram;
-  const totalActions = cmaItems.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length;
+  // Use allCmaFiltered (full count) not cmaItems (sliced) for accurate counter
+  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + qualiopiSessions.length;
+  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + qualiopiSessions.length;
+  const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   // ─── Action handlers with EmailComposerModal ───
   const handleCmaRelanceDocs = (item: any) => {
@@ -664,25 +670,35 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     <div className="space-y-6">
       <Header title="Aujourd'hui" subtitle={`${totalActions} action${totalActions > 1 ? "s" : ""} à traiter`} />
 
-      {/* Toggles */}
-      <div className="px-8 flex items-center justify-end gap-4">
-        <div className="flex items-center gap-2">
-          <Switch id="show-handled" checked={showHandled} onCheckedChange={setShowHandled} />
-          <Label htmlFor="show-handled" className="text-xs text-muted-foreground cursor-pointer">
-            Afficher traités
-            {totalHandled > 0 && !showHandled && (
-              <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
-            )}
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
-          <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
-            Inclure inactifs
-            {hiddenCount > 0 && !includeInactive && (
-              <span className="ml-1 text-muted-foreground/60">({hiddenCount} masqués)</span>
-            )}
-          </Label>
+      {/* Progress bar + Toggles */}
+      <div className="px-8 space-y-3">
+        {totalRaw > 0 && (
+          <div className="flex items-center gap-3">
+            <Progress value={progressPercent} className="h-2 flex-1" />
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              {totalHandled}/{totalRaw} traité{totalHandled > 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center gap-2">
+            <Switch id="show-handled" checked={showHandled} onCheckedChange={setShowHandled} />
+            <Label htmlFor="show-handled" className="text-xs text-muted-foreground cursor-pointer">
+              Afficher traités
+              {totalHandled > 0 && !showHandled && (
+                <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
+              )}
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+            <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
+              Inclure inactifs
+              {hiddenCount > 0 && !includeInactive && (
+                <span className="ml-1 text-muted-foreground/60">({hiddenCount} masqués)</span>
+              )}
+            </Label>
+          </div>
         </div>
       </div>
 
@@ -741,9 +757,9 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
 
             <div className="divide-y max-h-80 overflow-y-auto">
               {cmaItems.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
-                  {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dossier dans cette catégorie"}
+                <div className="p-5 text-center text-muted-foreground text-xs">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
+                  {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dans cette catégorie"}
                 </div>
               ) : cmaItems.map((item) => {
                 const relancedToday = isCmaRelancedToday(item.id);
@@ -863,21 +879,16 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {rdvToday.length === 0 ? (
-                <div className="p-6 text-center space-y-3">
-                  <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
-                  <div className="flex justify-center gap-2">
-                    {onNavigate && (
-                      <>
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => { onNavigate("prospects-agenda"); }}>
-                          <CalendarCheck className="h-3 w-3 mr-1" /> Planifier un RDV
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-xs" onClick={() => onNavigate("prospects")}>
-                          <RotateCcw className="h-3 w-3 mr-1" /> Relancer prospects
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                <div className="p-4 text-center space-y-2">
+                  <Calendar className="h-6 w-6 mx-auto text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
+                  {onNavigate && (
+                    <div className="flex justify-center gap-2">
+                      <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => { onNavigate("prospects-agenda"); }}>
+                        <CalendarCheck className="h-3 w-3 mr-1" /> Planifier
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : rdvToday.map((p) => {
                 const handledToday = isRdvHandledToday(p.id);
@@ -964,8 +975,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {relances.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                <div className="p-5 text-center text-muted-foreground text-xs">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
                   Toutes les relances sont à jour
                 </div>
               ) : relances.map((p) => {
@@ -1040,8 +1051,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
               {critiques.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success/50" />
+                <div className="p-5 text-center text-muted-foreground text-xs">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
                   Aucun apprenant en situation critique
                 </div>
               ) : critiques.map((item) => (
