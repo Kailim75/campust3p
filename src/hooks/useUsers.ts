@@ -19,11 +19,7 @@ export function useUsers() {
         throw new Error("Non authentifié");
       }
 
-      const response = await supabase.functions.invoke("list-users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await supabase.functions.invoke("list-users");
 
       if (response.error) {
         throw new Error(response.error.message);
