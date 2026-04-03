@@ -86,7 +86,16 @@ function CommunicationsSection({ contactId, contactPrenom, contactNom }: { conta
   const addEntry = useMutation({
     mutationFn: async () => {
       if (!newMessage.trim()) return;
-      const insertData: Record<string, unknown> = {
+      const insertData: {
+        contact_id: string;
+        titre: string;
+        contenu: string;
+        type: string;
+        date_echange: string;
+        date_rappel?: string;
+        alerte_active?: boolean;
+        rappel_description?: string;
+      } = {
         contact_id: contactId,
         titre: newType === "rdv" ? `RDV — ${newMessage.trim()}` : `Échange avec ${contactPrenom} ${contactNom}`,
         contenu: newMessage.trim(),
