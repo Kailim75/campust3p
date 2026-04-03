@@ -33,8 +33,9 @@ export function InboxEmptyState({ centreId }: InboxEmptyStateProps) {
       });
       if (error) throw error;
       if (data?.authUrl) {
-        window.open(data.authUrl, "_blank", "width=600,height=700");
-        toast.success("Fenêtre d'autorisation Gmail ouverte");
+        // Redirect full page — Google blocks OAuth in popups/iframes
+        window.location.href = data.authUrl;
+        return;
       } else {
         toast.success("Compte email configuré");
       }

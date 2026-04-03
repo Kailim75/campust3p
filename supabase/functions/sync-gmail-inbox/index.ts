@@ -20,6 +20,77 @@ serve(async (req) => {
     const gmailClientSecret = Deno.env.get("GMAIL_CLIENT_SECRET");
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // ─── OAuth Callback (GET from Google redirect) ──────────────
+    const url = new URL(req.url);
+    if (url.searchParams.get("callback") && req.method === "GET") {
+      const code = url.searchParams.get("code");
+      const accountId = url.searchParams.get("state");
+      const error = url.searchParams.get("error");
+
+      if (error) {
+        return new Response(
+          `<html><body><h2>Erreur d'autorisation</h2><p>${error}</p><p>Vous pouvez fermer cette page.</p></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
+
+      if (!code || !accountId) {
+        return new Response(
+          `<html><body><h2>Paramètres manquants</h2><p>Vous pouvez fermer cette page et réessayer.</p></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
+
+      const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
+
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: gmailClientId!,
+          client_secret: gmailClientSecret!,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      const tokens = await tokenRes.json();
+      if (tokens.error) {
+        return new Response(
+          `<html><body><h2>Erreur OAuth</h2><p>${tokens.error_description || tokens.error}</p></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
+
+      const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
+      await supabase
+        .from("crm_email_accounts")
+        .update({
+          oauth_encrypted_token: tokens.access_token,
+          oauth_refresh_token: tokens.refresh_token || null,
+          oauth_token_expires_at: expiresAt,
+          sync_status: "idle",
+          sync_error: null,
+        })
+        .eq("id", accountId);
+
+      // Redirect back to app inbox page
+      // Retrieve the origin from the account's centre to build redirect
+      return new Response(
+        `<html><head><meta charset="utf-8"></head><body>
+          <h2>✅ Connexion Gmail réussie !</h2>
+          <p>Vous pouvez fermer cette page et retourner au CRM.</p>
+          <script>
+            if (window.opener) { window.opener.location.reload(); window.close(); }
+            else { setTimeout(() => { window.location.href = '/inbox'; }, 2000); }
+          </script>
+        </body></html>`,
+        { headers: { "Content-Type": "text/html" } }
+      );
+    }
+
     const body = await req.json();
 
     // ─── OAuth Init ─────────────────────────────────────────────
@@ -69,17 +140,13 @@ serve(async (req) => {
       });
     }
 
-    // ─── OAuth Callback ─────────────────────────────────────────
-    if (body.action === "oauth_callback" || new URL(req.url).searchParams.get("callback")) {
-      const url = new URL(req.url);
-      const code = url.searchParams.get("code") || body.code;
-      const accountId = url.searchParams.get("state") || body.accountId;
-
+    // ─── OAuth Callback (POST from frontend, fallback) ─────────
+    if (body.action === "oauth_callback") {
+      const code = body.code;
+      const accountId = body.accountId;
       if (!code || !accountId) throw new Error("Missing code or accountId");
 
       const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
-
-      // Exchange code for tokens
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -91,11 +158,9 @@ serve(async (req) => {
           grant_type: "authorization_code",
         }),
       });
-
       const tokens = await tokenRes.json();
       if (tokens.error) throw new Error(`OAuth error: ${tokens.error_description || tokens.error}`);
 
-      // Store tokens
       const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
       await supabase
         .from("crm_email_accounts")
@@ -107,14 +172,6 @@ serve(async (req) => {
           sync_error: null,
         })
         .eq("id", accountId);
-
-      // If browser callback, return HTML that closes the window
-      if (url.searchParams.get("callback")) {
-        return new Response(
-          `<html><body><script>window.close();</script><p>Connexion réussie. Vous pouvez fermer cette fenêtre.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
-      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
