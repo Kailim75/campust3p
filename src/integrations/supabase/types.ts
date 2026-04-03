@@ -1444,6 +1444,467 @@ export type Database = {
           },
         ]
       }
+      crm_email_accounts: {
+        Row: {
+          centre_id: string
+          created_at: string
+          display_name: string | null
+          email_address: string
+          id: string
+          is_active: boolean
+          last_history_id: string | null
+          last_sync_at: string | null
+          oauth_encrypted_token: string | null
+          oauth_refresh_token: string | null
+          oauth_token_expires_at: string | null
+          provider: string
+          sync_error: string | null
+          sync_status: string
+          updated_at: string
+        }
+        Insert: {
+          centre_id: string
+          created_at?: string
+          display_name?: string | null
+          email_address: string
+          id?: string
+          is_active?: boolean
+          last_history_id?: string | null
+          last_sync_at?: string | null
+          oauth_encrypted_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires_at?: string | null
+          provider?: string
+          sync_error?: string | null
+          sync_status?: string
+          updated_at?: string
+        }
+        Update: {
+          centre_id?: string
+          created_at?: string
+          display_name?: string | null
+          email_address?: string
+          id?: string
+          is_active?: boolean
+          last_history_id?: string | null
+          last_sync_at?: string | null
+          oauth_encrypted_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires_at?: string | null
+          provider?: string
+          sync_error?: string | null
+          sync_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_accounts_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_accounts_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_attachments: {
+        Row: {
+          centre_id: string
+          created_at: string
+          filename: string
+          id: string
+          message_id: string
+          mime_type: string | null
+          promoted_at: string | null
+          promoted_by: string | null
+          promoted_to_document_id: string | null
+          promoted_to_table: string | null
+          sha256_hash: string | null
+          size_bytes: number | null
+          storage_path: string | null
+        }
+        Insert: {
+          centre_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          promoted_to_document_id?: string | null
+          promoted_to_table?: string | null
+          sha256_hash?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+        }
+        Update: {
+          centre_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          promoted_to_document_id?: string | null
+          promoted_to_table?: string | null
+          sha256_hash?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_attachments_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_attachments_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_links: {
+        Row: {
+          centre_id: string
+          confidence_score: number | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          is_primary: boolean
+          link_source: string
+          linked_at: string
+          linked_by: string | null
+          thread_id: string
+        }
+        Insert: {
+          centre_id: string
+          confidence_score?: number | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_primary?: boolean
+          link_source?: string
+          linked_at?: string
+          linked_by?: string | null
+          thread_id: string
+        }
+        Update: {
+          centre_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_primary?: boolean
+          link_source?: string
+          linked_at?: string
+          linked_by?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_links_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_links_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_links_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_messages: {
+        Row: {
+          bcc_addresses: Json | null
+          body_html: string | null
+          body_text: string | null
+          cc_addresses: Json | null
+          centre_id: string
+          created_at: string
+          direction: string
+          from_address: string
+          from_name: string | null
+          gmail_internal_date: string | null
+          gmail_label_ids: string[] | null
+          has_attachments: boolean
+          id: string
+          in_reply_to: string | null
+          message_id_header: string | null
+          provider: string
+          provider_message_id: string
+          received_at: string
+          references_header: string | null
+          send_error: string | null
+          send_status: string | null
+          sent_at: string | null
+          sent_by: string | null
+          snippet: string | null
+          source_system: string
+          subject: string | null
+          thread_id: string
+          to_addresses: Json
+        }
+        Insert: {
+          bcc_addresses?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          centre_id: string
+          created_at?: string
+          direction: string
+          from_address: string
+          from_name?: string | null
+          gmail_internal_date?: string | null
+          gmail_label_ids?: string[] | null
+          has_attachments?: boolean
+          id?: string
+          in_reply_to?: string | null
+          message_id_header?: string | null
+          provider?: string
+          provider_message_id: string
+          received_at?: string
+          references_header?: string | null
+          send_error?: string | null
+          send_status?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          snippet?: string | null
+          source_system?: string
+          subject?: string | null
+          thread_id: string
+          to_addresses?: Json
+        }
+        Update: {
+          bcc_addresses?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          centre_id?: string
+          created_at?: string
+          direction?: string
+          from_address?: string
+          from_name?: string | null
+          gmail_internal_date?: string | null
+          gmail_label_ids?: string[] | null
+          has_attachments?: boolean
+          id?: string
+          in_reply_to?: string | null
+          message_id_header?: string | null
+          provider?: string
+          provider_message_id?: string
+          received_at?: string
+          references_header?: string | null
+          send_error?: string | null
+          send_status?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          snippet?: string | null
+          source_system?: string
+          subject?: string | null
+          thread_id?: string
+          to_addresses?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_messages_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_messages_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_notes: {
+        Row: {
+          centre_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          centre_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          centre_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_notes_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_notes_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_notes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_threads: {
+        Row: {
+          account_id: string
+          archived_at: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          centre_id: string
+          created_at: string
+          has_attachments: boolean
+          id: string
+          is_unread: boolean
+          last_message_at: string | null
+          message_count: number
+          participants: Json | null
+          priority: string
+          provider: string
+          provider_thread_id: string
+          snippet: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          archived_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          centre_id: string
+          created_at?: string
+          has_attachments?: boolean
+          id?: string
+          is_unread?: boolean
+          last_message_at?: string | null
+          message_count?: number
+          participants?: Json | null
+          priority?: string
+          provider?: string
+          provider_thread_id: string
+          snippet?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          archived_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          centre_id?: string
+          created_at?: string
+          has_attachments?: boolean
+          id?: string
+          is_unread?: boolean
+          last_message_at?: string | null
+          message_count?: number
+          participants?: Json | null
+          priority?: string
+          provider?: string
+          provider_thread_id?: string
+          snippet?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_threads_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_threads_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_threads_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_breach_history: {
         Row: {
           action: string
