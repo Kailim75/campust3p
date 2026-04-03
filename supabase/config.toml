@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.sync-driveflow]
 verify_jwt = false
+
+[functions.sync-gmail-inbox]
+verify_jwt = false
+
+[functions.send-gmail-reply]
+verify_jwt = false
