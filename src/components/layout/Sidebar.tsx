@@ -40,6 +40,7 @@ const menuItems = [
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "formations", label: "Catalogue", icon: GraduationCap },
   { id: "finances", label: "Finances", icon: CreditCard },
+  { id: "inbox", label: "Inbox CRM", icon: Inbox },
   { id: "automations", label: "Automations", icon: Zap },
 ];
 

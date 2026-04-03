@@ -70,6 +70,7 @@ const SECTION_TO_PATH: Record<string, string> = {
   "sessions": "/sessions",
   "prospects": "/prospects",
   "finances": "/finances",
+  "inbox": "/inbox",
   "automations": "/automations",
   "settings": "/settings",
   "formateurs": "/formateurs",
