@@ -27,7 +27,7 @@ import { PartnersPage } from "@/components/partners/PartnersPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
-
+import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
 import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
@@ -48,6 +48,7 @@ const PATH_TO_SECTION: Record<string, string> = {
   "finances": "finances",
   "facturation": "finances",       // legacy alias
   "paiements": "finances",         // legacy alias
+  "inbox": "inbox",
   "automations": "automations",
   "settings": "settings",
   "parametres": "settings",        // alias français
@@ -69,6 +70,7 @@ const SECTION_TO_PATH: Record<string, string> = {
   "sessions": "/sessions",
   "prospects": "/prospects",
   "finances": "/finances",
+  "inbox": "/inbox",
   "automations": "/automations",
   "settings": "/settings",
   "formateurs": "/formateurs",
@@ -264,6 +266,8 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "security":
         return <SecurityStatusPage />;
+      case "inbox":
+        return <InboxCrmPage />;
       case "corbeille":
         return <CorbeillePage />;
       default:

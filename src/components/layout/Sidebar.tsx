@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
   MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
-  Trash2,
+  Trash2, Inbox,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -40,6 +40,7 @@ const menuItems = [
   { id: "sessions", label: "Sessions", icon: Calendar },
   { id: "formations", label: "Catalogue", icon: GraduationCap },
   { id: "finances", label: "Finances", icon: CreditCard },
+  { id: "inbox", label: "Inbox CRM", icon: Inbox },
   { id: "automations", label: "Automations", icon: Zap },
 ];
 

@@ -88,6 +88,7 @@ const APP_SECTION_PATHS = [
   "/finances",
   "/facturation", // legacy alias
   "/paiements", // legacy alias
+  "/inbox",
   "/automations",
   "/settings",
   "/alertes",
