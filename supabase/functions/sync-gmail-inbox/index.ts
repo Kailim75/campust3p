@@ -140,17 +140,13 @@ serve(async (req) => {
       });
     }
 
-    // ─── OAuth Callback ─────────────────────────────────────────
-    if (body.action === "oauth_callback" || new URL(req.url).searchParams.get("callback")) {
-      const url = new URL(req.url);
-      const code = url.searchParams.get("code") || body.code;
-      const accountId = url.searchParams.get("state") || body.accountId;
-
+    // ─── OAuth Callback (POST from frontend, fallback) ─────────
+    if (body.action === "oauth_callback") {
+      const code = body.code;
+      const accountId = body.accountId;
       if (!code || !accountId) throw new Error("Missing code or accountId");
 
       const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
-
-      // Exchange code for tokens
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -162,11 +158,9 @@ serve(async (req) => {
           grant_type: "authorization_code",
         }),
       });
-
       const tokens = await tokenRes.json();
       if (tokens.error) throw new Error(`OAuth error: ${tokens.error_description || tokens.error}`);
 
-      // Store tokens
       const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
       await supabase
         .from("crm_email_accounts")
@@ -178,14 +172,6 @@ serve(async (req) => {
           sync_error: null,
         })
         .eq("id", accountId);
-
-      // If browser callback, return HTML that closes the window
-      if (url.searchParams.get("callback")) {
-        return new Response(
-          `<html><body><script>window.close();</script><p>Connexion réussie. Vous pouvez fermer cette fenêtre.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
-      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
