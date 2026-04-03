@@ -1,0 +1,2 @@
+ALTER TABLE public.contact_historique DROP CONSTRAINT contact_historique_type_check;
+ALTER TABLE public.contact_historique ADD CONSTRAINT contact_historique_type_check CHECK (type = ANY (ARRAY['appel'::text, 'email'::text, 'note'::text, 'sms'::text, 'whatsapp'::text, 'reunion'::text, 'note_interne'::text, 'rappel'::text, 'rdv'::text]));
