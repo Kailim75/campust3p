@@ -266,6 +266,8 @@ const Index = () => {
         return <PlanningConduitePage />;
       case "security":
         return <SecurityStatusPage />;
+      case "inbox":
+        return <InboxCrmPage />;
       case "corbeille":
         return <CorbeillePage />;
       default:
