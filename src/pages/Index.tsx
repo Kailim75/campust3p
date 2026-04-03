@@ -27,7 +27,7 @@ import { PartnersPage } from "@/components/partners/PartnersPage";
 import { FormateursPage } from "@/components/formateurs/FormateursPage";
 import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
 import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
-
+import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
 import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
