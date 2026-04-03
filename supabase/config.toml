@@ -1,10 +1,10 @@
 project_id = "zhgbbujqapcigmduuqiy"
 
 [functions.send-automated-emails]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-exam-reminders]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-user]
 verify_jwt = false
@@ -16,19 +16,19 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-notifications]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-signature-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.execute-workflow]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-enquete-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.alma-payment]
 verify_jwt = false
@@ -37,31 +37,31 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.prospect-scoring]
-verify_jwt = true
+verify_jwt = false
 
 [functions.centre-scoring]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-template-ai]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ia-action-plan]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ia-predictive-analysis]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-workflow-ai]
-verify_jwt = true
+verify_jwt = false
 
 [functions.export-audit-pack]
-verify_jwt = true
+verify_jwt = false
 
 [functions.bulk-send-documents]
-verify_jwt = true
+verify_jwt = false
 
 [functions.public-sign-document]
 verify_jwt = false
 
 [functions.sync-driveflow]
-verify_jwt = true
+verify_jwt = false
