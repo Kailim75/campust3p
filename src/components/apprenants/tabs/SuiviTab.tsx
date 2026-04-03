@@ -64,6 +64,8 @@ export function SuiviTab({ contactId, contactPrenom, contactNom }: SuiviTabProps
 function CommunicationsSection({ contactId, contactPrenom, contactNom }: { contactId: string; contactPrenom: string; contactNom: string }) {
   const [newMessage, setNewMessage] = useState("");
   const [newType, setNewType] = useState("note");
+  const [rdvDate, setRdvDate] = useState("");
+  const [rdvHeure, setRdvHeure] = useState("09:00");
   const queryClient = useQueryClient();
 
   const { data: historique = [], isLoading } = useQuery({
@@ -84,25 +86,34 @@ function CommunicationsSection({ contactId, contactPrenom, contactNom }: { conta
   const addEntry = useMutation({
     mutationFn: async () => {
       if (!newMessage.trim()) return;
-      const { error } = await supabase.from("contact_historique").insert({
+      const insertData: Record<string, unknown> = {
         contact_id: contactId,
-        titre: `Échange avec ${contactPrenom} ${contactNom}`,
+        titre: newType === "rdv" ? `RDV — ${newMessage.trim()}` : `Échange avec ${contactPrenom} ${contactNom}`,
         contenu: newMessage.trim(),
         type: newType,
         date_echange: new Date().toISOString(),
-      });
+      };
+      if (newType === "rdv" && rdvDate) {
+        insertData.date_rappel = `${rdvDate}T${rdvHeure}:00`;
+        insertData.alerte_active = true;
+        insertData.rappel_description = newMessage.trim();
+      }
+      const { error } = await supabase.from("contact_historique").insert(insertData);
       if (error) throw error;
     },
     onSuccess: () => {
       setNewMessage("");
+      setRdvDate("");
+      setRdvHeure("09:00");
       queryClient.invalidateQueries({ queryKey: ["contact-historique", contactId] });
-      toast.success("Échange ajouté");
+      queryClient.invalidateQueries({ queryKey: ["contact-rappels", contactId] });
+      toast.success(newType === "rdv" ? "RDV programmé" : "Échange ajouté");
     },
     onError: () => toast.error("Erreur lors de l'ajout"),
   });
 
   const typeLabels: Record<string, string> = {
-    appel: "Appel", email: "Email", sms: "SMS", rdv: "RDV", note: "Note", whatsapp: "WhatsApp",
+    appel: "Appel", email: "Email", sms: "SMS", rdv: "RDV", note: "Note", whatsapp: "WhatsApp", reunion: "Réunion",
   };
 
   return (
@@ -122,14 +133,35 @@ function CommunicationsSection({ contactId, contactPrenom, contactNom }: { conta
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Ajouter un échange..."
+              placeholder={newType === "rdv" ? "Objet du rendez-vous..." : "Ajouter un échange..."}
               className="text-sm min-h-[60px]"
             />
           </div>
+          {newType === "rdv" && (
+            <div className="flex gap-2 items-center">
+              <Input
+                type="date"
+                value={rdvDate}
+                onChange={(e) => setRdvDate(e.target.value)}
+                className="text-xs w-40"
+                placeholder="Date du RDV"
+              />
+              <Input
+                type="time"
+                value={rdvHeure}
+                onChange={(e) => setRdvHeure(e.target.value)}
+                className="text-xs w-28"
+              />
+            </div>
+          )}
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => addEntry.mutate()} disabled={!newMessage.trim() || addEntry.isPending}>
+            <Button
+              size="sm"
+              onClick={() => addEntry.mutate()}
+              disabled={!newMessage.trim() || (newType === "rdv" && !rdvDate) || addEntry.isPending}
+            >
               <Send className="h-3 w-3 mr-1" />
-              Ajouter
+              {newType === "rdv" ? "Programmer" : "Ajouter"}
             </Button>
           </div>
         </CardContent>
@@ -142,16 +174,22 @@ function CommunicationsSection({ contactId, contactPrenom, contactNom }: { conta
       ) : (
         <div className="space-y-2">
           {historique.map((h) => (
-            <Card key={h.id} className="border-l-2 border-l-primary/30">
+            <Card key={h.id} className={`border-l-2 ${h.type === "rdv" ? "border-l-primary" : "border-l-primary/30"}`}>
               <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="text-[10px]">{typeLabels[h.type] || h.type}</Badge>
+                  <Badge variant={h.type === "rdv" ? "default" : "outline"} className="text-[10px]">{typeLabels[h.type] || h.type}</Badge>
                   <span className="text-[10px] text-muted-foreground">
                     {format(new Date(h.date_echange), "dd MMM yyyy HH:mm", { locale: fr })}
                   </span>
                 </div>
                 <p className="text-xs font-medium">{h.titre}</p>
                 {h.contenu && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{h.contenu}</p>}
+                {h.date_rappel && (
+                  <div className="flex items-center gap-1 mt-1 text-[10px] text-primary">
+                    <Clock className="h-3 w-3" />
+                    RDV le {format(new Date(h.date_rappel), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
