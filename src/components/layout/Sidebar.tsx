@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
   ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
   MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
-  Trash2,
+  Trash2, Inbox,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
