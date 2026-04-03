@@ -48,6 +48,7 @@ const PATH_TO_SECTION: Record<string, string> = {
   "finances": "finances",
   "facturation": "finances",       // legacy alias
   "paiements": "finances",         // legacy alias
+  "inbox": "inbox",
   "automations": "automations",
   "settings": "settings",
   "parametres": "settings",        // alias français
