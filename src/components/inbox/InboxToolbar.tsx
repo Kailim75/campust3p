@@ -84,6 +84,32 @@ export function InboxToolbar({
   return (
     <div className="border-b px-4 py-2">
       <div className="flex items-center gap-2">
+        {/* Direction filter */}
+        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
+          {([
+            { value: "inbox" as const, label: "Inbox", icon: Inbox },
+            { value: "sent" as const, label: "Envoyés", icon: Send },
+            { value: "all" as const, label: "Tous", icon: MailOpen },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onDirectionChange(opt.value)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                directionFilter === opt.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <opt.icon className="h-3 w-3" />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-5 bg-border" />
+
         {/* Status filter pills */}
         <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
           {STATUS_OPTIONS.map((opt) => (
