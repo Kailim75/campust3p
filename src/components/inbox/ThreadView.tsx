@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -155,9 +156,7 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
             </div>
 
             {/* Body */}
-            <div className="text-sm text-foreground/90 whitespace-pre-wrap">
-              {msg.body_text || (msg.body_html ? "(Contenu HTML)" : "(Vide)")}
-            </div>
+            <EmailMessageBody bodyText={msg.body_text} bodyHtml={msg.body_html} />
 
             {/* Attachments indicator */}
             {msg.has_attachments && (
@@ -191,4 +190,25 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
       </div>
     </div>
   );
+}
+
+function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bodyHtml?: string | null }) {
+  if (bodyText?.trim()) {
+    return <div className="text-sm text-foreground/90 whitespace-pre-wrap">{bodyText}</div>;
+  }
+
+  if (bodyHtml?.trim()) {
+    return (
+      <div
+        className="prose prose-sm max-w-none text-foreground/90 prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/90"
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(bodyHtml, {
+            USE_PROFILES: { html: true },
+          }),
+        }}
+      />
+    );
+  }
+
+  return <div className="text-sm italic text-muted-foreground">(Vide)</div>;
 }
