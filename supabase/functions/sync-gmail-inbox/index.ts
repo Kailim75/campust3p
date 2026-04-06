@@ -321,6 +321,24 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
   const centreId = account.centre_id;
   let newMessages = 0;
 
+  const { data: existingThreads } = await supabase
+    .from("crm_email_threads")
+    .select("id")
+    .eq("account_id", account.id)
+    .limit(1000);
+
+  const existingThreadIds = (existingThreads || []).map((thread: { id: string }) => thread.id);
+  let hasLocalMessages = false;
+
+  if (existingThreadIds.length > 0) {
+    const { count: localMessageCount } = await supabase
+      .from("crm_email_messages")
+      .select("id", { count: "exact", head: true })
+      .in("thread_id", existingThreadIds);
+
+    hasLocalMessages = (localMessageCount || 0) > 0;
+  }
+
   // Mark as syncing
   await supabase
     .from("crm_email_accounts")
@@ -330,7 +348,7 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
   // Determine sync strategy
   let messageIds: string[] = [];
 
-  if (account.last_history_id) {
+  if (account.last_history_id && hasLocalMessages) {
     // Incremental sync via history
     try {
       const histRes = await gmailFetch(
@@ -465,35 +483,19 @@ async function processMessage(msg: any, account: any, supabase: any) {
         : new Date().toISOString(),
       snippet: msg.snippet || null,
       has_attachments: hasAttachments(msg.payload),
-      participants: JSON.stringify([fromParsed, ...toParsed]),
+      participants: [fromParsed, ...toParsed],
     }, { onConflict: "centre_id,provider,provider_thread_id" })
     .select()
     .single();
 
   if (!thread) return;
 
-  // Update thread counters
-  await supabase.rpc("", {}).catch(() => {}); // placeholder
-  const { count } = await supabase
-    .from("crm_email_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("thread_id", thread.id);
-
-  await supabase
-    .from("crm_email_threads")
-    .update({
-      message_count: (count || 0) + 1,
-      is_unread: direction === "inbound",
-      has_attachments: hasAttachments(msg.payload),
-    })
-    .eq("id", thread.id);
-
   // Extract body
   const bodyText = extractBody(msg.payload, "text/plain");
   const bodyHtml = extractBody(msg.payload, "text/html");
 
   // Insert message
-  await supabase
+  const { data: insertedMessage, error: insertMessageError } = await supabase
     .from("crm_email_messages")
     .insert({
       centre_id: centreId,
@@ -507,8 +509,8 @@ async function processMessage(msg: any, account: any, supabase: any) {
       direction,
       from_address: fromParsed.email || from,
       from_name: fromParsed.name || null,
-      to_addresses: JSON.stringify(toParsed),
-      cc_addresses: JSON.stringify(ccParsed),
+      to_addresses: toParsed,
+      cc_addresses: ccParsed,
       subject: subject || null,
       body_text: bodyText,
       body_html: bodyHtml,
@@ -521,7 +523,27 @@ async function processMessage(msg: any, account: any, supabase: any) {
       received_at: date
         ? new Date(date).toISOString()
         : new Date().toISOString(),
-    });
+    })
+    .select("id")
+    .single();
+
+  if (insertMessageError) {
+    throw insertMessageError;
+  }
+
+  const { count } = await supabase
+    .from("crm_email_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("thread_id", thread.id);
+
+  await supabase
+    .from("crm_email_threads")
+    .update({
+      message_count: count || 1,
+      is_unread: direction === "inbound",
+      has_attachments: hasAttachments(msg.payload),
+    })
+    .eq("id", thread.id);
 
   // Auto-link: find matching contact/prospect by email
   const senderEmail = direction === "inbound" ? (fromParsed.email || "") : "";
@@ -572,14 +594,15 @@ async function processMessage(msg: any, account: any, supabase: any) {
   }
 
   // Process attachments
-  await processAttachments(msg, thread.id, centreId, account, supabase);
+  if (insertedMessage?.id) {
+    await processAttachments(msg, insertedMessage.id, centreId, supabase);
+  }
 }
 
 async function processAttachments(
   msg: any,
-  threadId: string,
+  messageId: string,
   centreId: string,
-  account: any,
   supabase: any,
 ) {
   const parts = flattenParts(msg.payload);
@@ -592,12 +615,12 @@ async function processAttachments(
       .from("crm_email_attachments")
       .insert({
         centre_id: centreId,
-        message_id: threadId, // Will be updated with correct message id
+        message_id: messageId,
         filename: part.filename,
         mime_type: part.mimeType || null,
         size_bytes: part.body?.size || null,
       })
-      .catch(() => {}); // Ignore duplicates
+      .then(() => null, () => null);
   }
 }
 
@@ -620,7 +643,7 @@ function hasAttachments(payload: any): boolean {
 function extractBody(payload: any, mimeType: string): string | null {
   if (!payload) return null;
   if (payload.mimeType === mimeType && payload.body?.data) {
-    return atob(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+    return decodeBase64UrlUtf8(payload.body.data);
   }
   if (payload.parts) {
     for (const part of payload.parts) {
@@ -629,6 +652,14 @@ function extractBody(payload: any, mimeType: string): string | null {
     }
   }
   return null;
+}
+
+function decodeBase64UrlUtf8(value: string): string {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 function parseEmailAddress(
