@@ -24,7 +24,6 @@ const ENTITY_LABELS: Record<string, string> = {
   session: "Session",
   facture: "Facture",
   devis: "Devis",
-  groupe_payeur: "Groupe payeur",
   document: "Document",
   apprenant: "Apprenant",
 };
