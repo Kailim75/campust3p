@@ -25,8 +25,23 @@ serve(async (req) => {
     const url = new URL(req.url);
     if (url.searchParams.get("callback") && req.method === "GET") {
       const code = url.searchParams.get("code");
-      const accountId = url.searchParams.get("state");
+      const stateParam = url.searchParams.get("state");
       const error = url.searchParams.get("error");
+
+      let accountId = stateParam;
+      let returnTo = "/inbox";
+
+      if (stateParam) {
+        try {
+          const parsedState = JSON.parse(atob(stateParam));
+          accountId = parsedState.accountId || stateParam;
+          if (typeof parsedState.returnTo === "string" && parsedState.returnTo.trim()) {
+            returnTo = parsedState.returnTo;
+          }
+        } catch {
+          accountId = stateParam;
+        }
+      }
 
       if (error) {
         return new Response(
@@ -76,15 +91,18 @@ serve(async (req) => {
         })
         .eq("id", accountId);
 
-      // Redirect back to app inbox page
-      // Retrieve the origin from the account's centre to build redirect
       return new Response(
         `<html><head><meta charset="utf-8"></head><body>
           <h2>✅ Connexion Gmail réussie !</h2>
-          <p>Vous pouvez fermer cette page et retourner au CRM.</p>
+          <p>Redirection vers l'Inbox CRM…</p>
           <script>
-            if (window.opener) { window.opener.location.reload(); window.close(); }
-            else { setTimeout(() => { window.location.href = '/inbox'; }, 2000); }
+            const returnTo = ${JSON.stringify(returnTo)};
+            if (window.opener && !window.opener.closed) {
+              window.opener.location.href = returnTo;
+              window.close();
+            } else {
+              setTimeout(() => { window.location.href = returnTo; }, 1200);
+            }
           </script>
         </body></html>`,
         { headers: { "Content-Type": "text/html" } }
@@ -118,6 +136,20 @@ serve(async (req) => {
 
       if (accErr) throw accErr;
 
+      const requestOrigin = req.headers.get("origin") || (() => {
+        try {
+          const referer = req.headers.get("referer");
+          return referer ? new URL(referer).origin : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      const statePayload = btoa(JSON.stringify({
+        accountId: account.id,
+        returnTo: requestOrigin ? `${requestOrigin}/inbox` : "/inbox",
+      }));
+
       // Build OAuth URL
       const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
       const scopes = [
@@ -132,8 +164,10 @@ serve(async (req) => {
         `&response_type=code` +
         `&scope=${encodeURIComponent(scopes)}` +
         `&access_type=offline` +
-        `&prompt=consent` +
-        `&state=${account.id}`;
+        `&include_granted_scopes=true` +
+        `&login_hint=${encodeURIComponent(email)}` +
+        `&prompt=${encodeURIComponent("select_account consent")}` +
+        `&state=${encodeURIComponent(statePayload)}`;
 
       return new Response(JSON.stringify({ authUrl, accountId: account.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
