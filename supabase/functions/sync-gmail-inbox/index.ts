@@ -48,17 +48,11 @@ serve(async (req) => {
       }
 
       if (error) {
-        return new Response(
-          `<html><body><h2>Erreur d'autorisation</h2><p>${error}</p><p>Vous pouvez fermer cette page.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } },
-        );
+        return Response.redirect(`${returnTo}?gmail_oauth_error=${encodeURIComponent(error)}`, 302);
       }
 
       if (!code || !accountId) {
-        return new Response(
-          `<html><body><h2>Paramètres manquants</h2><p>Vous pouvez fermer cette page et réessayer.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } },
-        );
+        return Response.redirect(`${returnTo}?gmail_oauth_error=missing_callback_params`, 302);
       }
 
       const redirectUri =
@@ -78,11 +72,10 @@ serve(async (req) => {
 
       const tokens = await tokenRes.json();
       if (tokens.error) {
-        return new Response(
-          `<html><body><h2>Erreur OAuth</h2><p>${
-            tokens.error_description || tokens.error
-          }</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } },
+        const oauthError = tokens.error_description || tokens.error;
+        return Response.redirect(
+          `${returnTo}?gmail_oauth_error=${encodeURIComponent(oauthError)}`,
+          302,
         );
       }
 
@@ -100,22 +93,7 @@ serve(async (req) => {
         })
         .eq("id", accountId);
 
-      return new Response(
-        `<html><head><meta charset="utf-8"></head><body>
-          <h2>✅ Connexion Gmail réussie !</h2>
-          <p>Redirection vers l'Inbox CRM…</p>
-          <script>
-            const returnTo = ${JSON.stringify(returnTo)};
-            if (window.opener && !window.opener.closed) {
-              window.opener.location.href = returnTo;
-              window.close();
-            } else {
-              setTimeout(() => { window.location.href = returnTo; }, 1200);
-            }
-          </script>
-        </body></html>`,
-        { headers: { "Content-Type": "text/html" } },
-      );
+      return Response.redirect(`${returnTo}?gmail_connected=1`, 302);
     }
 
     const body = await req.json();
