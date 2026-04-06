@@ -26,8 +26,8 @@ type CrmLabel = typeof CRM_LABELS[number];
 const BILLING_KEYWORDS = [
   "facture", "paiement", "règlement", "reglement", "cpf", "opco",
   "financement", "devis", "acompte", "solde", "relance", "avoir",
-  "reçu", "recu", "échéance", "echeance", "prise en charge",
-  "impayé", "impaye", "rappel de paiement",
+  "échéance", "echeance", "prise en charge",
+  "impayé", "impaye", "rappel de paiement", "reçu de paiement",
 ];
 const EXAM_KEYWORDS = [
   "convocation", "examen", "t3p", "résultat", "resultat",
@@ -44,7 +44,7 @@ const DOC_KEYWORDS = [
   "pièce manquante", "piece manquante", "justificatif",
   "attestation", "permis de conduire", "carte professionnelle",
   "carte pro", "document manquant", "dossier incomplet",
-  "pièce jointe", "piece jointe", "certificat",
+  "certificat",
 ];
 const DOC_MIME_TYPES = [
   "application/pdf", "image/jpeg", "image/png", "image/webp",
