@@ -162,6 +162,12 @@ export function InboxCrmPage() {
             {unreadCount}
           </span>
         )}
+        <div className="ml-auto">
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowNewMessage(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Nouveau message
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar */}
