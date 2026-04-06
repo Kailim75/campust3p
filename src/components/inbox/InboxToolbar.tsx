@@ -116,6 +116,13 @@ export function InboxToolbar({
           </SelectContent>
         </Select>
 
+        {/* Advanced filters */}
+        <InboxAdvancedFilters
+          filters={advancedFilters}
+          onChange={onAdvancedFiltersChange}
+          centreUsers={centreUsers}
+        />
+
         {/* Search */}
         <div className="flex-1 min-w-[160px] max-w-[260px] relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

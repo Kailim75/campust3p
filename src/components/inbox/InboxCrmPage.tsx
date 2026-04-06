@@ -7,10 +7,12 @@ import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
 import { NewMessageModal } from "./NewMessageModal";
+import { EMPTY_FILTERS, type AdvancedFilters, hasActiveAdvancedFilters } from "./InboxAdvancedFilters";
 import { Inbox, AlertTriangle, Mail, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
 
@@ -21,7 +23,9 @@ export function InboxCrmPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showNewMessage, setShowNewMessage] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
   const queryClient = useQueryClient();
+  const debouncedSender = useDebounce(advancedFilters.sender, 300);
 
   const { data: account, isLoading: accountLoading } = useQuery({
     queryKey: ["crm-email-account", centreId],
