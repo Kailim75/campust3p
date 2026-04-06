@@ -249,6 +249,8 @@ export function InboxCrmPage() {
         onAssignedChange={setAssignedFilter}
         advancedFilters={advancedFilters}
         onAdvancedFiltersChange={setAdvancedFilters}
+        directionFilter={directionFilter}
+        onDirectionChange={setDirectionFilter}
       />
 
       {/* Content */}
