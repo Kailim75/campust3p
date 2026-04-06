@@ -76,13 +76,13 @@ export function InboxToolbar({
     <div className="border-b px-4 py-2">
       <div className="flex items-center gap-2">
         {/* Status filter pills */}
-        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => onStatusChange(opt.value)}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
                 statusFilter === opt.value
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
