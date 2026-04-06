@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -7,8 +7,9 @@ import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Send, StickyNote, Link2, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Paperclip, Send, StickyNote, Link2, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ThreadLinks } from "./ThreadLinks";
 import { ThreadLinkAdd } from "./ThreadLinkAdd";
@@ -35,6 +36,7 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   const { data: thread } = useQuery({
@@ -97,13 +99,20 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
     onError: (e) => toast.error("Erreur: " + e.message),
   });
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
   if (isLoading || !thread) {
     return (
-      <div className="p-6 space-y-4">
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 bg-muted rounded w-2/3" />
-          <div className="h-4 bg-muted rounded w-1/3" />
-          <div className="h-24 bg-muted rounded w-full mt-6" />
+      <div className="p-6 space-y-5">
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-4 w-1/4" />
+        </div>
+        <div className="space-y-3 pt-4">
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-16 w-5/6 rounded-lg ml-auto" />
         </div>
       </div>
     );
@@ -115,17 +124,17 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
   return (
     <div className="flex flex-col h-full">
       {/* ── Thread header ── */}
-      <div className="border-b px-6 py-4 space-y-3">
+      <div className="border-b px-5 py-4 space-y-3">
         {/* Title + Status */}
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-[15px] font-semibold text-foreground leading-snug flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-foreground leading-snug flex-1 pr-2">
             {thread.subject || "(Sans sujet)"}
           </h2>
           <Select
             value={thread.status}
             onValueChange={(v) => updateStatus.mutate(v as InboxStatus)}
           >
-            <SelectTrigger className="w-[130px] h-7 text-xs gap-1.5 border-dashed">
+            <SelectTrigger className="w-[125px] h-7 text-xs gap-1.5 border-dashed flex-shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -149,7 +158,7 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
         />
 
         {/* Action toggle bar */}
-        <div className="flex gap-1 pt-1">
+        <div className="flex gap-1 pt-0.5">
           <ToggleButton
             active={showLinks}
             onClick={() => setShowLinks(!showLinks)}
@@ -174,25 +183,25 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
 
         {/* Expandable panels */}
         {showLinks && (
-          <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-150">
             <ThreadLinks threadId={threadId} centreId={centreId} />
             <ThreadLinkAdd threadId={threadId} centreId={centreId} />
           </div>
         )}
         {showNotes && (
-          <div className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="animate-in fade-in-0 slide-in-from-top-1 duration-150">
             <ThreadNotes threadId={threadId} centreId={centreId} />
           </div>
         )}
         {showAttachments && (
-          <div className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <div className="animate-in fade-in-0 slide-in-from-top-1 duration-150">
             <ThreadAttachments threadId={threadId} centreId={centreId} />
           </div>
         )}
       </div>
 
       {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {messages.map((msg) => {
           const isOutbound = msg.direction === "outbound";
           return (
@@ -201,29 +210,29 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
               className={cn(
                 "rounded-lg border p-4",
                 isOutbound
-                  ? "bg-primary/[0.03] border-primary/15 ml-6"
-                  : "bg-card mr-6"
+                  ? "bg-primary/[0.02] border-primary/10 ml-8"
+                  : "bg-card mr-8"
               )}
             >
               {/* Message header */}
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={cn(
-                    "inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold flex-shrink-0",
+                    "inline-flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0",
                     isOutbound
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/8 text-primary"
                       : "bg-muted text-muted-foreground"
                   )}>
                     {isOutbound ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
                   </span>
-                  <span className="text-sm font-medium truncate">
+                  <span className="text-sm font-medium truncate text-foreground/85">
                     {msg.from_name || msg.from_address}
                   </span>
                   {isOutbound && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">Envoyé</Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-primary/70 border-primary/20">Envoyé</Badge>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground flex-shrink-0 tabular-nums">
+                <span className="text-[11px] text-muted-foreground/60 flex-shrink-0 tabular-nums">
                   {format(new Date(msg.received_at), "dd MMM yyyy · HH:mm", { locale: fr })}
                 </span>
               </div>
@@ -233,24 +242,26 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
                 <EmailMessageBody bodyText={msg.body_text} bodyHtml={msg.body_html} />
 
                 {msg.has_attachments && (
-                  <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground/70">
-                    <Paperclip className="h-3 w-3" /> Pièces jointes
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/50">
+                    <Paperclip className="h-3 w-3" />
+                    <span>Pièces jointes</span>
                   </div>
                 )}
               </div>
             </div>
           );
         })}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* ── Reply ── */}
-      <div className="border-t bg-muted/20 p-4">
+      <div className="border-t bg-muted/15 p-4">
         <Textarea
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
           placeholder="Écrire une réponse…"
           rows={3}
-          className="mb-2 resize-none bg-background text-sm"
+          className="mb-2.5 resize-none bg-background text-sm focus-visible:ring-primary/30"
         />
         <div className="flex justify-end">
           <Button
@@ -279,28 +290,28 @@ function ToggleButton({ active, onClick, icon, label }: {
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
         active
           ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          : "text-muted-foreground/70 hover:bg-muted hover:text-foreground"
       )}
     >
       {icon}
       {label}
-      {active ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      {active ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
     </button>
   );
 }
 
 function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bodyHtml?: string | null }) {
   if (bodyText?.trim()) {
-    return <div className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
+    return <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
   }
 
   if (bodyHtml?.trim()) {
     return (
       <div
-        className="prose prose-sm max-w-none text-foreground/85 prose-headings:text-foreground prose-p:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/85"
+        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80"
         dangerouslySetInnerHTML={{
           __html: DOMPurify.sanitize(bodyHtml, {
             USE_PROFILES: { html: true },
@@ -310,5 +321,10 @@ function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bo
     );
   }
 
-  return <div className="text-sm italic text-muted-foreground">(Vide)</div>;
+  return (
+    <div className="flex items-center gap-1.5 text-sm text-muted-foreground/50 italic">
+      <AlertCircle className="h-3.5 w-3.5" />
+      Contenu vide
+    </div>
+  );
 }

@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Paperclip, UserCircle, Link2 } from "lucide-react";
+import { Paperclip, UserCircle, Link2, Mail } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Thread {
   id: string;
@@ -32,25 +33,12 @@ function formatDate(dateStr: string | null) {
   return format(d, "dd MMM", { locale: fr });
 }
 
-function getStatusColor(status: string) {
-  switch (status) {
-    case "nouveau": return "border-l-blue-500";
-    case "en_cours": return "border-l-amber-500";
-    case "traite": return "border-l-green-500";
-    case "archive": return "border-l-muted-foreground/40";
-    default: return "border-l-transparent";
-  }
-}
-
-function getStatusDot(status: string) {
-  switch (status) {
-    case "nouveau": return "bg-blue-500";
-    case "en_cours": return "bg-amber-500";
-    case "traite": return "bg-green-500";
-    case "archive": return "bg-muted-foreground/40";
-    default: return "bg-muted";
-  }
-}
+const STATUS_COLORS: Record<string, { border: string; dot: string }> = {
+  nouveau: { border: "border-l-blue-500", dot: "bg-blue-500" },
+  en_cours: { border: "border-l-amber-500", dot: "bg-amber-500" },
+  traite: { border: "border-l-green-500", dot: "bg-green-500" },
+  archive: { border: "border-l-muted-foreground/30", dot: "bg-muted-foreground/40" },
+};
 
 function getFirstParticipant(participants: any): string {
   if (!Array.isArray(participants) || participants.length === 0) return "Inconnu";
@@ -61,15 +49,15 @@ function getFirstParticipant(participants: any): string {
 export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: ThreadListProps) {
   if (isLoading) {
     return (
-      <div className="p-4 space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse space-y-2 py-3 px-4">
-            <div className="flex justify-between">
-              <div className="h-3.5 bg-muted rounded w-1/3" />
-              <div className="h-3 bg-muted rounded w-12" />
+      <div className="p-3 space-y-1">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="rounded-md px-3 py-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3 w-10" />
             </div>
-            <div className="h-3.5 bg-muted rounded w-3/4" />
-            <div className="h-3 bg-muted rounded w-full" />
+            <Skeleton className="h-3.5 w-3/4" />
+            <Skeleton className="h-3 w-full" />
           </div>
         ))}
       </div>
@@ -78,26 +66,30 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
 
   if (threads.length === 0) {
     return (
-      <div className="p-8 text-center text-muted-foreground text-sm">
-        <div className="text-3xl mb-2 opacity-30">📭</div>
-        Aucun email trouvé
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center mb-3">
+          <Mail className="h-5 w-5 text-muted-foreground/50" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">Aucun email trouvé</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Essayez de modifier vos filtres</p>
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-border/60">
+    <div className="divide-y divide-border/50">
       {threads.map((thread) => {
         const isSelected = selectedThreadId === thread.id;
         const isUnread = thread.is_unread;
+        const statusConf = STATUS_COLORS[thread.status] || STATUS_COLORS.nouveau;
 
         return (
           <button
             key={thread.id}
             onClick={() => onSelect(thread.id)}
             className={cn(
-              "w-full text-left px-0 py-0 transition-colors border-l-[3px]",
-              getStatusColor(thread.status),
+              "w-full text-left transition-colors border-l-[3px]",
+              statusConf.border,
               isSelected
                 ? "bg-accent"
                 : isUnread
@@ -105,49 +97,50 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
                   : "hover:bg-accent/30",
             )}
           >
-            <div className="px-3 py-2.5">
+            <div className="px-3 py-2.5 space-y-0.5">
               {/* Row 1: Sender + Date */}
-              <div className="flex items-center justify-between gap-2 mb-0.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   {isUnread && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                   )}
                   <span className={cn(
-                    "text-[13px] truncate",
-                    isUnread ? "font-semibold text-foreground" : "text-muted-foreground"
+                    "text-[13px] truncate leading-none",
+                    isUnread ? "font-semibold text-foreground" : "text-foreground/70"
                   )}>
                     {getFirstParticipant(thread.participants)}
                   </span>
                 </div>
-                <span className="text-[11px] text-muted-foreground flex-shrink-0 tabular-nums">
+                <span className={cn(
+                  "text-[11px] flex-shrink-0 tabular-nums leading-none",
+                  isUnread ? "text-foreground/60 font-medium" : "text-muted-foreground/60"
+                )}>
                   {formatDate(thread.last_message_at)}
                 </span>
               </div>
 
               {/* Row 2: Subject */}
               <p className={cn(
-                "text-[13px] truncate",
-                isUnread ? "font-medium text-foreground" : "text-foreground/75"
+                "text-[13px] truncate leading-snug",
+                isUnread ? "font-medium text-foreground" : "text-foreground/65"
               )}>
                 {thread.subject || "(Sans sujet)"}
               </p>
 
-              {/* Row 3: Snippet + Indicators */}
-              <div className="flex items-center gap-1.5 mt-1">
-                <p className="text-[11px] text-muted-foreground/70 truncate flex-1 leading-tight">
+              {/* Row 3: Snippet + Meta */}
+              <div className="flex items-center gap-1 pt-0.5">
+                <p className="text-[11px] text-muted-foreground/55 truncate flex-1 leading-tight">
                   {thread.snippet || ""}
                 </p>
-
-                {/* Meta indicators */}
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   {thread.assigned_to && (
-                    <UserCircle className="h-3 w-3 text-primary/50" />
+                    <UserCircle className="h-3 w-3 text-primary/40" />
                   )}
                   {thread.has_attachments && (
-                    <Paperclip className="h-3 w-3 text-muted-foreground/50" />
+                    <Paperclip className="h-3 w-3 text-muted-foreground/40" />
                   )}
                   {thread.message_count > 1 && (
-                    <span className="text-[10px] text-muted-foreground/60 bg-muted/60 rounded px-1 py-px font-medium">
+                    <span className="text-[10px] text-muted-foreground/50 bg-muted/50 rounded-sm px-1 py-px font-medium leading-none">
                       {thread.message_count}
                     </span>
                   )}
