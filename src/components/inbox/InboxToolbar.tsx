@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RefreshCw, UserCircle, Clock } from "lucide-react";
+import { Search, RefreshCw, UserCircle, Clock, Inbox, Send, MailOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InboxAdvancedFilters, type AdvancedFilters } from "./InboxAdvancedFilters";
+
+export type DirectionFilter = "inbox" | "sent" | "all";
 
 interface InboxToolbarProps {
   statusFilter: InboxStatus | "all";
@@ -25,6 +27,8 @@ interface InboxToolbarProps {
   onAssignedChange: (userId: string) => void;
   advancedFilters: AdvancedFilters;
   onAdvancedFiltersChange: (f: AdvancedFilters) => void;
+  directionFilter: DirectionFilter;
+  onDirectionChange: (d: DirectionFilter) => void;
 }
 
 const STATUS_OPTIONS: { value: InboxStatus | "all"; label: string; color?: string }[] = [
@@ -40,6 +44,7 @@ export function InboxToolbar({
   accountEmail, syncStatus, lastSyncAt, centreId,
   assignedFilter, onAssignedChange,
   advancedFilters, onAdvancedFiltersChange,
+  directionFilter, onDirectionChange,
 }: InboxToolbarProps) {
   const [syncing, setSyncing] = useState(false);
 
