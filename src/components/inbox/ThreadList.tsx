@@ -3,6 +3,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Paperclip, UserCircle, Link2, Mail } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CrmLabelBadge } from "./CrmLabelBadge";
 
 interface Thread {
   id: string;
@@ -16,6 +17,7 @@ interface Thread {
   participants: any;
   assigned_to: string | null;
   priority: string;
+  crm_labels?: string[];
 }
 
 interface ThreadListProps {
@@ -127,12 +129,20 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
                 {thread.subject || "(Sans sujet)"}
               </p>
 
-              {/* Row 3: Snippet + Meta */}
+              {/* Row 3: Snippet + Labels + Meta */}
               <div className="flex items-center gap-1 pt-0.5">
                 <p className="text-[11px] text-muted-foreground/55 truncate flex-1 leading-tight">
                   {thread.snippet || ""}
                 </p>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {(thread.crm_labels || []).slice(0, 2).map((label) => (
+                    <CrmLabelBadge key={label} label={label} size="xs" />
+                  ))}
+                  {(thread.crm_labels || []).length > 2 && (
+                    <span className="text-[9px] text-muted-foreground/50 leading-none">
+                      +{(thread.crm_labels || []).length - 2}
+                    </span>
+                  )}
                   {thread.assigned_to && (
                     <UserCircle className="h-3 w-3 text-primary/40" />
                   )}

@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_email_threads ADD COLUMN crm_labels text[] NOT NULL DEFAULT '{}';

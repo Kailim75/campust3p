@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
-import { SlidersHorizontal, X, Calendar as CalendarIcon, Paperclip, Link2 } from "lucide-react";
+import { SlidersHorizontal, X, Calendar as CalendarIcon, Paperclip, Link2, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { InboxStatus } from "./InboxCrmPage";
+import { ALL_CRM_LABELS, CrmLabelBadge } from "./CrmLabelBadge";
 
 export interface AdvancedFilters {
   sender: string;
@@ -20,6 +21,7 @@ export interface AdvancedFilters {
   assignedTo: string;
   hasAttachments: boolean | null;
   hasLinkedEntity: boolean | null;
+  crmLabel: string;
 }
 
 export const EMPTY_FILTERS: AdvancedFilters = {
@@ -30,6 +32,7 @@ export const EMPTY_FILTERS: AdvancedFilters = {
   assignedTo: "all",
   hasAttachments: null,
   hasLinkedEntity: null,
+  crmLabel: "all",
 };
 
 export function hasActiveAdvancedFilters(f: AdvancedFilters): boolean {
@@ -38,7 +41,8 @@ export function hasActiveAdvancedFilters(f: AdvancedFilters): boolean {
     f.dateFrom !== undefined ||
     f.dateTo !== undefined ||
     f.hasAttachments !== null ||
-    f.hasLinkedEntity !== null
+    f.hasLinkedEntity !== null ||
+    f.crmLabel !== "all"
   );
 }
 
@@ -49,6 +53,7 @@ export function countActiveFilters(f: AdvancedFilters): number {
   if (f.dateTo) c++;
   if (f.hasAttachments !== null) c++;
   if (f.hasLinkedEntity !== null) c++;
+  if (f.crmLabel !== "all") c++;
   return c;
 }
 
@@ -156,6 +161,30 @@ export function InboxAdvancedFilters({ filters, onChange, centreUsers }: Props) 
                 Lié CRM
               </Label>
             </div>
+          </div>
+
+          {/* CRM Label filter */}
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Tag className="h-3 w-3" />
+              Label CRM
+            </Label>
+            <Select
+              value={filters.crmLabel}
+              onValueChange={(v) => update({ crmLabel: v })}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Tous les labels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {ALL_CRM_LABELS.map((label) => (
+                  <SelectItem key={label} value={label}>
+                    {label.replace("CRM/", "")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

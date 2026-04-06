@@ -1826,6 +1826,7 @@ export type Database = {
           assigned_to: string | null
           centre_id: string
           created_at: string
+          crm_labels: string[]
           has_attachments: boolean
           id: string
           is_unread: boolean
@@ -1848,6 +1849,7 @@ export type Database = {
           assigned_to?: string | null
           centre_id: string
           created_at?: string
+          crm_labels?: string[]
           has_attachments?: boolean
           id?: string
           is_unread?: boolean
@@ -1870,6 +1872,7 @@ export type Database = {
           assigned_to?: string | null
           centre_id?: string
           created_at?: string
+          crm_labels?: string[]
           has_attachments?: boolean
           id?: string
           is_unread?: boolean

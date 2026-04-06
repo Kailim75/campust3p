@@ -48,7 +48,7 @@ export function InboxCrmPage() {
   });
 
   const { data: threads = [], isLoading: threadsLoading } = useQuery({
-    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter, debouncedSender, advancedFilters.dateFrom?.toISOString(), advancedFilters.dateTo?.toISOString(), advancedFilters.hasAttachments, advancedFilters.hasLinkedEntity],
+    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter, debouncedSender, advancedFilters.dateFrom?.toISOString(), advancedFilters.dateTo?.toISOString(), advancedFilters.hasAttachments, advancedFilters.hasLinkedEntity, advancedFilters.crmLabel],
     queryFn: async () => {
       if (!centreId) return [];
       let query = supabase
@@ -114,6 +114,12 @@ export function InboxCrmPage() {
         } else {
           filtered = [];
         }
+      }
+      // Client-side filter for CRM labels
+      if (advancedFilters.crmLabel && advancedFilters.crmLabel !== "all") {
+        filtered = filtered.filter((t: any) =>
+          Array.isArray(t.crm_labels) && t.crm_labels.includes(advancedFilters.crmLabel)
+        );
       }
 
       return filtered;

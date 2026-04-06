@@ -9,6 +9,30 @@ const corsHeaders = {
 
 const GMAIL_API = "https://gmail.googleapis.com/gmail/v1";
 
+// ─── CRM Label taxonomy ─────────────────────────────────────
+const CRM_LABELS = [
+  "CRM/Prospect",
+  "CRM/Apprenant",
+  "CRM/Document",
+  "CRM/Facturation",
+  "CRM/Urgent",
+  "CRM/A traiter",
+  "CRM/Non rattaché",
+] as const;
+
+type CrmLabel = typeof CRM_LABELS[number];
+
+const BILLING_KEYWORDS = ["facture", "paiement", "règlement", "cpf", "opco", "financement", "devis"];
+const URGENT_KEYWORDS = ["urgent", "urgence", "immédiat", "asap"];
+const DOC_MIME_TYPES = [
+  "application/pdf", "image/jpeg", "image/png", "image/webp",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+];
+
+// Cache: accountId → { labelName → gmailLabelId }
+const labelIdCache = new Map<string, Map<string, string>>();
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -113,7 +137,6 @@ serve(async (req) => {
       const { centreId, email, displayName } = body;
       if (!centreId || !email) throw new Error("centreId and email required");
 
-      // Create account record
       const { data: account, error: accErr } = await supabase
         .from("crm_email_accounts")
         .upsert({
@@ -143,7 +166,6 @@ serve(async (req) => {
         returnTo: requestOrigin ? `${requestOrigin}/inbox` : "/inbox",
       }));
 
-      // Build OAuth URL
       const redirectUri =
         `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
       const scopes = [
@@ -214,7 +236,6 @@ serve(async (req) => {
     }
 
     // ─── Sync (manual or cron) ──────────────────────────────────
-    // Get all active accounts (or specific centre)
     let accountsQuery = supabase
       .from("crm_email_accounts")
       .select("*")
@@ -232,7 +253,6 @@ serve(async (req) => {
 
     for (const account of (accounts || [])) {
       try {
-        // Refresh token if expired
         let accessToken = account.oauth_encrypted_token;
         if (
           account.oauth_token_expires_at &&
@@ -246,7 +266,6 @@ serve(async (req) => {
           );
         }
 
-        // Sync messages
         const syncResult = await syncAccount(account, accessToken, supabase);
         results.push({ accountId: account.id, ...syncResult });
 
@@ -280,6 +299,7 @@ serve(async (req) => {
   }
 });
 
+// ─── Token refresh ───────────────────────────────────────────
 async function refreshGmailToken(
   account: any,
   supabase: any,
@@ -317,6 +337,7 @@ async function refreshGmailToken(
   return data.access_token;
 }
 
+// ─── Sync account ────────────────────────────────────────────
 async function syncAccount(account: any, accessToken: string, supabase: any) {
   const centreId = account.centre_id;
   let newMessages = 0;
@@ -339,17 +360,14 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
     hasLocalMessages = (localMessageCount || 0) > 0;
   }
 
-  // Mark as syncing
   await supabase
     .from("crm_email_accounts")
     .update({ sync_status: "syncing" })
     .eq("id", account.id);
 
-  // Determine sync strategy
   let messageIds: string[] = [];
 
   if (account.last_history_id && hasLocalMessages) {
-    // Incremental sync via history
     try {
       const histRes = await gmailFetch(
         accessToken,
@@ -364,7 +382,6 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
           }
         }
       }
-      // Update historyId
       if (histRes.historyId) {
         await supabase
           .from("crm_email_accounts")
@@ -372,7 +389,6 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
           .eq("id", account.id);
       }
     } catch (err: any) {
-      // historyId invalid → full resync
       if (err.message?.includes("404") || err.message?.includes("historyId")) {
         console.log("History expired, falling back to full sync");
         messageIds = await getRecentMessageIds(accessToken);
@@ -382,15 +398,15 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
       }
     }
   } else {
-    // Full initial sync
     messageIds = await getRecentMessageIds(accessToken);
     await updateHistoryId(account.id, accessToken, supabase);
   }
 
-  // Deduplicate
   const uniqueIds = [...new Set(messageIds)];
 
-  // Process each message
+  // Ensure CRM labels exist in Gmail (once per sync run)
+  await ensureGmailLabels(accessToken, account.id);
+
   for (const msgId of uniqueIds.slice(0, 200)) {
     try {
       const exists = await supabase
@@ -400,13 +416,13 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
         .eq("provider_message_id", msgId)
         .maybeSingle();
 
-      if (exists.data) continue; // Already synced
+      if (exists.data) continue;
 
       const msg = await gmailFetch(
         accessToken,
         `/users/me/messages/${msgId}?format=full`,
       );
-      await processMessage(msg, account, supabase);
+      await processMessage(msg, account, accessToken, supabase);
       newMessages++;
     } catch (err: any) {
       console.error(`Error processing message ${msgId}:`, err.message);
@@ -416,29 +432,132 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
   return { newMessages, totalProcessed: uniqueIds.length };
 }
 
-async function getRecentMessageIds(accessToken: string): Promise<string[]> {
-  const res = await gmailFetch(
-    accessToken,
-    `/users/me/messages?maxResults=100`,
-  );
-  return (res.messages || []).map((m: any) => m.id);
-}
+// ─── Gmail label management ─────────────────────────────────
+async function ensureGmailLabels(accessToken: string, accountId: string) {
+  // Use cache to avoid repeated API calls
+  if (labelIdCache.has(accountId)) return;
 
-async function updateHistoryId(
-  accountId: string,
-  accessToken: string,
-  supabase: any,
-) {
-  const profile = await gmailFetch(accessToken, `/users/me/profile`);
-  if (profile.historyId) {
-    await supabase
-      .from("crm_email_accounts")
-      .update({ last_history_id: profile.historyId })
-      .eq("id", accountId);
+  try {
+    const labelsRes = await gmailFetch(accessToken, `/users/me/labels`);
+    const existing = (labelsRes.labels || []) as { id: string; name: string }[];
+    const cache = new Map<string, string>();
+
+    for (const label of existing) {
+      if ((CRM_LABELS as readonly string[]).includes(label.name)) {
+        cache.set(label.name, label.id);
+      }
+    }
+
+    // Create missing labels
+    for (const labelName of CRM_LABELS) {
+      if (!cache.has(labelName)) {
+        try {
+          const created = await gmailFetchPost(accessToken, `/users/me/labels`, {
+            name: labelName,
+            labelListVisibility: "labelShow",
+            messageListVisibility: "show",
+          });
+          if (created?.id) {
+            cache.set(labelName, created.id);
+          }
+        } catch (err: any) {
+          console.error(`Failed to create Gmail label ${labelName}:`, err.message);
+        }
+      }
+    }
+
+    labelIdCache.set(accountId, cache);
+  } catch (err: any) {
+    console.error("Failed to ensure Gmail labels:", err.message);
   }
 }
 
-async function processMessage(msg: any, account: any, supabase: any) {
+function getGmailLabelId(accountId: string, labelName: string): string | null {
+  return labelIdCache.get(accountId)?.get(labelName) || null;
+}
+
+// ─── Classification engine ──────────────────────────────────
+interface ClassificationContext {
+  senderEmail: string;
+  subject: string;
+  bodyText: string | null;
+  direction: string;
+  hasExploitableAttachment: boolean;
+  isContact: boolean;
+  isProspect: boolean;
+  hasLink: boolean;
+}
+
+function classifyMessage(ctx: ClassificationContext): CrmLabel[] {
+  const labels: CrmLabel[] = [];
+  const textToScan = `${ctx.subject} ${ctx.bodyText || ""}`.toLowerCase();
+
+  // Rule 1 & 2: Mutual exclusive — Apprenant wins over Prospect
+  if (ctx.isContact) {
+    labels.push("CRM/Apprenant");
+  } else if (ctx.isProspect) {
+    labels.push("CRM/Prospect");
+  }
+
+  // Rule 3: Non rattaché (no CRM link found)
+  if (!ctx.isContact && !ctx.isProspect && !ctx.hasLink && ctx.direction === "inbound") {
+    labels.push("CRM/Non rattaché");
+  }
+
+  // Rule 4: Exploitable attachment
+  if (ctx.hasExploitableAttachment) {
+    labels.push("CRM/Document");
+  }
+
+  // Rule 5: Billing keywords
+  if (BILLING_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Facturation");
+  }
+
+  // Rule 6: Urgent keywords
+  if (URGENT_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Urgent");
+  }
+
+  // Rule 7: A traiter — inbound with no CRM link
+  if (ctx.direction === "inbound" && !ctx.hasLink && !ctx.isContact && !ctx.isProspect) {
+    // Already has Non rattaché, skip A traiter to avoid redundancy
+  } else if (ctx.direction === "inbound" && !ctx.hasLink) {
+    labels.push("CRM/A traiter");
+  }
+
+  // Cap at 3 labels max
+  return labels.slice(0, 3);
+}
+
+async function applyGmailLabels(
+  msgId: string,
+  labels: CrmLabel[],
+  accessToken: string,
+  accountId: string,
+) {
+  if (labels.length === 0) return;
+
+  const addLabelIds: string[] = [];
+  for (const label of labels) {
+    const gmailId = getGmailLabelId(accountId, label);
+    if (gmailId) addLabelIds.push(gmailId);
+  }
+
+  if (addLabelIds.length === 0) return;
+
+  try {
+    await gmailFetchPost(accessToken, `/users/me/messages/${msgId}/modify`, {
+      addLabelIds,
+    });
+  } catch (err: any) {
+    // Non-blocking: label application failure must not break sync
+    console.error(`Failed to apply labels to ${msgId}:`, err.message);
+  }
+}
+
+// ─── Process message ─────────────────────────────────────────
+async function processMessage(msg: any, account: any, accessToken: string, supabase: any) {
   const centreId = account.centre_id;
   const headers = msg.payload?.headers || [];
   const getHeader = (name: string) =>
@@ -462,7 +581,6 @@ async function processMessage(msg: any, account: any, supabase: any) {
     parseEmailAddress(e.trim())
   ).filter(Boolean);
 
-  // Determine direction
   const accountEmail = account.email_address.toLowerCase();
   const direction = fromParsed.email?.toLowerCase() === accountEmail
     ? "outbound"
@@ -536,17 +654,12 @@ async function processMessage(msg: any, account: any, supabase: any) {
     .select("id", { count: "exact", head: true })
     .eq("thread_id", thread.id);
 
-  await supabase
-    .from("crm_email_threads")
-    .update({
-      message_count: count || 1,
-      is_unread: direction === "inbound",
-      has_attachments: hasAttachments(msg.payload),
-    })
-    .eq("id", thread.id);
-
   // Auto-link: find matching contact/prospect by email
   const senderEmail = direction === "inbound" ? (fromParsed.email || "") : "";
+  let isContact = false;
+  let isProspect = false;
+  let hasLink = false;
+
   if (senderEmail) {
     const { data: contact } = await supabase
       .from("contacts")
@@ -557,6 +670,8 @@ async function processMessage(msg: any, account: any, supabase: any) {
       .maybeSingle();
 
     if (contact) {
+      isContact = true;
+      hasLink = true;
       await supabase
         .from("crm_email_links")
         .upsert({
@@ -569,7 +684,6 @@ async function processMessage(msg: any, account: any, supabase: any) {
           confidence_score: 1.0,
         }, { onConflict: "thread_id,entity_type,entity_id" });
     } else {
-      // Try prospects
       const { data: prospect } = await supabase
         .from("prospects")
         .select("id")
@@ -578,6 +692,8 @@ async function processMessage(msg: any, account: any, supabase: any) {
         .maybeSingle();
 
       if (prospect) {
+        isProspect = true;
+        hasLink = true;
         await supabase
           .from("crm_email_links")
           .upsert({
@@ -593,9 +709,84 @@ async function processMessage(msg: any, account: any, supabase: any) {
     }
   }
 
+  // Check if thread already has any link (from previous messages)
+  if (!hasLink) {
+    const { count: linkCount } = await supabase
+      .from("crm_email_links")
+      .select("id", { count: "exact", head: true })
+      .eq("thread_id", thread.id);
+    hasLink = (linkCount || 0) > 0;
+  }
+
+  // Detect exploitable attachments
+  const parts = flattenParts(msg.payload);
+  const hasExploitableAttachment = parts.some(
+    (p) => p.filename && p.filename !== "" && p.body?.attachmentId &&
+      DOC_MIME_TYPES.some((mt) => (p.mimeType || "").toLowerCase().startsWith(mt))
+  );
+
+  // ─── Classification ───────────────────────────────────────
+  const crmLabels = classifyMessage({
+    senderEmail: senderEmail.toLowerCase(),
+    subject,
+    bodyText,
+    direction,
+    hasExploitableAttachment,
+    isContact,
+    isProspect,
+    hasLink,
+  });
+
+  // Apply labels in Gmail (non-blocking)
+  await applyGmailLabels(msg.id, crmLabels, accessToken, account.id);
+
+  // Update thread with aggregated labels and message count
+  // Merge with existing thread labels (union, deduplicate, cap at 5)
+  const existingLabels: string[] = thread.crm_labels || [];
+  const mergedLabels = [...new Set([...existingLabels, ...crmLabels])].slice(0, 5);
+
+  // Remove "Non rattaché" if thread now has a link
+  const finalLabels = hasLink
+    ? mergedLabels.filter((l) => l !== "CRM/Non rattaché")
+    : mergedLabels;
+
+  await supabase
+    .from("crm_email_threads")
+    .update({
+      message_count: count || 1,
+      is_unread: direction === "inbound",
+      has_attachments: hasAttachments(msg.payload),
+      crm_labels: finalLabels,
+      priority: crmLabels.includes("CRM/Urgent") ? "high" : thread.priority,
+    })
+    .eq("id", thread.id);
+
   // Process attachments
   if (insertedMessage?.id) {
     await processAttachments(msg, insertedMessage.id, centreId, supabase);
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────
+async function getRecentMessageIds(accessToken: string): Promise<string[]> {
+  const res = await gmailFetch(
+    accessToken,
+    `/users/me/messages?maxResults=100`,
+  );
+  return (res.messages || []).map((m: any) => m.id);
+}
+
+async function updateHistoryId(
+  accountId: string,
+  accessToken: string,
+  supabase: any,
+) {
+  const profile = await gmailFetch(accessToken, `/users/me/profile`);
+  if (profile.historyId) {
+    await supabase
+      .from("crm_email_accounts")
+      .update({ last_history_id: profile.historyId })
+      .eq("id", accountId);
   }
 }
 
@@ -610,7 +801,6 @@ async function processAttachments(
     if (!part.filename || part.filename === "") continue;
     if (!part.body?.attachmentId) continue;
 
-    // Record metadata + Gmail attachment ID for on-demand download
     await supabase
       .from("crm_email_attachments")
       .insert({
@@ -681,6 +871,22 @@ async function gmailFetch(accessToken: string, path: string): Promise<any> {
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Gmail API ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+async function gmailFetchPost(accessToken: string, path: string, body: any): Promise<any> {
+  const res = await fetch(`${GMAIL_API}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Gmail API POST ${res.status}: ${text}`);
   }
   return res.json();
 }

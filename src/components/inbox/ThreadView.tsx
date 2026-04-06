@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Paperclip, Send, StickyNote, Link2, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ThreadLinks } from "./ThreadLinks";
+import { CrmLabelBadge } from "./CrmLabelBadge";
 import { ThreadLinkAdd } from "./ThreadLinkAdd";
 import { ThreadNotes } from "./ThreadNotes";
 import { ThreadAssignment } from "./ThreadAssignment";
@@ -149,6 +150,15 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {/* CRM Labels */}
+        {thread.crm_labels && (thread.crm_labels as string[]).length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {(thread.crm_labels as string[]).map((label: string) => (
+              <CrmLabelBadge key={label} label={label} size="sm" />
+            ))}
+          </div>
+        )}
 
         {/* Assignment */}
         <ThreadAssignment
