@@ -15,7 +15,6 @@ export function ThreadAssignment({ threadId, centreId, assignedTo }: ThreadAssig
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch users for this centre
   const { data: centreUsers = [] } = useQuery({
     queryKey: ["centre-users", centreId],
     queryFn: async () => {
@@ -54,16 +53,14 @@ export function ThreadAssignment({ threadId, centreId, assignedTo }: ThreadAssig
     onError: (e) => toast.error("Erreur: " + e.message),
   });
 
-  const assignedUser = centreUsers.find((u) => u.id === assignedTo);
-
   return (
     <div className="flex items-center gap-2">
-      <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <UserCircle className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
       <Select
         value={assignedTo || "__none__"}
         onValueChange={(v) => assignMutation.mutate(v === "__none__" ? null : v)}
       >
-        <SelectTrigger className="h-8 text-xs w-[180px]">
+        <SelectTrigger className="h-7 text-xs w-[170px] border-dashed text-muted-foreground">
           <SelectValue placeholder="Non assigné" />
         </SelectTrigger>
         <SelectContent>

@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Plus, X, User, FileText, Calendar, CreditCard } from "lucide-react";
+import { X, User, FileText, Calendar, CreditCard, LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface ThreadLinksProps {
@@ -61,29 +60,37 @@ export function ThreadLinks({ threadId, centreId }: ThreadLinksProps) {
   });
 
   return (
-    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">Entités rattachées</span>
-      </div>
+    <div className="bg-muted/40 rounded-lg p-3 space-y-2">
+      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+        Entités rattachées
+      </span>
 
       {links.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Aucune entité rattachée</p>
+        <div className="flex items-center gap-1.5 py-1">
+          <LinkIcon className="h-3 w-3 text-muted-foreground/40" />
+          <p className="text-xs text-muted-foreground/50">Aucune entité rattachée</p>
+        </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {links.map((link) => {
             const Icon = ENTITY_ICONS[link.entity_type] || FileText;
             return (
-              <Badge key={link.id} variant={link.is_primary ? "default" : "secondary"} className="gap-1 pr-1">
+              <Badge
+                key={link.id}
+                variant={link.is_primary ? "default" : "secondary"}
+                className="gap-1 pr-1 h-6"
+              >
                 <Icon className="h-3 w-3" />
-                <span className="text-xs">{ENTITY_LABELS[link.entity_type] || link.entity_type}</span>
+                <span className="text-[11px]">{ENTITY_LABELS[link.entity_type] || link.entity_type}</span>
                 {link.link_source === "auto" && (
-                  <span className="text-[10px] opacity-60">auto</span>
+                  <span className="text-[9px] opacity-50 ml-0.5">auto</span>
                 )}
                 <button
                   onClick={() => removeLink.mutate(link.id)}
-                  className="ml-1 hover:bg-background/50 rounded p-0.5"
+                  className="ml-0.5 hover:bg-background/50 rounded p-0.5 transition-colors"
+                  aria-label="Supprimer le lien"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-2.5 w-2.5" />
                 </button>
               </Badge>
             );
