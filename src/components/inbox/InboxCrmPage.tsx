@@ -121,7 +121,7 @@ export function InboxCrmPage() {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500" />
+          <AlertTriangle className="h-12 w-12 mx-auto text-warning" />
           <h2 className="text-lg font-semibold">Reconnexion Google requise</h2>
           <p className="text-sm text-muted-foreground">
             Le compte <strong>{account.email_address}</strong> est configuré mais l'autorisation Google n'a pas été finalisée. Cliquez ci-dessous pour vous connecter via Google.
