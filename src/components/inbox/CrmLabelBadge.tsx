@@ -17,6 +17,10 @@ const LABEL_CONFIG: Record<string, { short: string; className: string }> = {
     short: "Facture",
     className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
   },
+  "CRM/Examen": {
+    short: "Examen",
+    className: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800",
+  },
   "CRM/Urgent": {
     short: "Urgent",
     className: "bg-destructive/10 text-destructive border-destructive/20",
