@@ -27,6 +27,7 @@ const ENTITY_LABELS: Record<string, string> = {
   devis: "Devis",
   groupe_payeur: "Groupe payeur",
   document: "Document",
+  apprenant: "Apprenant",
 };
 
 export function ThreadLinks({ threadId, centreId }: ThreadLinksProps) {
