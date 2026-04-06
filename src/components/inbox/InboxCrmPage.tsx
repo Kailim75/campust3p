@@ -17,6 +17,7 @@ export function InboxCrmPage() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InboxStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
   // Check if an email account is configured
@@ -38,7 +39,7 @@ export function InboxCrmPage() {
 
   // Fetch threads
   const { data: threads = [], isLoading: threadsLoading } = useQuery({
-    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery],
+    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter],
     queryFn: async () => {
       if (!centreId) return [];
       let query = supabase
@@ -52,6 +53,11 @@ export function InboxCrmPage() {
       }
       if (searchQuery.trim()) {
         query = query.ilike("subject", `%${searchQuery.trim()}%`);
+      }
+      if (assignedFilter === "unassigned") {
+        query = query.is("assigned_to", null);
+      } else if (assignedFilter !== "all") {
+        query = query.eq("assigned_to", assignedFilter);
       }
 
       const { data, error } = await query.limit(100);
@@ -155,6 +161,10 @@ export function InboxCrmPage() {
         onSearchChange={setSearchQuery}
         accountEmail={account.email_address}
         syncStatus={account.sync_status}
+        lastSyncAt={account.last_sync_at}
+        centreId={centreId!}
+        assignedFilter={assignedFilter}
+        onAssignedChange={setAssignedFilter}
       />
 
       {/* Content */}
