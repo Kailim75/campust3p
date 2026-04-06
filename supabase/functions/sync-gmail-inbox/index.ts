@@ -15,6 +15,7 @@ const CRM_LABELS = [
   "CRM/Apprenant",
   "CRM/Document",
   "CRM/Facturation",
+  "CRM/Examen",
   "CRM/Urgent",
   "CRM/A traiter",
   "CRM/Non rattaché",
@@ -22,8 +23,29 @@ const CRM_LABELS = [
 
 type CrmLabel = typeof CRM_LABELS[number];
 
-const BILLING_KEYWORDS = ["facture", "paiement", "règlement", "cpf", "opco", "financement", "devis"];
-const URGENT_KEYWORDS = ["urgent", "urgence", "immédiat", "asap"];
+const BILLING_KEYWORDS = [
+  "facture", "paiement", "règlement", "reglement", "cpf", "opco",
+  "financement", "devis", "acompte", "solde", "relance", "avoir",
+  "reçu", "recu", "échéance", "echeance", "prise en charge",
+  "impayé", "impaye", "rappel de paiement",
+];
+const EXAM_KEYWORDS = [
+  "convocation", "examen", "t3p", "résultat", "resultat",
+  "admis", "ajourné", "ajourne", "réussi", "reussi", "échoué", "echoue",
+  "reprogrammation", "épreuve", "epreuve", "examen pratique",
+  "examen théorique", "examen theorique", "jury",
+];
+const URGENT_KEYWORDS = [
+  "urgent", "urgence", "immédiat", "immediat", "asap",
+  "dernier délai", "dernier delai", "impératif", "imperatif",
+  "avant session", "avant examen", "rappel urgent",
+];
+const DOC_KEYWORDS = [
+  "pièce manquante", "piece manquante", "justificatif",
+  "attestation", "permis de conduire", "carte professionnelle",
+  "carte pro", "document manquant", "dossier incomplet",
+  "pièce jointe", "piece jointe", "certificat",
+];
 const DOC_MIME_TYPES = [
   "application/pdf", "image/jpeg", "image/png", "image/webp",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
