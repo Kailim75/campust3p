@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
-import { SlidersHorizontal, X, Calendar as CalendarIcon, Paperclip, Link2 } from "lucide-react";
+import { SlidersHorizontal, X, Calendar as CalendarIcon, Paperclip, Link2, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { InboxStatus } from "./InboxCrmPage";
+import { ALL_CRM_LABELS, CrmLabelBadge } from "./CrmLabelBadge";
 
 export interface AdvancedFilters {
   sender: string;
@@ -20,6 +21,7 @@ export interface AdvancedFilters {
   assignedTo: string;
   hasAttachments: boolean | null;
   hasLinkedEntity: boolean | null;
+  crmLabel: string;
 }
 
 export const EMPTY_FILTERS: AdvancedFilters = {
@@ -30,6 +32,7 @@ export const EMPTY_FILTERS: AdvancedFilters = {
   assignedTo: "all",
   hasAttachments: null,
   hasLinkedEntity: null,
+  crmLabel: "all",
 };
 
 export function hasActiveAdvancedFilters(f: AdvancedFilters): boolean {
