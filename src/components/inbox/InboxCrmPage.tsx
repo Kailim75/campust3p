@@ -115,6 +115,12 @@ export function InboxCrmPage() {
           filtered = [];
         }
       }
+      // Client-side filter for CRM labels
+      if (advancedFilters.crmLabel && advancedFilters.crmLabel !== "all") {
+        filtered = filtered.filter((t: any) =>
+          Array.isArray(t.crm_labels) && t.crm_labels.includes(advancedFilters.crmLabel)
+        );
+      }
 
       return filtered;
     },
