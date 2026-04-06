@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RefreshCw, UserCircle, Clock } from "lucide-react";
+import { Search, RefreshCw, UserCircle, Clock, Inbox, Send, MailOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InboxAdvancedFilters, type AdvancedFilters } from "./InboxAdvancedFilters";
+
+export type DirectionFilter = "inbox" | "sent" | "all";
 
 interface InboxToolbarProps {
   statusFilter: InboxStatus | "all";
@@ -25,6 +27,8 @@ interface InboxToolbarProps {
   onAssignedChange: (userId: string) => void;
   advancedFilters: AdvancedFilters;
   onAdvancedFiltersChange: (f: AdvancedFilters) => void;
+  directionFilter: DirectionFilter;
+  onDirectionChange: (d: DirectionFilter) => void;
 }
 
 const STATUS_OPTIONS: { value: InboxStatus | "all"; label: string; color?: string }[] = [
@@ -40,6 +44,7 @@ export function InboxToolbar({
   accountEmail, syncStatus, lastSyncAt, centreId,
   assignedFilter, onAssignedChange,
   advancedFilters, onAdvancedFiltersChange,
+  directionFilter, onDirectionChange,
 }: InboxToolbarProps) {
   const [syncing, setSyncing] = useState(false);
 
@@ -79,6 +84,32 @@ export function InboxToolbar({
   return (
     <div className="border-b px-4 py-2">
       <div className="flex items-center gap-2">
+        {/* Direction filter */}
+        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
+          {([
+            { value: "inbox" as const, label: "Inbox", icon: Inbox },
+            { value: "sent" as const, label: "Envoyés", icon: Send },
+            { value: "all" as const, label: "Tous", icon: MailOpen },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onDirectionChange(opt.value)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                directionFilter === opt.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <opt.icon className="h-3 w-3" />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-5 bg-border" />
+
         {/* Status filter pills */}
         <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
           {STATUS_OPTIONS.map((opt) => (

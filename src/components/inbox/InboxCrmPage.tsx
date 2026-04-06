@@ -21,6 +21,7 @@ export function InboxCrmPage() {
   const { centreId } = useCentreContext();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InboxStatus | "all">("all");
+  const [directionFilter, setDirectionFilter] = useState<"inbox" | "sent" | "all">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showNewMessage, setShowNewMessage] = useState(false);
@@ -48,7 +49,7 @@ export function InboxCrmPage() {
   });
 
   const { data: threads = [], isLoading: threadsLoading } = useQuery({
-    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter, debouncedSender, advancedFilters.dateFrom?.toISOString(), advancedFilters.dateTo?.toISOString(), advancedFilters.hasAttachments, advancedFilters.hasLinkedEntity, advancedFilters.crmLabel],
+    queryKey: ["crm-email-threads", centreId, statusFilter, directionFilter, searchQuery, assignedFilter, debouncedSender, advancedFilters.dateFrom?.toISOString(), advancedFilters.dateTo?.toISOString(), advancedFilters.hasAttachments, advancedFilters.hasLinkedEntity, advancedFilters.crmLabel],
     queryFn: async () => {
       if (!centreId) return [];
       let query = supabase
@@ -59,6 +60,11 @@ export function InboxCrmPage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
+      }
+      if (directionFilter === "inbox") {
+        query = query.eq("has_inbound", true);
+      } else if (directionFilter === "sent") {
+        query = query.eq("has_inbound", false);
       }
       if (searchQuery.trim()) {
         query = query.ilike("subject", `%${searchQuery.trim()}%`);
@@ -243,6 +249,8 @@ export function InboxCrmPage() {
         onAssignedChange={setAssignedFilter}
         advancedFilters={advancedFilters}
         onAdvancedFiltersChange={setAdvancedFilters}
+        directionFilter={directionFilter}
+        onDirectionChange={setDirectionFilter}
       />
 
       {/* Content */}
