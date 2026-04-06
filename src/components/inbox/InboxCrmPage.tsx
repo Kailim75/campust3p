@@ -150,7 +150,7 @@ export function InboxCrmPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.0))] max-h-screen flex flex-col">
+    <div className="h-screen flex flex-col -mt-px"  style={{ height: 'calc(100vh - 0px)' }}>
       {/* Header */}
       <div className="border-b px-6 py-3 flex items-center gap-2.5">
         <Inbox className="h-5 w-5 text-primary" />
