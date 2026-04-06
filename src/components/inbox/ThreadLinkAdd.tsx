@@ -13,14 +13,15 @@ interface ThreadLinkAddProps {
   centreId: string;
 }
 
-type EntityType = "contact" | "prospect" | "session" | "facture" | "devis";
+type EntityType = "contact" | "prospect" | "session" | "facture" | "devis" | "document";
 
-const ENTITY_TYPES: { value: EntityType; label: string }[] = [
-  { value: "contact", label: "Contact" },
-  { value: "prospect", label: "Prospect" },
-  { value: "session", label: "Session" },
-  { value: "facture", label: "Facture" },
-  { value: "devis", label: "Devis" },
+const ENTITY_TYPES: { value: EntityType; label: string; hint: string }[] = [
+  { value: "contact", label: "Contact / Apprenant", hint: "Nom, prénom ou email" },
+  { value: "prospect", label: "Prospect", hint: "Nom, prénom ou email" },
+  { value: "session", label: "Session", hint: "Nom de la session" },
+  { value: "facture", label: "Facture", hint: "Numéro de facture" },
+  { value: "devis", label: "Devis", hint: "Numéro de devis" },
+  { value: "document", label: "Document", hint: "Nom du document" },
 ];
 
 export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
@@ -30,6 +31,8 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const currentType = ENTITY_TYPES.find((t) => t.value === entityType);
 
   // Search entities based on type
   const { data: results = [], isLoading: searching } = useQuery({
@@ -42,7 +45,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
         case "contact": {
           const { data } = await supabase
             .from("contacts")
-            .select("id, nom, prenom, email")
+            .select("id, nom, prenom, email, statut_apprenant")
             .eq("centre_id", centreId)
             .eq("archived", false)
             .or(`nom.ilike.${term},prenom.ilike.${term},email.ilike.${term}`)
@@ -50,7 +53,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
           return (data || []).map((c) => ({
             id: c.id,
             label: `${c.prenom} ${c.nom}`,
-            sublabel: c.email || "",
+            sublabel: [c.statut_apprenant !== "actif" ? c.statut_apprenant : null, c.email].filter(Boolean).join(" • "),
           }));
         }
         case "prospect": {
@@ -77,7 +80,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
           return (data || []).map((s) => ({
             id: s.id,
             label: s.nom,
-            sublabel: `${s.formation_type || ""} • ${s.date_debut || ""}`,
+            sublabel: [s.formation_type, s.date_debut].filter(Boolean).join(" • "),
           }));
         }
         case "facture": {
@@ -106,6 +109,20 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
             id: d.id,
             label: d.numero_devis,
             sublabel: `${d.montant_total}€`,
+          }));
+        }
+        case "document": {
+          const { data } = await supabase
+            .from("contact_documents")
+            .select("id, nom, type_document, contacts!inner(centre_id)")
+            .eq("contacts.centre_id", centreId)
+            .ilike("nom", term)
+            .is("deleted_at", null)
+            .limit(10);
+          return (data || []).map((d: any) => ({
+            id: d.id,
+            label: d.nom,
+            sublabel: d.type_document || "",
           }));
         }
         default:
@@ -154,7 +171,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
     <div className="bg-muted/30 rounded-lg p-3 space-y-2 border">
       <div className="flex gap-2">
         <Select value={entityType} onValueChange={(v) => { setEntityType(v as EntityType); setSearch(""); setSelectedId(null); }}>
-          <SelectTrigger className="w-[120px] h-8 text-xs">
+          <SelectTrigger className="w-[160px] h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -168,7 +185,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
           <Input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSelectedId(null); }}
-            placeholder="Rechercher…"
+            placeholder={currentType?.hint || "Rechercher…"}
             className="h-8 text-xs pl-7"
           />
         </div>
