@@ -44,7 +44,7 @@ export function InboxCrmPage() {
   });
 
   const { data: threads = [], isLoading: threadsLoading } = useQuery({
-    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter],
+    queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter, debouncedSender, advancedFilters.dateFrom?.toISOString(), advancedFilters.dateTo?.toISOString(), advancedFilters.hasAttachments, advancedFilters.hasLinkedEntity],
     queryFn: async () => {
       if (!centreId) return [];
       let query = supabase
@@ -65,9 +65,54 @@ export function InboxCrmPage() {
         query = query.eq("assigned_to", assignedFilter);
       }
 
+      // Advanced filters
+      if (advancedFilters.hasAttachments === true) {
+        query = query.eq("has_attachments", true);
+      }
+      if (advancedFilters.dateFrom) {
+        query = query.gte("last_message_at", advancedFilters.dateFrom.toISOString());
+      }
+      if (advancedFilters.dateTo) {
+        const endOfDay = new Date(advancedFilters.dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte("last_message_at", endOfDay.toISOString());
+      }
+
       const { data, error } = await query.limit(100);
       if (error) throw error;
-      return data;
+
+      let filtered = data || [];
+
+      // Client-side filters for sender (search in participants JSON)
+      if (debouncedSender.trim()) {
+        const term = debouncedSender.trim().toLowerCase();
+        filtered = filtered.filter((t: any) => {
+          const participants = Array.isArray(t.participants) ? t.participants : [];
+          return participants.some(
+            (p: any) =>
+              (p?.email || "").toLowerCase().includes(term) ||
+              (p?.name || "").toLowerCase().includes(term)
+          );
+        });
+      }
+
+      // Client-side filter for linked entities (requires separate query)
+      if (advancedFilters.hasLinkedEntity === true) {
+        const threadIds = filtered.map((t: any) => t.id);
+        if (threadIds.length > 0) {
+          const { data: links } = await supabase
+            .from("crm_email_links")
+            .select("thread_id")
+            .in("thread_id", threadIds)
+            .eq("centre_id", centreId);
+          const linkedIds = new Set((links || []).map((l: any) => l.thread_id));
+          filtered = filtered.filter((t: any) => linkedIds.has(t.id));
+        } else {
+          filtered = [];
+        }
+      }
+
+      return filtered;
     },
     enabled: !!centreId && !!account,
   });
@@ -186,6 +231,8 @@ export function InboxCrmPage() {
         centreId={centreId!}
         assignedFilter={assignedFilter}
         onAssignedChange={setAssignedFilter}
+        advancedFilters={advancedFilters}
+        onAdvancedFiltersChange={setAdvancedFilters}
       />
 
       {/* Content */}
