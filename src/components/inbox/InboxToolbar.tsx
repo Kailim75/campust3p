@@ -10,6 +10,7 @@ import type { InboxStatus } from "./InboxCrmPage";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { InboxAdvancedFilters, type AdvancedFilters } from "./InboxAdvancedFilters";
 
 interface InboxToolbarProps {
   statusFilter: InboxStatus | "all";
@@ -22,6 +23,8 @@ interface InboxToolbarProps {
   centreId: string;
   assignedFilter: string;
   onAssignedChange: (userId: string) => void;
+  advancedFilters: AdvancedFilters;
+  onAdvancedFiltersChange: (f: AdvancedFilters) => void;
 }
 
 const STATUS_OPTIONS: { value: InboxStatus | "all"; label: string; color?: string }[] = [
@@ -36,6 +39,7 @@ export function InboxToolbar({
   statusFilter, onStatusChange, searchQuery, onSearchChange,
   accountEmail, syncStatus, lastSyncAt, centreId,
   assignedFilter, onAssignedChange,
+  advancedFilters, onAdvancedFiltersChange,
 }: InboxToolbarProps) {
   const [syncing, setSyncing] = useState(false);
 
