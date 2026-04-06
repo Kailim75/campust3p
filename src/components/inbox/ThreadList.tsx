@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Paperclip, User } from "lucide-react";
+import { Paperclip, UserCircle } from "lucide-react";
 
 interface Thread {
   id: string;
@@ -113,6 +113,9 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
                 <p className="text-xs text-muted-foreground truncate flex-1">
                   {thread.snippet || ""}
                 </p>
+                {thread.assigned_to && (
+                  <UserCircle className="h-3 w-3 text-primary/60 flex-shrink-0" />
+                )}
                 {thread.has_attachments && (
                   <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                 )}

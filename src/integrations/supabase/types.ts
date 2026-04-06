@@ -1518,6 +1518,7 @@ export type Database = {
           centre_id: string
           created_at: string
           filename: string
+          gmail_attachment_id: string | null
           id: string
           message_id: string
           mime_type: string | null
@@ -1533,6 +1534,7 @@ export type Database = {
           centre_id: string
           created_at?: string
           filename: string
+          gmail_attachment_id?: string | null
           id?: string
           message_id: string
           mime_type?: string | null
@@ -1548,6 +1550,7 @@ export type Database = {
           centre_id?: string
           created_at?: string
           filename?: string
+          gmail_attachment_id?: string | null
           id?: string
           message_id?: string
           mime_type?: string | null

@@ -8,10 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Send, StickyNote, Link2, ArrowLeft } from "lucide-react";
+import { Paperclip, Send, StickyNote, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { ThreadLinks } from "./ThreadLinks";
+import { ThreadLinkAdd } from "./ThreadLinkAdd";
 import { ThreadNotes } from "./ThreadNotes";
+import { ThreadAssignment } from "./ThreadAssignment";
+import { ThreadAttachments } from "./ThreadAttachments";
 import type { InboxStatus } from "./InboxCrmPage";
 
 interface ThreadViewProps {
@@ -23,6 +26,7 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
   const [replyText, setReplyText] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch thread
@@ -93,6 +97,8 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
     return <div className="p-6 text-muted-foreground">Chargement…</div>;
   }
 
+  const hasAnyAttachments = thread.has_attachments || messages.some((m) => m.has_attachments);
+
   return (
     <div className="flex flex-col h-full">
       {/* Thread header */}
@@ -117,6 +123,13 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
           </div>
         </div>
 
+        {/* Assignment */}
+        <ThreadAssignment
+          threadId={threadId}
+          centreId={centreId}
+          assignedTo={thread.assigned_to}
+        />
+
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => setShowLinks(!showLinks)}>
             <Link2 className="h-3.5 w-3.5 mr-1" /> Liens CRM
@@ -124,10 +137,21 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
           <Button variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)}>
             <StickyNote className="h-3.5 w-3.5 mr-1" /> Notes
           </Button>
+          {hasAnyAttachments && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAttachments(!showAttachments)}>
+              <Paperclip className="h-3.5 w-3.5 mr-1" /> Pièces jointes
+            </Button>
+          )}
         </div>
 
-        {showLinks && <ThreadLinks threadId={threadId} centreId={centreId} />}
+        {showLinks && (
+          <div className="space-y-2">
+            <ThreadLinks threadId={threadId} centreId={centreId} />
+            <ThreadLinkAdd threadId={threadId} centreId={centreId} />
+          </div>
+        )}
         {showNotes && <ThreadNotes threadId={threadId} centreId={centreId} />}
+        {showAttachments && <ThreadAttachments threadId={threadId} centreId={centreId} />}
       </div>
 
       {/* Messages */}

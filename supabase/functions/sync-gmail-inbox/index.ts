@@ -610,7 +610,7 @@ async function processAttachments(
     if (!part.filename || part.filename === "") continue;
     if (!part.body?.attachmentId) continue;
 
-    // Just record metadata for now, don't download
+    // Record metadata + Gmail attachment ID for on-demand download
     await supabase
       .from("crm_email_attachments")
       .insert({
@@ -619,6 +619,7 @@ async function processAttachments(
         filename: part.filename,
         mime_type: part.mimeType || null,
         size_bytes: part.body?.size || null,
+        gmail_attachment_id: part.body?.attachmentId || null,
       })
       .then(() => null, () => null);
   }
