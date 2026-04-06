@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
 
@@ -26,6 +27,9 @@ export function InboxCrmPage() {
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
   const queryClient = useQueryClient();
   const debouncedSender = useDebounce(advancedFilters.sender, 300);
+
+  // Silent realtime refresh — no UI indicator
+  useInboxRealtime(centreId);
 
   const { data: account, isLoading: accountLoading } = useQuery({
     queryKey: ["crm-email-account", centreId],
