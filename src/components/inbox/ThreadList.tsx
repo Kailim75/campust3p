@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Paperclip, UserCircle } from "lucide-react";
+import { Paperclip, UserCircle, Link2 } from "lucide-react";
 
 interface Thread {
   id: string;
@@ -34,10 +34,20 @@ function formatDate(dateStr: string | null) {
 
 function getStatusColor(status: string) {
   switch (status) {
+    case "nouveau": return "border-l-blue-500";
+    case "en_cours": return "border-l-amber-500";
+    case "traite": return "border-l-green-500";
+    case "archive": return "border-l-muted-foreground/40";
+    default: return "border-l-transparent";
+  }
+}
+
+function getStatusDot(status: string) {
+  switch (status) {
     case "nouveau": return "bg-blue-500";
     case "en_cours": return "bg-amber-500";
     case "traite": return "bg-green-500";
-    case "archive": return "bg-muted";
+    case "archive": return "bg-muted-foreground/40";
     default: return "bg-muted";
   }
 }
@@ -53,8 +63,12 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
     return (
       <div className="p-4 space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse">
-            <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+          <div key={i} className="animate-pulse space-y-2 py-3 px-4">
+            <div className="flex justify-between">
+              <div className="h-3.5 bg-muted rounded w-1/3" />
+              <div className="h-3 bg-muted rounded w-12" />
+            </div>
+            <div className="h-3.5 bg-muted rounded w-3/4" />
             <div className="h-3 bg-muted rounded w-full" />
           </div>
         ))}
@@ -64,71 +78,85 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
 
   if (threads.length === 0) {
     return (
-      <div className="p-6 text-center text-muted-foreground text-sm">
+      <div className="p-8 text-center text-muted-foreground text-sm">
+        <div className="text-3xl mb-2 opacity-30">📭</div>
         Aucun email trouvé
       </div>
     );
   }
 
   return (
-    <div className="divide-y">
-      {threads.map((thread) => (
-        <button
-          key={thread.id}
-          onClick={() => onSelect(thread.id)}
-          className={cn(
-            "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors",
-            selectedThreadId === thread.id && "bg-accent",
-            thread.is_unread && "bg-primary/5"
-          )}
-        >
-          <div className="flex items-start gap-2">
-            {/* Status dot */}
-            <div className={cn("w-2 h-2 rounded-full mt-2 flex-shrink-0", getStatusColor(thread.status))} />
-            
-            <div className="flex-1 min-w-0">
-              {/* From + Date */}
-              <div className="flex items-center justify-between gap-2">
-                <span className={cn(
-                  "text-sm truncate",
-                  thread.is_unread ? "font-semibold text-foreground" : "text-muted-foreground"
-                )}>
-                  {getFirstParticipant(thread.participants)}
-                </span>
-                <span className="text-xs text-muted-foreground flex-shrink-0">
+    <div className="divide-y divide-border/60">
+      {threads.map((thread) => {
+        const isSelected = selectedThreadId === thread.id;
+        const isUnread = thread.is_unread;
+
+        return (
+          <button
+            key={thread.id}
+            onClick={() => onSelect(thread.id)}
+            className={cn(
+              "w-full text-left px-0 py-0 transition-colors border-l-[3px]",
+              getStatusColor(thread.status),
+              isSelected
+                ? "bg-accent"
+                : isUnread
+                  ? "bg-primary/[0.03] hover:bg-accent/50"
+                  : "hover:bg-accent/30",
+            )}
+          >
+            <div className="px-3 py-2.5">
+              {/* Row 1: Sender + Date */}
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {isUnread && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  )}
+                  <span className={cn(
+                    "text-[13px] truncate",
+                    isUnread ? "font-semibold text-foreground" : "text-muted-foreground"
+                  )}>
+                    {getFirstParticipant(thread.participants)}
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground flex-shrink-0 tabular-nums">
                   {formatDate(thread.last_message_at)}
                 </span>
               </div>
 
-              {/* Subject */}
+              {/* Row 2: Subject */}
               <p className={cn(
-                "text-sm truncate mt-0.5",
-                thread.is_unread ? "font-medium text-foreground" : "text-foreground/80"
+                "text-[13px] truncate",
+                isUnread ? "font-medium text-foreground" : "text-foreground/75"
               )}>
                 {thread.subject || "(Sans sujet)"}
               </p>
 
-              {/* Snippet + meta */}
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-xs text-muted-foreground truncate flex-1">
+              {/* Row 3: Snippet + Indicators */}
+              <div className="flex items-center gap-1.5 mt-1">
+                <p className="text-[11px] text-muted-foreground/70 truncate flex-1 leading-tight">
                   {thread.snippet || ""}
                 </p>
-                {thread.assigned_to && (
-                  <UserCircle className="h-3 w-3 text-primary/60 flex-shrink-0" />
-                )}
-                {thread.has_attachments && (
-                  <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                )}
-                {thread.message_count > 1 && (
-                  <span className="text-xs text-muted-foreground flex-shrink-0">
-                    {thread.message_count}
-                  </span>
-                )}
+
+                {/* Meta indicators */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {thread.assigned_to && (
+                    <UserCircle className="h-3 w-3 text-primary/50" />
+                  )}
+                  {thread.has_attachments && (
+                    <Paperclip className="h-3 w-3 text-muted-foreground/50" />
+                  )}
+                  {thread.message_count > 1 && (
+                    <span className="text-[10px] text-muted-foreground/60 bg-muted/60 rounded px-1 py-px font-medium">
+                      {thread.message_count}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }
