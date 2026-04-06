@@ -126,7 +126,6 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
             onValueChange={(v) => updateStatus.mutate(v as InboxStatus)}
           >
             <SelectTrigger className="w-[130px] h-7 text-xs gap-1.5 border-dashed">
-              <span className={cn("w-2 h-2 rounded-full", statusConf.dotColor)} />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
