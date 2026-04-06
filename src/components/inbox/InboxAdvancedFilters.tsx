@@ -41,7 +41,8 @@ export function hasActiveAdvancedFilters(f: AdvancedFilters): boolean {
     f.dateFrom !== undefined ||
     f.dateTo !== undefined ||
     f.hasAttachments !== null ||
-    f.hasLinkedEntity !== null
+    f.hasLinkedEntity !== null ||
+    f.crmLabel !== "all"
   );
 }
 
@@ -52,6 +53,7 @@ export function countActiveFilters(f: AdvancedFilters): number {
   if (f.dateTo) c++;
   if (f.hasAttachments !== null) c++;
   if (f.hasLinkedEntity !== null) c++;
+  if (f.crmLabel !== "all") c++;
   return c;
 }
 
