@@ -745,17 +745,20 @@ async function processMessage(msg: any, account: any, accessToken: string, supab
   const existingLabels: string[] = thread.crm_labels || [];
   const mergedLabels = [...new Set([...existingLabels, ...crmLabels])].slice(0, 5);
 
-  // Remove "Non rattaché" if thread now has a link
+  // Remove triage labels if thread now has a CRM link
   const finalLabels = hasLink
-    ? mergedLabels.filter((l) => l !== "CRM/Non rattaché")
+    ? mergedLabels.filter((l) => l !== "CRM/Non rattaché" && l !== "CRM/A traiter")
     : mergedLabels;
+
+  // has_attachments must never downgrade from true → false (other messages may have PJ)
+  const threadHasAttachments = thread.has_attachments || hasAttachments(msg.payload);
 
   await supabase
     .from("crm_email_threads")
     .update({
       message_count: count || 1,
       is_unread: direction === "inbound",
-      has_attachments: hasAttachments(msg.payload),
+      has_attachments: threadHasAttachments,
       crm_labels: finalLabels,
       priority: crmLabels.includes("CRM/Urgent") ? "high" : thread.priority,
     })
