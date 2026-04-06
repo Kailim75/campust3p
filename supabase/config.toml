@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.send-gmail-new]
 verify_jwt = false
+
+[functions.promote-attachment]
+verify_jwt = false
