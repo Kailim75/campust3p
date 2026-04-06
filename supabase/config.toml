@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.send-gmail-reply]
 verify_jwt = false
+
+[functions.send-gmail-new]
+verify_jwt = false
