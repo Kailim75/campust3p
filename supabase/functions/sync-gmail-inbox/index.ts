@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const GMAIL_API = "https://gmail.googleapis.com/gmail/v1";
@@ -35,7 +36,10 @@ serve(async (req) => {
         try {
           const parsedState = JSON.parse(atob(stateParam));
           accountId = parsedState.accountId || stateParam;
-          if (typeof parsedState.returnTo === "string" && parsedState.returnTo.trim()) {
+          if (
+            typeof parsedState.returnTo === "string" &&
+            parsedState.returnTo.trim()
+          ) {
             returnTo = parsedState.returnTo;
           }
         } catch {
@@ -46,18 +50,19 @@ serve(async (req) => {
       if (error) {
         return new Response(
           `<html><body><h2>Erreur d'autorisation</h2><p>${error}</p><p>Vous pouvez fermer cette page.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
+          { headers: { "Content-Type": "text/html" } },
         );
       }
 
       if (!code || !accountId) {
         return new Response(
           `<html><body><h2>Paramètres manquants</h2><p>Vous pouvez fermer cette page et réessayer.</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
+          { headers: { "Content-Type": "text/html" } },
         );
       }
 
-      const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
+      const redirectUri =
+        `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -74,12 +79,16 @@ serve(async (req) => {
       const tokens = await tokenRes.json();
       if (tokens.error) {
         return new Response(
-          `<html><body><h2>Erreur OAuth</h2><p>${tokens.error_description || tokens.error}</p></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
+          `<html><body><h2>Erreur OAuth</h2><p>${
+            tokens.error_description || tokens.error
+          }</p></body></html>`,
+          { headers: { "Content-Type": "text/html" } },
         );
       }
 
-      const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
+      const expiresAt = new Date(
+        Date.now() + (tokens.expires_in || 3600) * 1000,
+      ).toISOString();
       await supabase
         .from("crm_email_accounts")
         .update({
@@ -105,7 +114,7 @@ serve(async (req) => {
             }
           </script>
         </body></html>`,
-        { headers: { "Content-Type": "text/html" } }
+        { headers: { "Content-Type": "text/html" } },
       );
     }
 
@@ -116,7 +125,7 @@ serve(async (req) => {
       if (!gmailClientId || !gmailClientSecret) {
         throw new Error("Gmail OAuth credentials not configured");
       }
-      
+
       const { centreId, email, displayName } = body;
       if (!centreId || !email) throw new Error("centreId and email required");
 
@@ -151,7 +160,8 @@ serve(async (req) => {
       }));
 
       // Build OAuth URL
-      const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
+      const redirectUri =
+        `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
       const scopes = [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",
@@ -180,7 +190,8 @@ serve(async (req) => {
       const accountId = body.accountId;
       if (!code || !accountId) throw new Error("Missing code or accountId");
 
-      const redirectUri = `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
+      const redirectUri =
+        `${supabaseUrl}/functions/v1/sync-gmail-inbox?callback=true`;
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -193,9 +204,15 @@ serve(async (req) => {
         }),
       });
       const tokens = await tokenRes.json();
-      if (tokens.error) throw new Error(`OAuth error: ${tokens.error_description || tokens.error}`);
+      if (tokens.error) {
+        throw new Error(
+          `OAuth error: ${tokens.error_description || tokens.error}`,
+        );
+      }
 
-      const expiresAt = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
+      const expiresAt = new Date(
+        Date.now() + (tokens.expires_in || 3600) * 1000,
+      ).toISOString();
       await supabase
         .from("crm_email_accounts")
         .update({
@@ -233,8 +250,16 @@ serve(async (req) => {
       try {
         // Refresh token if expired
         let accessToken = account.oauth_encrypted_token;
-        if (account.oauth_token_expires_at && new Date(account.oauth_token_expires_at) < new Date()) {
-          accessToken = await refreshGmailToken(account, supabase, gmailClientId!, gmailClientSecret!);
+        if (
+          account.oauth_token_expires_at &&
+          new Date(account.oauth_token_expires_at) < new Date()
+        ) {
+          accessToken = await refreshGmailToken(
+            account,
+            supabase,
+            gmailClientId!,
+            gmailClientSecret!,
+          );
         }
 
         // Sync messages
@@ -243,7 +268,11 @@ serve(async (req) => {
 
         await supabase
           .from("crm_email_accounts")
-          .update({ sync_status: "idle", sync_error: null, last_sync_at: new Date().toISOString() })
+          .update({
+            sync_status: "idle",
+            sync_error: null,
+            last_sync_at: new Date().toISOString(),
+          })
           .eq("id", account.id);
       } catch (err: any) {
         console.error(`Sync error for account ${account.id}:`, err.message);
@@ -271,9 +300,11 @@ async function refreshGmailToken(
   account: any,
   supabase: any,
   clientId: string,
-  clientSecret: string
+  clientSecret: string,
 ): Promise<string> {
-  if (!account.oauth_refresh_token) throw new Error("No refresh token available");
+  if (!account.oauth_refresh_token) {
+    throw new Error("No refresh token available");
+  }
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -289,7 +320,8 @@ async function refreshGmailToken(
   const data = await res.json();
   if (data.error) throw new Error(`Token refresh failed: ${data.error}`);
 
-  const expiresAt = new Date(Date.now() + (data.expires_in || 3600) * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + (data.expires_in || 3600) * 1000)
+    .toISOString();
   await supabase
     .from("crm_email_accounts")
     .update({
@@ -317,7 +349,10 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
   if (account.last_history_id) {
     // Incremental sync via history
     try {
-      const histRes = await gmailFetch(accessToken, `/users/me/history?startHistoryId=${account.last_history_id}&historyTypes=messageAdded`);
+      const histRes = await gmailFetch(
+        accessToken,
+        `/users/me/history?startHistoryId=${account.last_history_id}&historyTypes=messageAdded`,
+      );
       if (histRes.history) {
         for (const h of histRes.history) {
           if (h.messagesAdded) {
@@ -365,7 +400,10 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
 
       if (exists.data) continue; // Already synced
 
-      const msg = await gmailFetch(accessToken, `/users/me/messages/${msgId}?format=full`);
+      const msg = await gmailFetch(
+        accessToken,
+        `/users/me/messages/${msgId}?format=full`,
+      );
       await processMessage(msg, account, supabase);
       newMessages++;
     } catch (err: any) {
@@ -377,11 +415,18 @@ async function syncAccount(account: any, accessToken: string, supabase: any) {
 }
 
 async function getRecentMessageIds(accessToken: string): Promise<string[]> {
-  const res = await gmailFetch(accessToken, `/users/me/messages?maxResults=100`);
+  const res = await gmailFetch(
+    accessToken,
+    `/users/me/messages?maxResults=100`,
+  );
   return (res.messages || []).map((m: any) => m.id);
 }
 
-async function updateHistoryId(accountId: string, accessToken: string, supabase: any) {
+async function updateHistoryId(
+  accountId: string,
+  accessToken: string,
+  supabase: any,
+) {
   const profile = await gmailFetch(accessToken, `/users/me/profile`);
   if (profile.historyId) {
     await supabase
@@ -394,7 +439,9 @@ async function updateHistoryId(accountId: string, accessToken: string, supabase:
 async function processMessage(msg: any, account: any, supabase: any) {
   const centreId = account.centre_id;
   const headers = msg.payload?.headers || [];
-  const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || null;
+  const getHeader = (name: string) =>
+    headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())
+      ?.value || null;
 
   const from = getHeader("From") || "";
   const to = getHeader("To") || "";
@@ -406,12 +453,18 @@ async function processMessage(msg: any, account: any, supabase: any) {
   const date = getHeader("Date");
 
   const fromParsed = parseEmailAddress(from);
-  const toParsed = (to || "").split(",").map((e: string) => parseEmailAddress(e.trim())).filter(Boolean);
-  const ccParsed = (cc || "").split(",").map((e: string) => parseEmailAddress(e.trim())).filter(Boolean);
+  const toParsed = (to || "").split(",").map((e: string) =>
+    parseEmailAddress(e.trim())
+  ).filter(Boolean);
+  const ccParsed = (cc || "").split(",").map((e: string) =>
+    parseEmailAddress(e.trim())
+  ).filter(Boolean);
 
   // Determine direction
   const accountEmail = account.email_address.toLowerCase();
-  const direction = fromParsed.email?.toLowerCase() === accountEmail ? "outbound" : "inbound";
+  const direction = fromParsed.email?.toLowerCase() === accountEmail
+    ? "outbound"
+    : "inbound";
 
   // Upsert thread
   const threadId = msg.threadId;
@@ -423,7 +476,9 @@ async function processMessage(msg: any, account: any, supabase: any) {
       provider: "gmail",
       provider_thread_id: threadId,
       subject: subject || null,
-      last_message_at: date ? new Date(date).toISOString() : new Date().toISOString(),
+      last_message_at: date
+        ? new Date(date).toISOString()
+        : new Date().toISOString(),
       snippet: msg.snippet || null,
       has_attachments: hasAttachments(msg.payload),
       participants: JSON.stringify([fromParsed, ...toParsed]),
@@ -475,9 +530,13 @@ async function processMessage(msg: any, account: any, supabase: any) {
       body_html: bodyHtml,
       snippet: msg.snippet || null,
       gmail_label_ids: msg.labelIds || [],
-      gmail_internal_date: msg.internalDate ? new Date(parseInt(msg.internalDate)).toISOString() : null,
+      gmail_internal_date: msg.internalDate
+        ? new Date(parseInt(msg.internalDate)).toISOString()
+        : null,
       has_attachments: hasAttachments(msg.payload),
-      received_at: date ? new Date(date).toISOString() : new Date().toISOString(),
+      received_at: date
+        ? new Date(date).toISOString()
+        : new Date().toISOString(),
     });
 
   // Auto-link: find matching contact/prospect by email
@@ -532,7 +591,13 @@ async function processMessage(msg: any, account: any, supabase: any) {
   await processAttachments(msg, thread.id, centreId, account, supabase);
 }
 
-async function processAttachments(msg: any, threadId: string, centreId: string, account: any, supabase: any) {
+async function processAttachments(
+  msg: any,
+  threadId: string,
+  centreId: string,
+  account: any,
+  supabase: any,
+) {
   const parts = flattenParts(msg.payload);
   for (const part of parts) {
     if (!part.filename || part.filename === "") continue;
@@ -582,7 +647,9 @@ function extractBody(payload: any, mimeType: string): string | null {
   return null;
 }
 
-function parseEmailAddress(raw: string): { email: string | null; name: string | null } {
+function parseEmailAddress(
+  raw: string,
+): { email: string | null; name: string | null } {
   if (!raw) return { email: null, name: null };
   const match = raw.match(/^(.+?)\s*<(.+?)>$/);
   if (match) {
