@@ -20,7 +20,6 @@ export function InboxCrmPage() {
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
-  // Check if an email account is configured
   const { data: account, isLoading: accountLoading } = useQuery({
     queryKey: ["crm-email-account", centreId],
     queryFn: async () => {
@@ -37,7 +36,6 @@ export function InboxCrmPage() {
     enabled: !!centreId,
   });
 
-  // Fetch threads
   const { data: threads = [], isLoading: threadsLoading } = useQuery({
     queryKey: ["crm-email-threads", centreId, statusFilter, searchQuery, assignedFilter],
     queryFn: async () => {
@@ -67,7 +65,6 @@ export function InboxCrmPage() {
     enabled: !!centreId && !!account,
   });
 
-  // Mark thread read
   const markRead = useMutation({
     mutationFn: async (threadId: string) => {
       const { error } = await supabase
@@ -92,7 +89,7 @@ export function InboxCrmPage() {
   if (accountLoading) {
     return (
       <div className="p-6 flex items-center justify-center h-full">
-        <div className="animate-pulse text-muted-foreground">Chargement…</div>
+        <div className="animate-pulse text-muted-foreground text-sm">Chargement…</div>
       </div>
     );
   }
@@ -101,7 +98,6 @@ export function InboxCrmPage() {
     return <InboxEmptyState centreId={centreId} />;
   }
 
-  // Account exists but OAuth tokens are missing — need to re-authorize
   const needsReauth = !account.oauth_encrypted_token;
 
   const handleReconnect = async () => {
@@ -143,11 +139,11 @@ export function InboxCrmPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b px-6 py-4 flex items-center gap-3">
+      <div className="border-b px-6 py-3 flex items-center gap-2.5">
         <Inbox className="h-5 w-5 text-primary" />
-        <h1 className="text-lg font-semibold">Inbox CRM</h1>
+        <h1 className="text-base font-semibold">Inbox CRM</h1>
         {unreadCount > 0 && (
-          <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
+          <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
             {unreadCount}
           </span>
         )}
@@ -170,7 +166,7 @@ export function InboxCrmPage() {
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Thread list */}
-        <div className="w-[380px] border-r overflow-y-auto flex-shrink-0">
+        <div className="w-[360px] border-r overflow-y-auto flex-shrink-0">
           <ThreadList
             threads={threads}
             isLoading={threadsLoading}
@@ -185,9 +181,9 @@ export function InboxCrmPage() {
             <ThreadView threadId={selectedThreadId} centreId={centreId!} />
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Inbox className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p>Sélectionnez un fil pour le consulter</p>
+              <div className="text-center space-y-2">
+                <Inbox className="h-10 w-10 mx-auto opacity-20" />
+                <p className="text-sm">Sélectionnez un fil pour le consulter</p>
               </div>
             </div>
           )}
