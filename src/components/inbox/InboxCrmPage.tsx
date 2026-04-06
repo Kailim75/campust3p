@@ -215,6 +215,12 @@ export function InboxCrmPage() {
           )}
         </div>
       </div>
+      <NewMessageModal
+        open={showNewMessage}
+        onOpenChange={setShowNewMessage}
+        centreId={centreId!}
+        onSuccess={(threadId) => setSelectedThreadId(threadId)}
+      />
     </div>
   );
 }
