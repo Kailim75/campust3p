@@ -6,7 +6,8 @@ import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
-import { Inbox, AlertTriangle, Mail } from "lucide-react";
+import { NewMessageModal } from "./NewMessageModal";
+import { Inbox, AlertTriangle, Mail, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export function InboxCrmPage() {
   const [statusFilter, setStatusFilter] = useState<InboxStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
+  const [showNewMessage, setShowNewMessage] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: account, isLoading: accountLoading } = useQuery({
@@ -160,6 +162,12 @@ export function InboxCrmPage() {
             {unreadCount}
           </span>
         )}
+        <div className="ml-auto">
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowNewMessage(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Nouveau message
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -207,6 +215,12 @@ export function InboxCrmPage() {
           )}
         </div>
       </div>
+      <NewMessageModal
+        open={showNewMessage}
+        onOpenChange={setShowNewMessage}
+        centreId={centreId!}
+        onSuccess={(threadId) => setSelectedThreadId(threadId)}
+      />
     </div>
   );
 }
