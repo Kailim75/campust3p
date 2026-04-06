@@ -1828,6 +1828,7 @@ export type Database = {
           created_at: string
           crm_labels: string[]
           has_attachments: boolean
+          has_inbound: boolean
           id: string
           is_unread: boolean
           last_message_at: string | null
@@ -1851,6 +1852,7 @@ export type Database = {
           created_at?: string
           crm_labels?: string[]
           has_attachments?: boolean
+          has_inbound?: boolean
           id?: string
           is_unread?: boolean
           last_message_at?: string | null
@@ -1874,6 +1876,7 @@ export type Database = {
           created_at?: string
           crm_labels?: string[]
           has_attachments?: boolean
+          has_inbound?: boolean
           id?: string
           is_unread?: boolean
           last_message_at?: string | null
