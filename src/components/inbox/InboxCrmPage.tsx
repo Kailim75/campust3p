@@ -20,6 +20,7 @@ export function InboxCrmPage() {
   const [statusFilter, setStatusFilter] = useState<InboxStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
+  const [showNewMessage, setShowNewMessage] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: account, isLoading: accountLoading } = useQuery({
