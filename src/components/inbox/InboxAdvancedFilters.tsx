@@ -162,6 +162,30 @@ export function InboxAdvancedFilters({ filters, onChange, centreUsers }: Props) 
               </Label>
             </div>
           </div>
+
+          {/* CRM Label filter */}
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Tag className="h-3 w-3" />
+              Label CRM
+            </Label>
+            <Select
+              value={filters.crmLabel}
+              onValueChange={(v) => update({ crmLabel: v })}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Tous les labels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {ALL_CRM_LABELS.map((label) => (
+                  <SelectItem key={label} value={label}>
+                    {label.replace("CRM/", "")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="px-3 py-2 border-t">
