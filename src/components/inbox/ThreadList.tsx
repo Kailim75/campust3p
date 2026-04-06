@@ -114,7 +114,7 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
                   {thread.snippet || ""}
                 </p>
                 {thread.assigned_to && (
-                  <UserCircle className="h-3 w-3 text-primary/60 flex-shrink-0" title="Assigné" />
+                  <UserCircle className="h-3 w-3 text-primary/60 flex-shrink-0" />
                 )}
                 {thread.has_attachments && (
                   <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
