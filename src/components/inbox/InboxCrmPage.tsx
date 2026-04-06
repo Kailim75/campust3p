@@ -21,6 +21,7 @@ export function InboxCrmPage() {
   const { centreId } = useCentreContext();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InboxStatus | "all">("all");
+  const [directionFilter, setDirectionFilter] = useState<"inbox" | "sent" | "all">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
   const [assignedFilter, setAssignedFilter] = useState<string>("all");
   const [showNewMessage, setShowNewMessage] = useState(false);

@@ -784,6 +784,7 @@ async function processMessage(msg: any, account: any, accessToken: string, supab
       message_count: count || 1,
       is_unread: direction === "inbound",
       has_attachments: threadHasAttachments,
+      has_inbound: thread.has_inbound || direction === "inbound",
       crm_labels: finalLabels,
       priority: crmLabels.includes("CRM/Urgent") ? "high" : thread.priority,
     })
