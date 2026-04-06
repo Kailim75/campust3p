@@ -6,7 +6,9 @@ import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
-import { Inbox } from "lucide-react";
+import { Inbox, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
 
