@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Download, Loader2, AlertCircle, FileText, Image, File } from "lucide-react";
+import { Paperclip, Download, Loader2, AlertCircle, FileText, Image, File, FolderPlus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { AttachmentPromoteModal } from "./AttachmentPromoteModal";
 
 interface ThreadAttachmentsProps {
   threadId: string;
@@ -85,7 +87,9 @@ export function ThreadAttachments({ threadId, centreId }: ThreadAttachmentsProps
 }
 
 function AttachmentItem({ attachment, centreId }: { attachment: any; centreId: string }) {
+  const [showPromote, setShowPromote] = useState(false);
   const Icon = getFileIcon(attachment.mime_type);
+  const isPromoted = !!attachment.promoted_to_document_id;
 
   const downloadMutation = useMutation({
     mutationFn: async () => {
@@ -108,35 +112,65 @@ function AttachmentItem({ attachment, centreId }: { attachment: any; centreId: s
   const hasError = downloadMutation.isError;
 
   return (
-    <div className="flex items-center gap-2 bg-background rounded-md px-2.5 py-2 border border-border/60 text-xs group">
-      <Icon className="h-4 w-4 text-muted-foreground/60 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate text-foreground/80">{attachment.filename}</p>
-        <p className="text-muted-foreground/50 text-[11px]">
-          {attachment.mime_type?.split("/")[1]?.toUpperCase() || "Fichier"}
-          {attachment.size_bytes ? ` · ${formatSize(attachment.size_bytes)}` : ""}
-        </p>
-      </div>
-      {hasError ? (
-        <div className="flex items-center gap-1 text-destructive/60" title="Téléchargement échoué">
-          <AlertCircle className="h-3.5 w-3.5" />
+    <>
+      <div className="flex items-center gap-2 bg-background rounded-md px-2.5 py-2 border border-border/60 text-xs group">
+        <Icon className="h-4 w-4 text-muted-foreground/60 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate text-foreground/80">{attachment.filename}</p>
+          <p className="text-muted-foreground/50 text-[11px]">
+            {attachment.mime_type?.split("/")[1]?.toUpperCase() || "Fichier"}
+            {attachment.size_bytes ? ` · ${formatSize(attachment.size_bytes)}` : ""}
+            {isPromoted && (
+              <span className="inline-flex items-center gap-0.5 ml-1.5 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Au dossier
+              </span>
+            )}
+          </p>
         </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => downloadMutation.mutate()}
-          disabled={downloadMutation.isPending}
-          aria-label={`Télécharger ${attachment.filename}`}
-        >
-          {downloadMutation.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Promote button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setShowPromote(true)}
+            title={isPromoted ? "Déjà ajouté au dossier" : "Ajouter au dossier"}
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Download button */}
+          {hasError ? (
+            <div className="flex items-center gap-1 text-destructive/60" title="Téléchargement échoué">
+              <AlertCircle className="h-3.5 w-3.5" />
+            </div>
           ) : (
-            <Download className="h-3.5 w-3.5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => downloadMutation.mutate()}
+              disabled={downloadMutation.isPending}
+              aria-label={`Télécharger ${attachment.filename}`}
+            >
+              {downloadMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+            </Button>
           )}
-        </Button>
-      )}
-    </div>
+        </div>
+      </div>
+
+      <AttachmentPromoteModal
+        open={showPromote}
+        onOpenChange={setShowPromote}
+        attachment={attachment}
+        centreId={centreId}
+      />
+    </>
   );
 }
