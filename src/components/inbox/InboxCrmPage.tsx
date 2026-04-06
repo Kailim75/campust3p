@@ -6,7 +6,9 @@ import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
-import { Inbox } from "lucide-react";
+import { Inbox, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
 
@@ -91,6 +93,45 @@ export function InboxCrmPage() {
 
   if (!account) {
     return <InboxEmptyState centreId={centreId} />;
+  }
+
+  // Account exists but OAuth tokens are missing — need to re-authorize
+  const needsReauth = !account.oauth_encrypted_token;
+
+  const handleReconnect = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-gmail-inbox", {
+        body: {
+          action: "init_oauth",
+          centreId,
+          email: account.email_address,
+          displayName: account.display_name || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (e: any) {
+      toast.error("Erreur: " + e.message);
+    }
+  };
+
+  if (needsReauth) {
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-4">
+          <AlertTriangle className="h-12 w-12 mx-auto text-warning" />
+          <h2 className="text-lg font-semibold">Reconnexion Google requise</h2>
+          <p className="text-sm text-muted-foreground">
+            Le compte <strong>{account.email_address}</strong> est configuré mais l'autorisation Google n'a pas été finalisée. Cliquez ci-dessous pour vous connecter via Google.
+          </p>
+          <Button onClick={handleReconnect} className="w-full">
+            Connecter via Google
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
