@@ -521,35 +521,38 @@ function classifyMessage(ctx: ClassificationContext): CrmLabel[] {
     labels.push("CRM/Prospect");
   }
 
-  // Rule 3: Non rattaché (no CRM link found)
+  // Rule 3: Non rattaché (no CRM link found, inbound only)
   if (!ctx.isContact && !ctx.isProspect && !ctx.hasLink && ctx.direction === "inbound") {
     labels.push("CRM/Non rattaché");
   }
 
-  // Rule 4: Exploitable attachment
-  if (ctx.hasExploitableAttachment) {
+  // Rule 4: Exam keywords (T3P-specific, high business value)
+  if (EXAM_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Examen");
+  }
+
+  // Rule 5: Document — attachment OR document-related keywords
+  if (ctx.hasExploitableAttachment || DOC_KEYWORDS.some((kw) => textToScan.includes(kw))) {
     labels.push("CRM/Document");
   }
 
-  // Rule 5: Billing keywords
+  // Rule 6: Billing keywords
   if (BILLING_KEYWORDS.some((kw) => textToScan.includes(kw))) {
     labels.push("CRM/Facturation");
   }
 
-  // Rule 6: Urgent keywords
+  // Rule 7: Urgent keywords
   if (URGENT_KEYWORDS.some((kw) => textToScan.includes(kw))) {
     labels.push("CRM/Urgent");
   }
 
-  // Rule 7: A traiter — inbound with no CRM link
-  if (ctx.direction === "inbound" && !ctx.hasLink && !ctx.isContact && !ctx.isProspect) {
-    // Already has Non rattaché, skip A traiter to avoid redundancy
-  } else if (ctx.direction === "inbound" && !ctx.hasLink) {
+  // Rule 8: A traiter — inbound with link but not yet treated
+  if (ctx.direction === "inbound" && !ctx.hasLink && (ctx.isContact || ctx.isProspect)) {
     labels.push("CRM/A traiter");
   }
 
-  // Cap at 3 labels max
-  return labels.slice(0, 3);
+  // Cap at 4 labels max (raised from 3 to accommodate Examen)
+  return labels.slice(0, 4);
 }
 
 async function applyGmailLabels(
