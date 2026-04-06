@@ -6,8 +6,9 @@ import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
-import { Inbox, AlertTriangle } from "lucide-react";
+import { Inbox, AlertTriangle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
@@ -88,8 +89,18 @@ export function InboxCrmPage() {
 
   if (accountLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <div className="animate-pulse text-muted-foreground text-sm">Chargement…</div>
+      <div className="h-full flex flex-col">
+        <div className="border-b px-6 py-3 flex items-center gap-2.5">
+          <Skeleton className="h-5 w-5 rounded" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="space-y-3 w-64">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -123,10 +134,12 @@ export function InboxCrmPage() {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 mx-auto text-warning" />
+          <div className="mx-auto h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center">
+            <AlertTriangle className="h-7 w-7 text-amber-500" />
+          </div>
           <h2 className="text-lg font-semibold">Reconnexion Google requise</h2>
-          <p className="text-sm text-muted-foreground">
-            Le compte <strong>{account.email_address}</strong> est configuré mais l'autorisation Google n'a pas été finalisée. Cliquez ci-dessous pour vous connecter via Google.
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Le compte <strong>{account.email_address}</strong> est configuré mais l'autorisation Google n'a pas été finalisée.
           </p>
           <Button onClick={handleReconnect} className="w-full">
             Connecter via Google
@@ -137,7 +150,7 @@ export function InboxCrmPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[calc(100vh-2rem)] flex flex-col">
       {/* Header */}
       <div className="border-b px-6 py-3 flex items-center gap-2.5">
         <Inbox className="h-5 w-5 text-primary" />
@@ -176,14 +189,19 @@ export function InboxCrmPage() {
         </div>
 
         {/* Thread detail */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           {selectedThreadId ? (
             <ThreadView threadId={selectedThreadId} centreId={centreId!} />
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              <div className="text-center space-y-2">
-                <Inbox className="h-10 w-10 mx-auto opacity-20" />
-                <p className="text-sm">Sélectionnez un fil pour le consulter</p>
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto">
+                  <Mail className="h-6 w-6 text-muted-foreground/30" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground/70">Sélectionnez un fil</p>
+                  <p className="text-xs text-muted-foreground/40 mt-0.5">pour consulter les messages</p>
+                </div>
               </div>
             </div>
           )}
