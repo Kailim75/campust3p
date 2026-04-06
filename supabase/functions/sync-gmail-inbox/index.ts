@@ -48,11 +48,17 @@ serve(async (req) => {
       }
 
       if (error) {
-        return Response.redirect(`${returnTo}?gmail_oauth_error=${encodeURIComponent(error)}`, 302);
+        return Response.redirect(
+          `${returnTo}?gmail_oauth_error=${encodeURIComponent(error)}`,
+          302,
+        );
       }
 
       if (!code || !accountId) {
-        return Response.redirect(`${returnTo}?gmail_oauth_error=missing_callback_params`, 302);
+        return Response.redirect(
+          `${returnTo}?gmail_oauth_error=missing_callback_params`,
+          302,
+        );
       }
 
       const redirectUri =
