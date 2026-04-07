@@ -19,14 +19,20 @@ const CRM_LABELS = [
   "CRM/Urgent",
   "CRM/A traiter",
   "CRM/Non rattaché",
+  "CRM/Inscription",
+  "CRM/Planification",
+  "CRM/Relance",
+  "CRM/Financement",
+  "CRM/Réclamation",
+  "CRM/Partenaire",
 ] as const;
 
 type CrmLabel = typeof CRM_LABELS[number];
 
 const BILLING_KEYWORDS = [
-  "facture", "paiement", "règlement", "reglement", "cpf", "opco",
-  "financement", "devis", "acompte", "solde", "relance", "avoir",
-  "échéance", "echeance", "prise en charge",
+  "facture", "paiement", "règlement", "reglement",
+  "devis", "acompte", "solde", "avoir",
+  "échéance", "echeance",
   "impayé", "impaye", "rappel de paiement", "reçu de paiement",
 ];
 const EXAM_KEYWORDS = [
@@ -45,6 +51,36 @@ const DOC_KEYWORDS = [
   "attestation", "permis de conduire", "carte professionnelle",
   "carte pro", "document manquant", "dossier incomplet",
   "certificat",
+];
+const INSCRIPTION_KEYWORDS = [
+  "inscription", "inscrire", "inscrit", "dossier d'inscription",
+  "formulaire d'inscription", "nouvelle inscription", "pré-inscription",
+  "pre-inscription",
+];
+const PLANNING_KEYWORDS = [
+  "planning", "calendrier", "horaire", "créneau", "creneau",
+  "date de session", "début de formation", "debut de formation",
+  "programme", "emploi du temps",
+];
+const RELANCE_KEYWORDS = [
+  "relance", "rappel", "suivi", "sans réponse", "sans reponse",
+  "en attente de retour", "n'avons pas reçu", "merci de revenir",
+  "faire le point", "où en êtes", "ou en etes",
+];
+const FINANCEMENT_KEYWORDS = [
+  "cpf", "opco", "pôle emploi", "pole emploi", "france travail",
+  "financement", "prise en charge", "caisse des dépôts",
+  "mon compte formation", "aide financière", "aide financiere",
+  "subvention",
+];
+const RECLAMATION_KEYWORDS = [
+  "réclamation", "reclamation", "plainte", "insatisfaction",
+  "mécontentement", "mecontentement", "litige",
+  "dysfonctionnement", "pas satisfait",
+];
+const PARTENAIRE_KEYWORDS = [
+  "partenaire", "partenariat", "apporteur", "prescripteur",
+  "convention", "commission", "collaboration",
 ];
 const DOC_MIME_TYPES = [
   "application/pdf", "image/jpeg", "image/png", "image/webp",
