@@ -39,9 +39,34 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
   const [replyText, setReplyText] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [notesInitialized, setNotesInitialized] = useState<string | null>(null);
   const [showAttachments, setShowAttachments] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Fetch note count to show badge and auto-open
+  const { data: noteCount = 0 } = useQuery({
+    queryKey: ["crm-email-notes-count", threadId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("crm_email_notes")
+        .select("*", { count: "exact", head: true })
+        .eq("thread_id", threadId);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Auto-open notes panel when thread has notes (once per thread)
+  useEffect(() => {
+    if (noteCount > 0 && notesInitialized !== threadId) {
+      setShowNotes(true);
+      setNotesInitialized(threadId);
+    } else if (noteCount === 0 && notesInitialized !== threadId) {
+      setShowNotes(false);
+      setNotesInitialized(threadId);
+    }
+  }, [noteCount, threadId, notesInitialized]);
 
   const { data: thread } = useQuery({
     queryKey: ["crm-email-thread", threadId],
@@ -187,6 +212,7 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
             onClick={() => setShowNotes(!showNotes)}
             icon={<StickyNote className="h-3.5 w-3.5" />}
             label="Notes"
+            count={noteCount}
           />
           {hasAnyAttachments && (
             <ToggleButton
@@ -297,11 +323,12 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
 
 /* ── Sub-components ── */
 
-function ToggleButton({ active, onClick, icon, label }: {
+function ToggleButton({ active, onClick, icon, label, count }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  count?: number;
 }) {
   return (
     <button
@@ -315,6 +342,11 @@ function ToggleButton({ active, onClick, icon, label }: {
     >
       {icon}
       {label}
+      {count != null && count > 0 && (
+        <span className="text-[9px] bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded-full font-medium leading-none">
+          {count}
+        </span>
+      )}
       {active ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
     </button>
   );
