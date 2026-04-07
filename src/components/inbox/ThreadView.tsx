@@ -342,6 +342,11 @@ function ToggleButton({ active, onClick, icon, label, count }: {
     >
       {icon}
       {label}
+      {count != null && count > 0 && (
+        <span className="text-[9px] bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded-full font-medium leading-none">
+          {count}
+        </span>
+      )}
       {active ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
     </button>
   );
