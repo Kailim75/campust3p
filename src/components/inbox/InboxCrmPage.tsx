@@ -58,16 +58,25 @@ export function InboxCrmPage() {
         .eq("centre_id", centreId)
         .order("last_message_at", { ascending: false, nullsFirst: false });
 
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
+      // Direction-based filtering
+      if (directionFilter === "archived") {
+        query = query.eq("status", "archive");
+      } else if (directionFilter === "trash") {
+        query = query.eq("status", "trash");
       } else {
-        // By default, exclude archived threads from "all" view
-        query = query.neq("status", "archive");
-      }
-      if (directionFilter === "inbox") {
-        query = query.eq("has_inbound", true);
-      } else if (directionFilter === "sent") {
-        query = query.eq("has_inbound", false);
+        // Normal views: apply status filter
+        if (statusFilter !== "all") {
+          query = query.eq("status", statusFilter);
+        } else {
+          // Exclude archived/trashed from normal views
+          query = query.not("status", "in", '("archive","trash")');
+        }
+        // Direction filter
+        if (directionFilter === "inbox") {
+          query = query.eq("has_inbound", true);
+        } else if (directionFilter === "sent") {
+          query = query.eq("has_inbound", false);
+        }
       }
       if (searchQuery.trim()) {
         query = query.ilike("subject", `%${searchQuery.trim()}%`);
