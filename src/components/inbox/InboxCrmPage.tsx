@@ -271,7 +271,7 @@ export function InboxCrmPage() {
         {/* Thread detail */}
         <div className="flex-1 overflow-hidden">
           {selectedThreadId ? (
-            <ThreadView threadId={selectedThreadId} centreId={centreId!} />
+            <ThreadView threadId={selectedThreadId} centreId={centreId!} onThreadRemoved={() => setSelectedThreadId(null)} />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-3">
