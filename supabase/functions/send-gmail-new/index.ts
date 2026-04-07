@@ -156,6 +156,7 @@ serve(async (req) => {
         subject,
         status: "en_cours",
         is_unread: false,
+        has_inbound: false,
         last_message_at: new Date().toISOString(),
         message_count: 1,
         snippet: messageBody.substring(0, 200),
