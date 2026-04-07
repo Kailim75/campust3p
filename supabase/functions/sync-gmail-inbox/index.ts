@@ -582,13 +582,43 @@ function classifyMessage(ctx: ClassificationContext): CrmLabel[] {
     labels.push("CRM/Urgent");
   }
 
-  // Rule 8: A traiter — inbound with link but not yet treated
+  // Rule 8: Inscription
+  if (INSCRIPTION_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Inscription");
+  }
+
+  // Rule 9: Planification
+  if (PLANNING_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Planification");
+  }
+
+  // Rule 10: Relance
+  if (RELANCE_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Relance");
+  }
+
+  // Rule 11: Financement
+  if (FINANCEMENT_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Financement");
+  }
+
+  // Rule 12: Réclamation
+  if (RECLAMATION_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Réclamation");
+  }
+
+  // Rule 13: Partenaire
+  if (PARTENAIRE_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Partenaire");
+  }
+
+  // Rule 14: A traiter — inbound with link but not yet treated
   if (ctx.direction === "inbound" && !ctx.hasLink && (ctx.isContact || ctx.isProspect)) {
     labels.push("CRM/A traiter");
   }
 
-  // Cap at 4 labels max (raised from 3 to accommodate Examen)
-  return labels.slice(0, 4);
+  // Cap at 5 labels max
+  return labels.slice(0, 5);
 }
 
 async function applyGmailLabels(
