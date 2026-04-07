@@ -30,6 +30,7 @@ export function ThreadActions({ threadId, centreId, isUnread, onThreadRemoved }:
         trash: "Mis à la corbeille",
         mark_read: "Marqué comme lu",
         mark_unread: "Marqué comme non lu",
+        restore: "Restauré dans la boîte de réception",
       };
       toast.success(msgs[vars.action] || "Action effectuée");
       // Clear selection for destructive actions

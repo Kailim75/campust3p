@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Paperclip, UserCircle, Link2, Mail } from "lucide-react";
+import { Paperclip, UserCircle, Mail } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CrmLabelBadge } from "./CrmLabelBadge";
 
@@ -35,11 +35,12 @@ function formatDate(dateStr: string | null) {
   return format(d, "dd MMM", { locale: fr });
 }
 
-const STATUS_COLORS: Record<string, { border: string; dot: string }> = {
-  nouveau: { border: "border-l-blue-500", dot: "bg-blue-500" },
-  en_cours: { border: "border-l-amber-500", dot: "bg-amber-500" },
-  traite: { border: "border-l-green-500", dot: "bg-green-500" },
-  archive: { border: "border-l-muted-foreground/30", dot: "bg-muted-foreground/40" },
+const STATUS_COLORS: Record<string, string> = {
+  nouveau: "border-l-blue-500",
+  en_cours: "border-l-amber-500",
+  traite: "border-l-green-500",
+  archive: "border-l-muted-foreground/30",
+  trash: "border-l-destructive/30",
 };
 
 function getFirstParticipant(participants: any): string {
@@ -51,15 +52,14 @@ function getFirstParticipant(participants: any): string {
 export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: ThreadListProps) {
   if (isLoading) {
     return (
-      <div className="p-3 space-y-1">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="rounded-md px-3 py-3 space-y-2">
+      <div className="p-2 space-y-px">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="rounded px-3 py-2 space-y-1.5">
             <div className="flex justify-between items-center">
-              <Skeleton className="h-3.5 w-28" />
-              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-2.5 w-10" />
             </div>
-            <Skeleton className="h-3.5 w-3/4" />
-            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
           </div>
         ))}
       </div>
@@ -79,11 +79,11 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
   }
 
   return (
-    <div className="divide-y divide-border/50">
+    <div className="divide-y divide-border/40">
       {threads.map((thread) => {
         const isSelected = selectedThreadId === thread.id;
         const isUnread = thread.is_unread;
-        const statusConf = STATUS_COLORS[thread.status] || STATUS_COLORS.nouveau;
+        const borderColor = STATUS_COLORS[thread.status] || STATUS_COLORS.nouveau;
 
         return (
           <button
@@ -91,7 +91,7 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
             onClick={() => onSelect(thread.id)}
             className={cn(
               "w-full text-left transition-colors border-l-[3px]",
-              statusConf.border,
+              borderColor,
               isSelected
                 ? "bg-accent"
                 : isUnread
@@ -99,63 +99,65 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
                   : "hover:bg-accent/30",
             )}
           >
-            <div className="px-3 py-2.5 space-y-0.5">
-              {/* Row 1: Sender + Date */}
+            <div className="px-3 py-1.5">
+              {/* Row 1: Sender + Meta */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   {isUnread && (
-                    <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                   )}
                   <span className={cn(
-                    "text-[13px] truncate leading-none",
+                    "text-[12px] truncate leading-none",
                     isUnread ? "font-semibold text-foreground" : "text-foreground/70"
                   )}>
                     {getFirstParticipant(thread.participants)}
                   </span>
                 </div>
-                <span className={cn(
-                  "text-[11px] flex-shrink-0 tabular-nums leading-none",
-                  isUnread ? "text-foreground/60 font-medium" : "text-muted-foreground/60"
-                )}>
-                  {formatDate(thread.last_message_at)}
-                </span>
-              </div>
-
-              {/* Row 2: Subject */}
-              <p className={cn(
-                "text-[13px] truncate leading-snug",
-                isUnread ? "font-medium text-foreground" : "text-foreground/65"
-              )}>
-                {thread.subject || "(Sans sujet)"}
-              </p>
-
-              {/* Row 3: Snippet + Labels + Meta */}
-              <div className="flex items-center gap-1 pt-0.5">
-                <p className="text-[11px] text-muted-foreground/55 truncate flex-1 leading-tight">
-                  {thread.snippet || ""}
-                </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {(thread.crm_labels || []).slice(0, 2).map((label) => (
-                    <CrmLabelBadge key={label} label={label} size="xs" />
-                  ))}
-                  {(thread.crm_labels || []).length > 2 && (
-                    <span className="text-[9px] text-muted-foreground/50 leading-none">
-                      +{(thread.crm_labels || []).length - 2}
-                    </span>
-                  )}
                   {thread.assigned_to && (
-                    <UserCircle className="h-3 w-3 text-primary/40" />
+                    <UserCircle className="h-2.5 w-2.5 text-primary/40" />
                   )}
                   {thread.has_attachments && (
-                    <Paperclip className="h-3 w-3 text-muted-foreground/40" />
+                    <Paperclip className="h-2.5 w-2.5 text-muted-foreground/40" />
                   )}
                   {thread.message_count > 1 && (
-                    <span className="text-[10px] text-muted-foreground/50 bg-muted/50 rounded-sm px-1 py-px font-medium leading-none">
+                    <span className="text-[9px] text-muted-foreground/50 bg-muted/50 rounded-sm px-1 py-px font-medium leading-none">
                       {thread.message_count}
                     </span>
                   )}
+                  <span className={cn(
+                    "text-[10px] tabular-nums leading-none ml-0.5",
+                    isUnread ? "text-foreground/60 font-medium" : "text-muted-foreground/50"
+                  )}>
+                    {formatDate(thread.last_message_at)}
+                  </span>
                 </div>
               </div>
+
+              {/* Row 2: Subject + Labels */}
+              <div className="flex items-center gap-1 mt-0.5">
+                <p className={cn(
+                  "text-[12px] truncate leading-snug flex-1",
+                  isUnread ? "font-medium text-foreground" : "text-foreground/60"
+                )}>
+                  {thread.subject || "(Sans sujet)"}
+                </p>
+                {(thread.crm_labels || []).slice(0, 2).map((label) => (
+                  <CrmLabelBadge key={label} label={label} size="xs" />
+                ))}
+                {(thread.crm_labels || []).length > 2 && (
+                  <span className="text-[8px] text-muted-foreground/50 leading-none">
+                    +{(thread.crm_labels || []).length - 2}
+                  </span>
+                )}
+              </div>
+
+              {/* Row 3: Snippet (compact) */}
+              {thread.snippet && (
+                <p className="text-[11px] text-muted-foreground/45 truncate leading-tight mt-0.5">
+                  {thread.snippet}
+                </p>
+              )}
             </div>
           </button>
         );
