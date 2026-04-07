@@ -35,7 +35,7 @@ const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
   archive: { label: "Archivé", dotColor: "bg-muted-foreground/50" },
 };
 
-export function ThreadView({ threadId, centreId }: ThreadViewProps) {
+export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewProps) {
   const [replyText, setReplyText] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
