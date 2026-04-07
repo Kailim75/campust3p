@@ -135,7 +135,7 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
             {thread.subject || "(Sans sujet)"}
           </h2>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <ThreadActions threadId={threadId} centreId={centreId} isUnread={thread.is_unread} />
+            <ThreadActions threadId={threadId} centreId={centreId} isUnread={thread.is_unread} onThreadRemoved={onThreadRemoved} />
             <ThreadLabelManager threadId={threadId} centreId={centreId} currentLabels={(thread.crm_labels as string[]) || []} />
             <Select
               value={thread.status}
