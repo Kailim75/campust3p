@@ -60,6 +60,9 @@ export function InboxCrmPage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
+      } else {
+        // By default, exclude archived threads from "all" view
+        query = query.neq("status", "archive");
       }
       if (directionFilter === "inbox") {
         query = query.eq("has_inbound", true);
