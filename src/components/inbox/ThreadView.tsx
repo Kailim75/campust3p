@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Paperclip, Send, StickyNote, Link2, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft, AlertCircle } from "lucide-react";
+import { ThreadActions } from "./ThreadActions";
+import { ThreadLabelManager } from "./ThreadLabelManager";
 import { toast } from "sonner";
 import { ThreadLinks } from "./ThreadLinks";
 import { CrmLabelBadge } from "./CrmLabelBadge";
