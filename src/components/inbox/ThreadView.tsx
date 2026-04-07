@@ -25,6 +25,7 @@ import type { InboxStatus } from "./InboxCrmPage";
 interface ThreadViewProps {
   threadId: string;
   centreId: string;
+  onThreadRemoved?: () => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
