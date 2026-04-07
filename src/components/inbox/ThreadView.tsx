@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Paperclip, Send, StickyNote, Link2, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft, AlertCircle } from "lucide-react";
+import { ThreadActions } from "./ThreadActions";
+import { ThreadLabelManager } from "./ThreadLabelManager";
 import { toast } from "sonner";
 import { ThreadLinks } from "./ThreadLinks";
 import { CrmLabelBadge } from "./CrmLabelBadge";
@@ -131,24 +133,28 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
           <h2 className="text-[15px] font-semibold text-foreground leading-snug flex-1 pr-2">
             {thread.subject || "(Sans sujet)"}
           </h2>
-          <Select
-            value={thread.status}
-            onValueChange={(v) => updateStatus.mutate(v as InboxStatus)}
-          >
-            <SelectTrigger className="w-[125px] h-7 text-xs gap-1.5 border-dashed flex-shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(STATUS_CONFIG).map(([val, conf]) => (
-                <SelectItem key={val} value={val}>
-                  <span className="flex items-center gap-2">
-                    <span className={cn("w-2 h-2 rounded-full", conf.dotColor)} />
-                    {conf.label}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <ThreadActions threadId={threadId} centreId={centreId} isUnread={thread.is_unread} />
+            <ThreadLabelManager threadId={threadId} centreId={centreId} currentLabels={(thread.crm_labels as string[]) || []} />
+            <Select
+              value={thread.status}
+              onValueChange={(v) => updateStatus.mutate(v as InboxStatus)}
+            >
+              <SelectTrigger className="w-[125px] h-7 text-xs gap-1.5 border-dashed">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(STATUS_CONFIG).map(([val, conf]) => (
+                  <SelectItem key={val} value={val}>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("w-2 h-2 rounded-full", conf.dotColor)} />
+                      {conf.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* CRM Labels */}
