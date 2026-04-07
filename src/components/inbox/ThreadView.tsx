@@ -212,6 +212,7 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
             onClick={() => setShowNotes(!showNotes)}
             icon={<StickyNote className="h-3.5 w-3.5" />}
             label="Notes"
+            count={noteCount}
           />
           {hasAnyAttachments && (
             <ToggleButton
