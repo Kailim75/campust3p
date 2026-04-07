@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RefreshCw, UserCircle, Clock, Inbox, Send, MailOpen } from "lucide-react";
+import { Search, RefreshCw, UserCircle, Clock, Inbox, Send, MailOpen, Archive, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -12,7 +12,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { InboxAdvancedFilters, type AdvancedFilters } from "./InboxAdvancedFilters";
 
-export type DirectionFilter = "inbox" | "sent" | "all";
+export type DirectionFilter = "inbox" | "sent" | "all" | "archived" | "trash";
 
 interface InboxToolbarProps {
   statusFilter: InboxStatus | "all";
@@ -36,7 +36,14 @@ const STATUS_OPTIONS: { value: InboxStatus | "all"; label: string; color?: strin
   { value: "nouveau", label: "Nouveau", color: "bg-blue-500" },
   { value: "en_cours", label: "En cours", color: "bg-amber-500" },
   { value: "traite", label: "Traité", color: "bg-green-500" },
-  { value: "archive", label: "Archivé", color: "bg-muted-foreground/50" },
+];
+
+const DIRECTION_OPTIONS = [
+  { value: "inbox" as const, label: "Inbox", icon: Inbox },
+  { value: "sent" as const, label: "Envoyés", icon: Send },
+  { value: "all" as const, label: "Tous", icon: MailOpen },
+  { value: "archived" as const, label: "Archivés", icon: Archive },
+  { value: "trash" as const, label: "Corbeille", icon: Trash2 },
 ];
 
 export function InboxToolbar({
@@ -81,21 +88,19 @@ export function InboxToolbar({
     }
   };
 
+  const isSpecialView = directionFilter === "archived" || directionFilter === "trash";
+
   return (
-    <div className="border-b px-4 py-2">
+    <div className="border-b px-4 py-2 space-y-2">
+      {/* Row 1: Navigation tabs + Sync */}
       <div className="flex items-center gap-2">
-        {/* Direction filter */}
         <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
-          {([
-            { value: "inbox" as const, label: "Inbox", icon: Inbox },
-            { value: "sent" as const, label: "Envoyés", icon: Send },
-            { value: "all" as const, label: "Tous", icon: MailOpen },
-          ]).map((opt) => (
+          {DIRECTION_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => onDirectionChange(opt.value)}
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
                 directionFilter === opt.value
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -107,55 +112,8 @@ export function InboxToolbar({
           ))}
         </div>
 
-        {/* Separator */}
-        <div className="w-px h-5 bg-border" />
-
-        {/* Status filter pills */}
-        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
-          {STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => onStatusChange(opt.value)}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
-                statusFilter === opt.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {opt.color && <span className={cn("w-1.5 h-1.5 rounded-full", opt.color)} />}
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div className="w-px h-5 bg-border" />
-
-        {/* Assignment filter */}
-        <Select value={assignedFilter} onValueChange={onAssignedChange}>
-          <SelectTrigger className="w-[150px] h-7 text-xs border-dashed">
-            <UserCircle className="h-3 w-3 mr-1 text-muted-foreground" />
-            <SelectValue placeholder="Assigné à…" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous</SelectItem>
-            <SelectItem value="unassigned">Non assigné</SelectItem>
-            {centreUsers.map((u) => (
-              <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Advanced filters */}
-        <InboxAdvancedFilters
-          filters={advancedFilters}
-          onChange={onAdvancedFiltersChange}
-          centreUsers={centreUsers}
-        />
-
-        {/* Search */}
-        <div className="flex-1 min-w-[160px] max-w-[260px] relative">
+        {/* Search — grows to fill */}
+        <div className="flex-1 min-w-[140px] max-w-[280px] relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={searchQuery}
@@ -165,7 +123,7 @@ export function InboxToolbar({
           />
         </div>
 
-        {/* Sync area — pushed right */}
+        {/* Sync — pushed right */}
         <div className="ml-auto flex items-center gap-1.5">
           {lastSyncAt && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -188,6 +146,52 @@ export function InboxToolbar({
           </Button>
         </div>
       </div>
+
+      {/* Row 2: Filters (hidden for special views) */}
+      {!isSpecialView && (
+        <div className="flex items-center gap-2">
+          {/* Status filter pills */}
+          <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
+            {STATUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onStatusChange(opt.value)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                  statusFilter === opt.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {opt.color && <span className={cn("w-1.5 h-1.5 rounded-full", opt.color)} />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Assignment filter */}
+          <Select value={assignedFilter} onValueChange={onAssignedChange}>
+            <SelectTrigger className="w-[140px] h-7 text-xs border-dashed">
+              <UserCircle className="h-3 w-3 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Assigné à…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="unassigned">Non assigné</SelectItem>
+              {centreUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Advanced filters */}
+          <InboxAdvancedFilters
+            filters={advancedFilters}
+            onChange={onAdvancedFiltersChange}
+            centreUsers={centreUsers}
+          />
+        </div>
+      )}
     </div>
   );
 }
