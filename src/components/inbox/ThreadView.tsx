@@ -323,11 +323,12 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
 
 /* ── Sub-components ── */
 
-function ToggleButton({ active, onClick, icon, label }: {
+function ToggleButton({ active, onClick, icon, label, count }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  count?: number;
 }) {
   return (
     <button
