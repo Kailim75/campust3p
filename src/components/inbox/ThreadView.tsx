@@ -39,9 +39,34 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
   const [replyText, setReplyText] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [notesInitialized, setNotesInitialized] = useState<string | null>(null);
   const [showAttachments, setShowAttachments] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Fetch note count to show badge and auto-open
+  const { data: noteCount = 0 } = useQuery({
+    queryKey: ["crm-email-notes-count", threadId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("crm_email_notes")
+        .select("*", { count: "exact", head: true })
+        .eq("thread_id", threadId);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Auto-open notes panel when thread has notes (once per thread)
+  useEffect(() => {
+    if (noteCount > 0 && notesInitialized !== threadId) {
+      setShowNotes(true);
+      setNotesInitialized(threadId);
+    } else if (noteCount === 0 && notesInitialized !== threadId) {
+      setShowNotes(false);
+      setNotesInitialized(threadId);
+    }
+  }, [noteCount, threadId, notesInitialized]);
 
   const { data: thread } = useQuery({
     queryKey: ["crm-email-thread", threadId],
