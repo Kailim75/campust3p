@@ -9,9 +9,10 @@ interface ThreadActionsProps {
   threadId: string;
   centreId: string;
   isUnread: boolean;
+  onThreadRemoved?: () => void;
 }
 
-export function ThreadActions({ threadId, centreId, isUnread }: ThreadActionsProps) {
+export function ThreadActions({ threadId, centreId, isUnread, onThreadRemoved }: ThreadActionsProps) {
   const queryClient = useQueryClient();
 
   const action = useMutation({
@@ -31,21 +32,17 @@ export function ThreadActions({ threadId, centreId, isUnread }: ThreadActionsPro
         mark_unread: "Marqué comme non lu",
       };
       toast.success(msgs[vars.action] || "Action effectuée");
+      // Clear selection for destructive actions
+      if ((vars.action === "archive" || vars.action === "trash") && onThreadRemoved) {
+        onThreadRemoved();
+      }
     },
     onError: (e: any) => toast.error("Erreur: " + e.message),
   });
 
   const actions = [
-    {
-      key: "archive",
-      label: "Archiver",
-      icon: Archive,
-    },
-    {
-      key: "trash",
-      label: "Corbeille",
-      icon: Trash2,
-    },
+    { key: "archive", label: "Archiver", icon: Archive },
+    { key: "trash", label: "Corbeille", icon: Trash2 },
     {
       key: isUnread ? "mark_read" : "mark_unread",
       label: isUnread ? "Marquer comme lu" : "Marquer comme non lu",

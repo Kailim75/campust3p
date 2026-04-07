@@ -25,6 +25,7 @@ import type { InboxStatus } from "./InboxCrmPage";
 interface ThreadViewProps {
   threadId: string;
   centreId: string;
+  onThreadRemoved?: () => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
@@ -34,7 +35,7 @@ const STATUS_CONFIG: Record<string, { label: string; dotColor: string }> = {
   archive: { label: "Archivé", dotColor: "bg-muted-foreground/50" },
 };
 
-export function ThreadView({ threadId, centreId }: ThreadViewProps) {
+export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewProps) {
   const [replyText, setReplyText] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -134,7 +135,7 @@ export function ThreadView({ threadId, centreId }: ThreadViewProps) {
             {thread.subject || "(Sans sujet)"}
           </h2>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <ThreadActions threadId={threadId} centreId={centreId} isUnread={thread.is_unread} />
+            <ThreadActions threadId={threadId} centreId={centreId} isUnread={thread.is_unread} onThreadRemoved={onThreadRemoved} />
             <ThreadLabelManager threadId={threadId} centreId={centreId} currentLabels={(thread.crm_labels as string[]) || []} />
             <Select
               value={thread.status}
