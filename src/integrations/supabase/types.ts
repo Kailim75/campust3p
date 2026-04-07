@@ -1914,6 +1914,57 @@ export type Database = {
           },
         ]
       }
+      crm_label_definitions: {
+        Row: {
+          centre_id: string
+          color: string
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          short_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          centre_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          short_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          centre_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          short_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_label_definitions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_label_definitions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_breach_history: {
         Row: {
           action: string

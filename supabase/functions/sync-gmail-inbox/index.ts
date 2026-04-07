@@ -19,14 +19,20 @@ const CRM_LABELS = [
   "CRM/Urgent",
   "CRM/A traiter",
   "CRM/Non rattaché",
+  "CRM/Inscription",
+  "CRM/Planification",
+  "CRM/Relance",
+  "CRM/Financement",
+  "CRM/Réclamation",
+  "CRM/Partenaire",
 ] as const;
 
 type CrmLabel = typeof CRM_LABELS[number];
 
 const BILLING_KEYWORDS = [
-  "facture", "paiement", "règlement", "reglement", "cpf", "opco",
-  "financement", "devis", "acompte", "solde", "relance", "avoir",
-  "échéance", "echeance", "prise en charge",
+  "facture", "paiement", "règlement", "reglement",
+  "devis", "acompte", "solde", "avoir",
+  "échéance", "echeance",
   "impayé", "impaye", "rappel de paiement", "reçu de paiement",
 ];
 const EXAM_KEYWORDS = [
@@ -45,6 +51,36 @@ const DOC_KEYWORDS = [
   "attestation", "permis de conduire", "carte professionnelle",
   "carte pro", "document manquant", "dossier incomplet",
   "certificat",
+];
+const INSCRIPTION_KEYWORDS = [
+  "inscription", "inscrire", "inscrit", "dossier d'inscription",
+  "formulaire d'inscription", "nouvelle inscription", "pré-inscription",
+  "pre-inscription",
+];
+const PLANNING_KEYWORDS = [
+  "planning", "calendrier", "horaire", "créneau", "creneau",
+  "date de session", "début de formation", "debut de formation",
+  "programme", "emploi du temps",
+];
+const RELANCE_KEYWORDS = [
+  "relance", "rappel", "suivi", "sans réponse", "sans reponse",
+  "en attente de retour", "n'avons pas reçu", "merci de revenir",
+  "faire le point", "où en êtes", "ou en etes",
+];
+const FINANCEMENT_KEYWORDS = [
+  "cpf", "opco", "pôle emploi", "pole emploi", "france travail",
+  "financement", "prise en charge", "caisse des dépôts",
+  "mon compte formation", "aide financière", "aide financiere",
+  "subvention",
+];
+const RECLAMATION_KEYWORDS = [
+  "réclamation", "reclamation", "plainte", "insatisfaction",
+  "mécontentement", "mecontentement", "litige",
+  "dysfonctionnement", "pas satisfait",
+];
+const PARTENAIRE_KEYWORDS = [
+  "partenaire", "partenariat", "apporteur", "prescripteur",
+  "convention", "commission", "collaboration",
 ];
 const DOC_MIME_TYPES = [
   "application/pdf", "image/jpeg", "image/png", "image/webp",
@@ -546,13 +582,43 @@ function classifyMessage(ctx: ClassificationContext): CrmLabel[] {
     labels.push("CRM/Urgent");
   }
 
-  // Rule 8: A traiter — inbound with link but not yet treated
+  // Rule 8: Inscription
+  if (INSCRIPTION_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Inscription");
+  }
+
+  // Rule 9: Planification
+  if (PLANNING_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Planification");
+  }
+
+  // Rule 10: Relance
+  if (RELANCE_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Relance");
+  }
+
+  // Rule 11: Financement
+  if (FINANCEMENT_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Financement");
+  }
+
+  // Rule 12: Réclamation
+  if (RECLAMATION_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Réclamation");
+  }
+
+  // Rule 13: Partenaire
+  if (PARTENAIRE_KEYWORDS.some((kw) => textToScan.includes(kw))) {
+    labels.push("CRM/Partenaire");
+  }
+
+  // Rule 14: A traiter — inbound with link but not yet treated
   if (ctx.direction === "inbound" && !ctx.hasLink && (ctx.isContact || ctx.isProspect)) {
     labels.push("CRM/A traiter");
   }
 
-  // Cap at 4 labels max (raised from 3 to accommodate Examen)
-  return labels.slice(0, 4);
+  // Cap at 5 labels max
+  return labels.slice(0, 5);
 }
 
 async function applyGmailLabels(
