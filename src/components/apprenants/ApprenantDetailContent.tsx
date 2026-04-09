@@ -10,7 +10,7 @@ import {
   Phone, Mail, FolderOpen, GraduationCap,
   MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
-  Edit, Trash2, Star,
+  Edit, Trash2, Star, SquareUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
@@ -57,6 +57,7 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { Contact } from "@/hooks/useContacts";
 import { useDocumentEnvoiHistory } from "@/hooks/useDocumentEnvoiHistory";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
+import { ChevaletEditorDialog } from "@/components/chevalets/ChevaletEditorDialog";
 import { SyncDriveFlowButton } from "./SyncDriveFlowButton";
 import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
@@ -101,6 +102,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
+  const [chevaletOpen, setChevaletOpen] = useState(false);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
@@ -557,6 +559,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <FileText className="h-3 w-3 mr-1" /> Générer doc
           </Button>
 
+          {/* Chevalet */}
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setChevaletOpen(true)}
+          >
+            <SquareUser className="h-3 w-3 mr-1" /> Chevalet
+          </Button>
+
           {/* Attestation de présence */}
           {activeEnrollment?.session && (
             <Button size="sm" variant="outline" className="text-xs"
@@ -757,6 +766,16 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             </AlertDialogContent>
           </AlertDialog>
         </div>
+      )}
+      {contact && (
+        <ChevaletEditorDialog
+          open={chevaletOpen}
+          onOpenChange={setChevaletOpen}
+          prenom={contact.prenom}
+          nom={contact.nom}
+          contactId={contact.id}
+          formationType={contact.formation || ""}
+        />
       )}
     </div>
   );
