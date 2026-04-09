@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.get-service-key]
 verify_jwt = false
+
+[functions.send-daily-report]
+verify_jwt = false
