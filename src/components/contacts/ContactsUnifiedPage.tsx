@@ -709,17 +709,6 @@ function ProspectsEmbedded() {
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
       />
-      {/* Bulk Chevalet Dialog */}
-      <BulkChevaletDialog
-        open={bulkChevaletOpen}
-        onOpenChange={setBulkChevaletOpen}
-        contacts={(contacts || []).map(c => ({
-          id: c.id,
-          prenom: c.prenom,
-          nom: c.nom,
-          formation: c.formation,
-        }))}
-      />
     </div>
   );
 }
