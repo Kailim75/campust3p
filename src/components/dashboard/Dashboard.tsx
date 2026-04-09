@@ -31,6 +31,7 @@ import { ActionPanelToday } from "./ActionPanelToday";
 import { DashboardSessionsPanel } from "./DashboardSessionsPanel";
 import { DashboardFinancePanel } from "./DashboardFinancePanel";
 import { DashboardExecutivePanel } from "./DashboardExecutivePanel";
+import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useCurrentUserRole } from "@/hooks/useUsers";
 import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
