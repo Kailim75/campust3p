@@ -7,6 +7,16 @@ import { buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import type { TrackScope } from "@/hooks/useTemplateStudioV2";
 import type { Database, Json } from "@/integrations/supabase/types";
 
+// ─── Derive formation category from formation_type string ───────────────────
+function deriveFormationCategory(formationType: string | null | undefined): string | null {
+  if (!formationType) return null;
+  const upper = formationType.toUpperCase();
+  if (upper.includes("VTC") || upper.includes("PASSERELLE")) return "VTC";
+  if (upper.includes("TAXI") && !upper.includes("VTC")) return "TAXI";
+  if (upper.includes("VMDTR")) return "VMDTR";
+  return null; // generic
+}
+
 // ─── Local Types for Document Generation ────────────────────────────────────
 type TemplateStudioTemplate = Database["public"]["Tables"]["template_studio_templates"]["Row"];
 
