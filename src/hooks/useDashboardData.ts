@@ -126,6 +126,15 @@ export interface DashboardMetrics {
   // Qualiopi
   qualiopiTotal: number;
   qualiopiValide: number;
+  // RM-7 — Executive KPIs
+  tauxConversion: number;
+  tauxConversionPrev: number;
+  totalProspects: number;
+  totalConvertis: number;
+  caPrevisionnel: number;
+  paiementsPaye: number;
+  paiementsPartiel: number;
+  paiementsNonPaye: number;
 }
 
 export interface ActionItem {
