@@ -253,7 +253,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     // 5. Inscriptions with contact info (active, not deleted)
     supabase
       .from("session_inscriptions")
-      .select("id, session_id, contact_id, track, date_inscription, contact:contacts(id, nom, prenom, telephone)")
+      .select("id, session_id, contact_id, track, date_inscription, statut_paiement, montant_formation, contact:contacts(id, nom, prenom, telephone)")
       .is("deleted_at", null)
       .limit(1000),
 
