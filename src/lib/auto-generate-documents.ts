@@ -15,8 +15,13 @@ function deriveFormationCategory(formationType: string | null | undefined): stri
   const upper = formationType.toUpperCase();
   // Formation continue / recyclage → always generic packs
   if (/FORMATION CONTINUE|RECYCLAGE/i.test(upper)) return null;
-  // Passerelle → always VTC-specific
-  if (upper.includes("PASSERELLE")) return "VTC";
+  // Passerelle → detect target métier from the string
+  if (upper.includes("PASSERELLE")) {
+    // "Passerelle VTC vers Taxi" or "Passerelle Taxi" → TAXI
+    if (upper.includes("VERS TAXI") || (upper.includes("TAXI") && !upper.includes("VERS VTC"))) return "TAXI";
+    // "Passerelle Taxi vers VTC" or default passerelle → VTC
+    return "VTC";
+  }
   // Pure VTC/TAXI/VMDTR (initial or other specific)
   if (upper === "VTC" || upper.startsWith("VTC ")) return "VTC";
   if (upper === "TAXI" || upper.startsWith("TAXI ")) return "TAXI";
