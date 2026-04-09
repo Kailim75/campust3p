@@ -302,6 +302,12 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     supabase
       .from("compliance_validations")
       .select("item_id, statut"),
+
+    // 13. All prospects (including converted/lost) for conversion rate
+    supabase
+      .from("prospects")
+      .select("id, statut, created_at")
+      .is("deleted_at", null),
   ]);
 
   // ─── Raw data extraction with null safety ───
