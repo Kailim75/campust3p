@@ -13,14 +13,25 @@ import type { Database, Json } from "@/integrations/supabase/types";
 function deriveFormationCategory(formationType: string | null | undefined): string | null {
   if (!formationType) return null;
   const upper = formationType.toUpperCase();
-  // Formation continue / recyclage → always generic packs
-  if (/FORMATION CONTINUE|RECYCLAGE/i.test(upper)) return null;
+
+  // Formation continue / recyclage → FC-specific packs per métier
+  if (/FORMATION CONTINUE|RECYCLAGE/i.test(upper)) {
+    if (upper.includes("VTC")) return "FC_VTC";
+    if (upper.includes("TAXI")) return "FC_TAXI";
+    if (upper.includes("VMDTR")) return "FC_VMDTR";
+    return null; // generic FC fallback
+  }
+
+  // Mobilité → no pack routing (handled by DOCX templates separately)
+  if (/MOBILIT/i.test(upper)) return null;
+
   // Passerelle → detect target métier from the string
   if (upper.includes("PASSERELLE")) {
     if (upper.includes("VMDTR")) return "VMDTR";
     if (upper.includes("VERS TAXI") || (upper.includes("TAXI") && !upper.includes("VERS VTC"))) return "TAXI";
     return "VTC";
   }
+
   // Pure VTC/TAXI/VMDTR (initial or other specific)
   if (upper === "VTC" || upper.startsWith("VTC ")) return "VTC";
   if (upper === "TAXI" || upper.startsWith("TAXI ")) return "TAXI";
