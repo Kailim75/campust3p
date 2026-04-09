@@ -262,6 +262,7 @@ export function SmartConversionDialog({
             sessionId: selectedSession.id,
             inscriptionId: inscData.id,
             track: (selectedSession.track || "initial") as any,
+            formationType: selectedSession.formation_type,
           }).catch(console.error);
         }
       } catch { /* auto-gen is best-effort */ }
