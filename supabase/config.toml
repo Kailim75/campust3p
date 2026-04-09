@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.promote-attachment]
 verify_jwt = false
+
+[functions.get-service-key]
+verify_jwt = false
