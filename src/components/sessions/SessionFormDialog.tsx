@@ -120,13 +120,31 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
   const watchPrix = form.watch("prix_ht");
   const watchCatalogueId = form.watch("catalogue_formation_id");
+  const watchFormationType = form.watch("formation_type");
+  const watchDateDebut = form.watch("date_debut");
+  const watchHoraireType = form.watch("horaire_type");
+
+  // RM-2: Auto-generate session name from formation type + date + horaire
+  useEffect(() => {
+    if (!isEditing && watchFormationType && watchDateDebut) {
+      const selectedFormation = watchCatalogueId
+        ? catalogueFormations.find(f => f.id === watchCatalogueId)
+        : null;
+      const suggestedName = generateSessionName(
+        watchFormationType,
+        watchDateDebut,
+        watchHoraireType || "jour",
+        selectedFormation?.intitule,
+      );
+      form.setValue("nom", suggestedName);
+    }
+  }, [watchFormationType, watchDateDebut, watchHoraireType, watchCatalogueId, isEditing, catalogueFormations, form]);
 
   // Auto-fill from catalogue when selected
   useEffect(() => {
     if (watchCatalogueId && !isEditing) {
       const selectedFormation = catalogueFormations.find(f => f.id === watchCatalogueId);
       if (selectedFormation) {
-        form.setValue("nom", selectedFormation.intitule);
         form.setValue("prix_ht", Number(selectedFormation.prix_ht) || 0);
         form.setValue("duree_heures", selectedFormation.duree_heures || 0);
         form.setValue("objectifs", selectedFormation.objectifs || "");
