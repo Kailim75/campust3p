@@ -10,7 +10,7 @@ import {
   Phone, Mail, FolderOpen, GraduationCap,
   MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
-  Edit, Trash2, Star,
+  Edit, Trash2, Star, SquareUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
