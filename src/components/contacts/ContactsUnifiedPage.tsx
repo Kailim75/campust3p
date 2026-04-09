@@ -209,6 +209,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [bulkChevaletOpen, setBulkChevaletOpen] = useState(false);
 
   // Open contact sheet when selectedContactId prop is passed
   useEffect(() => {
