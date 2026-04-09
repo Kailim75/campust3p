@@ -702,6 +702,30 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   ).length;
 
   // ═══════════════════════════════════════════
+  // RM-7 — EXECUTIVE KPIs
+  // ═══════════════════════════════════════════
+
+  const allProspects = (allProspectsRes.data || []) as { id: string; statut: string; created_at: string }[];
+  const totalProspects = allProspects.length;
+  const totalConvertis = allProspects.filter((p) => p.statut === "converti").length;
+  const tauxConversion = totalProspects > 0 ? Math.round((totalConvertis / totalProspects) * 100) : 0;
+
+  // Previous period conversion
+  const prevAllProspects = allProspects.filter((p) => p.created_at < fromStr);
+  const prevConvertis = prevAllProspects.filter((p) => p.statut === "converti").length;
+  const tauxConversionPrev = prevAllProspects.length > 0 ? Math.round((prevConvertis / prevAllProspects.length) * 100) : 0;
+
+  // CA Prévisionnel = sum of montant_formation for validated inscriptions
+  const caPrevisionnel = inscriptions
+    .filter((i) => i.montant_formation && Number(i.montant_formation) > 0)
+    .reduce((s, i) => s + Number(i.montant_formation || 0), 0);
+
+  // Payment status breakdown
+  const paiementsPaye = inscriptions.filter((i) => i.statut_paiement === "paye").length;
+  const paiementsPartiel = inscriptions.filter((i) => i.statut_paiement === "partiel").length;
+  const paiementsNonPaye = inscriptions.filter((i) => !i.statut_paiement || i.statut_paiement === "non_paye").length;
+
+  // ═══════════════════════════════════════════
 
   return {
     metrics: {
@@ -736,6 +760,14 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       tauxRemplissageGlobalPrev,
       qualiopiTotal,
       qualiopiValide,
+      tauxConversion,
+      tauxConversionPrev,
+      totalProspects,
+      totalConvertis,
+      caPrevisionnel,
+      paiementsPaye,
+      paiementsPartiel,
+      paiementsNonPaye,
     },
     todayActions: limitedActions,
     todayActionCount,
