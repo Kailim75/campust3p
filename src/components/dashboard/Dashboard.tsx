@@ -30,7 +30,7 @@ import { DashboardFormationBreakdown } from "./DashboardFormationBreakdown";
 import { ActionPanelToday } from "./ActionPanelToday";
 import { DashboardSessionsPanel } from "./DashboardSessionsPanel";
 import { DashboardFinancePanel } from "./DashboardFinancePanel";
-import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
+import { DashboardExecutivePanel } from "./DashboardExecutivePanel";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useCurrentUserRole } from "@/hooks/useUsers";
 import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
