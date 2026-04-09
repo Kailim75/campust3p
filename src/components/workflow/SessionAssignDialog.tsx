@@ -97,6 +97,7 @@ export function SessionAssignDialog({
         sessionId: session.id,
         inscriptionId: inscData?.id,
         track: track === "continuing" ? "continuing" : "initial",
+        formationType: session.formation_type,
       }).then((result) => {
         if (result.generated > 0) {
           toast.info(`${result.generated} document(s) auto-généré(s)`, { duration: 4000 });
