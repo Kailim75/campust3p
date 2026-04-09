@@ -218,6 +218,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     prevPaiementsRes,
     qualiopiItemsRes,
     qualiopiValidationsRes,
+    allProspectsRes,
   ] = await Promise.all([
     // 1. Prospects (active, not converted/lost)
     supabase
