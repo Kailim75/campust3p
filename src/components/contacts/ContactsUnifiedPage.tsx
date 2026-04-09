@@ -22,7 +22,8 @@ import {
   BarChart3,
   Trash2,
   X,
-  Eye
+  Eye,
+  SquareUser
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
