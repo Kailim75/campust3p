@@ -457,6 +457,18 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
         onOpenChange={setDetailOpen}
         onEdit={() => {}}
       />
+
+      {/* Bulk Chevalet Dialog */}
+      <BulkChevaletDialog
+        open={bulkChevaletOpen}
+        onOpenChange={setBulkChevaletOpen}
+        contacts={(contacts || []).map(c => ({
+          id: c.id,
+          prenom: c.prenom,
+          nom: c.nom,
+          formation: c.formation,
+        }))}
+      />
     </div>
   );
 }
