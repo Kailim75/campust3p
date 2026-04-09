@@ -1177,6 +1177,7 @@ export type Database = {
           statut_apprenant: Database["public"]["Enums"]["statut_apprenant"]
           statut_cma: Database["public"]["Enums"]["statut_cma"]
           telephone: string | null
+          telephone_normalise: string | null
           uid: string | null
           updated_at: string
           ville: string | null
@@ -1220,6 +1221,7 @@ export type Database = {
           statut_apprenant?: Database["public"]["Enums"]["statut_apprenant"]
           statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
+          telephone_normalise?: string | null
           uid?: string | null
           updated_at?: string
           ville?: string | null
@@ -1263,6 +1265,7 @@ export type Database = {
           statut_apprenant?: Database["public"]["Enums"]["statut_apprenant"]
           statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
+          telephone_normalise?: string | null
           uid?: string | null
           updated_at?: string
           ville?: string | null
@@ -5604,6 +5607,7 @@ export type Database = {
           source: string | null
           statut: Database["public"]["Enums"]["prospect_status"]
           telephone: string | null
+          telephone_normalise: string | null
           updated_at: string
         }
         Insert: {
@@ -5630,6 +5634,7 @@ export type Database = {
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_status"]
           telephone?: string | null
+          telephone_normalise?: string | null
           updated_at?: string
         }
         Update: {
@@ -5656,6 +5661,7 @@ export type Database = {
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_status"]
           telephone?: string | null
+          telephone_normalise?: string | null
           updated_at?: string
         }
         Relationships: [
