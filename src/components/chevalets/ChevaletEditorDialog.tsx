@@ -220,26 +220,8 @@ export function ChevaletEditorDialog({
       doc.setFillColor(pr, pg, pb);
       doc.rect(5, 139, 95, 4, "F");
 
-      // Generate blob
+      // Download directly (no storage upload needed for printable chevalets)
       const pdfBlob = doc.output("blob");
-      const fileName = `chevalet_${contactId}_${Date.now()}.pdf`;
-      const filePath = `chevalets/${contactId}/${fileName}`;
-
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from("pedagogie")
-        .upload(filePath, pdfBlob, { contentType: "application/pdf" });
-
-      if (uploadError) throw uploadError;
-
-      // Save record
-      await supabase.from("chevalets").insert({
-        contact_id: contactId,
-        formation_type: formation || "N/A",
-        pdf_path: filePath,
-      });
-
-      // Download
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
