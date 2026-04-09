@@ -767,6 +767,16 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </AlertDialog>
         </div>
       )}
+      {contact && (
+        <ChevaletEditorDialog
+          open={chevaletOpen}
+          onOpenChange={setChevaletOpen}
+          prenom={contact.prenom}
+          nom={contact.nom}
+          contactId={contact.id}
+          formationType={contact.formation || ""}
+        />
+      )}
     </div>
   );
 }
