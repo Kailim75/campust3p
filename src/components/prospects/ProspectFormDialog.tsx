@@ -193,6 +193,18 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* RM-1: Duplicate alert */}
+            {hasDuplicates && !isEditing && (
+              <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm space-y-1">
+                <p className="font-medium text-warning">⚠️ Doublons potentiels détectés</p>
+                {duplicates.slice(0, 3).map((d) => (
+                  <p key={`${d.source}-${d.id}`} className="text-muted-foreground">
+                    {d.prenom} {d.nom} {d.email ? `(${d.email})` : ""} — {d.source === "contact" ? "Contact" : "Prospect"} existant ({d.match_type === "email" ? "même email" : "même nom/prénom"})
+                  </p>
+                ))}
+                <p className="text-xs text-muted-foreground mt-1">Vous pouvez continuer la création si ce n'est pas un doublon.</p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
