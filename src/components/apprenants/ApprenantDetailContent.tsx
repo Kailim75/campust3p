@@ -559,6 +559,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <FileText className="h-3 w-3 mr-1" /> Générer doc
           </Button>
 
+          {/* Chevalet */}
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setChevaletOpen(true)}
+          >
+            <SquareUser className="h-3 w-3 mr-1" /> Chevalet
+          </Button>
+
           {/* Attestation de présence */}
           {activeEnrollment?.session && (
             <Button size="sm" variant="outline" className="text-xs"
