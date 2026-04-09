@@ -27,11 +27,11 @@ const prospectSchema = z.object({
   prenom: z.string().min(1, "Le prénom est requis"),
   telephone: z.string().optional(),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
-  formation_souhaitee: z.string().optional(),
-  source: z.string().optional(),
+  formation_souhaitee: z.string().min(1, "La formation souhaitée est requise"),
+  source: z.string().min(1, "La source est requise"),
   statut: z.enum(["nouveau", "contacte", "relance", "converti", "perdu"]),
   priorite: z.enum(["basse", "normale", "haute", "urgente"]),
-  date_prochaine_relance: z.string().optional(),
+  date_prochaine_relance: z.string().min(1, "La date de prochaine relance est requise"),
   notes: z.string().optional(),
 });
 
