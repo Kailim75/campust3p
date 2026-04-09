@@ -74,6 +74,8 @@ interface RawInscription {
   contact_id: string;
   track: string | null;
   date_inscription: string;
+  statut_paiement: string | null;
+  montant_formation: number | null;
   contact: { id: string; nom: string; prenom: string; telephone: string | null } | null;
 }
 
@@ -126,6 +128,15 @@ export interface DashboardMetrics {
   // Qualiopi
   qualiopiTotal: number;
   qualiopiValide: number;
+  // RM-7 — Executive KPIs
+  tauxConversion: number;
+  tauxConversionPrev: number;
+  totalProspects: number;
+  totalConvertis: number;
+  caPrevisionnel: number;
+  paiementsPaye: number;
+  paiementsPartiel: number;
+  paiementsNonPaye: number;
 }
 
 export interface ActionItem {
@@ -207,6 +218,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     prevPaiementsRes,
     qualiopiItemsRes,
     qualiopiValidationsRes,
+    allProspectsRes,
   ] = await Promise.all([
     // 1. Prospects (active, not converted/lost)
     supabase
@@ -242,7 +254,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     // 5. Inscriptions with contact info (active, not deleted)
     supabase
       .from("session_inscriptions")
-      .select("id, session_id, contact_id, track, date_inscription, contact:contacts(id, nom, prenom, telephone)")
+      .select("id, session_id, contact_id, track, date_inscription, statut_paiement, montant_formation, contact:contacts(id, nom, prenom, telephone)")
       .is("deleted_at", null)
       .limit(1000),
 
@@ -290,6 +302,12 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     supabase
       .from("compliance_validations")
       .select("item_id, statut"),
+
+    // 13. All prospects (including converted/lost) for conversion rate
+    supabase
+      .from("prospects")
+      .select("id, statut, created_at")
+      .is("deleted_at", null),
   ]);
 
   // ─── Raw data extraction with null safety ───
@@ -684,6 +702,30 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   ).length;
 
   // ═══════════════════════════════════════════
+  // RM-7 — EXECUTIVE KPIs
+  // ═══════════════════════════════════════════
+
+  const allProspects = (allProspectsRes.data || []) as { id: string; statut: string; created_at: string }[];
+  const totalProspects = allProspects.length;
+  const totalConvertis = allProspects.filter((p) => p.statut === "converti").length;
+  const tauxConversion = totalProspects > 0 ? Math.round((totalConvertis / totalProspects) * 100) : 0;
+
+  // Previous period conversion
+  const prevAllProspects = allProspects.filter((p) => p.created_at < fromStr);
+  const prevConvertis = prevAllProspects.filter((p) => p.statut === "converti").length;
+  const tauxConversionPrev = prevAllProspects.length > 0 ? Math.round((prevConvertis / prevAllProspects.length) * 100) : 0;
+
+  // CA Prévisionnel = sum of montant_formation for validated inscriptions
+  const caPrevisionnel = inscriptions
+    .filter((i) => i.montant_formation && Number(i.montant_formation) > 0)
+    .reduce((s, i) => s + Number(i.montant_formation || 0), 0);
+
+  // Payment status breakdown
+  const paiementsPaye = inscriptions.filter((i) => i.statut_paiement === "paye").length;
+  const paiementsPartiel = inscriptions.filter((i) => i.statut_paiement === "partiel").length;
+  const paiementsNonPaye = inscriptions.filter((i) => !i.statut_paiement || i.statut_paiement === "non_paye").length;
+
+  // ═══════════════════════════════════════════
 
   return {
     metrics: {
@@ -718,6 +760,14 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       tauxRemplissageGlobalPrev,
       qualiopiTotal,
       qualiopiValide,
+      tauxConversion,
+      tauxConversionPrev,
+      totalProspects,
+      totalConvertis,
+      caPrevisionnel,
+      paiementsPaye,
+      paiementsPartiel,
+      paiementsNonPaye,
     },
     todayActions: limitedActions,
     todayActionCount,

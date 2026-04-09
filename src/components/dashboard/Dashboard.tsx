@@ -30,6 +30,7 @@ import { DashboardFormationBreakdown } from "./DashboardFormationBreakdown";
 import { ActionPanelToday } from "./ActionPanelToday";
 import { DashboardSessionsPanel } from "./DashboardSessionsPanel";
 import { DashboardFinancePanel } from "./DashboardFinancePanel";
+import { DashboardExecutivePanel } from "./DashboardExecutivePanel";
 import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useCurrentUserRole } from "@/hooks/useUsers";
@@ -215,7 +216,14 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
           />
         </div>
 
-        {/* Level 3 — "À traiter aujourd'hui" (full width, primary action zone — promoted above charts) */}
+        {/* Level 2.5 — Executive KPIs (conversion, prévisionnel, paiements) */}
+        <DashboardExecutivePanel
+          metrics={metrics}
+          isLoading={isLoading}
+          onNavigate={handleNavigate}
+        />
+
+        {/* Level 3 — "À traiter aujourd'hui" */}
         <section aria-labelledby="today-actions-title">
           <h2
             id="today-actions-title"
