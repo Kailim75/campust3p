@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Eye } from "lucide-react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 
 // ── Color presets ────────────────────────────────────────────
