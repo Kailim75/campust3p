@@ -109,6 +109,7 @@ export async function triggerAutoGeneration(params: {
   sessionId?: string;
   inscriptionId?: string;
   track: TrackScope;
+  formationType?: string | null;
 }): Promise<{ generated: number; errors: number }> {
   let generated = 0;
   let errors = 0;
