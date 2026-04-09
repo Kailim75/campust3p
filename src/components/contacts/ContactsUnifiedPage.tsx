@@ -38,6 +38,7 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { ProspectsDashboard } from "@/components/prospects/ProspectsDashboard";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
+import { BulkChevaletDialog } from "@/components/chevalets/BulkChevaletDialog";
 
 // Pipeline column configuration for contacts (stagiaires)
 const PIPELINE_COLUMNS = [
