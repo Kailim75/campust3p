@@ -8,11 +8,18 @@ import type { TrackScope } from "@/hooks/useTemplateStudioV2";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 // ─── Derive formation category from formation_type string ───────────────────
+// Returns a specific category (VTC, TAXI, VMDTR) ONLY for initial or passerelle
+// formations. "Formation continue X" uses generic packs (returns null).
 function deriveFormationCategory(formationType: string | null | undefined): string | null {
   if (!formationType) return null;
   const upper = formationType.toUpperCase();
-  if (upper.includes("VTC") || upper.includes("PASSERELLE")) return "VTC";
-  if (upper.includes("TAXI") && !upper.includes("VTC")) return "TAXI";
+  // Formation continue / recyclage → always generic packs
+  if (/FORMATION CONTINUE|RECYCLAGE/i.test(upper)) return null;
+  // Passerelle → always VTC-specific
+  if (upper.includes("PASSERELLE")) return "VTC";
+  // Pure VTC/TAXI/VMDTR (initial or other specific)
+  if (upper === "VTC" || upper.startsWith("VTC ")) return "VTC";
+  if (upper === "TAXI" || upper.startsWith("TAXI ")) return "TAXI";
   if (upper.includes("VMDTR")) return "VMDTR";
   return null; // generic
 }
