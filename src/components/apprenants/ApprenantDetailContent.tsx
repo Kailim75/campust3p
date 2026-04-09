@@ -102,6 +102,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
+  const [chevaletOpen, setChevaletOpen] = useState(false);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
