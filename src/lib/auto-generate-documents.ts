@@ -7,6 +7,16 @@ import { buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import type { TrackScope } from "@/hooks/useTemplateStudioV2";
 import type { Database, Json } from "@/integrations/supabase/types";
 
+// ─── Derive formation category from formation_type string ───────────────────
+function deriveFormationCategory(formationType: string | null | undefined): string | null {
+  if (!formationType) return null;
+  const upper = formationType.toUpperCase();
+  if (upper.includes("VTC") || upper.includes("PASSERELLE")) return "VTC";
+  if (upper.includes("TAXI") && !upper.includes("VTC")) return "TAXI";
+  if (upper.includes("VMDTR")) return "VMDTR";
+  return null; // generic
+}
+
 // ─── Local Types for Document Generation ────────────────────────────────────
 type TemplateStudioTemplate = Database["public"]["Tables"]["template_studio_templates"]["Row"];
 
@@ -35,14 +45,26 @@ type TemplateAuditLogInsert = Database["public"]["Tables"]["template_audit_log"]
 // selects (e.g. `document_pack_items(... template:template_studio_templates(...))`).
 // The `as unknown as` casts below bridge this gap without altering the query.
 
-async function fetchDefaultPacks(track: TrackScope): Promise<DocumentPack[]> {
-  const { data } = await supabase
+async function fetchDefaultPacks(track: TrackScope, formationCategory?: string | null): Promise<DocumentPack[]> {
+  let query = supabase
     .from("document_packs")
-    .select("id, name, document_pack_items(id, auto_generate, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
+    .select("id, name, formation_category, document_pack_items(id, auto_generate, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
     .eq("is_default", true)
     .or(`track_scope.eq.${track},track_scope.eq.both`);
-  // CAST JUSTIFIED: nested relational join shape not represented in generated types
-  return (data ?? []) as unknown as DocumentPack[];
+
+  const { data } = await query;
+  const allPacks = (data ?? []) as unknown as (DocumentPack & { formation_category: string | null })[];
+
+  // Prioritise category-specific packs (e.g. VTC), fall back to generic (NULL)
+  if (formationCategory) {
+    const categoryPacks = allPacks.filter(
+      (p) => p.formation_category?.toUpperCase() === formationCategory.toUpperCase()
+    );
+    if (categoryPacks.length > 0) return categoryPacks;
+  }
+
+  // Fallback: packs without a formation_category (generic packs)
+  return allPacks.filter((p) => !p.formation_category);
 }
 
 async function checkExistingDocument(templateId: string, contactId: string): Promise<boolean> {
@@ -97,13 +119,16 @@ export async function triggerAutoGeneration(params: {
   sessionId?: string;
   inscriptionId?: string;
   track: TrackScope;
+  formationType?: string | null;
 }): Promise<{ generated: number; errors: number }> {
   let generated = 0;
   let errors = 0;
 
   try {
     // 1. Find default pack for this track
-    const packs = await fetchDefaultPacks(params.track);
+    // Derive formation category from formationType (e.g. "VTC", "Passerelle Taxi vers VTC" → "VTC")
+    const category = deriveFormationCategory(params.formationType);
+    const packs = await fetchDefaultPacks(params.track, category);
     if (packs.length === 0) return { generated: 0, errors: 0 };
 
     const pack = packs[0];
