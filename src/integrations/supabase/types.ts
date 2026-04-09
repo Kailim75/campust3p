@@ -7602,6 +7602,14 @@ export type Database = {
           telephone: string
         }[]
       }
+      check_email_antiflood: {
+        Args: {
+          p_recipient_email: string
+          p_type: string
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
       create_attestation_certificate: {
         Args: {
