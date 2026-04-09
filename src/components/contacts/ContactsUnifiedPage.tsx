@@ -22,7 +22,8 @@ import {
   BarChart3,
   Trash2,
   X,
-  Eye
+  Eye,
+  SquareUser
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -37,6 +38,7 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { ProspectsDashboard } from "@/components/prospects/ProspectsDashboard";
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
+import { BulkChevaletDialog } from "@/components/chevalets/BulkChevaletDialog";
 
 // Pipeline column configuration for contacts (stagiaires)
 const PIPELINE_COLUMNS = [
@@ -207,6 +209,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [bulkChevaletOpen, setBulkChevaletOpen] = useState(false);
 
   // Open contact sheet when selectedContactId prop is passed
   useEffect(() => {
@@ -334,6 +337,17 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
               <UserPlus className="h-4 w-4" />
               <span>{totalProspects} prospects</span>
             </div>
+            <span className="text-muted-foreground/50">|</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => setBulkChevaletOpen(true)}
+              disabled={!contacts?.length}
+            >
+              <SquareUser className="h-3.5 w-3.5" />
+              Chevalets
+            </Button>
           </div>
         </div>
 
@@ -442,6 +456,18 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onEdit={() => {}}
+      />
+
+      {/* Bulk Chevalet Dialog */}
+      <BulkChevaletDialog
+        open={bulkChevaletOpen}
+        onOpenChange={setBulkChevaletOpen}
+        contacts={(contacts || []).map(c => ({
+          id: c.id,
+          prenom: c.prenom,
+          nom: c.nom,
+          formation: c.formation,
+        }))}
       />
     </div>
   );
