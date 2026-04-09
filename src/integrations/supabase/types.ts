@@ -2479,6 +2479,7 @@ export type Database = {
           centre_id: string
           created_at: string | null
           created_by: string | null
+          formation_category: string | null
           id: string
           is_default: boolean | null
           name: string
@@ -2490,6 +2491,7 @@ export type Database = {
           centre_id: string
           created_at?: string | null
           created_by?: string | null
+          formation_category?: string | null
           id?: string
           is_default?: boolean | null
           name: string
@@ -2501,6 +2503,7 @@ export type Database = {
           centre_id?: string
           created_at?: string | null
           created_by?: string | null
+          formation_category?: string | null
           id?: string
           is_default?: boolean | null
           name?: string
