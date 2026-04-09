@@ -337,6 +337,17 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
               <UserPlus className="h-4 w-4" />
               <span>{totalProspects} prospects</span>
             </div>
+            <span className="text-muted-foreground/50">|</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => setBulkChevaletOpen(true)}
+              disabled={!contacts?.length}
+            >
+              <SquareUser className="h-3.5 w-3.5" />
+              Chevalets
+            </Button>
           </div>
         </div>
 
