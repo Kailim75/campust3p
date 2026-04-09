@@ -116,7 +116,9 @@ export async function triggerAutoGeneration(params: {
 
   try {
     // 1. Find default pack for this track
-    const packs = await fetchDefaultPacks(params.track);
+    // Derive formation category from formationType (e.g. "VTC", "Passerelle Taxi vers VTC" → "VTC")
+    const category = deriveFormationCategory(params.formationType);
+    const packs = await fetchDefaultPacks(params.track, category);
     if (packs.length === 0) return { generated: 0, errors: 0 };
 
     const pack = packs[0];
