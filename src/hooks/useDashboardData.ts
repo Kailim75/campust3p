@@ -74,6 +74,8 @@ interface RawInscription {
   contact_id: string;
   track: string | null;
   date_inscription: string;
+  statut_paiement: string | null;
+  montant_formation: number | null;
   contact: { id: string; nom: string; prenom: string; telephone: string | null } | null;
 }
 
