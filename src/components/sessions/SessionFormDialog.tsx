@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TRACK_BADGES } from "@/lib/formation-track";
+import { generateSessionName } from "@/lib/session-naming";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
