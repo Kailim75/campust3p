@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useProspectDuplicateCheck } from "@/hooks/useProspectDuplicateCheck";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -27,11 +28,11 @@ const prospectSchema = z.object({
   prenom: z.string().min(1, "Le prénom est requis"),
   telephone: z.string().optional(),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
-  formation_souhaitee: z.string().optional(),
-  source: z.string().optional(),
+  formation_souhaitee: z.string().min(1, "La formation souhaitée est requise"),
+  source: z.string().min(1, "La source est requise"),
   statut: z.enum(["nouveau", "contacte", "relance", "converti", "perdu"]),
   priorite: z.enum(["basse", "normale", "haute", "urgente"]),
-  date_prochaine_relance: z.string().optional(),
+  date_prochaine_relance: z.string().min(1, "La date de prochaine relance est requise"),
   notes: z.string().optional(),
 });
 
@@ -98,6 +99,19 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
       date_prochaine_relance: "",
       notes: "",
     },
+  });
+
+  // RM-1: Duplicate detection
+  const watchNom = form.watch("nom");
+  const watchPrenom = form.watch("prenom");
+  const watchEmail = form.watch("email");
+  const watchTelephone = form.watch("telephone");
+
+  const { duplicates, isChecking: isCheckingDuplicates, hasDuplicates } = useProspectDuplicateCheck({
+    nom: isEditing ? "" : watchNom,
+    prenom: isEditing ? "" : watchPrenom,
+    email: isEditing ? undefined : watchEmail,
+    telephone: isEditing ? undefined : watchTelephone,
   });
 
   useEffect(() => {
@@ -179,6 +193,18 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* RM-1: Duplicate alert */}
+            {hasDuplicates && !isEditing && (
+              <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm space-y-1">
+                <p className="font-medium text-warning">⚠️ Doublons potentiels détectés</p>
+                {duplicates.slice(0, 3).map((d) => (
+                  <p key={`${d.source}-${d.id}`} className="text-muted-foreground">
+                    {d.prenom} {d.nom} {d.email ? `(${d.email})` : ""} — {d.source === "contact" ? "Contact" : "Prospect"} existant ({d.match_type === "email" ? "même email" : "même nom/prénom"})
+                  </p>
+                ))}
+                <p className="text-xs text-muted-foreground mt-1">Vous pouvez continuer la création si ce n'est pas un doublon.</p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
