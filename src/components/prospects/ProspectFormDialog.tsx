@@ -101,6 +101,19 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     },
   });
 
+  // RM-1: Duplicate detection
+  const watchNom = form.watch("nom");
+  const watchPrenom = form.watch("prenom");
+  const watchEmail = form.watch("email");
+  const watchTelephone = form.watch("telephone");
+
+  const { duplicates, isChecking: isCheckingDuplicates, hasDuplicates } = useProspectDuplicateCheck({
+    nom: isEditing ? "" : watchNom,
+    prenom: isEditing ? "" : watchPrenom,
+    email: isEditing ? undefined : watchEmail,
+    telephone: isEditing ? undefined : watchTelephone,
+  });
+
   useEffect(() => {
     if (prospect) {
       form.reset({
