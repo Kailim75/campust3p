@@ -1068,6 +1068,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
+                      {/* Département examen */}
+                      <TableCell className="hidden lg:table-cell text-center">
+                        {(() => {
+                          const dept = examResults[inscrit.contact_id]?.departement;
+                          if (!dept) return <span className="text-muted-foreground text-xs">—</span>;
+                          return <Badge variant="outline" className="text-[10px] font-mono">{dept}</Badge>;
+                        })()}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {facture ? (
                           <Tooltip>
