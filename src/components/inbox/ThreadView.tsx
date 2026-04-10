@@ -353,21 +353,24 @@ function ToggleButton({ active, onClick, icon, label, count }: {
 }
 
 function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bodyHtml?: string | null }) {
-  if (bodyText?.trim()) {
-    return <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
-  }
-
+  // Prioritize HTML over plain text so images and formatting are preserved
   if (bodyHtml?.trim()) {
     return (
       <div
-        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80"
+        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
         dangerouslySetInnerHTML={{
           __html: DOMPurify.sanitize(bodyHtml, {
             USE_PROFILES: { html: true },
+            ADD_TAGS: ["img"],
+            ADD_ATTR: ["src", "alt", "width", "height", "style", "loading"],
           }),
         }}
       />
     );
+  }
+
+  if (bodyText?.trim()) {
+    return <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
   }
 
   return (
