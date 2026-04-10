@@ -76,7 +76,7 @@ export function InboxCrmPage() {
           query = query.eq("has_inbound", true);
           // Hide threads that have CRM labels (they appear under their label filter instead)
           if (!advancedFilters.crmLabel || advancedFilters.crmLabel === "all") {
-            query = query.eq("crm_labels", "{}");
+            query = query.filter("crm_labels", "eq", "{}");
           }
         } else if (directionFilter === "sent") {
           query = query.eq("has_inbound", false);
