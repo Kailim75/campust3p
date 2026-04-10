@@ -963,6 +963,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead>Nom</TableHead>
                 <TableHead className="hidden sm:table-cell">CMA</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
+                <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden lg:table-cell w-16 text-center">Dept.</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
                 <TableHead className="hidden lg:table-cell w-24">Dern. comm.</TableHead>
