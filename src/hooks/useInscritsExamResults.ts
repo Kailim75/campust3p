@@ -22,7 +22,7 @@ export function useInscritsExamResults(contactIds: string[]) {
       const [{ data: theorie }, { data: pratique }] = await Promise.all([
         supabase
           .from('examens_t3p')
-          .select('contact_id, resultat')
+          .select('contact_id, resultat, departement')
           .in('contact_id', contactIds)
           .order('date_examen', { ascending: false }),
         supabase
