@@ -34,11 +34,12 @@ export function useInscritsExamResults(contactIds: string[]) {
 
       const results: Record<string, ExamResult> = {};
       for (const id of contactIds) {
-        results[id] = { theorie: null, pratique: null };
+        results[id] = { theorie: null, pratique: null, departement: null };
       }
       for (const row of theorie || []) {
         if (!results[row.contact_id].theorie) {
           results[row.contact_id].theorie = row.resultat as 'admis' | 'ajourne';
+          results[row.contact_id].departement = row.departement || null;
         }
       }
       for (const row of pratique || []) {
