@@ -964,6 +964,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead className="hidden sm:table-cell">CMA</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">T</TableHead>
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
+                <TableHead className="hidden lg:table-cell w-16 text-center">Dept.</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
                 <TableHead className="hidden lg:table-cell w-24">Dern. comm.</TableHead>
                 <TableHead className="hidden lg:table-cell w-10 text-center">⚡</TableHead>
@@ -1066,6 +1067,14 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                             })()}
                           </TooltipContent>
                         </Tooltip>
+                      </TableCell>
+                      {/* Département examen */}
+                      <TableCell className="hidden lg:table-cell text-center">
+                        {(() => {
+                          const dept = examResults[inscrit.contact_id]?.departement;
+                          if (!dept) return <span className="text-muted-foreground text-xs">—</span>;
+                          return <Badge variant="outline" className="text-[10px] font-mono">{dept}</Badge>;
+                        })()}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {facture ? (

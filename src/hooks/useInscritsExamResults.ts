@@ -7,6 +7,7 @@ type ExamResultValue = 'admis' | 'ajourne' | 'absent' | null;
 interface ExamResult {
   theorie: ExamResultValue;
   pratique: ExamResultValue;
+  departement: string | null;
 }
 
 export function useInscritsExamResults(contactIds: string[]) {
@@ -21,7 +22,7 @@ export function useInscritsExamResults(contactIds: string[]) {
       const [{ data: theorie }, { data: pratique }] = await Promise.all([
         supabase
           .from('examens_t3p')
-          .select('contact_id, resultat')
+          .select('contact_id, resultat, departement')
           .in('contact_id', contactIds)
           .order('date_examen', { ascending: false }),
         supabase
@@ -33,11 +34,12 @@ export function useInscritsExamResults(contactIds: string[]) {
 
       const results: Record<string, ExamResult> = {};
       for (const id of contactIds) {
-        results[id] = { theorie: null, pratique: null };
+        results[id] = { theorie: null, pratique: null, departement: null };
       }
       for (const row of theorie || []) {
         if (!results[row.contact_id].theorie) {
           results[row.contact_id].theorie = row.resultat as 'admis' | 'ajourne';
+          results[row.contact_id].departement = row.departement || null;
         }
       }
       for (const row of pratique || []) {
