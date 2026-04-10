@@ -352,17 +352,34 @@ function ToggleButton({ active, onClick, icon, label, count }: {
   );
 }
 
+function extractHtmlBody(html: string): string {
+  // Extract content inside <body> if present, otherwise use as-is
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const content = bodyMatch ? bodyMatch[1] : html;
+  // Extract <style> blocks to preserve email styling
+  const styleBlocks: string[] = [];
+  html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
+    styleBlocks.push(css);
+    return "";
+  });
+  const scopedStyle = styleBlocks.length > 0
+    ? `<style>${styleBlocks.join("\n")}</style>`
+    : "";
+  return scopedStyle + content;
+}
+
 function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bodyHtml?: string | null }) {
   // Prioritize HTML over plain text so images and formatting are preserved
   if (bodyHtml?.trim()) {
+    const processedHtml = extractHtmlBody(bodyHtml);
     return (
       <div
-        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
+        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_table]:w-auto [&_td]:p-1"
         dangerouslySetInnerHTML={{
-          __html: DOMPurify.sanitize(bodyHtml, {
+          __html: DOMPurify.sanitize(processedHtml, {
             USE_PROFILES: { html: true },
-            ADD_TAGS: ["img"],
-            ADD_ATTR: ["src", "alt", "width", "height", "style", "loading"],
+            ADD_TAGS: ["img", "style", "table", "thead", "tbody", "tr", "td", "th", "colgroup", "col", "center", "font"],
+            ADD_ATTR: ["src", "alt", "width", "height", "style", "loading", "class", "align", "valign", "bgcolor", "border", "cellpadding", "cellspacing", "color", "face", "size", "dir", "colspan", "rowspan"],
           }),
         }}
       />
