@@ -7,6 +7,7 @@ type ExamResultValue = 'admis' | 'ajourne' | 'absent' | null;
 interface ExamResult {
   theorie: ExamResultValue;
   pratique: ExamResultValue;
+  departement: string | null;
 }
 
 export function useInscritsExamResults(contactIds: string[]) {
