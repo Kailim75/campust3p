@@ -14,7 +14,11 @@ import { cn } from "@/lib/utils";
 
 type ViewMode = "factures" | "devis" | "sessions";
 
-export function FacturationUnifiedPage() {
+interface FacturationUnifiedPageProps {
+  embedded?: boolean;
+}
+
+export function FacturationUnifiedPage({ embedded = false }: FacturationUnifiedPageProps) {
   const [activeView, setActiveView] = useState<ViewMode>("factures");
   const { data: devisList = [] } = useDevis();
   const { data: factures = [] } = useFactures();
@@ -54,11 +58,13 @@ export function FacturationUnifiedPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Finances" 
-        subtitle={getSubtitle()}
-      />
+    <div className={embedded ? "space-y-5" : "space-y-6"}>
+      {!embedded && (
+        <PageHeader 
+          title="Finances" 
+          subtitle={getSubtitle()}
+        />
+      )}
 
       {/* Quick stats - Simplified and clearer */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

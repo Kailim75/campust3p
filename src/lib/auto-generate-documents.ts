@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import type { TrackScope } from "@/hooks/useTemplateStudioV2";
 import type { Database, Json } from "@/integrations/supabase/types";
+import { classifyError } from "@/lib/documents/documentErrors";
 
 // ─── Derive formation category from formation_type string ───────────────────
 // Returns a specific category (VTC, TAXI, VMDTR) ONLY for initial or passerelle
@@ -54,6 +55,23 @@ interface DocumentPack {
   document_pack_items: PackItemWithTemplate[];
 }
 
+type AutoGenerationStage =
+  | "pack_resolution"
+  | "variables"
+  | "record_insert"
+  | "pdf_render"
+  | "storage_upload"
+  | "status_update";
+
+interface AutoGenerationDetail {
+  templateId: string | null;
+  templateName: string;
+  status: "generated" | "skipped" | "failed";
+  stage: AutoGenerationStage | "duplicate_check";
+  message: string;
+  documentId?: string | null;
+}
+
 interface GeneratedDocumentV2Row {
   id: string;
   centre_id: string;
@@ -68,7 +86,7 @@ type TemplateAuditLogInsert = Database["public"]["Tables"]["template_audit_log"]
 // The `as unknown as` casts below bridge this gap without altering the query.
 
 async function fetchDefaultPacks(track: TrackScope, formationCategory?: string | null): Promise<DocumentPack[]> {
-  let query = supabase
+  const query = supabase
     .from("document_packs")
     .select("id, name, formation_category, document_pack_items(id, auto_generate, template:template_studio_templates(id, name, type, status, template_body, current_version_id))")
     .eq("is_default", true)
@@ -103,13 +121,13 @@ async function checkExistingDocument(templateId: string, contactId: string): Pro
 
 async function insertGeneratedDocument(
   payload: GeneratedDocumentV2Insert
-): Promise<GeneratedDocumentV2Row | null> {
+): Promise<GeneratedDocumentV2Row> {
   const { data, error } = await supabase
     .from("generated_documents_v2")
     .insert(payload)
     .select("id, centre_id")
     .single();
-  if (error) return null;
+  if (error) throw error;
   // CAST JUSTIFIED: partial .select("id, centre_id") not reflected in generated Row type
   return data as unknown as GeneratedDocumentV2Row;
 }
@@ -129,6 +147,79 @@ async function insertAuditLog(payload: TemplateAuditLogInsert): Promise<void> {
   await supabase.from("template_audit_log").insert(payload);
 }
 
+function normalizeAutoGenerationError(error: unknown): { message: string; code: string } {
+  const classified = classifyError(error);
+
+  if (classified.code === "UNKNOWN") {
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    if (
+      rawMessage.includes("row-level security") ||
+      rawMessage.includes("42501")
+    ) {
+      return {
+        code: "RLS_VIOLATION",
+        message: "Permissions insuffisantes pour générer ou enregistrer le document.",
+      };
+    }
+
+    if (
+      rawMessage.includes("html2canvas") ||
+      rawMessage.includes("canvas") ||
+      rawMessage.includes("jsPDF") ||
+      rawMessage.includes("addImage")
+    ) {
+      return {
+        code: "PDF_RENDER_FAILED",
+        message: "Le rendu PDF a échoué pendant la génération du document.",
+      };
+    }
+  }
+
+  return {
+    code: classified.code,
+    message: classified.message,
+  };
+}
+
+async function logAutoGenerationFailure(params: {
+  templateId: string | null;
+  templateName: string;
+  contactId: string;
+  sessionId?: string;
+  centreId?: string | null;
+  generatedDocumentId?: string | null;
+  stage: AutoGenerationStage;
+  error: unknown;
+}): Promise<string> {
+  const normalized = normalizeAutoGenerationError(params.error);
+  const rawMessage = params.error instanceof Error ? params.error.message : String(params.error);
+
+  if (params.generatedDocumentId) {
+    await updateGeneratedDocumentStatus(params.generatedDocumentId, "failed", {
+      error_message: `${normalized.code}: ${rawMessage}`,
+    });
+  }
+
+  await insertAuditLog({
+    template_id: params.templateId,
+    generated_document_id: params.generatedDocumentId ?? null,
+    contact_id: params.contactId,
+    session_id: params.sessionId ?? null,
+    centre_id: params.centreId ?? null,
+    action: "auto_generation_failed",
+    metadata: {
+      auto: true,
+      template_name: params.templateName,
+      stage: params.stage,
+      error_code: normalized.code,
+      error_message: normalized.message,
+      error_details: rawMessage,
+    },
+  });
+
+  return normalized.message;
+}
+
 // ─── Main auto-generation function ──────────────────────────────────────────
 
 /**
@@ -142,23 +233,24 @@ export async function triggerAutoGeneration(params: {
   inscriptionId?: string;
   track: TrackScope;
   formationType?: string | null;
-}): Promise<{ generated: number; errors: number }> {
+}): Promise<{ generated: number; errors: number; details: AutoGenerationDetail[] }> {
   let generated = 0;
   let errors = 0;
+  const details: AutoGenerationDetail[] = [];
 
   try {
     // 1. Find default pack for this track
     // Derive formation category from formationType (e.g. "VTC", "Passerelle Taxi vers VTC" → "VTC")
     const category = deriveFormationCategory(params.formationType);
     const packs = await fetchDefaultPacks(params.track, category);
-    if (packs.length === 0) return { generated: 0, errors: 0 };
+    if (packs.length === 0) return { generated: 0, errors: 0, details };
 
     const pack = packs[0];
     const autoItems = (pack.document_pack_items || []).filter(
       (i) => i.auto_generate && i.template?.status === "published"
     );
 
-    if (autoItems.length === 0) return { generated: 0, errors: 0 };
+    if (autoItems.length === 0) return { generated: 0, errors: 0, details };
 
     // 2. Build variables once
     const variables = await buildVariablesForGeneration({
@@ -179,14 +271,24 @@ export async function triggerAutoGeneration(params: {
 
     // 3. Generate each auto template
     for (const item of autoItems) {
-      try {
-        const tmpl = item.template;
-        if (!tmpl) continue;
+      const tmpl = item.template;
+      if (!tmpl) continue;
 
+      let currentDoc: GeneratedDocumentV2Row | null = null;
+      let currentStage: AutoGenerationStage = "record_insert";
+
+      try {
         // Anti-duplicate check
         const alreadyExists = await checkExistingDocument(tmpl.id, params.contactId);
         if (alreadyExists) {
           generated++; // Already exists
+          details.push({
+            templateId: tmpl.id,
+            templateName: tmpl.name || "document",
+            status: "skipped",
+            stage: "duplicate_check",
+            message: "Document déjà généré, auto-génération ignorée.",
+          });
           continue;
         }
 
@@ -197,7 +299,8 @@ export async function triggerAutoGeneration(params: {
         );
 
         // Create queued record
-        const doc = await insertGeneratedDocument({
+        currentStage = "record_insert";
+        currentDoc = await insertGeneratedDocument({
           template_id: tmpl.id,
           template_version_id: tmpl.current_version_id,
           contact_id: params.contactId,
@@ -210,12 +313,8 @@ export async function triggerAutoGeneration(params: {
           variables_snapshot: variables as unknown as Json,
         });
 
-        if (!doc) {
-          errors++;
-          continue;
-        }
-
         // Generate PDF client-side
+        currentStage = "pdf_render";
         const { default: jsPDF } = await import("jspdf");
         const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const tempDiv = document.createElement("div");
@@ -246,39 +345,89 @@ export async function triggerAutoGeneration(params: {
         }
 
         const pdfBlob = pdf.output("blob");
-        const centreId = doc.centre_id;
-        const filePath = `centre/${centreId}/contacts/${params.contactId}/${doc.id}.pdf`;
+        const centreId = currentDoc.centre_id;
+        const filePath = `centre/${centreId}/contacts/${params.contactId}/${currentDoc.id}.pdf`;
 
+        currentStage = "storage_upload";
         const { error: upErr } = await supabase.storage
           .from("generated-docs")
           .upload(filePath, pdfBlob, { contentType: "application/pdf" });
 
         if (upErr) {
-          await updateGeneratedDocumentStatus(doc.id, "failed", { error_message: upErr.message });
-          errors++;
-          continue;
+          throw upErr;
         }
 
-        await updateGeneratedDocumentStatus(doc.id, "generated", { file_path: filePath });
+        currentStage = "status_update";
+        await updateGeneratedDocumentStatus(currentDoc.id, "generated", { file_path: filePath });
 
         // Audit
         await insertAuditLog({
           template_id: tmpl.id,
-          generated_document_id: doc.id,
+          generated_document_id: currentDoc.id,
           action: "auto_generated",
           contact_id: params.contactId,
           session_id: params.sessionId || null,
-          metadata: { auto: true, trigger: "inscription_or_conversion" },
+          centre_id: centreId,
+          metadata: { auto: true, trigger: "inscription_or_conversion", pack_name: pack.name },
         });
 
         generated++;
-      } catch {
+        details.push({
+          templateId: tmpl.id,
+          templateName: tmpl.name || "document",
+          status: "generated",
+          stage: "status_update",
+          message: "Document généré automatiquement avec succès.",
+          documentId: currentDoc.id,
+        });
+      } catch (error) {
         errors++;
+        const failureMessage = await logAutoGenerationFailure({
+          templateId: tmpl.id,
+          templateName: tmpl.name || "document",
+          contactId: params.contactId,
+          sessionId: params.sessionId,
+          centreId: currentDoc?.centre_id ?? centreIdForAuto,
+          generatedDocumentId: currentDoc?.id,
+          stage: currentStage,
+          error,
+        });
+        console.error("[auto-generate-documents] template auto-generation failed", {
+          templateId: tmpl.id,
+          templateName: tmpl.name,
+          contactId: params.contactId,
+          sessionId: params.sessionId,
+          packName: pack.name,
+          error,
+        });
+        details.push({
+          templateId: tmpl.id,
+          templateName: tmpl.name || "document",
+          status: "failed",
+          stage: currentStage,
+          message: failureMessage,
+          documentId: currentDoc?.id,
+        });
       }
     }
-  } catch {
-    // Silent fail for auto-generation
+  } catch (error) {
+    errors++;
+    const normalized = normalizeAutoGenerationError(error);
+    console.error("[auto-generate-documents] pack-level auto-generation failed", {
+      contactId: params.contactId,
+      sessionId: params.sessionId,
+      track: params.track,
+      formationType: params.formationType,
+      error,
+    });
+    details.push({
+      templateId: null,
+      templateName: "pack",
+      status: "failed",
+      stage: "pack_resolution",
+      message: normalized.message,
+    });
   }
 
-  return { generated, errors };
+  return { generated, errors, details };
 }

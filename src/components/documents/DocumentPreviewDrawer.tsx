@@ -23,7 +23,6 @@ import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 import { DocumentHistoryTimeline } from "./DocumentHistoryTimeline";
 import { DocumentVersionBadge } from "./DocumentVersionBadge";
-import { downloadPdf } from "@/lib/documents/pdfResolver";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface DocumentPreviewDrawerProps {
@@ -72,6 +71,7 @@ export function DocumentPreviewDrawer({
 
     const loadPdf = async () => {
       try {
+        const { downloadPdf } = await import("@/lib/documents/pdfResolver");
         const { blob } = await downloadPdf(item.storagePath!);
         if (!cancelled) {
           setPdfData(blob);

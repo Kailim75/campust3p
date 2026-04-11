@@ -14,13 +14,12 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 import type { Session } from "@/hooks/useSessions";
-import type { SessionFinancialData, SessionHealthScore } from "@/hooks/useSessionFinancials";
+import type { SessionFinancialData } from "@/hooks/useSessionFinancials";
 
 interface SessionCardMobileProps {
   session: Session;
   inscrits: number;
   financial?: SessionFinancialData;
-  health: SessionHealthScore;
   isCritical: boolean;
   isActive: boolean;
   statusConfig: Record<string, { label: string; class: string }>;
@@ -73,7 +72,6 @@ export function SessionCardMobile({
   session,
   inscrits,
   financial,
-  health,
   isCritical,
   isActive,
   statusConfig,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,12 +16,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Plus,
   Calendar,
   Clock,
@@ -35,9 +29,10 @@ import {
   Send,
   Check,
   RotateCcw,
+  FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isAfter, parseISO, startOfToday } from "date-fns";
 import {
   useContactExamens,
   useDeleteExamenPratique,
@@ -138,6 +133,15 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
 
   const activeFiche = fiches.find((f) => f.statut !== "reussi") || fiches[0];
   const attempts = examens.length;
+  const stats = useMemo(() => {
+    const today = startOfToday();
+
+    return {
+      planned: examens.filter((exam) => exam.statut === "planifie" || isAfter(parseISO(exam.date_examen), today)).length,
+      admitted: examens.filter((exam) => exam.resultat === "admis" || exam.statut === "reussi").length,
+      evaluated: examens.filter((exam) => exam.statut !== "planifie" && exam.statut !== "reporte").length,
+    };
+  }, [examens]);
 
   if (isLoading || isLoadingT3P) {
     return (
@@ -152,49 +156,54 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
   if (!theorieReussie) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Examens Pratiques
-            </h3>
-          </div>
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">
+            Examens pratiques
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Cette étape s’ouvre après validation de la théorie T3P.
+          </p>
         </div>
-        <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-            <Lock className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-medium text-sm text-foreground">
-              Pratique verrouillée
-            </p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              La pratique se débloque après réussite de la théorie.
-              {lastTheorieResult === "ajourne" && (
-                <span className="block mt-1 text-destructive">
-                  Dernier résultat théorie : Échoué
-                </span>
-              )}
-              {!lastTheorieResult && (
-                <span className="block mt-1">
-                  Aucun résultat théorique enregistré.
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Lock className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Pratique verrouillée
+                </p>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  La pratique se débloque après réussite de la théorie.
+                  {lastTheorieResult === "ajourne" && (
+                    <span className="mt-1 block text-destructive">
+                      Dernier résultat théorie : ajourné
+                    </span>
+                  )}
+                  {!lastTheorieResult && (
+                    <span className="mt-1 block">
+                      Aucun résultat théorique enregistré.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Examens Pratiques
+          <h3 className="text-sm font-semibold text-foreground">
+            Examens pratiques
           </h3>
           <p className="text-xs text-muted-foreground">
-            {attempts} examen{attempts > 1 ? "s" : ""} enregistré{attempts > 1 ? "s" : ""}
+            {attempts} examen{attempts > 1 ? "s" : ""} enregistré{attempts > 1 ? "s" : ""} · suivi de la conduite et des suites carte pro.
           </p>
         </div>
         <Button
@@ -205,6 +214,29 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
           <Plus className="h-4 w-4 mr-1" />
           Planifier
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card className="p-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{attempts}</p>
+          <p className="mt-1 text-xs text-muted-foreground">passage{attempts > 1 ? "s" : ""} pratique{attempts > 1 ? "s" : ""}</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">À venir</p>
+          <p className="mt-1 text-2xl font-bold text-info">{stats.planned}</p>
+          <p className="mt-1 text-xs text-muted-foreground">planifié{stats.planned > 1 ? "s" : ""} ou encore à passer</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Évalués</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{stats.evaluated}</p>
+          <p className="mt-1 text-xs text-muted-foreground">avec présence ou résultat renseigné</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Admis</p>
+          <p className="mt-1 text-2xl font-bold text-success">{stats.admitted}</p>
+          <p className="mt-1 text-xs text-muted-foreground">ouvrent les démarches carte pro</p>
+        </Card>
       </div>
 
       {/* Carte Pro encart — after pratique réussi */}
@@ -268,12 +300,14 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
       )}
 
       {!activeFiche && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-muted-foreground border">
-          <Car className="h-4 w-4" />
-          <span className="text-sm">
-            Créez d'abord une fiche pratique pour planifier un examen.
-          </span>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="flex items-center gap-2 p-4 text-muted-foreground">
+            <Car className="h-4 w-4" />
+            <span className="text-sm">
+              Créez d’abord une fiche pratique pour planifier un examen.
+            </span>
+          </CardContent>
+        </Card>
       )}
 
       {examens.length === 0 ? (
@@ -317,7 +351,7 @@ export function ExamensPratiqueSection({ contactId, formationType }: ExamensPrat
           examen={editingExamen}
           open={!!editingExamen}
           onOpenChange={(open) => !open && setEditingExamen(null)}
-          tentativeNumber={(editingExamen as any).numero_tentative || 1}
+          tentativeNumber={attempts || 1}
         />
       )}
 
@@ -398,6 +432,19 @@ function ExamenPratiqueCard({ examen, onEdit, onDelete, onViewGrille }: ExamenPr
               </AlertDialogContent>
             </AlertDialog>
           </div>
+        </div>
+
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <Badge variant="outline" className="gap-1.5">
+            <ClipboardList className="h-3 w-3" />
+            Grille disponible
+          </Badge>
+          {examen.document_resultat_path && (
+            <Badge variant="outline" className="gap-1.5">
+              <FileCheck className="h-3 w-3" />
+              Résultat archivé
+            </Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-sm">

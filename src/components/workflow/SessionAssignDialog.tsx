@@ -24,6 +24,14 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
+interface PostgrestErrorLike {
+  code?: string;
+}
+
+function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
+  return typeof error === "object" && error !== null;
+}
+
 interface SessionAssignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -103,9 +111,17 @@ export function SessionAssignDialog({
           toast.info(`${result.generated} document(s) auto-généré(s)`, { duration: 4000 });
           queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
         }
+        if (result.errors > 0) {
+          const firstFailure = result.details.find((detail) => detail.status === "failed");
+          toast.warning(`${result.errors} document(s) n'ont pas pu être généré(s)`, {
+            description: firstFailure?.message,
+            duration: 5000,
+          });
+          queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
+        }
       });
-    } catch (error: any) {
-      if (error.code === "23505") {
+    } catch (error: unknown) {
+      if (isPostgrestErrorLike(error) && error.code === "23505") {
         toast.error("Ce stagiaire est déjà inscrit à cette session");
       } else {
         toast.error("Erreur lors de l'inscription");

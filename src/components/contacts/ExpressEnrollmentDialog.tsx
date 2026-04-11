@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/hooks/useSessions";
-import { useCreateContact } from "@/hooks/useContacts";
+import { useCreateContact, type ContactInsert } from "@/hooks/useContacts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -154,6 +154,44 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
   const selectedSession = useMemo(() => {
     return sessions.find(s => s.id === formData.sessionId);
   }, [sessions, formData.sessionId]);
+  const selectedCategory = useMemo(
+    () => CATEGORIES.find((category) => category.value === formData.categorie),
+    [formData.categorie],
+  );
+  const selectedFormationType = useMemo(
+    () => availableFormationTypes.find((type) => type.value === formData.typeFormation),
+    [availableFormationTypes, formData.typeFormation],
+  );
+  const selectedFormation = useMemo(
+    () => availableFormations.find((formation) => formation.value === formData.formation),
+    [availableFormations, formData.formation],
+  );
+  const selectedFinancement = useMemo(
+    () => FINANCEMENT_TYPES.find((type) => type.value === formData.financement),
+    [formData.financement],
+  );
+  const contactChecks = useMemo(() => {
+    return [
+      !formData.prenom.trim() ? "Ajouter le prénom" : null,
+      !formData.nom.trim() ? "Ajouter le nom" : null,
+      !formData.email.trim() && !formData.telephone.trim() ? "Renseigner au moins un moyen de contact" : null,
+    ].filter(Boolean) as string[];
+  }, [formData.email, formData.nom, formData.prenom, formData.telephone]);
+  const enrollmentChecks = useMemo(() => {
+    return [
+      !formData.categorie ? "Choisir une catégorie" : null,
+      !formData.typeFormation ? "Choisir un type de formation" : null,
+      !formData.formation ? "Choisir une formation" : null,
+      !formData.sessionId ? "Sélectionner une session" : null,
+    ].filter(Boolean) as string[];
+  }, [formData.categorie, formData.formation, formData.sessionId, formData.typeFormation]);
+  const finalChecks = useMemo(() => {
+    return [
+      ...contactChecks,
+      ...enrollmentChecks,
+      !formData.financement ? "Choisir le mode de financement" : null,
+    ].filter(Boolean) as string[];
+  }, [contactChecks, enrollmentChecks, formData.financement]);
 
   const updateField = (field: string, value: string) => {
     setFormData(prev => {
@@ -193,7 +231,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
         nom: formData.nom.trim(),
         email: formData.email.trim() || null,
         telephone: formData.telephone.trim() || null,
-        formation: formData.formation as any,
+        formation: formData.formation as ContactInsert["formation"],
         statut: "En attente de validation",
         commentaires: formData.notes.trim() || null,
       });
@@ -285,6 +323,9 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
             <GraduationCap className="h-5 w-5 text-primary" />
             Inscription Express
           </DialogTitle>
+          <DialogDescription>
+            Créez un apprenant et rattachez-le à une session en quelques étapes, avec un minimum de saisie.
+          </DialogDescription>
         </DialogHeader>
 
         {renderStepIndicator()}
@@ -294,10 +335,37 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
             {/* Step 1: Identity */}
             {step === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
-                  <User className="h-4 w-4" />
-                  Identité du stagiaire
-                </div>
+                <Card className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        Identité du stagiaire
+                      </div>
+                      <p className="mt-2 text-sm font-semibold">Point de départ du dossier</p>
+                      <p className="text-xs text-muted-foreground">
+                        Renseignez l’identité et au moins un moyen de contact pour pouvoir poursuivre.
+                      </p>
+                    </div>
+                    <Badge variant={contactChecks.length === 0 ? "default" : "secondary"}>
+                      {contactChecks.length === 0 ? "Prêt" : `${contactChecks.length} point${contactChecks.length > 1 ? "s" : ""}`}
+                    </Badge>
+                  </div>
+                  {contactChecks.length > 0 ? (
+                    <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2">
+                      <p className="text-xs font-medium">À compléter :</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {contactChecks.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success-foreground">
+                      Les informations de contact minimales sont renseignées.
+                    </div>
+                  )}
+                </Card>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -352,15 +420,85 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                 <p className="text-xs text-muted-foreground">
                   * Au moins un moyen de contact (email ou téléphone) est requis
                 </p>
+
+                <Card className="p-4">
+                  <p className="text-xs font-medium text-muted-foreground">Lecture rapide</p>
+                  <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Nom complet</p>
+                      <p className="font-medium">
+                        {[formData.prenom.trim(), formData.nom.trim()].filter(Boolean).join(" ") || "À renseigner"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Canal disponible</p>
+                      <p className="font-medium">
+                        {formData.email.trim() && formData.telephone.trim()
+                          ? "Email + téléphone"
+                          : formData.email.trim()
+                            ? "Email"
+                            : formData.telephone.trim()
+                              ? "Téléphone"
+                              : "Aucun"}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
               </div>
             )}
 
             {/* Step 2: Formation & Session */}
             {step === 2 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
-                  <GraduationCap className="h-4 w-4" />
-                  Formation et session
+                <Card className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <GraduationCap className="h-4 w-4" />
+                        Formation et session
+                      </div>
+                      <p className="mt-2 text-sm font-semibold">Orientation du parcours</p>
+                      <p className="text-xs text-muted-foreground">
+                        Choisissez la filière, le type de parcours puis la session réellement disponible.
+                      </p>
+                    </div>
+                    <Badge variant={enrollmentChecks.length === 0 ? "default" : "secondary"}>
+                      {enrollmentChecks.length === 0 ? "Prêt" : `${enrollmentChecks.length} point${enrollmentChecks.length > 1 ? "s" : ""}`}
+                    </Badge>
+                  </div>
+                  {enrollmentChecks.length > 0 ? (
+                    <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2">
+                      <p className="text-xs font-medium">À compléter :</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {enrollmentChecks.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success-foreground">
+                      Le parcours et la session sont sélectionnés.
+                    </div>
+                  )}
+                </Card>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Parcours retenu</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {selectedFormation?.label || selectedFormationType?.label || selectedCategory?.label || "À définir"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.label}` : "Choisir une catégorie"}
+                    </p>
+                  </Card>
+                  <Card className="p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Sessions trouvées</p>
+                    <p className="mt-1 text-sm font-semibold">{availableSessions.length}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formData.formation ? "pour la formation sélectionnée" : "après choix de la formation"}
+                    </p>
+                  </Card>
                 </div>
 
                 {/* Catégorie principale */}
@@ -481,15 +619,71 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                     )}
                   </div>
                 )}
+
+                {selectedSession && (
+                  <Card className="p-4">
+                    <p className="text-xs font-medium text-muted-foreground">Session sélectionnée</p>
+                    <div className="mt-2 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{selectedSession.nom}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(selectedSession.date_debut), "dd MMM yyyy", { locale: fr })}
+                          {selectedSession.lieu ? ` • ${selectedSession.lieu}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{selectedFormationType?.label || "Session"}</Badge>
+                    </div>
+                  </Card>
+                )}
               </div>
             )}
 
             {/* Step 3: Billing & Summary */}
             {step === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
-                  <Euro className="h-4 w-4" />
-                  Financement et récapitulatif
+                <Card className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Euro className="h-4 w-4" />
+                        Financement et récapitulatif
+                      </div>
+                      <p className="mt-2 text-sm font-semibold">Validation de l'inscription</p>
+                      <p className="text-xs text-muted-foreground">
+                        Définissez le financement et vérifiez le dossier avant création du contact et de l'inscription.
+                      </p>
+                    </div>
+                    <Badge variant={finalChecks.length === 0 ? "default" : "secondary"}>
+                      {finalChecks.length === 0 ? "Prêt à valider" : `${finalChecks.length} point${finalChecks.length > 1 ? "s" : ""}`}
+                    </Badge>
+                  </div>
+                  {finalChecks.length > 0 ? (
+                    <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2">
+                      <p className="text-xs font-medium">À vérifier avant validation :</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {finalChecks.map((item) => (
+                          <li key={item}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success-foreground">
+                      Le dossier est prêt à être créé et inscrit automatiquement.
+                    </div>
+                  )}
+                </Card>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Mode de financement</p>
+                    <p className="mt-1 text-sm font-semibold">{selectedFinancement?.label || "À définir"}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">utilisé pour la qualification du contrat</p>
+                  </Card>
+                  <Card className="p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Action automatique</p>
+                    <p className="mt-1 text-sm font-semibold">Contact + inscription</p>
+                    <p className="mt-1 text-xs text-muted-foreground">avec qualification de financement si possible</p>
+                  </Card>
                 </div>
 
                 <div className="space-y-2">
@@ -533,14 +727,14 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Catégorie</span>
                       <Badge variant="outline">
-                        {CATEGORIES.find(c => c.value === formData.categorie)?.label}
+                        {selectedCategory?.label}
                       </Badge>
                     </div>
                     
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Formation</span>
                       <span className="text-right text-sm font-medium">
-                        {availableFormations.find(f => f.value === formData.formation)?.label || formData.formation}
+                        {selectedFormation?.label || formData.formation}
                       </span>
                     </div>
                     
@@ -558,7 +752,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                     
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Financement</span>
-                      <span>{FINANCEMENT_TYPES.find(t => t.value === formData.financement)?.label}</span>
+                      <span>{selectedFinancement?.label}</span>
                     </div>
                   </div>
                 </div>

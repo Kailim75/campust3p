@@ -62,6 +62,38 @@ const STATUS_ICONS: Record<ProspectStatus, React.ReactNode> = {
   perdu: <XCircle className="h-3 w-3" />,
 };
 
+const VIEW_META = {
+  list: {
+    title: "Liste d'action",
+    description: "Priorisez les relances, traitez les retards et convertissez plus vite.",
+  },
+  kanban: {
+    title: "Vue Kanban",
+    description: "Suivez l'avancement commercial par statut et faites avancer le pipeline.",
+  },
+  pipeline: {
+    title: "Pipeline",
+    description: "Visualisez les volumes et les passages d'étape de votre tunnel commercial.",
+  },
+  dashboard: {
+    title: "Analytics",
+    description: "Prenez du recul sur les tendances, les sources et la performance globale.",
+  },
+  agenda: {
+    title: "Agenda prospects",
+    description: "Concentrez-vous sur les relances planifiées et les actions à venir.",
+  },
+} as const;
+
+const QUICK_FILTER_LABELS: Record<QuickFilter, string> = {
+  all: "Tous",
+  actifs: "Actifs",
+  overdue: "En retard",
+  today: "Aujourd'hui",
+  week: "Cette semaine",
+  mine: "Assignés à moi",
+};
+
 function getLeadAge(createdAt: string): string {
   return formatDistanceToNow(new Date(createdAt), { locale: fr });
 }
@@ -124,13 +156,14 @@ export function ProspectsPage() {
 
   // Support tab navigation from legacy routes or deep links
   const nav = useNavigation();
+  const { activeTab: navigationTab, setActiveTab: setNavigationTab } = nav;
   useEffect(() => {
     const validTabs = ["list", "kanban", "dashboard", "pipeline", "agenda"];
-    if (nav.activeTab && validTabs.includes(nav.activeTab)) {
-      setActiveView(nav.activeTab as typeof activeView);
-      nav.setActiveTab(undefined);
+    if (navigationTab && validTabs.includes(navigationTab)) {
+      setActiveView(navigationTab as typeof activeView);
+      setNavigationTab(undefined);
     }
-  }, [nav.activeTab]);
+  }, [navigationTab, setNavigationTab]);
 
   const handleViewDetail = (prospect: Prospect) => {
     setViewingProspect(prospect);
@@ -254,7 +287,12 @@ export function ProspectsPage() {
     const ids = Array.from(selectedIds);
     let successCount = 0;
     for (const id of ids) {
-      try { await deleteProspect.mutateAsync(id); successCount++; } catch {}
+      try {
+        await deleteProspect.mutateAsync(id);
+        successCount++;
+      } catch (error) {
+        console.error("Bulk delete prospect failed", error);
+      }
     }
     toast.success(`${successCount} prospect(s) supprimé(s)`);
     setSelectedIds(new Set());
@@ -268,6 +306,28 @@ export function ProspectsPage() {
       week: stats?.week || 0,
     };
   }, [stats]);
+  const activeProspectsCount = stats ? stats.total - stats.converti - stats.perdu : 0;
+  const hasListFilters = search.trim() !== "" || statusFilter !== "all" || quickFilter !== "actifs";
+  const listSummary = useMemo(() => {
+    const parts = [
+      `${filteredProspects.length} prospect${filteredProspects.length > 1 ? "s" : ""} affiché${filteredProspects.length > 1 ? "s" : ""}`,
+      `vue ${QUICK_FILTER_LABELS[quickFilter].toLowerCase()}`,
+    ];
+
+    if (statusFilter !== "all") {
+      parts.push(`statut ${STATUS_LABELS[statusFilter as ProspectStatus].toLowerCase()}`);
+    }
+
+    if (search.trim()) {
+      parts.push(`recherche “${search.trim()}”`);
+    }
+
+    if (selectedIds.size > 0) {
+      parts.push(`${selectedIds.size} sélectionné${selectedIds.size > 1 ? "s" : ""}`);
+    }
+
+    return parts.join(" · ");
+  }, [filteredProspects.length, quickFilter, statusFilter, search, selectedIds.size]);
 
   return (
     <div className="space-y-6">
@@ -277,33 +337,41 @@ export function ProspectsPage() {
       />
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as typeof activeView)}>
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <TabsList>
-            <TabsTrigger value="list" className="gap-2">
-              <LayoutList className="h-4 w-4" />
-              Liste
-            </TabsTrigger>
-            <TabsTrigger value="kanban" className="gap-2">
-              <Kanban className="h-4 w-4" />
-              Kanban
-            </TabsTrigger>
-            <TabsTrigger value="pipeline" className="gap-2">
-              <GitBranch className="h-4 w-4" />
-              Pipeline
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="gap-2">
-              <Clock className="h-4 w-4" />
-              Agenda
-            </TabsTrigger>
-          </TabsList>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau prospect
-          </Button>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{VIEW_META[activeView].title}</p>
+              <p className="text-sm text-muted-foreground mt-1">{VIEW_META[activeView].description}</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+              <TabsList className="h-auto flex-wrap justify-start">
+                <TabsTrigger value="list" className="gap-2">
+                  <LayoutList className="h-4 w-4" />
+                  Liste
+                </TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-2">
+                  <Kanban className="h-4 w-4" />
+                  Kanban
+                </TabsTrigger>
+                <TabsTrigger value="pipeline" className="gap-2">
+                  <GitBranch className="h-4 w-4" />
+                  Pipeline
+                </TabsTrigger>
+                <TabsTrigger value="dashboard" className="gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="agenda" className="gap-2">
+                  <Clock className="h-4 w-4" />
+                  Agenda
+                </TabsTrigger>
+              </TabsList>
+              <Button onClick={() => setFormOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau prospect
+              </Button>
+            </div>
+          </div>
         </div>
 
         <TabsContent value="dashboard" className="mt-6">
@@ -325,35 +393,45 @@ export function ProspectsPage() {
         <TabsContent value="list" className="mt-6 space-y-4">
           {/* KPI Cards */}
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-              <Card className="p-3">
-                <div className="text-2xl font-bold">{stats.total}</div>
-                <div className="text-xs text-muted-foreground">Total</div>
-              </Card>
-              <Card className={cn("p-3", stats.overdue > 0 ? "border-destructive/40 bg-destructive/5" : "")}>
-                <div className={cn("text-2xl font-bold", stats.overdue > 0 ? "text-destructive" : "")}>
-                  {stats.overdue}
-                </div>
-                <div className={cn("text-xs flex items-center gap-1", stats.overdue > 0 ? "text-destructive" : "text-muted-foreground")}>
-                  <AlertTriangle className="h-3 w-3" /> En retard
-                </div>
-              </Card>
-              <Card className="p-3 border-orange-200 bg-orange-50/50">
-                <div className="text-2xl font-bold text-orange-700">{stats.today}</div>
-                <div className="text-xs text-orange-600">Aujourd'hui</div>
-              </Card>
-              <Card className="p-3 border-blue-200 bg-blue-50/50">
-                <div className="text-2xl font-bold text-blue-700">{stats.nouveaux}</div>
-                <div className="text-xs text-blue-600">Nouveaux</div>
-              </Card>
-              <Card className="p-3 border-green-200 bg-green-50/50">
-                <div className="text-2xl font-bold text-green-700">{stats.converti}</div>
-                <div className="text-xs text-green-600">Convertis</div>
-              </Card>
-              <Card className="p-3">
-                <div className="text-2xl font-bold text-muted-foreground">{stats.perdu}</div>
-                <div className="text-xs text-muted-foreground">Perdus</div>
-              </Card>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Card className="p-3">
+                  <div className="text-2xl font-bold">{activeProspectsCount}</div>
+                  <div className="text-xs text-muted-foreground">Actifs</div>
+                </Card>
+                <Card className={cn("p-3", stats.overdue > 0 ? "border-destructive/40 bg-destructive/5" : "")}>
+                  <div className={cn("text-2xl font-bold", stats.overdue > 0 ? "text-destructive" : "")}>
+                    {stats.overdue}
+                  </div>
+                  <div className={cn("text-xs flex items-center gap-1", stats.overdue > 0 ? "text-destructive" : "text-muted-foreground")}>
+                    <AlertTriangle className="h-3 w-3" /> Relances en retard
+                  </div>
+                </Card>
+                <Card className="p-3 border-orange-200 bg-orange-50/50">
+                  <div className="text-2xl font-bold text-orange-700">{stats.today}</div>
+                  <div className="text-xs text-orange-600">À traiter aujourd&apos;hui</div>
+                </Card>
+                <Card className="p-3 border-green-200 bg-green-50/50">
+                  <div className="text-2xl font-bold text-green-700">{stats.converti}</div>
+                  <div className="text-xs text-green-600">Convertis</div>
+                </Card>
+              </div>
+
+              <div className="rounded-lg border bg-card px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <span className="font-medium text-foreground">Vue commerciale</span>
+                <span className="text-muted-foreground">
+                  {stats.nouveaux} nouveau{stats.nouveaux > 1 ? "x" : ""}
+                </span>
+                <span className="text-muted-foreground">
+                  {stats.week} action{stats.week > 1 ? "s" : ""} cette semaine
+                </span>
+                <span className="text-muted-foreground">
+                  {stats.perdu} perdu{stats.perdu > 1 ? "s" : ""}
+                </span>
+                <span className="text-muted-foreground">
+                  {stats.total} prospect{stats.total > 1 ? "s" : ""} au total
+                </span>
+              </div>
             </div>
           )}
 
@@ -364,27 +442,51 @@ export function ProspectsPage() {
             counts={filterCounts}
           />
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un prospect..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
+          <div className="rounded-xl border bg-card p-4 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Liste d&apos;action prospects</p>
+                <p className="text-sm text-muted-foreground mt-1">{listSummary}</p>
+              </div>
+              {hasListFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs self-start lg:self-auto"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("all");
+                    setQuickFilter("actifs");
+                  }}
+                >
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Réinitialiser les filtres
+                </Button>
+              )}
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un prospect..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {isLoading ? (
@@ -399,7 +501,11 @@ export function ProspectsPage() {
             <EmptyState
               icon={Users}
               title="Aucun prospect"
-              description="Ajoutez des prospects pour suivre vos opportunités commerciales."
+              description={
+                hasListFilters
+                  ? "Aucun prospect ne correspond aux filtres actuels. Ajustez les critères ou élargissez la vue."
+                  : "Ajoutez des prospects pour suivre vos opportunités commerciales."
+              }
               action={
                 <Button onClick={() => setFormOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -535,9 +641,14 @@ export function ProspectsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">
-                          <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
-                            {prospect.prenom} {prospect.nom}
-                          </button>
+                          <div className="space-y-0.5">
+                            <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
+                              {prospect.prenom} {prospect.nom}
+                            </button>
+                            <div className="text-xs text-muted-foreground">
+                              {prospect.email || prospect.source || "Sans email ni source"}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={STATUS_COLORS[prospect.statut]}>
@@ -547,9 +658,18 @@ export function ProspectsPage() {
                         </TableCell>
                         <TableCell>{getNextActionLabel(prospect)}</TableCell>
                         <TableCell>
-                          {prospect.formation_souhaitee ? (
-                            <Badge variant="outline">{prospect.formation_souhaitee}</Badge>
-                          ) : "—"}
+                          <div className="space-y-1">
+                            {prospect.formation_souhaitee ? (
+                              <Badge variant="outline">{prospect.formation_souhaitee}</Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">—</span>
+                            )}
+                            {prospect.priorite && prospect.priorite !== "normale" && (
+                              <div className="text-[11px] text-muted-foreground capitalize">
+                                Priorité {prospect.priorite}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {prospect.telephone ? (

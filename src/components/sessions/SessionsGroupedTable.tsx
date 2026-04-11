@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -18,9 +17,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
-  Calendar, MapPin, Edit, Trash2, Copy, ChevronDown, ChevronRight,
+  Edit, Trash2, Copy, ChevronDown, ChevronRight,
   Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,6 +82,14 @@ interface GroupedSessions {
   badgeClass?: string;
 }
 
+interface GroupSummary {
+  inscrits: number;
+  places: number;
+  fillRate: number;
+  criticalCount: number;
+  securedCa: number;
+}
+
 function getSessionHealth(
   session: Session,
   inscriptionsCounts: Record<string, number>,
@@ -114,6 +121,25 @@ function isSessionCritical(
   return fillRate < 0.5;
 }
 
+function getGroupSummary(
+  groupSessions: Session[],
+  inscriptionsCounts: Record<string, number>,
+  financials: Record<string, SessionFinancialData>,
+): GroupSummary {
+  const inscrits = groupSessions.reduce((total, session) => total + (inscriptionsCounts[session.id] || 0), 0);
+  const places = groupSessions.reduce((total, session) => total + session.places_totales, 0);
+  const criticalCount = groupSessions.filter((session) => isSessionCritical(session, inscriptionsCounts)).length;
+  const securedCa = groupSessions.reduce((total, session) => total + (financials[session.id]?.ca_securise || 0), 0);
+
+  return {
+    inscrits,
+    places,
+    fillRate: places > 0 ? Math.round((inscrits / places) * 100) : 0,
+    criticalCount,
+    securedCa,
+  };
+}
+
 export function SessionsGroupedTable({
   sessions,
   inscriptionsCounts,
@@ -132,6 +158,7 @@ export function SessionsGroupedTable({
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('date_debut');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const previousGroupByRef = useRef<GroupByMode>(groupBy);
 
   const sortedSessions = useMemo(() => {
     return [...sessions].sort((a, b) => {
@@ -189,16 +216,32 @@ export function SessionsGroupedTable({
     }).sort((a, b) => groupBy === "month" ? a.key.localeCompare(b.key) : a.label.localeCompare(b.label));
   }, [sortedSessions, groupBy]);
 
-  useMemo(() => {
-    if (expandedGroups.size === 0 && groupedSessions.length > 0) {
-      setExpandedGroups(new Set(groupedSessions.map(g => g.key)));
-    }
-  }, [groupedSessions.length]);
+  useEffect(() => {
+    const groupKeys = groupedSessions.map((group) => group.key);
+
+    setExpandedGroups((previous) => {
+      if (groupBy !== previousGroupByRef.current) {
+        previousGroupByRef.current = groupBy;
+        return new Set(groupKeys);
+      }
+
+      if (groupKeys.length === 0) {
+        return new Set();
+      }
+
+      const next = new Set([...previous].filter((key) => groupKeys.includes(key)));
+      return next.size === 0 && previous.size === 0 ? new Set(groupKeys) : next;
+    });
+  }, [groupBy, groupedSessions]);
 
   const toggleGroup = (key: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   };
@@ -232,7 +275,9 @@ export function SessionsGroupedTable({
         <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[110px]" onClick={() => handleSort('inscrits')}>
           <div className="flex items-center gap-1">Remplissage<SortIcon field="inscrits" /></div>
         </TableHead>
-        <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
+        {showProfitability && (
+          <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
+        )}
         <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[100px]" onClick={() => handleSort('statut')}>
           <div className="flex items-center gap-1">Statut<SortIcon field="statut" /></div>
         </TableHead>
@@ -258,7 +303,7 @@ export function SessionsGroupedTable({
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: showProfitability ? 5 : 4 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
                   ))}
                 </TableRow>
@@ -316,6 +361,9 @@ export function SessionsGroupedTable({
           </>
         )}
       </div>
+      <p className="text-xs text-muted-foreground">
+        {sortedSessions.length} session{sortedSessions.length > 1 ? "s" : ""} · tri {sortOptions.find((opt) => opt.value === sortField)?.label.toLowerCase()} {sortOrder === "asc" ? "croissant" : "décroissant"}
+      </p>
     </div>
   );
 
@@ -340,40 +388,51 @@ export function SessionsGroupedTable({
           <Button variant="ghost" size="sm" onClick={() => setExpandedGroups(new Set())}>Tout replier</Button>
         </div>
       )}
+      <div className="w-full text-xs text-muted-foreground">
+        {sortedSessions.length} session{sortedSessions.length > 1 ? "s" : ""} · tri {sortOptions.find((opt) => opt.value === sortField)?.label.toLowerCase()} {sortOrder === "asc" ? "croissant" : "décroissant"}
+        {groupBy !== "none" ? ` · ${groupedSessions.length} groupe${groupedSessions.length > 1 ? "s" : ""}` : ""}
+      </div>
     </div>
   );
 
   // ─── Mobile group header ───
-  const renderMobileGroupHeader = (group: GroupedSessions) => (
-    <div className="flex items-center gap-2 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
-      {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-      <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-        {group.badgeClass ? (
-          <Badge variant="outline" className={cn("text-xs", group.badgeClass)}>{group.label}</Badge>
-        ) : (
-          <span className="font-semibold text-sm text-foreground">{group.label}</span>
-        )}
-        <Badge variant="secondary" className="text-xs">
-          {group.sessions.length}
-        </Badge>
+  const renderMobileGroupHeader = (group: GroupedSessions) => {
+    const summary = getGroupSummary(group.sessions, inscriptionsCounts, financials);
+
+    return (
+      <div className="flex items-center gap-2 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
+        {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+          {group.badgeClass ? (
+            <Badge variant="outline" className={cn("text-xs", group.badgeClass)}>{group.label}</Badge>
+          ) : (
+            <span className="font-semibold text-sm text-foreground">{group.label}</span>
+          )}
+          <Badge variant="secondary" className="text-xs">
+            {group.sessions.length}
+          </Badge>
+          {summary.criticalCount > 0 && (
+            <Badge variant="destructive" className="text-[10px]">
+              {summary.criticalCount} critique{summary.criticalCount > 1 ? "s" : ""}
+            </Badge>
+          )}
+        </div>
+        <span className="text-xs text-muted-foreground shrink-0">
+          {summary.inscrits}/{summary.places} · {summary.fillRate}%
+        </span>
       </div>
-      <span className="text-xs text-muted-foreground shrink-0">
-        {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)}/{group.sessions.reduce((a, s) => a + s.places_totales, 0)}
-      </span>
-    </div>
-  );
+    );
+  };
 
   // ─── Render mobile card for a session ───
   const renderMobileCard = (session: Session) => {
     const inscrits = inscriptionsCounts[session.id] || 0;
-    const health = getSessionHealth(session, inscriptionsCounts, financials);
     return (
       <SessionCardMobile
         key={session.id}
         session={session}
         inscrits={inscrits}
         financial={financials[session.id]}
-        health={health}
         isCritical={isSessionCritical(session, inscriptionsCounts)}
         isActive={activeSessionId === session.id}
         statusConfig={statusConfig}
@@ -456,6 +515,7 @@ export function SessionsGroupedTable({
           <div className="divide-y divide-border">
             {groupedSessions.map((group) => {
               const isMonthGroup = groupBy === "month";
+              const summary = getGroupSummary(group.sessions, inscriptionsCounts, financials);
               return (
                 <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
                   <CollapsibleTrigger asChild>
@@ -479,13 +539,16 @@ export function SessionsGroupedTable({
                       </Badge>
                       <span className="text-xs text-muted-foreground/70 ml-auto mr-4 flex items-center gap-3">
                         <span>
-                          {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
-                          {' / '}
-                          {group.sessions.reduce((a, s) => a + s.places_totales, 0)} places
+                          {summary.inscrits} inscrits / {summary.places} places · {summary.fillRate}%
                         </span>
-                        {Object.keys(financials).length > 0 && (
+                        {summary.criticalCount > 0 && (
+                          <span className="text-destructive font-medium">
+                            {summary.criticalCount} critique{summary.criticalCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {showProfitability && summary.securedCa > 0 && (
                           <span className="text-success font-medium">
-                            {group.sessions.reduce((a, s) => a + (financials[s.id]?.ca_securise || 0), 0).toLocaleString('fr-FR')} € sécurisés
+                            {summary.securedCa.toLocaleString('fr-FR')} € sécurisés
                           </span>
                         )}
                       </span>
@@ -595,9 +658,11 @@ function SessionRow({
   const formationColor = getFormationColor(session.formation_type);
   const inscrits = inscriptionsCounts[session.id] || 0;
   const fin = financials[session.id];
+  const businessPriority = getBusinessPriority(session, inscriptionsCounts);
   const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
   const fillColor = getFillColor(fillRate);
   const lieu = session.adresse_ville || session.lieu;
+  const microSynthesis = getMicroSynthesis(session, fillRate, fin);
 
   const dateRange = `${format(new Date(session.date_debut), 'dd/MM', { locale: fr })}–${format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}`;
 
@@ -640,6 +705,9 @@ function SessionRow({
               </>
             )}
           </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            {microSynthesis}
+          </div>
         </div>
       </TableCell>
 
@@ -659,28 +727,37 @@ function SessionRow({
       </TableCell>
 
       {/* COL 3 — CA */}
-      <TableCell className="py-2 px-2">
-        {fin && fin.ca_securise > 0 ? (
-          <div className="min-w-0">
-            <span className="text-[13px] font-semibold text-success tabular-nums">
-              {fin.ca_securise.toLocaleString('fr-FR')} €
-            </span>
-            {fin.nb_payes > 0 && (
-              <span className="text-[11px] text-muted-foreground/70 ml-1">
-                ({fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''})
+      {showProfitability && (
+        <TableCell className="py-2 px-2">
+          {fin && fin.ca_securise > 0 ? (
+            <div className="min-w-0">
+              <span className="text-[13px] font-semibold text-success tabular-nums">
+                {fin.ca_securise.toLocaleString('fr-FR')} €
               </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-[12px] text-muted-foreground/50">—</span>
-        )}
-      </TableCell>
+              {fin.nb_payes > 0 && (
+                <span className="text-[11px] text-muted-foreground/70 ml-1">
+                  ({fin.nb_payes} payé{fin.nb_payes > 1 ? 's' : ''})
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-[12px] text-muted-foreground/50">—</span>
+          )}
+        </TableCell>
+      )}
 
       {/* COL 4 — STATUT */}
       <TableCell className="py-2 px-2">
-        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
-          {statusConfig[session.statut]?.label || session.statut}
-        </Badge>
+        <div className="space-y-1">
+          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
+            {statusConfig[session.statut]?.label || session.statut}
+          </Badge>
+          <div>
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", businessPriority.class)}>
+              {businessPriority.label}
+            </Badge>
+          </div>
+        </div>
       </TableCell>
 
       {/* COL 5 — ACTIONS */}

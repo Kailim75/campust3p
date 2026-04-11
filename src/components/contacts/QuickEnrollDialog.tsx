@@ -61,12 +61,8 @@ export function QuickEnrollDialog({ contact, open, onOpenChange }: QuickEnrollDi
       });
       toast.success("Contact inscrit à la session");
       onOpenChange(false);
-    } catch (error: any) {
-      if (error?.message?.includes("duplicate")) {
-        toast.error("Ce contact est déjà inscrit à cette session");
-      } else {
-        toast.error("Erreur lors de l'inscription");
-      }
+    } catch (error) {
+      console.error("Erreur inscription rapide:", error);
     } finally {
       setEnrollingSessionId(null);
     }

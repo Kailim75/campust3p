@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -12,27 +12,79 @@ import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
-import { Dashboard } from "@/components/dashboard/Dashboard";
-import { AujourdhuiPage } from "@/components/aujourdhui/AujourdhuiPage";
-import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
-import { FormationsPage } from "@/components/formations/FormationsPage";
-import { ProspectsPage } from "@/components/prospects/ProspectsPage";
-import { SessionsPage } from "@/components/sessions/SessionsPage";
-import { FinancesPage } from "@/components/finances/FinancesPage";
-import { AutomationsPage } from "@/components/automations/AutomationsPage";
-import { SettingsPage } from "@/components/settings/SettingsPage";
-import { AlertesPage } from "@/components/alertes/AlertesPage";
-import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
-import { PartnersPage } from "@/components/partners/PartnersPage";
-import { FormateursPage } from "@/components/formateurs/FormateursPage";
-import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
-import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
-import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
-import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
-import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
-import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+
+const DashboardSection = lazy(() =>
+  import("@/components/dashboard/Dashboard").then((m) => ({ default: m.Dashboard }))
+);
+const AujourdhuiSection = lazy(() =>
+  import("@/components/aujourdhui/AujourdhuiPage").then((m) => ({ default: m.AujourdhuiPage }))
+);
+const ContactsSection = lazy(() =>
+  import("@/components/apprenants/ApprenantsPage").then((m) => ({ default: m.ApprenantsPage }))
+);
+const FormationsSection = lazy(() =>
+  import("@/components/formations/FormationsPage").then((m) => ({ default: m.FormationsPage }))
+);
+const SessionsSection = lazy(() =>
+  import("@/components/sessions/SessionsPage").then((m) => ({ default: m.SessionsPage }))
+);
+const ProspectsSection = lazy(() =>
+  import("@/components/prospects/ProspectsPage").then((m) => ({ default: m.ProspectsPage }))
+);
+const FinancesSection = lazy(() =>
+  import("@/components/finances/FinancesPage").then((m) => ({ default: m.FinancesPage }))
+);
+const AutomationsSection = lazy(() =>
+  import("@/components/automations/AutomationsPage").then((m) => ({ default: m.AutomationsPage }))
+);
+const SettingsSection = lazy(() =>
+  import("@/components/settings/SettingsPage").then((m) => ({ default: m.SettingsPage }))
+);
+const AlertesSection = lazy(() =>
+  import("@/components/alertes/AlertesPage").then((m) => ({ default: m.AlertesPage }))
+);
+const QualiteSection = lazy(() =>
+  import("@/components/qualite/QualiteUnifiedPage").then((m) => ({ default: m.QualiteUnifiedPage }))
+);
+const PartnersSection = lazy(() =>
+  import("@/components/partners/PartnersPage").then((m) => ({ default: m.PartnersPage }))
+);
+const FormateursSection = lazy(() =>
+  import("@/components/formateurs/FormateursPage").then((m) => ({ default: m.FormateursPage }))
+);
+const PlanningConduiteSection = lazy(() =>
+  import("@/components/planning-conduite/PlanningConduitePage").then((m) => ({
+    default: m.PlanningConduitePage,
+  }))
+);
+const SecuritySection = lazy(() =>
+  import("@/components/admin/SecurityStatusPage").then((m) => ({ default: m.SecurityStatusPage }))
+);
+const InboxSection = lazy(() =>
+  import("@/components/inbox/InboxCrmPage").then((m) => ({ default: m.InboxCrmPage }))
+);
+const CorbeilleSection = lazy(() =>
+  import("@/components/corbeille/CorbeillePage").then((m) => ({ default: m.CorbeillePage }))
+);
+const ContactFormDialog = lazy(() =>
+  import("@/components/contacts/ContactFormDialog").then((m) => ({ default: m.ContactFormDialog }))
+);
+const ProspectFormDialog = lazy(() =>
+  import("@/components/prospects/ProspectFormDialog").then((m) => ({
+    default: m.ProspectFormDialog,
+  }))
+);
+
+function SectionFallback() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-7 w-7 animate-spin text-primary" />
+    </div>
+  );
+}
 
 // ─── URL ↔ Section mapping ────────────────────────────────────────────────────
 // Bidirectional map: pathname segment → section key
@@ -237,41 +289,41 @@ const Index = () => {
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
+        return <DashboardSection onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
       case "aujourdhui":
-        return <AujourdhuiPage onNavigate={setActiveSection} />;
+        return <AujourdhuiSection onNavigate={setActiveSection} />;
       case "contacts":
-        return <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        return <ContactsSection initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
       case "formations":
-        return <FormationsPage />;
+        return <FormationsSection />;
       case "sessions":
-        return <SessionsPage />;
+        return <SessionsSection />;
       case "prospects":
-        return <ProspectsPage />;
+        return <ProspectsSection />;
       case "finances":
-        return <FinancesPage />;
+        return <FinancesSection />;
       case "automations":
-        return <AutomationsPage />;
+        return <AutomationsSection />;
       case "settings":
-        return <SettingsPage />;
+        return <SettingsSection />;
       case "formateurs":
-        return <FormateursPage />;
+        return <FormateursSection />;
       case "alertes":
-        return <AlertesPage />;
+        return <AlertesSection />;
       case "qualite":
-        return <QualiteUnifiedPage />;
+        return <QualiteSection />;
       case "partenaires":
-        return <PartnersPage />;
+        return <PartnersSection />;
       case "planning-conduite":
-        return <PlanningConduitePage />;
+        return <PlanningConduiteSection />;
       case "security":
-        return <SecurityStatusPage />;
+        return <SecuritySection />;
       case "inbox":
-        return <InboxCrmPage />;
+        return <InboxSection />;
       case "corbeille":
-        return <CorbeillePage />;
+        return <CorbeilleSection />;
       default:
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
+        return <DashboardSection onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
     }
   };
 
@@ -300,7 +352,9 @@ const Index = () => {
             onNavigate={setActiveSection}
           >
             <PageTransition transitionKey={activeSection}>
-              {renderContent()}
+              <Suspense fallback={<SectionFallback />}>
+                {renderContent()}
+              </Suspense>
             </PageTransition>
           </NavigationProvider>
         </div>
@@ -319,8 +373,16 @@ const Index = () => {
         onOpenChange={setShortcutsDialogOpen}
       />
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
-      <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
-      <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
+      {newContactOpen && (
+        <Suspense fallback={null}>
+          <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
+        </Suspense>
+      )}
+      {newProspectOpen && (
+        <Suspense fallback={null}>
+          <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
+        </Suspense>
+      )}
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}

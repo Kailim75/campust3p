@@ -50,6 +50,20 @@ export interface AttemptAnswer {
   points_earned: number;
 }
 
+export interface LmsQuizAttempt {
+  id: string;
+  quiz_id: string;
+  contact_id: string;
+  attempt_number: number | null;
+  score_pct: number;
+  reussi: boolean;
+  nb_correct: number;
+  nb_total: number;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
 export function useLmsQuizzes(moduleId?: string, lessonId?: string) {
   return useQuery({
     queryKey: ["lms-quizzes", moduleId, lessonId],
@@ -237,7 +251,7 @@ export function useLmsQuizAttempts(quizId?: string, contactId?: string) {
       if (contactId) query = query.eq("contact_id", contactId);
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as LmsQuizAttempt[];
     },
     enabled: !!(quizId || contactId),
   });

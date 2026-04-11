@@ -6,21 +6,26 @@ import { ImportBancaireTab } from "./ImportBancaireTab";
 import { RapprochementTab } from "./RapprochementTab";
 import { PrevisionsTab } from "./PrevisionsTab";
 
-export function TresoreriePage() {
+interface TresoreriePageProps {
+  embedded?: boolean;
+}
+
+export function TresoreriePage({ embedded = false }: TresoreriePageProps) {
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-primary">
-          <Wallet className="h-5 w-5 text-primary-foreground" />
+    <div className={embedded ? "space-y-6" : "p-4 md:p-6 space-y-6"}>
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary">
+            <Wallet className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Trésorerie</h1>
+            <p className="text-sm text-muted-foreground">
+              Suivi bancaire, rapprochement et prévisions de trésorerie
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Trésorerie</h1>
-          <p className="text-sm text-muted-foreground">
-            Suivi bancaire, rapprochement et prévisions de trésorerie
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="dashboard" className="space-y-4">

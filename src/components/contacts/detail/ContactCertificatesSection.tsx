@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useContactCertificates, useAttestationCertificates, CertificateStatus } from "@/hooks/useAttestationCertificates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -78,6 +79,11 @@ export function ContactCertificatesSection({ contactId }: ContactCertificatesSec
     link.click();
   };
 
+  const activeCertificates = certificates?.filter((cert) => cert.status === "generated") ?? [];
+  const cancelledCertificates = certificates?.filter((cert) => cert.status === "cancelled") ?? [];
+  const revokedCertificates = certificates?.filter((cert) => cert.status === "revoked") ?? [];
+  const downloadableCertificates = certificates?.filter((cert) => cert.document_url) ?? [];
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -93,12 +99,53 @@ export function ContactCertificatesSection({ contactId }: ContactCertificatesSec
 
   return (
     <>
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-          <Award className="h-4 w-4" />
-          Certificats d'attestation
-        </h3>
-        <div className="space-y-2 mt-2">
+      <div className="space-y-3">
+        <Card className="border-dashed">
+          <CardContent className="p-4 space-y-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                <p className="font-medium">Certificats d'attestation</p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Vérifie ici les attestations émises, encore valides, annulées ou révoquées.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="rounded-lg border bg-muted/30 px-3 py-3">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="mt-1 text-lg font-semibold">{certificates.length}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 px-3 py-3">
+                <p className="text-xs text-muted-foreground">Valides</p>
+                <p className="mt-1 text-lg font-semibold">{activeCertificates.length}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 px-3 py-3">
+                <p className="text-xs text-muted-foreground">Annulés</p>
+                <p className="mt-1 text-lg font-semibold">{cancelledCertificates.length}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 px-3 py-3">
+                <p className="text-xs text-muted-foreground">Téléchargeables</p>
+                <p className="mt-1 text-lg font-semibold">{downloadableCertificates.length}</p>
+              </div>
+            </div>
+
+            {revokedCertificates.length > 0 && (
+              <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-3 text-sm">
+                <div className="flex items-center gap-2 font-medium">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  Vigilance certificats
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  {revokedCertificates.length} certificat(s) ont été révoqués. Vérifie le motif et la cohérence du dossier.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-2">
           {certificates.map((cert) => {
             const status = (cert.status as CertificateStatus) || 'generated';
             const config = statusConfig[status];

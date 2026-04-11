@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Flame, ToggleLeft, ToggleRight, Copy, Settings2 } from "lucide-react";
+import { Search, Flame, ToggleLeft, ToggleRight, Copy, Settings2, X } from "lucide-react";
 import { getRecentDaysThreshold, setRecentDaysThreshold } from "@/lib/apprenant-active";
-import { useState } from "react";
 
 interface ApprenantsToolbarProps {
   search: string;
@@ -22,6 +21,9 @@ interface ApprenantsToolbarProps {
   filteredCount: number;
   criticalCount: number;
   onOpenDuplicates?: () => void;
+  summaryLine: string;
+  hasActiveFilters: boolean;
+  onResetFilters: () => void;
 }
 
 export function ApprenantsToolbar({
@@ -39,9 +41,32 @@ export function ApprenantsToolbar({
   filteredCount,
   criticalCount,
   onOpenDuplicates,
+  summaryLine,
+  hasActiveFilters,
+  onResetFilters,
 }: ApprenantsToolbarProps) {
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <div className="rounded-xl border bg-card p-4 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Liste opérationnelle</p>
+          <p className="text-sm text-muted-foreground mt-1">{summaryLine}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {expertMode && (
+            <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px]">
+              Mode Expert actif
+            </Badge>
+          )}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs" onClick={onResetFilters}>
+              <X className="h-3.5 w-3.5 mr-1.5" />
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -174,12 +199,6 @@ export function ApprenantsToolbar({
           </TooltipTrigger>
           <TooltipContent className="text-xs">Seuil "activité récente"</TooltipContent>
         </Tooltip>
-
-        {expertMode && (
-          <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px]">
-            Mode Expert actif
-          </Badge>
-        )}
       </div>
     </div>
   );

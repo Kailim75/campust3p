@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Sparkles, Loader2, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { WorkflowAction } from '@/hooks/useWorkflows';
+import type { WorkflowAction } from '@/hooks/useWorkflows';
 
 interface AIWorkflowResult {
   nom: string;
@@ -61,8 +61,9 @@ export function WorkflowAIDialog({ open, onOpenChange, onResult }: Props) {
       } else {
         throw new Error('Résultat incomplet');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la génération');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la génération';
+      toast.error(message);
     } finally {
       setIsGenerating(false);
     }

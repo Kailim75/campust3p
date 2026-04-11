@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  MoreHorizontal, Eye, Pencil, Copy, Trash2, Users, Calendar, MapPin,
+  MoreHorizontal, Eye, Pencil, Copy, Trash2, Users, Calendar, MapPin, AlertTriangle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -45,6 +45,52 @@ interface SessionsKanbanProps {
   onDelete: (id: string) => void;
 }
 
+function isSessionCritical(session: Session, inscriptionsCounts: Record<string, number>) {
+  if (session.statut !== "a_venir") return false;
+
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (daysUntil > 14 || daysUntil < 0) return false;
+
+  const inscrits = inscriptionsCounts[session.id] || 0;
+  const fillRate = session.places_totales > 0 ? inscrits / session.places_totales : 0;
+  return fillRate < 0.5;
+}
+
+function getBusinessPriority(session: Session, inscriptionsCounts: Record<string, number>) {
+  const inscrits = inscriptionsCounts[session.id] || 0;
+  const fillRate = session.places_totales > 0 ? (inscrits / session.places_totales) * 100 : 100;
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) {
+    return { label: "Risque élevé", className: "bg-destructive/10 text-destructive border-destructive/20" };
+  }
+
+  if (fillRate < 70) {
+    return { label: "À surveiller", className: "bg-warning/10 text-warning border-warning/20" };
+  }
+
+  return { label: "OK", className: "bg-success/10 text-success border-success/20" };
+}
+
+function getKanbanSynthesis(session: Session, fillRate: number) {
+  const daysUntil = Math.ceil(
+    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (session.statut === "annulee") return "Session annulée";
+  if (session.statut === "terminee") return fillRate < 50 ? "Session terminée avec faible remplissage" : "Session terminée";
+  if (fillRate >= 100) return "Session complète";
+  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) return "Remplissage insuffisant à l'approche du démarrage";
+  if (daysUntil <= 7 && daysUntil >= 0 && fillRate < 70) return "Démarrage proche, remplissage à surveiller";
+  if (fillRate < 70) return "Remplissage encore en cours";
+  return "Bonne trajectoire";
+}
+
 export function SessionsKanban({
   sessions, inscriptionsCounts, isLoading,
   onViewDetail, onEdit, onDuplicate, onDelete,
@@ -66,6 +112,27 @@ export function SessionsKanban({
     });
     return grouped;
   }, [sessions]);
+
+  const columnSummaries = useMemo(() => {
+    return Object.fromEntries(
+      KANBAN_COLUMNS.map((column) => {
+        const columnSessions = sessionsByStatus[column.id];
+        const criticalCount = columnSessions.filter((session) => isSessionCritical(session, inscriptionsCounts)).length;
+        const totalInscrits = columnSessions.reduce((total, session) => total + (inscriptionsCounts[session.id] || 0), 0);
+        const totalPlaces = columnSessions.reduce((total, session) => total + session.places_totales, 0);
+
+        return [
+          column.id,
+          {
+            criticalCount,
+            totalInscrits,
+            totalPlaces,
+            fillRate: totalPlaces > 0 ? Math.round((totalInscrits / totalPlaces) * 100) : 0,
+          },
+        ];
+      }),
+    ) as Record<SessionStatus, { criticalCount: number; totalInscrits: number; totalPlaces: number; fillRate: number }>;
+  }, [inscriptionsCounts, sessionsByStatus]);
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -98,14 +165,31 @@ export function SessionsKanban({
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-[500px]">
         {KANBAN_COLUMNS.map((column) => (
           <div key={column.id} className="flex flex-col">
+            {(() => {
+              const summary = columnSummaries[column.id];
+              return (
             <div className={cn("rounded-t-lg border-2 p-3 mb-2", column.bgClass, column.borderClass)}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm">{column.label}</h3>
-                <Badge variant="secondary" className="text-xs">
-                  {sessionsByStatus[column.id].length}
-                </Badge>
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm">{column.label}</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {sessionsByStatus[column.id].length}
+                    </Badge>
+                    {summary.criticalCount > 0 && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        {summary.criticalCount} critique{summary.criticalCount > 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {summary.totalInscrits}/{summary.totalPlaces || 0} places · {summary.fillRate}%
+                  </p>
+                </div>
               </div>
             </div>
+              );
+            })()}
 
             <Droppable droppableId={column.id}>
               {(provided, snapshot) => (
@@ -122,6 +206,9 @@ export function SessionsKanban({
                     const fillRate = session.places_totales > 0 ? Math.round((inscrits / session.places_totales) * 100) : 0;
                     const fillColor = fillRate >= 70 ? "bg-success" : fillRate >= 40 ? "bg-warning" : "bg-destructive";
                     const fillText = fillRate >= 70 ? "text-success" : fillRate >= 40 ? "text-warning" : "text-destructive";
+                    const isCritical = isSessionCritical(session, inscriptionsCounts);
+                    const priority = getBusinessPriority(session, inscriptionsCounts);
+                    const synthesis = getKanbanSynthesis(session, fillRate);
 
                     return (
                       <Draggable key={session.id} draggableId={session.id} index={index}>
@@ -132,6 +219,7 @@ export function SessionsKanban({
                             {...provided.dragHandleProps}
                             className={cn(
                               "cursor-grab active:cursor-grabbing transition-shadow",
+                              isCritical && "border-destructive/40 bg-destructive/[0.03]",
                               snapshot.isDragging && "shadow-lg ring-2 ring-primary/20"
                             )}
                           >
@@ -175,6 +263,18 @@ export function SessionsKanban({
                                 {getFormationLabel(session.formation_type)}
                               </Badge>
 
+                              <div className="flex flex-wrap gap-1">
+                                <Badge variant="outline" className={cn("text-[10px]", priority.className)}>
+                                  {priority.label}
+                                </Badge>
+                                {isCritical && (
+                                  <Badge variant="destructive" className="gap-1 text-[10px]">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Critique
+                                  </Badge>
+                                )}
+                              </div>
+
                               {/* Fill rate bar */}
                               <div>
                                 <div className="flex items-center justify-between text-[10px] mb-1">
@@ -209,6 +309,10 @@ export function SessionsKanban({
                                   </div>
                                 )}
                               </div>
+
+                              <p className={cn("text-[11px] leading-tight", isCritical ? "text-destructive" : "text-muted-foreground")}>
+                                {synthesis}
+                              </p>
                             </CardContent>
                           </Card>
                         )}

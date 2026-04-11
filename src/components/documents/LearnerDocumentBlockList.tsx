@@ -6,8 +6,6 @@ import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import { downloadPdf, downloadPdfAsBase64, isPdfReadyForSignature } from "@/lib/documents/pdfResolver";
-import { openWhatsApp } from "@/lib/phone-utils";
 import { useLearnerDocumentBlocks } from "@/hooks/useLearnerDocumentBlocks";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { useGenerateDocument, useDownloadGeneratedDoc, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
@@ -68,6 +66,7 @@ export function LearnerDocumentBlockList({
     }
 
     try {
+      const { downloadPdf } = await import("@/lib/documents/pdfResolver");
       const { blob } = await downloadPdf(item.storagePath);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -91,6 +90,7 @@ export function LearnerDocumentBlockList({
     }
 
     try {
+      const { downloadPdfAsBase64 } = await import("@/lib/documents/pdfResolver");
       const result = await downloadPdfAsBase64(item.storagePath);
       if (!result) {
         toast.error("Impossible de récupérer le document pour l'email");
@@ -122,7 +122,7 @@ export function LearnerDocumentBlockList({
     } catch (err) {
       toast.error("Erreur lors de la préparation de l'email");
     }
-  }, [contactEmail, contactName, openComposer, refetch]);
+  }, [contactEmail, contactId, contactName, openComposer, refetch]);
 
   const handleWhatsApp = useCallback((item: DocumentWorkflowItem) => {
     if (!contactPhone) return;

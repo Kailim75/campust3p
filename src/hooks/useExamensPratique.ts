@@ -14,6 +14,9 @@ export interface ExamenPratique {
   heure_examen: string | null;
   centre_examen: string | null;
   adresse_centre: string | null;
+  evaluateur_id: string | null;
+  vehicule_id: string | null;
+  numero_tentative: number | null;
   statut: ExamenStatut;
   resultat: ExamenResultat | null;
   score: number | null;
@@ -96,7 +99,7 @@ export function useCreateExamenPratique() {
       queryClient.invalidateQueries({ queryKey: ["examens-pratique", "contact", variables.contact_id] });
       toast.success("Examen planifié");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erreur lors de la planification");
       console.error(error);
     },
@@ -124,7 +127,7 @@ export function useUpdateExamenPratique() {
       queryClient.invalidateQueries({ queryKey: ["fiches-pratique"] });
       toast.success("Examen mis à jour");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erreur lors de la mise à jour");
       console.error(error);
     },
@@ -149,7 +152,7 @@ export function useDeleteExamenPratique() {
       queryClient.invalidateQueries({ queryKey: ["examens-pratique", "contact", result.contactId] });
       toast.success("Examen supprimé");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erreur lors de la suppression");
       console.error(error);
     },
