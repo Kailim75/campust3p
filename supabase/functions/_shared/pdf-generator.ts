@@ -6,6 +6,8 @@ import jsPDFModule from "https://esm.sh/jspdf@2.5.2";
 // Handle both ESM default export and CJS module.exports
 const jsPDF = (jsPDFModule as any).jsPDF || (jsPDFModule as any).default?.jsPDF || (jsPDFModule as any).default || jsPDFModule;
 
+type JsPDFInstance = InstanceType<typeof jsPDF>;
+
 // ==================== TYPES ====================
 export interface ContactInfo {
   civilite?: string;

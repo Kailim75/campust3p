@@ -4,7 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { JSZip } from "https://esm.sh/jszip@3.10.1";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,8 +141,8 @@ serve(async (req) => {
     for (const doc of documents) {
       if (!doc.file_path) continue;
 
-      const templateData = doc.template as { name: string; type: string } | null;
-      const contactData = doc.contact as { nom: string; prenom: string } | null;
+      const templateData = doc.template as unknown as { name: string; type: string } | null;
+      const contactData = doc.contact as unknown as { nom: string; prenom: string } | null;
       const contactName = contactData ? `${contactData.prenom || ""} ${contactData.nom || ""}`.trim() : "Inconnu";
       const documentType = templateData?.type || "autre";
 

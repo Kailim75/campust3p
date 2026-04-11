@@ -147,7 +147,7 @@ serve(async (req) => {
       if (!doc.contact_id) continue;
       
       // Filter by document types if specified
-      const templateData = doc.template as { name: string; type: string } | null;
+      const templateData = doc.template as unknown as { name: string; type: string } | null;
       if (documentTypes?.length && !documentTypes.includes(templateData?.type || "")) {
         continue;
       }
