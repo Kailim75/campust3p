@@ -91,7 +91,7 @@ export function SessionsPage() {
 
   const uniqueFormationTypes = useMemo(() => {
     if (!sessions) return [];
-    return [...new Set(sessions.map(s => s.formation_type))].sort();
+    return [...new Set(sessions.map((s) => s.formation_type).filter(Boolean))].sort();
   }, [sessions]);
 
   const upcomingSessionsCount = useMemo(

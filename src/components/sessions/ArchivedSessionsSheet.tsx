@@ -79,13 +79,16 @@ export function ArchivedSessionsSheet({ open, onOpenChange }: ArchivedSessionsSh
     if (!archivedSessions) return [];
     
     return archivedSessions.filter((session) => {
+      const formationType = session.formation_type ?? "";
+      const sessionNumber = session.numero_session ?? "";
+
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch =
           session.nom.toLowerCase().includes(searchLower) ||
-          session.formation_type.toLowerCase().includes(searchLower) ||
-          session.numero_session?.toLowerCase().includes(searchLower);
+          formationType.toLowerCase().includes(searchLower) ||
+          sessionNumber.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
       
@@ -96,7 +99,7 @@ export function ArchivedSessionsSheet({ open, onOpenChange }: ArchivedSessionsSh
       }
       
       // Type filter
-      if (typeFilter !== "all" && session.formation_type !== typeFilter) {
+      if (typeFilter !== "all" && formationType !== typeFilter) {
         return false;
       }
       

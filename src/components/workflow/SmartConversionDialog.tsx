@@ -233,16 +233,19 @@ export function SmartConversionDialog({
         statut: "converti",
         converted_contact_id: contactId,
       };
-      await supabase
+      const { error } = await supabase
         .from("prospects")
         .update(updates)
         .eq("id", prospect.id);
+
+      if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Prospect associé au contact existant");
       handleOpenChange(false);
-    } catch {
+    } catch (error) {
+      console.error("Error linking prospect to existing contact:", error);
       toast.error("Erreur lors de l'association");
     } finally {
       setIsSubmitting(false);

@@ -96,7 +96,11 @@ export const DEFAULT_FORMATION_COLOR = {
   badge: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700",
 };
 
-export function getFormationColor(formationType: string) {
+export function getFormationColor(formationType?: string | null) {
+  if (!formationType) {
+    return DEFAULT_FORMATION_COLOR;
+  }
+
   return FORMATION_COLORS[formationType] || DEFAULT_FORMATION_COLOR;
 }
 
@@ -114,6 +118,10 @@ export const FORMATION_LABELS: Record<string, string> = {
   Premium: "Premium",
 };
 
-export function getFormationLabel(formationType: string): string {
+export function getFormationLabel(formationType?: string | null): string {
+  if (!formationType) {
+    return "Non classé";
+  }
+
   return FORMATION_LABELS[formationType] || formationType;
 }
