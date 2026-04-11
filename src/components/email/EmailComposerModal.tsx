@@ -73,7 +73,7 @@ export function EmailComposerModal({
   onSuccess,
   attachments: sharedAttachments,
 }: EmailComposerProps) {
-  const { fromAddress: centreFromAddress } = useCentreEmailConfig();
+  const { fromAddress: centreFromAddress, replyTo: centreReplyTo } = useCentreEmailConfig();
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
   const [sending, setSending] = useState(false);
@@ -137,6 +137,8 @@ export function EmailComposerModal({
         html: htmlBody,
         type: "crm_composer",
         recipientName,
+        fromAddress: centreFromAddress,
+        replyTo: centreReplyTo,
         ...(emailAttachments && emailAttachments.length > 0 ? {
           attachments: emailAttachments.map(a => ({
             filename: a.filename,
@@ -231,6 +233,8 @@ export function EmailComposerModal({
             subject,
             html: htmlBody,
             type: "crm_composer_bcc",
+            fromAddress: centreFromAddress,
+            replyTo: centreReplyTo,
             ...(bccAttachments && bccAttachments.length > 0 ? {
               attachments: bccAttachments.map(a => ({
                 filename: a.filename,
