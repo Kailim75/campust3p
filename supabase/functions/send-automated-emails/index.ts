@@ -20,12 +20,20 @@ import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // ===============================================
-// CONFIGURATION EMAIL CENTRALISÉE - NE PAS MODIFIER
+// CONFIGURATION EMAIL PAR DÉFAUT (fallback)
 // ===============================================
-const EMAIL_CONFIG = {
+const DEFAULT_EMAIL_CONFIG = {
   FROM: "Ecole T3P Montrouge <montrouge@ecolet3p.fr>",
   REPLY_TO: "montrouge@ecolet3p.fr",
 } as const;
+
+// Resolved at request time from body params or defaults
+function resolveEmailConfig(body: any) {
+  return {
+    FROM: (typeof body?.fromAddress === "string" && body.fromAddress.trim()) ? body.fromAddress.trim() : DEFAULT_EMAIL_CONFIG.FROM,
+    REPLY_TO: (typeof body?.replyTo === "string" && body.replyTo.trim()) ? body.replyTo.trim() : DEFAULT_EMAIL_CONFIG.REPLY_TO,
+  };
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
