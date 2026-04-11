@@ -15,6 +15,7 @@ import { AIAssistantFloatingButton } from "./components/ai/AIAssistantFloatingBu
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { CentreProvider } from "@/contexts/CentreContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
+import { MainApp } from "@/components/MainApp";
 import { useCrmCustomization } from "@/hooks/useCrmCustomization";
 
 function CrmCustomizationInit() {
@@ -23,6 +24,7 @@ function CrmCustomizationInit() {
 }
 
 // Lazy loaded pages
+const Index = lazy(() => import("./pages/Index"));
 const Enquete = lazy(() => import("./pages/Enquete"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
@@ -43,9 +45,6 @@ const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.Ins
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const MainApp = lazy(() =>
-  import("@/components/MainApp").then((m) => ({ default: m.MainApp }))
-);
 
 const LazyFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -53,20 +52,10 @@ const LazyFallback = () => (
   </div>
 );
 
-interface MutationErrorLike {
-  code?: string | number;
-  message?: string;
-}
-
-function isMutationErrorLike(error: unknown): error is MutationErrorLike {
-  return typeof error === "object" && error !== null;
-}
-
 const queryClient = new QueryClient({
   defaultOptions: {
     mutations: {
-      onError: (error: unknown) => {
-        if (!isMutationErrorLike(error)) return;
+      onError: (error: any) => {
         // Log RLS violations globally
         if (error?.code === "42501" || error?.message?.includes("row-level security")) {
           import("@/utils/rlsViolationLogger").then(({ logRlsViolation }) => {

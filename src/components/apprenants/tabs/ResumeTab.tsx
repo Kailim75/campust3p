@@ -11,7 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { format, parseISO, isToday, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
@@ -35,20 +34,6 @@ interface PriorityAction {
   actionExtra?: string;
 }
 
-type ContactDocumentType = Pick<Tables<"contact_documents">, "type_document">;
-type FactureSummary = Pick<Tables<"factures">, "id" | "montant_total" | "statut">;
-type PaiementSummary = Pick<Tables<"paiements">, "facture_id" | "montant">;
-type HistoriqueSummary = Pick<Tables<"contact_historique">, "id" | "titre" | "contenu" | "date_echange" | "date_rappel" | "rappel_description" | "alerte_active">;
-
-interface ResumeInscription {
-  id: string;
-  session_id: string;
-  sessions: {
-    nom: string | null;
-    date_debut: string | null;
-  } | null;
-}
-
 export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProps) {
   const queryClient = useQueryClient();
 
@@ -68,20 +53,20 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
           .order("date_echange", { ascending: false }).limit(10),
       ]);
 
-      const docTypes = new Set(((docsRes.data || []) as ContactDocumentType[]).map((d) => d.type_document));
+      const docTypes = new Set((docsRes.data || []).map((d: any) => d.type_document));
       const cmaReceived = CMA_REQUIRED_DOCS.filter(d => docTypes.has(d)).length;
       const missingCMA = CMA_REQUIRED_DOCS.filter(d => !docTypes.has(d));
 
-      const factures = (facturesRes.data || []) as FactureSummary[];
-      const paiementsList = (paiementsRes.data || []) as PaiementSummary[];
+      const factures = facturesRes.data || [];
+      const paiementsList = paiementsRes.data || [];
       const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = paiementsList.reduce((s, p) => s + Number(p.montant || 0), 0);
+      const totalPaye = paiementsList.reduce((s, p) => s + Number((p as any).montant || 0), 0);
       const restant = totalFacture - totalPaye;
 
-      const inscription = (inscRes.data?.[0] as ResumeInscription | undefined) || null;
-      const nextRappel = (rappelsRes.data?.[0] as HistoriqueSummary | undefined) || null;
+      const inscription = inscRes.data?.[0] || null;
+      const nextRappel = rappelsRes.data?.[0] || null;
 
-      const autoNotes = (notesRes.data || []) as HistoriqueSummary[];
+      const autoNotes = (notesRes.data || []) as Array<{ id: string; titre: string; contenu: string | null; date_echange: string }>;
       const todayNotes = autoNotes.filter(n => isToday(new Date(n.date_echange)));
 
       // Anti-double-relance
@@ -125,24 +110,6 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
     hasFacture, todayNotes = [], alreadyRelancedCMA, alreadyRelancedPaiement,
     lastContact,
   } = data || {};
-  const sessionLabel = inscription?.sessions?.nom || "Non assigné";
-  const sessionDateLabel = inscription?.sessions?.date_debut
-    ? format(parseISO(inscription.sessions.date_debut), "dd/MM/yyyy", { locale: fr })
-    : null;
-  const upcomingSessionInDays = inscription?.sessions?.date_debut
-    ? differenceInDays(parseISO(inscription.sessions.date_debut), new Date())
-    : null;
-  const nextRappelLabel = nextRappel?.date_rappel
-    ? format(parseISO(nextRappel.date_rappel), "dd/MM/yyyy", { locale: fr })
-    : "Aucun";
-  const lastContactLabel = lastContact
-    ? format(new Date(lastContact.date_echange), "dd/MM à HH:mm", { locale: fr })
-    : "Jamais";
-  const shortSummaryItems = [
-    `${cmaReceived}/5 pièces CMA`,
-    hasFacture ? (restant > 0 ? `${restant.toLocaleString("fr-FR")}€ restant` : "Facture soldée") : "Pas de facture",
-    inscription ? sessionLabel : "Session à planifier",
-  ];
 
   // ─── A) Single Priority Action ───
   let priorityAction: PriorityAction | null = null;
@@ -196,7 +163,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
     {
       label: "Session",
       done: !!inscription,
-      detail: inscription ? sessionLabel : "Non assigné",
+      detail: inscription ? (inscription as any).sessions?.nom || "Assigné" : "Non assigné",
       tab: "formation",
     },
     {
@@ -215,63 +182,6 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Vue d’ensemble du dossier</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Les signaux clés pour savoir en quelques secondes où en est l’apprenant.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {shortSummaryItems.map((item) => (
-              <Badge key={item} variant="outline" className="bg-background text-xs">
-                {item}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dossier CMA</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{cmaReceived}/5</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {missingCMA.length > 0
-              ? `${missingCMA.length} document${missingCMA.length > 1 ? "s" : ""} à récupérer`
-              : "Dossier documentaire complet"}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Finance</p>
-          <p className={cn("mt-2 text-2xl font-semibold", restant > 0 ? "text-warning" : "text-foreground")}>
-            {restant.toLocaleString("fr-FR")}€
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {hasFacture ? (restant > 0 ? "Reste à encaisser" : "Dossier soldé") : "Aucune facture émise"}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Session</p>
-          <p className="mt-2 text-sm font-semibold text-foreground">{sessionLabel}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {sessionDateLabel
-              ? upcomingSessionInDays !== null && upcomingSessionInDays >= 0
-                ? `${sessionDateLabel} · J-${upcomingSessionInDays}`
-                : sessionDateLabel
-              : "Pas encore planifiée"}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Suivi</p>
-          <p className="mt-2 text-sm font-semibold text-foreground">{lastContactLabel}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Prochain rappel : {nextRappelLabel}
-          </p>
-        </Card>
-      </div>
-
       {/* A) Priority action — single prominent card */}
       {priorityAction && (
         <Card className={cn(

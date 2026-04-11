@@ -1,32 +1,12 @@
-import { lazy, Suspense } from "react";
 import { useAdminMode } from "@/contexts/AdminModeContext";
+import { SuperAdminApp } from "@/components/superadmin/SuperAdminApp";
+import Index from "@/pages/Index";
 import { Loader2 } from "lucide-react";
+import { LegalDocumentAcceptanceModal } from "@/components/legal/LegalDocumentAcceptanceModal";
 import { useLegalDocuments } from "@/hooks/useLegalDocuments";
 import { useCentres } from "@/hooks/useCentres";
+import { OnboardingWizard } from "@/components/onboarding/wizard/OnboardingWizard";
 import { useAlmaReturnHandler } from "@/hooks/useAlmaReturnHandler";
-
-const SuperAdminApp = lazy(() =>
-  import("@/components/superadmin/SuperAdminApp").then((m) => ({ default: m.SuperAdminApp }))
-);
-const Index = lazy(() => import("@/pages/Index"));
-const LegalDocumentAcceptanceModal = lazy(() =>
-  import("@/components/legal/LegalDocumentAcceptanceModal").then((m) => ({
-    default: m.LegalDocumentAcceptanceModal,
-  }))
-);
-const OnboardingWizard = lazy(() =>
-  import("@/components/onboarding/wizard/OnboardingWizard").then((m) => ({
-    default: m.OnboardingWizard,
-  }))
-);
-
-function MainAppFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
-}
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
@@ -37,13 +17,17 @@ export function MainApp() {
 
   // Loading state
   if (isLoading || docsLoading || centresLoading) {
-    return <MainAppFallback />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   // Super Admin Mode
   if (mode === "superadmin" && isSuperAdmin) {
     return (
-      <Suspense fallback={<MainAppFallback />}>
+      <>
         <LegalDocumentAcceptanceModal open={showLegalModal} />
         {!showLegalModal && <SuperAdminApp />}
         {showLegalModal && (
@@ -53,22 +37,18 @@ export function MainApp() {
             </div>
           </div>
         )}
-      </Suspense>
+      </>
     );
   }
 
   // Onboarding: si l'utilisateur n'a aucun centre, afficher le wizard
   if (!isSuperAdmin && (!centres || centres.length === 0)) {
-    return (
-      <Suspense fallback={<MainAppFallback />}>
-        <OnboardingWizard />
-      </Suspense>
-    );
+    return <OnboardingWizard />;
   }
 
   // Centre Mode (default)
   return (
-    <Suspense fallback={<MainAppFallback />}>
+    <>
       <LegalDocumentAcceptanceModal open={showLegalModal} />
       {!showLegalModal && <Index />}
       {showLegalModal && (
@@ -78,6 +58,6 @@ export function MainApp() {
           </div>
         </div>
       )}
-    </Suspense>
+    </>
   );
 }

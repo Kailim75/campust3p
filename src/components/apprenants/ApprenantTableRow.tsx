@@ -67,7 +67,6 @@ export function ApprenantTableRow({
 }: ApprenantTableRowProps) {
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
   const pedStatus = getPedagogicalStatus(contact.statut);
-  const statutApprenant = (contact.statut_apprenant as StatutApprenant | null | undefined) ?? null;
   const payDisplay = getPaymentDisplay(contact.paymentStatus, contact.totalFacture, contact.totalPaye);
   const formationClass = contact.formation
     ? FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray"
@@ -110,14 +109,9 @@ export function ApprenantTableRow({
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
-            <div className="font-medium text-sm text-foreground truncate max-w-[180px]">
-              {contact.prenom} {contact.nom}
-            </div>
-            <div className="text-[11px] text-muted-foreground truncate max-w-[220px]">
-              {contact.email || contact.telephone || "Sans contact direct"}
-            </div>
-          </div>
+          <span className="font-medium text-sm text-foreground truncate max-w-[180px]">
+            {contact.prenom} {contact.nom}
+          </span>
           {active && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -145,29 +139,22 @@ export function ApprenantTableRow({
 
       {/* Session */}
       <TableCell className="py-2">
-        <div className="flex flex-col">
-          <span className={cn("text-xs", sessionSoon && "text-amber-600 font-medium")}>
-            {sessionLabel}
-          </span>
-          {contact.sessionDateDebut && (
-            <span className={cn("text-[10px]", sessionSoon ? "text-amber-600" : "text-muted-foreground")}>
-              {format(new Date(contact.sessionDateDebut), "dd MMM yyyy", { locale: fr })}
-            </span>
-          )}
-        </div>
+        <span className={cn("text-xs", sessionSoon && "text-amber-600 font-medium")}>
+          {sessionLabel}
+        </span>
       </TableCell>
 
       {/* Statut pédagogique + statut apprenant */}
       <TableCell className="py-2">
         <div className="flex items-center gap-1.5">
           <span className={pedStatus.className}>{pedStatus.label}</span>
-          {statutApprenant && statutApprenant !== "actif" && (
+          {((contact as any).statut_apprenant as StatutApprenant) && ((contact as any).statut_apprenant as StatutApprenant) !== "actif" && (
             <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", {
-              "bg-success/10 text-success": statutApprenant === "diplome",
-              "bg-destructive/10 text-destructive": statutApprenant === "abandon",
-              "bg-muted text-muted-foreground": statutApprenant === "archive",
+              "bg-success/10 text-success": (contact as any).statut_apprenant === "diplome",
+              "bg-destructive/10 text-destructive": (contact as any).statut_apprenant === "abandon",
+              "bg-muted text-muted-foreground": (contact as any).statut_apprenant === "archive",
             })}>
-              {getStatutApprenantLabel(statutApprenant)}
+              {getStatutApprenantLabel((contact as any).statut_apprenant)}
             </span>
           )}
         </div>

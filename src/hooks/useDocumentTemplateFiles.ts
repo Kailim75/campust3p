@@ -300,31 +300,27 @@ export function useSaveGeneratedDocument() {
       templateFileId,
       templateTextId,
       nom,
-      fileBlob,
+      pdfBlob,
       sessionId,
       metadata,
-      mimeType = "application/pdf",
-      fileExtension = "pdf",
     }: {
       contactId: string;
       centreId: string;
       templateFileId?: string;
       templateTextId?: string;
       nom: string;
-      fileBlob: Blob;
+      pdfBlob: Blob;
       sessionId?: string;
       metadata?: Record<string, unknown>;
-      mimeType?: string;
-      fileExtension?: string;
     }) => {
-      // Upload du document généré — path must start with centreId for RLS
-      const fileName = `${Date.now()}-${nom.replace(/[^a-zA-Z0-9.-]/g, "_")}.${fileExtension}`;
+      // Upload le PDF généré — path must start with centreId for RLS
+      const fileName = `${Date.now()}-${nom.replace(/[^a-zA-Z0-9.-]/g, "_")}.pdf`;
       const filePath = `${centreId}/${contactId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("generated-documents")
-        .upload(filePath, fileBlob, {
-          contentType: mimeType,
+        .upload(filePath, pdfBlob, {
+          contentType: "application/pdf",
         });
 
       if (uploadError) throw uploadError;
@@ -338,8 +334,8 @@ export function useSaveGeneratedDocument() {
           template_text_id: templateTextId || null,
           nom,
           file_path: filePath,
-          file_size: fileBlob.size,
-          mime_type: mimeType,
+          file_size: pdfBlob.size,
+          mime_type: "application/pdf",
           session_id: sessionId || null,
           metadata: (metadata || {}) as Record<string, never>,
         }])
@@ -355,7 +351,6 @@ export function useSaveGeneratedDocument() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["generated-documents", variables.contactId] });
-      queryClient.invalidateQueries({ queryKey: ["document-instances"] });
       toast.success("Document généré et sauvegardé");
     },
     onError: (error) => {
@@ -384,7 +379,6 @@ export function useDeleteGeneratedDocument() {
     },
     onSuccess: (contactId) => {
       queryClient.invalidateQueries({ queryKey: ["generated-documents", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["document-instances"] });
       toast.success("Document supprimé");
     },
     onError: (error) => {

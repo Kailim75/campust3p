@@ -24,18 +24,13 @@ import {
   ArrowRightLeft, Calendar, MapPin, Users, Search, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessions, useAllSessionInscriptionsCounts, type Session } from "@/hooks/useSessions";
+import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
-
-type TransferCandidateSession = Session & {
-  filled: number;
-  remaining: number;
-};
 
 interface TransferStudentDialogProps {
   open: boolean;
@@ -58,14 +53,13 @@ export function TransferStudentDialog({
 }: TransferStudentDialogProps) {
   const [search, setSearch] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
-  const [confirmSession, setConfirmSession] = useState<TransferCandidateSession | null>(null);
+  const [confirmSession, setConfirmSession] = useState<any | null>(null);
   const { data: sessions = [], isLoading } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
   const queryClient = useQueryClient();
 
   const availableSessions = sessions
     .filter((s) => {
-      const formationType = s.formation_type ?? "";
       if (s.id === currentSessionId) return false;
       const isUpcoming = new Date(s.date_fin) >= new Date();
       const isActive = s.statut === "a_venir" || s.statut === "en_cours";
@@ -74,7 +68,7 @@ export function TransferStudentDialog({
       const matchesFormation = !contactFormation || s.formation_type === contactFormation;
       const matchesSearch = !search ||
         s.nom.toLowerCase().includes(search.toLowerCase()) ||
-        formationType.toLowerCase().includes(search.toLowerCase()) ||
+        s.formation_type.toLowerCase().includes(search.toLowerCase()) ||
         (s.lieu || "").toLowerCase().includes(search.toLowerCase());
       return isUpcoming && isActive && hasSpace && matchesSearch && (matchesFormation || search);
     })
@@ -85,7 +79,7 @@ export function TransferStudentDialog({
     })
     .sort((a, b) => new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime());
 
-  const handleTransfer = async (targetSession: TransferCandidateSession) => {
+  const handleTransfer = async (targetSession: typeof availableSessions[0]) => {
     setIsTransferring(true);
     try {
       // 1. Check no duplicate inscription in target
@@ -149,9 +143,9 @@ export function TransferStudentDialog({
       toast.success(`${contactName} transféré vers "${targetSession.nom}"`);
       setConfirmSession(null);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Transfer error:", error);
-      toast.error("Erreur lors du transfert : " + (error instanceof Error ? error.message : "Erreur inconnue"));
+      toast.error("Erreur lors du transfert : " + (error.message || "Erreur inconnue"));
     } finally {
       setIsTransferring(false);
     }

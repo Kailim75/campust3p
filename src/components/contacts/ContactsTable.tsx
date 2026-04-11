@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText, Users, RotateCcw } from "lucide-react";
+import { Search, Filter, Phone, Mail, MessageCircle, Plus, UserPlus, Download, FileText, Users } from "lucide-react";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { cn } from "@/lib/utils";
@@ -93,7 +93,7 @@ export function ContactsTable() {
   // Keep full contacts list for formation filter options & exports
   const { data: allContacts } = useContacts();
 
-  const contacts = useMemo(() => paginatedResult?.data ?? [], [paginatedResult?.data]);
+  const contacts = paginatedResult?.data ?? [];
   const totalCount = paginatedResult?.totalCount ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
   const startIndex = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
@@ -137,21 +137,7 @@ export function ContactsTable() {
     }
   }, [searchParams, setSearchParams]);
 
-  const formations = useMemo(
-    () => [...new Set(allContacts?.map((contact) => contact.formation).filter(Boolean) ?? [])],
-    [allContacts]
-  );
-  const hasFilters = searchQuery.length > 0 || statusFilter !== "all" || formationFilter !== "all";
-  const pageStats = useMemo(() => {
-    const withoutEmail = contacts.filter((contact) => !contact.email).length;
-    const withoutPhone = contacts.filter((contact) => !contact.telephone).length;
-    const pending = contacts.filter((contact) => (contact.statut ?? "En attente de validation") === "En attente de validation").length;
-    return {
-      withoutEmail,
-      withoutPhone,
-      pending,
-    };
-  }, [contacts]);
+  const formations = [...new Set(allContacts?.map((c) => c.formation).filter(Boolean) ?? [])];
 
   // Get selected contacts for bulk operations
   const selectedContacts = useMemo(() => {
@@ -183,13 +169,6 @@ export function ContactsTable() {
 
   const handleClearSelection = () => {
     setSelectedIds(new Set());
-  };
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setFormationFilter("all");
-    setCurrentPage(1);
   };
 
   const handleContactClick = (contact: Contact) => {
@@ -287,23 +266,9 @@ export function ContactsTable() {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-foreground">
-              {totalCount} contact{totalCount > 1 ? 's' : ''}
-            </span>
-            <Badge variant="outline">{contacts.length} sur cette page</Badge>
-            <Badge variant="outline">{pageStats.pending} en attente</Badge>
-            {pageStats.withoutEmail > 0 && <Badge variant="secondary">{pageStats.withoutEmail} sans email</Badge>}
-            {pageStats.withoutPhone > 0 && <Badge variant="secondary">{pageStats.withoutPhone} sans téléphone</Badge>}
-            {selectedIds.size > 0 && <Badge variant="secondary">{selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}</Badge>}
-          </div>
-          {hasFilters && (
-            <Button variant="ghost" size="sm" className="gap-2 self-start sm:self-auto" onClick={resetFilters}>
-              <RotateCcw className="h-3.5 w-3.5" />
-              Réinitialiser les filtres
-            </Button>
-          )}
+        {/* Stats */}
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span>{totalCount} contact{totalCount > 1 ? 's' : ''}</span>
         </div>
 
         {/* Bulk Actions Bar */}

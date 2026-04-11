@@ -14,13 +14,9 @@ export function useCreateSession() {
   return useMutation({
     mutationFn: async (session: SessionInsert) => {
       const track = getTrackFromFormationType(session.formation_type);
-      const sessionPayload: SessionInsert = {
-        ...session,
-        track,
-      };
       const { data, error } = await supabase
         .from("sessions")
-        .insert(sessionPayload)
+        .insert({ ...session, track } as any)
         .select()
         .single();
 
@@ -90,35 +86,16 @@ interface AddInscriptionParams {
   autoCreateFacture?: boolean;
 }
 
-interface PostgrestErrorLike {
-  code?: string;
-  message?: string;
-}
-
-function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
-  return typeof error === "object" && error !== null;
-}
-
-async function rollbackInscription(inscriptionId: string) {
-  const { error } = await supabase.rpc("soft_delete_record", {
-    p_table_name: "session_inscriptions",
-    p_record_id: inscriptionId,
-    p_reason: "Rollback inscription après échec de génération de facture",
-  });
-
-  return error;
-}
-
 export function useAddInscription() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
-      sessionId, contactId, sessionPrix = 0, sessionNom = '', autoCreateFacture = false,
+      sessionId, contactId, sessionPrix = 0, sessionNom = '', autoCreateFacture = true,
     }: AddInscriptionParams) => {
       const { data: inscription, error } = await supabase
         .from("session_inscriptions")
-        .insert({ session_id: sessionId, contact_id: contactId, statut: "inscrit" })
+        .insert({ session_id: sessionId, contact_id: contactId })
         .select()
         .single();
 
@@ -127,35 +104,23 @@ export function useAddInscription() {
 
       if (autoCreateFacture && inscription) {
         const { data: numeroFacture, error: numeroError } = await supabase.rpc("generate_numero_facture");
-
-        if (numeroError || !numeroFacture) {
-          const rollbackError = await rollbackInscription(inscription.id);
-          const suffix = rollbackError ? ` Rollback impossible: ${rollbackError.message}` : "";
-          throw new Error(`Inscription annulée : impossible de générer la facture brouillon.${suffix}`);
+        if (!numeroError && numeroFacture) {
+          const centreId = await getUserCentreId();
+          const { error: factureError } = await supabase
+            .from("factures")
+            .insert({
+              centre_id: centreId,
+              contact_id: contactId,
+              session_inscription_id: inscription.id,
+              numero_facture: numeroFacture,
+              montant_total: sessionPrix,
+              type_financement: "personnel",
+              statut: "brouillon",
+              date_emission: new Date().toISOString().split("T")[0],
+              commentaires: sessionNom ? `Facture auto-générée pour la session: ${sessionNom}` : 'Facture auto-générée',
+            });
+          if (!factureError) factureCreated = true;
         }
-
-        const centreId = await getUserCentreId();
-        const { error: factureError } = await supabase
-          .from("factures")
-          .insert({
-            centre_id: centreId,
-            contact_id: contactId,
-            session_inscription_id: inscription.id,
-            numero_facture: numeroFacture,
-            montant_total: sessionPrix,
-            type_financement: "personnel",
-            statut: "brouillon",
-            date_emission: new Date().toISOString().split("T")[0],
-            commentaires: sessionNom ? `Facture auto-générée pour la session: ${sessionNom}` : "Facture auto-générée",
-          });
-
-        if (factureError) {
-          const rollbackError = await rollbackInscription(inscription.id);
-          const suffix = rollbackError ? ` Rollback impossible: ${rollbackError.message}` : "";
-          throw new Error(`Inscription annulée : impossible de créer la facture brouillon.${suffix}`);
-        }
-
-        factureCreated = true;
       }
 
       return { inscription, factureCreated };
@@ -163,16 +128,9 @@ export function useAddInscription() {
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
-      queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "all_counts"] });
-      queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      if (isPostgrestErrorLike(error) && (error as any).code === "23505") {
-        toast.error("Ce stagiaire est déjà inscrit à cette session");
-        return;
-      }
-
       toast.error("Erreur lors de l'inscription : " + error.message);
     },
   });

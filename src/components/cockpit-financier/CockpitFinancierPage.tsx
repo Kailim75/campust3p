@@ -9,17 +9,13 @@ import { RevenusTab } from "./RevenusTab";
 import { ChargesTab } from "./ChargesTab";
 import { PrevisionnelTab } from "./PrevisionnelTab";
 
-interface CockpitFinancierPageProps {
-  embedded?: boolean;
-}
-
-export function CockpitFinancierPage({ embedded = false }: CockpitFinancierPageProps) {
+export function CockpitFinancierPage() {
   const [periode, setPeriode] = useState<Periode>("mois");
   const range = useMemo(() => computePeriodRange(periode), [periode]);
   const { isSandbox } = useAlmaMode();
 
   return (
-    <div className={embedded ? "space-y-6" : "p-4 md:p-6 space-y-6"}>
+    <div className="p-4 md:p-6 space-y-6">
       {/* Alma sandbox warning — non-dismissible */}
       {isSandbox && (
         <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-destructive/50 bg-destructive/5">
@@ -33,17 +29,15 @@ export function CockpitFinancierPage({ embedded = false }: CockpitFinancierPageP
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {!embedded && (
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary">
-              <Landmark className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">Cockpit Financier</h1>
-              <p className="text-sm text-muted-foreground">Pilotage financier de votre centre de formation</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary">
+            <Landmark className="h-5 w-5 text-primary-foreground" />
           </div>
-        )}
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Cockpit Financier</h1>
+            <p className="text-sm text-muted-foreground">Pilotage financier de votre centre de formation</p>
+          </div>
+        </div>
 
         <Select value={periode} onValueChange={(v) => setPeriode(v as Periode)}>
           <SelectTrigger className="w-[200px]">

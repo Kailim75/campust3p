@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -25,9 +25,8 @@ import {
   Star,
   Clock,
   MapPin,
-  ShieldAlert,
-  Wallet,
-  FolderClock,
+  AlertCircle,
+  CheckCircle2,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -159,31 +158,7 @@ export function ContactQuickView({
   );
   const totalFacture = factures.reduce((sum, f) => sum + Number(f.montant_total), 0);
   const totalPaye = factures.reduce((sum, f) => sum + f.total_paye, 0);
-  const resteAEncaisser = Math.max(totalFacture - totalPaye, 0);
   const docsCount = documents.length;
-  const docsToRenewCount = documents.filter((document) => {
-    if (!document.date_expiration) return false;
-    const expirationDate = new Date(document.date_expiration);
-    const today = new Date();
-    const threshold = new Date();
-    threshold.setDate(today.getDate() + 30);
-    return expirationDate >= today && expirationDate <= threshold;
-  }).length;
-  const hasMissingContactInfo = !contact.email || !contact.telephone;
-  const vigilanceItems = [
-    hasMissingContactInfo
-      ? "Coordonnées à compléter pour fiabiliser le suivi."
-      : null,
-    !nextSession && inscriptions.length === 0
-      ? "Aucune session à venir ou inscription active détectée."
-      : null,
-    resteAEncaisser > 0
-      ? `Reste à encaisser : ${resteAEncaisser.toLocaleString("fr-FR", { minimumFractionDigits: 0 })}€.`
-      : null,
-    docsToRenewCount > 0
-      ? `${docsToRenewCount} document(s) arrivent bientôt à expiration.`
-      : null,
-  ].filter(Boolean) as string[];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -287,34 +262,6 @@ export function ContactQuickView({
                 </CardContent>
               </Card>
 
-              <Card className="mb-4">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Pilotage rapide</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {vigilanceItems.length > 0 ? (
-                    <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-3">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <ShieldAlert className="h-4 w-4 text-warning" />
-                        Points à surveiller
-                      </div>
-                      <div className="mt-2 space-y-2 text-sm text-muted-foreground">
-                        {vigilanceItems.map((item) => (
-                          <div key={item} className="flex items-start gap-2">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-warning/70" />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-3 text-sm text-success">
-                      Dossier plutôt sain : aucun point de vigilance immédiat détecté.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {/* Next Session */}
@@ -341,13 +288,10 @@ export function ContactQuickView({
                 <Card className="bg-muted/30">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <FolderClock className="h-3.5 w-3.5" />
+                      <FileText className="h-3.5 w-3.5" />
                       <span className="text-xs font-medium">Documents</span>
                     </div>
                     <p className="text-sm font-medium">{docsCount} fichier{docsCount > 1 ? "s" : ""}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {docsToRenewCount > 0 ? `${docsToRenewCount} à renouveler` : "Aucune échéance proche"}
-                    </p>
                   </CardContent>
                 </Card>
 
@@ -355,19 +299,14 @@ export function ContactQuickView({
                 <Card className="bg-muted/30 col-span-2">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Wallet className="h-3.5 w-3.5" />
+                      <CreditCard className="h-3.5 w-3.5" />
                       <span className="text-xs font-medium">Facturation</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div>
                         <p className="text-sm font-medium">
                           {totalPaye.toLocaleString("fr-FR", { minimumFractionDigits: 0 })}€
                           <span className="text-muted-foreground font-normal"> / {totalFacture.toLocaleString("fr-FR", { minimumFractionDigits: 0 })}€</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {resteAEncaisser > 0
-                            ? `${resteAEncaisser.toLocaleString("fr-FR", { minimumFractionDigits: 0 })}€ restant(s) à encaisser`
-                            : "Aucun reste à encaisser"}
                         </p>
                       </div>
                       {totalFacture > 0 && (
@@ -414,91 +353,73 @@ export function ContactQuickView({
                       <span>{contact.code_postal} {contact.ville}</span>
                     </div>
                   )}
-                  <div className="pt-2 text-xs text-muted-foreground">
-                    Fiche créée le {format(new Date(contact.created_at), "dd/MM/yyyy", { locale: fr })}
-                  </div>
                 </CardContent>
               </Card>
 
               {/* Actions */}
               <div className="space-y-2">
-                <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Dossier
-                  </p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => {
-                      onOpenChange(false);
-                      onOpenFullView(contact.id);
-                    }}
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenFullView(contact.id);
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Voir le dossier complet
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setGenerateDialogOpen(true)}
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Voir le dossier complet
+                    <FileText className="h-4 w-4 mr-1" />
+                    Générer doc
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setEnqueteDialogOpen(true)}
+                  >
+                    <Star className="h-4 w-4 mr-1" />
+                    Enquête
                   </Button>
                 </div>
 
-                <div className="space-y-2 pt-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Actions du dossier
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setGenerateDialogOpen(true)}
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      Générer doc
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setEnqueteDialogOpen(true)}
-                    >
-                      <Star className="h-4 w-4 mr-1" />
-                      Enquête
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Gestion
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => onEdit(contact)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Modifier
-                    </Button>
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Archiver ce contact ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Le contact sera archivé et ne sera plus visible dans la liste.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete}>Archiver</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onEdit(contact)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Archiver ce contact ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Le contact sera archivé et ne sera plus visible dans la liste.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Archiver</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>

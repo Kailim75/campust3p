@@ -7,7 +7,6 @@ interface BulkEnrollmentResult {
   duplicates: string[];
   errors: string[];
   facturesCreated: number;
-  factureErrors: string[];
 }
 
 export function useBulkEnrollment() {
@@ -29,8 +28,7 @@ export function useBulkEnrollment() {
       const { count: currentCount, error: countError } = await supabase
         .from("session_inscriptions")
         .select("*", { count: "exact", head: true })
-        .eq("session_id", sessionId)
-        .is("deleted_at", null);
+        .eq("session_id", sessionId);
 
       if (countError) throw countError;
 
@@ -40,8 +38,7 @@ export function useBulkEnrollment() {
       const { data: existingInscriptions, error: existingError } = await supabase
         .from("session_inscriptions")
         .select("contact_id")
-        .eq("session_id", sessionId)
-        .is("deleted_at", null);
+        .eq("session_id", sessionId);
 
       if (existingError) throw existingError;
 
@@ -69,13 +66,11 @@ export function useBulkEnrollment() {
       const success: string[] = [];
       const errors: string[] = [...rejected];
       let facturesCreated = 0;
-      const factureErrors: string[] = [];
 
       if (contactsToEnroll.length > 0) {
         const inscriptions = contactsToEnroll.map((contactId) => ({
           session_id: sessionId,
           contact_id: contactId,
-          statut: "inscrit" as const,
         }));
 
         const { data: insertedInscriptions, error } = await supabase
@@ -99,7 +94,6 @@ export function useBulkEnrollment() {
               
               if (numeroError) {
                 console.error("Erreur génération numéro facture:", numeroError);
-                factureErrors.push(inscription.contact_id);
                 continue;
               }
 
@@ -122,7 +116,6 @@ export function useBulkEnrollment() {
 
               if (factureError) {
                 console.error("Erreur création factures:", factureError);
-                factureErrors.push(...facturesToCreate.map((facture) => facture.contact_id));
               } else {
                 facturesCreated = facturesToCreate.length;
               }
@@ -131,14 +124,13 @@ export function useBulkEnrollment() {
         }
       }
 
-      return { success, duplicates, errors, facturesCreated, factureErrors };
+      return { success, duplicates, errors, facturesCreated };
     },
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "all_counts"] });
-      queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
   });

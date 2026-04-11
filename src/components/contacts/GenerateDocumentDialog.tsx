@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -43,10 +42,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { buildVariableData, processDocxWithVariables } from "@/lib/docx-processor";
-import { fetchContactDocumentData, type ContactDocumentData } from "@/lib/documents/fetchContactDocumentData";
-
-const NO_SESSION_VALUE = "__none__";
-type SessionFormateur = { prenom?: string | null; nom?: string | null };
+import { fetchContactDocumentData } from "@/lib/documents/fetchContactDocumentData";
 
 interface GenerateDocumentDialogProps {
   open: boolean;
@@ -69,64 +65,21 @@ export function GenerateDocumentDialog({
 
   const { data: textTemplates = [] } = useDocumentTemplates();
   const { data: fileTemplates = [] } = useDocumentTemplateFiles();
+  const { data: sessions = [] } = useSessions();
   const { centreFormation } = useCentreFormation();
   const saveDocument = useSaveGeneratedDocument();
   const { generateDocument } = useDocumentGenerator();
   const { getOrCreateCertificate, updateDocumentUrl } = useAttestationCertificates();
-  const { data: sessions = [] } = useSessions();
-  const { data: contactInscriptions = [] } = useQuery({
-    queryKey: ["contact-inscriptions", contact.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("session_inscriptions")
-        .select(`
-          session_id,
-          sessions (
-            id,
-            nom,
-            date_debut,
-            date_fin,
-            lieu,
-            heure_debut,
-            heure_fin,
-            heure_debut_matin,
-            heure_fin_matin,
-            heure_debut_aprem,
-            heure_fin_aprem,
-            formation_type,
-            duree_heures,
-            formateur
-          )
-        `)
-        .eq("contact_id", contact.id)
-        .is("deleted_at", null)
-        .order("date_inscription", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  const normalizedSessionId = selectedSessionId === NO_SESSION_VALUE ? "" : selectedSessionId;
 
   // Filtrer les sessions auxquelles le contact est inscrit
   const contactSessions = useMemo(() => {
-    const enrolledSessions = contactInscriptions
-      .map((row) => row.sessions)
-      .filter(Boolean);
-
-    if (enrolledSessions.length > 0) {
-      return enrolledSessions;
-    }
-
-    return sessions.filter((session) => session.formation_type === contact.formation);
-  }, [contact.formation, contactInscriptions, sessions]);
+    return sessions; // Pour simplifier, on affiche toutes les sessions
+  }, [sessions]);
 
   const selectedSession = useMemo(() => {
-    if (!normalizedSessionId) return null;
-    return contactSessions.find((s) => s.id === normalizedSessionId) || null;
-  }, [contactSessions, normalizedSessionId]);
+    if (!selectedSessionId) return null;
+    return sessions.find((s) => s.id === selectedSessionId);
+  }, [selectedSessionId, sessions]);
 
   const activeTextTemplates = textTemplates.filter((t) => t.actif);
   const activeFileTemplates = fileTemplates.filter((t) => t.actif);
@@ -145,7 +98,7 @@ export function GenerateDocumentDialog({
       if (generateCertificate) {
         certificateData = await getOrCreateCertificate({
           contactId: contact.id,
-          sessionId: normalizedSessionId || null,
+          sessionId: selectedSessionId || null,
           typeAttestation: template.type_document === 'attestation_mobilite' ? 'mobilite' : 'formation',
           metadata: { template_id: template.id, template_name: template.nom },
         });
@@ -213,8 +166,8 @@ export function GenerateDocumentDialog({
           centreId: contact.centre_id,
           templateTextId: template.id,
           nom: `${template.type_document} - ${contact.nom} ${contact.prenom}`,
-          fileBlob: pdfBlob,
-          sessionId: normalizedSessionId || undefined,
+          pdfBlob,
+          sessionId: selectedSessionId || undefined,
           metadata: {
             template_name: template.nom,
             generated_at: new Date().toISOString(),
@@ -257,7 +210,7 @@ export function GenerateDocumentDialog({
       if (generateCertificate) {
         certificateData = await getOrCreateCertificate({
           contactId: contact.id,
-          sessionId: normalizedSessionId || null,
+          sessionId: selectedSessionId || null,
           typeAttestation: template.type_document === 'attestation_mobilite' ? 'mobilite' : 'formation',
           metadata: { template_id: template.id, template_name: template.nom },
         });
@@ -266,27 +219,7 @@ export function GenerateDocumentDialog({
       // For DOCX files, process with variable replacement
       if (template.type_fichier === 'docx') {
         // Recharge la fiche contact complète (certains écrans passent un contact partiel)
-        let fullContact: ContactDocumentData = {
-          id: contact.id,
-          civilite: contact.civilite || null,
-          nom: contact.nom || "",
-          prenom: contact.prenom || "",
-          email: contact.email || null,
-          telephone: contact.telephone || null,
-          rue: contact.rue || null,
-          code_postal: contact.code_postal || null,
-          ville: contact.ville || null,
-          date_naissance: contact.date_naissance || null,
-          ville_naissance: contact.ville_naissance || null,
-          pays_naissance: contact.pays_naissance || null,
-          numero_permis: contact.numero_permis || null,
-          prefecture_permis: contact.prefecture_permis || null,
-          date_delivrance_permis: contact.date_delivrance_permis || null,
-          numero_carte_professionnelle: contact.numero_carte_professionnelle || null,
-          prefecture_carte: contact.prefecture_carte || null,
-          date_expiration_carte: contact.date_expiration_carte || null,
-          formation: contact.formation || null,
-        };
+        let fullContact: any = contact;
         try {
           fullContact = await fetchContactDocumentData(contact.id, selectedSession?.formation_type);
         } catch (e) {
@@ -306,28 +239,26 @@ export function GenerateDocumentDialog({
         }
 
         // Build variable data for DOCX processing
-        const selectedSessionRecord = selectedSession as unknown as Record<string, unknown> | null;
-        const formateurValue = selectedSessionRecord?.formateur;
         const variableData = buildVariableData(
           {
-            civilite: fullContact.civilite || undefined,
-            nom: fullContact.nom,
-            prenom: fullContact.prenom,
-            email: fullContact.email || undefined,
-            telephone: fullContact.telephone || undefined,
-            rue: fullContact.rue || undefined,
-            code_postal: fullContact.code_postal || undefined,
-            ville: fullContact.ville || undefined,
-            date_naissance: fullContact.date_naissance || undefined,
-            ville_naissance: fullContact.ville_naissance || undefined,
-            pays_naissance: fullContact.pays_naissance || undefined,
-            numero_permis: fullContact.numero_permis || undefined,
-            prefecture_permis: fullContact.prefecture_permis || undefined,
-            date_delivrance_permis: fullContact.date_delivrance_permis || undefined,
-            numero_carte_professionnelle: fullContact.numero_carte_professionnelle || undefined,
-            prefecture_carte: fullContact.prefecture_carte || undefined,
-            date_expiration_carte: fullContact.date_expiration_carte || undefined,
-            formation: fullContact.formation || undefined,
+            civilite: (fullContact as any).civilite || undefined,
+            nom: (fullContact as any).nom,
+            prenom: (fullContact as any).prenom,
+            email: (fullContact as any).email || undefined,
+            telephone: (fullContact as any).telephone || undefined,
+            rue: (fullContact as any).rue || undefined,
+            code_postal: (fullContact as any).code_postal || undefined,
+            ville: (fullContact as any).ville || undefined,
+            date_naissance: (fullContact as any).date_naissance || undefined,
+            ville_naissance: (fullContact as any).ville_naissance || undefined,
+            pays_naissance: (fullContact as any).pays_naissance || undefined,
+            numero_permis: (fullContact as any).numero_permis || undefined,
+            prefecture_permis: (fullContact as any).prefecture_permis || undefined,
+            date_delivrance_permis: (fullContact as any).date_delivrance_permis || undefined,
+            numero_carte_professionnelle: (fullContact as any).numero_carte_professionnelle || undefined,
+            prefecture_carte: (fullContact as any).prefecture_carte || undefined,
+            date_expiration_carte: (fullContact as any).date_expiration_carte || undefined,
+            formation: (fullContact as any).formation || undefined,
           },
           selectedSession ? {
             nom: selectedSession.nom,
@@ -336,18 +267,18 @@ export function GenerateDocumentDialog({
             lieu: selectedSession.lieu || undefined,
             heure_debut: selectedSession.heure_debut || undefined,
             heure_fin: selectedSession.heure_fin || undefined,
-            heure_debut_matin: getOptionalString(selectedSessionRecord?.heure_debut_matin),
-            heure_fin_matin: getOptionalString(selectedSessionRecord?.heure_fin_matin),
-            heure_debut_aprem: getOptionalString(selectedSessionRecord?.heure_debut_aprem),
-            heure_fin_aprem: getOptionalString(selectedSessionRecord?.heure_fin_aprem),
+            heure_debut_matin: (selectedSession as any).heure_debut_matin,
+            heure_fin_matin: (selectedSession as any).heure_fin_matin,
+            heure_debut_aprem: (selectedSession as any).heure_debut_aprem,
+            heure_fin_aprem: (selectedSession as any).heure_fin_aprem,
             formation_type: selectedSession.formation_type,
             duree_heures: selectedSession.duree_heures,
             formateur: (() => {
-              if (formateurValue && typeof formateurValue === 'object' && 'nom' in formateurValue) {
-                const formateur = formateurValue as SessionFormateur;
-                return `${formateur.prenom || ''} ${formateur.nom || ''}`.trim();
+              const f = selectedSession.formateur as any;
+              if (f && typeof f === 'object' && f.nom) {
+                return `${f.prenom || ''} ${f.nom}`.trim();
               }
-              return typeof formateurValue === 'string' ? formateurValue : undefined;
+              return typeof f === 'string' ? f : undefined;
             })(),
           } : undefined,
           centreFormation ? {
@@ -374,37 +305,9 @@ export function GenerateDocumentDialog({
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        if (saveToContact) {
-          const savedDoc = await saveDocument.mutateAsync({
-            contactId: contact.id,
-            centreId: contact.centre_id,
-            templateFileId: template.id,
-            nom: `${template.nom} - ${contact.nom} ${contact.prenom}`,
-            fileBlob: processedBlob,
-            sessionId: normalizedSessionId || undefined,
-            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            fileExtension: "docx",
-            metadata: {
-              template_name: template.nom,
-              template_type: template.type_fichier,
-              generated_at: new Date().toISOString(),
-              certificate_number: certificateData?.numero_certificat,
-            },
-          });
-
-          if (certificateData && savedDoc?.file_path) {
-            await updateDocumentUrl({
-              certificateId: certificateData.id,
-              documentUrl: savedDoc.file_path,
-            });
-          }
-        }
-
-        toast.success(certificateData
-          ? `Document DOCX généré avec certificat ${certificateData.numero_certificat}`
-          : saveToContact
-            ? "Document DOCX généré et sauvegardé"
-            : "Document DOCX généré avec succès");
+        toast.success(certificateData 
+          ? `Document DOCX généré avec certificat ${certificateData.numero_certificat}` 
+          : "Document DOCX généré avec succès");
         onOpenChange(false);
         return;
       }
@@ -473,8 +376,8 @@ export function GenerateDocumentDialog({
           centreId: contact.centre_id,
           templateFileId: template.id,
           nom: `${template.nom} - ${contact.nom} ${contact.prenom}`,
-          fileBlob: pdfBlob,
-          sessionId: normalizedSessionId || undefined,
+          pdfBlob,
+          sessionId: selectedSessionId || undefined,
           metadata: {
             template_name: template.nom,
             template_type: template.type_fichier,
@@ -515,9 +418,6 @@ export function GenerateDocumentDialog({
   const canGenerate =
     (selectedTemplateType === "text" && selectedTextTemplate) ||
     (selectedTemplateType === "file" && selectedFileTemplate);
-
-  const getOptionalString = (value: unknown) =>
-    typeof value === "string" && value.length > 0 ? value : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -667,15 +567,12 @@ export function GenerateDocumentDialog({
                 <GraduationCap className="h-4 w-4" />
                 Session de formation (optionnel)
               </Label>
-              <Select
-                value={normalizedSessionId || NO_SESSION_VALUE}
-                onValueChange={(value) => setSelectedSessionId(value === NO_SESSION_VALUE ? "" : value)}
-              >
+              <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une session..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_SESSION_VALUE}>Aucune session</SelectItem>
+                  <SelectItem value="__none__">Aucune session</SelectItem>
                   {contactSessions.map((session) => (
                     <SelectItem key={session.id} value={session.id}>
                       <div className="flex items-center gap-2">

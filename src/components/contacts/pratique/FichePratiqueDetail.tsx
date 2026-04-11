@@ -20,7 +20,6 @@ import {
   Star,
   CheckCircle,
   Trash2,
-  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFichePratique, fichePratiqueStatutConfig, useDeleteFichePratique } from "@/hooks/useFichesPratique";
@@ -29,7 +28,7 @@ import { useFicheExamens, examenStatutConfig, useDeleteExamenPratique, type Exam
 import { FichePratiqueFormDialog } from "./FichePratiqueFormDialog";
 import { SeanceConduiteFormDialog } from "./SeanceConduiteFormDialog";
 import { ExamenPratiqueFormDialog } from "./ExamenPratiqueFormDialog";
-import { differenceInDays, format } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   AlertDialog,
@@ -87,14 +86,6 @@ export function FichePratiqueDetail({ ficheId, contactId, onBack }: FichePratiqu
     ? Math.min((fiche.heures_realisees / fiche.heures_prevues) * 100, 100) 
     : 0;
   const statusConfig = fichePratiqueStatutConfig[fiche.statut];
-  const nextExam = examens.find((examen) => new Date(examen.date_examen) >= new Date());
-  const validatedSeancesCount = seances.filter((seance) => seance.validation_formateur).length;
-  const isOverdue = Boolean(fiche.date_fin_prevue && differenceInDays(new Date(fiche.date_fin_prevue), new Date()) < 0);
-  const vigilanceItems = [
-    isOverdue ? "La date de fin prévue est dépassée." : null,
-    heuresRestantes > 0 && examens.length > 0 ? "Un examen existe alors qu'il reste des heures à réaliser." : null,
-    seances.length > 0 && validatedSeancesCount === 0 ? "Des séances existent mais aucune n'est encore validée par le formateur." : null,
-  ].filter(Boolean) as string[];
 
   const handleDeleteFiche = async () => {
     await deleteFiche.mutateAsync({ id: fiche.id, contactId });
@@ -104,84 +95,42 @@ export function FichePratiqueDetail({ ficheId, contactId, onBack }: FichePratiqu
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1 space-y-3">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
-              <GraduationCap className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">{fiche.formation_type}</h3>
-              <Badge variant="outline" className={cn("text-xs", statusConfig.class)}>
-                {statusConfig.label}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
-                <Edit className="h-4 w-4 mr-1" />
-                Modifier
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer cette fiche ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Toutes les séances et examens associés seront également supprimés.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteFiche}>Supprimer</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-lg">{fiche.formation_type}</h3>
+            <Badge variant="outline" className={cn("text-xs", statusConfig.class)}>
+              {statusConfig.label}
+            </Badge>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Séances</p>
-              <p className="mt-1 text-lg font-semibold">{seances.length}</p>
-            </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Validées</p>
-              <p className="mt-1 text-lg font-semibold">{validatedSeancesCount}</p>
-            </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Examens</p>
-              <p className="mt-1 text-lg font-semibold">{examens.length}</p>
-            </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground">Prochain examen</p>
-              <p className="mt-1 text-sm font-semibold">
-                {nextExam ? format(new Date(nextExam.date_examen), "dd/MM/yyyy") : "Aucun"}
-              </p>
-            </div>
-          </div>
-
-          {vigilanceItems.length > 0 && (
-            <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-3 text-sm">
-              <div className="flex items-center gap-2 font-medium">
-                <ShieldAlert className="h-4 w-4 text-warning" />
-                Points à surveiller
-              </div>
-              <div className="mt-2 space-y-1 text-muted-foreground">
-                {vigilanceItems.map((item) => (
-                  <div key={item} className="flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-warning/70" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+        <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
+          <Edit className="h-4 w-4 mr-1" />
+          Modifier
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="icon" className="text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer cette fiche ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Toutes les séances et examens associés seront également supprimés.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteFiche}>Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Summary Cards */}

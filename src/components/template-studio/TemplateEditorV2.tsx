@@ -4,7 +4,7 @@
 // Workflow v2: draft → published (compliance gate) → archived
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,65 +48,6 @@ interface Props {
   aiPrefilledBody?: string | null;
   aiPrefilledType?: string | null;
 }
-
-const VARIABLE_SECTIONS = [
-  {
-    title: "Stagiaire",
-    items: [
-      { key: "{{nom}}", label: "Nom" },
-      { key: "{{prenom}}", label: "Prénom" },
-      { key: "{{email}}", label: "Email" },
-      { key: "{{telephone}}", label: "Téléphone" },
-      { key: "{{civilite}}", label: "Civilité" },
-      { key: "{{date_naissance}}", label: "Date naissance" },
-      { key: "{{adresse}}", label: "Adresse" },
-    ],
-  },
-  {
-    title: "Session",
-    items: [
-      { key: "{{session_nom}}", label: "Nom session" },
-      { key: "{{session_date_debut}}", label: "Date début" },
-      { key: "{{session_date_fin}}", label: "Date fin" },
-      { key: "{{duree_heures}}", label: "Durée (h)" },
-      { key: "{{horaires}}", label: "Horaires" },
-      { key: "{{lieu}}", label: "Lieu" },
-    ],
-  },
-  {
-    title: "Centre",
-    items: [
-      { key: "{{centre_nom}}", label: "Nom commercial" },
-      { key: "{{centre_nom_legal}}", label: "Nom légal" },
-      { key: "{{centre_siret}}", label: "SIRET" },
-      { key: "{{centre_nda}}", label: "N° NDA" },
-      { key: "{{centre_adresse}}", label: "Adresse" },
-      { key: "{{centre_email}}", label: "Email" },
-      { key: "{{centre_telephone}}", label: "Téléphone" },
-      { key: "{{centre_forme_juridique}}", label: "Forme juridique" },
-      { key: "{{centre_iban}}", label: "IBAN" },
-      { key: "{{centre_bic}}", label: "BIC" },
-      { key: "{{responsable_nom}}", label: "Responsable" },
-      { key: "{{responsable_fonction}}", label: "Fonction" },
-      { key: "{{centre_qualiopi_numero}}", label: "N° Qualiopi" },
-      { key: "{{centre_agrement}}", label: "Agrément" },
-    ],
-  },
-  {
-    title: "Finance",
-    items: [
-      { key: "{{prix_total}}", label: "Prix total" },
-      { key: "{{numero_facture}}", label: "N° facture" },
-      { key: "{{montant_total}}", label: "Montant" },
-    ],
-  },
-  {
-    title: "Autre",
-    items: [
-      { key: "{{date_jour}}", label: "Date du jour" },
-    ],
-  },
-] as const;
 
 export default function TemplateEditorV2({ templateId, isCreating, onBack, onGenerate, aiPrefilledBody, aiPrefilledType }: Props) {
   const { data: template, isLoading } = useTemplateV2(templateId);
@@ -173,8 +114,8 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
         const result = await createTemplate.mutateAsync({
           name,
           description: description || null,
-          type,
-          format,
+          type: type as any,
+          format: format as any,
           template_body: body,
           scenario: scenario || null,
           centre_id: currentCentre.id,
@@ -191,9 +132,8 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
           scenario: scenario || null,
         });
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "erreur inconnue";
-      toast.error("Erreur lors de la sauvegarde : " + message);
+    } catch (err: any) {
+      toast.error("Erreur lors de la sauvegarde : " + (err.message || "erreur inconnue"));
     }
   };
 
@@ -204,7 +144,7 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
       updateTemplate.mutate({
         id: templateId,
         compliance_score: report.score,
-        compliance_report_json: report,
+        compliance_report_json: report as any,
       });
     }
   };
@@ -222,7 +162,7 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
         description: description || null,
       };
       await publishTemplate.mutateAsync({ template: templateToPublish });
-    } catch {
+    } catch (err: any) {
       // Error toast handled by mutation onError
     } finally {
       setIsPublishing(false);
@@ -261,22 +201,6 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
     description !== (template?.description || "") ||
     scenario !== (template?.scenario || "")
   );
-
-  const complianceSummary = useMemo(() => {
-    if (!complianceReport) {
-      return "Aucun contrôle lancé pour le moment";
-    }
-
-    if (complianceReport.ready_to_publish) {
-      return "Le template peut être publié en l'état";
-    }
-
-    if (!isComplianceGated) {
-      return `${complianceReport.blocking_issues.length} point(s) à améliorer pour renforcer la conformité`;
-    }
-
-    return `${complianceReport.blocking_issues.length} mention(s) bloquante(s) avant publication`;
-  }, [complianceReport, isComplianceGated]);
 
   if (!isCreating && !templateId) {
     return (
@@ -363,62 +287,6 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
           )}
         </div>
       </div>
-
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold">
-                {isCreating ? "Pilotage du nouveau template" : "Pilotage du template"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {isCreating
-                  ? "Complétez les métadonnées, travaillez le contenu puis vérifiez la conformité avant publication."
-                  : "Gardez une vue claire sur l'état du template, la conformité et les étapes avant génération."}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-              <p className="font-medium">Résumé rapide</p>
-              <p className="text-muted-foreground">
-                {body.trim() ? `${body.trim().length} caractères de contenu` : "Contenu vide"}
-              </p>
-              <p className="mt-1 text-muted-foreground">
-                {isSaved ? (hasUnsavedChanges ? "Modifications non enregistrées" : "Version enregistrée") : "Template non encore enregistré"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="text-[11px]">
-              Type {TEMPLATE_TYPES.find((item) => item.value === type)?.label || type}
-            </Badge>
-            <Badge variant="outline" className="text-[11px]">
-              Format {format.toUpperCase()}
-            </Badge>
-            {template && (
-              <Badge variant="outline" className="text-[11px]">
-                Statut {statusCfg?.label || template.status}
-              </Badge>
-            )}
-            {hasUnsavedChanges && (
-              <Badge variant="outline" className="text-[11px] border-orange-500/30 bg-orange-500/10 text-orange-600">
-                Modifications en attente
-              </Badge>
-            )}
-            {complianceReport && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[11px]",
-                  complianceReport.ready_to_publish ? "border-green-500/30 text-green-600 bg-green-500/5" : "border-yellow-500/30 text-yellow-600 bg-yellow-500/5"
-                )}
-              >
-                Conformité {complianceReport.score}%
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: Metadata + Editor */}
@@ -529,10 +397,6 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
                 </p>
               ) : (
                 <div className="space-y-3">
-                  <div className="rounded-lg border bg-muted/30 px-3 py-2 text-xs">
-                    <p className="font-medium">Lecture rapide</p>
-                    <p className="mt-1 text-muted-foreground">{complianceSummary}</p>
-                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Score</span>
                     <span className={cn(
@@ -602,25 +466,43 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
               <CardTitle className="text-sm font-medium">Variables disponibles</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 text-xs text-muted-foreground">
-                <p className="text-[11px]">
-                  Utilisez ces variables pour insérer automatiquement les données du dossier, de la session et du centre.
-                </p>
-                <div className="space-y-3">
-                  {VARIABLE_SECTIONS.map((section) => (
-                    <div key={section.title} className="space-y-1.5">
-                      <p className="font-semibold text-foreground text-[11px]">{section.title}</p>
-                      <div className="space-y-1">
-                        {section.items.map((item) => (
-                          <div key={item.key} className="flex items-start gap-2">
-                            <code className="bg-muted px-1 rounded shrink-0">{item.key}</code>
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-semibold text-foreground text-[11px] mt-1">Stagiaire</p>
+                <p><code className="bg-muted px-1 rounded">{"{{nom}}"}</code> Nom</p>
+                <p><code className="bg-muted px-1 rounded">{"{{prenom}}"}</code> Prénom</p>
+                <p><code className="bg-muted px-1 rounded">{"{{email}}"}</code> Email</p>
+                <p><code className="bg-muted px-1 rounded">{"{{telephone}}"}</code> Téléphone</p>
+                <p><code className="bg-muted px-1 rounded">{"{{civilite}}"}</code> Civilité</p>
+                <p><code className="bg-muted px-1 rounded">{"{{date_naissance}}"}</code> Date naissance</p>
+                <p><code className="bg-muted px-1 rounded">{"{{adresse}}"}</code> Adresse</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Session</p>
+                <p><code className="bg-muted px-1 rounded">{"{{session_nom}}"}</code> Nom session</p>
+                <p><code className="bg-muted px-1 rounded">{"{{session_date_debut}}"}</code> Date début</p>
+                <p><code className="bg-muted px-1 rounded">{"{{session_date_fin}}"}</code> Date fin</p>
+                <p><code className="bg-muted px-1 rounded">{"{{duree_heures}}"}</code> Durée (h)</p>
+                <p><code className="bg-muted px-1 rounded">{"{{horaires}}"}</code> Horaires</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Centre</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_nom}}"}</code> Nom commercial</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_nom_legal}}"}</code> Nom légal</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_siret}}"}</code> SIRET</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_nda}}"}</code> N° NDA</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_adresse}}"}</code> Adresse</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_email}}"}</code> Email</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_telephone}}"}</code> Téléphone</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_forme_juridique}}"}</code> Forme juridique</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_iban}}"}</code> IBAN</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_bic}}"}</code> BIC</p>
+                <p><code className="bg-muted px-1 rounded">{"{{responsable_nom}}"}</code> Responsable</p>
+                <p><code className="bg-muted px-1 rounded">{"{{responsable_fonction}}"}</code> Fonction</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_qualiopi_numero}}"}</code> N° Qualiopi</p>
+                <p><code className="bg-muted px-1 rounded">{"{{centre_agrement}}"}</code> Agrément</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Finance</p>
+                <p><code className="bg-muted px-1 rounded">{"{{prix_total}}"}</code> Prix total</p>
+                <p><code className="bg-muted px-1 rounded">{"{{numero_facture}}"}</code> N° facture</p>
+                <p><code className="bg-muted px-1 rounded">{"{{montant_total}}"}</code> Montant</p>
+                <p className="font-semibold text-foreground text-[11px] mt-2">Autre</p>
+                <p><code className="bg-muted px-1 rounded">{"{{date_jour}}"}</code> Date du jour</p>
+                <p><code className="bg-muted px-1 rounded">{"{{lieu}}"}</code> Lieu</p>
               </div>
             </CardContent>
           </Card>

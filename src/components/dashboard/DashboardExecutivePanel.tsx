@@ -64,7 +64,7 @@ export function DashboardExecutivePanel({ metrics, isLoading, onNavigate }: Prop
         </div>
         <p className="text-3xl font-bold text-foreground">{m?.tauxConversion ?? 0}<span className="text-lg text-muted-foreground">%</span></p>
         <p className="text-xs text-muted-foreground mt-1">
-          {m?.totalConvertis ?? 0} converti{(m?.totalConvertis ?? 0) > 1 ? "s" : ""} sur {m?.totalProspects ?? 0} prospect{(m?.totalProspects ?? 0) > 1 ? "s" : ""} de la période
+          {m?.totalConvertis ?? 0} convertis sur {m?.totalProspects ?? 0} prospects
         </p>
       </button>
 
@@ -82,7 +82,7 @@ export function DashboardExecutivePanel({ metrics, isLoading, onNavigate }: Prop
         </div>
         <p className="text-3xl font-bold text-foreground">{formatEur(m?.caPrevisionnel ?? 0)}</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Basé sur {totalInscriptions} inscription{totalInscriptions > 1 ? "s" : ""} de sessions actives
+          Basé sur {totalInscriptions} inscription{totalInscriptions > 1 ? "s" : ""} actives
         </p>
       </button>
 

@@ -18,15 +18,12 @@ import {
   LayoutList, 
   Kanban, 
   UserPlus, 
+  Plus,
   BarChart3,
   Trash2,
   X,
   Eye,
-  SquareUser,
-  ArrowRight,
-  RotateCcw,
-  Clock3,
-  GraduationCap
+  SquareUser
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -193,29 +190,6 @@ function PipelineColumn({ column, contacts, onCardClick }: PipelineColumnProps) 
 
 type ViewMode = "list" | "pipeline" | "prospects" | "analytics";
 
-const VIEW_META: Record<ViewMode, { title: string; description: string; helper: string }> = {
-  list: {
-    title: "Vue contacts",
-    description: "Pilotage des stagiaires et accès rapide aux dossiers apprenants.",
-    helper: "Utilise cette vue pour traiter le quotidien, vérifier les dossiers et lancer les actions en lot.",
-  },
-  pipeline: {
-    title: "Pipeline apprenants",
-    description: "Vue d'avancement du parcours, de l'inscription jusqu'à la carte pro.",
-    helper: "Glisse une fiche pour faire avancer le statut quand une étape métier est réellement franchie.",
-  },
-  prospects: {
-    title: "Pipeline prospects",
-    description: "Qualification, relance et conversion commerciale des opportunités.",
-    helper: "Priorise les relances du jour et convertis uniquement les prospects suffisamment qualifiés.",
-  },
-  analytics: {
-    title: "Pilotage contacts & prospects",
-    description: "Lecture synthétique des volumes, conversions et tensions du pipe commercial.",
-    helper: "Cette vue sert au pilotage, pas au traitement fin. Utilise ensuite la liste ou le pipeline pour agir.",
-  },
-};
-
 interface ContactsUnifiedPageProps {
   selectedContactId?: string | null;
   onContactOpened?: () => void;
@@ -226,6 +200,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
   const { data: prospects = [] } = useProspects();
   const { data: prospectsStats } = useProspectsStats();
   const updateContact = useUpdateContact();
+  const convertProspect = useConvertProspect();
 
   const [activeView, setActiveView] = useState<ViewMode>("list");
   const [searchQuery, setSearchQuery] = useState("");
@@ -252,7 +227,6 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
   const totalContacts = contacts?.length || 0;
   const totalProspects = prospects?.length || 0;
   const prospectsToConvert = prospects.filter(p => p.statut !== 'converti' && p.statut !== 'perdu').length;
-  const currentViewMeta = VIEW_META[activeView];
 
   // Group contacts by pipeline column
   const groupedContacts = useMemo(() => {
@@ -280,73 +254,6 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
 
     return groups;
   }, [contacts, searchQuery, formationFilter]);
-
-  const hasPipelineFilters = searchQuery.trim().length > 0 || formationFilter !== "all";
-  const resetPipelineFilters = () => {
-    setSearchQuery("");
-    setFormationFilter("all");
-  };
-
-  const pipelineVisibleCount = useMemo(
-    () => Object.values(groupedContacts).reduce((sum, group) => sum + group.length, 0),
-    [groupedContacts]
-  );
-
-  const contactsInProgress = useMemo(
-    () => Math.max(
-      totalContacts - (groupedContacts.carte_pro?.length || 0) - (groupedContacts.abandonne?.length || 0),
-      0
-    ),
-    [groupedContacts.abandonne, groupedContacts.carte_pro, totalContacts]
-  );
-
-  const viewHighlights = useMemo(() => {
-    switch (activeView) {
-      case "list":
-        return [
-          { label: "Stagiaires actifs", value: totalContacts, icon: Users },
-          { label: "À valider", value: groupedContacts.inscription?.length || 0, icon: Clock3 },
-          { label: "En parcours", value: contactsInProgress, icon: ArrowRight },
-          { label: "Diplômés / carte pro", value: groupedContacts.carte_pro?.length || 0, icon: GraduationCap },
-        ];
-      case "pipeline":
-        return [
-          { label: "Fiches visibles", value: pipelineVisibleCount, icon: LayoutList },
-          { label: "Entrées à cadrer", value: groupedContacts.inscription?.length || 0, icon: Clock3 },
-          { label: "Étapes examens", value: (groupedContacts.examen_theorique?.length || 0) + (groupedContacts.examen_pratique?.length || 0), icon: ArrowRight },
-          { label: "Diplômés / carte pro", value: groupedContacts.carte_pro?.length || 0, icon: GraduationCap },
-        ];
-      case "prospects":
-        return [
-          { label: "Prospects actifs", value: prospectsToConvert, icon: UserPlus },
-          { label: "Relances en retard", value: prospectsStats?.overdue ?? 0, icon: Clock3 },
-          { label: "À traiter aujourd'hui", value: prospectsStats?.today ?? 0, icon: ArrowRight },
-          { label: "Convertis", value: prospectsStats?.converti ?? 0, icon: GraduationCap },
-        ];
-      case "analytics":
-      default:
-        return [
-          { label: "Contacts", value: totalContacts, icon: Users },
-          { label: "Prospects", value: totalProspects, icon: UserPlus },
-          { label: "À convertir", value: prospectsToConvert, icon: ArrowRight },
-          { label: "Relances en retard", value: prospectsStats?.overdue ?? 0, icon: Clock3 },
-        ];
-    }
-  }, [
-    activeView,
-    contactsInProgress,
-    groupedContacts.carte_pro,
-    groupedContacts.examen_pratique,
-    groupedContacts.examen_theorique,
-    groupedContacts.inscription,
-    pipelineVisibleCount,
-    prospectsStats?.converti,
-    prospectsStats?.overdue,
-    prospectsStats?.today,
-    prospectsToConvert,
-    totalContacts,
-    totalProspects,
-  ]);
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -419,17 +326,22 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Badge variant="outline" className="hidden md:inline-flex">
-              {totalContacts} contacts
-            </Badge>
-            <Badge variant="outline" className="hidden md:inline-flex">
-              {prospectsToConvert} prospects en cours
-            </Badge>
+          {/* Quick stats */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Users className="h-4 w-4" />
+              <span>{totalContacts} contacts</span>
+            </div>
+            <span className="text-muted-foreground/50">|</span>
+            <div className="flex items-center gap-1.5">
+              <UserPlus className="h-4 w-4" />
+              <span>{totalProspects} prospects</span>
+            </div>
+            <span className="text-muted-foreground/50">|</span>
             <Button
               variant="outline"
               size="sm"
-              className="text-xs gap-1.5 w-full sm:w-auto"
+              className="text-xs gap-1.5"
               onClick={() => setBulkChevaletOpen(true)}
               disabled={!contacts?.length}
             >
@@ -439,42 +351,6 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
           </div>
         </div>
 
-        <Card className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="w-fit">
-                  {currentViewMeta.title}
-                </Badge>
-                {activeView === "pipeline" && hasPipelineFilters && (
-                  <Badge variant="outline">Filtres actifs</Badge>
-                )}
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">{currentViewMeta.description}</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {currentViewMeta.helper}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:max-w-3xl">
-              {viewHighlights.map((highlight) => {
-                const Icon = highlight.icon;
-                return (
-                  <div key={highlight.label} className="rounded-lg border bg-muted/30 px-3 py-3">
-                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{highlight.label}</span>
-                    </div>
-                    <div className="mt-2 text-xl font-semibold">{highlight.value}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-
         {/* List View - uses existing ContactsTable */}
         <TabsContent value="list" className="mt-4">
           <ContactsTable />
@@ -482,61 +358,31 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
 
         {/* Pipeline View */}
         <TabsContent value="pipeline" className="mt-4">
-          <Card className="p-4 mb-4">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold">Vue pipeline apprenants</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Fais avancer les stagiaires d'une étape à l'autre et garde un oeil sur les entrées à cadrer.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <Badge variant="outline">{pipelineVisibleCount} fiche(s) visibles</Badge>
-                  <Badge variant="outline">{groupedContacts.inscription?.length || 0} à valider</Badge>
-                  <Badge variant="outline">{groupedContacts.abandonne?.length || 0} abandonné(s)</Badge>
-                  <Badge variant="outline">{groupedContacts.carte_pro?.length || 0} diplômé(s)</Badge>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher un candidat..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-
-                <Select value={formationFilter} onValueChange={setFormationFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Type formation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes formations</SelectItem>
-                    <SelectItem value="TAXI">Taxi</SelectItem>
-                    <SelectItem value="VTC">VTC</SelectItem>
-                    <SelectItem value="VMDTR">VMDTR</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {hasPipelineFilters && (
-                  <Button variant="ghost" size="sm" className="gap-2" onClick={resetPipelineFilters}>
-                    <RotateCcw className="h-4 w-4" />
-                    Réinitialiser
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>Lecture rapide :</span>
-                <span>les cartes à gauche signalent les entrants, les colonnes examens montrent les passages clés, et la colonne finale sert à repérer les diplômés.</span>
-              </div>
+          {/* Pipeline Filters */}
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un candidat..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          </Card>
+
+            <Select value={formationFilter} onValueChange={setFormationFilter}>
+              <SelectTrigger className="w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Type formation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes formations</SelectItem>
+                <SelectItem value="TAXI">Taxi</SelectItem>
+                <SelectItem value="VTC">VTC</SelectItem>
+                <SelectItem value="VMDTR">VMDTR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {loadingContacts ? (
             <div className="flex gap-4 overflow-x-auto pb-4">
@@ -546,19 +392,6 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
                 </div>
               ))}
             </div>
-          ) : pipelineVisibleCount === 0 ? (
-            <Card className="p-10 text-center">
-              <p className="font-medium">Aucun apprenant ne correspond aux filtres actuels.</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Réinitialise les filtres ou change de formation pour retrouver le pipeline complet.
-              </p>
-              {hasPipelineFilters && (
-                <Button variant="outline" className="mt-4 gap-2" onClick={resetPipelineFilters}>
-                  <RotateCcw className="h-4 w-4" />
-                  Réinitialiser les filtres
-                </Button>
-              )}
-            </Card>
           ) : (
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="flex gap-4 overflow-x-auto pb-4">
@@ -574,9 +407,9 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
             </DragDropContext>
           )}
 
-      {/* Legend */}
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-            <span className="font-medium">Ancienneté du dossier :</span>
+          {/* Legend */}
+          <div className="mt-4 flex items-center gap-6 text-xs text-muted-foreground">
+            <span className="font-medium">Ancienneté:</span>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 border-l-4 border-green-500" />
               <span>&lt; 7j</span>
@@ -643,7 +476,6 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
 // Embedded prospects list (simplified from ProspectsPage)
 function ProspectsEmbedded() {
   const { data: prospects = [], isLoading } = useProspects();
-  const { data: prospectsStats } = useProspectsStats();
   const deleteProspect = useDeleteProspect();
   const convertProspect = useConvertProspect();
   const [search, setSearch] = useState("");
@@ -683,12 +515,6 @@ function ProspectsEmbedded() {
     return matchesSearch && matchesStatus;
   });
 
-  const hasFilters = search.trim().length > 0 || statusFilter !== "all";
-  const resetFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-  };
-
   const handleConvert = (prospect: Prospect) => {
     convertProspect.mutate(prospect);
   };
@@ -719,7 +545,7 @@ function ProspectsEmbedded() {
       }
       toast.success(`${ids.length} prospect(s) supprimé(s)`);
       setSelectedIds(new Set());
-    } catch {
+    } catch (error) {
       toast.error("Erreur lors de la suppression");
     }
     setShowDeleteDialog(false);
@@ -737,34 +563,6 @@ function ProspectsEmbedded() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div>
-              <h3 className="font-semibold">Vue prospects intégrée</h3>
-              <p className="text-sm text-muted-foreground">
-                Suis les opportunités à qualifier, les relances du jour et les conversions à déclencher.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-sm">
-              <Badge variant="outline">{filteredProspects.length} affiché(s)</Badge>
-              <Badge variant="outline">{prospectsStats?.overdue ?? 0} relances en retard</Badge>
-              <Badge variant="outline">{prospectsStats?.today ?? 0} à traiter aujourd'hui</Badge>
-              <Badge variant="outline">{selectedIds.size} sélectionné(s)</Badge>
-            </div>
-          </div>
-
-          {hasFilters && (
-            <div className="flex justify-end">
-              <Button variant="ghost" size="sm" className="gap-2" onClick={resetFilters}>
-                <RotateCcw className="h-4 w-4" />
-                Réinitialiser les filtres
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
-
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">

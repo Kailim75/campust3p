@@ -54,8 +54,6 @@ export function BulkEnrollDialog({
     success: string[];
     duplicates: string[];
     errors: string[];
-    facturesCreated: number;
-    factureErrors: string[];
   } | null>(null);
 
   const { data: sessions, isLoading: sessionsLoading } = useSessions();
@@ -104,11 +102,6 @@ export function BulkEnrollDialog({
       }
       if (result.errors.length > 0) {
         toast.error(`${result.errors.length} échec(s) d'inscription`);
-      }
-      if (result.factureErrors.length > 0) {
-        toast.warning(
-          `${result.factureErrors.length} facture(s) brouillon n'ont pas été générée(s)`
-        );
       }
     } catch (error) {
       console.error("Erreur inscription groupée:", error);
@@ -299,27 +292,6 @@ export function BulkEnrollDialog({
                   <div className="flex flex-wrap gap-1">
                     {enrollmentResult.errors.map((id) => (
                       <Badge key={id} variant="secondary" className="text-xs bg-destructive/10 text-destructive">
-                        {getContactName(id)}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {enrollmentResult.factureErrors.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-warning">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">
-                      {enrollmentResult.factureErrors.length} facture(s) à créer manuellement
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Les inscriptions ont bien été créées, mais certaines factures brouillon n'ont pas pu être générées.
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {enrollmentResult.factureErrors.map((id) => (
-                      <Badge key={id} variant="secondary" className="text-xs bg-warning/10 text-warning">
                         {getContactName(id)}
                       </Badge>
                     ))}

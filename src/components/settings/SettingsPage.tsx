@@ -21,6 +21,7 @@ import {
   CreditCard as CreditCardIcon,
   Palette,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { TemplateFilesSection } from "./TemplateFilesSection";
@@ -47,20 +48,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import type { ContactInsert } from "@/hooks/useContacts";
-
-type SettingsTabValue =
-  | "centre"
-  | "personnalisation"
-  | "contacts"
-  | "documents"
-  | "financier"
-  | "notifications"
-  | "utilisateurs"
-  | "integrations";
-
-type SpreadsheetCell = string | number | boolean | null | undefined;
-type ImportPreviewContact = ContactInsert;
+// XLSX loaded dynamically for performance
+type XLSXModule = typeof import("xlsx");
 
 // CSV columns mapping
 const CSV_COLUMNS = [
@@ -85,86 +74,11 @@ const CSV_COLUMNS = [
   "statut",
   "source",
   "commentaires",
- ] as const;
-
-type CSVColumn = (typeof CSV_COLUMNS)[number];
-
-const STATUT_VALUES = ["En attente de validation", "Client", "Bravo"] as const;
-const FORMATION_VALUES = ["TAXI", "VTC", "VMDTR", "ACC VTC", "ACC VTC 75", "Formation continue Taxi", "Formation continue VTC", "Mobilité Taxi"] as const;
-const CIVILITE_VALUES = ["M.", "Mme"] as const;
-
-const SETTINGS_TABS: Array<{
-  value: SettingsTabValue;
-  label: string;
-  title: string;
-  description: string;
-  icon: typeof Building2;
-}> = [
-  {
-    value: "centre",
-    label: "Centre",
-    title: "Paramètres du centre",
-    description: "Coordonnées, informations légales et réglages principaux de l’établissement.",
-    icon: Building2,
-  },
-  {
-    value: "personnalisation",
-    label: "Apparence",
-    title: "Personnalisation visuelle",
-    description: "Adaptez les couleurs, éléments graphiques et préférences d’affichage du CRM.",
-    icon: Palette,
-  },
-  {
-    value: "contacts",
-    label: "Contacts",
-    title: "Import et export des contacts",
-    description: "Préparez vos imports, exportez la base et vérifiez les formats attendus avant chargement.",
-    icon: Users,
-  },
-  {
-    value: "documents",
-    label: "Documents",
-    title: "Bibliothèque documentaire",
-    description: "Gérez les modèles, fichiers et templates par défaut utilisés dans les workflows du centre.",
-    icon: FileText,
-  },
-  {
-    value: "financier",
-    label: "Financier",
-    title: "Paramètres financiers",
-    description: "Réglez les paramètres de facturation, de paiement et les intégrations liées au financier.",
-    icon: CreditCardIcon,
-  },
-  {
-    value: "notifications",
-    label: "Notifications",
-    title: "Notifications internes",
-    description: "Définissez les alertes et signaux à faire remonter aux équipes dans le CRM.",
-    icon: Bell,
-  },
-  {
-    value: "utilisateurs",
-    label: "Utilisateurs",
-    title: "Gestion des accès",
-    description: "Pilotez les comptes, droits et rôles des utilisateurs du CRM.",
-    icon: Settings2,
-  },
-  {
-    value: "integrations",
-    label: "Intégrations",
-    title: "Connexions externes",
-    description: "Surveillez les webhooks et services branchés au CRM pour automatiser les flux.",
-    icon: Webhook,
-  },
 ];
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-}
+const STATUT_VALUES = ["En attente de validation", "Client", "Bravo"];
+const FORMATION_VALUES = ["TAXI", "VTC", "VMDTR", "ACC VTC", "ACC VTC 75", "Formation continue Taxi", "Formation continue VTC", "Mobilité Taxi"];
+const CIVILITE_VALUES = ["M.", "Mme"];
 
 function AlmaStatusCard() {
   const { mode, isSandbox, isLoading } = useAlmaMode();
@@ -209,13 +123,11 @@ function AlmaStatusCard() {
 export function SettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTabValue>("centre");
-  const [importPreview, setImportPreview] = useState<ImportPreviewContact[] | null>(null);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const activeTabMeta = SETTINGS_TABS.find((tab) => tab.value === activeTab) ?? SETTINGS_TABS[0];
 
   // Export contacts to CSV
   const handleExport = async () => {
@@ -259,9 +171,9 @@ export function SettingsPage() {
       URL.revokeObjectURL(url);
 
       toast.success(`${contacts.length} contacts exportés avec succès`);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Export error:", error);
-      toast.error(getErrorMessage(error, "Erreur lors de l'export"));
+      toast.error("Erreur lors de l'export");
     } finally {
       setIsExporting(false);
     }
@@ -304,9 +216,9 @@ export function SettingsPage() {
   };
 
   // Validate and prepare import data
-  const validateImportData = (headers: string[], rows: string[][]): { valid: ImportPreviewContact[]; errors: string[] } => {
+  const validateImportData = (headers: string[], rows: string[][]): { valid: any[]; errors: string[] } => {
     const errors: string[] = [];
-    const valid: ImportPreviewContact[] = [];
+    const valid: any[] = [];
 
     const nomIndex = headers.indexOf("nom");
     const prenomIndex = headers.indexOf("prenom");
@@ -318,13 +230,13 @@ export function SettingsPage() {
 
     rows.forEach((row, rowIndex) => {
       const lineNum = rowIndex + 2;
-      const contact: Partial<Record<CSVColumn, string | null>> = {};
-      const rowErrors: string[] = [];
+      const contact: any = {};
+      let rowErrors: string[] = [];
 
       headers.forEach((header, colIndex) => {
         const value = row[colIndex]?.trim() || "";
         
-         if (CSV_COLUMNS.includes(header as CSVColumn)) {
+        if (CSV_COLUMNS.includes(header)) {
           if (header === "nom" && !value) {
             rowErrors.push(`Ligne ${lineNum}: Nom obligatoire`);
           }
@@ -334,13 +246,13 @@ export function SettingsPage() {
           if (header === "email" && value && !value.includes("@")) {
             rowErrors.push(`Ligne ${lineNum}: Email invalide`);
           }
-          if (header === "statut" && value && !(STATUT_VALUES as readonly string[]).includes(value)) {
+          if (header === "statut" && value && !STATUT_VALUES.includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Statut invalide (${value})`);
           }
-          if (header === "formation" && value && !(FORMATION_VALUES as readonly string[]).includes(value)) {
+          if (header === "formation" && value && !FORMATION_VALUES.includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Formation invalide (${value})`);
           }
-          if (header === "civilite" && value && !(CIVILITE_VALUES as readonly string[]).includes(value)) {
+          if (header === "civilite" && value && !CIVILITE_VALUES.includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Civilité invalide (${value})`);
           }
           
@@ -351,14 +263,14 @@ export function SettingsPage() {
             }
           }
 
-          contact[header as CSVColumn] = value || null;
+          contact[header] = value || null;
         }
       });
 
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
       } else if (contact.nom && contact.prenom) {
-        valid.push(contact as ImportPreviewContact);
+        valid.push(contact);
       }
     });
 
@@ -371,15 +283,15 @@ export function SettingsPage() {
     const workbook = XLSX.read(buffer, { type: "array" });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
-    const data = XLSX.utils.sheet_to_json<SpreadsheetCell[]>(worksheet, { header: 1 });
+    const data: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     
     if (data.length === 0) return { headers: [], rows: [] };
     
-    const headers = data[0].map((headerCell) => String(headerCell || "").trim().toLowerCase());
-    const rows = data.slice(1).map((row) =>
-      row.map((cell, columnIndex) => {
+    const headers = data[0].map((h: any) => String(h || "").trim().toLowerCase());
+    const rows = data.slice(1).map((row: any[]) => 
+      row.map((cell: any) => {
         if (cell === null || cell === undefined) return "";
-        if (typeof cell === "number" && headers[columnIndex]?.includes("date")) {
+        if (typeof cell === "number" && headers[row.indexOf(cell)]?.includes("date")) {
           try {
             const date = XLSX.SSF.parse_date_code(cell);
             if (date) {
@@ -470,9 +382,9 @@ export function SettingsPage() {
       setShowImportDialog(false);
       setImportPreview(null);
       setImportErrors([]);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Import error:", error);
-      toast.error("Erreur lors de l'import: " + getErrorMessage(error, "cause inconnue"));
+      toast.error("Erreur lors de l'import: " + error.message);
     } finally {
       setIsImporting(false);
     }
@@ -525,29 +437,44 @@ export function SettingsPage() {
         subtitle="Configuration et gestion des données"
       />
 
-      <main className="p-6 animate-fade-in space-y-4">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTabValue)} className="space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <activeTabMeta.icon className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">{activeTabMeta.title}</p>
-              </div>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                {activeTabMeta.description}
-              </p>
-            </div>
+      <main className="p-6 animate-fade-in">
+        <Tabs defaultValue="centre" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="centre" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Centre</span>
+            </TabsTrigger>
+            <TabsTrigger value="personnalisation" className="gap-2">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Apparence</span>
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Contacts</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="financier" className="gap-2">
+              <CreditCardIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Financier</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
+            <TabsTrigger value="utilisateurs" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Utilisateurs</span>
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-2">
+              <Webhook className="h-4 w-4" />
+              <span className="hidden sm:inline">Intégrations</span>
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
-              {SETTINGS_TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                  <tab.icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-
+          {/* Tab: Centre de Formation */}
           <TabsContent value="centre" className="space-y-6">
             <CentreFormationSettings />
           </TabsContent>
@@ -686,11 +613,6 @@ export function SettingsPage() {
           {/* Tab: Financier */}
           <TabsContent value="financier" className="space-y-6">
             <FinancialSettingsSection />
-          </TabsContent>
-
-          {/* Tab: Notifications */}
-          <TabsContent value="notifications" className="space-y-6">
-            <NotificationSettings />
           </TabsContent>
 
           {/* Tab: Utilisateurs */}

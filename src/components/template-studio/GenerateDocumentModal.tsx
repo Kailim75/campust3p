@@ -2,7 +2,7 @@
 // Generate Document Modal — Pick entity, render template, create instance
 // ═══════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -16,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, FileText, Download, Eye, Search, User, Calendar, CreditCard, Building, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database, Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
 import DOMPurify from "dompurify";
@@ -31,77 +30,11 @@ const ENTITY_TYPES = [
 ] as const;
 
 type EntityType = typeof ENTITY_TYPES[number]["value"];
-type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
-type SessionRow = Database["public"]["Tables"]["sessions"]["Row"];
-type FactureRow = Database["public"]["Tables"]["factures"]["Row"];
-type DevisRow = Database["public"]["Tables"]["devis"]["Row"];
-type DevisLineRow = Database["public"]["Tables"]["devis_lignes"]["Row"];
-type CentreFormationRow = Database["public"]["Tables"]["centre_formation"]["Row"];
-type DocumentInstanceInsert = Database["public"]["Tables"]["document_instances"]["Insert"];
-type ContactDocumentInsert = Database["public"]["Tables"]["contact_documents"]["Insert"];
-
-type ContactLite = Pick<ContactRow, "nom" | "prenom" | "email" | "telephone" | "rue" | "code_postal" | "ville" | "civilite">;
-type SessionLite = Pick<SessionRow, "nom" | "date_debut" | "date_fin" | "duree_heures" | "formation_type" | "lieu">;
-type FactureSearchRow = Pick<FactureRow, "id" | "numero_facture" | "montant_total"> & {
-  contacts: Pick<ContactRow, "nom" | "prenom"> | Pick<ContactRow, "nom" | "prenom">[] | null;
-};
-type FactureDocumentRow = FactureRow & {
-  contacts: Pick<ContactRow, "nom" | "prenom" | "email"> | Pick<ContactRow, "nom" | "prenom" | "email">[] | null;
-};
-type DevisSearchRow = Pick<DevisRow, "id" | "numero_devis" | "montant_total"> & {
-  contact: Pick<ContactRow, "nom" | "prenom"> | Pick<ContactRow, "nom" | "prenom">[] | null;
-};
-type SessionInscriptionWithSession = {
-  session: SessionLite | SessionLite[] | null;
-};
-type DevisDocumentRow = DevisRow & {
-  contact: ContactLite | ContactLite[] | null;
-  session_inscription: SessionInscriptionWithSession | SessionInscriptionWithSession[] | null;
-};
-type AgrementOther = {
-  nom?: string;
-  numero?: string;
-  date_obtention?: string;
-  date_expiration?: string;
-};
 
 interface SearchResult {
   id: string;
   label: string;
   sublabel?: string;
-}
-
-function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
-
-function formatDate(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleDateString("fr-FR") : "";
-}
-
-function formatCurrency(value: number | string | null | undefined): string {
-  const amount = Number(value ?? 0);
-  if (!Number.isFinite(amount)) return "";
-
-  return amount.toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }) + " €";
-}
-
-function getLineHt(line: DevisLineRow): number {
-  return Number(
-    line.montant_ht ?? line.quantite * line.prix_unitaire_ht * (1 - (line.remise_percent || 0) / 100),
-  );
-}
-
-function getLineTva(line: DevisLineRow): number {
-  return Number(line.montant_tva ?? 0);
-}
-
-function getLineTtc(line: DevisLineRow): number {
-  return Number(line.montant_ttc ?? (getLineHt(line) + getLineTva(line)));
 }
 
 interface Props {
@@ -120,12 +53,8 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
   const [generating, setGenerating] = useState(false);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
   const [editableHtml, setEditableHtml] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(true);
   const [generatedInstanceId, setGeneratedInstanceId] = useState<string | null>(null);
-  const currentEntityType = ENTITY_TYPES.find((item) => item.value === entityType) ?? ENTITY_TYPES[0];
-  const CurrentEntityIcon = currentEntityType.icon;
-  const searchReady = search.trim().length >= 2;
-  const hasSearchResults = results.length > 0;
-  const generationReady = Boolean(selectedEntity);
 
   // Reset on open
   useEffect(() => {
@@ -135,6 +64,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       setSelectedEntity(null);
       setGeneratedHtml(null);
       setEditableHtml("");
+      setIsEditing(true);
       setGeneratedInstanceId(null);
     }
   }, [open]);
@@ -173,30 +103,22 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
             .select("id, numero_facture, montant_total, statut, contacts(nom, prenom)")
             .or(`numero_facture.ilike.%${search}%`)
             .limit(10);
-          const factures = (data ?? []) as FactureSearchRow[];
-          setResults(factures.map((f) => {
-            const contact = unwrapRelation(f.contacts);
-            return {
+          setResults((data || []).map((f: any) => ({
             id: f.id,
             label: f.numero_facture,
-            sublabel: contact ? `${contact.prenom} ${contact.nom} — ${formatCurrency(f.montant_total)}` : formatCurrency(f.montant_total),
-          };
-          }));
+            sublabel: f.contacts ? `${f.contacts.prenom} ${f.contacts.nom} — ${f.montant_total}€` : `${f.montant_total}€`,
+          })));
         } else if (entityType === "devis") {
           const { data } = await supabase
             .from("devis")
             .select("id, numero_devis, montant_total, statut, contact:contacts(nom, prenom)")
             .or(`numero_devis.ilike.%${search}%`)
             .limit(10);
-          const devis = (data ?? []) as DevisSearchRow[];
-          setResults(devis.map((d) => {
-            const contact = unwrapRelation(d.contact);
-            return {
+          setResults((data || []).map((d: any) => ({
             id: d.id,
             label: d.numero_devis,
-            sublabel: contact ? `${contact.prenom} ${contact.nom} — ${formatCurrency(d.montant_total)}` : formatCurrency(d.montant_total),
-          };
-          }));
+            sublabel: d.contact ? `${d.contact.prenom} ${d.contact.nom} — ${d.montant_total}€` : `${d.montant_total}€`,
+          })));
         } else if (entityType === "centre") {
           const { data } = await supabase
             .from("centre_formation")
@@ -237,46 +159,44 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       const { data } = await supabase.from("sessions").select("*").eq("id", id).maybeSingle();
       if (data) {
         map.session_nom = data.nom || "";
-        map.session_date_debut = formatDate(data.date_debut);
-        map.session_date_fin = formatDate(data.date_fin);
+        map.session_date_debut = data.date_debut ? new Date(data.date_debut).toLocaleDateString("fr-FR") : "";
+        map.session_date_fin = data.date_fin ? new Date(data.date_fin).toLocaleDateString("fr-FR") : "";
         map.duree_heures = String(data.duree_heures || "");
         map.horaires = (data as any).horaires || "";
       }
     } else if (type === "paiement") {
       const { data } = await supabase.from("factures").select("*, contacts(nom, prenom, email)").eq("id", id).maybeSingle();
-      const facture = data as FactureDocumentRow | null;
-      if (facture) {
-        map.numero_facture = facture.numero_facture || "";
-        map.montant_total = String(facture.montant_total || "");
-        map.prix_total = String(facture.montant_total || "");
-        const contact = unwrapRelation(facture.contacts);
-        if (contact) {
-          map.nom = contact.nom || "";
-          map.prenom = contact.prenom || "";
-          map.email = contact.email || "";
+      if (data) {
+        map.numero_facture = data.numero_facture || "";
+        map.montant_total = String(data.montant_total || "");
+        map.prix_total = String(data.montant_total || "");
+        if (data.contacts) {
+          map.nom = (data.contacts as any).nom || "";
+          map.prenom = (data.contacts as any).prenom || "";
+          map.email = (data.contacts as any).email || "";
         }
       }
     } else if (type === "devis") {
       const { data } = await supabase
         .from("devis")
-        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, lieu))")
+        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, horaires, lieu))")
         .eq("id", id)
         .maybeSingle();
-      const devis = data as unknown as DevisDocumentRow | null;
-      if (devis) {
-        const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (data) {
+        const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+        const fmtE = (n: number) => fmt(n) + " €";
         
-        map.numero_devis = devis.numero_devis || "";
-        map.montant_total = formatCurrency(devis.montant_total);
+        map.numero_devis = data.numero_devis || "";
+        map.montant_total = fmtE(Number(data.montant_total));
         map.prix_total = map.montant_total;
-        map.type_financement = devis.type_financement || "";
-        map.date_emission = formatDate(devis.date_emission);
-        map.date_validite = formatDate(devis.date_validite);
-        map.statut_devis = devis.statut || "";
-        map.commentaires = devis.commentaires || "";
-        map.modalites_paiement = devis.type_financement === "cpf" ? "Prise en charge CPF" : "Règlement selon échéancier du contrat";
+        map.type_financement = data.type_financement || "";
+        map.date_emission = data.date_emission ? new Date(data.date_emission).toLocaleDateString("fr-FR") : "";
+        map.date_validite = data.date_validite ? new Date(data.date_validite).toLocaleDateString("fr-FR") : "";
+        map.statut_devis = data.statut || "";
+        map.commentaires = data.commentaires || "";
+        map.modalites_paiement = data.type_financement === "cpf" ? "Prise en charge CPF" : "Règlement selon échéancier du contrat";
 
-        const contact = unwrapRelation(devis.contact);
+        const contact = (data as any).contact;
         if (contact) {
           map.nom = contact.nom || "";
           map.prenom = contact.prenom || "";
@@ -287,16 +207,15 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           map.adresse_client = map.adresse;
         }
         // Session data via inscription
-        const sessionInscription = unwrapRelation(devis.session_inscription);
-        const session = unwrapRelation(sessionInscription?.session);
+        const session = (data as any).session_inscription?.session;
         if (session) {
           map.session_nom = session.nom || "";
           map.intitule_formation = session.nom || session.formation_type || "";
           map.formation_type = session.formation_type || "";
-          map.session_date_debut = formatDate(session.date_debut);
-          map.session_date_fin = formatDate(session.date_fin);
+          map.session_date_debut = session.date_debut ? new Date(session.date_debut).toLocaleDateString("fr-FR") : "";
+          map.session_date_fin = session.date_fin ? new Date(session.date_fin).toLocaleDateString("fr-FR") : "";
           map.duree_heures = String(session.duree_heures || "");
-          map.horaires = (session as any).horaires || "";
+          map.horaires = session.horaires || "";
           map.lieu = session.lieu || "";
         }
         // Fetch devis lines
@@ -305,25 +224,24 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           .select("*")
           .eq("devis_id", id)
           .order("ordre", { ascending: true });
-        const devisLines = (lignes ?? []) as DevisLineRow[];
-        if (devisLines.length > 0) {
-          const totalHt = devisLines.reduce((sum, line) => sum + getLineHt(line), 0);
-          const totalTva = devisLines.reduce((sum, line) => sum + getLineTva(line), 0);
-          const totalTtc = devisLines.reduce((sum, line) => sum + getLineTtc(line), 0);
-          const totalRemise = devisLines.reduce((sum, line) => {
-            const brut = line.quantite * line.prix_unitaire_ht;
-            const net = getLineHt(line);
+        if (lignes && lignes.length > 0) {
+          const totalHt = lignes.reduce((sum, l: any) => sum + Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100)), 0);
+          const totalTva = lignes.reduce((sum, l: any) => sum + Number(l.montant_tva || 0), 0);
+          const totalTtc = lignes.reduce((sum, l: any) => sum + Number(l.montant_ttc || totalHt), 0);
+          const totalRemise = lignes.reduce((sum, l: any) => {
+            const brut = l.quantite * l.prix_unitaire_ht;
+            const net = Number(l.montant_ht || brut * (1 - (l.remise_percent || 0) / 100));
             return sum + (brut - net);
           }, 0);
 
           // Single-line variables from first line (for simple templates)
-          const firstLine = devisLines[0];
+          const firstLine = lignes[0] as any;
           map.prix_unitaire_ht = fmt(firstLine.prix_unitaire_ht);
           map.montant_remise = fmt(totalRemise);
           map.montant_total_ht = fmt(totalHt);
-          map.total_ht = formatCurrency(totalHt);
-          map.total_tva = formatCurrency(totalTva);
-          map.total_ttc = formatCurrency(totalTtc);
+          map.total_ht = fmtE(totalHt);
+          map.total_tva = fmtE(totalTva);
+          map.total_ttc = fmtE(totalTtc);
           map.tva_percent = String(firstLine.tva_percent || 0);
           map.remise_percent = String(firstLine.remise_percent || 0);
 
@@ -332,11 +250,11 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
             map.intitule_formation = firstLine.description || "";
           }
 
-          const rows = devisLines.map((line) => {
-            const lineHt = getLineHt(line);
-            return `<tr><td style="border:1px solid #ddd;padding:8px">${line.description}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${line.quantite}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${formatCurrency(line.prix_unitaire_ht)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${line.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${formatCurrency(lineHt)}</td></tr>`;
+          const rows = lignes.map((l: any) => {
+            const lineHt = Number(l.montant_ht || l.quantite * l.prix_unitaire_ht * (1 - (l.remise_percent || 0) / 100));
+            return `<tr><td style="border:1px solid #ddd;padding:8px">${l.description}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.quantite}</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(l.prix_unitaire_ht)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center">${l.remise_percent || 0}%</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(lineHt)}</td></tr>`;
           }).join("");
-          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:left">Désignation</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Qté</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Remise</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">Montant HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f5f5f5;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px;text-align:right">Total HT</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${formatCurrency(totalHt)}</td></tr></tfoot></table>`;
+          map.lignes_devis = `<table style="width:100%;border-collapse:collapse;margin:10px 0"><thead><tr><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:left">Désignation</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Qté</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">P.U. HT</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:center">Remise</th><th style="border:1px solid #333;padding:8px;background:#1e3a5f;color:#fff;text-align:right">Montant HT</th></tr></thead><tbody>${rows}</tbody><tfoot><tr style="background:#f5f5f5;font-weight:bold"><td colspan="4" style="border:1px solid #ddd;padding:8px;text-align:right">Total HT</td><td style="border:1px solid #ddd;padding:8px;text-align:right">${fmtE(totalHt)}</td></tr></tfoot></table>`;
         }
       }
     }
@@ -368,19 +286,19 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
 
       // Parse agrements_autres for taxi/vtc/vmdtr numbers
       if (centre.agrements_autres && Array.isArray(centre.agrements_autres)) {
-        const agrements = centre.agrements_autres as AgrementOther[];
+        const agrements = centre.agrements_autres as Array<{ nom?: string; numero?: string; date_obtention?: string; date_expiration?: string }>;
         for (const ag of agrements) {
           const nom = (ag.nom || "").toLowerCase();
           if (nom.includes("vtc") || nom.includes("taxi")) {
             map.agrement_taxi_vtc = ag.numero || "";
-            map.agrement_taxi_vtc_date = formatDate(ag.date_obtention);
-            map.agrement_taxi_vtc_expiration = formatDate(ag.date_expiration);
+            map.agrement_taxi_vtc_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_taxi_vtc_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
             map.agrement_taxi_vtc_nom = ag.nom || "";
           }
           if (nom.includes("vmdtr")) {
             map.agrement_vmdtr = ag.numero || "";
-            map.agrement_vmdtr_date = formatDate(ag.date_obtention);
-            map.agrement_vmdtr_expiration = formatDate(ag.date_expiration);
+            map.agrement_vmdtr_date = ag.date_obtention ? new Date(ag.date_obtention).toLocaleDateString("fr-FR") : "";
+            map.agrement_vmdtr_expiration = ag.date_expiration ? new Date(ag.date_expiration).toLocaleDateString("fr-FR") : "";
             map.agrement_vmdtr_nom = ag.nom || "";
           }
         }
@@ -399,26 +317,22 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       const sanitized = DOMPurify.sanitize(html, { ADD_ATTR: ["style"], ADD_TAGS: ["mark"] });
       setGeneratedHtml(sanitized);
       setEditableHtml(sanitized);
+      setIsEditing(true);
 
       // Create document_instances record
       const { data: { user } } = await supabase.auth.getUser();
-      const documentInstance: DocumentInstanceInsert = {
-        template_id: template.id,
-        entity_type: entityType as Database["public"]["Enums"]["template_entity_type"],
-        entity_id: selectedEntity.id,
-        centre_id: template.centre_id,
-        status: "generated",
-        metadata: {
-          generated_by: user?.id,
-          generated_at: new Date().toISOString(),
-          entity_label: selectedEntity.label,
-        } as Json,
-        created_by: user?.id,
-      };
-      const { data: instance, error } = await supabase
+      const { data: instance, error } = await (supabase as any)
         .from("document_instances")
-        .insert(documentInstance)
-        .select("id")
+        .insert({
+          template_id: template.id,
+          entity_type: entityType,
+          entity_id: selectedEntity.id,
+          centre_id: template.centre_id,
+          status: "generated",
+          metadata: { generated_by: user?.id, generated_at: new Date().toISOString(), entity_label: selectedEntity.label },
+          created_by: user?.id,
+        })
+        .select()
         .single();
 
       if (error) throw error;
@@ -437,21 +351,19 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       }
 
       if (contactId) {
-        const generatedContactDocument: ContactDocumentInsert = {
+        await supabase.from("contact_documents").insert({
           contact_id: contactId,
           type_document: template.type || "autre",
           nom: `${template.name} — ${selectedEntity.label}`,
           file_path: `generated/${instance?.id || "doc"}_${Date.now()}`,
           commentaires: `Généré via Template Studio le ${new Date().toLocaleDateString("fr-FR")}`,
-        };
-        await supabase.from("contact_documents").insert(generatedContactDocument);
+        });
       }
 
       toast.success("Document généré et enregistré");
-    } catch (e) {
-      const error = e instanceof Error ? e : new Error("erreur inconnue");
+    } catch (e: any) {
       console.error("Generation error:", e);
-      toast.error("Erreur lors de la génération : " + error.message);
+      toast.error("Erreur lors de la génération : " + (e.message || "erreur inconnue"));
     } finally {
       setGenerating(false);
     }
@@ -481,40 +393,6 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Template</p>
-          <p className="mt-1 text-sm font-semibold text-foreground">{template.name}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="capitalize">{template.type}</Badge>
-            <Badge variant="outline">{template.format.toUpperCase()}</Badge>
-          </div>
-        </Card>
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Contexte</p>
-          <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <CurrentEntityIcon className="h-4 w-4 text-primary" />
-            {currentEntityType.label}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {!generatedHtml ? "Étape 1/2 : choisir le bon dossier métier." : "Document généré : vous pouvez vérifier puis télécharger."}
-          </p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Sélection</p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
-            {selectedEntity ? selectedEntity.label : "Aucune entité choisie"}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {generatedInstanceId
-              ? `Instance ${generatedInstanceId.slice(0, 8)} créée dans le CRM.`
-              : generationReady
-                ? "Prêt pour la génération."
-                : "Recherchez puis validez une entité avant de continuer."}
-          </p>
-        </Card>
-      </div>
-
         {!generatedHtml ? (
           <div className="space-y-4 py-2">
             {/* Entity type */}
@@ -532,14 +410,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
 
             {/* Search */}
             <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <Label>Rechercher</Label>
-                <span className="text-[11px] text-muted-foreground">
-                  {searchReady
-                    ? `${results.length} résultat${results.length > 1 ? "s" : ""}`
-                    : "2 caractères minimum"}
-                </span>
-              </div>
+              <Label>Rechercher</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -549,21 +420,12 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
                   className="pl-9"
                 />
               </div>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Recherchez un apprenant, une session, une facture, un devis ou un centre pour préremplir les variables du template.
-              </p>
             </div>
 
             {/* Results */}
             {searching && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> Recherche...
-              </div>
-            )}
-
-            {!searching && searchReady && !hasSearchResults && (
-              <div className="rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground">
-                Aucun résultat pour cette recherche. Essayez un nom, un numéro ou une adresse email plus précise.
               </div>
             )}
 
@@ -598,7 +460,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
 
             <Button
               onClick={handleGenerate}
-              disabled={!generationReady || generating}
+              disabled={!selectedEntity || generating}
               className="w-full gap-2"
             >
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -675,12 +537,6 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Générer un document</DialogTitle>
-          <DialogDescription>
-            Sélectionnez une entité métier, générez le document, puis vérifiez le rendu avant téléchargement.
-          </DialogDescription>
-        </DialogHeader>
         {content}
       </DialogContent>
     </Dialog>

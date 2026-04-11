@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Phone, Mail, FolderOpen, GraduationCap,
@@ -295,6 +296,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const cmaReceived = trackComp.received;
   const cmaTotal = trackComp.total;
   const cmaMissing = trackComp.missing.length;
+  const cmaPct = trackComp.pct;
   const restantDu = cockpitData?.restantDu ?? 0;
   const nextRappel = cockpitData?.nextRappel;
   const nextSession = cockpitData?.nextSession;
@@ -317,28 +319,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
     hasPaid,
   ];
   const dossierProgress = Math.round((progressItems.filter(Boolean).length / progressItems.length) * 100);
-  const nextDeadlineLabel = nextSession?.date_debut
-    ? `${nextSession.nom || "Session"} · ${format(new Date(nextSession.date_debut), "dd/MM", { locale: fr })}`
-    : nextRappel?.date_rappel
-      ? `Rappel · ${format(new Date(nextRappel.date_rappel), "dd/MM", { locale: fr })}`
-      : "Aucune échéance planifiée";
-  const dossierSummaryLabel = isInitial
-    ? `${cmaReceived}/${cmaTotal} pièces CMA reçues`
-    : `${cmaReceived}/${cmaTotal} éléments carte pro reçus`;
-  const financeSummaryLabel = hasFacture
-    ? restantDu > 0
-      ? `${Math.round(restantDu)} € à encaisser`
-      : "Dossier soldé"
-    : "Facture à générer";
-  const lastActionLabel = lastAutoNote
-    ? `${lastAutoNote.titre.replace("[AUTO] ", "")} · ${format(new Date(lastAutoNote.date_echange), "dd/MM HH:mm")}`
-    : "Aucune action récente";
-  const attentionItems = [
-    !isProfileComplete ? "Profil à compléter" : null,
-    cmaMissing > 0 ? `${cmaMissing} document${cmaMissing > 1 ? "s" : ""} à ajouter` : null,
-    !hasInscription ? "Session à planifier" : null,
-    restantDu > 0 ? `${Math.round(restantDu)} € à encaisser` : null,
-  ].filter((item): item is string => Boolean(item));
 
   const tabs = [
     { value: "resume", icon: LayoutDashboard, label: "Résumé" },
@@ -355,7 +335,8 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 sm:p-5 border-b bg-muted/20 space-y-3">
+      {/* ─── COCKPIT HEADER ─── */}
+      <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
         {/* Identity row */}
         <div className="flex items-start gap-3 sm:gap-4">
           <Avatar className="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
@@ -423,71 +404,71 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
                 </Badge>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-              {contact.email && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1">
-                  <Mail className="h-3 w-3" />
-                  <span className="truncate max-w-[220px]">{contact.email}</span>
-                </span>
-              )}
-              {contact.telephone && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1">
-                  <Phone className="h-3 w-3" />
-                  {contact.telephone}
-                </span>
-              )}
-              {contact.formation && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2 py-1">
-                  <GraduationCap className="h-3 w-3" />
-                  {contact.formation}
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className="bg-background text-xs">
-            Progression · {dossierProgress}%
-          </Badge>
-          <button
-            type="button"
-            onClick={() => setActiveTab(isInitial ? "cma" : "carte-pro")}
-            className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted/40"
-          >
-            {isInitial ? <FileCheck className="h-3 w-3" /> : <IdCard className="h-3 w-3" />}
-            {isInitial ? "CMA" : "Carte Pro"} · {dossierSummaryLabel}
-          </button>
-          <Badge variant="outline" className="bg-background text-xs">
-            <Clock className="mr-1 h-3 w-3" />
-            {nextDeadlineLabel}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-xs",
-              restantDu > 0 ? "bg-warning/10 text-warning border-warning/20" : "bg-background",
-            )}
-          >
-            <CreditCard className="mr-1 h-3 w-3" />
-            {financeSummaryLabel}
-          </Badge>
-          {attentionItems.length > 0 ? (
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
-              <AlertTriangle className="mr-1 h-3 w-3" />
-              {attentionItems.length} point{attentionItems.length > 1 ? "s" : ""} à traiter
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-              <CheckCircle2 className="mr-1 h-3 w-3" />
-              Dossier en bonne trajectoire
-            </Badge>
-          )}
-        </div>
+        {/* Cockpit indicators row */}
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
+          {/* Dossier progress */}
+          <div className="bg-card border rounded-lg p-2.5 space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
+            <div className="flex items-center gap-2">
+              <Progress value={dossierProgress} className="h-1.5 flex-1" />
+              <span className="text-xs font-bold text-foreground">{dossierProgress}%</span>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2 rounded-lg border border-dashed bg-card/70 px-3 py-2 text-xs text-muted-foreground">
-          <Bot className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">Dernière action : {lastActionLabel}</span>
+          {/* CMA / Carte Pro indicator */}
+          {isInitial ? (
+            <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+              <p className="text-[10px] font-medium text-muted-foreground">CMA</p>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
+                  {cmaReceived}/{cmaTotal}
+                </span>
+                {cmaMissing > 0 && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 bg-warning/10 text-warning border-warning/20">
+                    {cmaMissing} manquant{cmaMissing > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {cmaMissing === 0 && <CheckCircle2 className="h-3 w-3 text-success" />}
+              </div>
+            </button>
+          ) : (
+            <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+              <p className="text-[10px] font-medium text-muted-foreground">Carte Pro</p>
+              <div className="flex items-center gap-1.5">
+                <IdCard className="h-3.5 w-3.5 text-accent" />
+                <span className="text-xs font-medium">Formation Continue</span>
+              </div>
+            </button>
+          )}
+
+          {/* Next deadline */}
+          <div className="bg-card border rounded-lg p-2.5">
+            <p className="text-[10px] font-medium text-muted-foreground">Prochaine échéance</p>
+            <p className="text-xs font-medium text-foreground truncate mt-0.5">
+              {nextSession?.date_debut
+                ? `${nextSession.nom || "Session"} — ${format(new Date(nextSession.date_debut), "dd/MM", { locale: fr })}`
+                : nextRappel?.date_rappel
+                  ? `Rappel — ${format(new Date(nextRappel.date_rappel), "dd/MM", { locale: fr })}`
+                  : <span className="text-muted-foreground">Aucune</span>
+              }
+            </p>
+          </div>
+
+          {/* Last action */}
+          <div className="bg-card border rounded-lg p-2.5">
+            <p className="text-[10px] font-medium text-muted-foreground">Dernière action</p>
+            {lastAutoNote ? (
+              <p className="text-xs text-foreground truncate mt-0.5">
+                <Bot className="h-3 w-3 inline mr-0.5 text-muted-foreground" />
+                {lastAutoNote.titre.replace("[AUTO] ", "")} — {format(new Date(lastAutoNote.date_echange), "dd/MM HH:mm")}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-0.5">—</p>
+            )}
+          </div>
         </div>
 
         {/* Workflow Stepper */}
@@ -498,11 +479,8 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Actions rapides
-          </p>
-
+        {/* Quick CTA actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {contact.telephone && (
             <Button size="sm" variant="outline" className="text-xs"
               onClick={() => {
@@ -530,6 +508,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             </Button>
           )}
 
+          {/* Relance CMA (anti-double) — only for initial track */}
           {isInitial && cmaMissing > 0 && contact.email && (
             <TooltipProvider>
               <Tooltip>
@@ -552,6 +531,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             </TooltipProvider>
           )}
 
+          {/* Marquer fait (anti-double) */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -572,22 +552,26 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             </Tooltip>
           </TooltipProvider>
 
+          {/* Générer document */}
           <Button size="sm" variant="default" className="text-xs"
             onClick={() => setGenerateDialogOpen(true)}
           >
             <FileText className="h-3 w-3 mr-1" /> Générer doc
           </Button>
 
+          {/* Chevalet */}
           <Button size="sm" variant="outline" className="text-xs"
             onClick={() => setChevaletOpen(true)}
           >
             <SquareUser className="h-3 w-3 mr-1" /> Chevalet
           </Button>
 
+          {/* Attestation de présence */}
           {activeEnrollment?.session && (
             <Button size="sm" variant="outline" className="text-xs"
               onClick={async () => {
                 if (!contact) return;
+                // Fetch full session data
                 const { data: fullSession } = await supabase
                   .from("sessions")
                   .select("*")

@@ -4,10 +4,9 @@ import { useQualiopiIndicateurs, QualiopiIndicateur } from '@/hooks/useQualiopiI
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertCircle, Clock, Loader2, FileText, ChevronDown, ChevronRight, ClipboardList, RotateCcw } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock, Loader2, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public sur les prestations',
@@ -72,43 +71,6 @@ export default function QualiopiCriteres() {
     return <Badge variant={variant} className={className}>{label}</Badge>;
   };
 
-  const groupedByCritere = useMemo(() => (
-    indicateurs?.reduce((acc, ind) => {
-      if (!acc[ind.critere]) acc[ind.critere] = [];
-      acc[ind.critere].push(ind);
-      return acc;
-    }, {} as Record<number, QualiopiIndicateur[]>) || {}
-  ), [indicateurs]);
-
-  const critereEntries = useMemo(() => (
-    Object.entries(groupedByCritere)
-      .map(([critere, inds]) => {
-        const critereNum = Number(critere);
-        const conformes = inds.filter((ind) => ind.statut === 'conforme').length;
-        const partiels = inds.filter((ind) => ind.statut === 'partiellement_conforme').length;
-        const nonConformes = inds.filter((ind) => ind.statut === 'non_conforme').length;
-        const total = inds.length;
-        const tauxCritere = total > 0 ? Math.round((conformes / total) * 100) : 0;
-
-        return {
-          critereNum,
-          inds,
-          conformes,
-          partiels,
-          nonConformes,
-          total,
-          tauxCritere,
-        };
-      })
-      .sort((left, right) => left.critereNum - right.critereNum)
-  ), [groupedByCritere]);
-
-  const totalConformes = indicateurs?.filter((ind) => ind.statut === 'conforme').length || 0;
-  const totalPartiels = indicateurs?.filter((ind) => ind.statut === 'partiellement_conforme').length || 0;
-  const totalNonConformes = indicateurs?.filter((ind) => ind.statut === 'non_conforme').length || 0;
-  const totalIndicateurs = indicateurs?.length || 0;
-  const ouvertsCount = openCriteres.length;
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -117,71 +79,25 @@ export default function QualiopiCriteres() {
     );
   }
 
+  // Grouper par critère
+  const groupedByCritere = indicateurs?.reduce((acc, ind) => {
+    if (!acc[ind.critere]) acc[ind.critere] = [];
+    acc[ind.critere].push(ind);
+    return acc;
+  }, {} as Record<number, QualiopiIndicateur[]>) || {};
+
   return (
-    <div className="space-y-5">
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold">Pilotage des critères</p>
-              <p className="text-xs text-muted-foreground">
-                Mets à jour les statuts indicateur par indicateur pour refléter l&apos;état réel de conformité.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-                <p className="font-medium">Lecture rapide</p>
-                <p className="text-muted-foreground">{totalConformes}/{totalIndicateurs} indicateurs conformes</p>
-                <p className="mt-1 text-muted-foreground">{ouvertsCount} critère{ouvertsCount > 1 ? 's' : ''} ouvert{ouvertsCount > 1 ? 's' : ''}</p>
-              </div>
-              {openCriteres.length > 0 && (
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => setOpenCriteres([])}>
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Replier tout
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="border-border/70">
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Conformes</p>
-                <p className="mt-1 text-lg font-semibold">{totalConformes}</p>
-                <p className="text-xs text-muted-foreground">Base actuellement sécurisée</p>
-              </CardContent>
-            </Card>
-            <Card className={totalPartiels > 0 ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-border/70'}>
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Partiels</p>
-                <p className="mt-1 text-lg font-semibold">{totalPartiels}</p>
-                <p className="text-xs text-muted-foreground">Nécessitent encore des preuves ou ajustements</p>
-              </CardContent>
-            </Card>
-            <Card className={totalNonConformes > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-border/70'}>
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Non conformes</p>
-                <p className="mt-1 text-lg font-semibold">{totalNonConformes}</p>
-                <p className="text-xs text-muted-foreground">À traiter en priorité</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/70">
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Critères</p>
-                <p className="mt-1 text-lg font-semibold">{critereEntries.length}</p>
-                <p className="text-xs text-muted-foreground">Axes Qualiopi suivis dans le CRM</p>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-
-      {critereEntries.map(({ critereNum, inds, conformes, partiels, nonConformes, total, tauxCritere }) => {
+    <div className="space-y-4">
+      {Object.entries(groupedByCritere).map(([critere, inds]) => {
+        const critereNum = parseInt(critere);
+        const conformes = inds.filter(i => i.statut === 'conforme').length;
+        const total = inds.length;
+        const tauxCritere = Math.round((conformes / total) * 100);
         const isOpen = openCriteres.includes(critereNum);
 
         return (
           <Collapsible 
-            key={critereNum} 
+            key={critere} 
             open={isOpen}
             onOpenChange={(open) => setCritereOpen(critereNum, open)}
           >
@@ -209,11 +125,6 @@ export default function QualiopiCriteres() {
                       <span className="text-muted-foreground ml-2 text-sm hidden md:inline truncate">
                         {CRITERES_LABELS[critereNum]}
                       </span>
-                      <div className="mt-1 hidden md:flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{partiels} partiel{partiels > 1 ? 's' : ''}</span>
-                        <span>·</span>
-                        <span>{nonConformes} non conforme{nonConformes > 1 ? 's' : ''}</span>
-                      </div>
                     </div>
                   </div>
                 </Button>
@@ -221,42 +132,15 @@ export default function QualiopiCriteres() {
               
               <CollapsibleContent>
                 <div className="px-4 pb-4">
-                  <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      {CRITERES_LABELS[critereNum]}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="gap-1 text-[11px]">
-                        <ClipboardList className="h-3 w-3" />
-                        {total} indicateur{total > 1 ? 's' : ''}
-                      </Badge>
-                      {partiels > 0 && (
-                        <Badge variant="secondary" className="text-[11px]">
-                          {partiels} partiel{partiels > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                      {nonConformes > 0 && (
-                        <Badge variant="destructive" className="text-[11px]">
-                          {nonConformes} non conforme{nonConformes > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 md:hidden">
+                    {CRITERES_LABELS[critereNum]}
+                  </p>
                   <div className="space-y-3">
                     {inds.map(ind => (
-                      <Card
-                        key={ind.id}
-                        className={cn(
-                          'border-l-4',
-                          ind.statut === 'conforme' && 'bg-green-500/5',
-                          ind.statut === 'partiellement_conforme' && 'bg-yellow-500/5',
-                          ind.statut === 'non_conforme' && 'bg-destructive/5',
-                        )}
-                        style={{
-                          borderLeftColor: ind.statut === 'conforme' ? '#22c55e' :
-                            ind.statut === 'partiellement_conforme' ? '#f97316' : '#ef4444'
-                        }}
-                      >
+                      <Card key={ind.id} className="border-l-4" style={{
+                        borderLeftColor: ind.statut === 'conforme' ? '#22c55e' : 
+                                         ind.statut === 'partiellement_conforme' ? '#f97316' : '#ef4444'
+                      }}>
                         <CardContent className="p-4">
                           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                             <div className="flex items-start gap-3 flex-1">

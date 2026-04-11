@@ -14,11 +14,7 @@ import { cn } from "@/lib/utils";
 
 type ViewMode = "factures" | "devis" | "sessions";
 
-interface FacturationUnifiedPageProps {
-  embedded?: boolean;
-}
-
-export function FacturationUnifiedPage({ embedded = false }: FacturationUnifiedPageProps) {
+export function FacturationUnifiedPage() {
   const [activeView, setActiveView] = useState<ViewMode>("factures");
   const { data: devisList = [] } = useDevis();
   const { data: factures = [] } = useFactures();
@@ -43,10 +39,8 @@ export function FacturationUnifiedPage({ embedded = false }: FacturationUnifiedP
   
   // Update breadcrumb when tab changes
   useEffect(() => {
-    if (!embedded) {
-      setActiveTab(activeView);
-    }
-  }, [activeView, embedded, setActiveTab]);
+    setActiveTab(activeView);
+  }, [activeView, setActiveTab]);
 
   // Priority subtitle based on context
   const getSubtitle = () => {
@@ -60,13 +54,11 @@ export function FacturationUnifiedPage({ embedded = false }: FacturationUnifiedP
   };
 
   return (
-    <div className={embedded ? "space-y-5" : "space-y-6"}>
-      {!embedded && (
-        <PageHeader 
-          title="Finances" 
-          subtitle={getSubtitle()}
-        />
-      )}
+    <div className="space-y-6">
+      <PageHeader 
+        title="Finances" 
+        subtitle={getSubtitle()}
+      />
 
       {/* Quick stats - Simplified and clearer */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

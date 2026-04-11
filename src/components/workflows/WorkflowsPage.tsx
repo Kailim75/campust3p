@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Plus, 
-  Workflow as WorkflowIcon, 
+  Workflow, 
   Trash2, 
   Edit, 
   History,
@@ -28,14 +28,9 @@ import {
   Clock,
   Globe,
   TrendingUp,
-  Filter,
-  ArrowRight,
-  LucideIcon,
-  PauseCircle,
-  RotateCcw
+  Filter
 } from 'lucide-react';
-import { useWorkflows, useAllWorkflowExecutions, TRIGGER_TYPES, ACTION_TYPES } from '@/hooks/useWorkflows';
-import type { Workflow, WorkflowExecution, WorkflowInput, WorkflowTemplate } from '@/hooks/useWorkflows';
+import { useWorkflows, useAllWorkflowExecutions, TRIGGER_TYPES, ACTION_TYPES, WORKFLOW_TEMPLATES } from '@/hooks/useWorkflows';
 import { WorkflowFormDialog } from './WorkflowFormDialog';
 import { WorkflowExecutionsSheet } from './WorkflowExecutionsSheet';
 import { WorkflowTemplatesDialog } from './WorkflowTemplatesDialog';
@@ -62,9 +57,7 @@ import {
 import { toast } from 'sonner';
 import { useExecuteWorkflow } from '@/hooks/useWorkflows';
 
-type WorkflowSelection = Workflow | WorkflowInput;
-
-const ACTION_ICONS: Record<string, LucideIcon> = {
+const ACTION_ICONS: Record<string, any> = {
   send_email: Mail,
   create_notification: Bell,
   update_status: RefreshCw,
@@ -80,7 +73,7 @@ export function WorkflowsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowSelection | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [executionsOpen, setExecutionsOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
@@ -93,16 +86,14 @@ export function WorkflowsPage() {
   const stats = useMemo(() => {
     const total = workflows?.length || 0;
     const actifs = workflows?.filter(w => w.actif).length || 0;
-    const inactive = total - actifs;
     const todayExecutions = allExecutions?.filter(e => isToday(new Date(e.started_at))).length || 0;
     const recentExecutions = allExecutions?.filter(e => new Date(e.started_at) > subDays(new Date(), 7)) || [];
     const successRate = recentExecutions.length > 0
       ? Math.round((recentExecutions.filter(e => e.status === 'completed').length / recentExecutions.length) * 100)
       : 0;
     const failedToday = allExecutions?.filter(e => isToday(new Date(e.started_at)) && e.status === 'failed').length || 0;
-    const needsAttention = inactive + failedToday;
 
-    return { total, actifs, inactive, todayExecutions, successRate, failedToday, recentTotal: recentExecutions.length, needsAttention };
+    return { total, actifs, todayExecutions, successRate, failedToday, recentTotal: recentExecutions.length };
   }, [workflows, allExecutions]);
 
   // Filtered workflows
@@ -119,8 +110,6 @@ export function WorkflowsPage() {
       return matchesSearch && matchesStatus && matchesTrigger;
     });
   }, [workflows, searchQuery, filterStatus, filterTrigger]);
-
-  const hasFilters = searchQuery.length > 0 || filterStatus !== 'all' || filterTrigger !== 'all';
 
   // Execution counts per workflow
   const executionCounts = useMemo(() => {
@@ -139,12 +128,12 @@ export function WorkflowsPage() {
     return counts;
   }, [allExecutions]);
 
-  const handleEdit = (workflow: Workflow) => {
+  const handleEdit = (workflow: any) => {
     setSelectedWorkflow(workflow);
     setFormOpen(true);
   };
 
-  const handleViewExecutions = (workflow: Workflow) => {
+  const handleViewExecutions = (workflow: any) => {
     setSelectedWorkflow(workflow);
     setExecutionsOpen(true);
   };
@@ -162,11 +151,11 @@ export function WorkflowsPage() {
     }
   };
 
-  const handleDuplicate = (workflow: Workflow) => {
+  const handleDuplicate = (workflow: any) => {
     duplicateWorkflow.mutate(workflow);
   };
 
-  const handleTestWorkflow = async (workflow: Workflow) => {
+  const handleTestWorkflow = async (workflow: any) => {
     try {
       toast.info('Test du workflow en cours...');
       await executeWorkflow.mutateAsync({
@@ -175,13 +164,12 @@ export function WorkflowsPage() {
         workflow_id: workflow.id
       });
       toast.success('Workflow testé avec succès');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur lors du test';
-      toast.error(`Erreur lors du test : ${message}`);
+    } catch (error: any) {
+      toast.error(`Erreur lors du test : ${error.message}`);
     }
   };
 
-  const handleTemplateSelect = (template: WorkflowTemplate) => {
+  const handleTemplateSelect = (template: any) => {
     setSelectedWorkflow({
       nom: template.nom,
       description: template.description,
@@ -202,26 +190,20 @@ export function WorkflowsPage() {
     return ACTION_TYPES.find(a => a.value === type)?.label || type;
   };
 
-  const resetFilters = () => {
-    setSearchQuery('');
-    setFilterStatus('all');
-    setFilterTrigger('all');
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <WorkflowIcon className="h-6 w-6 text-primary" />
+            <Workflow className="h-6 w-6 text-primary" />
             Workflows Automatisés
           </h1>
-          <p className="max-w-2xl text-muted-foreground">
+          <p className="text-muted-foreground">
             Automatisez vos processus métier avec des déclencheurs et des actions
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <Button variant="outline" onClick={() => setAiDialogOpen(true)} className="gap-2">
             <Sparkles className="h-4 w-4" />
             Créer avec l'IA
@@ -237,49 +219,13 @@ export function WorkflowsPage() {
         </div>
       </div>
 
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <Badge variant="secondary" className="w-fit gap-1.5">
-              <Zap className="h-3.5 w-3.5" />
-              Pilotage des automatisations
-            </Badge>
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold">Gardez visibles les workflows qui tournent, ceux qui coincent, et ceux qui méritent une correction.</h2>
-              <p className="text-sm text-muted-foreground">
-                L'objectif ici n'est pas de tout montrer, mais de repérer vite les automatisations actives, les incidents du jour et les workflows à reprendre.
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border bg-background/80 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Actifs</p>
-              <p className="text-lg font-semibold">{stats.actifs} / {stats.total}</p>
-              <p className="text-xs text-muted-foreground">Workflows actuellement en service</p>
-            </div>
-            <div className="rounded-lg border bg-background/80 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rythme du jour</p>
-              <p className="text-lg font-semibold">{stats.todayExecutions}</p>
-              <p className="text-xs text-muted-foreground">Exécutions lancées aujourd'hui</p>
-            </div>
-            <div className="rounded-lg border bg-background/80 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">À surveiller</p>
-              <p className="text-lg font-semibold">{stats.needsAttention}</p>
-              <p className="text-xs text-muted-foreground">
-                {stats.failedToday} échec{stats.failedToday > 1 ? 's' : ''} aujourd'hui, {stats.inactive} en pause
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <WorkflowIcon className="h-5 w-5 text-primary" />
+                <Workflow className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
@@ -331,11 +277,11 @@ export function WorkflowsPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-destructive/10">
-                <PauseCircle className="h-5 w-5 text-destructive" />
+                <XCircle className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.needsAttention}</p>
-                <p className="text-xs text-muted-foreground">À surveiller</p>
+                <p className="text-2xl font-bold">{stats.failedToday}</p>
+                <p className="text-xs text-muted-foreground">Échecs aujourd'hui</p>
               </div>
             </div>
           </CardContent>
@@ -346,7 +292,7 @@ export function WorkflowsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="workflows">
-            <WorkflowIcon className="h-4 w-4 mr-1" />
+            <Workflow className="h-4 w-4 mr-1" />
             Workflows ({filteredWorkflows.length})
           </TabsTrigger>
           <TabsTrigger value="executions">
@@ -390,30 +336,6 @@ export function WorkflowsPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-foreground">
-                {filteredWorkflows.length} workflow{filteredWorkflows.length > 1 ? 's' : ''} visible{filteredWorkflows.length > 1 ? 's' : ''}
-              </span>
-              {hasFilters ? (
-                <>
-                  <Badge variant="outline">Filtres actifs</Badge>
-                  {filterStatus !== 'all' && <Badge variant="secondary">Statut : {filterStatus === 'active' ? 'Actifs' : 'Inactifs'}</Badge>}
-                  {filterTrigger !== 'all' && <Badge variant="secondary">Déclencheur ciblé</Badge>}
-                  {searchQuery && <Badge variant="secondary">Recherche</Badge>}
-                </>
-              ) : (
-                <span>Aucun filtre : vue complète des automatisations configurées.</span>
-              )}
-            </div>
-            {hasFilters && (
-              <Button variant="ghost" size="sm" className="gap-2 self-start sm:self-auto" onClick={resetFilters}>
-                <RotateCcw className="h-3.5 w-3.5" />
-                Réinitialiser
-              </Button>
-            )}
           </div>
 
           {/* Workflow Cards */}
@@ -547,13 +469,6 @@ export function WorkflowsPage() {
                         </div>
                       )}
 
-                      {!execData && (
-                        <div className="flex items-center gap-2 rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground">
-                          <ArrowRight className="h-3.5 w-3.5 text-primary" />
-                          Aucun historique pour l'instant. Pensez à lancer un test avant mise en service.
-                        </div>
-                      )}
-
                       {/* Metadata */}
                       <div className="text-[10px] text-muted-foreground">
                         Créé le {format(new Date(workflow.created_at), 'dd MMM yyyy', { locale: fr })}
@@ -635,9 +550,9 @@ export function WorkflowsPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {allExecutions.slice(0, 25).map((execution: WorkflowExecution) => {
+                  {allExecutions.slice(0, 25).map((execution) => {
                     const wf = workflows?.find(w => w.id === execution.workflow_id);
-                    const statusConfig: Record<string, { label: string; color: string; Icon: LucideIcon }> = {
+                    const statusConfig: Record<string, { label: string; color: string; Icon: any }> = {
                       pending: { label: 'En attente', color: 'text-muted-foreground', Icon: Clock },
                       running: { label: 'En cours', color: 'text-primary', Icon: RefreshCw },
                       completed: { label: 'Terminé', color: 'text-primary', Icon: CheckCircle },
@@ -690,7 +605,7 @@ export function WorkflowsPage() {
       <WorkflowExecutionsSheet
         open={executionsOpen}
         onOpenChange={setExecutionsOpen}
-        workflow={selectedWorkflow && 'id' in selectedWorkflow ? selectedWorkflow : null}
+        workflow={selectedWorkflow}
       />
 
       <WorkflowAIDialog

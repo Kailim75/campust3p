@@ -14,7 +14,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCentreContext } from "@/contexts/CentreContext";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
 import { PeriodValue, getPreviousPeriod } from "./useDashboardPeriodV2";
@@ -77,13 +76,7 @@ interface RawInscription {
   date_inscription: string;
   statut_paiement: string | null;
   montant_formation: number | null;
-  contact: {
-    id: string;
-    nom: string;
-    prenom: string;
-    telephone: string | null;
-    centre_id: string | null;
-  } | null;
+  contact: { id: string; nom: string; prenom: string; telephone: string | null } | null;
 }
 
 interface RawDoc {
@@ -200,11 +193,8 @@ export interface DashboardData {
 
 // ─── Centralized fetch ───
 
-async function fetchAllDashboardData(
-  period: PeriodValue,
-  centreIdFromContext: string | null
-): Promise<DashboardData> {
-  const centreId = centreIdFromContext || await getUserCentreId();
+async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData> {
+  const centreId = await getUserCentreId();
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const prev = getPreviousPeriod(period);
@@ -213,16 +203,6 @@ async function fetchAllDashboardData(
   const prevFromStr = prev.from.toISOString().split("T")[0];
   const prevToStr = prev.to.toISOString().split("T")[0];
   const in7days = format(addDays(today, 7), "yyyy-MM-dd");
-
-  const currentPeriodStart = period.from;
-  const currentPeriodEnd = period.to;
-  const previousPeriodStart = prev.from;
-  const previousPeriodEnd = prev.to;
-  const isWithinTimestampPeriod = (value: string | null | undefined, start: Date, end: Date) => {
-    if (!value) return false;
-    const date = new Date(value);
-    return date >= start && date <= end;
-  };
 
   // ─── 12 batched queries ───
   const [
@@ -234,6 +214,7 @@ async function fetchAllDashboardData(
     contactsRes,
     docsRes,
     cartesRes,
+    prevProspectsRes,
     prevPaiementsRes,
     qualiopiItemsRes,
     qualiopiValidationsRes,
@@ -243,11 +224,10 @@ async function fetchAllDashboardData(
     supabase
       .from("prospects")
       .select("id, statut, date_prochaine_relance, telephone, nom, prenom, is_active, created_at")
-      .eq("centre_id", centreId)
-      .is("deleted_at", null)
       .eq("is_active", true)
       .not("statut", "in", '("converti","perdu")')
-      .order("date_prochaine_relance", { ascending: true }),
+      .order("date_prochaine_relance", { ascending: true })
+      .limit(100),
 
     // 2. Factures (active, not deleted, not cancelled) — with contact name for finance panel
     // IMPORTANT: We do NOT filter to "emise" only here — we need broader data
@@ -255,7 +235,6 @@ async function fetchAllDashboardData(
     supabase
       .from("factures")
       .select("id, statut, date_echeance, montant_total, numero_facture, contact_id, date_emission, contact:contacts(nom, prenom)")
-      .eq("centre_id", centreId)
       .is("deleted_at", null)
       .not("statut", "eq", "annulee"),
 
@@ -269,21 +248,20 @@ async function fetchAllDashboardData(
     supabase
       .from("sessions")
       .select("id, nom, places_totales, date_debut, date_fin, statut, track, formation_type, archived")
-      .eq("centre_id", centreId)
       .eq("archived", false)
       .is("deleted_at", null),
 
     // 5. Inscriptions with contact info (active, not deleted)
     supabase
       .from("session_inscriptions")
-      .select("id, session_id, contact_id, track, date_inscription, statut_paiement, montant_formation, contact:contacts(id, nom, prenom, telephone, centre_id)")
-      .is("deleted_at", null),
+      .select("id, session_id, contact_id, track, date_inscription, statut_paiement, montant_formation, contact:contacts(id, nom, prenom, telephone)")
+      .is("deleted_at", null)
+      .limit(1000),
 
     // 6. Contacts (not archived)
     supabase
       .from("contacts")
       .select("id, archived")
-      .eq("centre_id", centreId)
       .eq("archived", false),
 
     // 7. Contact documents (active)
@@ -297,7 +275,14 @@ async function fetchAllDashboardData(
       .from("cartes_professionnelles")
       .select("contact_id, statut, date_expiration"),
 
-    // 9. Previous period paiements (for encaissements delta)
+    // 9. Previous period prospects count (for delta)
+    supabase
+      .from("prospects")
+      .select("id")
+      .gte("created_at", prevFromStr)
+      .lte("created_at", prevToStr),
+
+    // 10. Previous period paiements (for encaissements delta)
     supabase
       .from("paiements")
       .select("montant, date_paiement")
@@ -305,7 +290,7 @@ async function fetchAllDashboardData(
       .gte("date_paiement", prevFromStr)
       .lte("date_paiement", prevToStr),
 
-    // 10. Qualiopi compliance items (obligatoire only)
+    // 11. Qualiopi compliance items (obligatoire only)
     supabase
       .from("compliance_checklist_items")
       .select("id")
@@ -313,44 +298,27 @@ async function fetchAllDashboardData(
       .eq("criticite", "obligatoire")
       .eq("actif", true),
 
-    // 11. Qualiopi compliance validations (valide)
+    // 12. Qualiopi compliance validations (valide)
     supabase
       .from("compliance_validations")
-      .select("item_id, statut")
-      .eq("centre_id", centreId),
+      .select("item_id, statut"),
 
-    // 12. All prospects (including converted/lost) for conversion rate and acquisition
+    // 13. All prospects (including converted/lost) for conversion rate
     supabase
       .from("prospects")
       .select("id, statut, created_at")
-      .eq("centre_id", centreId)
       .is("deleted_at", null),
   ]);
 
   // ─── Raw data extraction with null safety ───
   const prospects = (prospectsRes.data || []) as RawProspect[];
   const factures = (facturesRes.data || []) as RawFacture[];
+  const paiements = (paiementsRes.data || []) as RawPaiement[];
   const sessions = (sessionsRes.data || []) as RawSession[];
+  const inscriptions = (inscriptionsRes.data || []) as unknown as RawInscription[];
   const contacts = (contactsRes.data || []) as { id: string; archived: boolean }[];
-  const contactIds = new Set(contacts.map((contact) => contact.id));
-  const sessionIds = new Set(sessions.map((session) => session.id));
-  const allPaiements = (paiementsRes.data || []) as RawPaiement[];
-  const centreFactureIds = new Set(factures.map((facture) => facture.id));
-  const paiements = allPaiements.filter((paiement) =>
-    centreFactureIds.has(paiement.facture_id)
-  );
-  const inscriptions = ((inscriptionsRes.data || []) as unknown as RawInscription[]).filter(
-    (inscription) =>
-      sessionIds.has(inscription.session_id) ||
-      inscription.contact?.centre_id === centreId ||
-      contactIds.has(inscription.contact_id)
-  );
-  const docs = ((docsRes.data || []) as RawDoc[]).filter((doc) =>
-    contactIds.has(doc.contact_id)
-  );
-  const cartes = ((cartesRes.data || []) as RawCarte[]).filter((carte) =>
-    contactIds.has(carte.contact_id)
-  );
+  const docs = (docsRes.data || []) as RawDoc[];
+  const cartes = (cartesRes.data || []) as RawCarte[];
 
   // ─── Shared lookup maps ───
   const inscriptionCounts: Record<string, number> = {};
@@ -370,14 +338,6 @@ async function fetchAllDashboardData(
     cartesMap.get(c.contact_id)!.push(c);
   });
 
-  const previousSnapshotDate = prevToStr;
-  const previousInscriptionCounts: Record<string, number> = {};
-  inscriptions
-    .filter((inscription) => inscription.date_inscription <= previousSnapshotDate)
-    .forEach((inscription) => {
-      previousInscriptionCounts[inscription.session_id] = (previousInscriptionCounts[inscription.session_id] || 0) + 1;
-    });
-
   // ═══════════════════════════════════════════
   // METRICS COMPUTATION
   // ═══════════════════════════════════════════
@@ -387,9 +347,8 @@ async function fetchAllDashboardData(
     .filter((p) => p.date_paiement >= fromStr && p.date_paiement <= toStr)
     .reduce((s, p) => s + Number(p.montant || 0), 0);
 
-  const encaissementsPrev = ((prevPaiementsRes.data || []) as RawPaiement[])
-    .filter((paiement) => centreFactureIds.has(paiement.facture_id))
-    .reduce((s: number, p: RawPaiement) => s + Number(p.montant || 0), 0);
+  const encaissementsPrev = (prevPaiementsRes.data || [])
+    .reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
 
   // ── Factures en attente ──
   // BUGFIX: Exclude brouillons (drafts) — only count "emise" status
@@ -415,13 +374,8 @@ async function fetchAllDashboardData(
   });
 
   // Previous period: count factures en attente that existed then
-  const facturesEnAttentePrev = factures.filter(
-    (facture) =>
-      facture.statut === "emise" &&
-      Number(facture.montant_total || 0) > 0 &&
-      !!facture.date_emission &&
-      facture.date_emission <= previousSnapshotDate
-  ).length;
+  // (approximation: same filter on current data, since we don't have historical snapshots)
+  const facturesEnAttentePrev = facturesEnAttenteList.length; // same snapshot, delta shown as "—"
 
   // ── Paiements en retard ──
   // Only "emise" invoices past their due date, with non-zero amount
@@ -444,14 +398,7 @@ async function fetchAllDashboardData(
     );
     if (age > paiementsRetardAgeDays) paiementsRetardAgeDays = age;
   });
-  const paiementsRetardPrev = factures.filter(
-    (facture) =>
-      facture.statut === "emise" &&
-      !!facture.date_echeance &&
-      facture.date_echeance < previousSnapshotDate &&
-      Number(facture.montant_total || 0) > 0 &&
-      (facture.date_emission ? facture.date_emission <= previousSnapshotDate : true)
-  ).length;
+  const paiementsRetardPrev = paiementsRetard; // snapshot — no reliable previous comparison
 
   // ── Prospects à relancer ──
   const prospectsRelance = prospects.filter(
@@ -459,37 +406,18 @@ async function fetchAllDashboardData(
       p.statut === "relance" ||
       (p.date_prochaine_relance && p.date_prochaine_relance <= todayStr)
   ).length;
-  const prospectsRelancePrev = prospects.filter(
-    (prospect) =>
-      prospect.created_at <= `${previousSnapshotDate}T23:59:59` &&
-      (
-        prospect.statut === "relance" ||
-        (prospect.date_prochaine_relance && prospect.date_prochaine_relance <= previousSnapshotDate)
-      )
-  ).length;
+  const prospectsRelancePrev = prospectsRelance; // snapshot
 
   // ── Sessions à risque (fill < 50%) ──
   const activeSessions = sessions.filter(
     (s) => s.date_fin && s.date_fin >= todayStr
   );
-  const activeSessionIds = new Set(activeSessions.map((session) => session.id));
-  const activePrevSessions = sessions.filter(
-    (session) =>
-      !!session.date_debut &&
-      session.date_debut <= previousSnapshotDate &&
-      (!session.date_fin || session.date_fin >= previousSnapshotDate)
-  );
-  const activePrevSessionIds = new Set(activePrevSessions.map((session) => session.id));
   const sessionsRisque = activeSessions.filter((s) => {
     const filled = inscriptionCounts[s.id] || 0;
     const total = s.places_totales || 1;
     return filled / total < 0.5;
   }).length;
-  const sessionsRisquePrev = activePrevSessions.filter((session) => {
-    const filled = previousInscriptionCounts[session.id] || 0;
-    const total = session.places_totales || 1;
-    return filled / total < 0.5;
-  }).length;
+  const sessionsRisquePrev = sessionsRisque; // snapshot
 
   // ── Apprenants critiques (missing CMA docs or carte pro) ──
   const initialContactIds = new Set<string>();
@@ -518,49 +446,13 @@ async function fetchAllDashboardData(
   });
 
   const apprenantsCritiques = dossiersInitialManquants + dossiersContinuManquants;
-
-  const prevInitialContactIds = new Set<string>();
-  const prevContinuingContactIds = new Set<string>();
-  inscriptions
-    .filter(
-      (inscription) =>
-        inscription.date_inscription <= previousSnapshotDate &&
-        activePrevSessionIds.has(inscription.session_id)
-    )
-    .forEach((inscription) => {
-      if (inscription.track === "initial") prevInitialContactIds.add(inscription.contact_id);
-      else if (inscription.track === "continuing") prevContinuingContactIds.add(inscription.contact_id);
-    });
-
-  let dossiersInitialManquantsPrev = 0;
-  prevInitialContactIds.forEach((contactId) => {
-    const contactDocs = docsMap.get(contactId) || new Set();
-    if (CMA_REQUIRED_DOCS.some((documentType) => !contactDocs.has(documentType))) {
-      dossiersInitialManquantsPrev++;
-    }
-  });
-
-  let dossiersContinuManquantsPrev = 0;
-  prevContinuingContactIds.forEach((contactId) => {
-    const contactCartes = cartesMap.get(contactId) || [];
-    const hasValid = contactCartes.some(
-      (carte) =>
-        carte.statut !== "annulee" &&
-        (!carte.date_expiration || carte.date_expiration >= previousSnapshotDate)
-    );
-    if (!hasValid) dossiersContinuManquantsPrev++;
-  });
-
-  const apprenantsCritiquesPrev = dossiersInitialManquantsPrev + dossiersContinuManquantsPrev;
+  const apprenantsCritiquesPrev = apprenantsCritiques; // snapshot
 
   // ── Nouveaux prospects (current period) ──
-  const allProspects = (allProspectsRes.data || []) as { id: string; statut: string | null; created_at: string }[];
-  const nouveauxProspects = allProspects.filter((prospect) =>
-    isWithinTimestampPeriod(prospect.created_at, currentPeriodStart, currentPeriodEnd)
+  const nouveauxProspects = prospects.filter(
+    (p) => p.created_at >= period.from.toISOString() && p.created_at <= period.to.toISOString()
   ).length;
-  const nouveauxProspectsPrev = allProspects.filter((prospect) =>
-    isWithinTimestampPeriod(prospect.created_at, previousPeriodStart, previousPeriodEnd)
-  ).length;
+  const nouveauxProspectsPrev = (prevProspectsRes.data || []).length;
 
   // ═══════════════════════════════════════════
   // NEW STRATEGIC KPIs
@@ -607,15 +499,7 @@ async function fetchAllDashboardData(
   const totalPlaces = sessionsAvecCapacite.reduce((s, se) => s + (se.places_totales || 0), 0);
   const totalInscrits = sessionsAvecCapacite.reduce((s, se) => s + (inscriptionCounts[se.id] || 0), 0);
   const tauxRemplissageGlobal = totalPlaces > 0 ? Math.round((totalInscrits / totalPlaces) * 100) : 0;
-  const prevSessionsAvecCapacite = activePrevSessions.filter((session) => (session.places_totales || 0) > 0);
-  const totalPlacesPrev = prevSessionsAvecCapacite.reduce((sum, session) => sum + (session.places_totales || 0), 0);
-  const totalInscritsPrev = prevSessionsAvecCapacite.reduce(
-    (sum, session) => sum + (previousInscriptionCounts[session.id] || 0),
-    0
-  );
-  const tauxRemplissageGlobalPrev = totalPlacesPrev > 0
-    ? Math.round((totalInscritsPrev / totalPlacesPrev) * 100)
-    : 0;
+  const tauxRemplissageGlobalPrev = tauxRemplissageGlobal; // snapshot
 
   // ═══════════════════════════════════════════
   // FORMATION BREAKDOWN
@@ -809,53 +693,37 @@ async function fetchAllDashboardData(
   // QUALIOPI COMPLIANCE
   // ═══════════════════════════════════════════
 
-  const qualiopiItems = (qualiopiItemsRes.data || []) as Array<{ id: string }>;
-  const qualiopiValidations = (qualiopiValidationsRes.data || []) as Array<{
-    item_id: string;
-    statut: string;
-  }>;
-  const qualiopiItemIds = new Set(qualiopiItems.map((i) => i.id));
+  const qualiopiItems = qualiopiItemsRes.data || [];
+  const qualiopiValidations = qualiopiValidationsRes.data || [];
+  const qualiopiItemIds = new Set(qualiopiItems.map((i: any) => i.id));
   const qualiopiTotal = qualiopiItems.length;
   const qualiopiValide = qualiopiValidations.filter(
-    (v) => qualiopiItemIds.has(v.item_id) && v.statut === "valide"
+    (v: any) => qualiopiItemIds.has(v.item_id) && v.statut === "valide"
   ).length;
 
   // ═══════════════════════════════════════════
   // RM-7 — EXECUTIVE KPIs
   // ═══════════════════════════════════════════
 
-  const totalProspects = allProspects.filter((prospect) =>
-    isWithinTimestampPeriod(prospect.created_at, currentPeriodStart, currentPeriodEnd)
-  ).length;
-  const totalConvertis = allProspects.filter(
-    (prospect) =>
-      prospect.statut === "converti" &&
-      isWithinTimestampPeriod(prospect.created_at, currentPeriodStart, currentPeriodEnd)
-  ).length;
+  const allProspects = (allProspectsRes.data || []) as { id: string; statut: string; created_at: string }[];
+  const totalProspects = allProspects.length;
+  const totalConvertis = allProspects.filter((p) => p.statut === "converti").length;
   const tauxConversion = totalProspects > 0 ? Math.round((totalConvertis / totalProspects) * 100) : 0;
 
-  const prevProspects = allProspects.filter((prospect) =>
-    isWithinTimestampPeriod(prospect.created_at, previousPeriodStart, previousPeriodEnd)
-  );
-  const prevConvertis = prevProspects.filter((prospect) => prospect.statut === "converti").length;
-  const tauxConversionPrev = prevProspects.length > 0
-    ? Math.round((prevConvertis / prevProspects.length) * 100)
-    : 0;
+  // Previous period conversion
+  const prevAllProspects = allProspects.filter((p) => p.created_at < fromStr);
+  const prevConvertis = prevAllProspects.filter((p) => p.statut === "converti").length;
+  const tauxConversionPrev = prevAllProspects.length > 0 ? Math.round((prevConvertis / prevAllProspects.length) * 100) : 0;
 
-  // CA Prévisionnel = sum of montant_formation for active inscriptions on active sessions
-  const activeInscriptions = inscriptions.filter((inscription) =>
-    activeSessionIds.has(inscription.session_id)
-  );
-  const caPrevisionnel = activeInscriptions
+  // CA Prévisionnel = sum of montant_formation for validated inscriptions
+  const caPrevisionnel = inscriptions
     .filter((i) => i.montant_formation && Number(i.montant_formation) > 0)
     .reduce((s, i) => s + Number(i.montant_formation || 0), 0);
 
   // Payment status breakdown
-  const paiementsPaye = activeInscriptions.filter((inscription) => inscription.statut_paiement === "paye").length;
-  const paiementsPartiel = activeInscriptions.filter((inscription) => inscription.statut_paiement === "partiel").length;
-  const paiementsNonPaye = activeInscriptions.filter(
-    (inscription) => !inscription.statut_paiement || inscription.statut_paiement === "non_paye"
-  ).length;
+  const paiementsPaye = inscriptions.filter((i) => i.statut_paiement === "paye").length;
+  const paiementsPartiel = inscriptions.filter((i) => i.statut_paiement === "partiel").length;
+  const paiementsNonPaye = inscriptions.filter((i) => !i.statut_paiement || i.statut_paiement === "non_paye").length;
 
   // ═══════════════════════════════════════════
 
@@ -912,17 +780,13 @@ async function fetchAllDashboardData(
 // ─── Main hook ───
 
 export function useDashboardData(period: PeriodValue) {
-  const { centreId } = useCentreContext();
-
   return useQuery({
     queryKey: [
       "dashboard-data-v2",
-      centreId ?? "no-centre",
       period.from.toISOString(),
       period.to.toISOString(),
     ],
-    queryFn: () => fetchAllDashboardData(period, centreId),
-    enabled: centreId !== null,
+    queryFn: () => fetchAllDashboardData(period),
     staleTime: 60_000,
     refetchOnWindowFocus: true,
   });

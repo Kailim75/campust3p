@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, ArrowRight, Loader2, Send, ShieldAlert, Sparkles, FileText, Paperclip } from "lucide-react";
+import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, X, ShieldAlert } from "lucide-react";
 import type { EmailAttachment } from "@/lib/session-document-helpers";
 import { formatFileSize, getAttachmentsTotalSize, isAttachmentTooLarge } from "@/lib/session-document-helpers";
 import { toast } from "sonner";
@@ -85,20 +85,6 @@ export function EmailComposerModal({
   const isBulk = recipients.length > 1;
   const hasCustomBodies = recipients.some(r => r.customBody);
   const hasPersonalizedAttachments = recipients.some(r => r.attachments && r.attachments.length > 0);
-  const validRecipients = useMemo(() => recipients.filter((recipient) => recipient.email), [recipients]);
-  const invalidRecipients = useMemo(() => recipients.filter((recipient) => !recipient.email), [recipients]);
-  const displayAttachments = useMemo(
-    () => (sharedAttachments && sharedAttachments.length > 0 ? sharedAttachments : recipients[0]?.attachments || []),
-    [recipients, sharedAttachments]
-  );
-  const displayedAttachmentsTotalSize = useMemo(
-    () => getAttachmentsTotalSize(displayAttachments),
-    [displayAttachments]
-  );
-  const displayedAttachmentsTooLarge = useMemo(
-    () => isAttachmentTooLarge(displayAttachments),
-    [displayAttachments]
-  );
 
   // Force individual mode when attachments are personalized (convocation/attestation)
   const forcedIndividual = hasPersonalizedAttachments;
@@ -167,6 +153,7 @@ export function EmailComposerModal({
       toast.error("Sujet et contenu requis");
       return;
     }
+    const validRecipients = recipients.filter(r => r.email);
     if (validRecipients.length === 0) {
       toast.error("Aucun destinataire avec email");
       return;
@@ -211,15 +198,14 @@ export function EmailComposerModal({
                 `${buildNoteDetail("Individuel", nbPJ)} — Envoyé ✓`
               );
             }
-          } catch (err) {
+          } catch (err: any) {
             failCount++;
             console.error(`Failed to send to ${r.email}:`, err);
-            const errorMessage = err instanceof Error ? err.message : "erreur";
             if (autoNoteCategory) {
               await createAutoNote(
                 r.id,
                 autoNoteCategory,
-                `${buildNoteDetail("Individuel", nbPJ)} — ÉCHEC: ${errorMessage}`
+                `${buildNoteDetail("Individuel", nbPJ)} — ÉCHEC: ${err.message || "erreur"}`
               );
             }
           }
@@ -270,15 +256,15 @@ export function EmailComposerModal({
 
       onSuccess?.();
       onOpenChange(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Email send error:", err);
-      const message = err instanceof Error ? err.message : "Veuillez réessayer";
-      toast.error("Erreur lors de l'envoi", { description: message });
+      toast.error("Erreur lors de l'envoi", { description: err.message || "Veuillez réessayer" });
     } finally {
       setSending(false);
     }
   };
-  const validCount = validRecipients.length;
+
+  const validCount = recipients.filter(r => r.email).length;
 
   return (
     <>
@@ -292,43 +278,6 @@ export function EmailComposerModal({
           </SheetHeader>
 
           <div className="flex-1 overflow-auto space-y-4 py-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Destinataires</p>
-                <p className="text-lg font-semibold">{validCount}</p>
-                <p className="text-xs text-muted-foreground">Contact{validCount > 1 ? "s" : ""} prêt{validCount > 1 ? "s" : ""} à recevoir l'email</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Mode</p>
-                <p className="text-lg font-semibold">{effectiveBulkMode === "individual" ? "Individuel" : "BCC"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {effectiveBulkMode === "individual" ? "Envois séparés, plus sûrs" : "Un seul envoi groupé"}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pièces jointes</p>
-                <p className="text-lg font-semibold">{displayAttachments.length}</p>
-                <p className="text-xs text-muted-foreground">
-                  {displayAttachments.length > 0 ? formatFileSize(displayedAttachmentsTotalSize) : "Aucune pièce jointe"}
-                </p>
-              </div>
-            </div>
-
-            {invalidRecipients.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {invalidRecipients.length} destinataire{invalidRecipients.length > 1 ? "s" : ""} sans email sera{invalidRecipients.length > 1 ? "ont" : ""} ignoré{invalidRecipients.length > 1 ? "s" : ""}.
-                  </p>
-                  <p className="mt-0.5 text-muted-foreground">
-                    {invalidRecipients.slice(0, 3).map((recipient) => `${recipient.prenom} ${recipient.nom}`).join(", ")}
-                    {invalidRecipients.length > 3 ? ` et ${invalidRecipients.length - 3} autre${invalidRecipients.length - 3 > 1 ? "s" : ""}` : ""}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* From */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">De</Label>
@@ -345,7 +294,7 @@ export function EmailComposerModal({
               {isBulk ? (
                 <div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto p-2 border rounded-md bg-muted/30">
                   {recipients.map(r => (
-                    <Badge key={r.id} variant={r.email ? "secondary" : "outline"} className="text-xs">
+                    <Badge key={r.id} variant="secondary" className="text-xs">
                       {r.prenom} {r.nom}
                     </Badge>
                   ))}
@@ -396,7 +345,7 @@ export function EmailComposerModal({
                 {recipients.length > BULK_WARN_THRESHOLD && (
                   <div className="flex items-center gap-1.5 text-warning text-xs mt-1">
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>{recipients.length} destinataires — vérifiez avant d'envoyer</span>
+                    <span>⚠️ {recipients.length} destinataires — vérifiez avant d'envoyer</span>
                   </div>
                 )}
               </div>
@@ -479,6 +428,12 @@ export function EmailComposerModal({
               const hasShared = sharedAttachments && sharedAttachments.length > 0;
               if (!hasPerRecipient && !hasShared) return null;
 
+              const displayAttachments = hasShared
+                ? sharedAttachments!
+                : recipients[0]?.attachments || [];
+              const totalSize = getAttachmentsTotalSize(displayAttachments);
+              const tooLarge = isAttachmentTooLarge(displayAttachments);
+
               return (
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
@@ -490,7 +445,7 @@ export function EmailComposerModal({
                   </Label>
                   <div className={cn(
                     "space-y-1 p-2 border rounded-md",
-                    displayedAttachmentsTooLarge ? "bg-destructive/5 border-destructive/30" : "bg-muted/30"
+                    tooLarge ? "bg-destructive/5 border-destructive/30" : "bg-muted/30"
                   )}>
                     {displayAttachments.map((att, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
@@ -505,16 +460,16 @@ export function EmailComposerModal({
                     ))}
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-[10px] text-muted-foreground">
-                        Total : {formatFileSize(displayedAttachmentsTotalSize)}
+                        Total : {formatFileSize(totalSize)}
                         {hasPerRecipient && !hasShared && ` × ${recipients.length} contacts`}
                       </p>
-                      {displayedAttachmentsTooLarge && (
+                      {tooLarge && (
                         <Badge variant="destructive" className="text-[10px]">
                           &gt; 5 Mo
                         </Badge>
                       )}
                     </div>
-                    {displayedAttachmentsTooLarge && (
+                    {tooLarge && (
                       <div className="flex items-center gap-1.5 text-destructive text-xs mt-1">
                         <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                         <span>PJ trop volumineuses — l'envoi pourrait échouer. Préférez le mode individuel.</span>
@@ -569,9 +524,6 @@ export function EmailComposerModal({
                   <p><strong>Destinataires :</strong> {validCount} contact{validCount > 1 ? "s" : ""}</p>
                   <p><strong>Mode :</strong> {effectiveBulkMode === "individual" ? "Emails individuels" : "BCC groupé"}</p>
                   <p><strong>Objet :</strong> {subject}</p>
-                  {displayAttachments.length > 0 && (
-                    <p><strong>Pièces jointes :</strong> {displayAttachments.length} fichier{displayAttachments.length > 1 ? "s" : ""}</p>
-                  )}
                   {hasCustomBodies && effectiveBulkMode === "individual" && (
                     <p className="text-primary text-xs">✨ Contenu personnalisé par destinataire</p>
                   )}
@@ -580,12 +532,6 @@ export function EmailComposerModal({
                   <div className="flex items-center gap-2 text-warning text-xs bg-warning/10 p-2 rounded">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>Attention : {validCount} destinataires. Vérifiez que la liste est correcte.</span>
-                  </div>
-                )}
-                {invalidRecipients.length > 0 && (
-                  <div className="flex items-start gap-2 text-xs bg-muted/50 p-2 rounded">
-                    <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>{invalidRecipients.length} contact{invalidRecipients.length > 1 ? "s" : ""} sans email ne sera{invalidRecipients.length > 1 ? "ont" : ""} pas inclus.</span>
                   </div>
                 )}
                 <div className="max-h-32 overflow-auto">

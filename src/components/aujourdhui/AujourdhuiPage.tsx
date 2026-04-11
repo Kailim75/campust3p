@@ -15,7 +15,6 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ProspectDetailSheet } from "@/components/prospects/ProspectDetailSheet";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
-import { useCentreContext } from "@/contexts/CentreContext";
 import { ActionJournal } from "./ActionJournal";
 import {
   FileCheck, AlertTriangle, Phone, Mail, Calendar, Clock,
@@ -35,7 +34,6 @@ import {
 import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { computeContactUrgency, computeProspectUrgency, type UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
-import type { Database } from "@/integrations/supabase/types";
 
 // Keywords used to detect if an action category was already done today
 const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
@@ -45,123 +43,6 @@ const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme tr
 const CARTE_PRO_KEYWORDS = ["Carte Pro"];
 
 type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
-type AutoNote = Awaited<ReturnType<typeof fetchTodayAutoNotes>>[number];
-type RecentAutoNote = Awaited<ReturnType<typeof fetchRecentAutoNotes>>[number];
-
-interface ContactLite {
-  id: string;
-  nom: string;
-  prenom: string;
-  formation: Database["public"]["Enums"]["formation_type"] | null;
-  statut: string | null;
-  statut_apprenant: string | null;
-  statut_cma: string | null;
-  email: string | null;
-  telephone: string | null;
-  updated_at: string | null;
-}
-
-interface ContactDocumentLite {
-  contact_id: string;
-  type_document: string;
-}
-
-interface FactureLite {
-  id: string;
-  contact_id: string;
-  montant_total: number;
-  statut: string;
-  date_echeance: string | null;
-}
-
-interface PaiementLite {
-  facture_id: string;
-  montant: number;
-}
-
-interface SessionLite {
-  id: string;
-  nom: string;
-  date_debut: string | null;
-  date_fin: string | null;
-  statut: string;
-  formateur_id: string | null;
-  objectifs: string | null;
-  prerequis: string | null;
-  lieu: string | null;
-  adresse_ville?: string | null;
-  duree_heures: number | null;
-}
-
-interface SessionInscriptionLite {
-  contact_id: string;
-  session_id: string;
-}
-
-interface RappelLite {
-  contact_id: string;
-  date_rappel: string | null;
-  alerte_active: boolean | null;
-  rappel_description: string | null;
-}
-
-interface ExamResultLite {
-  contact_id: string;
-  resultat: string;
-}
-
-interface CmaItem extends ContactLite {
-  missingDocs: string[];
-  docCount: number;
-  _isActive: boolean;
-  cmaCategory: CmaFilter;
-  lastCmaNote: AutoNote | null;
-  urgency: UrgencyInfo;
-}
-
-interface CritiqueItem extends ContactLite {
-  reasons: string[];
-  missingCMA: string[];
-  hasLatePayment: boolean;
-  _isActive: boolean;
-  urgency: UrgencyInfo;
-}
-
-type CarteProItem = ContactLite;
-
-interface ReprogramItem {
-  id: string;
-  contactId: string;
-  prenom: string;
-  nom: string;
-  email: string | null;
-  formation: Database["public"]["Enums"]["formation_type"] | null;
-  type: "theorie" | "pratique";
-  label: string;
-}
-
-interface QualiopiSession extends SessionLite {
-  issues: string[];
-  inscriptionCount: number;
-}
-
-interface JournalEntry extends AutoNote {
-  contactName: string;
-}
-
-interface AujourdhuiData {
-  cmaItems: CmaItem[];
-  rdvToday: Prospect[];
-  relances: Prospect[];
-  critiques: CritiqueItem[];
-  carteProItems: CarteProItem[];
-  reprogramItems: ReprogramItem[];
-  qualiopiSessions: QualiopiSession[];
-  todayNotes: AutoNote[];
-  recentNotes: RecentAutoNote[];
-  journalEntries: JournalEntry[];
-  totalActions: number;
-}
 
 // ─── Urgency Dot component with reasons ───
 function UrgencyDot({ urgency }: { urgency: UrgencyInfo }) {
@@ -220,26 +101,10 @@ function LastActionLine({
   return null;
 }
 
-function useAujourdhuiData(centreId: string | null) {
-  return useQuery<AujourdhuiData>({
-    queryKey: ["aujourdhui-inbox", centreId ?? "no-centre"],
+function useAujourdhuiData() {
+  return useQuery({
+    queryKey: ["aujourdhui-inbox"],
     queryFn: async () => {
-      if (!centreId) {
-        return {
-          cmaItems: [],
-          rdvToday: [],
-          relances: [],
-          critiques: [],
-          carteProItems: [],
-          reprogramItems: [],
-          qualiopiSessions: [],
-          todayNotes: [],
-          recentNotes: [],
-          journalEntries: [],
-          totalActions: 0,
-        };
-      }
-
       const todayStr = new Date().toISOString().split("T")[0];
       const in14Days = addDays(new Date(), 14).toISOString().split("T")[0];
 
@@ -248,12 +113,12 @@ function useAujourdhuiData(centreId: string | null) {
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
         examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("centre_id", centreId).eq("archived", false),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false),
         supabase.from("contact_documents").select("contact_id, type_document"),
-        supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance").eq("centre_id", centreId),
+        supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance"),
         supabase.from("paiements").select("facture_id, montant"),
-        supabase.from("prospects").select("*").eq("centre_id", centreId).is("deleted_at", null).eq("is_active", true).not("statut", "in", '("converti","perdu")'),
-        supabase.from("sessions").select("id, nom, date_debut, date_fin, statut, formateur_id, objectifs, prerequis, lieu, adresse_ville, duree_heures").eq("centre_id", centreId).eq("archived", false).neq("statut", "annulee"),
+        supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
+        supabase.from("sessions").select("id, nom, date_debut, date_fin, statut, formateur_id, objectifs, prerequis, lieu, duree_heures").eq("archived", false).neq("statut", "annulee"),
         supabase.from("session_inscriptions").select("contact_id, session_id"),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
@@ -261,58 +126,40 @@ function useAujourdhuiData(centreId: string | null) {
         supabase.from("examens_t3p").select("contact_id, resultat"),
       ]);
 
-      const contacts = (contactsRes.data || []) as ContactLite[];
-      const contactIds = new Set(contacts.map((contact) => contact.id));
-      const docs = ((docsRes.data || []) as ContactDocumentLite[]).filter((doc) =>
-        contactIds.has(doc.contact_id)
-      );
-      const factures = (facturesRes.data || []) as FactureLite[];
-      const factureIds = new Set(factures.map((facture) => facture.id));
-      const paiements = ((paiementsRes.data || []) as PaiementLite[]).filter((paiement) =>
-        factureIds.has(paiement.facture_id)
-      );
+      const contacts = contactsRes.data || [];
+      const docs = docsRes.data || [];
+      const factures = facturesRes.data || [];
+      const paiements = paiementsRes.data || [];
       const prospects = (prospectsRes.data || []) as Prospect[];
-      const sessions = (sessionsRes.data || []) as SessionLite[];
-      const sessionIds = new Set(sessions.map((session) => session.id));
-      const inscriptions = ((inscriptionsRes.data || []) as SessionInscriptionLite[]).filter((inscription) =>
-        contactIds.has(inscription.contact_id) || sessionIds.has(inscription.session_id)
-      );
-      const rappels = ((rappelsRes.data || []) as RappelLite[]).filter((rappel) =>
-        contactIds.has(rappel.contact_id)
-      );
-      const examensPratique = ((examensPratiqueRes.data || []) as ExamResultLite[]).filter(
-        (examen) => contactIds.has(examen.contact_id)
-      );
-      const examensTheorie = ((examensTheorieRes.data || []) as ExamResultLite[]).filter(
-        (examen) => contactIds.has(examen.contact_id)
-      );
+      const inscriptions = inscriptionsRes.data || [];
+      const rappels = rappelsRes.data || [];
 
       // Contact name map for journal
       const contactNameMap = new Map<string, string>();
-      contacts.forEach((c) => contactNameMap.set(c.id, `${c.prenom} ${c.nom}`));
-      prospects.forEach((p) => {
+      contacts.forEach((c: any) => contactNameMap.set(c.id, `${c.prenom} ${c.nom}`));
+      prospects.forEach((p: any) => {
         contactNameMap.set(p.id, `${p.prenom} ${p.nom}`);
       });
 
       // Build docs map
       const docsMap = new Map<string, Set<string>>();
-      docs.forEach((d) => {
+      docs.forEach((d: any) => {
         if (!docsMap.has(d.contact_id)) docsMap.set(d.contact_id, new Set());
         docsMap.get(d.contact_id)!.add(d.type_document);
       });
 
       // Build paiements map
       const paiementsMap = new Map<string, number>();
-      paiements.forEach((p) => {
+      paiements.forEach((p: any) => {
         paiementsMap.set(p.facture_id, (paiementsMap.get(p.facture_id) || 0) + Number(p.montant || 0));
       });
 
-      const inscribedContactIds = new Set(inscriptions.map((i) => i.contact_id));
-      const activeSessionContactIds = new Set(inscriptions.map((i) => i.contact_id));
+      const inscribedContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
+      const activeSessionContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
 
       const contactHasOpenFacture = new Set<string>();
       const contactHasLatePayment = new Set<string>();
-      factures.forEach((f) => {
+      factures.forEach((f: any) => {
         if (f.statut !== "payee" && f.statut !== "annulee") {
           contactHasOpenFacture.add(f.contact_id);
           if (f.date_echeance && f.date_echeance < todayStr) {
@@ -321,10 +168,10 @@ function useAujourdhuiData(centreId: string | null) {
         }
       });
 
-      const contactHasRappel = new Set(rappels.map((r) => r.contact_id));
+      const contactHasRappel = new Set(rappels.map((r: any) => r.contact_id));
       const thirtyDaysAgo = addDays(new Date(), -30).toISOString();
 
-      const isContactActive = (c: ContactLite) => {
+      const isContactActive = (c: any) => {
         if (activeSessionContactIds.has(c.id)) return true;
         if (contactHasOpenFacture.has(c.id)) return true;
         if (contactHasRappel.has(c.id)) return true;
@@ -338,8 +185,8 @@ function useAujourdhuiData(centreId: string | null) {
       // ─── Bloc A: CMA ───
       // Exclude terminated contacts (diplome/abandon/archive)
       const terminatedStatuses = ['diplome', 'abandon', 'archive'];
-      const cmaItems: CmaItem[] = contacts
-        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes(c.statut_apprenant || ''))
+      const cmaItems = contacts
+        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
@@ -381,29 +228,29 @@ function useAujourdhuiData(centreId: string | null) {
       // Fallback: date_prochaine_relance (legacy)
       const relances = prospects
         .filter(p => {
-          const actionDate = p.next_action_at || p.date_prochaine_relance;
+          const actionDate = (p as any).next_action_at || p.date_prochaine_relance;
           if (actionDate && isToday(parseISO(actionDate)) && !isProspectRdv(p)) return true;
           if (actionDate && isPast(parseISO(actionDate)) && !isToday(parseISO(actionDate))) return true;
           if (p.statut === "relance" && !actionDate) return true;
           return false;
         })
         .sort((a, b) => {
-          const da = (a.next_action_at || a.date_prochaine_relance) ? new Date((a.next_action_at || a.date_prochaine_relance)!).getTime() : Infinity;
-          const db = (b.next_action_at || b.date_prochaine_relance) ? new Date((b.next_action_at || b.date_prochaine_relance)!).getTime() : Infinity;
+          const da = ((a as any).next_action_at || a.date_prochaine_relance) ? new Date(((a as any).next_action_at || a.date_prochaine_relance)!).getTime() : Infinity;
+          const db = ((b as any).next_action_at || b.date_prochaine_relance) ? new Date(((b as any).next_action_at || b.date_prochaine_relance)!).getTime() : Infinity;
           return da - db;
         })
         .slice(0, 10);
 
       // ─── Bloc D: Critiques (deduplicated — exclude contacts already in CMA) ───
       const cmaContactIds = new Set(cmaItems.map(c => c.id));
-      const critiques: CritiqueItem[] = contacts
-        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes(c.statut_apprenant || ''))
+      const critiques = contacts
+        .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
         .filter(c => !cmaContactIds.has(c.id))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
           const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-          const contactFactures = factures.filter((f) => f.contact_id === c.id);
-          const hasLatePayment = contactFactures.some((f) =>
+          const contactFactures = factures.filter((f: any) => f.contact_id === c.id);
+          const hasLatePayment = contactFactures.some((f: any) =>
             f.statut === "emise" && f.date_echeance && f.date_echeance < todayStr
           );
           const isInscribed = inscribedContactIds.has(c.id);
@@ -430,14 +277,16 @@ function useAujourdhuiData(centreId: string | null) {
         });
 
       // Journal entries from today's auto notes
-      const journalEntries: JournalEntry[] = todayNotes.map(n => ({
+      const journalEntries = todayNotes.map(n => ({
         ...n,
         contactName: contactNameMap.get(n.contact_id) || "Contact",
       }));
 
       // ─── Bloc E: Carte Pro (pratique réussie sans note carte_pro) ───
+      const allPratiqueResults = (examensPratiqueRes.data || []) as Array<{ contact_id: string; resultat: string }>;
+      const allTheorieResults = (examensTheorieRes.data || []) as Array<{ contact_id: string; resultat: string }>;
       const pratiqueAdmisIds = new Set(
-        examensPratique.filter((e) => e.resultat === "admis").map((e) => e.contact_id)
+        allPratiqueResults.filter((e) => e.resultat === "admis").map((e) => e.contact_id)
       );
       // Get all [AUTO] notes containing "Carte Pro" for these contacts
       const carteProNotesRes = pratiqueAdmisIds.size > 0
@@ -448,18 +297,18 @@ function useAujourdhuiData(centreId: string | null) {
             .like("titre", "%Carte Pro%")
         : { data: [] };
       const carteProSentIds = new Set(
-        ((carteProNotesRes.data || []) as Array<{ contact_id: string }>).map((n) => n.contact_id)
+        (carteProNotesRes.data || []).map((n: any) => n.contact_id)
       );
-      const carteProItems: CarteProItem[] = contacts
-        .filter((c) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id) && !terminatedStatuses.includes(c.statut_apprenant || ''))
-        .map((c) => ({ ...c }));
+      const carteProItems = contacts
+        .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id) && !terminatedStatuses.includes(c.statut_apprenant || ''))
+        .map((c: any) => ({ ...c }));
 
       // ─── Bloc G: À reprogrammer (théorie/pratique échouée sans reprogrammation) ───
       const theorieEchoueIds = new Set(
-        examensTheorie.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
+        allTheorieResults.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
       );
       const pratiqueEchoueIds = new Set(
-        examensPratique.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
+        allPratiqueResults.filter((e) => e.resultat === "ajourne").map((e) => e.contact_id)
       );
       // Check for reprogrammation notes
       const echoueContactIds = [...new Set([...theorieEchoueIds, ...pratiqueEchoueIds])];
@@ -471,12 +320,12 @@ function useAujourdhuiData(centreId: string | null) {
             .like("titre", "%[AUTO]%rogramm%")
         : { data: [] };
       const reprogrammedIds = new Set(
-        ((reprogNotesRes.data || []) as Array<{ contact_id: string }>).map((n) => n.contact_id)
+        (reprogNotesRes.data || []).map((n: any) => n.contact_id)
       );
-      const reprogramItems: ReprogramItem[] = contacts
-        .filter((c) => !terminatedStatuses.includes(c.statut_apprenant || '') && !reprogrammedIds.has(c.id))
-        .flatMap((c) => {
-          const items: ReprogramItem[] = [];
+      const reprogramItems = contacts
+        .filter((c: any) => !terminatedStatuses.includes(c.statut_apprenant || '') && !reprogrammedIds.has(c.id))
+        .flatMap((c: any) => {
+          const items: Array<{ id: string; contactId: string; prenom: string; nom: string; email: string | null; formation: string | null; type: string; label: string }> = [];
           if (theorieEchoueIds.has(c.id)) {
             items.push({ id: `reprog-t-${c.id}`, contactId: c.id, prenom: c.prenom, nom: c.nom, email: c.email, formation: c.formation, type: "theorie", label: "À reprogrammer (Théorie)" });
           }
@@ -487,19 +336,20 @@ function useAujourdhuiData(centreId: string | null) {
         });
 
       // ─── Bloc F: Qualiopi à régulariser (sessions with missing qualiopi items) ───
-      const qualiopiSessions: QualiopiSession[] = sessions
-        .filter((s) => s.statut !== "annulee" && s.statut !== "terminee")
-        .map((s) => {
+      const sessions = sessionsRes.data || [];
+      const qualiopiSessions = sessions
+        .filter((s: any) => s.statut !== "annulee" && s.statut !== "terminee")
+        .map((s: any) => {
           const issues: string[] = [];
           if (!s.formateur_id) issues.push("Formateur non assigné");
           if (!s.objectifs || !s.objectifs.trim()) issues.push("Objectifs manquants");
           if (!s.lieu && !s.adresse_ville) issues.push("Lieu non renseigné");
           if (!s.duree_heures || s.duree_heures <= 0) issues.push("Durée non renseignée");
-          const sessionInscrits = inscriptions.filter((i) => i.session_id === s.id).length;
+          const sessionInscrits = inscriptions.filter((i: any) => i.session_id === s.id).length;
           return { ...s, issues, inscriptionCount: sessionInscrits };
         })
-        .filter((s) => s.issues.length > 0)
-        .sort((a, b) => b.issues.length - a.issues.length)
+        .filter((s: any) => s.issues.length > 0)
+        .sort((a: any, b: any) => b.issues.length - a.issues.length)
         .slice(0, 5);
 
       // Fetch recent (past) auto notes for contacts/prospects that have no today notes
@@ -508,8 +358,8 @@ function useAujourdhuiData(centreId: string | null) {
         ...rdvToday.map(p => p.id),
         ...relances.map(p => p.id),
         ...critiques.map(c => c.id),
-        ...carteProItems.map(c => c.id),
-        ...reprogramItems.map(r => r.contactId),
+        ...carteProItems.map((c: any) => c.id),
+        ...reprogramItems.map((r: any) => r.contactId),
       ];
       const contactsWithoutTodayNote = allContactIds.filter(
         id => !todayNotes.some(n => n.contact_id === id)
@@ -539,8 +389,7 @@ interface AujourdhuiPageProps {
 }
 
 export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
-  const { centreId } = useCentreContext();
-  const { data, isLoading } = useAujourdhuiData(centreId);
+  const { data, isLoading } = useAujourdhuiData();
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -562,8 +411,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const toggleBulkCma = (id: string) => {
     setBulkCmaSelected(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
@@ -571,8 +419,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const toggleBulkRelance = (id: string) => {
     setBulkRelanceSelected(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
@@ -609,7 +456,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   }, [logAction]);
 
   // ─── Bulk action handlers (now open EmailComposerModal) ───
-  const handleBulkCmaRelance = useCallback((items: CmaItem[]) => {
+  const handleBulkCmaRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
     openComposer({
@@ -626,7 +473,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   }, [bulkCmaSelected, invalidate, openComposer]);
 
-  const handleBulkRelance = useCallback((items: Prospect[]) => {
+  const handleBulkRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkRelanceSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun prospect sélectionné avec email"); return; }
     openComposer({
@@ -688,7 +535,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS))).slice(0, 10);
   const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
   const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
-  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c) => !isHandledToday(c.id, todayNotes, CARTE_PRO_KEYWORDS))).slice(0, 10);
+  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledToday(c.id, todayNotes, CARTE_PRO_KEYWORDS))).slice(0, 10);
 
   const handledCmaCount = activeCma.length - (showHandled ? 0 : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)).length);
   const handledRdvCount = rawRdv.length - (showHandled ? 0 : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS)).length);
@@ -703,7 +550,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   // ─── Action handlers with EmailComposerModal ───
-  const handleCmaRelanceDocs = (item: CmaItem) => {
+  const handleCmaRelanceDocs = (item: any) => {
     const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
@@ -715,12 +562,12 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleCmaWhatsApp = (item: CmaItem) => {
+  const handleCmaWhatsApp = (item: any) => {
     logAction(item.id, "apprenant_whatsapp");
     openWhatsApp(item.telephone);
   };
 
-  const handleRdvConfirm = (p: Prospect) => {
+  const handleRdvConfirm = (p: any) => {
     openComposer({
       recipients: [{ id: p.id, email: p.email, prenom: p.prenom, nom: p.nom }],
       defaultSubject: "Confirmation de votre rendez-vous",
@@ -731,19 +578,19 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleRdvAppel = (p: Prospect) => {
+  const handleRdvAppel = (p: any) => {
     logAction(p.id, "prospect_appel");
   };
 
   const isRdvHandledToday = (contactId: string) =>
     isHandledToday(contactId, todayNotes, ["RDV", "Confirmation"]);
 
-  const handleRdvWhatsApp = (p: Prospect) => {
+  const handleRdvWhatsApp = (p: any) => {
     logAction(p.id, "prospect_relance_whatsapp");
     openWhatsApp(p.telephone);
   };
 
-  const handleRelanceEmail = (p: Prospect) => {
+  const handleRelanceEmail = (p: any) => {
     openComposer({
       recipients: [{ id: p.id, email: p.email, prenom: p.prenom, nom: p.nom }],
       defaultSubject: `Votre projet de formation ${p.formation_souhaitee || ''}`,
@@ -754,12 +601,12 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleRelanceWhatsApp = (p: Prospect) => {
+  const handleRelanceWhatsApp = (p: any) => {
     logAction(p.id, "prospect_relance_whatsapp");
     openWhatsApp(p.telephone);
   };
 
-  const handleCritiqueDemanderDocs = (item: CritiqueItem) => {
+  const handleCritiqueDemanderDocs = (item: any) => {
     const missingList = item.missingCMA.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
@@ -771,7 +618,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleCritiqueRelancePaiement = (item: CritiqueItem) => {
+  const handleCritiqueRelancePaiement = (item: any) => {
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
       defaultSubject: "Rappel de paiement",
@@ -781,7 +628,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleCarteProEmail = (item: CarteProItem) => {
+  const handleCarteProEmail = (item: any) => {
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
       defaultSubject: "Démarches Carte Professionnelle — Examen pratique réussi",
@@ -791,7 +638,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
-  const handleCarteProMarkDone = async (item: CarteProItem) => {
+  const handleCarteProMarkDone = async (item: any) => {
     await logAction(item.id, "carte_pro_envoyee", "Marqué manuellement");
   };
 
@@ -1133,7 +980,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
                   Toutes les relances sont à jour
                 </div>
               ) : relances.map((p) => {
-                const actionDate = p.next_action_at || p.date_prochaine_relance;
+                const actionDate = (p as any).next_action_at || p.date_prochaine_relance;
                 const daysLate = actionDate && isPast(parseISO(actionDate))
                   ? Math.abs(differenceInDays(parseISO(actionDate), new Date()))
                   : 0;
@@ -1263,7 +1110,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{reprogramItems.length}</Badge>
             </div>
             <div className="divide-y max-h-60 overflow-y-auto">
-              {reprogramItems.map((item) => (
+              {reprogramItems.map((item: any) => (
                 <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
@@ -1304,7 +1151,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{cartePro.length}</Badge>
             </div>
             <div className="divide-y max-h-80 overflow-y-auto">
-              {cartePro.map((item) => {
+              {cartePro.map((item: any) => {
                 const carteProDoneToday = isHandledToday(item.id, todayNotes, CARTE_PRO_KEYWORDS);
                 return (
                   <div key={item.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
@@ -1378,7 +1225,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
               <Badge variant="outline" className="text-xs bg-primary/10 text-primary">{qualiopiSessions.length}</Badge>
             </div>
             <div className="divide-y max-h-60 overflow-y-auto">
-              {qualiopiSessions.map((s) => (
+              {qualiopiSessions.map((s: any) => (
                 <div key={s.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm font-medium">{s.nom}</span>

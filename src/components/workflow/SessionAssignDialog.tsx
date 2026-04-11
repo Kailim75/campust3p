@@ -24,14 +24,6 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
 
-interface PostgrestErrorLike {
-  code?: string;
-}
-
-function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
-  return typeof error === "object" && error !== null;
-}
-
 interface SessionAssignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -58,9 +50,7 @@ export function SessionAssignDialog({
   // Filter: active, upcoming, with available places, sorted by fill rate ascending
   const availableSessions = sessions
     .filter((s) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const hasNotEnded = new Date(s.date_fin || s.date_debut) >= today;
+      const isUpcoming = new Date(s.date_debut) >= new Date();
       const isActive = s.statut === "a_venir" || s.statut === "en_cours";
       const filled = inscriptionsCounts[s.id] || 0;
       const hasSpace = filled < (s.places_totales || 0);
@@ -68,7 +58,7 @@ export function SessionAssignDialog({
       const matchesSearch = !search || 
         s.nom.toLowerCase().includes(search.toLowerCase()) ||
         s.formation_type.toLowerCase().includes(search.toLowerCase());
-      return hasNotEnded && isActive && hasSpace && matchesSearch && (matchesFormation || search);
+      return isUpcoming && isActive && hasSpace && matchesSearch && (matchesFormation || search);
     })
     .map((s) => {
       const filled = inscriptionsCounts[s.id] || 0;
@@ -113,17 +103,9 @@ export function SessionAssignDialog({
           toast.info(`${result.generated} document(s) auto-généré(s)`, { duration: 4000 });
           queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
         }
-        if (result.errors > 0) {
-          const firstFailure = result.details.find((detail) => detail.status === "failed");
-          toast.warning(`${result.errors} document(s) n'ont pas pu être généré(s)`, {
-            description: firstFailure?.message,
-            duration: 5000,
-          });
-          queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
-        }
       });
-    } catch (error: unknown) {
-      if (isPostgrestErrorLike(error) && error.code === "23505") {
+    } catch (error: any) {
+      if (error.code === "23505") {
         toast.error("Ce stagiaire est déjà inscrit à cette session");
       } else {
         toast.error("Erreur lors de l'inscription");

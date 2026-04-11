@@ -6,10 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface UserRoleRow {
-  role: string;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -52,9 +48,8 @@ serve(async (req) => {
       .select("role")
       .eq("user_id", userId);
 
-    const typedRoles = (roles ?? []) as UserRoleRow[];
-    const isAdmin = typedRoles.some(
-      (r) => r.role === "admin" || r.role === "super_admin"
+    const isAdmin = roles?.some(
+      (r: any) => r.role === "admin" || r.role === "super_admin"
     );
 
     if (!isAdmin) {
@@ -66,18 +61,15 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        error: "Cette fonction est désactivée pour des raisons de sécurité.",
-        message:
-          "La service role key ne peut plus être exposée au client. Utilisez exclusivement les secrets côté serveur.",
+        service_role_key: serviceRoleKey,
+        warning: "⚠️ Ne partagez JAMAIS cette clé publiquement. Usage serveur uniquement.",
       }),
       {
-        status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur inconnue";
-    return new Response(JSON.stringify({ error: message }), {
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

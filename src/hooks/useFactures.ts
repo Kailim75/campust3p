@@ -231,13 +231,9 @@ export function useCreateFacture() {
   return useMutation({
     mutationFn: async (facture: FactureInsert) => {
       const centreId = await getUserCentreId();
-      const payload: FactureInsert & { centre_id: string } = {
-        ...facture,
-        centre_id: centreId,
-      };
       const { data, error } = await supabase
         .from("factures")
-        .insert(payload)
+        .insert({ ...facture, centre_id: centreId } as any)
         .select()
         .single();
 
@@ -313,9 +309,9 @@ export function useBulkEmitFactures() {
       for (const id of ids) {
         const { data, error } = await supabase
           .from("factures")
-          .update({ statut: "emise", date_emission: now })
+          .update({ statut: "emise" as any, date_emission: now })
           .eq("id", id)
-          .eq("statut", "brouillon")
+          .eq("statut", "brouillon" as any)
           .select("id")
           .single();
         if (!error && data) results.push(data);

@@ -31,26 +31,6 @@ interface InboxToolbarProps {
   onDirectionChange: (d: DirectionFilter) => void;
 }
 
-interface CentreUserProfile {
-  display_name: string | null;
-  email: string | null;
-}
-
-interface UserCentreWithProfile {
-  user_id: string;
-  profiles: CentreUserProfile | null;
-}
-
-function hasProfile(
-  value: UserCentreWithProfile
-): value is UserCentreWithProfile & { profiles: CentreUserProfile } {
-  return value.profiles !== null;
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Erreur inconnue";
-}
-
 const STATUS_OPTIONS: { value: InboxStatus | "all"; label: string; color?: string }[] = [
   { value: "all", label: "Tous" },
   { value: "nouveau", label: "Nouveau", color: "bg-blue-500" },
@@ -83,9 +63,9 @@ export function InboxToolbar({
         .select("user_id, profiles(id, display_name, email)")
         .eq("centre_id", centreId);
       if (error) throw error;
-      return ((data || []) as unknown as UserCentreWithProfile[])
-        .filter(hasProfile)
-        .map((uc) => ({
+      return (data || [])
+        .filter((uc: any) => uc.profiles)
+        .map((uc: any) => ({
           id: uc.user_id,
           label: uc.profiles.display_name || uc.profiles.email || uc.user_id.slice(0, 8),
         }));
@@ -101,8 +81,8 @@ export function InboxToolbar({
       });
       if (error) throw error;
       toast.success("Synchronisation lancée");
-    } catch (e: unknown) {
-      toast.error("Erreur sync: " + getErrorMessage(e));
+    } catch (e: any) {
+      toast.error("Erreur sync: " + e.message);
     } finally {
       setSyncing(false);
     }
@@ -113,40 +93,38 @@ export function InboxToolbar({
   return (
     <div className="border-b px-4 py-2 space-y-2">
       {/* Row 1: Navigation tabs + Sync */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div className="overflow-x-auto">
-          <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 w-max">
-            {DIRECTION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => onDirectionChange(opt.value)}
-                className={cn(
-                  "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
-                  directionFilter === opt.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <opt.icon className="h-3 w-3" />
-                {opt.label}
-              </button>
-            ))}
-          </div>
+      <div className="flex items-center gap-2">
+        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
+          {DIRECTION_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onDirectionChange(opt.value)}
+              className={cn(
+                "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                directionFilter === opt.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <opt.icon className="h-3 w-3" />
+              {opt.label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex flex-1 items-center gap-2 lg:justify-end">
-          <div className="flex-1 min-w-[140px] lg:max-w-[280px] relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Rechercher…"
-              className="h-7 text-xs pl-8"
-            />
-          </div>
-          <span className="hidden xl:inline text-[10px] text-muted-foreground truncate max-w-[220px]">
-            {accountEmail}
-          </span>
+        {/* Search — grows to fill */}
+        <div className="flex-1 min-w-[140px] max-w-[280px] relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Rechercher…"
+            className="h-7 text-xs pl-8"
+          />
+        </div>
+
+        {/* Sync — pushed right */}
+        <div className="ml-auto flex items-center gap-1.5">
           {lastSyncAt && (
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
               <Clock className="h-2.5 w-2.5" />
@@ -171,7 +149,7 @@ export function InboxToolbar({
 
       {/* Row 2: Filters (hidden for special views) */}
       {!isSpecialView && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           {/* Status filter pills */}
           <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 flex-shrink-0">
             {STATUS_OPTIONS.map((opt) => (

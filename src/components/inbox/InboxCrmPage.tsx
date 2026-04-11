@@ -1,41 +1,21 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { useCentreContext } from "@/contexts/CentreContext";
 import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
 import { InboxEmptyState } from "./InboxEmptyState";
 import { NewMessageModal } from "./NewMessageModal";
-import { EMPTY_FILTERS, type AdvancedFilters, countActiveFilters, hasActiveAdvancedFilters } from "./InboxAdvancedFilters";
+import { EMPTY_FILTERS, type AdvancedFilters, hasActiveAdvancedFilters } from "./InboxAdvancedFilters";
 import { Inbox, AlertTriangle, Mail, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 
 export type InboxStatus = "nouveau" | "en_cours" | "traite" | "archive";
-
-type InboxThread = Database["public"]["Tables"]["crm_email_threads"]["Row"];
-type ThreadParticipant = {
-  email?: string | null;
-  name?: string | null;
-};
-
-function isThreadParticipant(value: unknown): value is ThreadParticipant {
-  return typeof value === "object" && value !== null;
-}
-
-function getThreadParticipants(participants: unknown): ThreadParticipant[] {
-  return Array.isArray(participants) ? participants.filter(isThreadParticipant) : [];
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Erreur inconnue";
-}
 
 export function InboxCrmPage() {
   const { centreId } = useCentreContext();
@@ -127,15 +107,15 @@ export function InboxCrmPage() {
       const { data, error } = await query.limit(100);
       if (error) throw error;
 
-      let filtered: InboxThread[] = data || [];
+      let filtered = data || [];
 
       // Client-side filters for sender (search in participants JSON)
       if (debouncedSender.trim()) {
         const term = debouncedSender.trim().toLowerCase();
-        filtered = filtered.filter((t) => {
-          const participants = getThreadParticipants(t.participants);
+        filtered = filtered.filter((t: any) => {
+          const participants = Array.isArray(t.participants) ? t.participants : [];
           return participants.some(
-            (p) =>
+            (p: any) =>
               (p?.email || "").toLowerCase().includes(term) ||
               (p?.name || "").toLowerCase().includes(term)
           );
@@ -144,22 +124,22 @@ export function InboxCrmPage() {
 
       // Client-side filter for linked entities (requires separate query)
       if (advancedFilters.hasLinkedEntity === true) {
-        const threadIds = filtered.map((t) => t.id);
+        const threadIds = filtered.map((t: any) => t.id);
         if (threadIds.length > 0) {
           const { data: links } = await supabase
             .from("crm_email_links")
             .select("thread_id")
             .in("thread_id", threadIds)
             .eq("centre_id", centreId);
-          const linkedIds = new Set((links || []).map((link) => link.thread_id));
-          filtered = filtered.filter((t) => linkedIds.has(t.id));
+          const linkedIds = new Set((links || []).map((l: any) => l.thread_id));
+          filtered = filtered.filter((t: any) => linkedIds.has(t.id));
         } else {
           filtered = [];
         }
       }
       // Client-side filter for CRM labels
       if (advancedFilters.crmLabel && advancedFilters.crmLabel !== "all") {
-        filtered = filtered.filter((t) =>
+        filtered = filtered.filter((t: any) =>
           Array.isArray(t.crm_labels) && t.crm_labels.includes(advancedFilters.crmLabel)
         );
       }
@@ -189,16 +169,6 @@ export function InboxCrmPage() {
   };
 
   const unreadCount = threads.filter((t) => t.is_unread).length;
-  const hasAdvancedFilters = hasActiveAdvancedFilters(advancedFilters);
-  const advancedFilterCount = countActiveFilters(advancedFilters);
-  const directionLabelMap: Record<typeof directionFilter, string> = {
-    inbox: "Inbox",
-    sent: "Envoyés",
-    all: "Tous les fils",
-    archived: "Archives",
-    trash: "Corbeille",
-  };
-  const currentViewLabel = directionLabelMap[directionFilter];
 
   if (accountLoading) {
     return (
@@ -238,8 +208,8 @@ export function InboxCrmPage() {
       if (data?.authUrl) {
         window.location.href = data.authUrl;
       }
-    } catch (e: unknown) {
-      toast.error("Erreur: " + getErrorMessage(e));
+    } catch (e: any) {
+      toast.error("Erreur: " + e.message);
     }
   };
 
@@ -265,34 +235,15 @@ export function InboxCrmPage() {
   return (
     <div className="h-[calc(100vh-2rem)] flex flex-col">
       {/* Header */}
-      <div className="border-b px-6 py-3 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <Inbox className="h-5 w-5 text-primary" />
-            <h1 className="text-base font-semibold">Inbox CRM</h1>
-            {unreadCount > 0 && (
-              <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
-                {unreadCount}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <p className="text-sm text-muted-foreground">
-              {threads.length} fil{threads.length > 1 ? "s" : ""} dans {currentViewLabel.toLowerCase()}
-            </p>
-            {hasAdvancedFilters && (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                {advancedFilterCount} filtre{advancedFilterCount > 1 ? "s" : ""} avancé{advancedFilterCount > 1 ? "s" : ""}
-              </Badge>
-            )}
-            {selectedThreadId && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                1 conversation ouverte
-              </Badge>
-            )}
-          </div>
-        </div>
-        <div className="shrink-0">
+      <div className="border-b px-6 py-3 flex items-center gap-2.5">
+        <Inbox className="h-5 w-5 text-primary" />
+        <h1 className="text-base font-semibold">Inbox CRM</h1>
+        {unreadCount > 0 && (
+          <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
+            {unreadCount}
+          </span>
+        )}
+        <div className="ml-auto">
           <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowNewMessage(true)}>
             <Plus className="h-3.5 w-3.5" />
             Nouveau message
@@ -322,21 +273,6 @@ export function InboxCrmPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Thread list */}
         <div className="w-[360px] border-r overflow-y-auto flex-shrink-0">
-          <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground truncate">{currentViewLabel}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {threads.length} conversation{threads.length > 1 ? "s" : ""} · {unreadCount} non lue{unreadCount > 1 ? "s" : ""}
-                </p>
-              </div>
-              {hasAdvancedFilters && (
-                <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">
-                  Filtres
-                </Badge>
-              )}
-            </div>
-          </div>
           <ThreadList
             threads={threads}
             isLoading={threadsLoading}
@@ -357,15 +293,7 @@ export function InboxCrmPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground/70">Sélectionnez un fil</p>
-                  <p className="text-xs text-muted-foreground/50 mt-0.5">
-                    Consultez une conversation existante ou démarrez un nouveau message.
-                  </p>
-                </div>
-                <div className="flex items-center justify-center gap-2 pt-1">
-                  <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowNewMessage(true)}>
-                    <Plus className="h-3.5 w-3.5" />
-                    Nouveau message
-                  </Button>
+                  <p className="text-xs text-muted-foreground/40 mt-0.5">pour consulter les messages</p>
                 </div>
               </div>
             </div>

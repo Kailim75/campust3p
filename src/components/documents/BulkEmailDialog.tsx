@@ -16,8 +16,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Mail, CheckCircle2, XCircle, Loader2, AlertTriangle, Send, Eye,
-  UserX, FileX, ArrowRight,
+  UserX, FileX,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
@@ -82,7 +83,6 @@ export function BulkEmailDialog({
     const withoutEmail = selectedRows.filter(r => !r.contactEmail);
     const withDocs = selectedRows.filter(r => r.generatedCount > 0);
     const withoutDocs = selectedRows.filter(r => r.generatedCount === 0);
-    const blocked = selectedRows.filter(r => !r.contactEmail || r.generatedCount === 0);
     
     return {
       total: selectedRows.length,
@@ -91,7 +91,6 @@ export function BulkEmailDialog({
       withDocs: withDocs.length,
       withoutDocs: withoutDocs.length,
       readyToSend: selectedRows.filter(r => r.contactEmail && r.generatedCount > 0).length,
-      blocked: blocked.length,
     };
   }, [selectedRows]);
 
@@ -121,9 +120,8 @@ export function BulkEmailDialog({
         noEmail: allResults.filter(r => r.status === "no_email"),
         noDocument: allResults.filter(r => r.status === "no_document"),
       });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur de prévisualisation";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur de prévisualisation");
       setPhase("compose");
     }
   }, [sessionId, selectedContactIds, subject, body]);
@@ -157,9 +155,8 @@ export function BulkEmailDialog({
       } else {
         toast.warning(`${sent} envoyé(s), ${failed} échoué(s)`);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur d'envoi";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur d'envoi");
       setPhase("compose");
     }
   }, [sessionId, selectedContactIds, subject, body]);
@@ -178,9 +175,6 @@ export function BulkEmailDialog({
 
   const sentCount = results.filter(r => r.status === "sent").length;
   const failedCount = results.filter(r => r.status === "failed").length;
-  const skippedCount = results.filter(
-    (result) => result.status === "skipped" || result.status === "no_email" || result.status === "no_document"
-  ).length;
 
   return (
     <Dialog open={open} onOpenChange={phase === "sending" ? undefined : handleClose}>
@@ -204,31 +198,6 @@ export function BulkEmailDialog({
         {/* Compose phase */}
         {phase === "compose" && (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Session</p>
-                <p className="text-sm font-semibold">{sessionName || "Session en cours"}</p>
-                <p className="text-xs text-muted-foreground">{validation.total} apprenant(s) sélectionné(s)</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Prêts à envoyer</p>
-                <p className="text-lg font-semibold">{validation.readyToSend}</p>
-                <p className="text-xs text-muted-foreground">Avec email et documents générés</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">À corriger</p>
-                <p className="text-lg font-semibold">{validation.blocked}</p>
-                <p className="text-xs text-muted-foreground">Email manquant ou aucun document prêt</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-              <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              <span>
-                La prévisualisation vérifie qui peut recevoir les documents maintenant. Les apprenants bloqués seront exclus de l'envoi final.
-              </span>
-            </div>
-
             {/* Validation warnings */}
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="text-[10px] h-5 bg-green-50 text-green-700 border-green-200">
@@ -285,29 +254,10 @@ export function BulkEmailDialog({
         {/* Preview phase */}
         {phase === "preview" && previewData && (
           <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Prêts</p>
-                <p className="text-lg font-semibold">{previewData.ready.length}</p>
-                <p className="text-xs text-muted-foreground">Envoi(s) possibles maintenant</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sans email</p>
-                <p className="text-lg font-semibold">{previewData.noEmail.length}</p>
-                <p className="text-xs text-muted-foreground">Contact(s) à compléter</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sans document</p>
-                <p className="text-lg font-semibold">{previewData.noDocument.length}</p>
-                <p className="text-xs text-muted-foreground">Génération requise avant envoi</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-              <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              <span>
-                Cette étape confirme exactement quels apprenants partiront dans l'envoi final et lesquels resteront à traiter manuellement.
-              </span>
+            <div className="flex items-center gap-2">
+              <Badge className="text-[10px] h-5 bg-green-500">
+                {previewData.ready.length} prêt(s) à envoyer
+              </Badge>
             </div>
 
             {previewData.ready.length > 0 && (
@@ -382,13 +332,6 @@ export function BulkEmailDialog({
                   <p className="text-[10px] text-muted-foreground">envoyé(s)</p>
                 </div>
               )}
-              {skippedCount > 0 && (
-                <div className="text-center">
-                  <AlertTriangle className="h-8 w-8 text-warning mx-auto mb-1" />
-                  <p className="text-lg font-semibold text-warning">{skippedCount}</p>
-                  <p className="text-[10px] text-muted-foreground">ignoré(s)</p>
-                </div>
-              )}
               {failedCount > 0 && (
                 <div className="text-center">
                   <XCircle className="h-8 w-8 text-destructive mx-auto mb-1" />
@@ -397,12 +340,6 @@ export function BulkEmailDialog({
                 </div>
               )}
             </div>
-
-            {skippedCount > 0 && (
-              <div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                Les envois ignorés correspondent aux contacts sans email ou sans document prêt au moment de l'envoi.
-              </div>
-            )}
 
             {failedCount > 0 && (
               <ScrollArea className="max-h-[150px]">

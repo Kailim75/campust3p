@@ -47,9 +47,6 @@ export function useSessionsFilters(
     if (!sessions) return [];
 
     return sessions.filter((session) => {
-      const formationType = session.formation_type ?? "";
-      const sessionNumber = session.numero_session ?? "";
-
       // Critical filter
       if (filters.criticalOnly && !isSessionCritical(session, inscriptionsCounts)) return false;
 
@@ -58,13 +55,13 @@ export function useSessionsFilters(
         const searchLower = filters.search.toLowerCase();
         const matchesSearch =
           session.nom.toLowerCase().includes(searchLower) ||
-          formationType.toLowerCase().includes(searchLower) ||
-          sessionNumber.toLowerCase().includes(searchLower);
+          session.formation_type.toLowerCase().includes(searchLower) ||
+          session.numero_session?.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
 
       if (filters.status !== "all" && session.statut !== filters.status) return false;
-      if (filters.formationType !== "all" && formationType !== filters.formationType) return false;
+      if (filters.formationType !== "all" && session.formation_type !== filters.formationType) return false;
       if (filters.formateurId !== "all" && session.formateur_id !== filters.formateurId) return false;
 
       if (filters.lieu !== "all") {

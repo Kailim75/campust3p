@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { autoQualifyFromFinancing } from "@/hooks/useContractQualification";
-import type { FinancementType } from "@/hooks/useFactures";
 import { getUserCentreId } from "@/utils/getCentreId";
 import {
   Dialog,
@@ -29,9 +28,7 @@ import { cn } from "@/lib/utils";
 import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { type Prospect } from "@/hooks/useProspects";
 import { useDuplicateCheck, type DuplicateContact } from "@/hooks/useDuplicateCheck";
-import type { SoftDeleteTable } from "@/hooks/useSoftDelete";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -49,64 +46,9 @@ const FINANCEMENT_OPTIONS = [
   { value: "pole_emploi", label: "Pôle Emploi" },
   { value: "entreprise", label: "Entreprise / OPCO" },
   { value: "autre", label: "Autre" },
-] satisfies ReadonlyArray<{ value: SmartFinancementType; label: string }>;
+];
 
 type Step = "dedup" | "recommend" | "confirm" | "success";
-type SmartFinancementType = FinancementType | "pole_emploi" | "autre";
-type ContactInsert = Database["public"]["Tables"]["contacts"]["Insert"];
-type ProspectUpdate = Database["public"]["Tables"]["prospects"]["Update"];
-type SoftDeleteTarget = Extract<SoftDeleteTable, "contacts" | "session_inscriptions" | "factures">;
-type ConversionStage = "contact" | "inscription" | "facture" | "prospect_update";
-type RankedSession = Database["public"]["Tables"]["sessions"]["Row"] & {
-  filled: number;
-  fillRate: number;
-  matchesFormation: boolean | null;
-  score: number;
-};
-
-interface PostgrestErrorLike {
-  code?: string;
-  message?: string;
-  details?: string;
-}
-
-function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
-  return typeof error === "object" && error !== null;
-}
-
-function mapFinancementToFactureType(financement: SmartFinancementType): FinancementType {
-  if (financement === "pole_emploi" || financement === "autre") {
-    // Fallback conservateur: le schéma facture ne supporte pas encore ces deux cas.
-    return "personnel";
-  }
-
-  return financement;
-}
-
-function getConversionErrorMessage(stage: ConversionStage, error: unknown) {
-  if (isPostgrestErrorLike(error) && error.code === "23505") {
-    if (stage === "inscription") {
-      return "Ce stagiaire est déjà inscrit à cette session";
-    }
-
-    if (stage === "contact") {
-      return "Un contact similaire existe déjà ou ne peut pas être créé";
-    }
-  }
-
-  switch (stage) {
-    case "contact":
-      return "Impossible de créer la fiche apprenant";
-    case "inscription":
-      return "Impossible de créer l'inscription à la session";
-    case "facture":
-      return "Impossible de générer la facture brouillon";
-    case "prospect_update":
-      return "La conversion a échoué lors de la mise à jour du prospect";
-    default:
-      return "Erreur lors de la conversion";
-  }
-}
 
 interface SmartConversionDialogProps {
   open: boolean;
@@ -124,10 +66,10 @@ export function SmartConversionDialog({
   onReturnDashboard,
 }: SmartConversionDialogProps) {
   const [step, setStep] = useState<Step>("dedup");
-  const [selectedSession, setSelectedSession] = useState<RankedSession | null>(null);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
   const [showAllSessions, setShowAllSessions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [financement, setFinancement] = useState<SmartFinancementType>("personnel");
+  const [financement, setFinancement] = useState("personnel");
   const [genererConvention, setGenererConvention] = useState(true);
   const [creerFacture, setCreerFacture] = useState(true);
   const [createdContactId, setCreatedContactId] = useState<string | null>(null);
@@ -139,57 +81,6 @@ export function SmartConversionDialog({
   const { duplicates, isChecking, checkDuplicates, clearDuplicates } = useDuplicateCheck();
   const queryClient = useQueryClient();
 
-  const invalidateConversionQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["prospects"] });
-    queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    queryClient.invalidateQueries({ queryKey: ["session_inscriptions"] });
-    queryClient.invalidateQueries({ queryKey: ["apprenant-inscriptions"] });
-    queryClient.invalidateQueries({ queryKey: ["factures"] });
-    queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
-  };
-
-  const rollbackPartialConversion = async ({
-    factureId,
-    inscriptionId,
-    contactId,
-  }: {
-    factureId: string | null;
-    inscriptionId: string | null;
-    contactId: string | null;
-  }) => {
-    const targets: Array<{ table: SoftDeleteTarget; id: string }> = [];
-
-    if (factureId) {
-      targets.push({ table: "factures", id: factureId });
-    }
-    if (inscriptionId) {
-      targets.push({ table: "session_inscriptions", id: inscriptionId });
-    }
-    if (contactId) {
-      targets.push({ table: "contacts", id: contactId });
-    }
-
-    const failures: string[] = [];
-
-    for (const target of targets) {
-      const { error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: target.table,
-        p_record_id: target.id,
-        p_reason: "Rollback conversion automatique après erreur",
-      });
-
-      if (error) {
-        failures.push(`${target.table}: ${error.message}`);
-      }
-    }
-
-    if (targets.length > 0) {
-      invalidateConversionQueries();
-    }
-
-    return failures;
-  };
-
   // Run dedup check when dialog opens
   useEffect(() => {
     if (open && prospect) {
@@ -197,7 +88,7 @@ export function SmartConversionDialog({
       setStep("dedup");
       setLinkedContactId(null);
     }
-  }, [open, prospect, checkDuplicates]);
+  }, [open, prospect]);
 
   const handleOpenChange = (o: boolean) => {
     if (!o) {
@@ -229,23 +120,16 @@ export function SmartConversionDialog({
     setIsSubmitting(true);
     try {
       // Link prospect to existing contact
-      const updates: ProspectUpdate = {
-        statut: "converti",
-        converted_contact_id: contactId,
-      };
-      const { error } = await supabase
+      await supabase
         .from("prospects")
-        .update(updates)
+        .update({ statut: "converti", converted_contact_id: contactId } as any)
         .eq("id", prospect.id);
-
-      if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Prospect associé au contact existant");
       handleOpenChange(false);
-    } catch (error) {
-      console.error("Error linking prospect to existing contact:", error);
+    } catch {
       toast.error("Erreur lors de l'association");
     } finally {
       setIsSubmitting(false);
@@ -261,13 +145,11 @@ export function SmartConversionDialog({
     if (!prospect) return [];
     return sessions
       .filter((s) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const hasNotEnded = new Date(s.date_fin || s.date_debut) >= today;
+        const isUpcoming = new Date(s.date_debut) >= new Date();
         const isActive = s.statut === "a_venir" || s.statut === "en_cours";
         const filled = inscriptionsCounts[s.id] || 0;
         const hasSpace = filled < (s.places_totales || 0);
-        return hasNotEnded && isActive && hasSpace;
+        return isUpcoming && isActive && hasSpace;
       })
       .map((s) => {
         const filled = inscriptionsCounts[s.id] || 0;
@@ -289,7 +171,7 @@ export function SmartConversionDialog({
     }
   };
 
-  const handleSelectOther = (session: RankedSession) => {
+  const handleSelectOther = (session: any) => {
     setSelectedSession(session);
     setShowAllSessions(false);
     setStep("confirm");
@@ -299,16 +181,9 @@ export function SmartConversionDialog({
     if (!prospect || !selectedSession) return;
     setIsSubmitting(true);
 
-    let currentStage: ConversionStage = "contact";
-    let newContactId: string | null = null;
-    let newInscriptionId: string | null = null;
-    let newFactureId: string | null = null;
-
     try {
       // 1. Create contact
-      const centreId = await getUserCentreId();
-      const contactData: ContactInsert = {
-        centre_id: centreId,
+      const contactData: Record<string, unknown> = {
         nom: prospect.nom,
         prenom: prospect.prenom,
         telephone: prospect.telephone,
@@ -318,78 +193,66 @@ export function SmartConversionDialog({
       };
 
       if (prospect.formation_souhaitee && VALID_FORMATIONS.includes(prospect.formation_souhaitee)) {
-        contactData.formation = prospect.formation_souhaitee as Database["public"]["Enums"]["formation_type"];
+        contactData.formation = prospect.formation_souhaitee;
       }
 
       const { data: contact, error: contactError } = await supabase
         .from("contacts")
-        .insert(contactData)
-        .select("id")
+        .insert([contactData] as any)
+        .select()
         .single();
 
       if (contactError) throw contactError;
-      newContactId = contact.id;
 
       // 2. Enroll in session
-      currentStage = "inscription";
-      const { data: inscription, error: inscriptionError } = await supabase
+      const { error: inscriptionError } = await supabase
         .from("session_inscriptions")
         .insert({
           session_id: selectedSession.id,
           contact_id: contact.id,
           statut: "inscrit",
-        })
-        .select("id")
-        .single();
+        });
 
-      if (inscriptionError) throw inscriptionError;
-      newInscriptionId = inscription.id;
+      if (inscriptionError) console.error("Inscription error:", inscriptionError);
 
       // 3. Auto-create facture if checked
       if (creerFacture) {
-        currentStage = "facture";
-        const { data: numeroFacture, error: numeroFactureError } = await supabase.rpc("generate_numero_facture");
-
-        if (numeroFactureError) throw numeroFactureError;
-        if (!numeroFacture) throw new Error("Aucun numéro de facture n'a été généré");
-
-        const { data: facture, error: factureError } = await supabase
-          .from("factures")
-          .insert({
+        const { data: numeroFacture } = await supabase.rpc("generate_numero_facture");
+        if (numeroFacture) {
+          const centreId = await getUserCentreId();
+          await supabase.from("factures").insert({
             centre_id: centreId,
             contact_id: contact.id,
-            session_inscription_id: inscription.id,
             numero_facture: numeroFacture,
             montant_total: selectedSession.prix || 0,
-            type_financement: mapFinancementToFactureType(financement),
+            type_financement: financement as any,
             statut: "brouillon",
             date_emission: new Date().toISOString().split("T")[0],
             commentaires: `Facture auto - ${selectedSession.nom}`,
-          })
-          .select("id")
-          .single();
-
-        if (factureError) throw factureError;
-        newFactureId = facture.id;
+          });
+        }
       }
 
       // 4. Update prospect
-      currentStage = "prospect_update";
-      const { error: prospectUpdateError } = await supabase
+      await supabase
         .from("prospects")
         .update({ statut: "converti", converted_contact_id: contact.id })
         .eq("id", prospect.id);
 
-      if (prospectUpdateError) throw prospectUpdateError;
-
       // 5. Try auto-generate Convention + Convocation (non-blocking)
-      if (genererConvention) {
-        try {
-          const { triggerAutoGeneration } = await import("@/lib/auto-generate-documents");
-
+      try {
+        const { triggerAutoGeneration } = await import("@/lib/auto-generate-documents");
+        // Find inscription id
+        const { data: inscData } = await supabase
+          .from("session_inscriptions")
+          .select("id")
+          .eq("contact_id", contact.id)
+          .eq("session_id", selectedSession.id)
+          .single();
+        if (inscData) {
           // 5a. Auto-qualify contract frame from financing
           try {
-            await autoQualifyFromFinancing(inscription.id, financement);
+            await autoQualifyFromFinancing(inscData.id, financement);
           } catch (e) {
             console.warn("Auto-qualification from conversion:", e);
           }
@@ -397,54 +260,25 @@ export function SmartConversionDialog({
           triggerAutoGeneration({
             contactId: contact.id,
             sessionId: selectedSession.id,
-            inscriptionId: inscription.id,
-            track: selectedSession.track === "continuing" ? "continuing" : "initial",
+            inscriptionId: inscData.id,
+            track: (selectedSession.track || "initial") as any,
             formationType: selectedSession.formation_type,
-          }).then((result) => {
-            if (result.generated > 0) {
-              toast.info(`${result.generated} document(s) auto-généré(s)`, { duration: 4000 });
-              queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
-            }
-            if (result.errors > 0) {
-              const firstFailure = result.details.find((detail) => detail.status === "failed");
-              toast.warning(`${result.errors} document(s) n'ont pas pu être généré(s)`, {
-                description: firstFailure?.message,
-                duration: 5000,
-              });
-              queryClient.invalidateQueries({ queryKey: ["generated-docs-v2"] });
-            }
-          }).catch((autoGenError) => {
-            console.error("Auto-generation error after conversion:", autoGenError);
-          });
-        } catch {
-          /* auto-gen is best-effort */
+          }).catch(console.error);
         }
-      }
+      } catch { /* auto-gen is best-effort */ }
 
       // Invalidate
-      invalidateConversionQueries();
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["session_inscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
 
       setCreatedContactId(contact.id);
       setCreatedSessionName(selectedSession.nom);
       setStep("success");
     } catch (error) {
       console.error("Conversion error:", error);
-
-      const rollbackFailures = await rollbackPartialConversion({
-        factureId: newFactureId,
-        inscriptionId: newInscriptionId,
-        contactId: newContactId,
-      });
-
-      toast.error(getConversionErrorMessage(currentStage, error), {
-        description: rollbackFailures.length > 0
-          ? `Rollback incomplet : ${rollbackFailures.join(" | ")}`
-          : "Les créations partielles ont été annulées automatiquement.",
-      });
-
-      if (rollbackFailures.length > 0) {
-        toast.warning("Certaines données provisoires nécessitent une vérification manuelle.");
-      }
+      toast.error("Erreur lors de la conversion");
     } finally {
       setIsSubmitting(false);
     }
@@ -694,7 +528,7 @@ export function SmartConversionDialog({
             <div className="space-y-5 pt-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Mode de financement</label>
-                <Select value={financement} onValueChange={(v) => setFinancement(v as SmartFinancementType)}>
+                <Select value={financement} onValueChange={setFinancement}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

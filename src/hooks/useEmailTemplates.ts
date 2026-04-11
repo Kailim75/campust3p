@@ -86,7 +86,7 @@ export function useCreateEmailTemplate() {
       queryClient.invalidateQueries({ queryKey: ["email-templates"] });
       toast.success("Modèle créé avec succès");
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("Error creating template:", error);
       toast.error("Erreur lors de la création");
     },
@@ -112,7 +112,7 @@ export function useUpdateEmailTemplate() {
       queryClient.invalidateQueries({ queryKey: ["email-templates"] });
       toast.success("Modèle mis à jour");
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("Error updating template:", error);
       toast.error("Erreur lors de la mise à jour");
     },
@@ -136,7 +136,7 @@ export function useDeleteEmailTemplate() {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
       toast.success("Modèle supprimé");
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("Error deleting template:", error);
       toast.error("Erreur lors de la suppression");
     },

@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { 
   useCreateEmailTemplate, 
   useUpdateEmailTemplate, 
@@ -56,6 +56,7 @@ export function EmailTemplateFormDialog({
   const [contenu, setContenu] = useState("");
   const [categorie, setCategorie] = useState("autre");
   const [actif, setActif] = useState(true);
+  const [variableInput, setVariableInput] = useState("");
   const [variables, setVariables] = useState<string[]>([]);
 
   const createTemplate = useCreateEmailTemplate();
@@ -83,6 +84,7 @@ export function EmailTemplateFormDialog({
     setCategorie("autre");
     setActif(true);
     setVariables([]);
+    setVariableInput("");
   };
 
   // Extraire automatiquement les variables du contenu

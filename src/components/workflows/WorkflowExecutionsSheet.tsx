@@ -1,8 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useWorkflowExecutions } from '@/hooks/useWorkflows';
-import type { Workflow } from '@/hooks/useWorkflows';
+import { useWorkflowExecutions, Workflow } from '@/hooks/useWorkflows';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';

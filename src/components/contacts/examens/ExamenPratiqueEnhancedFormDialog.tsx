@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,36 +27,7 @@ import {
   type ExamenResultat,
 } from "@/hooks/useExamensPratique";
 import { useFormateurs } from "@/hooks/useFormateurs";
-import { useVehicules, type Vehicule } from "@/hooks/useVehicules";
-
-const EXAMEN_TYPE_OPTIONS = [
-  { value: "taxi", label: "Taxi" },
-  { value: "vtc", label: "VTC" },
-  { value: "vmdtr", label: "VMDTR" },
-] as const;
-
-const STATUT_HELPERS: Record<ExamenStatut, string> = {
-  planifie: "Le passage est organisé, mais pas encore réalisé.",
-  passe: "Le passage a eu lieu et doit encore être qualifié.",
-  reussi: "Le candidat a validé l'évaluation pratique.",
-  echoue: "Le candidat n'a pas validé cette tentative.",
-  absent: "Le candidat ne s'est pas présenté au passage.",
-  reporte: "Le passage doit être replanifié à une autre date.",
-};
-
-type FormState = {
-  type_examen: string;
-  date_examen: string;
-  heure_examen: string;
-  centre_examen: string;
-  adresse_centre: string;
-  statut: ExamenStatut;
-  resultat: ExamenResultat | "";
-  score: number | null;
-  observations: string;
-  evaluateur_id: string;
-  vehicule_id: string;
-};
+import { useVehicules } from "@/hooks/useVehicules";
 
 interface ExamenPratiqueEnhancedFormDialogProps {
   ficheId: string;
@@ -81,9 +50,8 @@ export function ExamenPratiqueEnhancedFormDialog({
 }: ExamenPratiqueEnhancedFormDialogProps) {
   const { data: formateurs = [] } = useFormateurs();
   const { data: vehicules = [] } = useVehicules();
-  const activeVehicules = vehicules.filter((vehicule) => vehicule.actif);
 
-  const [formData, setFormData] = useState<FormState>({
+  const [formData, setFormData] = useState({
     type_examen: examen?.type_examen || formationType.toLowerCase(),
     date_examen: examen?.date_examen || "",
     heure_examen: examen?.heure_examen || "",
@@ -93,8 +61,8 @@ export function ExamenPratiqueEnhancedFormDialog({
     resultat: (examen?.resultat || "") as ExamenResultat | "",
     score: examen?.score ?? null,
     observations: examen?.observations || "",
-    evaluateur_id: examen?.evaluateur_id || "",
-    vehicule_id: examen?.vehicule_id || "",
+    evaluateur_id: (examen as any)?.evaluateur_id || "",
+    vehicule_id: (examen as any)?.vehicule_id || "",
   });
 
   useEffect(() => {
@@ -109,8 +77,8 @@ export function ExamenPratiqueEnhancedFormDialog({
         resultat: examen.resultat || "",
         score: examen.score,
         observations: examen.observations || "",
-        evaluateur_id: examen.evaluateur_id || "",
-        vehicule_id: examen.vehicule_id || "",
+        evaluateur_id: (examen as any)?.evaluateur_id || "",
+        vehicule_id: (examen as any)?.vehicule_id || "",
       });
     } else {
       setFormData({
@@ -132,35 +100,6 @@ export function ExamenPratiqueEnhancedFormDialog({
   const createMutation = useCreateExamenPratique();
   const updateMutation = useUpdateExamenPratique();
   const isEditing = !!examen;
-  const selectedVehicule = activeVehicules.find((vehicule) => vehicule.id === formData.vehicule_id);
-  const selectedEvaluateur = formateurs.find((formateur) => formateur === formData.evaluateur_id);
-  const shouldShowResults = ["passe", "reussi", "echoue"].includes(formData.statut);
-  const selectedStatus = examenStatutConfig[formData.statut];
-  const selectedResult = formData.resultat ? examenResultatConfig[formData.resultat] : null;
-  const planningChecks = useMemo(() => {
-    const checks = [
-      !formData.date_examen ? "Renseigner la date du passage" : null,
-      !formData.centre_examen ? "Préciser le lieu d'évaluation" : null,
-      !formData.evaluateur_id ? "Assigner un évaluateur" : null,
-      !formData.vehicule_id ? "Assigner un véhicule" : null,
-    ].filter(Boolean) as string[];
-
-    if (shouldShowResults && !formData.resultat) {
-      checks.push("Qualifier le résultat du passage");
-    }
-
-    return checks;
-  }, [
-    formData.centre_examen,
-    formData.date_examen,
-    formData.evaluateur_id,
-    formData.resultat,
-    formData.vehicule_id,
-    shouldShowResults,
-  ]);
-  const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,14 +115,11 @@ export function ExamenPratiqueEnhancedFormDialog({
         heure_examen: formData.heure_examen || null,
         centre_examen: formData.centre_examen || null,
         adresse_centre: formData.adresse_centre || null,
-        evaluateur_id: formData.evaluateur_id || null,
-        vehicule_id: formData.vehicule_id || null,
         statut: formData.statut,
         resultat: formData.resultat || null,
         score: formData.score,
         observations: formData.observations || null,
         document_resultat_path: null,
-        numero_tentative: tentativeNumber,
       };
 
       if (isEditing && examen) {
@@ -213,224 +149,158 @@ export function ExamenPratiqueEnhancedFormDialog({
           <DialogTitle>
             {isEditing ? "Modifier l'examen pratique" : "Planifier un examen pratique"}
           </DialogTitle>
-          <DialogDescription>
-            Préparez le passage pratique, rattachez l’évaluateur et le véhicule, puis complétez le résultat quand l’évaluation est passée.
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Parcours</p>
-              <p className="mt-1 text-sm font-semibold text-foreground uppercase">{formData.type_examen}</p>
-              <p className="mt-1 text-xs text-muted-foreground">tentative n°{tentativeNumber}</p>
-            </Card>
-            <Card className="p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Statut du passage</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{selectedStatus.label}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{STATUT_HELPERS[formData.statut]}</p>
-            </Card>
-            <Card className="p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Évaluateur</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{selectedEvaluateur || "À définir"}</p>
-              <p className="mt-1 text-xs text-muted-foreground">utile pour l’organisation interne</p>
-            </Card>
-            <Card className="p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Véhicule</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {selectedVehicule ? `${selectedVehicule.marque} ${selectedVehicule.modele}` : "À définir"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {selectedVehicule?.immatriculation || "Aucune immatriculation choisie"}
-              </p>
-            </Card>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="type_examen">Type d'examen</Label>
+              <Select
+                value={formData.type_examen}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, type_examen: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="taxi">Taxi</SelectItem>
+                  <SelectItem value="vtc">VTC</SelectItem>
+                  <SelectItem value="vmdtr">VMDTR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="statut">Statut</Label>
+              <Select
+                value={formData.statut}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, statut: value as ExamenStatut }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(examenStatutConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <Card className="space-y-3 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Pilotage du passage</p>
-                <p className="text-xs text-muted-foreground">
-                  Vérifiez les éléments d’organisation avant de valider le passage pratique.
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-muted-foreground">Checklist</p>
-                <p className="text-sm font-semibold text-foreground">
-                  {planningChecks.length === 0 ? "Dossier prêt" : `${planningChecks.length} point${planningChecks.length > 1 ? "s" : ""} à compléter`}
-                </p>
-              </div>
-            </div>
-
-            {planningChecks.length > 0 ? (
-              <div className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2">
-                <p className="text-xs font-medium text-foreground">À compléter avant validation :</p>
-                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  {planningChecks.map((item) => (
-                    <li key={item}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success-foreground">
-                Les informations essentielles du passage sont renseignées.
-              </div>
-            )}
-
-            {selectedResult && (
-              <div className="rounded-lg border bg-muted/40 px-3 py-2">
-                <p className="text-xs font-medium text-muted-foreground">Résultat enregistré</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{selectedResult.label}</p>
-              </div>
-            )}
-          </Card>
-
-          <Card className="space-y-4 p-4">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Organisation du passage</p>
-              <p className="text-xs text-muted-foreground">
-                Définissez le type de passage, la date et le lieu d’évaluation.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="type_examen">Type d'examen</Label>
-                <Select value={formData.type_examen} onValueChange={(value) => updateField("type_examen", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXAMEN_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="statut">Statut</Label>
-                <Select
-                  value={formData.statut}
-                  onValueChange={(value) => updateField("statut", value as ExamenStatut)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(examenStatutConfig).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        {config.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground">{STATUT_HELPERS[formData.statut]}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="date_examen">Date *</Label>
-                <Input
-                  id="date_examen"
-                  type="date"
-                  value={formData.date_examen}
-                  onChange={(e) => updateField("date_examen", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="heure_examen">Heure</Label>
-                <Input
-                  id="heure_examen"
-                  type="time"
-                  value={formData.heure_examen}
-                  onChange={(e) => updateField("heure_examen", e.target.value)}
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="centre_examen">Lieu d'évaluation</Label>
+              <Label htmlFor="date_examen">Date *</Label>
               <Input
-                id="centre_examen"
-                value={formData.centre_examen}
-                onChange={(e) => updateField("centre_examen", e.target.value)}
-                placeholder="Centre ou zone de pratique"
+                id="date_examen"
+                type="date"
+                value={formData.date_examen}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, date_examen: e.target.value }))
+                }
+                required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="adresse_centre">Adresse</Label>
+              <Label htmlFor="heure_examen">Heure</Label>
               <Input
-                id="adresse_centre"
-                value={formData.adresse_centre}
-                onChange={(e) => updateField("adresse_centre", e.target.value)}
-                placeholder="Adresse complète"
+                id="heure_examen"
+                type="time"
+                value={formData.heure_examen}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, heure_examen: e.target.value }))
+                }
               />
             </div>
-          </Card>
+          </div>
 
-          <Card className="space-y-4 p-4">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Encadrement et moyens</p>
-              <p className="text-xs text-muted-foreground">
-                Associez l’évaluateur et le véhicule utilisés pour cette tentative.
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="centre_examen">Lieu d'évaluation</Label>
+            <Input
+              id="centre_examen"
+              value={formData.centre_examen}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, centre_examen: e.target.value }))
+              }
+              placeholder="Centre ou zone de pratique"
+            />
+          </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="evaluateur_id">Évaluateur</Label>
-                <Select value={formData.evaluateur_id} onValueChange={(value) => updateField("evaluateur_id", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formateurs.map((formateur) => (
-                      <SelectItem key={formateur} value={formateur}>
-                        {formateur}
+          <div className="space-y-2">
+            <Label htmlFor="adresse_centre">Adresse</Label>
+            <Input
+              id="adresse_centre"
+              value={formData.adresse_centre}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, adresse_centre: e.target.value }))
+              }
+              placeholder="Adresse complète"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="evaluateur_id">Évaluateur</Label>
+              <Select
+                value={formData.evaluateur_id}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, evaluateur_id: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {formateurs
+                    .filter((f: any) => f.actif)
+                    .map((formateur: any) => (
+                      <SelectItem key={formateur.id} value={formateur.id}>
+                        {formateur.prenom} {formateur.nom}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vehicule_id">Véhicule</Label>
-                <Select value={formData.vehicule_id} onValueChange={(value) => updateField("vehicule_id", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeVehicules.map((vehicule: Vehicule) => (
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehicule_id">Véhicule</Label>
+              <Select
+                value={formData.vehicule_id}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, vehicule_id: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicules
+                    .filter((v) => v.actif)
+                    .map((vehicule) => (
                       <SelectItem key={vehicule.id} value={vehicule.id}>
                         {vehicule.marque} {vehicule.modele} - {vehicule.immatriculation}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
-          </Card>
+          </div>
 
-          {shouldShowResults && (
-            <Card className="space-y-4 p-4">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Résultat du passage</p>
-                <p className="text-xs text-muted-foreground">
-                  Complétez cette zone seulement quand l’évaluation a réellement eu lieu.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Results section */}
+          {["passe", "reussi", "echoue"].includes(formData.statut) && (
+            <div className="border-t pt-4 space-y-3">
+              <h4 className="text-sm font-medium">Résultats</h4>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="resultat">Résultat</Label>
                   <Select
                     value={formData.resultat}
                     onValueChange={(value) =>
-                      updateField("resultat", value as ExamenResultat)
+                      setFormData((prev) => ({ ...prev, resultat: value as ExamenResultat }))
                     }
                   >
                     <SelectTrigger>
@@ -453,33 +323,34 @@ export function ExamenPratiqueEnhancedFormDialog({
                     step="0.1"
                     value={formData.score ?? ""}
                     onChange={(e) =>
-                      updateField("score", e.target.value ? parseFloat(e.target.value) : null)
+                      setFormData((prev) => ({
+                        ...prev,
+                        score: e.target.value ? parseFloat(e.target.value) : null,
+                      }))
                     }
                     placeholder="Note obtenue"
                   />
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
-          <Card className="space-y-3 p-4">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Observations</p>
-              <p className="text-xs text-muted-foreground">
-                Notez ici les points d’attention utiles pour le suivi pédagogique ou une nouvelle tentative.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="observations">Observations de l'examinateur</Label>
-              <Textarea
-                id="observations"
-                value={formData.observations}
-                onChange={(e) => updateField("observations", e.target.value)}
-                rows={3}
-                placeholder="Notes, remarques, points à améliorer..."
-              />
-            </div>
-          </Card>
+          <div className="space-y-2">
+            <Label htmlFor="observations">Observations de l'examinateur</Label>
+            <Textarea
+              id="observations"
+              value={formData.observations}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, observations: e.target.value }))
+              }
+              rows={3}
+              placeholder="Notes, remarques, points à améliorer..."
+            />
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            Tentative n°{tentativeNumber}
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

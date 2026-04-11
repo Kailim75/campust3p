@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreditCard, Plus, Pencil, Trash2, Calendar, ShieldAlert, Clock3, CheckCircle2 } from "lucide-react";
+import { CreditCard, Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -157,17 +156,6 @@ export function ContactCartesProSection({ contactId }: ContactCartesProSectionPr
     deleteCarte.mutate({ id: carteId, contactId });
   };
 
-  const cartesAvecStatut = cartes.map((carte) => {
-    const isExpired = Boolean(carte.date_expiration && new Date(carte.date_expiration) < new Date());
-    const normalizedStatus = isExpired && carte.statut === "obtenue" ? "expiree" : carte.statut;
-    return { ...carte, isExpired, normalizedStatus };
-  });
-
-  const obtainedCount = cartesAvecStatut.filter((carte) => carte.normalizedStatus === "obtenue").length;
-  const pendingCount = cartesAvecStatut.filter((carte) => carte.normalizedStatus === "en_attente" || carte.normalizedStatus === "en_cours").length;
-  const expiredCount = cartesAvecStatut.filter((carte) => carte.normalizedStatus === "expiree").length;
-  const dossierCount = cartesAvecStatut.filter((carte) => carte.numero_dossier).length;
-
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -179,72 +167,30 @@ export function ContactCartesProSection({ contactId }: ContactCartesProSectionPr
 
   return (
     <div className="space-y-3">
-      <Card className="border-dashed">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <p className="font-medium">Cartes professionnelles</p>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Suis ici l’avancement des demandes, les cartes obtenues et les échéances à renouveler.
-              </p>
-            </div>
-            <Button variant="outline" size="sm" className="gap-1" onClick={openCreate}>
-              <Plus className="h-3.5 w-3.5" />
-              Ajouter
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-lg border bg-muted/30 px-3 py-3">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="mt-1 text-lg font-semibold">{cartes.length}</p>
-            </div>
-            <div className="rounded-lg border bg-muted/30 px-3 py-3">
-              <p className="text-xs text-muted-foreground">Obtenues</p>
-              <p className="mt-1 text-lg font-semibold">{obtainedCount}</p>
-            </div>
-            <div className="rounded-lg border bg-muted/30 px-3 py-3">
-              <p className="text-xs text-muted-foreground">En cours</p>
-              <p className="mt-1 text-lg font-semibold">{pendingCount}</p>
-            </div>
-            <div className="rounded-lg border bg-muted/30 px-3 py-3">
-              <p className="text-xs text-muted-foreground">Dossiers renseignés</p>
-              <p className="mt-1 text-lg font-semibold">{dossierCount}</p>
-            </div>
-          </div>
-
-          {expiredCount > 0 && (
-            <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-3 text-sm">
-              <div className="flex items-center gap-2 font-medium">
-                <ShieldAlert className="h-4 w-4 text-warning" />
-                Vigilance cartes pro
-              </div>
-              <p className="mt-1 text-muted-foreground">
-                {expiredCount} carte(s) sont expirées ou à requalifier.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between">
+        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+          Cartes professionnelles
+        </h3>
+        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={openCreate}>
+          <Plus className="h-3.5 w-3.5" />
+          Ajouter
+        </Button>
+      </div>
 
       {cartes.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <CreditCard className="h-6 w-6 mx-auto mb-1.5 opacity-40" />
-            <p className="text-sm font-medium">Aucune carte professionnelle</p>
-            <p className="text-xs mt-1">Ajoute une demande ou une carte obtenue pour commencer le suivi préfectoral.</p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-4 text-muted-foreground">
+          <CreditCard className="h-6 w-6 mx-auto mb-1.5 opacity-40" />
+          <p className="text-xs">Aucune carte professionnelle</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {cartesAvecStatut.map((carte) => {
-            const config = statutConfig[carte.normalizedStatus] || statutConfig.en_attente;
+          {cartes.map((carte) => {
+            const isExpired = carte.date_expiration && new Date(carte.date_expiration) < new Date();
+            const statut = isExpired && carte.statut === "obtenue" ? "expiree" : carte.statut;
+            const config = statutConfig[statut] || statutConfig.en_attente;
 
             return (
-              <div key={carte.id} className="p-3 border rounded-lg space-y-2 group bg-card">
+              <div key={carte.id} className="p-3 border rounded-lg space-y-1.5 group">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs font-semibold uppercase">
@@ -254,7 +200,7 @@ export function ContactCartesProSection({ contactId }: ContactCartesProSectionPr
                       {config.label}
                     </Badge>
                   </div>
-                  <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(carte)}>
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -293,37 +239,20 @@ export function ContactCartesProSection({ contactId }: ContactCartesProSectionPr
                   <p className="text-xs text-muted-foreground">Dossier : {carte.numero_dossier}</p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  {carte.date_demande && (
-                    <span className="flex items-center gap-1">
-                      <Clock3 className="h-3 w-3" />
-                      Demandée le {format(new Date(carte.date_demande), "dd/MM/yyyy")}
-                    </span>
-                  )}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   {carte.date_obtention && (
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
+                      <Calendar className="h-3 w-3" />
                       Obtenue {format(new Date(carte.date_obtention), "dd/MM/yyyy")}
                     </span>
                   )}
                   {carte.date_expiration && (
-                    <span className={cn("flex items-center gap-1", carte.isExpired && "text-destructive font-medium")}>
+                    <span className={cn("flex items-center gap-1", isExpired && "text-destructive font-medium")}>
                       <Calendar className="h-3 w-3" />
-                      {carte.isExpired ? "Expirée" : "Expire"} {format(new Date(carte.date_expiration), "dd/MM/yyyy")}
+                      {isExpired ? "Expirée" : "Expire"} {format(new Date(carte.date_expiration), "dd/MM/yyyy")}
                     </span>
                   )}
                 </div>
-
-                {(carte.prefecture || carte.notes) && (
-                  <div className="space-y-1">
-                    {carte.prefecture && (
-                      <p className="text-xs text-muted-foreground">Préfecture : {carte.prefecture}</p>
-                    )}
-                    {carte.notes && (
-                      <p className="text-xs text-muted-foreground">{carte.notes}</p>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}

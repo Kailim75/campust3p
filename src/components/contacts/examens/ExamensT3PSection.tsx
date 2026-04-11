@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,10 +31,9 @@ import {
   CheckCircle2,
   XCircle,
   Building2,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, differenceInDays, differenceInMonths, isAfter, parseISO, startOfToday } from "date-fns";
+import { format, differenceInDays, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   useContactExamensT3P,
@@ -66,25 +65,16 @@ export function ExamensT3PSection({ contactId, formationType }: ExamensT3PSectio
   const latestSuccess = examens.find((e) => e.statut === "reussi");
   const attempts = examens.length;
   const maxAttempts = 3;
-  const stats = useMemo(() => {
-    const today = startOfToday();
-
-    return {
-      planned: examens.filter((exam) => exam.statut === "planifie" || isAfter(parseISO(exam.date_examen), today)).length,
-      admitted: examens.filter((exam) => exam.resultat === "admis" || exam.statut === "reussi").length,
-      dossiers: examens.filter((exam) => Boolean(exam.numero_dossier)).length,
-    };
-  }, [examens]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             Examens T3P (Théorique)
           </h3>
           <p className="text-xs text-muted-foreground">
-            {attempts} tentative{attempts > 1 ? "s" : ""} / {maxAttempts} max · suivi des convocations, dossiers et résultats.
+            {attempts} tentative{attempts > 1 ? "s" : ""} / {maxAttempts} max
           </p>
         </div>
         <Button
@@ -97,32 +87,9 @@ export function ExamensT3PSection({ contactId, formationType }: ExamensT3PSectio
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Tentatives</p>
-          <p className="mt-1 text-2xl font-bold text-foreground">{attempts}</p>
-          <p className="mt-1 text-xs text-muted-foreground">sur {maxAttempts} autorisées</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">À venir</p>
-          <p className="mt-1 text-2xl font-bold text-info">{stats.planned}</p>
-          <p className="mt-1 text-xs text-muted-foreground">examens planifiés ou encore à passer</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Admis</p>
-          <p className="mt-1 text-2xl font-bold text-success">{stats.admitted}</p>
-          <p className="mt-1 text-xs text-muted-foreground">résultat{stats.admitted > 1 ? "s" : ""} validé{stats.admitted > 1 ? "s" : ""}</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">N° dossier</p>
-          <p className="mt-1 text-2xl font-bold text-foreground">{stats.dossiers}</p>
-          <p className="mt-1 text-xs text-muted-foreground">renseigné{stats.dossiers > 1 ? "s" : ""}</p>
-        </Card>
-      </div>
-
       {/* Alert for max attempts */}
       {attempts >= maxAttempts && !latestSuccess && (
-        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-warning">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning border border-warning/20">
           <AlertTriangle className="h-4 w-4" />
           <span className="text-sm">
             Limite de 3 tentatives atteinte. Une dérogation est nécessaire.
@@ -141,7 +108,7 @@ export function ExamensT3PSection({ contactId, formationType }: ExamensT3PSectio
           <Skeleton className="h-20 w-full" />
         </div>
       ) : examens.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground">
           <GraduationCap className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <p className="font-medium">Aucun examen T3P</p>
           <p className="text-sm mt-1">Planifiez le premier examen théorique</p>
@@ -307,21 +274,6 @@ function ExamenT3PCard({ examen, onEdit, onDelete }: ExamenT3PCardProps) {
           </div>
         </div>
 
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {examen.numero_dossier && (
-            <Badge variant="outline" className="gap-1.5">
-              <FileText className="h-3 w-3" />
-              Dossier renseigné
-            </Badge>
-          )}
-          {examen.numero_convocation && (
-            <Badge variant="outline" className="gap-1.5">
-              <Hash className="h-3 w-3" />
-              Convocation disponible
-            </Badge>
-          )}
-        </div>
-
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Calendar className="h-3.5 w-3.5" />
@@ -354,7 +306,7 @@ function ExamenT3PCard({ examen, onEdit, onDelete }: ExamenT3PCardProps) {
           {examen.numero_dossier && (
             <div className="flex items-center gap-1.5 text-foreground font-medium">
               <Hash className="h-3.5 w-3.5 text-primary" />
-              <span className="font-mono text-xs">{examen.numero_dossier}</span>
+              <span className="font-mono text-xs">Dossier : {examen.numero_dossier}</span>
             </div>
           )}
         </div>

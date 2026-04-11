@@ -1,19 +1,62 @@
-import { AlertTriangle, CreditCard, Calendar, Phone, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertTriangle, CreditCard, Calendar, UserPlus, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
 
 interface DashboardAlertsRowProps {
   onNavigate: (section: string) => void;
   onNavigateWithContact: (section: string, contactId?: string) => void;
 }
 
+function useAlertsData() {
+  return useQuery({
+    queryKey: ["dashboard", "alerts-row"],
+    queryFn: async () => {
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      const [sessionsRes, facturesRes, prospectsRes, inscriptionsRes] = await Promise.all([
+        supabase.from("sessions").select("id, places_totales, date_debut, statut")
+          .eq("archived", false).eq("statut", "en_cours").gte("date_fin", todayStr),
+        supabase.from("factures").select("id, statut, date_echeance")
+          .eq("statut", "emise"),
+        supabase.from("prospects").select("id, created_at")
+          .eq("statut", "nouveau"),
+        supabase.from("session_inscriptions").select("session_id"),
+      ]);
+
+      const sessions = sessionsRes.data || [];
+      const factures = facturesRes.data || [];
+      const prospects = prospectsRes.data || [];
+      const inscriptions = inscriptionsRes.data || [];
+
+      // Sessions at risk: < 50% fill rate
+      const sessionCounts = inscriptions.reduce((acc: Record<string, number>, ins) => {
+        acc[ins.session_id] = (acc[ins.session_id] || 0) + 1;
+        return acc;
+      }, {});
+      const sessionsAtRisk = sessions.filter(s => {
+        const filled = sessionCounts[s.id] || 0;
+        const total = s.places_totales || 1;
+        return (filled / total) < 0.5;
+      }).length;
+
+      // Late payments
+      const latePayments = factures.filter(f => 
+        f.date_echeance && f.date_echeance < todayStr
+      ).length;
+
+      return { sessionsAtRisk, latePayments, newProspects: prospects.length, pendingInvoices: factures.length };
+    },
+    staleTime: 60_000,
+  });
+}
+
 const alertCards = [
-  { key: "sessionsRisque", label: "Sessions à risque", icon: AlertTriangle, section: "sessions", variant: "warning" as const },
-  { key: "paiementsRetard", label: "Paiements en retard", icon: CreditCard, section: "finances", variant: "destructive" as const },
-  { key: "facturesEnAttente", label: "Factures en attente", icon: Calendar, section: "finances", variant: "muted" as const },
-  { key: "prospectsRelance", label: "Prospects à relancer", icon: Phone, section: "prospects", variant: "primary" as const },
+  { key: "sessionsAtRisk", label: "Sessions à risque", icon: AlertTriangle, section: "sessions", variant: "warning" as const },
+  { key: "latePayments", label: "Paiements en retard", icon: CreditCard, section: "finances", variant: "destructive" as const },
+  { key: "pendingInvoices", label: "Factures en attente", icon: Calendar, section: "finances", variant: "muted" as const },
+  { key: "newProspects", label: "Prospects à relancer", icon: UserPlus, section: "prospects", variant: "primary" as const },
 ] as const;
 
 const variantStyles = {
@@ -24,8 +67,7 @@ const variantStyles = {
 };
 
 export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
-  const { period } = useDashboardPeriodV2();
-  const { data, isLoading } = useDashboardData(period);
+  const { data, isLoading } = useAlertsData();
 
   if (isLoading) {
     return (
@@ -40,15 +82,12 @@ export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
     );
   }
 
-  const metrics = data?.metrics;
-
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
       {alertCards.map((card) => {
         const Icon = card.icon;
-        const value = metrics?.[card.key] ?? 0;
-        const hasAlert = value > 0;
-
+        const value = data?.[card.key as keyof typeof data] ?? 0;
+        const hasAlert = (value as number) > 0;
         return (
           <button
             key={card.key}
@@ -73,9 +112,7 @@ export function DashboardAlertsRow({ onNavigate }: DashboardAlertsRowProps) {
             <p className={cn(
               "text-3xl font-bold tracking-tight",
               hasAlert ? "text-foreground" : "text-muted-foreground/40"
-            )}>
-              {value}
-            </p>
+            )}>{value}</p>
           </button>
         );
       })}

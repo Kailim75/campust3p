@@ -156,9 +156,6 @@ export default function QualiopiDashboard() {
 
   const actionsEnCours = actions?.filter(a => a.statut === 'en_cours' || a.statut === 'a_faire').length || 0;
   const prochainAudit = audits?.find(a => a.statut === 'planifie');
-  const prochainAuditLabel = prochainAudit
-    ? format(new Date(prochainAudit.date_audit), 'dd MMM yyyy', { locale: fr })
-    : 'Aucun audit planifié';
 
   const scoreColor = centreData?.scoreLevel === 'ready' 
     ? 'text-green-600' : centreData?.scoreLevel === 'warning' 
@@ -174,26 +171,16 @@ export default function QualiopiDashboard() {
   const alertesCritiques = centreData?.alertes.filter(a => a.severity === 'critique') || [];
   const alertesImportantes = centreData?.alertes.filter(a => a.severity === 'important') || [];
   const alertesAmelioration = centreData?.alertes.filter(a => a.severity === 'amelioration') || [];
-  const sessionsNonConformesCount = centreData?.sessionsNonConformes.length || 0;
-  const preuvesAutoCount =
-    (centreData?.totalEmargements || 0) +
-    (centreData?.totalConventions || 0) +
-    (centreData?.totalContrats || 0) +
-    (centreData?.totalCertificats || 0);
 
   return (
     <div className="space-y-6">
+      {/* Header with badge + exports */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {centreData?.isQualiopiReady ? (
+        <div className="flex items-center gap-3">
+          {centreData?.isQualiopiReady && (
             <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-xl">
               <Shield className="h-5 w-5 text-green-600" />
               <span className="font-semibold text-green-700 text-sm">Qualiopi Ready</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              <span className="font-semibold text-yellow-700 text-sm">Conformité à renforcer</span>
             </div>
           )}
           <Badge variant="outline" className="text-xs">
@@ -207,74 +194,16 @@ export default function QualiopiDashboard() {
           </Button>
           <Button onClick={handleExportAuditPDF} size="sm" className="gap-2">
             <FileText className="h-4 w-4" />
-            Export audit
+            📂 Export dossier audit
           </Button>
           <Button onClick={() => openTab('simulation')} variant="outline" size="sm" className="gap-2">
             <Target className="h-4 w-4" />
-            Préparer l'audit
+            🎯 Préparer audit
           </Button>
         </div>
       </div>
 
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold">Priorités du moment</p>
-              <p className="text-xs text-muted-foreground">
-                Le plus important à traiter pour garder un centre lisible, documenté et prêt pour audit.
-              </p>
-            </div>
-            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-              <p className="font-medium">Prochaine échéance</p>
-              <p className="text-muted-foreground">{prochainAuditLabel}</p>
-              <p className="mt-1 text-muted-foreground">
-                {actionsEnCours} action{actionsEnCours > 1 ? 's' : ''} ouverte{actionsEnCours > 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className={alertesCritiques.length > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-border/70'}>
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Points critiques</p>
-                <p className="mt-1 text-lg font-semibold">{alertesCritiques.length}</p>
-                <p className="text-xs text-muted-foreground">
-                  {alertesCritiques.length > 0 ? 'À corriger avant audit' : 'Aucun blocage critique détecté'}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className={sessionsNonConformesCount > 0 ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-border/70'}>
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessions à régulariser</p>
-                <p className="mt-1 text-lg font-semibold">{sessionsNonConformesCount}</p>
-                <p className="text-xs text-muted-foreground">
-                  Dossiers session avec preuves ou actions manquantes
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/70">
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Indicateurs solides</p>
-                <p className="mt-1 text-lg font-semibold">{stats.conformes}/{stats.total}</p>
-                <p className="text-xs text-muted-foreground">
-                  Base documentaire actuellement conforme
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/70">
-              <CardContent className="p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Preuves auto</p>
-                <p className="mt-1 text-lg font-semibold">{preuvesAutoCount}</p>
-                <p className="text-xs text-muted-foreground">
-                  Documents et traces déjà générés automatiquement
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* Score Conformité Global - Hero */}
       <Card className={cn("border bg-gradient-to-br overflow-hidden", scoreBg)}>
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-center gap-8">
@@ -326,13 +255,7 @@ export default function QualiopiDashboard() {
         </CardContent>
       </Card>
 
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold">Vue d'ensemble</h3>
-        <p className="text-xs text-muted-foreground">
-          Les indicateurs les plus utiles pour piloter la conformité et la préparation d'audit.
-        </p>
-      </div>
-
+      {/* KPIs secondaires */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -403,32 +326,29 @@ export default function QualiopiDashboard() {
         </Card>
       </div>
 
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold">Risques et points d'attention</h3>
-        <p className="text-xs text-muted-foreground">
-          Ce qui demande une action rapide avant que la conformité ne se dégrade ou qu'un audit bloque.
-        </p>
-      </div>
-
+      {/* Alertes Qualité Priorisées */}
       {centreData && centreData.alertes.length > 0 && (
         <div className="space-y-3">
+          {/* Critiques */}
           {alertesCritiques.length > 0 && (
             <AlertesGroup
-              titre="Critique"
+              titre="🔴 Critique — Bloque audit"
               alertes={alertesCritiques}
               severity="critique"
             />
           )}
+          {/* Importantes */}
           {alertesImportantes.length > 0 && (
             <AlertesGroup
-              titre="Important"
+              titre="🟠 Important"
               alertes={alertesImportantes}
               severity="important"
             />
           )}
+          {/* Amélioration */}
           {alertesAmelioration.length > 0 && (
             <AlertesGroup
-              titre="Amélioration"
+              titre="🔵 Amélioration"
               alertes={alertesAmelioration}
               severity="amelioration"
             />
@@ -441,13 +361,7 @@ export default function QualiopiDashboard() {
         <QualiopiSessionsNonConformes sessions={centreData.sessionsNonConformes} maxItems={8} />
       )}
 
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold">Traçabilité et preuves</h3>
-        <p className="text-xs text-muted-foreground">
-          Les éléments déjà générés automatiquement et les tendances utiles pour préparer un audit proprement.
-        </p>
-      </div>
-
+      {/* Preuves auto-reliées */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -466,14 +380,13 @@ export default function QualiopiDashboard() {
         </CardContent>
       </Card>
 
+      {/* Graphique de tendance */}
       <QualiopiTrendChart audits={audits} currentConformityRate={tauxConformite} />
 
+      {/* Conformité par critère */}
       <Card>
         <CardHeader>
           <CardTitle>Conformité par critère</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Clique sur un critère pour ouvrir le détail et agir directement sur les indicateurs concernés.
-          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -526,6 +439,7 @@ export default function QualiopiDashboard() {
         </CardContent>
       </Card>
 
+      {/* Actions prioritaires */}
       {actions && actions.filter(a => a.statut !== 'terminee' && a.statut !== 'annulee').length > 0 && (
         <Card>
           <CardHeader>
@@ -533,9 +447,6 @@ export default function QualiopiDashboard() {
               <Clock className="h-5 w-5 text-orange-500" />
               Actions prioritaires
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Les prochaines actions concrètes à clôturer pour améliorer rapidement le score et la préparation audit.
-            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

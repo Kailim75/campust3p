@@ -3,7 +3,7 @@
 // Replaces TemplateLibrary.tsx (v1) — Phase 7A
 // ═══════════════════════════════════════════════════════════════
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, FileText, Edit, Trash2, CheckCircle2, Plus, Shield, Search,
-  Wand2, BookOpen, Briefcase, CreditCard, GraduationCap, FileCheck, Rocket, RotateCcw,
+  Wand2, BookOpen, Briefcase, CreditCard, GraduationCap, FileCheck, Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useTemplatesV2,
   useDeleteTemplateV2,
   useCreateTemplateV2,
-  type TemplateV2,
 } from "@/hooks/useTemplateStudioV2";
 import { TEMPLATE_TYPES, TEMPLATE_STATUSES } from "@/constants/templateConstants";
 import { TEMPLATE_GENERATORS } from "@/lib/complianceEngine";
@@ -65,43 +64,12 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
   const deleteTemplate = useDeleteTemplateV2();
   const createTemplate = useCreateTemplateV2();
   const { currentCentre } = useCentreContext();
-  const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || searchQuery.trim().length > 0;
 
-  const filtered = useMemo(
-    () =>
-      (templates || []).filter((t) => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        return t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || t.type.toLowerCase().includes(q);
-      }),
-    [searchQuery, templates],
-  );
-
-  const templateStats = useMemo(
-    () => ({
-      total: templates?.length || 0,
-      active: (templates || []).filter((template) => template.is_active).length,
-      published: (templates || []).filter((template) => template.status === "published").length,
-      drafts: (templates || []).filter((template) => template.status === "draft").length,
-    }),
-    [templates],
-  );
-
-  const catalogStats = useMemo(
-    () => ({
-      total: PREBUILT_TEMPLATES.length,
-      qualiopi: PREBUILT_TEMPLATES.filter((template) => template.tags.includes("Qualiopi")).length,
-      dreets: PREBUILT_TEMPLATES.filter((template) => template.tags.includes("DREETS")).length,
-      administratif: PREBUILT_TEMPLATES.filter((template) => template.tags.includes("Administratif")).length,
-    }),
-    [],
-  );
-
-  const handleResetFilters = () => {
-    setFilterType("all");
-    setFilterStatus("all");
-    setSearchQuery("");
-  };
+  const filtered = (templates || []).filter((t) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || t.type.toLowerCase().includes(q);
+  });
 
   const handleDelete = () => {
     if (deleteId) { deleteTemplate.mutate(deleteId); setDeleteId(null); }
@@ -115,18 +83,17 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
     try {
       const result = await createTemplate.mutateAsync({
         name: prebuilt.label,
-        type: prebuilt.type,
-        format: "html",
+        type: prebuilt.type as any,
+        format: "html" as any,
         template_body: gen.generator(),
         centre_id: currentCentre.id,
-      } satisfies Partial<TemplateV2>);
+      });
       if (result) {
         toast.success(`Template "${prebuilt.label}" créé — personnalisez-le`);
         onEdit(result.id);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "inconnue";
-      toast.error("Erreur : " + message);
+    } catch (e: any) {
+      toast.error("Erreur : " + (e.message || "inconnue"));
     }
   };
 
@@ -136,60 +103,6 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
 
   return (
     <div className="space-y-6">
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold">
-                {showCatalog ? "Catalogue prêt à l'emploi" : "Bibliothèque active des templates"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {showCatalog
-                  ? "Partez de modèles prêts à personnaliser pour gagner du temps sans repartir d'une page vide."
-                  : "Retrouvez rapidement les modèles publiés, actifs ou encore en brouillon avant génération."}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-              <p className="font-medium">Résumé rapide</p>
-              {showCatalog ? (
-                <>
-                  <p className="text-muted-foreground">{catalogStats.total} modèle{catalogStats.total > 1 ? "s" : ""} prêt{catalogStats.total > 1 ? "s" : ""} à créer</p>
-                  <p className="mt-1 text-muted-foreground">{catalogStats.qualiopi} Qualiopi · {catalogStats.dreets} DREETS</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted-foreground">{filtered.length} template{filtered.length > 1 ? "s" : ""} affiché{filtered.length > 1 ? "s" : ""}</p>
-                  <p className="mt-1 text-muted-foreground">{templateStats.published} publié{templateStats.published > 1 ? "s" : ""} · {templateStats.drafts} brouillon{templateStats.drafts > 1 ? "s" : ""}</p>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {showCatalog ? (
-              <>
-                <Badge variant="outline" className="text-[11px]">{catalogStats.total} entrées</Badge>
-                <Badge variant="outline" className="text-[11px]">{catalogStats.administratif} administratives</Badge>
-              </>
-            ) : (
-              <>
-                <Badge variant="outline" className="text-[11px]">{templateStats.active} actifs</Badge>
-                <Badge variant="outline" className="text-[11px]">{templateStats.published} publiés</Badge>
-                {templateStats.drafts > 0 && (
-                  <Badge variant="outline" className="text-[11px]">{templateStats.drafts} brouillon{templateStats.drafts > 1 ? "s" : ""}</Badge>
-                )}
-              </>
-            )}
-            {hasActiveFilters && !showCatalog && (
-              <Button variant="ghost" size="sm" onClick={handleResetFilters} className="ml-auto gap-1">
-                <RotateCcw className="h-3.5 w-3.5" />
-                Réinitialiser les filtres
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Search + Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-md">
@@ -262,9 +175,6 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} template{filtered.length > 1 ? "s" : ""}{hasActiveFilters ? ` sur ${templateStats.total}` : ""}{searchQuery ? ` pour “${searchQuery}”` : ""}
-          </p>
           {filtered.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
@@ -279,6 +189,7 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
             </Card>
           ) : (
             <>
+              <p className="text-sm text-muted-foreground">{filtered.length} template(s)</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.map((t) => {
                   const typeCfg = TEMPLATE_TYPES.find((tt) => tt.value === t.type);

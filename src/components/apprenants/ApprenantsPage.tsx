@@ -10,7 +10,7 @@ import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send, GraduationC
 import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { isActiveApprenant, isTerminated, type StatutApprenant } from "@/lib/apprenant-active";
-import { useUpdateContact, type Contact, type ContactUpdate } from "@/hooks/useContacts";
+import { useUpdateContact } from "@/hooks/useContacts";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
@@ -59,7 +59,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
   }, [initialContactId, onContactOpened]);
   const [formOpen, setFormOpen] = useState(false);
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
-  const [editContact, setEditContact] = useState<Contact | null>(null);
+  const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
@@ -69,9 +69,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       const next = !prev;
       try {
         localStorage.setItem(EXPERT_MODE_KEY, String(next));
-      } catch {
-        console.debug("Unable to persist apprenants expert mode");
-      }
+      } catch {}
       if (!next) setSelectedIds(new Set());
       return next;
     });
@@ -98,7 +96,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     let inactifs = 0;
     let termines = 0;
     contacts.forEach(c => {
-      if (isTerminated(c)) { termines++; return; }
+      if (isTerminated(c as any)) { termines++; return; }
       if (isActiveApprenant(c)) actifs++;
       else inactifs++;
     });
@@ -112,7 +110,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
     try {
       await Promise.all(ids.map(id =>
-        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as ContactUpdate })
+        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
       ));
       toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
       setSelectedIds(new Set());
@@ -126,12 +124,12 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return contacts.filter((c) => {
       // Activity filter — uses official statut_apprenant
       if (activityFilter === "termines") {
-        if (!isTerminated(c)) return false;
+        if (!isTerminated(c as any)) return false;
       } else if (activityFilter === "actifs") {
-        if (isTerminated(c)) return false;
+        if (isTerminated(c as any)) return false;
         if (!isActiveApprenant(c)) return false;
       } else if (activityFilter === "inactifs") {
-        if (isTerminated(c)) return false;
+        if (isTerminated(c as any)) return false;
         if (isActiveApprenant(c)) return false;
       }
       // "tous" shows everything
@@ -178,27 +176,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  const paiementRetardCount = contacts?.filter((c) => c.paymentStatus === "retard").length ?? 0;
-  const dossiersIncompletsCount = contacts?.filter((c) => c.documentsManquants >= 3).length ?? 0;
-  const sessionSoonCount = contacts?.filter((c) => {
-    if (!c.sessionDateDebut) return false;
-    const daysUntilSession = differenceInDays(new Date(c.sessionDateDebut), new Date());
-    return daysUntilSession <= 14 && daysUntilSession >= 0;
-  }).length ?? 0;
-  const hasActiveFilters =
-    search.trim() !== "" ||
-    formationFilter !== "all" ||
-    quickFilter !== "all" ||
-    activityFilter !== "actifs";
-  const toolbarSummary = [
-    `${filtered.length} apprenant${filtered.length > 1 ? "s" : ""} affiché${filtered.length > 1 ? "s" : ""}`,
-    `${activityCounts.actifs} actif${activityCounts.actifs > 1 ? "s" : ""}`,
-    `${criticalCount} à surveiller`,
-    quickFilter !== "all" ? `Filtre : ${quickFilter}` : null,
-    formationFilter !== "all" ? `Formation : ${formationFilter}` : null,
-    search.trim() ? `Recherche : "${search.trim()}"` : null,
-  ].filter(Boolean).join(" · ");
-
   const allSelected = paginatedFiltered.length > 0 && paginatedFiltered.every((c) => selectedIds.has(c.id));
   const someSelected = selectedIds.size > 0;
 
@@ -219,13 +196,13 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     });
   };
 
-  const activeCount = activityCounts.actifs;
+  const activeCount = contacts?.length || 0;
 
   return (
     <div className="min-h-screen">
       <Header
         title="Apprenants"
-        subtitle={`${activeCount} apprenant${activeCount > 1 ? "s" : ""} actif${activeCount > 1 ? "s" : ""} · ${criticalCount} à surveiller`}
+        subtitle={`${activeCount} apprenant${activeCount > 1 ? "s" : ""} actifs`}
         addLabel="Nouvel apprenant"
         onAddClick={() => setFormOpen(true)}
         extraActions={
@@ -236,39 +213,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       />
 
       <main className="p-6 space-y-4 animate-fade-in">
-        {!!contacts?.length && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Actifs</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{activityCounts.actifs}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {activityCounts.termines} terminé{activityCounts.termines > 1 ? "s" : ""} · {activityCounts.inactifs} inactif{activityCounts.inactifs > 1 ? "s" : ""}
-              </p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">À surveiller</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{criticalCount}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {sessionSoonCount} session{sessionSoonCount > 1 ? "s" : ""} proche{sessionSoonCount > 1 ? "s" : ""}
-              </p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dossiers incomplets</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{dossiersIncompletsCount}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                3 pièces manquantes ou plus
-              </p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Paiements en retard</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{paiementRetardCount}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Relances financières à traiter
-              </p>
-            </Card>
-          </div>
-        )}
-
         <ApprenantsToolbar
           search={search}
           onSearchChange={setSearch}
@@ -284,14 +228,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           filteredCount={filtered.length}
           criticalCount={criticalCount}
           onOpenDuplicates={() => setDuplicatesOpen(true)}
-          summaryLine={toolbarSummary}
-          hasActiveFilters={hasActiveFilters}
-          onResetFilters={() => {
-            setSearch("");
-            setFormationFilter("all");
-            setQuickFilter("all");
-            setActivityFilter("actifs");
-          }}
         />
 
         {/* Bulk actions bar (expert mode) */}
@@ -469,10 +405,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
             const formationClass = contact.formation
               ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
               : "";
-            const sessionSoon =
-              !!contact.sessionDateDebut &&
-              differenceInDays(new Date(contact.sessionDateDebut), new Date()) <= 14 &&
-              differenceInDays(new Date(contact.sessionDateDebut), new Date()) >= 0;
             const payLabel = (() => {
               if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };
               if (contact.totalPaye >= contact.totalFacture) return { text: "Soldé", cls: "text-success" };
@@ -516,19 +448,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                   }>
                     {contact.statut === "Abandonné" ? "Abandon" : contact.statut === "Client" || contact.statut === "Bravo" ? "Diplômé" : "En formation"}
                   </span>
-                  {contact.documentsManquants > 0 && (
-                    <span className={cn(
-                      "badge-soft",
-                      contact.documentsManquants >= 3 ? "badge-soft-red" : "badge-soft-amber"
-                    )}>
-                      {contact.documentsManquants} doc. manquant{contact.documentsManquants > 1 ? "s" : ""}
-                    </span>
-                  )}
-                  {sessionSoon && (
-                    <span className="badge-soft badge-soft-amber">
-                      Session &lt; 14j
-                    </span>
-                  )}
                 </div>
               </Card>
             );
