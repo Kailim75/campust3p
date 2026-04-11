@@ -41,8 +41,7 @@ type DocumentInstanceInsert = Database["public"]["Tables"]["document_instances"]
 type ContactDocumentInsert = Database["public"]["Tables"]["contact_documents"]["Insert"];
 
 type ContactLite = Pick<ContactRow, "nom" | "prenom" | "email" | "telephone" | "rue" | "code_postal" | "ville" | "civilite">;
-type SessionWithPresentation = SessionRow & { horaires?: string | null };
-type SessionLite = Pick<SessionWithPresentation, "nom" | "date_debut" | "date_fin" | "duree_heures" | "formation_type" | "lieu" | "horaires">;
+type SessionLite = Pick<SessionRow, "nom" | "date_debut" | "date_fin" | "duree_heures" | "formation_type" | "lieu">;
 type FactureSearchRow = Pick<FactureRow, "id" | "numero_facture" | "montant_total"> & {
   contacts: Pick<ContactRow, "nom" | "prenom"> | Pick<ContactRow, "nom" | "prenom">[] | null;
 };
@@ -260,7 +259,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
     } else if (type === "devis") {
       const { data } = await supabase
         .from("devis")
-        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, horaires, lieu))")
+        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, lieu))")
         .eq("id", id)
         .maybeSingle();
       const devis = data as DevisDocumentRow | null;

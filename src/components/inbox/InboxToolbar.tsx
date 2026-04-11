@@ -83,7 +83,7 @@ export function InboxToolbar({
         .select("user_id, profiles(id, display_name, email)")
         .eq("centre_id", centreId);
       if (error) throw error;
-      return ((data || []) as UserCentreWithProfile[])
+      return ((data || []) as unknown as UserCentreWithProfile[])
         .filter(hasProfile)
         .map((uc) => ({
           id: uc.user_id,

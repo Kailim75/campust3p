@@ -168,7 +168,7 @@ export function useAddInscription() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      if (isPostgrestErrorLike(error) && error.code === "23505") {
+      if (isPostgrestErrorLike(error) && (error as any).code === "23505") {
         toast.error("Ce stagiaire est déjà inscrit à cette session");
         return;
       }

@@ -313,7 +313,7 @@ export function SmartConversionDialog({
       };
 
       if (prospect.formation_souhaitee && VALID_FORMATIONS.includes(prospect.formation_souhaitee)) {
-        contactData.formation = prospect.formation_souhaitee;
+        contactData.formation = prospect.formation_souhaitee as Database["public"]["Enums"]["formation_type"];
       }
 
       const { data: contact, error: contactError } = await supabase
@@ -689,7 +689,7 @@ export function SmartConversionDialog({
             <div className="space-y-5 pt-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Mode de financement</label>
-                <Select value={financement} onValueChange={setFinancement}>
+                <Select value={financement} onValueChange={(v) => setFinancement(v as SmartFinancementType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

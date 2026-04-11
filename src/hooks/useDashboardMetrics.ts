@@ -27,7 +27,7 @@ type MetricKeys =
 
 export type DashboardMetrics = Pick<DashboardDataMetrics, MetricKeys>;
 
-export function useDashboardMetrics(period: PeriodValue): UseQueryResult<DashboardMetrics> {
+export function useDashboardMetrics(period: PeriodValue) {
   const query = useDashboardData(period);
 
   const data = useMemo<DashboardMetrics | undefined>(() => {

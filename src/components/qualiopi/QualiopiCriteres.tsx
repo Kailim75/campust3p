@@ -181,7 +181,7 @@ export default function QualiopiCriteres() {
 
         return (
           <Collapsible 
-            key={critere} 
+            key={critereNum} 
             open={isOpen}
             onOpenChange={(open) => setCritereOpen(critereNum, open)}
           >

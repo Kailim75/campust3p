@@ -118,6 +118,9 @@ export function ExamenPratiqueFormDialog({
         await createMutation.mutateAsync({
           fiche_pratique_id: ficheId,
           contact_id: contactId,
+          evaluateur_id: null,
+          vehicule_id: null,
+          numero_tentative: 1,
           ...payload,
         });
       }

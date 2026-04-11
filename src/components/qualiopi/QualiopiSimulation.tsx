@@ -389,9 +389,9 @@ function SummaryCard({ icon, label, count }: { icon: React.ReactNode; label: str
   );
 }
 
-function FindingsSection({ title, findings, borderColor, bgColor }: {
+function FindingsSection({ title, subtitle, findings, borderColor, bgColor }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   findings: AuditFinding[];
   borderColor: string;
   bgColor: string;
