@@ -106,6 +106,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null);
+    const EMAIL_CONFIG = resolveEmailConfig(body);
     
     // ========================================
     // BULK EMAIL SENDING (with recipients array)
