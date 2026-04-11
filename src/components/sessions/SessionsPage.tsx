@@ -12,9 +12,7 @@ import { useSessionsFilters, defaultFilters, type SessionFilters } from "@/hooks
 import { SessionsKPICards } from "./SessionsKPICards";
 import { SessionsToolbar } from "./SessionsToolbar";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Loader2, List, Kanban, CalendarDays, AlertTriangle } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const SessionFormDialog = lazy(() =>
@@ -113,30 +111,6 @@ export function SessionsPage() {
     }).length;
   }, [inscriptionsCounts, sessions]);
 
-  const viewMeta = useMemo(() => {
-    if (viewMode === "kanban") {
-      return {
-        label: "Kanban",
-        description: "Suivi visuel des sessions par statut pour repérer rapidement ce qui avance et ce qui bloque.",
-        icon: Kanban,
-      };
-    }
-
-    if (viewMode === "calendar") {
-      return {
-        label: "Calendrier",
-        description: "Lecture temporelle des sessions pour anticiper les démarrages, chevauchements et créneaux sensibles.",
-        icon: CalendarDays,
-      };
-    }
-
-    return {
-      label: "Liste",
-      description: "Vue détaillée pour gérer les filtres, les groupes et la lecture opérationnelle des sessions.",
-      icon: List,
-    };
-  }, [viewMode]);
-
   const toolbarSummary = useMemo(() => {
     const parts = [
       `${filteredSessions.length} session${filteredSessions.length > 1 ? "s" : ""} visible${filteredSessions.length > 1 ? "s" : ""}`,
@@ -200,41 +174,6 @@ export function SessionsPage() {
       <Header title="Sessions de formation" subtitle="Gérez vos sessions et inscriptions" />
 
       <main className="p-3 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
-        <Card className="border-dashed bg-muted/20">
-          <CardContent className="p-4 space-y-4">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <viewMeta.icon className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-semibold">Pilotage des sessions</p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{viewMeta.description}</p>
-              </div>
-              <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-                <p className="font-medium">Résumé rapide</p>
-                <p className="text-muted-foreground">{toolbarSummary}</p>
-                <p className="mt-1 text-muted-foreground">
-                  {hasActiveFilters ? "Affichage filtré" : "Aucun filtre avancé actif"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-[11px]">Vue {viewMeta.label.toLowerCase()}</Badge>
-              <Badge variant="outline" className="text-[11px]">{filteredSessions.length} session{filteredSessions.length > 1 ? "s" : ""} affichée{filteredSessions.length > 1 ? "s" : ""}</Badge>
-              {upcomingSessionsCount > 0 && (
-                <Badge variant="outline" className="text-[11px]">{upcomingSessionsCount} session{upcomingSessionsCount > 1 ? "s" : ""} ouverte{upcomingSessionsCount > 1 ? "s" : ""}</Badge>
-              )}
-              {criticalSessionsCount > 0 && (
-                <Badge variant="destructive" className="gap-1 text-[11px]">
-                  <AlertTriangle className="h-3 w-3" />
-                  {criticalSessionsCount} session{criticalSessionsCount > 1 ? "s" : ""} critique{criticalSessionsCount > 1 ? "s" : ""}s
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {sessions && (
           <SessionsKPICards
             sessions={sessions}

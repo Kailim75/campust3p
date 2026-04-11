@@ -1,10 +1,9 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Phone, Mail, FolderOpen, GraduationCap,
@@ -296,7 +295,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const cmaReceived = trackComp.received;
   const cmaTotal = trackComp.total;
   const cmaMissing = trackComp.missing.length;
-  const cmaPct = trackComp.pct;
   const restantDu = cockpitData?.restantDu ?? 0;
   const nextRappel = cockpitData?.nextRappel;
   const nextSession = cockpitData?.nextSession;
@@ -327,21 +325,11 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const dossierSummaryLabel = isInitial
     ? `${cmaReceived}/${cmaTotal} pièces CMA reçues`
     : `${cmaReceived}/${cmaTotal} éléments carte pro reçus`;
-  const dossierDetailLabel = cmaMissing > 0
-    ? `${cmaMissing} manquant${cmaMissing > 1 ? "s" : ""}`
-    : "Dossier documentaire à jour";
   const financeSummaryLabel = hasFacture
     ? restantDu > 0
       ? `${Math.round(restantDu)} € à encaisser`
       : "Dossier soldé"
     : "Facture à générer";
-  const financeDetailLabel = hasFacture
-    ? hasPaid
-      ? restantDu > 0
-        ? "Paiement partiel ou en attente"
-        : "Paiement enregistré"
-      : "Aucun paiement reçu"
-    : "Aucune facture pour le moment";
   const lastActionLabel = lastAutoNote
     ? `${lastAutoNote.titre.replace("[AUTO] ", "")} · ${format(new Date(lastAutoNote.date_echange), "dd/MM HH:mm")}`
     : "Aucune action récente";
@@ -367,8 +355,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
   return (
     <div className="flex flex-col h-full">
-      {/* ─── COCKPIT HEADER ─── */}
-      <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
+      <div className="p-3 sm:p-5 border-b bg-muted/20 space-y-3">
         {/* Identity row */}
         <div className="flex items-start gap-3 sm:gap-4">
           <Avatar className="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
@@ -459,95 +446,43 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-3 sm:p-4 space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Pilotage rapide
-              </p>
-              <p className="text-sm font-medium text-foreground">
-                {attentionItems.length > 0 ? "Points à traiter en priorité" : "Dossier bien engagé"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Prochaine échéance : {nextDeadlineLabel}
-              </p>
-            </div>
-            <Badge variant="outline" className="w-fit bg-background text-xs">
-              {dossierProgress}% complet
-            </Badge>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {attentionItems.length > 0 ? (
-              attentionItems.map((item) => (
-                <Badge key={item} variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
-                  <AlertTriangle className="mr-1 h-3 w-3" />
-                  {item}
-                </Badge>
-              ))
-            ) : (
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                Aucun blocage immédiat
-              </Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="bg-background text-xs">
+            Progression · {dossierProgress}%
+          </Badge>
+          <button
+            type="button"
+            onClick={() => setActiveTab(isInitial ? "cma" : "carte-pro")}
+            className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted/40"
+          >
+            {isInitial ? <FileCheck className="h-3 w-3" /> : <IdCard className="h-3 w-3" />}
+            {isInitial ? "CMA" : "Carte Pro"} · {dossierSummaryLabel}
+          </button>
+          <Badge variant="outline" className="bg-background text-xs">
+            <Clock className="mr-1 h-3 w-3" />
+            {nextDeadlineLabel}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs",
+              restantDu > 0 ? "bg-warning/10 text-warning border-warning/20" : "bg-background",
             )}
-          </div>
-        </div>
-
-        {/* Cockpit indicators row */}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {/* Dossier progress */}
-          <div className="bg-card border rounded-lg p-3 space-y-1.5">
-            <p className="text-[11px] font-medium text-muted-foreground">Progression</p>
-            <div className="flex items-center gap-2">
-              <Progress value={dossierProgress} className="h-1.5 flex-1" />
-              <span className="text-sm font-bold text-foreground">{dossierProgress}%</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isProfileComplete ? "Profil renseigné" : "Identité à compléter"}
-            </p>
-          </div>
-
-          {/* CMA / Carte Pro indicator */}
-          {isInitial ? (
-            <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-3 text-left hover:bg-muted/30 transition-colors">
-              <p className="text-[11px] font-medium text-muted-foreground">CMA</p>
-              <p className={cn("mt-1 text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
-                {dossierSummaryLabel}
-              </p>
-              <p className={cn("mt-1 text-xs", cmaMissing > 0 ? "text-warning" : "text-muted-foreground")}>
-                {dossierDetailLabel}
-              </p>
-            </button>
+          >
+            <CreditCard className="mr-1 h-3 w-3" />
+            {financeSummaryLabel}
+          </Badge>
+          {attentionItems.length > 0 ? (
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              {attentionItems.length} point{attentionItems.length > 1 ? "s" : ""} à traiter
+            </Badge>
           ) : (
-            <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-3 text-left hover:bg-muted/30 transition-colors">
-              <p className="text-[11px] font-medium text-muted-foreground">Carte Pro</p>
-              <div className="flex items-center gap-1.5">
-                <IdCard className="h-3.5 w-3.5 text-accent" />
-                <span className="text-sm font-medium">{dossierSummaryLabel}</span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{dossierDetailLabel}</p>
-            </button>
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Dossier en bonne trajectoire
+            </Badge>
           )}
-
-          {/* Next deadline */}
-          <div className="bg-card border rounded-lg p-3">
-            <p className="text-[11px] font-medium text-muted-foreground">Prochaine échéance</p>
-            <p className={cn("mt-1 text-sm font-medium", (nextSession?.date_debut || nextRappel?.date_rappel) ? "text-foreground" : "text-muted-foreground")}>
-              {nextDeadlineLabel}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {hasInscription ? "Session déjà planifiée" : "Aucune inscription active"}
-            </p>
-          </div>
-
-          {/* Finance */}
-          <div className="bg-card border rounded-lg p-3">
-            <p className="text-[11px] font-medium text-muted-foreground">Finance</p>
-            <p className={cn("mt-1 text-sm font-medium", restantDu > 0 ? "text-warning" : "text-foreground")}>
-              {financeSummaryLabel}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{financeDetailLabel}</p>
-          </div>
         </div>
 
         <div className="flex items-center gap-2 rounded-lg border border-dashed bg-card/70 px-3 py-2 text-xs text-muted-foreground">
@@ -563,155 +498,144 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </div>
         )}
 
-        {/* Quick CTA actions */}
-        <div className="grid gap-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="rounded-xl border bg-card p-3 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Contact
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {contact.telephone && (
-                <Button size="sm" variant="outline" className="text-xs"
-                  onClick={() => {
-                    window.open(`tel:${contact.telephone}`, "_blank");
-                    setCallLogOpen(true);
-                  }}
-                >
-                  <Phone className="h-3 w-3 mr-1" /> Appeler
-                </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Actions rapides
+          </p>
+
+          {contact.telephone && (
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={() => {
+                window.open(`tel:${contact.telephone}`, "_blank");
+                setCallLogOpen(true);
+              }}
+            >
+              <Phone className="h-3 w-3 mr-1" /> Appeler
+            </Button>
+          )}
+          {contact.email && (
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={() => openComposer({
+                recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+                defaultSubject: "",
+                defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+              })}
+            >
+              <Mail className="h-3 w-3 mr-1" /> Email
+            </Button>
+          )}
+          {contact.telephone && (
+            <Button size="sm" variant="outline" className="text-xs text-success border-success/20 hover:bg-success/5" onClick={() => openWhatsApp(contact.telephone)}>
+              <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+            </Button>
+          )}
+
+          {isInitial && cmaMissing > 0 && contact.email && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      size="sm" variant="outline"
+                      className="text-xs text-warning border-warning/20 hover:bg-warning/5"
+                      disabled={!!cockpitData?.alreadyRelancedCMA}
+                      onClick={() => handleHeaderAction("cma_relance", `${cmaMissing} pièce(s) manquante(s)`)}
+                    >
+                      <Send className="h-3 w-3 mr-1" /> Relance CMA
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {cockpitData?.alreadyRelancedCMA && (
+                  <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    size="sm" variant="outline"
+                    className="text-xs"
+                    disabled={!!cockpitData?.alreadyMarkedDone}
+                    onClick={() => handleHeaderAction("marquer_fait")}
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Fait
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {cockpitData?.alreadyMarkedDone && (
+                <TooltipContent><p>Déjà marqué aujourd'hui</p></TooltipContent>
               )}
-              {contact.email && (
-                <Button size="sm" variant="outline" className="text-xs"
-                  onClick={() => openComposer({
-                    recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
-                    defaultSubject: "",
-                    defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
-                  })}
-                >
-                  <Mail className="h-3 w-3 mr-1" /> Email
-                </Button>
-              )}
-              {contact.telephone && (
-                <Button size="sm" variant="outline" className="text-xs text-success border-success/20 hover:bg-success/5" onClick={() => openWhatsApp(contact.telephone)}>
-                  <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-                </Button>
-              )}
-            </div>
-          </div>
+            </Tooltip>
+          </TooltipProvider>
 
-          <div className="rounded-xl border bg-card p-3 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Actions du dossier
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {isInitial && cmaMissing > 0 && contact.email && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button
-                          size="sm" variant="outline"
-                          className="text-xs text-warning border-warning/20 hover:bg-warning/5"
-                          disabled={!!cockpitData?.alreadyRelancedCMA}
-                          onClick={() => handleHeaderAction("cma_relance", `${cmaMissing} pièce(s) manquante(s)`)}
-                        >
-                          <Send className="h-3 w-3 mr-1" /> Relance CMA
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    {cockpitData?.alreadyRelancedCMA && (
-                      <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+          <Button size="sm" variant="default" className="text-xs"
+            onClick={() => setGenerateDialogOpen(true)}
+          >
+            <FileText className="h-3 w-3 mr-1" /> Générer doc
+          </Button>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        size="sm" variant="outline"
-                        className="text-xs"
-                        disabled={!!cockpitData?.alreadyMarkedDone}
-                        onClick={() => handleHeaderAction("marquer_fait")}
-                      >
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Fait
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {cockpitData?.alreadyMarkedDone && (
-                    <TooltipContent><p>Déjà marqué aujourd'hui</p></TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setChevaletOpen(true)}
+          >
+            <SquareUser className="h-3 w-3 mr-1" /> Chevalet
+          </Button>
 
-              <Button size="sm" variant="default" className="text-xs"
-                onClick={() => setGenerateDialogOpen(true)}
-              >
-                <FileText className="h-3 w-3 mr-1" /> Générer doc
-              </Button>
+          {activeEnrollment?.session && (
+            <Button size="sm" variant="outline" className="text-xs"
+              onClick={async () => {
+                if (!contact) return;
+                const { data: fullSession } = await supabase
+                  .from("sessions")
+                  .select("*")
+                  .eq("id", activeEnrollment.session_id)
+                  .single();
+                if (!fullSession) {
+                  toast.error("Session introuvable");
+                  return;
+                }
+                generateDocument("attestation_presence", {
+                  civilite: contact.civilite || undefined,
+                  nom: contact.nom,
+                  prenom: contact.prenom,
+                  email: contact.email || undefined,
+                  telephone: contact.telephone || undefined,
+                  rue: contact.rue || undefined,
+                  code_postal: contact.code_postal || undefined,
+                  ville: contact.ville || undefined,
+                  date_naissance: contact.date_naissance || undefined,
+                  ville_naissance: contact.ville_naissance || undefined,
+                }, {
+                  nom: fullSession.nom,
+                  formation_type: fullSession.formation_type,
+                  date_debut: fullSession.date_debut,
+                  date_fin: fullSession.date_fin,
+                  lieu: fullSession.lieu || undefined,
+                  duree_heures: fullSession.duree_heures || undefined,
+                  heure_debut: fullSession.heure_debut || undefined,
+                  heure_fin: fullSession.heure_fin || undefined,
+                  heure_debut_matin: fullSession.heure_debut_matin || undefined,
+                  heure_fin_matin: fullSession.heure_fin_matin || undefined,
+                  heure_debut_aprem: fullSession.heure_debut_aprem || undefined,
+                  heure_fin_aprem: fullSession.heure_fin_aprem || undefined,
+                  adresse_rue: fullSession.adresse_rue || undefined,
+                  adresse_code_postal: fullSession.adresse_code_postal || undefined,
+                  adresse_ville: fullSession.adresse_ville || undefined,
+                });
+              }}
+            >
+              <FileCheck className="h-3 w-3 mr-1" /> Att. présence
+            </Button>
+          )}
 
-              <Button size="sm" variant="outline" className="text-xs"
-                onClick={() => setChevaletOpen(true)}
-              >
-                <SquareUser className="h-3 w-3 mr-1" /> Chevalet
-              </Button>
-
-              {activeEnrollment?.session && (
-                <Button size="sm" variant="outline" className="text-xs"
-                  onClick={async () => {
-                    if (!contact) return;
-                    const { data: fullSession } = await supabase
-                      .from("sessions")
-                      .select("*")
-                      .eq("id", activeEnrollment.session_id)
-                      .single();
-                    if (!fullSession) {
-                      toast.error("Session introuvable");
-                      return;
-                    }
-                    generateDocument("attestation_presence", {
-                      civilite: contact.civilite || undefined,
-                      nom: contact.nom,
-                      prenom: contact.prenom,
-                      email: contact.email || undefined,
-                      telephone: contact.telephone || undefined,
-                      rue: contact.rue || undefined,
-                      code_postal: contact.code_postal || undefined,
-                      ville: contact.ville || undefined,
-                      date_naissance: contact.date_naissance || undefined,
-                      ville_naissance: contact.ville_naissance || undefined,
-                    }, {
-                      nom: fullSession.nom,
-                      formation_type: fullSession.formation_type,
-                      date_debut: fullSession.date_debut,
-                      date_fin: fullSession.date_fin,
-                      lieu: fullSession.lieu || undefined,
-                      duree_heures: fullSession.duree_heures || undefined,
-                      heure_debut: fullSession.heure_debut || undefined,
-                      heure_fin: fullSession.heure_fin || undefined,
-                      heure_debut_matin: fullSession.heure_debut_matin || undefined,
-                      heure_fin_matin: fullSession.heure_fin_matin || undefined,
-                      heure_debut_aprem: fullSession.heure_debut_aprem || undefined,
-                      heure_fin_aprem: fullSession.heure_fin_aprem || undefined,
-                      adresse_rue: fullSession.adresse_rue || undefined,
-                      adresse_code_postal: fullSession.adresse_code_postal || undefined,
-                      adresse_ville: fullSession.adresse_ville || undefined,
-                    });
-                  }}
-                >
-                  <FileCheck className="h-3 w-3 mr-1" /> Att. présence
-                </Button>
-              )}
-
-              <Button size="sm" variant="outline" className="text-xs"
-                onClick={() => setEnqueteDialogOpen(true)}
-              >
-                <Star className="h-3 w-3 mr-1" /> Enquête
-              </Button>
-            </div>
-          </div>
+          <Button size="sm" variant="outline" className="text-xs"
+            onClick={() => setEnqueteDialogOpen(true)}
+          >
+            <Star className="h-3 w-3 mr-1" /> Enquête
+          </Button>
         </div>
       </div>
 

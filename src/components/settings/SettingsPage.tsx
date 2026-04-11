@@ -358,7 +358,7 @@ export function SettingsPage() {
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
       } else if (contact.nom && contact.prenom) {
-        valid.push(contact as any);
+        valid.push(contact as ImportPreviewContact);
       }
     });
 
@@ -525,62 +525,27 @@ export function SettingsPage() {
         subtitle="Configuration et gestion des données"
       />
 
-      <main className="p-6 animate-fade-in space-y-6">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTabValue)} className="space-y-6">
-          <Card className="rounded-2xl border bg-card/95">
-            <CardContent className="p-4 sm:p-5 space-y-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <activeTabMeta.icon className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-semibold text-foreground">{activeTabMeta.title}</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground max-w-2xl">
-                    {activeTabMeta.description}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="bg-background">
-                    8 espaces de réglage
-                  </Badge>
-                  <Badge variant="outline" className="bg-background">
-                    Onglet actif : {activeTabMeta.label}
-                  </Badge>
-                </div>
+      <main className="p-6 animate-fade-in space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTabValue)} className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <activeTabMeta.icon className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold text-foreground">{activeTabMeta.title}</p>
               </div>
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                {activeTabMeta.description}
+              </p>
+            </div>
 
-              <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
-                {SETTINGS_TABS.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                    <tab.icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configuration</p>
-              <p className="mt-2 text-sm font-medium text-foreground">Réglages par domaine</p>
-              <p className="mt-1 text-xs text-muted-foreground">Centre, documents, finances, accès et intégrations.</p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contacts</p>
-              <p className="mt-2 text-sm font-medium text-foreground">Import et export guidés</p>
-              <p className="mt-1 text-xs text-muted-foreground">CSV et Excel avec aperçu avant validation.</p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Documents</p>
-              <p className="mt-2 text-sm font-medium text-foreground">Templates centralisés</p>
-              <p className="mt-1 text-xs text-muted-foreground">HTML, fichiers et modèles par défaut au même endroit.</p>
-            </Card>
-            <Card className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pilotage</p>
-              <p className="mt-2 text-sm font-medium text-foreground">Moins de friction équipe</p>
-              <p className="mt-1 text-xs text-muted-foreground">Des réglages regroupés pour éviter les allers-retours.</p>
-            </Card>
+            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
+              {SETTINGS_TABS.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
 
           <TabsContent value="centre" className="space-y-6">
@@ -594,24 +559,6 @@ export function SettingsPage() {
 
           {/* Tab: Contacts Import/Export */}
           <TabsContent value="contacts" className="space-y-6">
-            <div className="grid gap-3 md:grid-cols-3">
-              <Card className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Export</p>
-                <p className="mt-2 text-sm font-medium text-foreground">Sauvegarder la base actuelle</p>
-                <p className="mt-1 text-xs text-muted-foreground">Télécharge tous les contacts actifs au format CSV.</p>
-              </Card>
-              <Card className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Import</p>
-                <p className="mt-2 text-sm font-medium text-foreground">Prévisualisation avant insertion</p>
-                <p className="mt-1 text-xs text-muted-foreground">Détection des erreurs avant enregistrement en base.</p>
-              </Card>
-              <Card className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Format attendu</p>
-                <p className="mt-2 text-sm font-medium text-foreground">CSV ou Excel</p>
-                <p className="mt-1 text-xs text-muted-foreground">Colonnes obligatoires : nom et prénom.</p>
-              </Card>
-            </div>
-
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

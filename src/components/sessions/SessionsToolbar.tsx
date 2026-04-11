@@ -61,11 +61,8 @@ export function SessionsToolbar({
 }: SessionsToolbarProps) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 rounded-xl border border-dashed bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium">Pilotage rapide</p>
-          <p className="text-xs text-muted-foreground">{summaryLine}</p>
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">{summaryLine}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-[11px]">
             Vue {viewMode === "list" ? "liste" : viewMode === "kanban" ? "kanban" : "calendrier"}

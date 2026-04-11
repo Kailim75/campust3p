@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Stamp, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import GenerateDocumentModal from "@/components/template-studio/GenerateDocumentModal";
 import type { StudioTemplate } from "@/constants/templateConstants";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,24 +115,6 @@ const generatedStatusConfig: Record<string, { label: string; color: string; icon
   generated: { label: "Généré", color: "bg-success/10 text-success", icon: CheckCircle },
   queued: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
   failed: { label: "Échec", color: "bg-destructive/10 text-destructive", icon: XCircle },
-};
-
-const viewConfig: Record<ViewMode, { title: string; description: string; icon: LucideIcon }> = {
-  documents: {
-    title: "Suivi des pièces et justificatifs",
-    description: "Repérez rapidement les documents valides, expirés ou manquants avant qu'ils ne bloquent un dossier.",
-    icon: FileText,
-  },
-  signatures: {
-    title: "Pilotage des signatures",
-    description: "Suivez les demandes envoyées, les signatures obtenues et les relances qui demandent encore une action.",
-    icon: FileSignature,
-  },
-  generated: {
-    title: "Documents générés",
-    description: "Contrôlez les créations issues du Template Studio et vérifiez ce qui a bien été produit.",
-    icon: Stamp,
-  },
 };
 
 // Mock document data (replace with real hook when available)
@@ -282,9 +264,6 @@ export function DocumentsUnifiedPage() {
     });
   }, [generatedDocs, generatedSearchQuery, generatedStatusFilter]);
 
-  const activeViewMeta = viewConfig[activeView];
-  const ActiveViewIcon = activeViewMeta.icon;
-
   const handleSendSignature = async (id: string) => {
     // Vérifier que le contact a un email avant d'envoyer
     const sig = signatures.find((s) => s.id === id);
@@ -329,66 +308,6 @@ export function DocumentsUnifiedPage() {
         addLabel={activeView === "signatures" ? "Nouvelle signature" : undefined}
         onAddClick={activeView === "signatures" ? handleAddNew : undefined}
       />
-
-      <Card className="border-dashed bg-muted/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <ActiveViewIcon className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold">{activeViewMeta.title}</p>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{activeViewMeta.description}</p>
-            </div>
-            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
-              <p className="font-medium">Résumé rapide</p>
-              {activeView === "documents" && (
-                <>
-                  <p className="text-muted-foreground">{filteredDocuments.length} document{filteredDocuments.length > 1 ? "s" : ""} visible{filteredDocuments.length > 1 ? "s" : ""}</p>
-                  <p className="mt-1 text-muted-foreground">{documentStats.manquants} manquant{documentStats.manquants > 1 ? "s" : ""} · {documentStats.expires} expiré{documentStats.expires > 1 ? "s" : ""}</p>
-                </>
-              )}
-              {activeView === "signatures" && (
-                <>
-                  <p className="text-muted-foreground">{filteredSignatures.length} demande{filteredSignatures.length > 1 ? "s" : ""} affichée{filteredSignatures.length > 1 ? "s" : ""}</p>
-                  <p className="mt-1 text-muted-foreground">{signatureStats.enAttente} en attente · {signatureStats.signes} signée{signatureStats.signes > 1 ? "s" : ""}</p>
-                </>
-              )}
-              {activeView === "generated" && (
-                <>
-                  <p className="text-muted-foreground">{generatedStats.total} document{generatedStats.total > 1 ? "s" : ""} généré{generatedStats.total > 1 ? "s" : ""}</p>
-                  <p className="mt-1 text-muted-foreground">{generatedStats.ready} prêt{generatedStats.ready > 1 ? "s" : ""} · {generatedStats.failed} échec{generatedStats.failed > 1 ? "s" : ""}</p>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {activeView === "documents" && (
-              <>
-                <Badge variant="outline" className="text-[11px]">{documentStats.valides} valide{documentStats.valides > 1 ? "s" : ""}</Badge>
-                {documentStats.expires > 0 && <Badge variant="outline" className="text-[11px]">{documentStats.expires} expiré{documentStats.expires > 1 ? "s" : ""}</Badge>}
-                {documentStats.manquants > 0 && <Badge variant="destructive" className="text-[11px]">{documentStats.manquants} manquant{documentStats.manquants > 1 ? "s" : ""}</Badge>}
-              </>
-            )}
-            {activeView === "signatures" && (
-              <>
-                <Badge variant="outline" className="text-[11px]">{signatureStats.total} demande{signatureStats.total > 1 ? "s" : ""}</Badge>
-                {signatureStats.enAttente > 0 && <Badge variant="outline" className="text-[11px]">{signatureStats.enAttente} en attente</Badge>}
-                {signatureStats.signes > 0 && <Badge variant="outline" className="text-[11px]">{signatureStats.signes} signée{signatureStats.signes > 1 ? "s" : ""}</Badge>}
-              </>
-            )}
-            {activeView === "generated" && (
-              <>
-                <Badge variant="outline" className="text-[11px]">{generatedStats.total} document{generatedStats.total > 1 ? "s" : ""}</Badge>
-                <Badge variant="outline" className="text-[11px]">{generatedStats.publishedTemplates} template{generatedStats.publishedTemplates > 1 ? "s" : ""} publié{generatedStats.publishedTemplates > 1 ? "s" : ""}</Badge>
-                {generatedStats.ready > 0 && <Badge variant="outline" className="text-[11px]">{generatedStats.ready} prêt{generatedStats.ready > 1 ? "s" : ""}</Badge>}
-                {generatedStats.failed > 0 && <Badge variant="destructive" className="text-[11px]">{generatedStats.failed} échec{generatedStats.failed > 1 ? "s" : ""}</Badge>}
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewMode)} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
