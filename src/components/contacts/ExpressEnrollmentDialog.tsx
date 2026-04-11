@@ -143,11 +143,13 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
   // Filter sessions by selected formation
   const availableSessions = useMemo(() => {
     if (!formData.formation) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return sessions.filter(
       s => s.formation_type === formData.formation && 
            s.statut !== "terminee" && 
            s.statut !== "annulee" &&
-           new Date(s.date_debut) >= new Date()
+           new Date(s.date_fin || s.date_debut) >= today
     );
   }, [sessions, formData.formation]);
 

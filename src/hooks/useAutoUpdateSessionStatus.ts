@@ -27,7 +27,7 @@ export function useAutoUpdateSessionStatus() {
     }
 
     // Session is currently running
-    return session.statut === 'complet' ? 'complet' : 'en_cours';
+    return 'en_cours';
   };
 
   const updateSessionStatuses = useMutation({

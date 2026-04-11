@@ -258,11 +258,13 @@ export function SmartConversionDialog({
     if (!prospect) return [];
     return sessions
       .filter((s) => {
-        const isUpcoming = new Date(s.date_debut) >= new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const hasNotEnded = new Date(s.date_fin || s.date_debut) >= today;
         const isActive = s.statut === "a_venir" || s.statut === "en_cours";
         const filled = inscriptionsCounts[s.id] || 0;
         const hasSpace = filled < (s.places_totales || 0);
-        return isUpcoming && isActive && hasSpace;
+        return hasNotEnded && isActive && hasSpace;
       })
       .map((s) => {
         const filled = inscriptionsCounts[s.id] || 0;

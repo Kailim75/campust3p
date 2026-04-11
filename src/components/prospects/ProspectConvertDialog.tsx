@@ -29,9 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserCheck, GraduationCap, Loader2 } from "lucide-react";
-import { useSessions } from "@/hooks/useSessions";
+import { useAddInscription, useSessions } from "@/hooks/useSessions";
 import { type Prospect } from "@/hooks/useProspects";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -68,6 +69,7 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type ContactInsert = Database["public"]["Tables"]["contacts"]["Insert"];
 
 interface ProspectConvertDialogProps {
   open: boolean;
@@ -84,15 +86,18 @@ export function ProspectConvertDialog({
 }: ProspectConvertDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const addInscription = useAddInscription();
   
   const { data: sessions = [] } = useSessions();
 
   // Filter sessions that match the prospect's desired formation
   const availableSessions = sessions.filter((s) => {
-    const isUpcoming = new Date(s.date_debut) >= new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const hasNotEnded = new Date(s.date_fin || s.date_debut) >= today;
     const matchesFormation = !prospect?.formation_souhaitee || 
       s.formation_type === prospect.formation_souhaitee;
-    return isUpcoming && s.statut === "a_venir" && matchesFormation;
+    return hasNotEnded && (s.statut === "a_venir" || s.statut === "en_cours") && matchesFormation;
   });
 
   const form = useForm<FormValues>({
@@ -133,9 +138,11 @@ export function ProspectConvertDialog({
     if (!prospect) return;
 
     setIsSubmitting(true);
+    let createdContactId: string | null = null;
+    let enrolledInSession = false;
     try {
       // Build contact data
-      const contactData: Record<string, unknown> = {
+      const contactData: ContactInsert = {
         nom: values.nom,
         prenom: values.prenom,
         telephone: values.telephone || null,
@@ -151,28 +158,21 @@ export function ProspectConvertDialog({
       // Create contact
       const { data: contact, error: contactError } = await supabase
         .from("contacts")
-        .insert([contactData] as any)
+        .insert(contactData)
         .select()
         .single();
 
       if (contactError) throw contactError;
+      createdContactId = contact.id;
 
       // Enroll in session if requested
       if (values.enrollInSession && values.sessionId && contact) {
-        // Fetch session track for snapshot
-        const { data: sessData } = await supabase.from("sessions").select("track").eq("id", values.sessionId).single();
-        const { error: inscriptionError } = await supabase
-          .from("session_inscriptions")
-          .insert({
-            session_id: values.sessionId,
-            contact_id: contact.id,
-            statut: "inscrit",
-            track: (sessData as any)?.track || "initial",
-          });
-
-        if (inscriptionError) {
-          console.error("Error enrolling in session:", inscriptionError);
-        }
+        await addInscription.mutateAsync({
+          sessionId: values.sessionId,
+          contactId: contact.id,
+          autoCreateFacture: false,
+        });
+        enrolledInSession = true;
       }
 
       // Update prospect status
@@ -191,7 +191,7 @@ export function ProspectConvertDialog({
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
 
       toast.success("Prospect converti en contact !", {
-        description: values.enrollInSession && values.sessionId 
+        description: enrolledInSession
           ? "Le contact a été inscrit à la session sélectionnée."
           : undefined,
       });
@@ -201,6 +201,16 @@ export function ProspectConvertDialog({
       onConversionSuccess?.(contact.id, createdName);
     } catch (error) {
       console.error("Error converting prospect:", error);
+      if (createdContactId) {
+        const { error: rollbackError } = await supabase.rpc("soft_delete_record", {
+          p_table_name: "contacts",
+          p_record_id: createdContactId,
+          p_reason: "Rollback conversion prospect après échec d'inscription",
+        });
+        if (rollbackError) {
+          console.error("Error rolling back created contact:", rollbackError);
+        }
+      }
       toast.error("Erreur lors de la conversion");
     } finally {
       setIsSubmitting(false);

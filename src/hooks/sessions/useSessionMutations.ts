@@ -114,7 +114,7 @@ export function useAddInscription() {
 
   return useMutation({
     mutationFn: async ({
-      sessionId, contactId, sessionPrix = 0, sessionNom = '', autoCreateFacture = true,
+      sessionId, contactId, sessionPrix = 0, sessionNom = '', autoCreateFacture = false,
     }: AddInscriptionParams) => {
       const { data: inscription, error } = await supabase
         .from("session_inscriptions")

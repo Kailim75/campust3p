@@ -58,7 +58,9 @@ export function SessionAssignDialog({
   // Filter: active, upcoming, with available places, sorted by fill rate ascending
   const availableSessions = sessions
     .filter((s) => {
-      const isUpcoming = new Date(s.date_debut) >= new Date();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const hasNotEnded = new Date(s.date_fin || s.date_debut) >= today;
       const isActive = s.statut === "a_venir" || s.statut === "en_cours";
       const filled = inscriptionsCounts[s.id] || 0;
       const hasSpace = filled < (s.places_totales || 0);
@@ -66,7 +68,7 @@ export function SessionAssignDialog({
       const matchesSearch = !search || 
         s.nom.toLowerCase().includes(search.toLowerCase()) ||
         s.formation_type.toLowerCase().includes(search.toLowerCase());
-      return isUpcoming && isActive && hasSpace && matchesSearch && (matchesFormation || search);
+      return hasNotEnded && isActive && hasSpace && matchesSearch && (matchesFormation || search);
     })
     .map((s) => {
       const filled = inscriptionsCounts[s.id] || 0;

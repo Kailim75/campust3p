@@ -300,27 +300,31 @@ export function useSaveGeneratedDocument() {
       templateFileId,
       templateTextId,
       nom,
-      pdfBlob,
+      fileBlob,
       sessionId,
       metadata,
+      mimeType = "application/pdf",
+      fileExtension = "pdf",
     }: {
       contactId: string;
       centreId: string;
       templateFileId?: string;
       templateTextId?: string;
       nom: string;
-      pdfBlob: Blob;
+      fileBlob: Blob;
       sessionId?: string;
       metadata?: Record<string, unknown>;
+      mimeType?: string;
+      fileExtension?: string;
     }) => {
-      // Upload le PDF généré — path must start with centreId for RLS
-      const fileName = `${Date.now()}-${nom.replace(/[^a-zA-Z0-9.-]/g, "_")}.pdf`;
+      // Upload du document généré — path must start with centreId for RLS
+      const fileName = `${Date.now()}-${nom.replace(/[^a-zA-Z0-9.-]/g, "_")}.${fileExtension}`;
       const filePath = `${centreId}/${contactId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("generated-documents")
-        .upload(filePath, pdfBlob, {
-          contentType: "application/pdf",
+        .upload(filePath, fileBlob, {
+          contentType: mimeType,
         });
 
       if (uploadError) throw uploadError;
@@ -334,8 +338,8 @@ export function useSaveGeneratedDocument() {
           template_text_id: templateTextId || null,
           nom,
           file_path: filePath,
-          file_size: pdfBlob.size,
-          mime_type: "application/pdf",
+          file_size: fileBlob.size,
+          mime_type: mimeType,
           session_id: sessionId || null,
           metadata: (metadata || {}) as Record<string, never>,
         }])
