@@ -264,16 +264,14 @@ serve(async (req) => {
 
       const htmlContent = buildEmailHtml({
         title: subject,
-        preview: subject,
-        content: personalizedBody.split("\n").map(p => ({ type: "paragraph", text: p })),
-        footerText: "Email envoyé automatiquement par École T3P",
+        bodyHtml: personalizedBody.split("\n").map(p => `<p>${p}</p>`).join(""),
       });
 
       try {
         const emailResponse = await resend.emails.send({
           from: EMAIL_CONFIG.FROM,
           to: contact.email,
-          replyTo: EMAIL_CONFIG.REPLY_TO,
+          reply_to: EMAIL_CONFIG.REPLY_TO,
           subject: subject,
           html: htmlContent,
           attachments: attachments.map(a => ({

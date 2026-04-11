@@ -147,12 +147,12 @@ export function ProspectConvertDialog({
         prenom: values.prenom,
         telephone: values.telephone || null,
         email: values.email || null,
-        statut: values.statut,
+        statut: values.statut as ContactInsert["statut"],
         source: values.source || null,
       };
 
       if (values.formation && VALID_FORMATIONS.includes(values.formation)) {
-        contactData.formation = values.formation;
+        contactData.formation = values.formation as ContactInsert["formation"];
       }
 
       // Create contact
