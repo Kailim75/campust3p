@@ -73,6 +73,7 @@ export function EmailComposerModal({
   onSuccess,
   attachments: sharedAttachments,
 }: EmailComposerProps) {
+  const { fromAddress: centreFromAddress } = useCentreEmailConfig();
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
   const [sending, setSending] = useState(false);
