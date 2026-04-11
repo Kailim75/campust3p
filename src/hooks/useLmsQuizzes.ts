@@ -251,7 +251,7 @@ export function useLmsQuizAttempts(quizId?: string, contactId?: string) {
       if (contactId) query = query.eq("contact_id", contactId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as LmsQuizAttempt[];
+      return (data ?? []) as unknown as LmsQuizAttempt[];
     },
     enabled: !!(quizId || contactId),
   });

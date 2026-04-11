@@ -214,7 +214,7 @@ export function WorkflowsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Workflow className="h-6 w-6 text-primary" />
+            <WorkflowIcon className="h-6 w-6 text-primary" />
             Workflows Automatisés
           </h1>
           <p className="max-w-2xl text-muted-foreground">
@@ -279,7 +279,7 @@ export function WorkflowsPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Workflow className="h-5 w-5 text-primary" />
+                <WorkflowIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
@@ -346,7 +346,7 @@ export function WorkflowsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="workflows">
-            <Workflow className="h-4 w-4 mr-1" />
+            <WorkflowIcon className="h-4 w-4 mr-1" />
             Workflows ({filteredWorkflows.length})
           </TabsTrigger>
           <TabsTrigger value="executions">

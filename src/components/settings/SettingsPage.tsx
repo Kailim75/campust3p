@@ -358,7 +358,7 @@ export function SettingsPage() {
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
       } else if (contact.nom && contact.prenom) {
-        valid.push(contact);
+        valid.push(contact as any);
       }
     });
 

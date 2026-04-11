@@ -359,7 +359,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
 
     updateContact.mutate({
       id: draggableId,
-      updates: { statut: column.statut as Database["public"]["Enums"]["statut_apprenant"] },
+      updates: { statut: column.statut as any },
     });
   };
 
