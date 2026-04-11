@@ -220,7 +220,7 @@ function formatSessionHours(session: SessionInfo): string {
   return "";
 }
 
-function addHeader(doc: jsPDF, company: CompanyInfo): number {
+function addHeader(doc: JsPDFInstance, company: CompanyInfo): number {
   const pageWidth = doc.internal.pageSize.getWidth();
   const headerHeight = 38;
 
@@ -247,7 +247,7 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
   return headerHeight + 8;
 }
 
-function addFooter(doc: jsPDF, pageNum: number = 1) {
+function addFooter(doc: JsPDFInstance, pageNum: number = 1) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -267,7 +267,7 @@ function addFooter(doc: jsPDF, pageNum: number = 1) {
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 }
 
-function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number): number {
+function addContactBlock(doc: JsPDFInstance, contact: ContactInfo, x: number, y: number): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
 
@@ -658,7 +658,7 @@ export function generateAttestationPDF(
   session: SessionInfo,
   company: CompanyInfo,
   numeroCertificat?: string
-): jsPDF {
+): JsPDFInstance {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -762,7 +762,7 @@ export function generateAttestationPDF(
 export function generateProgrammePDF(
   session: SessionInfo,
   company: CompanyInfo
-): jsPDF {
+): JsPDFInstance {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -866,7 +866,7 @@ export function generateContratFormationPDF(
   contact: ContactInfo,
   session: SessionInfo,
   company: CompanyInfo
-): jsPDF {
+): JsPDFInstance {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -1187,7 +1187,7 @@ export function generateContratFormationPDF(
 }
 
 // ==================== RÈGLEMENT INTÉRIEUR PDF ====================
-export function generateReglementInterieurPDF(company: CompanyInfo): jsPDF {
+export function generateReglementInterieurPDF(company: CompanyInfo): JsPDFInstance {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -1356,7 +1356,7 @@ export function generateReglementInterieurPDF(company: CompanyInfo): jsPDF {
 }
 
 // ==================== GET PDF AS BASE64 ====================
-export function getPdfAsBase64(doc: jsPDF): string {
+export function getPdfAsBase64(doc: JsPDFInstance): string {
   const dataUri = doc.output("datauristring");
   const base64 = dataUri.split(",")[1];
   return base64;
@@ -1371,7 +1371,7 @@ export function generateDocumentPDF(
   session: SessionInfo,
   company: CompanyInfo,
   numeroCertificat?: string
-): jsPDF {
+): JsPDFInstance {
   switch (documentType) {
     case "convocation":
       return generateConvocationPDF(contact, session, company);
