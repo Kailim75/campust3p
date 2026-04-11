@@ -28,6 +28,7 @@ import { TemplateFilesSection } from "./TemplateFilesSection";
 import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
+import { EmailSenderSettings } from "./EmailSenderSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { CustomizationSettings } from "./CustomizationSettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -477,6 +478,7 @@ export function SettingsPage() {
           {/* Tab: Centre de Formation */}
           <TabsContent value="centre" className="space-y-6">
             <CentreFormationSettings />
+            <EmailSenderSettings />
           </TabsContent>
 
           {/* Tab: Personnalisation */}
