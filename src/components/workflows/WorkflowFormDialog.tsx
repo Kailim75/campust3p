@@ -425,7 +425,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {workflow?.id ? 'Modifier le workflow' : 'Nouveau workflow'}
+            {'id' in (workflow || {}) ? 'Modifier le workflow' : 'Nouveau workflow'}
           </DialogTitle>
         </DialogHeader>
 
@@ -590,7 +590,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
               onClick={handleSubmit}
               disabled={!nom || !triggerType || actions.length === 0}
             >
-              {workflow?.id ? 'Enregistrer' : 'Créer le workflow'}
+              {'id' in (workflow || {}) ? 'Enregistrer' : 'Créer le workflow'}
             </Button>
           </div>
         </div>

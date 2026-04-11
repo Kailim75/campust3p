@@ -377,7 +377,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
             </div>
             <div>
               <Label className="text-xs">Mode</Label>
-              <Select value={formData.mode} onValueChange={(v) => setFormData((p) => ({ ...p, mode: v }))}>
+              <Select value={formData.mode} onValueChange={(v) => setFormData((p) => ({ ...p, mode: v as typeof p.mode }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="especes">Espèces</SelectItem>

@@ -324,7 +324,7 @@ export function SettingsPage() {
       headers.forEach((header, colIndex) => {
         const value = row[colIndex]?.trim() || "";
         
-        if (CSV_COLUMNS.includes(header)) {
+         if (CSV_COLUMNS.includes(header as CSVColumn)) {
           if (header === "nom" && !value) {
             rowErrors.push(`Ligne ${lineNum}: Nom obligatoire`);
           }
@@ -334,13 +334,13 @@ export function SettingsPage() {
           if (header === "email" && value && !value.includes("@")) {
             rowErrors.push(`Ligne ${lineNum}: Email invalide`);
           }
-          if (header === "statut" && value && !STATUT_VALUES.includes(value)) {
+          if (header === "statut" && value && !(STATUT_VALUES as readonly string[]).includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Statut invalide (${value})`);
           }
-          if (header === "formation" && value && !FORMATION_VALUES.includes(value)) {
+          if (header === "formation" && value && !(FORMATION_VALUES as readonly string[]).includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Formation invalide (${value})`);
           }
-          if (header === "civilite" && value && !CIVILITE_VALUES.includes(value)) {
+          if (header === "civilite" && value && !(CIVILITE_VALUES as readonly string[]).includes(value)) {
             rowErrors.push(`Ligne ${lineNum}: Civilité invalide (${value})`);
           }
           
@@ -351,14 +351,14 @@ export function SettingsPage() {
             }
           }
 
-          contact[header] = value || null;
+          contact[header as CSVColumn] = value || null;
         }
       });
 
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
       } else if (contact.nom && contact.prenom) {
-        valid.push(contact);
+        valid.push(contact as any);
       }
     });
 

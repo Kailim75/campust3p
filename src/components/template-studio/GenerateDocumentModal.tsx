@@ -41,8 +41,7 @@ type DocumentInstanceInsert = Database["public"]["Tables"]["document_instances"]
 type ContactDocumentInsert = Database["public"]["Tables"]["contact_documents"]["Insert"];
 
 type ContactLite = Pick<ContactRow, "nom" | "prenom" | "email" | "telephone" | "rue" | "code_postal" | "ville" | "civilite">;
-type SessionWithPresentation = SessionRow & { horaires?: string | null };
-type SessionLite = Pick<SessionWithPresentation, "nom" | "date_debut" | "date_fin" | "duree_heures" | "formation_type" | "lieu" | "horaires">;
+type SessionLite = Pick<SessionRow, "nom" | "date_debut" | "date_fin" | "duree_heures" | "formation_type" | "lieu">;
 type FactureSearchRow = Pick<FactureRow, "id" | "numero_facture" | "montant_total"> & {
   contacts: Pick<ContactRow, "nom" | "prenom"> | Pick<ContactRow, "nom" | "prenom">[] | null;
 };
@@ -241,7 +240,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
         map.session_date_debut = formatDate(data.date_debut);
         map.session_date_fin = formatDate(data.date_fin);
         map.duree_heures = String(data.duree_heures || "");
-        map.horaires = (data as SessionWithPresentation).horaires || "";
+        map.horaires = (data as any).horaires || "";
       }
     } else if (type === "paiement") {
       const { data } = await supabase.from("factures").select("*, contacts(nom, prenom, email)").eq("id", id).maybeSingle();
@@ -260,10 +259,10 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
     } else if (type === "devis") {
       const { data } = await supabase
         .from("devis")
-        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, horaires, lieu))")
+        .select("*, contact:contacts(nom, prenom, email, telephone, rue, code_postal, ville, civilite), session_inscription:session_inscriptions(session:sessions(nom, date_debut, date_fin, duree_heures, formation_type, lieu))")
         .eq("id", id)
         .maybeSingle();
-      const devis = data as DevisDocumentRow | null;
+      const devis = data as unknown as DevisDocumentRow | null;
       if (devis) {
         const fmt = (n: number) => Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
@@ -297,7 +296,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
           map.session_date_debut = formatDate(session.date_debut);
           map.session_date_fin = formatDate(session.date_fin);
           map.duree_heures = String(session.duree_heures || "");
-          map.horaires = session.horaires || "";
+          map.horaires = (session as any).horaires || "";
           map.lieu = session.lieu || "";
         }
         // Fetch devis lines

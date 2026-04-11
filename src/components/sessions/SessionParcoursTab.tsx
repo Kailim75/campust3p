@@ -1103,7 +1103,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
               setPendingReprogramAfterReactivation(null);
             }
           }}
-          contact={reactivationTarget}
+          contact={reactivationTarget as any}
           onReactivated={() => {
             setReactivationTarget(null);
             if (pendingReprogramAfterReactivation) {
