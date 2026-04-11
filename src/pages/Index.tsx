@@ -184,8 +184,13 @@ const Index = () => {
       navigate(path, { replace: true });
       return;
     }
-    setActiveSectionState(section);
-    const path = SECTION_TO_PATH[section] ?? "/";
+
+    // Accept legacy aliases from shared components and normalize them to the
+    // canonical app section key before updating local state or URL.
+    const normalizedSection = PATH_TO_SECTION[section] ?? section;
+
+    setActiveSectionState(normalizedSection);
+    const path = SECTION_TO_PATH[normalizedSection] ?? "/";
     // Only push to history if the path is different (avoid duplicate entries)
     if (location.pathname !== path) {
       navigate(path);
