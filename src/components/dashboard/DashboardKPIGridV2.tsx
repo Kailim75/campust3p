@@ -43,6 +43,8 @@ interface KPICard {
 }
 
 export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
+  const { period } = useDashboardPeriodV2();
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -55,8 +57,6 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       </div>
     );
   }
-
-  const { period } = useDashboardPeriodV2();
   
   // Detect partial period: current month where end is in the future
   const isPartialPeriod = period.range === "month" && isAfter(endOfMonth(new Date()), new Date()) && 
