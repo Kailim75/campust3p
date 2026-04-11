@@ -49,9 +49,9 @@ export interface EmailComposerProps {
   /** Shared attachments for all recipients (generic docs / BCC) */
   attachments?: EmailAttachment[];
 }
+import { useCentreEmailConfig } from "@/hooks/useCentreEmailConfig";
 
 const BULK_WARN_THRESHOLD = 10;
-const FROM_ADDRESS = "Ecole T3P Montrouge <montrouge@ecolet3p.fr>";
 
 const CATEGORY_LABELS: Record<string, string> = {
   prospect: "Prospects",
