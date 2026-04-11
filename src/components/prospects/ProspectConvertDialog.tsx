@@ -141,18 +141,18 @@ export function ProspectConvertDialog({
     let createdContactId: string | null = null;
     let enrolledInSession = false;
     try {
-      // Build contact data
-      const contactData: ContactInsert = {
+      // Build contact data — centre_id is auto-set by DB trigger
+      const contactData = {
         nom: values.nom,
         prenom: values.prenom,
         telephone: values.telephone || null,
         email: values.email || null,
         statut: values.statut,
         source: values.source || null,
-      };
+      } as ContactInsert;
 
       if (values.formation && VALID_FORMATIONS.includes(values.formation)) {
-        contactData.formation = values.formation;
+        contactData.formation = values.formation as ContactInsert["formation"];
       }
 
       // Create contact

@@ -185,7 +185,7 @@ serve(async (req) => {
               });
               if (created?.id) {
                 gmailId = created.id;
-                labelMap.set(label, gmailId);
+                labelMap.set(label, gmailId!);
               }
             } catch (e: any) {
               console.error(`Failed to create label ${label}:`, e.message);
