@@ -43,8 +43,10 @@ export function FacturationUnifiedPage({ embedded = false }: FacturationUnifiedP
   
   // Update breadcrumb when tab changes
   useEffect(() => {
-    setActiveTab(activeView);
-  }, [activeView, setActiveTab]);
+    if (!embedded) {
+      setActiveTab(activeView);
+    }
+  }, [activeView, embedded, setActiveTab]);
 
   // Priority subtitle based on context
   const getSubtitle = () => {

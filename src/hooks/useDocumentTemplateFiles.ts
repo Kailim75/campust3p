@@ -355,6 +355,7 @@ export function useSaveGeneratedDocument() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["generated-documents", variables.contactId] });
+      queryClient.invalidateQueries({ queryKey: ["document-instances"] });
       toast.success("Document généré et sauvegardé");
     },
     onError: (error) => {
@@ -383,6 +384,7 @@ export function useDeleteGeneratedDocument() {
     },
     onSuccess: (contactId) => {
       queryClient.invalidateQueries({ queryKey: ["generated-documents", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["document-instances"] });
       toast.success("Document supprimé");
     },
     onError: (error) => {

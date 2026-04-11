@@ -142,6 +142,23 @@ interface GeneratedDocumentInstance {
   } | null;
 }
 
+interface LegacyGeneratedDocument {
+  id: string;
+  contact_id: string;
+  session_id: string | null;
+  created_at: string;
+  nom: string;
+  metadata: Record<string, unknown> | null;
+  document_template_files?: {
+    nom?: string | null;
+    type_fichier?: string | null;
+  } | null;
+  document_templates?: {
+    nom?: string | null;
+    type_document?: string | null;
+  } | null;
+}
+
 const mockDocuments: Document[] = [
   { id: "1", stagiaire: "Jean Dupont", type: "Pièce d'identité", status: "valide", dateExpiration: "15/03/2030", dateUpload: "10/01/2026" },
   { id: "2", stagiaire: "Jean Dupont", type: "Permis de conduire", status: "expire", dateExpiration: "05/01/2026", dateUpload: "01/01/2025" },
@@ -178,12 +195,49 @@ export function DocumentsUnifiedPage() {
   const { data: generatedDocs = [], isLoading: loadingGenerated } = useQuery({
     queryKey: ["document-instances"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("document_instances")
-        .select("*, template_studio_templates(name, type)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as GeneratedDocumentInstance[];
+      const [instancesRes, legacyRes] = await Promise.all([
+        supabase
+          .from("document_instances")
+          .select("*, template_studio_templates(name, type)")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("generated_documents_legacy")
+          .select(`
+            id,
+            contact_id,
+            session_id,
+            created_at,
+            nom,
+            metadata,
+            document_template_files(nom, type_fichier),
+            document_templates(nom, type_document)
+          `)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (instancesRes.error) throw instancesRes.error;
+      if (legacyRes.error) throw legacyRes.error;
+
+      const documentInstances = (instancesRes.data || []) as GeneratedDocumentInstance[];
+      const legacyDocuments = ((legacyRes.data || []) as LegacyGeneratedDocument[]).map((doc) => ({
+        id: `legacy-${doc.id}`,
+        entity_type: doc.session_id ? "session" : "contact",
+        entity_id: doc.session_id ?? doc.contact_id,
+        status: "generated",
+        created_at: doc.created_at,
+        metadata: {
+          ...(doc.metadata || {}),
+          entity_label: typeof doc.nom === "string" ? doc.nom : undefined,
+        },
+        template_studio_templates: {
+          name: doc.document_template_files?.nom || doc.document_templates?.nom || doc.nom,
+          type: doc.document_templates?.type_document || doc.document_template_files?.type_fichier || "legacy",
+        },
+      })) as GeneratedDocumentInstance[];
+
+      return [...documentInstances, ...legacyDocuments].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
   });
 
