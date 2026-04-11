@@ -1,12 +1,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Palette, Plus, ArrowLeft, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Palette, Plus, ArrowLeft, Sparkles, BookOpen, FilePenLine, Stamp, type LucideIcon } from "lucide-react";
 import TemplateLibraryV2 from "./TemplateLibraryV2";
 import TemplateEditorV2 from "./TemplateEditorV2";
 import GenerateScreen from "./GenerateScreen";
 import AIGenerateTemplateModal from "./AIGenerateTemplateModal";
 
 type Screen = "library" | "editor" | "generate";
+
+const screenConfig: Record<Screen, { title: string; description: string; icon: LucideIcon; badges: string[] }> = {
+  library: {
+    title: "Bibliothèque de templates",
+    description: "Centralisez les modèles actifs, retrouvez rapidement les bons formats et partez soit d'un template existant, soit du catalogue.",
+    icon: BookOpen,
+    badges: ["Bibliothèque", "Catalogue", "Qualiopi"],
+  },
+  editor: {
+    title: "Édition de template",
+    description: "Travaillez le contenu, la conformité et la structure du modèle avant publication ou génération.",
+    icon: FilePenLine,
+    badges: ["Édition", "Versioning", "Conformité"],
+  },
+  generate: {
+    title: "Génération de document",
+    description: "Choisissez un template publié puis lancez la génération avec un parcours plus guidé et lisible.",
+    icon: Stamp,
+    badges: ["Génération", "Publié", "Production"],
+  },
+};
 
 export default function TemplateStudioPage() {
   const [screen, setScreen] = useState<Screen>("library");
@@ -53,6 +76,9 @@ export default function TemplateStudioPage() {
     setScreen("editor");
   };
 
+  const activeScreen = screenConfig[screen];
+  const ActiveScreenIcon = activeScreen.icon;
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -70,11 +96,7 @@ export default function TemplateStudioPage() {
               </div>
               Template Studio
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {screen === "library" && "Bibliothèque de templates conformes Qualiopi & DREETS"}
-              {screen === "editor" && (isCreating ? "Création d'un nouveau template" : "Édition du template")}
-              {screen === "generate" && "Génération de documents à partir de vos templates"}
-            </p>
+            <p className="text-muted-foreground text-sm mt-1">{screen === "editor" && isCreating ? "Création d'un nouveau template" : activeScreen.description}</p>
           </div>
         </div>
         {screen === "library" && (
@@ -94,6 +116,50 @@ export default function TemplateStudioPage() {
           </div>
         )}
       </div>
+
+      <Card className="border-dashed bg-muted/20">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <ActiveScreenIcon className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">{screen === "editor" && isCreating ? "Création de template" : activeScreen.title}</p>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{activeScreen.description}</p>
+            </div>
+            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
+              <p className="font-medium">Étape actuelle</p>
+              <p className="text-muted-foreground">
+                {screen === "library" && "Choisir, filtrer ou partir du catalogue"}
+                {screen === "editor" && (isCreating ? "Créer et structurer un nouveau modèle" : "Modifier un modèle existant")}
+                {screen === "generate" && "Sélectionner un template publié puis générer"}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {screen === "library" && "Point d'entrée du module"}
+                {screen === "editor" && (isCreating ? "Mode création" : "Mode édition")}
+                {screen === "generate" && "Parcours de production"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {activeScreen.badges.map((badge) => (
+              <Badge key={badge} variant="outline" className="text-[11px]">
+                {badge}
+              </Badge>
+            ))}
+            {screen === "library" && (
+              <>
+                <Badge variant="outline" className="text-[11px]">IA disponible</Badge>
+                <Badge variant="outline" className="text-[11px]">Génération manuelle</Badge>
+              </>
+            )}
+            {screen === "editor" && isCreating && (
+              <Badge variant="outline" className="text-[11px]">Nouveau modèle</Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Screens */}
       {screen === "library" && (

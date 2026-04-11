@@ -224,13 +224,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
         />
 
         {/* Level 3 — "À traiter aujourd'hui" */}
-        <section aria-labelledby="today-actions-title">
-          <h2
-            id="today-actions-title"
-            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-          >
-            À traiter aujourd'hui
-          </h2>
+        <section aria-label="Actions à traiter aujourd'hui">
           <ActionPanelToday
             onNavigate={handleNavigate}
             onOpenContact={handleOpenContact}
@@ -239,23 +233,11 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
 
         {/* Level 4 — CA Evolution + Formation Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section aria-labelledby="ca-chart-title">
-            <h2
-              id="ca-chart-title"
-              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-            >
-              Évolution du chiffre d'affaires
-            </h2>
+          <section aria-label="Évolution du chiffre d'affaires">
             <DashboardCAChart />
           </section>
 
-          <section aria-labelledby="formation-breakdown-title">
-            <h2
-              id="formation-breakdown-title"
-              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-            >
-              Performance par formation
-            </h2>
+          <section aria-label="Performance par formation">
             <DashboardFormationBreakdown
               data={dashboardData?.formationBreakdown ?? []}
               isLoading={isLoading}
@@ -266,13 +248,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
 
         {/* Level 5 — Two-column grid: Sessions | Finance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section aria-labelledby="sessions-panel-title">
-            <h2
-              id="sessions-panel-title"
-              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-            >
-              Sessions & Pédagogie
-            </h2>
+          <section aria-label="Sessions et pédagogie">
             <DashboardSessionsPanel
               sessions={dashboardData?.upcomingSessions ?? []}
               isLoading={isLoading}
@@ -280,13 +256,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
             />
           </section>
 
-          <section aria-labelledby="finance-panel-title">
-            <h2
-              id="finance-panel-title"
-              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
-            >
-              Finance & Trésorerie
-            </h2>
+          <section aria-label="Finance et trésorerie">
             <DashboardFinancePanel
               metrics={metrics}
               topFactures={dashboardData?.topFactures ?? []}

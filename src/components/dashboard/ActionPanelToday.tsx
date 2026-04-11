@@ -284,66 +284,107 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
     facture: filtered.filter(i => i.type === "facture"),
     apprenant: filtered.filter(i => i.type === "apprenant"),
   };
+  const lateCount = filtered.filter((item) => (item.retardDays ?? 0) > 0).length;
+  const dueTodayCount = filtered.filter((item) => (item.retardDays ?? 0) === 0).length;
+  const groupSummary = [
+    grouped.prospect.length > 0 ? `${grouped.prospect.length} relance${grouped.prospect.length > 1 ? "s" : ""}` : null,
+    grouped.facture.length > 0 ? `${grouped.facture.length} paiement${grouped.facture.length > 1 ? "s" : ""}` : null,
+    grouped.apprenant.length > 0 ? `${grouped.apprenant.length} dossier${grouped.apprenant.length > 1 ? "s" : ""}` : null,
+  ].filter(Boolean).join(" · ");
 
   return (
     <TooltipProvider>
       <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">À traiter aujourd'hui</h3>
-          <Badge variant="secondary" className="text-xs">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">À traiter aujourd&apos;hui</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {filtered.length === 0
+                ? "Aucune action prioritaire détectée."
+                : [
+                    lateCount > 0 ? `${lateCount} en retard` : null,
+                    dueTodayCount > 0 ? `${dueTodayCount} à traiter aujourd'hui` : null,
+                    groupSummary || null,
+                  ].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-xs shrink-0">
             {filtered.length}
           </Badge>
         </div>
 
         {/* Filter chips */}
-        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-          {timeFilters.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setTimeFilter(f.key)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
-                timeFilter === f.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-          <span className="w-px h-4 bg-border mx-1" />
-          {typeFilters.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setTypeFilter(f.key)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
-                typeFilter === f.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Échéance
+            </span>
+            {timeFilters.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setTimeFilter(f.key)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+                  timeFilter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Type
+            </span>
+            {typeFilters.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setTypeFilter(f.key)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+                  typeFilter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground py-4 text-center">Rien à traiter — tout est en ordre 🎉</p>
+          <p className="text-sm text-muted-foreground py-5 text-center">
+            Rien d&apos;urgent pour le moment.
+          </p>
         )}
 
+        <div className="space-y-4">
         {(["prospect", "facture", "apprenant"] as const).map(type => {
           const group = grouped[type];
           if (group.length === 0) return null;
           const config = typeConfig[type];
           const Icon = config.icon;
           return (
-            <div key={type} className="mb-4 last:mb-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className={cn("h-3.5 w-3.5", config.color)} />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {config.sectionLabel}
-                </span>
+            <div key={type} className="last:mb-0">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Icon className={cn("h-3.5 w-3.5 shrink-0", config.color)} />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                    {config.sectionLabel}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">
+                    {group.length}
+                  </Badge>
+                </div>
+                <button
+                  onClick={() => onNavigate(group[0].section)}
+                  className="text-[11px] text-primary hover:underline shrink-0"
+                >
+                  Voir
+                </button>
               </div>
               <div className="space-y-1">
                 {group.map(item => (
@@ -357,12 +398,20 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
                         {item.montant != null && item.montant > 0 && (
                           <span className="text-xs font-semibold text-foreground shrink-0">
                             {formatEur(item.montant)}
                           </span>
+                        )}
+                        {(item.retardDays ?? 0) > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 text-[10px] border-destructive/30 bg-destructive/5 text-destructive shrink-0"
+                          >
+                            {item.retardDays}j retard
+                          </Badge>
                         )}
                       </div>
                       <p className={cn(
@@ -375,7 +424,7 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {item.track && (
                         <Badge variant="outline" className="text-[10px] ml-1">
-                          {item.track === "initial" ? "CMA" : "Formation continue"}
+                          {item.track === "initial" ? "Initial" : "Continue"}
                         </Badge>
                       )}
                       <QuickActions item={item} onMarkDone={handleMarkDone} />
@@ -384,15 +433,10 @@ export function ActionPanelToday({ onNavigate, onOpenContact }: Props) {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => onNavigate(group[0].section)}
-                className="text-xs text-primary hover:underline mt-1 ml-3"
-              >
-                Tout voir →
-              </button>
             </div>
           );
         })}
+        </div>
       </div>
     </TooltipProvider>
   );

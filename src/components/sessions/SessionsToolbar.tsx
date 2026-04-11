@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, List, CalendarDays, Download, Kanban, Archive, TrendingUp, Link2 } from "lucide-react";
+import { Search, Plus, List, CalendarDays, Download, Kanban, Archive, TrendingUp, Link2, RotateCcw } from "lucide-react";
 import { SessionsAdvancedFilters } from "./SessionsAdvancedFilters";
 import type { SessionFilters } from "@/hooks/useSessionsFilters";
 import type { Formateur } from "@/hooks/useFormateurs";
@@ -33,6 +34,8 @@ interface SessionsToolbarProps {
   totalCount: number;
   filteredCount: number;
   hasActiveFilters: boolean;
+  onResetFilters: () => void;
+  summaryLine: string;
 }
 
 export function SessionsToolbar({
@@ -53,9 +56,29 @@ export function SessionsToolbar({
   totalCount,
   filteredCount,
   hasActiveFilters,
+  onResetFilters,
+  summaryLine,
 }: SessionsToolbarProps) {
   return (
     <div className="space-y-3">
+      <div className="flex flex-col gap-2 rounded-xl border border-dashed bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Pilotage rapide</p>
+          <p className="text-xs text-muted-foreground">{summaryLine}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="text-[11px]">
+            Vue {viewMode === "list" ? "liste" : viewMode === "kanban" ? "kanban" : "calendrier"}
+          </Badge>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={onResetFilters} className="gap-1">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Réinitialiser les filtres
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as "list" | "calendar" | "kanban")}>
           <TabsList>
@@ -151,8 +174,8 @@ export function SessionsToolbar({
 
       {/* Result count */}
       <div className="text-sm text-muted-foreground">
-        {filteredCount} session{filteredCount > 1 ? "s" : ""}
-        {hasActiveFilters ? ` (filtrée${filteredCount > 1 ? "s" : ""} sur ${totalCount})` : ""}
+        {filteredCount} session{filteredCount > 1 ? "s" : ""} affichée{filteredCount > 1 ? "s" : ""}
+        {hasActiveFilters ? ` sur ${totalCount}` : ""}
       </div>
     </div>
   );

@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -15,12 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, CalendarDays, Send } from "lucide-react";
+import { Loader2, CalendarDays, Mail, Send, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { format, isAfter, parseISO, startOfToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { SendDocumentsToContactDialog } from "@/components/sessions/SendDocumentsToContactDialog";
+
+type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
+type SessionRow = Database["public"]["Tables"]["sessions"]["Row"];
 
 interface ContactInfo {
   id: string;
@@ -75,7 +81,7 @@ function useContactSessions(contactId: string | null) {
         .order("date_debut", { ascending: false });
 
       if (sessError) throw sessError;
-      return sessions || [];
+      return (sessions || []) as SessionRow[];
     },
   });
 }
@@ -92,9 +98,15 @@ function useContactDetails(contactId: string | null) {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as ContactRow;
     },
   });
+}
+
+function formatSessionDateRange(session: Pick<SessionRow, "date_debut" | "date_fin">) {
+  const start = format(parseISO(session.date_debut), "dd/MM/yyyy", { locale: fr });
+  const end = format(parseISO(session.date_fin), "dd/MM/yyyy", { locale: fr });
+  return start === end ? start : `${start} → ${end}`;
 }
 
 export function SendDocumentsFromSignatureDialog({
@@ -109,11 +121,27 @@ export function SendDocumentsFromSignatureDialog({
 
   const { data: sessions = [], isLoading: loadingSessions } = useContactSessions(open ? contactId : null);
   const { data: contactDetails } = useContactDetails(open ? contactId : null);
+  const upcomingSessionsCount = useMemo(
+    () => sessions.filter((session) => isAfter(parseISO(session.date_debut), startOfToday())).length,
+    [sessions],
+  );
 
   const selectedSession = useMemo(
     () => sessions.find((s) => s.id === selectedSessionId),
     [sessions, selectedSessionId]
   );
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedSessionId("");
+      setShowSendDialog(false);
+      return;
+    }
+
+    if (!selectedSessionId && sessions.length === 1) {
+      setSelectedSessionId(sessions[0].id);
+    }
+  }, [open, sessions, selectedSessionId]);
 
   const handleContinue = () => {
     if (!selectedSessionId || !selectedSession) return;
@@ -192,21 +220,63 @@ export function SendDocumentsFromSignatureDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleClose();
+          return;
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
             Envoyer des documents à {contactPrenom} {contactNom}
           </DialogTitle>
+          <DialogDescription>
+            Choisissez la session à laquelle rattacher l’envoi pour générer le bon pack documentaire.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card className="p-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Contact</p>
+              <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <User className="h-4 w-4 text-primary" />
+                {contactPrenom} {contactNom}
+              </div>
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                {contactDetails?.email || "Aucun email renseigné"}
+              </p>
+            </Card>
+            <Card className="p-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pilotage</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {sessions.length} session{sessions.length > 1 ? "s" : ""} trouvée{sessions.length > 1 ? "s" : ""}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {upcomingSessionsCount} à venir · {selectedSession ? "session prête à ouvrir" : "sélection requise"}
+              </p>
+            </Card>
+          </div>
+
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
               Sélectionner une session
-            </Label>
+              </Label>
+              {sessions.length > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  {selectedSession ? "1 session sélectionnée" : "Aucune session sélectionnée"}
+                </span>
+              )}
+            </div>
 
             {loadingSessions ? (
               <div className="flex items-center gap-2 text-muted-foreground py-4">
@@ -214,32 +284,46 @@ export function SendDocumentsFromSignatureDialog({
                 Chargement des sessions...
               </div>
             ) : sessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
-                Ce contact n'est inscrit à aucune session.
-              </p>
+              <Card className="border-dashed p-4 text-sm text-muted-foreground">
+                Ce contact n’est inscrit à aucune session. Ajoutez d’abord une session avant d’ouvrir l’envoi de documents.
+              </Card>
             ) : (
-              <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
-                <SelectTrigger>
+              <div className="space-y-3">
+                <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+                  <SelectTrigger>
                   <SelectValue placeholder="Choisir une session..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sessions.map((session) => (
-                    <SelectItem key={session.id} value={session.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{session.nom}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {format(parseISO(session.date_debut), "dd/MM/yyyy", { locale: fr })}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sessions.map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{session.nom}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {format(parseISO(session.date_debut), "dd/MM/yyyy", { locale: fr })}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {selectedSession && (
+                  <Card className="p-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Session retenue</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{selectedSession.nom}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Badge variant="outline">{selectedSession.formation_type}</Badge>
+                      <Badge variant="secondary">{formatSessionDateRange(selectedSession)}</Badge>
+                      {selectedSession.lieu && <Badge variant="outline">{selectedSession.lieu}</Badge>}
+                    </div>
+                  </Card>
+                )}
+              </div>
             )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={handleClose}>
               Annuler
             </Button>
             <Button

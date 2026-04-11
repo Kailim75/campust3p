@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,7 +12,9 @@ import {
   Calendar, 
   GraduationCap,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  ShieldAlert,
+  ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContactFichesPratique, fichePratiqueStatutConfig, type FichePratique } from "@/hooks/useFichesPratique";
@@ -29,6 +32,11 @@ export function ContactPratiqueTab({ contactId }: ContactPratiqueTabProps) {
   const [selectedFiche, setSelectedFiche] = useState<string | null>(null);
   const { data: fiches = [], isLoading } = useContactFichesPratique(contactId);
 
+  const totalHoursPlanned = fiches.reduce((sum, fiche) => sum + fiche.heures_prevues, 0);
+  const totalHoursDone = fiches.reduce((sum, fiche) => sum + fiche.heures_realisees, 0);
+  const readyForExamCount = fiches.filter((fiche) => fiche.statut === "pret_examen" || fiche.statut === "examen_planifie").length;
+  const overdueCount = fiches.filter((fiche) => fiche.date_fin_prevue && differenceInDays(new Date(fiche.date_fin_prevue), new Date()) < 0).length;
+
   if (selectedFiche) {
     return (
       <FichePratiqueDetail 
@@ -41,15 +49,56 @@ export function ContactPratiqueTab({ contactId }: ContactPratiqueTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Suivi Pratique
-        </h3>
-        <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Nouvelle fiche
-        </Button>
-      </div>
+      <Card className="border-dashed">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Car className="h-4 w-4 text-primary" />
+                <p className="font-medium">Suivi pratique</p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Suis ici les heures réalisées, les fiches en cours et les passages vers l’examen pratique.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Nouvelle fiche
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Fiches</p>
+              <p className="mt-1 text-lg font-semibold">{fiches.length}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Heures réalisées</p>
+              <p className="mt-1 text-lg font-semibold">{totalHoursDone}h</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Heures prévues</p>
+              <p className="mt-1 text-lg font-semibold">{totalHoursPlanned}h</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Prêtes / planifiées</p>
+              <p className="mt-1 text-lg font-semibold">{readyForExamCount}</p>
+            </div>
+          </div>
+
+          {overdueCount > 0 && (
+            <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-3 text-sm">
+              <div className="flex items-center gap-2 font-medium">
+                <ShieldAlert className="h-4 w-4 text-warning" />
+                Vigilance pratique
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                {overdueCount} fiche(s) ont dépassé leur date de fin prévue.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -57,11 +106,13 @@ export function ContactPratiqueTab({ contactId }: ContactPratiqueTabProps) {
           <Skeleton className="h-24 w-full" />
         </div>
       ) : fiches.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Car className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">Aucune fiche pratique</p>
-          <p className="text-sm mt-1">Créez une fiche pour suivre les heures de conduite</p>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <Car className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">Aucune fiche pratique</p>
+            <p className="text-sm mt-1">Crée une fiche pour suivre les heures de conduite, les séances et l’examen pratique.</p>
+          </CardContent>
+        </Card>
       ) : (
         <ScrollArea className="h-[400px]">
           <div className="space-y-3 pr-3">
@@ -101,7 +152,7 @@ function FichePratiqueCard({ fiche, onClick }: FichePratiqueCardProps) {
 
   return (
     <div 
-      className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer group"
+      className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer group bg-card"
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -116,7 +167,7 @@ function FichePratiqueCard({ fiche, onClick }: FichePratiqueCardProps) {
             </Badge>
           </div>
         </div>
-        <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        <ChevronRight className="h-5 w-5 text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
       </div>
 
       {/* Progress */}
@@ -139,7 +190,7 @@ function FichePratiqueCard({ fiche, onClick }: FichePratiqueCardProps) {
       </div>
 
       {/* Dates */}
-      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted-foreground">
         {fiche.date_debut && (
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -152,6 +203,21 @@ function FichePratiqueCard({ fiche, onClick }: FichePratiqueCardProps) {
             Fin prévue: {format(new Date(fiche.date_fin_prevue), "dd/MM/yyyy")}
           </span>
         )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {fiche.statut === "pret_examen" || fiche.statut === "examen_planifie" ? (
+          <Badge variant="outline" className="text-xs">
+            <ClipboardCheck className="mr-1 h-3 w-3" />
+            Examen proche
+          </Badge>
+        ) : null}
+        {isOverdue ? (
+          <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
+            <AlertCircle className="mr-1 h-3 w-3" />
+            À replanifier
+          </Badge>
+        ) : null}
       </div>
     </div>
   );

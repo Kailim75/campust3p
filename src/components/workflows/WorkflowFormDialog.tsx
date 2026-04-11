@@ -9,16 +9,19 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Zap, ArrowDown, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
-import { useWorkflows, TRIGGER_TYPES, ACTION_TYPES, WorkflowAction, Workflow } from '@/hooks/useWorkflows';
+import { useWorkflows, TRIGGER_TYPES, ACTION_TYPES } from '@/hooks/useWorkflows';
+import type { WorkflowAction, Workflow, WorkflowInput } from '@/hooks/useWorkflows';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+type WorkflowFormSeed = Workflow | WorkflowInput;
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  workflow?: Workflow | null;
+  workflow?: WorkflowFormSeed | null;
 }
 
 export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
@@ -29,7 +32,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
   const [description, setDescription] = useState('');
   const [actif, setActif] = useState(true);
   const [triggerType, setTriggerType] = useState('');
-  const [triggerConditions, setTriggerConditions] = useState<Record<string, any>>({});
+  const [triggerConditions, setTriggerConditions] = useState<Record<string, unknown>>({});
   const [actions, setActions] = useState<WorkflowAction[]>([]);
   const [expandedActions, setExpandedActions] = useState<Set<number>>(new Set());
   const [generatingEmail, setGeneratingEmail] = useState<number | null>(null);
@@ -72,10 +75,10 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
     });
   };
 
-  const handleActionChange = (index: number, field: string, value: any) => {
+  const handleActionChange = (index: number, field: string, value: unknown) => {
     const updated = [...actions];
     if (field === 'type') {
-      updated[index] = { type: value, config: {} };
+        updated[index] = { type: value as WorkflowAction['type'], config: {} };
     } else {
       updated[index] = { 
         ...updated[index], 
@@ -137,8 +140,9 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
         setActions(updated);
         toast.success('Contenu email généré par l\'IA');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la génération');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la génération';
+      toast.error(message);
     } finally {
       setGeneratingEmail(null);
     }
@@ -156,7 +160,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
       actions
     };
 
-    if (workflow?.id) {
+    if (workflow && 'id' in workflow) {
       updateWorkflow.mutate({ id: workflow.id, ...data });
     } else {
       createWorkflow.mutate(data);
@@ -549,7 +553,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
                               <Label className="text-xs">Type d'action</Label>
                               <Select
                                 value={action.type}
-                                onValueChange={(v) => handleActionChange(index, 'type', v as any)}
+                                onValueChange={(value) => handleActionChange(index, 'type', value as WorkflowAction['type'])}
                               >
                                 <SelectTrigger className="h-9">
                                   <SelectValue />

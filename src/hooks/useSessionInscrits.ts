@@ -9,6 +9,18 @@ interface AjouterMultiplesParams {
   autoCreateFacture?: boolean;
 }
 
+interface MutationErrorLike {
+  message?: string;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error && typeof (error as MutationErrorLike).message === "string") {
+    return (error as MutationErrorLike).message as string;
+  }
+
+  return fallback;
+}
+
 export function useSessionInscrits(sessionId: string) {
   const queryClient = useQueryClient();
 
@@ -66,6 +78,7 @@ export function useSessionInscrits(sessionId: string) {
       if (error) throw error;
 
       let facturesCreated = 0;
+      let facturesFailed = 0;
 
       // Auto-créer les factures si demandé
       if (autoCreateFacture && insertedInscriptions && insertedInscriptions.length > 0) {
@@ -77,6 +90,7 @@ export function useSessionInscrits(sessionId: string) {
           
           if (numeroError) {
             console.error("Erreur génération numéro facture:", numeroError);
+            facturesFailed += 1;
             continue;
           }
 
@@ -99,26 +113,34 @@ export function useSessionInscrits(sessionId: string) {
 
           if (factureError) {
             console.error("Erreur création factures:", factureError);
+            facturesFailed += facturesToCreate.length;
           } else {
             facturesCreated = facturesToCreate.length;
           }
         }
       }
 
-      return { inscriptionsCount: nouveaux.length, facturesCreated };
+      return { inscriptionsCount: nouveaux.length, facturesCreated, facturesFailed };
     },
-    onSuccess: ({ inscriptionsCount, facturesCreated }) => {
+    onSuccess: ({ inscriptionsCount, facturesCreated, facturesFailed }) => {
       queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['session_inscriptions', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['session_inscriptions', 'count', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['session_inscriptions', 'all_counts'] });
       queryClient.invalidateQueries({ queryKey: ['factures'] });
       
-      if (facturesCreated > 0) {
+      if (facturesCreated > 0 && facturesFailed === 0) {
         toast.success(`${inscriptionsCount} stagiaire(s) ajouté(s) avec ${facturesCreated} facture(s) générée(s)`);
+      } else if (facturesFailed > 0) {
+        toast.warning(
+          `${inscriptionsCount} stagiaire(s) ajouté(s), mais ${facturesFailed} facture(s) restent à créer manuellement`
+        );
       } else {
         toast.success(`${inscriptionsCount} stagiaire(s) ajouté(s)`);
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de l\'ajout');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Erreur lors de l'ajout"));
     }
   });
 
@@ -253,8 +275,8 @@ export function useSessionInscrits(sessionId: string) {
         toast.success(`${typeDocument} envoyé à ${result.emailsSent} stagiaire(s)`);
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de l\'envoi');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Erreur lors de l'envoi"));
     }
   });
 

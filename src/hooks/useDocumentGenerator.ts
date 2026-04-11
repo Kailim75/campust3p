@@ -1,30 +1,16 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
-import {
-  generateFacturePDF,
-  generateConventionPDF as generateConventionPDFLegacy,
-  generateContratFormationPDF as generateContratPDFLegacy,
-  generateConvocationPDF,
-  generateProgrammePDF,
-  generateAttestationPresencePDF,
-  downloadPDF,
-  preloadCompanyImages,
-  type ContactInfo,
-  type SessionInfo,
-  type FactureInfo,
+import type {
+  ContactInfo,
+  SessionInfo,
+  FactureInfo,
 } from "@/lib/pdf-generator";
-import { generateContratFormationV2, validateContratData } from "@/lib/documents/generateContratFormation";
-import { generateConventionFormationV2 } from "@/lib/documents/generateConventionFormation";
 import { buildCompanyInfo } from "@/lib/documents/companyInfo";
 import {
   getDocumentLabel,
   type DocumentType,
 } from "@/lib/documents/documentUtils";
-import {
-  generateSingleAttestation,
-  generateBulkAttestations,
-} from "@/lib/documents/generateAttestation";
 import {
   classifyError,
   getErrorMessage,
@@ -38,14 +24,6 @@ export function useDocumentGenerator() {
   const getCompanyInfo = useCallback(() => {
     return buildCompanyInfo(centreFormation);
   }, [centreFormation]);
-
-  // Preload company images on mount
-  useEffect(() => {
-    const company = getCompanyInfo();
-    if (company) {
-      preloadCompanyImages(company);
-    }
-  }, [getCompanyInfo]);
 
   const generateDocument = useCallback(
     async (
@@ -62,10 +40,7 @@ export function useDocumentGenerator() {
           return null;
         }
 
-        await preloadCompanyImages(company);
-
         let doc;
-        let filename: string;
 
         switch (type) {
           case "facture":
@@ -73,8 +48,14 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_FACTURE"));
               return null;
             }
-            doc = generateFacturePDF(facture, contact, session, company);
-            filename = `facture-${facture.numero_facture}.pdf`;
+            {
+              const [{ generateFacturePDF, downloadPDF, preloadCompanyImages }] = await Promise.all([
+                import("@/lib/pdf-generator"),
+              ]);
+              await preloadCompanyImages(company);
+              doc = generateFacturePDF(facture, contact, session, company);
+              downloadPDF(doc, `facture-${facture.numero_facture}.pdf`);
+            }
             break;
 
           case "attestation":
@@ -85,6 +66,9 @@ export function useDocumentGenerator() {
             // Async generation — errors handled internally
             void (async () => {
               try {
+                const [{ generateSingleAttestation }] = await Promise.all([
+                  import("@/lib/documents/generateAttestation"),
+                ]);
                 await generateSingleAttestation(contact, session, company, centreFormation);
               } catch (err) {
                 const docErr = classifyError(err);
@@ -99,8 +83,18 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateConventionFormationV2(contact, session, company);
-            filename = `convention-${contact.nom}-${contact.prenom}.pdf`;
+            {
+              const [
+                { generateConventionFormationV2 },
+                { downloadPDF, preloadCompanyImages },
+              ] = await Promise.all([
+                import("@/lib/documents/generateConventionFormation"),
+                import("@/lib/pdf-generator"),
+              ]);
+              await preloadCompanyImages(company);
+              doc = generateConventionFormationV2(contact, session, company);
+              downloadPDF(doc, `convention-${contact.nom}-${contact.prenom}.pdf`);
+            }
             break;
 
           case "contrat":
@@ -109,6 +103,13 @@ export function useDocumentGenerator() {
               return null;
             }
             {
+              const [
+                { generateContratFormationV2, validateContratData },
+                { downloadPDF, preloadCompanyImages },
+              ] = await Promise.all([
+                import("@/lib/documents/generateContratFormation"),
+                import("@/lib/pdf-generator"),
+              ]);
               const validationErrors = validateContratData(contact, session, company);
               const blockingErrors = validationErrors.filter(e => e.severity === "blocking");
               if (blockingErrors.length > 0) {
@@ -119,9 +120,10 @@ export function useDocumentGenerator() {
               if (warnings.length > 0) {
                 toast.warning(`Attention : ${warnings.map(e => e.message).join(", ")}`);
               }
+              await preloadCompanyImages(company);
+              doc = generateContratFormationV2(contact, session, company);
+              downloadPDF(doc, `contrat-formation-${contact.nom}-${contact.prenom}.pdf`);
             }
-            doc = generateContratFormationV2(contact, session, company);
-            filename = `contrat-formation-${contact.nom}-${contact.prenom}.pdf`;
             break;
 
           case "convocation":
@@ -129,8 +131,14 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateConvocationPDF(contact, session, company);
-            filename = `convocation-${contact.nom}-${contact.prenom}.pdf`;
+            {
+              const [{ generateConvocationPDF, downloadPDF, preloadCompanyImages }] = await Promise.all([
+                import("@/lib/pdf-generator"),
+              ]);
+              await preloadCompanyImages(company);
+              doc = generateConvocationPDF(contact, session, company);
+              downloadPDF(doc, `convocation-${contact.nom}-${contact.prenom}.pdf`);
+            }
             break;
 
           case "programme":
@@ -138,8 +146,14 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateProgrammePDF(session, company);
-            filename = `programme-${session.nom.replace(/\s+/g, "-")}.pdf`;
+            {
+              const [{ generateProgrammePDF, downloadPDF, preloadCompanyImages }] = await Promise.all([
+                import("@/lib/pdf-generator"),
+              ]);
+              await preloadCompanyImages(company);
+              doc = generateProgrammePDF(session, company);
+              downloadPDF(doc, `programme-${session.nom.replace(/\s+/g, "-")}.pdf`);
+            }
             break;
 
           case "attestation_presence":
@@ -147,8 +161,14 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_SESSION"));
               return null;
             }
-            doc = generateAttestationPresencePDF(contact, session, company);
-            filename = `attestation-presence-${contact.nom}-${contact.prenom}.pdf`;
+            {
+              const [{ generateAttestationPresencePDF, downloadPDF, preloadCompanyImages }] = await Promise.all([
+                import("@/lib/pdf-generator"),
+              ]);
+              await preloadCompanyImages(company);
+              doc = generateAttestationPresencePDF(contact, session, company);
+              downloadPDF(doc, `attestation-presence-${contact.nom}-${contact.prenom}.pdf`);
+            }
             break;
 
           default:
@@ -156,7 +176,6 @@ export function useDocumentGenerator() {
             return null;
         }
 
-        downloadPDF(doc, filename);
         toast.success(`${getDocumentLabel(type)} téléchargé`);
         return doc;
       } catch (error) {
@@ -180,6 +199,9 @@ export function useDocumentGenerator() {
           }
 
           try {
+            const [{ generateBulkAttestations }] = await Promise.all([
+              import("@/lib/documents/generateAttestation"),
+            ]);
             const count = await generateBulkAttestations(
               contacts,
               session,

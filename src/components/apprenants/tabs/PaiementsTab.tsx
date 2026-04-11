@@ -11,6 +11,7 @@ import { Plus, FileText, Pencil, Printer, Mail, MessageCircle } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { format, parseISO } from "date-fns";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { fr } from "date-fns/locale";
@@ -30,6 +31,31 @@ interface PaiementsTabProps {
   contactId: string;
 }
 
+type FactureRow = Tables<"factures">;
+type PaiementRow = Tables<"paiements">;
+type ContactBillingInfo = Pick<Tables<"contacts">, "nom" | "prenom" | "email" | "telephone" | "rue" | "code_postal" | "ville" | "civilite">;
+type FactureInsert = TablesInsert<"factures">;
+type PaiementInsert = TablesInsert<"paiements">;
+type PaiementMode = PaiementInsert["mode_paiement"];
+type FactureStatus = FactureRow["statut"];
+
+interface FactureSessionInscriptionRelation {
+  id: string;
+  type_payeur: string | null;
+  montant_pris_en_charge: number | null;
+  reste_a_charge: number | null;
+  payeur_partner: {
+    id: string;
+    company_name: string;
+    email: string | null;
+    address: string | null;
+  } | null;
+}
+
+interface FactureWithRelations extends Pick<FactureRow, "id" | "numero_facture" | "montant_total" | "statut" | "type_financement" | "date_emission" | "commentaires"> {
+  session_inscription: FactureSessionInscriptionRelation | FactureSessionInscriptionRelation[] | null;
+}
+
 const statutColors: Record<string, string> = {
   brouillon: "bg-muted text-muted-foreground",
   emise: "bg-primary/15 text-primary",
@@ -45,8 +71,13 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
   const { composerProps, openComposer } = useEmailComposer();
   const [showForm, setShowForm] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
-  const [editingFacture, setEditingFacture] = useState<any>(null);
-  const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "", factureId: "" });
+  const [editingFacture, setEditingFacture] = useState<FactureWithRelations | null>(null);
+  const [formData, setFormData] = useState<{ montant: string; mode: PaiementMode; reference: string; factureId: string }>({
+    montant: "",
+    mode: "cb",
+    reference: "",
+    factureId: "",
+  });
 
   const { data: factures, isLoading: facturesLoading } = useQuery({
     queryKey: ["apprenant-factures", contactId],
@@ -64,7 +95,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as FactureWithRelations[];
     },
   });
 
@@ -73,11 +104,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("nom, prenom, email, telephone, rue, code_postal, ville")
+        .select("nom, prenom, email, telephone, rue, code_postal, ville, civilite")
         .eq("id", contactId)
         .single();
       if (error) throw error;
-      return data;
+      return data as ContactBillingInfo;
     },
   });
 
@@ -99,13 +130,16 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         .is("deleted_at", null)
         .order("date_paiement", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as PaiementRow[];
     },
   });
 
   const montantTotal = (factures || []).reduce((s, f) => s + Number(f.montant_total || 0), 0);
   const montantPaye = (paiements || []).reduce((s, p) => s + Number(p.montant || 0), 0);
   const restant = montantTotal - montantPaye;
+  const facturesEnAttente = (factures || []).filter((facture) => facture.statut !== "payee" && facture.statut !== "annulee").length;
+  const derniereEmission = factures?.[0]?.date_emission || null;
+  const derniereReferencePaiement = paiements?.[0]?.reference || null;
 
   const addPaiement = useMutation({
     mutationFn: async () => {
@@ -123,11 +157,11 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
             contact_id: contactId,
             numero_facture: numero || `FAC-${Date.now()}`,
             montant_total: montant,
-            statut: "emise" as any,
-            type_financement: "personnel" as any,
+            statut: "emise",
+            type_financement: "personnel",
             date_emission: today,
             centre_id: centreId,
-          } as any)
+          } satisfies FactureInsert)
           .select("id")
           .single();
         if (fErr) throw fErr;
@@ -141,10 +175,10 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       const { error } = await supabase.from("paiements").insert({
         facture_id: factureId,
         montant,
-        mode_paiement: formData.mode as any,
+        mode_paiement: formData.mode,
         reference: formData.reference || null,
         date_paiement: new Date().toISOString().split("T")[0],
-      } as any);
+      } satisfies PaiementInsert);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -158,16 +192,23 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     onError: (error: Error) => toast.error("Erreur : " + error.message),
   });
 
-  const enrichFactureWithPayer = (f: any): FactureInfo => {
+  const getSessionInscription = (facture: FactureWithRelations): FactureSessionInscriptionRelation | null => {
+    if (!facture.session_inscription) return null;
+    return Array.isArray(facture.session_inscription)
+      ? facture.session_inscription[0] || null
+      : facture.session_inscription;
+  };
+
+  const enrichFactureWithPayer = (f: FactureWithRelations): FactureInfo => {
     const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
-      f.session_inscription, contact
+      getSessionInscription(f), contact
     );
     return {
       numero_facture: f.numero_facture || "",
       montant_total: Number(f.montant_total),
       total_paye: (paiements || [])
-        .filter((p: any) => p.facture_id === f.id)
-        .reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+        .filter((p) => p.facture_id === f.id)
+        .reduce((s, p) => s + Number(p.montant || 0), 0),
       statut: f.statut,
       type_financement: f.type_financement || "personnel",
       date_emission: f.date_emission,
@@ -179,7 +220,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     };
   };
 
-  const handlePrintFacture = (f: any) => {
+  const handlePrintFacture = (f: FactureWithRelations) => {
     if (!contact) { toast.error("Informations contact manquantes"); return; }
     const company = centreToCompanyInfo(centreFormation);
     const factureInfo = enrichFactureWithPayer(f);
@@ -197,7 +238,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     toast.success("Facture téléchargée");
   };
 
-  const buildFacturePdfBase64 = (f: any): { base64: string; filename: string } | null => {
+  const buildFacturePdfBase64 = (f: FactureWithRelations): { base64: string; filename: string } | null => {
     if (!contact) return null;
     const company = centreToCompanyInfo(centreFormation);
     const factureInfo = enrichFactureWithPayer(f);
@@ -211,7 +252,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     return { base64, filename };
   };
 
-  const handleEmailFacture = (f: any) => {
+  const handleEmailFacture = (f: FactureWithRelations) => {
     if (!contact?.email) { toast.error("Aucun email pour ce contact"); return; }
     const pdf = buildFacturePdfBase64(f);
     if (!pdf) { toast.error("Informations contact manquantes"); return; }
@@ -223,7 +264,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     });
   };
 
-  const handleWhatsAppFacture = (f: any) => {
+  const handleWhatsAppFacture = (f: FactureWithRelations) => {
     if (!contact?.telephone) { toast.error("Aucun numéro de téléphone pour ce contact"); return; }
     const phone = formatPhoneForWhatsApp(contact.telephone);
     if (!phone) { toast.error("Numéro de téléphone invalide"); return; }
@@ -245,15 +286,38 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       {/* Separator */}
       <div className="border-t" />
 
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Pilotage financier</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Suis les factures, les versements et le reste à encaisser pour cet apprenant sans changer d’écran.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={cn("text-xs", restant > 0 ? "bg-warning/10 text-warning border-warning/20" : "bg-success/10 text-success border-success/20")}>
+              {restant > 0 ? `${restant.toLocaleString("fr-FR")}€ restant` : "Dossier soldé"}
+            </Badge>
+            {facturesEnAttente > 0 && (
+              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                {facturesEnAttente} facture{facturesEnAttente > 1 ? "s" : ""} active{facturesEnAttente > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Summary header */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">Montant total</p>
           <p className="text-lg font-display font-bold text-foreground">{montantTotal.toLocaleString("fr-FR")}€</p>
+          <p className="mt-1 text-xs text-muted-foreground">Factures émises au dossier</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">Payé</p>
           <p className="text-lg font-display font-bold text-success">{montantPaye.toLocaleString("fr-FR")}€</p>
+          <p className="mt-1 text-xs text-muted-foreground">Versements réellement enregistrés</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">Restant</p>
@@ -264,10 +328,19 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
             {restant > 0 ? "Impayé" : "Soldé"}
           </Badge>
         </Card>
+        <Card className="p-3 text-center">
+          <p className="text-xs text-muted-foreground">Dernier mouvement</p>
+          <p className="text-sm font-display font-bold text-foreground">
+            {derniereEmission ? format(parseISO(derniereEmission), "dd/MM/yyyy", { locale: fr }) : "—"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground truncate px-2">
+            {derniereReferencePaiement || "Aucune référence récente"}
+          </p>
+        </Card>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => setShowFactureLibre(true)}>
           <FileText className="h-3.5 w-3.5 mr-1" /> Facture forfait
         </Button>
@@ -290,7 +363,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                       Créer une nouvelle facture
                     </span>
                   </SelectItem>
-                  {(factures || []).map((f: any) => (
+                  {(factures || []).map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
                     </SelectItem>
@@ -347,7 +420,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {factures.map((f: any) => (
+              {factures.map((f) => (
                 <TableRow key={f.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setEditingFacture(f)}>
                   <TableCell className="text-sm font-mono">{f.numero_facture || "—"}</TableCell>
                   <TableCell className="text-sm">
@@ -405,7 +478,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              paiements.map((p: any) => (
+              paiements.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm">
                     {p.date_paiement ? format(parseISO(p.date_paiement), "dd/MM/yyyy", { locale: fr }) : "—"}

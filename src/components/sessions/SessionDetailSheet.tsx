@@ -154,6 +154,52 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
   const inscriptionCount = inscriptions?.length ?? 0;
   const placesRestantes = session ? session.places_totales - inscriptionCount : 0;
+  const dateRangeLabel = session
+    ? `${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} - ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`
+    : "—";
+  const scheduleLines = useMemo(() => {
+    if (!session) return [] as string[];
+
+    const lines: string[] = [];
+
+    if (session.heure_debut_matin || session.heure_fin_matin) {
+      lines.push(
+        `Matin : ${session.heure_debut_matin?.slice(0, 5) || "--:--"} - ${session.heure_fin_matin?.slice(0, 5) || "--:--"}`
+      );
+    }
+
+    if (session.heure_debut_aprem || session.heure_fin_aprem) {
+      lines.push(
+        `Après-midi : ${session.heure_debut_aprem?.slice(0, 5) || "--:--"} - ${session.heure_fin_aprem?.slice(0, 5) || "--:--"}`
+      );
+    }
+
+    if (lines.length === 0 && (session.heure_debut || session.heure_fin)) {
+      lines.push(
+        `${session.heure_debut?.slice(0, 5) || "--:--"} - ${session.heure_fin?.slice(0, 5) || "--:--"}`
+      );
+    }
+
+    if (session.duree_heures) {
+      lines.push(`${session.duree_heures}h de formation`);
+    }
+
+    return lines;
+  }, [session]);
+  const locationLines = useMemo(() => {
+    if (!session) return [] as string[];
+
+    const lines: string[] = [];
+    if (session.adresse_rue) lines.push(session.adresse_rue);
+    if (session.adresse_code_postal || session.adresse_ville) {
+      lines.push([session.adresse_code_postal, session.adresse_ville].filter(Boolean).join(" "));
+    }
+    if (lines.length === 0 && session.lieu) {
+      lines.push(session.lieu);
+    }
+
+    return lines;
+  }, [session]);
 
   const sessionInfo = session ? {
     id: session.id,
@@ -272,7 +318,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
       }
       setAddDialogOpen(false);
     } catch {
-      toast.error("Erreur lors de l'inscription");
+      // Le hook gère déjà le toast d'erreur métier.
     }
   };
 
@@ -401,99 +447,110 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Infos — clean, structural only */}
                 <TabsContent value="info" className="space-y-4 pt-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })}
-                        {" - "}
-                        {format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}
-                      </span>
-                    </div>
-                    
-                    {(session.heure_debut || session.heure_fin) && (
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          {session.heure_debut?.slice(0, 5) || "--:--"} - {session.heure_fin?.slice(0, 5) || "--:--"}
-                          {session.duree_heures && ` (${session.duree_heures}h)`}
-                        </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-foreground">Calendrier</h3>
                       </div>
-                    )}
-                    
-                    {(session.adresse_rue || session.adresse_ville || session.lieu) && (
-                      <div className="flex items-start gap-3 text-muted-foreground">
-                        <MapPin className="h-4 w-4 mt-0.5" />
-                        <div className="flex flex-col">
-                          {session.adresse_rue && <span>{session.adresse_rue}</span>}
-                          {(session.adresse_code_postal || session.adresse_ville) && (
-                            <span>{[session.adresse_code_postal, session.adresse_ville].filter(Boolean).join(" ")}</span>
-                          )}
-                          {!session.adresse_rue && !session.adresse_ville && session.lieu && (
-                            <span>{session.lieu}</span>
-                          )}
+                      <p className="text-sm text-foreground">{dateRangeLabel}</p>
+                    </div>
+
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-foreground">Horaires</h3>
+                      </div>
+                      {scheduleLines.length > 0 ? (
+                        <div className="space-y-1">
+                          {scheduleLines.map((line) => (
+                            <p key={line} className="text-sm text-foreground">
+                              {line}
+                            </p>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>
-                        {inscriptionCount} / {session.places_totales} inscrits
-                        {placesRestantes > 0 && ` (${placesRestantes} places restantes)`}
-                      </span>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Non renseignés</p>
+                      )}
                     </div>
-                    
-                    {(session.prix_ht || session.prix) && (
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Euro className="h-4 w-4" />
-                        <span>
-                          {(session.prix_ht || session.prix) 
-                            ? `${Number(session.prix_ht || session.prix).toLocaleString('fr-FR')} €`
-                            : '—'
-                          }
-                        </span>
+
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-foreground">Lieu</h3>
                       </div>
-                    )}
+                      {locationLines.length > 0 ? (
+                        <div className="space-y-1">
+                          {locationLines.map((line) => (
+                            <p key={line} className="text-sm text-foreground">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Non renseigné</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-foreground">Participants</h3>
+                      </div>
+                      <p className="text-sm text-foreground">
+                        {inscriptionCount} / {session.places_totales} inscrits
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {placesRestantes > 0
+                          ? `${placesRestantes} place${placesRestantes > 1 ? "s" : ""} restante${placesRestantes > 1 ? "s" : ""}`
+                          : "Session complète"}
+                      </p>
+                    </div>
                   </div>
 
-                  {session.objectifs && (
-                    <>
-                      <Separator />
+                  {(session.objectifs || session.prerequis || session.description) && (
+                    <div className="rounded-lg border bg-card p-4 space-y-4">
                       <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Objectifs pédagogiques</h3>
-                        <p className="text-sm whitespace-pre-line">{session.objectifs}</p>
+                        <h3 className="text-sm font-semibold text-foreground">Cadre pédagogique</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Références utiles pour l&apos;équipe pédagogique et administrative.
+                        </p>
                       </div>
-                    </>
+
+                      {session.objectifs && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Objectifs pédagogiques</h4>
+                          <p className="text-sm whitespace-pre-line">{session.objectifs}</p>
+                        </div>
+                      )}
+
+                      {session.prerequis && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Prérequis</h4>
+                          <p className="text-sm whitespace-pre-line">{session.prerequis}</p>
+                        </div>
+                      )}
+
+                      {session.description && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
+                          <p className="text-sm whitespace-pre-line">{session.description}</p>
+                        </div>
+                      )}
+                    </div>
                   )}
 
-                  {session.prerequis && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Prérequis</h3>
-                        <p className="text-sm whitespace-pre-line">{session.prerequis}</p>
-                      </div>
-                    </>
-                  )}
-
-                  {session.description && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-2">Description</h3>
-                        <p className="text-sm">{session.description}</p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Actions: Archive / Clôture */}
-                  <Separator />
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
+                  <div className="rounded-lg border bg-card p-4 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Gestion de session</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Finaliser, archiver ou rouvrir la session selon son état d&apos;avancement.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       {session.statut !== "terminee" && session.statut !== "annulee" && !session.archived && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1 border-success text-success hover:bg-success/10"
                           onClick={() => setCloseDialogOpen(true)}
                           disabled={inscriptionCount === 0}
@@ -502,11 +559,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                           Clôturer
                         </Button>
                       )}
-                    </div>
-                    <div className="flex gap-2">
                       {session.archived ? (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1"
                           onClick={() => unarchiveSession.mutate(session.id)}
                           disabled={unarchiveSession.isPending}
@@ -515,8 +570,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                           Désarchiver
                         </Button>
                       ) : canArchive ? (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1"
                           onClick={() => archiveSession.mutate(session.id)}
                           disabled={archiveSession.isPending}

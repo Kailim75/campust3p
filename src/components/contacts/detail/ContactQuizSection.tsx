@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import {
   ClipboardCheck,
   Play,
@@ -19,6 +18,7 @@ import {
   useLmsQuizzes,
   useLmsQuizAttempts,
   LmsQuiz,
+  type LmsQuizAttempt,
 } from "@/hooks/useLmsQuizzes";
 import { QuizPlayer } from "@/components/lms/quiz/QuizPlayer";
 import { format } from "date-fns";
@@ -46,11 +46,32 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
 
   const isLoading = quizzesLoading || attemptsLoading;
 
+  const activeQuizzes = useMemo(() => quizzes.filter((q) => q.actif), [quizzes]);
+  const attemptsByQuiz = useMemo(() => {
+    const grouped = new Map<string, LmsQuizAttempt[]>();
+    attempts.forEach((attempt) => {
+      const existing = grouped.get(attempt.quiz_id) ?? [];
+      existing.push(attempt);
+      grouped.set(attempt.quiz_id, existing);
+    });
+    return grouped;
+  }, [attempts]);
+
+  const passedQuizCount = useMemo(
+    () => activeQuizzes.filter((quiz) => (attemptsByQuiz.get(quiz.id) ?? []).some((attempt) => attempt.reussi)).length,
+    [activeQuizzes, attemptsByQuiz]
+  );
+
+  const averageScore = useMemo(() => {
+    if (attempts.length === 0) return 0;
+    return Math.round(attempts.reduce((sum, attempt) => sum + (attempt.score_pct || 0), 0) / attempts.length);
+  }, [attempts]);
+
   // Get attempt info for each quiz
   const getQuizAttemptInfo = (quizId: string) => {
-    const quizAttempts = attempts.filter((a: any) => a.quiz_id === quizId);
+    const quizAttempts = attemptsByQuiz.get(quizId) ?? [];
     const lastAttempt = quizAttempts[0];
-    const bestAttempt = quizAttempts.reduce((best: any, current: any) => {
+    const bestAttempt = quizAttempts.reduce<LmsQuizAttempt | null>((best, current) => {
       if (!best || current.score_pct > best.score_pct) return current;
       return best;
     }, null);
@@ -67,7 +88,7 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
     setShowPlayer(true);
   };
 
-  const handleQuizComplete = (passed: boolean, score: number) => {
+  const handleQuizComplete = () => {
     // Quiz completed - player shows results
   };
 
@@ -86,10 +107,41 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
     );
   }
 
-  const activeQuizzes = quizzes.filter((q) => q.actif);
-
   return (
     <div className="space-y-6">
+      <Card className="border-dashed">
+        <CardContent className="p-4 space-y-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4 text-primary" />
+              <p className="font-medium">Quiz & évaluations</p>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Suis ici les quiz disponibles pour {contactName}, les tentatives déjà réalisées et les résultats obtenus.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Quiz actifs</p>
+              <p className="mt-1 text-lg font-semibold">{activeQuizzes.length}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Quiz réussis</p>
+              <p className="mt-1 text-lg font-semibold">{passedQuizCount}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Tentatives</p>
+              <p className="mt-1 text-lg font-semibold">{attempts.length}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 px-3 py-3">
+              <p className="text-xs text-muted-foreground">Score moyen</p>
+              <p className="mt-1 text-lg font-semibold">{averageScore}%</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Quiz disponibles */}
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -170,7 +222,9 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
                         )}
                         {attemptInfo.lastAttempt && (
                           <div className="text-xs text-muted-foreground">
-                            Dernière tentative: {format(new Date(attemptInfo.lastAttempt.completed_at), "dd MMM yyyy à HH:mm", { locale: fr })}
+                            Dernière tentative: {attemptInfo.lastAttempt.completed_at
+                              ? format(new Date(attemptInfo.lastAttempt.completed_at), "dd MMM yyyy à HH:mm", { locale: fr })
+                              : "En cours"}
                           </div>
                         )}
                       </div>
@@ -213,7 +267,7 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
         <div>
           <h3 className="text-lg font-semibold mb-4">Historique des résultats</h3>
           <div className="space-y-2">
-            {attempts.slice(0, 10).map((attempt: any) => {
+            {attempts.slice(0, 10).map((attempt) => {
               const quiz = quizzes.find((q) => q.id === attempt.quiz_id);
               return (
                 <div
@@ -264,7 +318,7 @@ export function ContactQuizSection({ contactId, contactName }: ContactQuizSectio
             <QuizPlayer
               quiz={selectedQuiz}
               contactId={contactId}
-              attemptNumber={(attempts.filter((a: any) => a.quiz_id === selectedQuiz.id).length) + 1}
+              attemptNumber={((attemptsByQuiz.get(selectedQuiz.id) ?? []).length) + 1}
               onComplete={handleQuizComplete}
               onCancel={handleClosePlayer}
             />

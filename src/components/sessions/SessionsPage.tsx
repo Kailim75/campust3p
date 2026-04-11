@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
-import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
+import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session, type SessionInsert } from "@/hooks/useSessions";
 import { useReconcileFactures } from "@/hooks/useReconcileFactures";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
@@ -9,17 +9,40 @@ import { useSessionsViewPreferences } from "@/hooks/useSessionsViewPreferences";
 import { useSessionsExport } from "@/hooks/useSessionsExport";
 import { useSessionFinancials } from "@/hooks/useSessionFinancials";
 import { useSessionsFilters, defaultFilters, type SessionFilters } from "@/hooks/useSessionsFilters";
-import { SessionFormDialog } from "./SessionFormDialog";
-import { SessionDetailSheet } from "./SessionDetailSheet";
-import { SessionCalendar } from "./SessionCalendar";
 import { SessionsKPICards } from "./SessionsKPICards";
-import { SessionsGroupedTable } from "./SessionsGroupedTable";
-import { SessionsKanban } from "./SessionsKanban";
 import { SessionsToolbar } from "./SessionsToolbar";
-import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
-import { BookOpen } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Loader2, List, Kanban, CalendarDays, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+
+const SessionFormDialog = lazy(() =>
+  import("./SessionFormDialog").then((m) => ({ default: m.SessionFormDialog }))
+);
+const SessionDetailSheet = lazy(() =>
+  import("./SessionDetailSheet").then((m) => ({ default: m.SessionDetailSheet }))
+);
+const SessionCalendar = lazy(() =>
+  import("./SessionCalendar").then((m) => ({ default: m.SessionCalendar }))
+);
+const SessionsGroupedTable = lazy(() =>
+  import("./SessionsGroupedTable").then((m) => ({ default: m.SessionsGroupedTable }))
+);
+const SessionsKanban = lazy(() =>
+  import("./SessionsKanban").then((m) => ({ default: m.SessionsKanban }))
+);
+const ArchivedSessionsSheet = lazy(() =>
+  import("./ArchivedSessionsSheet").then((m) => ({ default: m.ArchivedSessionsSheet }))
+);
+
+function SessionsFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-7 w-7 animate-spin text-primary" />
+    </div>
+  );
+}
 
 export function SessionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,7 +72,7 @@ export function SessionsPage() {
     if (sessions && sessions.length > 0) {
       updateSessionStatuses.mutate(sessions);
     }
-  }, [sessions?.length]);
+  }, [sessions, updateSessionStatuses]);
 
   useEffect(() => {
     const idFromUrl = searchParams.get("id");
@@ -73,6 +96,64 @@ export function SessionsPage() {
     return [...new Set(sessions.map(s => s.formation_type))].sort();
   }, [sessions]);
 
+  const upcomingSessionsCount = useMemo(
+    () => sessions?.filter((session) => session.statut === "a_venir" || session.statut === "en_cours").length || 0,
+    [sessions],
+  );
+
+  const criticalSessionsCount = useMemo(() => {
+    if (!sessions) return 0;
+    return sessions.filter((session) => {
+      if (session.statut !== "a_venir") return false;
+      const daysUntil = Math.ceil((new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysUntil > 14 || daysUntil < 0) return false;
+      const inscrits = inscriptionsCounts[session.id] || 0;
+      const fillRate = session.places_totales > 0 ? inscrits / session.places_totales : 0;
+      return fillRate < 0.5;
+    }).length;
+  }, [inscriptionsCounts, sessions]);
+
+  const viewMeta = useMemo(() => {
+    if (viewMode === "kanban") {
+      return {
+        label: "Kanban",
+        description: "Suivi visuel des sessions par statut pour repérer rapidement ce qui avance et ce qui bloque.",
+        icon: Kanban,
+      };
+    }
+
+    if (viewMode === "calendar") {
+      return {
+        label: "Calendrier",
+        description: "Lecture temporelle des sessions pour anticiper les démarrages, chevauchements et créneaux sensibles.",
+        icon: CalendarDays,
+      };
+    }
+
+    return {
+      label: "Liste",
+      description: "Vue détaillée pour gérer les filtres, les groupes et la lecture opérationnelle des sessions.",
+      icon: List,
+    };
+  }, [viewMode]);
+
+  const toolbarSummary = useMemo(() => {
+    const parts = [
+      `${filteredSessions.length} session${filteredSessions.length > 1 ? "s" : ""} visible${filteredSessions.length > 1 ? "s" : ""}`,
+      `${upcomingSessionsCount} ouverte${upcomingSessionsCount > 1 ? "s" : ""}`,
+    ];
+
+    if (criticalSessionsCount > 0) {
+      parts.push(`${criticalSessionsCount} critique${criticalSessionsCount > 1 ? "s" : ""}`);
+    }
+
+    if (hasActiveFilters) {
+      parts.push(`filtres actifs sur ${sessions?.length || 0}`);
+    }
+
+    return parts.join(" · ");
+  }, [criticalSessionsCount, filteredSessions.length, hasActiveFilters, sessions?.length, upcomingSessionsCount]);
+
   const handleAddNew = () => { setEditingSession(null); setFormOpen(true); };
   const handleEdit = (session: Session) => { setEditingSession(session); setFormOpen(true); };
   const handleViewDetail = (session: Session) => { setDetailSessionId(session.id); setDetailOpen(true); };
@@ -84,8 +165,19 @@ export function SessionsPage() {
 
   const handleDuplicate = async (session: Session) => {
     try {
-      const { id, created_at, updated_at, numero_session, ...sessionData } = session as any;
-      await createSession.mutateAsync({ ...sessionData, nom: `${session.nom} (copie)`, statut: 'a_venir' });
+      const {
+        id: _id,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        numero_session: _numeroSession,
+        ...sessionData
+      } = session;
+      const duplicatedSession: SessionInsert = {
+        ...sessionData,
+        nom: `${session.nom} (copie)`,
+        statut: "a_venir",
+      };
+      await createSession.mutateAsync(duplicatedSession);
       toast.success("Session dupliquée avec succès");
     } catch { toast.error("Erreur lors de la duplication"); }
   };
@@ -99,11 +191,50 @@ export function SessionsPage() {
     setFilters(prev => ({ ...prev, criticalOnly: !prev.criticalOnly }));
   };
 
+  const handleResetFilters = () => {
+    setFilters(defaultFilters);
+  };
+
   return (
     <div className="min-h-screen">
       <Header title="Sessions de formation" subtitle="Gérez vos sessions et inscriptions" />
 
       <main className="p-3 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
+        <Card className="border-dashed bg-muted/20">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <viewMeta.icon className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-semibold">Pilotage des sessions</p>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{viewMeta.description}</p>
+              </div>
+              <div className="rounded-lg border bg-background px-3 py-2 text-xs">
+                <p className="font-medium">Résumé rapide</p>
+                <p className="text-muted-foreground">{toolbarSummary}</p>
+                <p className="mt-1 text-muted-foreground">
+                  {hasActiveFilters ? "Affichage filtré" : "Aucun filtre avancé actif"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-[11px]">Vue {viewMeta.label.toLowerCase()}</Badge>
+              <Badge variant="outline" className="text-[11px]">{filteredSessions.length} session{filteredSessions.length > 1 ? "s" : ""} affichée{filteredSessions.length > 1 ? "s" : ""}</Badge>
+              {upcomingSessionsCount > 0 && (
+                <Badge variant="outline" className="text-[11px]">{upcomingSessionsCount} session{upcomingSessionsCount > 1 ? "s" : ""} ouverte{upcomingSessionsCount > 1 ? "s" : ""}</Badge>
+              )}
+              {criticalSessionsCount > 0 && (
+                <Badge variant="destructive" className="gap-1 text-[11px]">
+                  <AlertTriangle className="h-3 w-3" />
+                  {criticalSessionsCount} session{criticalSessionsCount > 1 ? "s" : ""} critique{criticalSessionsCount > 1 ? "s" : ""}s
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {sessions && (
           <SessionsKPICards
             sessions={sessions}
@@ -125,7 +256,7 @@ export function SessionsPage() {
           showProfitability={showProfitability}
           onShowProfitabilityChange={(v) => {
             setShowProfitability(v);
-            try { localStorage.setItem('sessions-profitability', String(v)); } catch {}
+            try { localStorage.setItem('sessions-profitability', String(v)); } catch { /* ignore storage errors */ }
           }}
           onExport={handleExport}
           onReconcile={() => reconcileFactures.mutate()}
@@ -135,46 +266,50 @@ export function SessionsPage() {
           totalCount={sessions?.length || 0}
           filteredCount={filteredSessions.length}
           hasActiveFilters={hasActiveFilters}
+          onResetFilters={handleResetFilters}
+          summaryLine={toolbarSummary}
         />
 
-        {viewMode === "calendar" && (
-          <SessionCalendar sessions={filteredSessions} onSessionClick={handleViewDetail} onSessionEdit={handleEdit} />
-        )}
+        <Suspense fallback={<SessionsFallback />}>
+          {viewMode === "calendar" && (
+            <SessionCalendar sessions={filteredSessions} onSessionClick={handleViewDetail} onSessionEdit={handleEdit} />
+          )}
 
-        {viewMode === "kanban" && (
-          <SessionsKanban
-            sessions={filteredSessions}
-            inscriptionsCounts={inscriptionsCounts}
-            isLoading={isLoading}
-            onViewDetail={handleViewDetail}
-            onEdit={handleEdit}
-            onDuplicate={handleDuplicate}
-            onDelete={handleDelete}
-          />
-        )}
+          {viewMode === "kanban" && (
+            <SessionsKanban
+              sessions={filteredSessions}
+              inscriptionsCounts={inscriptionsCounts}
+              isLoading={isLoading}
+              onViewDetail={handleViewDetail}
+              onEdit={handleEdit}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDelete}
+            />
+          )}
 
-        {viewMode === "list" && (
-          <>
-            {error ? (
-              <div className="card-elevated p-8 text-center text-destructive">Erreur lors du chargement des sessions</div>
-            ) : (
-              <SessionsGroupedTable
-                sessions={filteredSessions}
-                inscriptionsCounts={inscriptionsCounts}
-                financials={financials}
-                showProfitability={showProfitability}
-                isLoading={isLoading}
-                groupBy={groupBy}
-                activeSessionId={detailOpen ? detailSessionId : null}
-                onGroupByChange={setGroupBy}
-                onViewDetail={handleViewDetail}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-              />
-            )}
-          </>
-        )}
+          {viewMode === "list" && (
+            <>
+              {error ? (
+                <div className="card-elevated p-8 text-center text-destructive">Erreur lors du chargement des sessions</div>
+              ) : (
+                <SessionsGroupedTable
+                  sessions={filteredSessions}
+                  inscriptionsCounts={inscriptionsCounts}
+                  financials={financials}
+                  showProfitability={showProfitability}
+                  isLoading={isLoading}
+                  groupBy={groupBy}
+                  activeSessionId={detailOpen ? detailSessionId : null}
+                  onGroupByChange={setGroupBy}
+                  onViewDetail={handleViewDetail}
+                  onEdit={handleEdit}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDelete}
+                />
+              )}
+            </>
+          )}
+        </Suspense>
 
         {/* État vide engageant */}
         {!isLoading && sessions && sessions.length === 0 && (
@@ -192,14 +327,26 @@ export function SessionsPage() {
         )}
       </main>
 
-      <SessionFormDialog open={formOpen} onOpenChange={setFormOpen} session={editingSession} />
-      <SessionDetailSheet
-        sessionId={detailSessionId}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        onEdit={(session) => { setDetailOpen(false); handleEdit(session); }}
-      />
-      <ArchivedSessionsSheet open={archivedOpen} onOpenChange={setArchivedOpen} />
+      {formOpen && (
+        <Suspense fallback={null}>
+          <SessionFormDialog open={formOpen} onOpenChange={setFormOpen} session={editingSession} />
+        </Suspense>
+      )}
+      {detailOpen && (
+        <Suspense fallback={null}>
+          <SessionDetailSheet
+            sessionId={detailSessionId}
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+            onEdit={(session) => { setDetailOpen(false); handleEdit(session); }}
+          />
+        </Suspense>
+      )}
+      {archivedOpen && (
+        <Suspense fallback={null}>
+          <ArchivedSessionsSheet open={archivedOpen} onOpenChange={setArchivedOpen} />
+        </Suspense>
+      )}
     </div>
   );
 }

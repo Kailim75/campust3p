@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Stamp } from "lucide-react";
+import { Loader2, Stamp, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,12 +103,36 @@ const documentStatusConfig = {
 };
 
 // Signature status config
-const signatureStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
+const signatureStatusConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
   envoye: { label: "Envoyé", color: "bg-info/10 text-info", icon: Mail },
   signe: { label: "Signé", color: "bg-success/10 text-success", icon: CheckCircle },
   refuse: { label: "Refusé", color: "bg-destructive/10 text-destructive", icon: XCircle },
   expire: { label: "Expiré", color: "bg-warning/10 text-warning", icon: AlertTriangle },
+};
+
+const generatedStatusConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
+  generated: { label: "Généré", color: "bg-success/10 text-success", icon: CheckCircle },
+  queued: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
+  failed: { label: "Échec", color: "bg-destructive/10 text-destructive", icon: XCircle },
+};
+
+const viewConfig: Record<ViewMode, { title: string; description: string; icon: LucideIcon }> = {
+  documents: {
+    title: "Suivi des pièces et justificatifs",
+    description: "Repérez rapidement les documents valides, expirés ou manquants avant qu'ils ne bloquent un dossier.",
+    icon: FileText,
+  },
+  signatures: {
+    title: "Pilotage des signatures",
+    description: "Suivez les demandes envoyées, les signatures obtenues et les relances qui demandent encore une action.",
+    icon: FileSignature,
+  },
+  generated: {
+    title: "Documents générés",
+    description: "Contrôlez les créations issues du Template Studio et vérifiez ce qui a bien été produit.",
+    icon: Stamp,
+  },
 };
 
 // Mock document data (replace with real hook when available)
@@ -119,6 +143,21 @@ interface Document {
   status: "valide" | "expire" | "manquant" | "a_verifier";
   dateExpiration?: string;
   dateUpload?: string;
+}
+
+interface GeneratedDocumentInstance {
+  id: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  status: string | null;
+  created_at: string;
+  metadata?: {
+    entity_label?: string;
+  } | null;
+  template_studio_templates?: {
+    name?: string | null;
+    type?: string | null;
+  } | null;
 }
 
 const mockDocuments: Document[] = [
@@ -135,7 +174,7 @@ function usePublishedTemplates() {
   return useQuery({
     queryKey: ["published-templates-for-docs"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("template_studio_templates")
         .select("*")
         .eq("status", "published")
@@ -149,18 +188,20 @@ function usePublishedTemplates() {
 
 export function DocumentsUnifiedPage() {
   const [activeView, setActiveView] = useState<ViewMode>("documents");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [documentSearchQuery, setDocumentSearchQuery] = useState("");
+  const [generatedSearchQuery, setGeneratedSearchQuery] = useState("");
+  const [generatedStatusFilter, setGeneratedStatusFilter] = useState<string>("all");
 
   // Document instances from Template Studio
   const { data: generatedDocs = [], isLoading: loadingGenerated } = useQuery({
     queryKey: ["document-instances"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("document_instances")
         .select("*, template_studio_templates(name, type)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as GeneratedDocumentInstance[];
     },
   });
 
@@ -182,10 +223,14 @@ export function DocumentsUnifiedPage() {
   const [generateTemplate, setGenerateTemplate] = useState<StudioTemplate | null>(null);
 
   // Document filtering
-  const filteredDocuments = mockDocuments.filter(
-    (doc) =>
-      doc.stagiaire.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.type.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDocuments = useMemo(
+    () =>
+      mockDocuments.filter(
+        (doc) =>
+          doc.stagiaire.toLowerCase().includes(documentSearchQuery.toLowerCase()) ||
+          doc.type.toLowerCase().includes(documentSearchQuery.toLowerCase()),
+      ),
+    [documentSearchQuery],
   );
 
   // Signature filtering
@@ -208,10 +253,42 @@ export function DocumentsUnifiedPage() {
     signes: signatures.filter((s) => s.statut === "signe").length,
   };
 
+  const generatedStats = useMemo(
+    () => ({
+      total: generatedDocs.length,
+      publishedTemplates: publishedTemplates.length,
+      ready: generatedDocs.filter((doc) => doc.status === "generated").length,
+      failed: generatedDocs.filter((doc) => doc.status === "failed").length,
+      recent: generatedDocs.filter((doc) => {
+        const createdAt = new Date(doc.created_at).getTime();
+        return Date.now() - createdAt < 1000 * 60 * 60 * 24 * 7;
+      }).length,
+    }),
+    [generatedDocs, publishedTemplates.length],
+  );
+
+  const filteredGeneratedDocs = useMemo(() => {
+    return generatedDocs.filter((doc) => {
+      const matchesStatus = generatedStatusFilter === "all" || (doc.status ?? "unknown") === generatedStatusFilter;
+      const normalizedQuery = generatedSearchQuery.trim().toLowerCase();
+      const matchesSearch =
+        normalizedQuery.length === 0 ||
+        doc.template_studio_templates?.name?.toLowerCase().includes(normalizedQuery) ||
+        doc.metadata?.entity_label?.toLowerCase().includes(normalizedQuery) ||
+        doc.entity_type?.toLowerCase().includes(normalizedQuery) ||
+        doc.entity_id?.toLowerCase().includes(normalizedQuery);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [generatedDocs, generatedSearchQuery, generatedStatusFilter]);
+
+  const activeViewMeta = viewConfig[activeView];
+  const ActiveViewIcon = activeViewMeta.icon;
+
   const handleSendSignature = async (id: string) => {
     // Vérifier que le contact a un email avant d'envoyer
     const sig = signatures.find((s) => s.id === id);
-    const contact = sig?.contact as any;
+    const contact = sig?.contact;
     if (!contact?.email) {
       toast.error("Ce contact n'a pas d'adresse email. Veuillez d'abord renseigner son email.");
       return;
@@ -219,8 +296,9 @@ export function DocumentsUnifiedPage() {
     try {
       await sendEmail.mutateAsync({ signatureRequestId: id, type: "signature_request" });
       toast.success("Demande de signature envoyée");
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de l'envoi");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erreur lors de l'envoi";
+      toast.error(message);
     }
   };
 
@@ -251,6 +329,66 @@ export function DocumentsUnifiedPage() {
         addLabel={activeView === "signatures" ? "Nouvelle signature" : undefined}
         onAddClick={activeView === "signatures" ? handleAddNew : undefined}
       />
+
+      <Card className="border-dashed bg-muted/20">
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <ActiveViewIcon className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">{activeViewMeta.title}</p>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{activeViewMeta.description}</p>
+            </div>
+            <div className="rounded-lg border bg-background px-3 py-2 text-xs">
+              <p className="font-medium">Résumé rapide</p>
+              {activeView === "documents" && (
+                <>
+                  <p className="text-muted-foreground">{filteredDocuments.length} document{filteredDocuments.length > 1 ? "s" : ""} visible{filteredDocuments.length > 1 ? "s" : ""}</p>
+                  <p className="mt-1 text-muted-foreground">{documentStats.manquants} manquant{documentStats.manquants > 1 ? "s" : ""} · {documentStats.expires} expiré{documentStats.expires > 1 ? "s" : ""}</p>
+                </>
+              )}
+              {activeView === "signatures" && (
+                <>
+                  <p className="text-muted-foreground">{filteredSignatures.length} demande{filteredSignatures.length > 1 ? "s" : ""} affichée{filteredSignatures.length > 1 ? "s" : ""}</p>
+                  <p className="mt-1 text-muted-foreground">{signatureStats.enAttente} en attente · {signatureStats.signes} signée{signatureStats.signes > 1 ? "s" : ""}</p>
+                </>
+              )}
+              {activeView === "generated" && (
+                <>
+                  <p className="text-muted-foreground">{generatedStats.total} document{generatedStats.total > 1 ? "s" : ""} généré{generatedStats.total > 1 ? "s" : ""}</p>
+                  <p className="mt-1 text-muted-foreground">{generatedStats.ready} prêt{generatedStats.ready > 1 ? "s" : ""} · {generatedStats.failed} échec{generatedStats.failed > 1 ? "s" : ""}</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {activeView === "documents" && (
+              <>
+                <Badge variant="outline" className="text-[11px]">{documentStats.valides} valide{documentStats.valides > 1 ? "s" : ""}</Badge>
+                {documentStats.expires > 0 && <Badge variant="outline" className="text-[11px]">{documentStats.expires} expiré{documentStats.expires > 1 ? "s" : ""}</Badge>}
+                {documentStats.manquants > 0 && <Badge variant="destructive" className="text-[11px]">{documentStats.manquants} manquant{documentStats.manquants > 1 ? "s" : ""}</Badge>}
+              </>
+            )}
+            {activeView === "signatures" && (
+              <>
+                <Badge variant="outline" className="text-[11px]">{signatureStats.total} demande{signatureStats.total > 1 ? "s" : ""}</Badge>
+                {signatureStats.enAttente > 0 && <Badge variant="outline" className="text-[11px]">{signatureStats.enAttente} en attente</Badge>}
+                {signatureStats.signes > 0 && <Badge variant="outline" className="text-[11px]">{signatureStats.signes} signée{signatureStats.signes > 1 ? "s" : ""}</Badge>}
+              </>
+            )}
+            {activeView === "generated" && (
+              <>
+                <Badge variant="outline" className="text-[11px]">{generatedStats.total} document{generatedStats.total > 1 ? "s" : ""}</Badge>
+                <Badge variant="outline" className="text-[11px]">{generatedStats.publishedTemplates} template{generatedStats.publishedTemplates > 1 ? "s" : ""} publié{generatedStats.publishedTemplates > 1 ? "s" : ""}</Badge>
+                {generatedStats.ready > 0 && <Badge variant="outline" className="text-[11px]">{generatedStats.ready} prêt{generatedStats.ready > 1 ? "s" : ""}</Badge>}
+                {generatedStats.failed > 0 && <Badge variant="destructive" className="text-[11px]">{generatedStats.failed} échec{generatedStats.failed > 1 ? "s" : ""}</Badge>}
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewMode)} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -312,11 +450,14 @@ export function DocumentsUnifiedPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Rechercher par stagiaire ou type..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={documentSearchQuery}
+              onChange={(e) => setDocumentSearchQuery(e.target.value)}
               className="pl-9"
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            {filteredDocuments.length} résultat{filteredDocuments.length > 1 ? "s" : ""}{documentSearchQuery ? ` pour “${documentSearchQuery}”` : ""} · priorité aux pièces manquantes ou expirées
+          </p>
 
           {/* Table */}
           <Card>
@@ -415,7 +556,15 @@ export function DocumentsUnifiedPage() {
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle demande
             </Button>
+            {signatureStatusFilter !== "all" && (
+              <Button variant="ghost" onClick={() => setSignatureStatusFilter("all")}>
+                Réinitialiser le filtre
+              </Button>
+            )}
           </div>
+          <p className="text-xs text-muted-foreground">
+            {filteredSignatures.length} demande{filteredSignatures.length > 1 ? "s" : ""} affichée{filteredSignatures.length > 1 ? "s" : ""}{signatureStatusFilter !== "all" ? ` · filtre ${signatureStatusFilter.replace("_", " ")}` : ""}.
+          </p>
 
           {/* Signatures Table */}
           {loadingSignatures ? (
@@ -535,15 +684,77 @@ export function DocumentsUnifiedPage() {
             </Card>
           )}
 
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-2xl font-bold">{generatedStats.total}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">Prêts</p>
+              <p className="text-2xl font-bold text-success">{generatedStats.ready}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">Templates publiés</p>
+              <p className="text-2xl font-bold">{generatedStats.publishedTemplates}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">7 derniers jours</p>
+              <p className="text-2xl font-bold">{generatedStats.recent}</p>
+            </Card>
+          </div>
+
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+              <div className="relative max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un template, une entité ou un identifiant..."
+                  value={generatedSearchQuery}
+                  onChange={(e) => setGeneratedSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={generatedStatusFilter} onValueChange={setGeneratedStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[190px]">
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="generated">Généré</SelectItem>
+                  <SelectItem value="queued">En attente</SelectItem>
+                  <SelectItem value="failed">Échec</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(generatedSearchQuery || generatedStatusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setGeneratedSearchQuery("");
+                  setGeneratedStatusFilter("all");
+                }}
+              >
+                Réinitialiser les filtres
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {filteredGeneratedDocs.length} document{filteredGeneratedDocs.length > 1 ? "s" : ""} visible{filteredGeneratedDocs.length > 1 ? "s" : ""}{generatedSearchQuery ? ` pour “${generatedSearchQuery}”` : ""}{generatedStatusFilter !== "all" ? ` · filtre ${generatedStatusConfig[generatedStatusFilter]?.label.toLowerCase() || generatedStatusFilter}` : ""}.
+          </p>
+
           {loadingGenerated ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : generatedDocs.length === 0 ? (
+          ) : filteredGeneratedDocs.length === 0 ? (
             <Card className="p-8 text-center text-muted-foreground">
               <Stamp className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Aucun document généré</p>
-              <p className="text-sm mt-1">Utilisez les boutons ci-dessus ou le Template Studio pour générer des documents</p>
+              <p className="font-medium">Aucun document à afficher</p>
+              <p className="text-sm mt-1">
+                {generatedDocs.length === 0
+                  ? "Utilisez les boutons ci-dessus ou le Template Studio pour générer des documents."
+                  : "Ajustez les filtres pour retrouver un document généré."}
+              </p>
             </Card>
           ) : (
             <Card>
@@ -558,19 +769,40 @@ export function DocumentsUnifiedPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {generatedDocs.map((doc: any) => (
+                  {filteredGeneratedDocs.map((doc) => {
+                    const statusMeta = generatedStatusConfig[doc.status ?? ""] ?? {
+                      label: doc.status || "Inconnu",
+                      color: "bg-muted text-muted-foreground",
+                      icon: FileText,
+                    };
+                    const StatusIcon = statusMeta.icon;
+
+                    return (
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">
-                        {doc.template_studio_templates?.name || "—"}
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">{doc.template_studio_templates?.name || "—"}</p>
+                          {doc.template_studio_templates?.type && (
+                            <Badge variant="outline" className="text-[11px] capitalize">
+                              {doc.template_studio_templates.type}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {doc.entity_type}
-                        </Badge>
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="capitalize">
+                            {doc.entity_type || "—"}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground">
+                            {doc.metadata?.entity_label || doc.entity_id?.substring(0, 8) || "Aucun contexte"}
+                          </p>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={doc.status === "generated" ? "default" : "secondary"}>
-                          {doc.status === "generated" ? "Généré" : doc.status}
+                        <Badge className={cn("gap-1.5", statusMeta.color)}>
+                          <StatusIcon className="h-3 w-3" />
+                          {statusMeta.label}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -579,10 +811,11 @@ export function DocumentsUnifiedPage() {
                         })}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {doc.metadata?.entity_label || doc.entity_id?.substring(0, 8)}
+                        {doc.id.substring(0, 8)}{doc.status === "failed" ? " · à contrôler" : ""}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );
+                  })}
                 </TableBody>
               </Table>
             </Card>

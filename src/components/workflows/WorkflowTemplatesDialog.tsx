@@ -2,8 +2,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { WORKFLOW_TEMPLATES, TRIGGER_TYPES, WorkflowTemplate } from '@/hooks/useWorkflows';
-import { Zap, ArrowRight, Mail, Bell, RefreshCw, FileText, Clock, Globe } from 'lucide-react';
+import { WORKFLOW_TEMPLATES, TRIGGER_TYPES } from '@/hooks/useWorkflows';
+import type { WorkflowTemplate } from '@/hooks/useWorkflows';
+import { Zap, ArrowRight, Mail, Bell, RefreshCw, FileText, Clock, Globe, LucideIcon } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -11,7 +12,7 @@ interface Props {
   onSelect: (template: WorkflowTemplate) => void;
 }
 
-const ACTION_ICONS: Record<string, any> = {
+const ACTION_ICONS: Record<string, LucideIcon> = {
   send_email: Mail,
   create_notification: Bell,
   update_status: RefreshCw,

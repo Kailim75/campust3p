@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -30,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Send, Mail, FileText, Eye, Sparkles } from "lucide-react";
+import { Send, Mail, FileText, Eye, Sparkles, ArrowRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useEmailTemplates, replaceTemplateVariables } from "@/hooks/useEmailTemplates";
 import { useCreateProspectHistorique } from "@/hooks/useProspectHistorique";
@@ -86,21 +87,40 @@ export function ProspectSendEmailDialog({
 
   const watchedContent = form.watch("contenu");
   const watchedSubject = form.watch("sujet");
+  const hasEmail = Boolean(prospect.email);
 
   // Get variables for replacement
-  const getVariables = () => ({
-    prenom: prospect.prenom,
-    nom: prospect.nom,
-    email: prospect.email || "",
-    formation: prospect.formation_souhaitee || "",
-    date: new Date().toLocaleDateString("fr-FR"),
-  });
+  const variables = useMemo(
+    () => ({
+      prenom: prospect.prenom,
+      nom: prospect.nom,
+      email: prospect.email || "",
+      formation: prospect.formation_souhaitee || "",
+      date: new Date().toLocaleDateString("fr-FR"),
+    }),
+    [prospect.email, prospect.formation_souhaitee, prospect.nom, prospect.prenom]
+  );
+
+  const groupedTemplates = useMemo(
+    () =>
+      templates.reduce((acc, template) => {
+        const cat = template.categorie || "autre";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(template);
+        return acc;
+      }, {} as Record<string, typeof templates>),
+    [templates]
+  );
+
+  const previewContent = useMemo(
+    () => replaceTemplateVariables(watchedContent, variables),
+    [variables, watchedContent]
+  );
 
   // Handle template selection
   const handleTemplateSelect = (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);
     if (template) {
-      const variables = getVariables();
       form.setValue("sujet", replaceTemplateVariables(template.sujet, variables));
       form.setValue("contenu", replaceTemplateVariables(template.contenu, variables));
     }
@@ -142,26 +162,16 @@ export function ProspectSendEmailDialog({
       
       form.reset();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending email:", error);
+      const message = error instanceof Error ? error.message : "Veuillez réessayer";
       toast.error("Erreur lors de l'envoi", {
-        description: error.message || "Veuillez réessayer",
+        description: message,
       });
     } finally {
       setIsSending(false);
     }
   };
-
-  // Group templates by category
-  const groupedTemplates = templates.reduce((acc, template) => {
-    const cat = template.categorie || "autre";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(template);
-    return acc;
-  }, {} as Record<string, typeof templates>);
-
-  // Preview content with variables replaced
-  const previewContent = replaceTemplateVariables(watchedContent, getVariables());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -173,7 +183,31 @@ export function ProspectSendEmailDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {!prospect.email ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Card className="bg-muted/20">
+            <CardContent className="px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contact</p>
+              <p className="text-sm font-semibold">{prospect.prenom} {prospect.nom}</p>
+              <p className="text-xs text-muted-foreground">{prospect.email || "Aucun email renseigné"}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-muted/20">
+            <CardContent className="px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Formation</p>
+              <p className="text-sm font-semibold">{prospect.formation_souhaitee || "Non renseignée"}</p>
+              <p className="text-xs text-muted-foreground">Personnalisation disponible via les variables</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-muted/20">
+            <CardContent className="px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Modèles</p>
+              <p className="text-sm font-semibold">{templates.length}</p>
+              <p className="text-xs text-muted-foreground">Bibliothèque email disponible</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {!hasEmail ? (
           <div className="py-8 text-center">
             <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">
@@ -183,6 +217,13 @@ export function ProspectSendEmailDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSend)} className="flex-1 flex flex-col gap-4 overflow-hidden">
+              <div className="flex items-start gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                <span>
+                  Ce message sera envoyé directement au prospect et enregistré dans son historique CRM.
+                </span>
+              </div>
+
               {/* Template selector */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -221,6 +262,13 @@ export function ProspectSendEmailDialog({
                 )}
               </div>
 
+              {templates.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">{Object.keys(groupedTemplates).length} catégorie{Object.keys(groupedTemplates).length > 1 ? "s" : ""}</Badge>
+                  <Badge variant="outline">{templates.length} modèle{templates.length > 1 ? "s" : ""}</Badge>
+                </div>
+              )}
+
               {/* Email form */}
               <div className="flex-1 overflow-hidden flex flex-col gap-3">
                 <FormField
@@ -243,7 +291,7 @@ export function ProspectSendEmailDialog({
                 {showPreview ? (
                   <div className="flex-1 overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Aperçu</span>
+                      <span className="text-sm font-medium">Aperçu avant envoi</span>
                       <Button 
                         type="button" 
                         variant="ghost" 
@@ -255,6 +303,10 @@ export function ProspectSendEmailDialog({
                     </div>
                     <ScrollArea className="h-64 border rounded-md p-4 bg-muted/30">
                       <div className="space-y-2">
+                        <div className="flex items-start gap-2 rounded-md border bg-background/80 px-3 py-2 text-xs text-muted-foreground">
+                          <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span>Vérifiez l'objet, le nom du prospect et les variables remplacées avant l'envoi.</span>
+                        </div>
                         <div className="text-sm">
                           <span className="font-medium">À:</span> {prospect.email}
                         </div>
@@ -296,11 +348,14 @@ export function ProspectSendEmailDialog({
                             placeholder="Contenu de votre email..."
                             {...field} 
                           />
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-xs text-muted-foreground">
+                      </FormControl>
+                      <FormMessage />
+                        <div className="flex items-start gap-2 rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span>
                           Variables disponibles: {"{{prenom}}"}, {"{{nom}}"}, {"{{formation}}"}, {"{{date}}"}
-                        </p>
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />

@@ -60,6 +60,19 @@ interface SessionParcoursTabProps {
   sessionId: string;
 }
 
+interface SessionParcoursContact {
+  prenom?: string | null;
+  nom?: string | null;
+  email?: string | null;
+  statut_apprenant?: string | null;
+  formation?: string | null;
+}
+
+interface SessionParcoursInscrit {
+  contact_id: string;
+  contact?: SessionParcoursContact | null;
+}
+
 export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   const { inscrits, isLoading } = useSessionInscrits(sessionId);
   const { data: session } = useSession(sessionId);
@@ -87,7 +100,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   const [showLockedDialog, setShowLockedDialog] = useState(false);
   // Reactivation dialog state
   const [reactivationTarget, setReactivationTarget] = useState<{
-    id: string; prenom: string; nom: string; statut_apprenant: any;
+    id: string; prenom: string; nom: string; statut_apprenant: string | null;
   } | null>(null);
   const [pendingReprogramAfterReactivation, setPendingReprogramAfterReactivation] = useState<{
     contactId: string; contactName: string; type: "theorie" | "pratique";
@@ -149,8 +162,8 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     type: "theorie" | "pratique"
   ) => {
     // Check if contact needs reactivation
-    const inscrit = inscrits?.find((i) => i.contact_id === contactId);
-    const statutApprenant = (inscrit?.contact as any)?.statut_apprenant;
+    const inscrit = inscrits?.find((i) => i.contact_id === contactId) as SessionParcoursInscrit | undefined;
+    const statutApprenant = inscrit?.contact?.statut_apprenant ?? null;
     if (shouldReactivate(statutApprenant)) {
       setReactivationTarget({
         id: contactId,
@@ -203,15 +216,15 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
       }
 
       setReprogramDialogOpen(false);
-    } catch {
-      toast.error("Erreur lors de l'inscription");
+    } catch (error) {
+      console.error("Erreur reprogrammation inscription:", error);
     }
   };
 
   // ─── Email handlers ───
   const handleSendFelicitations = (
     contactId: string,
-    contact: any,
+    contact: SessionParcoursContact | null | undefined,
     type: "theorie" | "pratique"
   ) => {
     if (!contact?.email) {
@@ -241,7 +254,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
 
   const handleSendEncouragement = (
     contactId: string,
-    contact: any,
+    contact: SessionParcoursContact | null | undefined,
     type: "theorie" | "pratique"
   ) => {
     if (!contact?.email) {
@@ -269,7 +282,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
     });
   };
 
-  const handleSendCartePro = (contactId: string, contact: any) => {
+  const handleSendCartePro = (contactId: string, contact: SessionParcoursContact | null | undefined) => {
     if (!contact?.email) {
       toast.error("Cet apprenant n'a pas d'email");
       return;
@@ -342,7 +355,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
       "Nom": i.contact?.nom || "",
       "Email": i.contact?.email || "-",
       "Téléphone": i.contact?.telephone || "-",
-      "Formation": (i.contact as any)?.formation || session?.formation_type || "",
+      "Formation": i.contact?.formation || session?.formation_type || "",
       "Examen": type === "theorie" ? "Théorie" : "Pratique",
       "Résultat": "Admis",
     }));

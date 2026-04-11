@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,9 @@ import {
   CreditCard,
   Award,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  ArrowRight,
+  RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmailTemplates, useDeleteEmailTemplate, type EmailTemplate } from "@/hooks/useEmailTemplates";
@@ -70,6 +71,9 @@ export function CommunicationsPage() {
   });
 
   const categories = ["all", ...new Set(templates.map((t) => t.categorie))];
+  const activeTemplates = templates.filter((template) => template.actif).length;
+  const inactiveTemplates = templates.length - activeTemplates;
+  const hasFilters = search.length > 0 || selectedCategorie !== "all";
 
   const handleEdit = (template: EmailTemplate) => {
     setEditingTemplate(template);
@@ -90,14 +94,48 @@ export function CommunicationsPage() {
     setEditingTemplate(null);
   };
 
-  return (
-    <div className="min-h-screen">
-      <Header 
-        title="Communications" 
-        subtitle="Modèles d'emails personnalisables"
-      />
+  const resetFilters = () => {
+    setSearch("");
+    setSelectedCategorie("all");
+  };
 
-      <main className="p-6 space-y-6 animate-fade-in">
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <Card className="border-dashed bg-muted/20">
+        <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <Badge variant="secondary" className="w-fit gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              Modèles et envois
+            </Badge>
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">Gardez vos modèles utiles, lisibles et faciles à retrouver.</h2>
+              <p className="text-sm text-muted-foreground">
+                Ici, le plus important est de piloter les modèles actifs, repérer les catégories utiles et éviter que la bibliothèque devienne un catalogue brouillon.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bibliothèque</p>
+              <p className="text-lg font-semibold">{templates.length}</p>
+              <p className="text-xs text-muted-foreground">Modèles disponibles</p>
+            </div>
+            <div className="rounded-lg border bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Actifs</p>
+              <p className="text-lg font-semibold">{activeTemplates}</p>
+              <p className="text-xs text-muted-foreground">{inactiveTemplates} inactif{inactiveTemplates > 1 ? "s" : ""} en réserve</p>
+            </div>
+            <div className="rounded-lg border bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Affichés</p>
+              <p className="text-lg font-semibold">{filteredTemplates.length}</p>
+              <p className="text-xs text-muted-foreground">Après recherche et filtres</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <main className="space-y-6">
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="relative flex-1 max-w-md">
@@ -113,6 +151,31 @@ export function CommunicationsPage() {
             <Plus className="h-4 w-4 mr-2" />
             Nouveau modèle
           </Button>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-foreground">
+              {filteredTemplates.length} modèle{filteredTemplates.length > 1 ? "s" : ""} visible{filteredTemplates.length > 1 ? "s" : ""}
+            </span>
+            {hasFilters ? (
+              <>
+                <Badge variant="outline">Filtres actifs</Badge>
+                {selectedCategorie !== "all" && (
+                  <Badge variant="secondary">{categorieConfig[selectedCategorie]?.label || selectedCategorie}</Badge>
+                )}
+                {search && <Badge variant="secondary">Recherche</Badge>}
+              </>
+            ) : (
+              <span>Vue complète de la bibliothèque d'emails.</span>
+            )}
+          </div>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" className="gap-2 self-start sm:self-auto" onClick={resetFilters}>
+              <RotateCcw className="h-3.5 w-3.5" />
+              Réinitialiser
+            </Button>
+          )}
         </div>
 
         {/* Tabs par catégorie */}
@@ -143,7 +206,12 @@ export function CommunicationsPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">Aucun modèle trouvé</p>
+                  <p className="font-medium text-foreground">Aucun modèle trouvé</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {hasFilters
+                      ? "Essayez d'élargir vos filtres ou votre recherche."
+                      : "Commencez par créer un modèle utile au quotidien pour l'équipe."}
+                  </p>
                   <Button 
                     variant="outline" 
                     className="mt-4"
@@ -213,7 +281,7 @@ export function CommunicationsPage() {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-1 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 pt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -286,12 +354,20 @@ export function CommunicationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {["civilite", "nom", "prenom", "email", "telephone", "formation_type", "date_debut", "date_fin", "lieu", "formateur", "numero_facture", "montant"].map((v) => (
-                <Badge key={v} variant="outline" className="text-xs font-mono">
-                  {`{{${v}}}`}
-                </Badge>
-              ))}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 rounded-lg border bg-background/80 px-3 py-2 text-xs text-muted-foreground">
+                <ArrowRight className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                <span>
+                  Utilisez ces variables dans le sujet ou dans le contenu pour garder des modèles réutilisables sans ressaisie manuelle.
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {["civilite", "nom", "prenom", "email", "telephone", "formation_type", "date_debut", "date_fin", "lieu", "formateur", "numero_facture", "montant"].map((v) => (
+                  <Badge key={v} variant="outline" className="text-xs font-mono">
+                    {`{{${v}}}`}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
