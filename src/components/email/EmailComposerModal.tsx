@@ -49,9 +49,9 @@ export interface EmailComposerProps {
   /** Shared attachments for all recipients (generic docs / BCC) */
   attachments?: EmailAttachment[];
 }
+import { useCentreEmailConfig } from "@/hooks/useCentreEmailConfig";
 
 const BULK_WARN_THRESHOLD = 10;
-const FROM_ADDRESS = "Ecole T3P Montrouge <montrouge@ecolet3p.fr>";
 
 const CATEGORY_LABELS: Record<string, string> = {
   prospect: "Prospects",
@@ -73,6 +73,7 @@ export function EmailComposerModal({
   onSuccess,
   attachments: sharedAttachments,
 }: EmailComposerProps) {
+  const { fromAddress: centreFromAddress, replyTo: centreReplyTo } = useCentreEmailConfig();
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
   const [sending, setSending] = useState(false);
@@ -136,6 +137,8 @@ export function EmailComposerModal({
         html: htmlBody,
         type: "crm_composer",
         recipientName,
+        fromAddress: centreFromAddress,
+        replyTo: centreReplyTo,
         ...(emailAttachments && emailAttachments.length > 0 ? {
           attachments: emailAttachments.map(a => ({
             filename: a.filename,
@@ -230,6 +233,8 @@ export function EmailComposerModal({
             subject,
             html: htmlBody,
             type: "crm_composer_bcc",
+            fromAddress: centreFromAddress,
+            replyTo: centreReplyTo,
             ...(bccAttachments && bccAttachments.length > 0 ? {
               attachments: bccAttachments.map(a => ({
                 filename: a.filename,
@@ -282,7 +287,7 @@ export function EmailComposerModal({
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">De</Label>
               <div className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border">
-                {FROM_ADDRESS}
+                {centreFromAddress}
               </div>
             </div>
 
