@@ -38,7 +38,7 @@ import type { CompanyInfo, AgrementsAutre } from '@/lib/pdf-generator';
 import { InscritTableRow } from './inscrits/InscritTableRow';
 import { InscritsGlobalActions, InscritsSelectionActions } from './inscrits/InscritsGlobalActions';
 import { InscritsDialogs } from './inscrits/InscritsDialogs';
-import { mapContactInfo } from './inscrits/inscrits-types';
+import { mapContactInfo, type InscritRow, type ExamResultValue } from './inscrits/inscrits-types';
 
 interface SessionInscritsTableProps {
   sessionId: string;
