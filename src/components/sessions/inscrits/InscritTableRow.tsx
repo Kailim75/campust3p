@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { FactureWithDetails } from "@/hooks/useFactures";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
-import { INSCRIPTION_STATUTS, getUrgency, type InscritRow, type ExamResult } from "./inscrits-types";
+import { INSCRIPTION_STATUTS, getUrgency, type InscritRow, type ExamResult, type ExamResultValue } from "./inscrits-types";
 
 interface InscritTableRowProps {
   inscrit: InscritRow;
@@ -31,7 +31,7 @@ interface InscritTableRowProps {
   sessionDateFin: string | null | undefined;
   latestEnvoi: { statut: string; date_envoi: string; document_name: string } | null;
   onStatutChange: (inscriptionId: string, statut: string) => void;
-  onExamToggle: (contactId: string, type: "theorie" | "pratique", current: string | null, formation: string) => void;
+  onExamToggle: (contactId: string, type: "theorie" | "pratique", current: ExamResultValue, formation: string) => void;
   onGenerateDocument: (type: DocumentType, contact: any) => void;
   onSendDocs: (contact: any) => void;
   onCreateFacture: (contactId: string) => void;
