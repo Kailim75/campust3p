@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.send-daily-report]
 verify_jwt = false
+
+[functions.alma-webhook]
+verify_jwt = false
