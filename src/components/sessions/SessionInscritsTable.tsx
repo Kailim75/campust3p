@@ -471,7 +471,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         selectedContactForDocs={selectedContactForDocs} setSelectedContactForDocs={setSelectedContactForDocs}
         session={session}
         docSendModalOpen={docSendModalOpen} setDocSendModalOpen={setDocSendModalOpen}
-        docSendInscrits={(inscrits || []).map(i => ({ contact_id: i.contact_id, contact: (i.contact ?? null) as InscritRow["contact"] }))}
+        docSendInscrits={(inscrits || []).map(i => ({ contact_id: i.contact_id, contact: i.contact ?? null }))}
         companyInfo={companyInfo} docSendSelectedIds={docSendSelectedIds} openComposer={openComposer}
         composerProps={composerProps}
         transferDialogOpen={transferDialogOpen} setTransferDialogOpen={setTransferDialogOpen}
