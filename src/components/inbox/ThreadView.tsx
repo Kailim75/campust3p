@@ -323,15 +323,16 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
 
 /* ── Sub-components ── */
 
-function ToggleButton({ active, onClick, icon, label, count }: {
+const ToggleButton = forwardRef<HTMLButtonElement, {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
   count?: number;
-}) {
+}>(function ToggleButton({ active, onClick, icon, label, count }, ref) {
   return (
     <button
+      ref={ref}
       onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
@@ -350,7 +351,7 @@ function ToggleButton({ active, onClick, icon, label, count }: {
       {active ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
     </button>
   );
-}
+});
 
 function extractHtmlBody(html: string): string {
   // Extract content inside <body> if present, otherwise use as-is
