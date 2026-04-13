@@ -21,7 +21,7 @@ import { FactureDetailSheet } from "@/components/paiements/FactureDetailSheet";
 import { SendDocumentsToContactDialog } from "../SendDocumentsToContactDialog";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
-import { SessionDocumentsSendModal } from "../SessionDocumentsSendModal";
+import { SessionDocumentsSendModal, type DocSendInscrit } from "../SessionDocumentsSendModal";
 import { EmailComposerModal, type EmailComposerProps } from "@/components/email/EmailComposerModal";
 import { TransferStudentDialog } from "../TransferStudentDialog";
 import type { FactureWithDetails } from "@/hooks/useFactures";
@@ -106,7 +106,7 @@ interface InscritsDialogsProps {
   /* Doc send modal */
   docSendModalOpen: boolean;
   setDocSendModalOpen: (v: boolean) => void;
-  docSendInscrits: { contact_id: string; contact: InscritContact | null }[];
+  docSendInscrits: DocSendInscrit[];
   companyInfo: CompanyInfo | undefined;
   docSendSelectedIds: string[] | undefined;
   openComposer: any;
@@ -315,7 +315,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
         <SessionDocumentsSendModal
           open={props.docSendModalOpen}
           onOpenChange={props.setDocSendModalOpen}
-          inscrits={props.docSendInscrits as { contact_id: string; contact: { id: string; nom: string; prenom: string; [key: string]: unknown } }[]}
+          inscrits={props.docSendInscrits}
           sessionInfo={props.sessionInfo}
           sessionName={props.session.nom}
           company={props.companyInfo}

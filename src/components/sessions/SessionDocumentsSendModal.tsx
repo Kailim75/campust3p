@@ -41,6 +41,12 @@ import {
 import { fetchTodayAutoNotes, isHandledToday } from "@/lib/aujourdhui-actions";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
 import type { ContactInfo, SessionInfo, CompanyInfo } from "@/lib/pdf-generator";
+import type { InscritContact } from "@/components/sessions/inscrits/inscrits-types";
+
+export interface DocSendInscrit {
+  contact_id: string;
+  contact?: InscritContact | null;
+}
 
 const DOC_ICONS: Record<SessionDocumentType, typeof Send> = {
   convocation: Send,
@@ -63,30 +69,10 @@ const ANTI_DOUBLE_KEYWORDS: Record<SessionDocumentType, string[]> = {
   pack: ["Pack envoyé", "session_envoi_pack"],
 };
 
-interface InscritInfo {
-  contact_id: string;
-  contact?: {
-    id: string;
-    nom: string;
-    prenom: string;
-    email?: string | null;
-    civilite?: string | null;
-    telephone?: string | null;
-    rue?: string | null;
-    code_postal?: string | null;
-    ville?: string | null;
-    date_naissance?: string | null;
-    ville_naissance?: string | null;
-    pays_naissance?: string | null;
-    formation?: string | null;
-    [key: string]: any;
-  };
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  inscrits: InscritInfo[];
+  inscrits: DocSendInscrit[];
   sessionInfo: SessionInfo;
   sessionName: string;
   company: CompanyInfo | undefined;
