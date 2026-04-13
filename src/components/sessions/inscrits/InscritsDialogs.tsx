@@ -105,7 +105,7 @@ interface InscritsDialogsProps {
   /* Doc send modal */
   docSendModalOpen: boolean;
   setDocSendModalOpen: (v: boolean) => void;
-  docSendInscrits: { contact_id: string; contact: any }[];
+  docSendInscrits: { contact_id: string; contact: unknown }[];
   companyInfo: CompanyInfo | undefined;
   docSendSelectedIds: string[] | undefined;
   openComposer: any;
