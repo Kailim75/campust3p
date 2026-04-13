@@ -312,6 +312,7 @@ serve(async (req) => {
             dateDebut: formatDateFr(sessionInfo.date_debut),
             dateFin: sessionInfo.date_fin ? formatDateFr(sessionInfo.date_fin) : undefined,
             lieu: sessionInfo.lieu,
+            heureDebut: buildHeureDebut(sessionInfo),
           } : undefined,
           attachmentNames: validatedAttachments.map(a => `${a.filename} (${Math.round(a.sizeBytes / 1024)} Ko)`),
         });
