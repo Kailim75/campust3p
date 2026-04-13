@@ -28,6 +28,7 @@ import type { FactureWithDetails } from "@/hooks/useFactures";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
 import type { Contact } from "@/hooks/useContacts";
 import type { CompanyInfo } from "@/lib/pdf-generator";
+import type { InscritContact } from "./inscrits-types";
 
 interface InscritsDialogsProps {
   sessionId: string;
@@ -105,7 +106,7 @@ interface InscritsDialogsProps {
   /* Doc send modal */
   docSendModalOpen: boolean;
   setDocSendModalOpen: (v: boolean) => void;
-  docSendInscrits: { contact_id: string; contact: any }[];
+  docSendInscrits: { contact_id: string; contact: InscritContact | null }[];
   companyInfo: CompanyInfo | undefined;
   docSendSelectedIds: string[] | undefined;
   openComposer: any;
@@ -314,7 +315,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
         <SessionDocumentsSendModal
           open={props.docSendModalOpen}
           onOpenChange={props.setDocSendModalOpen}
-          inscrits={props.docSendInscrits}
+          inscrits={props.docSendInscrits as { contact_id: string; contact: { id: string; nom: string; prenom: string; [key: string]: unknown } }[]}
           sessionInfo={props.sessionInfo}
           sessionName={props.session.nom}
           company={props.companyInfo}
