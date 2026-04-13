@@ -369,32 +369,34 @@ function extractHtmlBody(html: string): string {
   return scopedStyle + content;
 }
 
-function EmailMessageBody({ bodyText, bodyHtml }: { bodyText?: string | null; bodyHtml?: string | null }) {
-  // Prioritize HTML over plain text so images and formatting are preserved
-  if (bodyHtml?.trim()) {
-    const processedHtml = extractHtmlBody(bodyHtml);
+const EmailMessageBody = forwardRef<HTMLDivElement, { bodyText?: string | null; bodyHtml?: string | null }>(
+  function EmailMessageBody({ bodyText, bodyHtml }, ref) {
+    if (bodyHtml?.trim()) {
+      const processedHtml = extractHtmlBody(bodyHtml);
+      return (
+        <div
+          ref={ref}
+          className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_table]:w-auto [&_td]:p-1"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(processedHtml, {
+              USE_PROFILES: { html: true },
+              ADD_TAGS: ["img", "style", "table", "thead", "tbody", "tr", "td", "th", "colgroup", "col", "center", "font"],
+              ADD_ATTR: ["src", "alt", "width", "height", "style", "loading", "class", "align", "valign", "bgcolor", "border", "cellpadding", "cellspacing", "color", "face", "size", "dir", "colspan", "rowspan"],
+            }),
+          }}
+        />
+      );
+    }
+
+    if (bodyText?.trim()) {
+      return <div ref={ref} className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
+    }
+
     return (
-      <div
-        className="prose prose-sm max-w-none text-foreground/80 prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/80 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_table]:w-auto [&_td]:p-1"
-        dangerouslySetInnerHTML={{
-          __html: DOMPurify.sanitize(processedHtml, {
-            USE_PROFILES: { html: true },
-            ADD_TAGS: ["img", "style", "table", "thead", "tbody", "tr", "td", "th", "colgroup", "col", "center", "font"],
-            ADD_ATTR: ["src", "alt", "width", "height", "style", "loading", "class", "align", "valign", "bgcolor", "border", "cellpadding", "cellspacing", "color", "face", "size", "dir", "colspan", "rowspan"],
-          }),
-        }}
-      />
+      <div ref={ref} className="flex items-center gap-1.5 text-sm text-muted-foreground/50 italic">
+        <AlertCircle className="h-3.5 w-3.5" />
+        Contenu vide
+      </div>
     );
   }
-
-  if (bodyText?.trim()) {
-    return <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{bodyText}</div>;
-  }
-
-  return (
-    <div className="flex items-center gap-1.5 text-sm text-muted-foreground/50 italic">
-      <AlertCircle className="h-3.5 w-3.5" />
-      Contenu vide
-    </div>
-  );
-}
+);
