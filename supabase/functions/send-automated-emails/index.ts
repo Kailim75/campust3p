@@ -35,6 +35,30 @@ function resolveEmailConfig(body: any) {
   };
 }
 
+/** Build a human-readable time string from sessionInfo fields sent by the client */
+function buildHeureDebut(si: Record<string, any>): string | undefined {
+  const fmt = (t: string) => {
+    const [h, m] = t.split(":");
+    return `${h}h${m}`;
+  };
+  const valid = (t?: string): t is string =>
+    !!t && t !== "00:00:00" && t !== "00:00";
+
+  if (valid(si.heure_debut_matin) && valid(si.heure_fin_matin) && valid(si.heure_debut_aprem) && valid(si.heure_fin_aprem)) {
+    return `${fmt(si.heure_debut_matin)} - ${fmt(si.heure_fin_matin)} / ${fmt(si.heure_debut_aprem)} - ${fmt(si.heure_fin_aprem)}`;
+  }
+  if (valid(si.heure_debut_matin) && valid(si.heure_fin_matin)) {
+    return `${fmt(si.heure_debut_matin)} - ${fmt(si.heure_fin_matin)}`;
+  }
+  if (valid(si.heure_debut) && valid(si.heure_fin)) {
+    return `${fmt(si.heure_debut)} - ${fmt(si.heure_fin)}`;
+  }
+  if (valid(si.heure_debut)) {
+    return fmt(si.heure_debut);
+  }
+  return undefined;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -312,6 +336,7 @@ serve(async (req) => {
             dateDebut: formatDateFr(sessionInfo.date_debut),
             dateFin: sessionInfo.date_fin ? formatDateFr(sessionInfo.date_fin) : undefined,
             lieu: sessionInfo.lieu,
+            heureDebut: buildHeureDebut(sessionInfo),
           } : undefined,
           attachmentNames: validatedAttachments.map(a => `${a.filename} (${Math.round(a.sizeBytes / 1024)} Ko)`),
         });
