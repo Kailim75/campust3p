@@ -108,7 +108,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     if (!inscrits || !inscritSearchQuery.trim()) return inscrits || [];
     const q = inscritSearchQuery.toLowerCase().trim();
     return inscrits.filter(i => {
-      const c = i.contact as any;
+      const c = i.contact;
       if (!c) return false;
       return (
         (c.prenom || '').toLowerCase().includes(q) ||
@@ -404,7 +404,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 filteredInscrits.map(inscrit => (
                   <InscritTableRow
                     key={inscrit.id}
-                    inscrit={inscrit as any}
+                    inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, contact: inscrit.contact as InscritRow["contact"] }}
                     selected={selectedIds.includes(inscrit.contact_id)}
                     onToggleSelect={toggleSelect}
                     facture={getFactureForContact(inscrit.contact_id)}
@@ -412,7 +412,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     sessionDateFin={session?.date_fin}
                     latestEnvoi={getLatestEnvoiForContact(envoiEvents, inscrit.contact_id)}
                     onStatutChange={handleStatutChange}
-                    onExamToggle={(contactId, type, value, formation) => setExamResult({ contactId, type, value: value as any, formationType: formation })}
+                    onExamToggle={(contactId, type, value, formation) => setExamResult({ contactId, type, value: value as ExamResultValue, formationType: formation })}
                     onGenerateDocument={handleGenerateSingleDocument}
                     onSendDocs={(contact) => { setSelectedContactForDocs(contact); setSendDocsDialogOpen(true); }}
                     onCreateFacture={handleCreateFacture}
@@ -471,7 +471,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         selectedContactForDocs={selectedContactForDocs} setSelectedContactForDocs={setSelectedContactForDocs}
         session={session}
         docSendModalOpen={docSendModalOpen} setDocSendModalOpen={setDocSendModalOpen}
-        docSendInscrits={(inscrits || []).map(i => ({ contact_id: i.contact_id, contact: i.contact as any }))}
+        docSendInscrits={(inscrits || []).map(i => ({ contact_id: i.contact_id, contact: i.contact }))}
         companyInfo={companyInfo} docSendSelectedIds={docSendSelectedIds} openComposer={openComposer}
         composerProps={composerProps}
         transferDialogOpen={transferDialogOpen} setTransferDialogOpen={setTransferDialogOpen}
