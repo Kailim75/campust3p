@@ -412,7 +412,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     sessionDateFin={session?.date_fin}
                     latestEnvoi={getLatestEnvoiForContact(envoiEvents, inscrit.contact_id)}
                     onStatutChange={handleStatutChange}
-                    onExamToggle={(contactId, type, value, formation) => setExamResult({ contactId, type, value, formationType: formation })}
+                    onExamToggle={(contactId, type, value, formation) => setExamResult({ contactId, type, value: value as any, formationType: formation })}
                     onGenerateDocument={handleGenerateSingleDocument}
                     onSendDocs={(contact) => { setSelectedContactForDocs(contact); setSendDocsDialogOpen(true); }}
                     onCreateFacture={handleCreateFacture}

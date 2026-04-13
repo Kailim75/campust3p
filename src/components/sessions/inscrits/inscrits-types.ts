@@ -32,9 +32,11 @@ export interface InscritRow {
   contact?: InscritContact | null;
 }
 
+export type ExamResultValue = "admis" | "ajourne" | "absent" | null;
+
 export interface ExamResult {
-  theorie: "admis" | "ajourne" | null;
-  pratique: "admis" | "ajourne" | null;
+  theorie: ExamResultValue;
+  pratique: ExamResultValue;
   departement?: string | null;
 }
 
