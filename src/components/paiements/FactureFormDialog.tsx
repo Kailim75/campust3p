@@ -76,6 +76,7 @@ interface FactureFormDialogProps {
   onOpenChange: (open: boolean) => void;
   facture?: Facture | null;
   defaultContactId?: string;
+  defaultSessionInscriptionId?: string;
 }
 
 const financementOptions: { value: FinancementType; label: string }[] = [
@@ -99,6 +100,7 @@ export function FactureFormDialog({
   onOpenChange,
   facture,
   defaultContactId,
+  defaultSessionInscriptionId,
 }: FactureFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lignes, setLignes] = useState<LigneFacture[]>([]);
