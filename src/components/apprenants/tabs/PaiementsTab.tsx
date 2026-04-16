@@ -57,7 +57,8 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
           id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
           session_inscription:session_inscriptions(
             id, type_payeur, montant_pris_en_charge, reste_a_charge,
-            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
+            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+            session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
           )
         `)
         .eq("contact_id", contactId)
