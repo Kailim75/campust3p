@@ -218,7 +218,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       nom: contact.nom, prenom: contact.prenom, email: contact.email || "", telephone: contact.telephone || "",
       rue: contact.rue || "", code_postal: contact.code_postal || "", ville: contact.ville || "",
     };
-    const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
+    const doc = generateFacturePDF(factureInfo, contactInfo, buildSessionInfo(f), company);
     const base64 = doc.output("datauristring").split(",")[1];
     const filename = `facture-${f.numero_facture || "sans-numero"}.pdf`;
     return { base64, filename };
