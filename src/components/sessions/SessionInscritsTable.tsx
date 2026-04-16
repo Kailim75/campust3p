@@ -292,7 +292,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     } catch { toast.error("Erreur lors de la mise à jour du statut"); }
   };
 
-  const handleCreateFacture = (contactId: string) => { setSelectedContactIdForFacture(contactId); setEditingFacture(null); setFactureFormOpen(true); };
+  const handleCreateFacture = (contactId: string) => {
+    setSelectedContactIdForFacture(contactId);
+    setEditingFacture(null);
+    setFactureFormOpen(true);
+  };
   const handleEditFacture = (facture: FactureWithDetails) => { setEditingFacture(facture); setSelectedContactIdForFacture(facture.contact_id); setFactureFormOpen(true); };
   const handleViewFacture = (factureId: string) => { setSelectedFactureId(factureId); setFactureDetailOpen(true); };
 
