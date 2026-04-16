@@ -17,7 +17,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
-import { generateFacturePDF, type FactureInfo, type ContactInfo } from "@/lib/pdf-generator";
+import { generateFacturePDF, type FactureInfo, type ContactInfo, type SessionInfo } from "@/lib/pdf-generator";
 import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
@@ -180,6 +180,18 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     };
   };
 
+  const buildSessionInfo = (f: any): SessionInfo | undefined => {
+    const session = f.session_inscription?.session;
+    if (!session) return undefined;
+    return {
+      nom: session.catalogue_formation?.intitule || session.nom,
+      formation_type: session.formation_type,
+      date_debut: session.date_debut || "",
+      date_fin: session.date_fin || "",
+      duree_heures: session.duree_heures || undefined,
+    };
+  };
+
   const handlePrintFacture = (f: any) => {
     if (!contact) { toast.error("Informations contact manquantes"); return; }
     const company = centreToCompanyInfo(centreFormation);
@@ -193,7 +205,7 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
       code_postal: contact.code_postal || "",
       ville: contact.ville || "",
     };
-    const doc = generateFacturePDF(factureInfo, contactInfo, undefined, company);
+    const doc = generateFacturePDF(factureInfo, contactInfo, buildSessionInfo(f), company);
     doc.save(`facture-${f.numero_facture || "sans-numero"}.pdf`);
     toast.success("Facture téléchargée");
   };
