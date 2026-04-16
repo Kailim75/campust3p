@@ -276,6 +276,11 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
           }}
           facture={props.editingFacture}
           defaultContactId={props.selectedContactIdForFacture || undefined}
+          defaultSessionInscriptionId={
+            props.selectedContactIdForFacture && !props.editingFacture
+              ? props.inscrits.find((i: any) => i.contact_id === props.selectedContactIdForFacture)?.id
+              : undefined
+          }
         />
       )}
 
