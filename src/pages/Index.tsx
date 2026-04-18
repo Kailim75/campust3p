@@ -7,7 +7,8 @@ import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDi
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
-import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useGlobalShortcutsV2 } from "@/hooks/useKeyboardShortcuts";
+import { ShortcutSequenceIndicator } from "@/components/shortcuts/ShortcutSequenceIndicator";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -202,13 +203,25 @@ const Index = () => {
     };
   }, [setActiveSection]);
 
-  // ── Global keyboard shortcuts ──────────────────────────────────────────────
-  useGlobalShortcuts({
-    onNewContact: () => setActiveSection("contacts"),
-    onNewSession: () => setActiveSection("sessions"),
-    onNewPayment: () => setActiveSection("finances"),
+  // ── Global keyboard shortcuts (Cmd+K, ?, G+letter, N+letter) ──────────────
+  useGlobalShortcutsV2({
     onSearch: () => setCommandPaletteOpen(true),
     onHelp: () => setShortcutsDialogOpen(true),
+    // Navigation
+    onGoDashboard:  () => setActiveSection("dashboard"),
+    onGoApprenants: () => setActiveSection("contacts"),
+    onGoProspects:  () => setActiveSection("prospects"),
+    onGoSessions:   () => setActiveSection("sessions"),
+    onGoFinances:   () => setActiveSection("finances"),
+    onGoFormations: () => setActiveSection("formations"),
+    onGoInbox:      () => setActiveSection("inbox"),
+    onGoSettings:   () => setActiveSection("settings"),
+    // Creation
+    onNewApprenant: () => setNewContactOpen(true),
+    onNewProspect:  () => setNewProspectOpen(true),
+    onNewSession:   () => setActiveSection("sessions"),
+    onNewFacture:   () => setActiveSection("finances"),
+    onNewFormation: () => setActiveSection("formations"),
   });
 
   const handleQuickAction = (action: QuickAction) => {
