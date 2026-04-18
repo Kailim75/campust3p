@@ -100,4 +100,29 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split heavy vendor libs into separate chunks to reduce initial bundle
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "radix-vendor": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+          ],
+          "charts-vendor": ["recharts"],
+          "pdf-vendor": ["jspdf", "html2canvas", "docxtemplater", "pizzip", "jszip"],
+          "xlsx-vendor": ["xlsx"],
+          "supabase-vendor": ["@supabase/supabase-js"],
+          "form-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "animation-vendor": ["framer-motion"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 }));
