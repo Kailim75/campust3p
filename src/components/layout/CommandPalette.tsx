@@ -194,7 +194,11 @@ export function CommandPalette({
   }, [results]);
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      commandProps={{ shouldFilter: false }}
+    >
       <CommandInput
         placeholder="Rechercher ou taper une commande..."
         value={query}
