@@ -6,6 +6,7 @@ import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsM
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
@@ -319,6 +320,7 @@ const Index = () => {
         onOpenChange={setShortcutsDialogOpen}
       />
       <OnboardingTour isOpen={showTour} onComplete={completeTour} />
+      <OnboardingChecklist />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
       <CommandPalette
