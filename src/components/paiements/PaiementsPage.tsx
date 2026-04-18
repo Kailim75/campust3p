@@ -46,6 +46,7 @@ import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 // XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
