@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,17 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       onContactOpened?.();
     }
   }, [initialContactId, onContactOpened]);
+
+  // ── URL sync (?contact=<id>) — open the Sheet on first load / share ──
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const fromUrl = searchParams.get("contact");
+    if (fromUrl && fromUrl !== selectedContactId) {
+      setSelectedContactId(fromUrl);
+      setDetailOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [formOpen, setFormOpen] = useState(false);
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
@@ -483,6 +495,8 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
         contactId={selectedContactId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        navigationIds={filtered.map((c) => c.id)}
+        onNavigate={(id) => setSelectedContactId(id)}
         onEdit={(contact) => {
           setEditContact(contact);
           setDetailOpen(false);
