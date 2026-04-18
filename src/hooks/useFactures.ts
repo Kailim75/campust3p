@@ -276,26 +276,17 @@ export function useUpdateFacture() {
 
 // Delete facture
 export function useDeleteFacture() {
-  const queryClient = useQueryClient();
+  const softDelete = useSoftDeleteWithUndo();
 
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: "factures",
-        p_record_id: id,
-        p_reason: null,
-      });
-      if (error) throw error;
-      return data;
+  return {
+    mutate: (id: string) => {
+      softDelete({ table: "factures", id, message: "Facture supprimée" });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures"] });
-      queryClient.invalidateQueries({ queryKey: ["trash"] });
+    mutateAsync: async (id: string) => {
+      await softDelete({ table: "factures", id, message: "Facture supprimée" });
     },
-    onError: (error: Error) => {
-      toast.error("Erreur lors de la suppression de la facture : " + error.message);
-    },
-  });
+    isPending: false,
+  };
 }
 
 // Bulk emit draft factures

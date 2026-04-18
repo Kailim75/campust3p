@@ -115,28 +115,17 @@ export function useUploadDocument() {
 }
 
 export function useDeleteDocument() {
-  const queryClient = useQueryClient();
+  const softDelete = useSoftDeleteWithUndo();
 
-  return useMutation({
-    mutationFn: async ({ id, filePath, contactId }: { id: string; filePath: string; contactId: string }) => {
-      const { error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: "contact_documents",
-        p_record_id: id,
-        p_reason: null,
-      });
-      if (error) throw error;
-      return { contactId };
+  return {
+    mutate: (params: { id: string; filePath: string; contactId: string }) => {
+      softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" });
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["contact-documents", data.contactId] });
-      queryClient.invalidateQueries({ queryKey: ["trash"] });
-      toast.success("Document envoyé à la corbeille");
+    mutateAsync: async (params: { id: string; filePath: string; contactId: string }) => {
+      await softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" });
     },
-    onError: (error) => {
-      console.error("Delete error:", error);
-      toast.error("Erreur lors de la suppression");
-    },
-  });
+    isPending: false,
+  };
 }
 
 export function getDocumentUrl(filePath: string) {

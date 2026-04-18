@@ -179,25 +179,15 @@ export function useUpdateCatalogueFormation() {
 }
 
 export function useDeleteCatalogueFormation() {
-  const queryClient = useQueryClient();
+  const softDelete = useSoftDeleteWithUndo();
 
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: "catalogue_formations",
-        p_record_id: id,
-        p_reason: null,
-      });
-      if (error) throw error;
+  return {
+    mutate: (id: string) => {
+      softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["catalogue-formations"] });
-      queryClient.invalidateQueries({ queryKey: ["trash"] });
-      toast.success("Article supprimé du catalogue");
+    mutateAsync: async (id: string) => {
+      await softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" });
     },
-    onError: (error: any) => {
-      console.error("Error deleting catalogue item:", error);
-      toast.error("Erreur lors de la suppression");
-    },
-  });
+    isPending: false,
+  };
 }
