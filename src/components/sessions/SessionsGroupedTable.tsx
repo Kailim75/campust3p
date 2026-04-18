@@ -692,23 +692,15 @@ function SessionRow({
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onDuplicate(session); }} title="Dupliquer">
             <Copy className="h-3.5 w-3.5" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Envoyer à la corbeille ?</AlertDialogTitle>
-                <AlertDialogDescription>La session « {session.nom} » sera envoyée à la corbeille.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(session.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); onDelete(session.id); }}
+            title="Envoyer à la corbeille"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </TableCell>
     </TableRow>

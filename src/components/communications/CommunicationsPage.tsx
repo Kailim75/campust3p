@@ -240,33 +240,15 @@ export function CommunicationsPage() {
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer ce modèle ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Cette action est irréversible. Le modèle "{template.nom}" sera définitivement supprimé.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteTemplate.mutate(template.id)}
-                                >
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => deleteTemplate.mutate(template.id)}
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

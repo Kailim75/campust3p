@@ -122,7 +122,7 @@ const Index = () => {
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
-  const undoAction = useUndoStore((state) => state.undo);
+  const undoAction = useUndoStore((state) => state.undoLast);
 
   /** Core navigation: updates state + URL pathname */
   const setActiveSection = useCallback((section: string) => {

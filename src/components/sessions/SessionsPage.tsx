@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
-import { useSessions, useDeleteSession, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
+import { useSessions, useAllSessionInscriptionsCounts, useCreateSession, type Session } from "@/hooks/useSessions";
+import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 import { useReconcileFactures } from "@/hooks/useReconcileFactures";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
@@ -27,7 +28,7 @@ export function SessionsPage() {
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
   const { data: financials = {} } = useSessionFinancials();
   const { data: formateurs = [] } = useFormateursTable();
-  const deleteSession = useDeleteSession();
+  const softDelete = useSoftDeleteWithUndo();
   const createSession = useCreateSession();
   const reconcileFactures = useReconcileFactures();
   const { updateSessionStatuses } = useAutoUpdateSessionStatus();
@@ -78,8 +79,12 @@ export function SessionsPage() {
   const handleViewDetail = (session: Session) => { setDetailSessionId(session.id); setDetailOpen(true); };
 
   const handleDelete = async (id: string) => {
-    try { await deleteSession.mutateAsync({ id }); toast.success("Session envoyée à la corbeille"); }
-    catch { toast.error("Erreur lors de la suppression"); }
+    const session = sessions?.find(s => s.id === id);
+    await softDelete({
+      table: "sessions",
+      id,
+      message: session ? `Session « ${session.nom} » supprimée` : "Session supprimée",
+    });
   };
 
   const handleDuplicate = async (session: Session) => {

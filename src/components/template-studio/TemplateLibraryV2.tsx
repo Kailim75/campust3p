@@ -21,10 +21,6 @@ import {
 } from "@/hooks/useTemplateStudioV2";
 import { TEMPLATE_TYPES, TEMPLATE_STATUSES } from "@/constants/templateConstants";
 import { TEMPLATE_GENERATORS } from "@/lib/complianceEngine";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useCentreContext } from "@/contexts/CentreContext";
 
@@ -54,7 +50,6 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
 
   const { data: templates, isLoading } = useTemplatesV2({
@@ -71,8 +66,8 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
     return t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || t.type.toLowerCase().includes(q);
   });
 
-  const handleDelete = () => {
-    if (deleteId) { deleteTemplate.mutate(deleteId); setDeleteId(null); }
+  const handleDelete = (id: string) => {
+    deleteTemplate.mutate(id);
   };
 
   const handleCreateFromCatalog = async (prebuilt: typeof PREBUILT_TEMPLATES[0]) => {
@@ -233,7 +228,7 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
                           <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); onGenerate(t.id); }}>
                             <Rocket className="h-3 w-3" />Générer
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }}>
+                          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
@@ -247,18 +242,6 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
         </div>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce template ?</AlertDialogTitle>
-            <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Supprimer</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

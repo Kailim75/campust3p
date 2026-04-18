@@ -383,27 +383,15 @@ export function FormationsPage() {
                             >
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Supprimer cet article ?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    L'article "{formation.intitule}" sera définitivement supprimé.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteFormation.mutate(formation.id)}>
-                                    Supprimer
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => deleteFormation.mutate(formation.id)}
+                              title="Supprimer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

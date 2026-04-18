@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 
 export interface EmailTemplate {
   id: string;
@@ -120,27 +121,17 @@ export function useUpdateEmailTemplate() {
 }
 
 export function useDeleteEmailTemplate() {
-  const queryClient = useQueryClient();
+  const softDelete = useSoftDeleteWithUndo();
 
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("soft_delete_record", {
-        p_table_name: "email_templates",
-        p_record_id: id,
-        p_reason: null,
-      });
-      if (error) throw error;
+  return {
+    mutate: (id: string) => {
+      softDelete({ table: "email_templates", id, message: "Modèle email supprimé" });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["trash"] });
-      toast.success("Modèle supprimé");
+    mutateAsync: async (id: string) => {
+      await softDelete({ table: "email_templates", id, message: "Modèle email supprimé" });
     },
-    onError: (error: any) => {
-      console.error("Error deleting template:", error);
-      toast.error("Erreur lors de la suppression");
-    },
-  });
+    isPending: false,
+  };
 }
 
 // Fonction pour remplacer les variables dans un template

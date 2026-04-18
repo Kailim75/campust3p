@@ -173,7 +173,7 @@ export function DocumentsUnifiedPage() {
   // Signature dialog states
   const [showSignatureForm, setShowSignatureForm] = useState(false);
   const [signingRequest, setSigningRequest] = useState<SignatureRequest | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  
   const [signatureStatusFilter, setSignatureStatusFilter] = useState<string>("all");
   const [sendDocsContact, setSendDocsContact] = useState<{ id: string; nom: string; prenom: string } | null>(null);
 
@@ -604,29 +604,6 @@ export function DocumentsUnifiedPage() {
         />
       )}
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette demande ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteId) deleteRequest.mutate(deleteId);
-                setDeleteId(null);
-              }}
-              className="bg-destructive text-destructive-foreground"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Send Documents from Signature Dialog */}
       {sendDocsContact && (
