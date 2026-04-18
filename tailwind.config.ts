@@ -83,6 +83,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // ---------------------------------------------------------------
+        // Flyer / marketing palette — extracted from hex hardcodes.
+        // Use: text-flyer-primary, bg-flyer-cream, border-flyer-gold, etc.
+        // Kept as hex (brand colors, not theme-reactive) on purpose.
+        // ---------------------------------------------------------------
+        flyer: {
+          primary: "#1B4D3E",
+          "primary-light": "#2D6A4F",
+          gold: "#D4A853",
+          "gold-dark": "#c49a4a",
+          cream: "#F5EBD7",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
