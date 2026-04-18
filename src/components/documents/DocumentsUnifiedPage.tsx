@@ -173,7 +173,7 @@ export function DocumentsUnifiedPage() {
   // Signature dialog states
   const [showSignatureForm, setShowSignatureForm] = useState(false);
   const [signingRequest, setSigningRequest] = useState<SignatureRequest | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  
   const [signatureStatusFilter, setSignatureStatusFilter] = useState<string>("all");
   const [sendDocsContact, setSendDocsContact] = useState<{ id: string; nom: string; prenom: string } | null>(null);
 
