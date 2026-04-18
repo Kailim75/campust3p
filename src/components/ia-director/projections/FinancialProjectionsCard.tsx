@@ -62,7 +62,7 @@ export default function FinancialProjectionsCard({ data, isLoading, viewMode }: 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {projections.map((p) => (
               <div key={p.days} className="text-center p-3 rounded-lg bg-muted/50">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{p.label}</p>
@@ -108,7 +108,7 @@ export default function FinancialProjectionsCard({ data, isLoading, viewMode }: 
       </CardHeader>
       <CardContent className="space-y-4">
         {/* KPI Row */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-muted/50 text-center">
             <DollarSign className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
             <p className="text-lg font-bold text-foreground">{formatEuro(ca_mois_courant)}</p>

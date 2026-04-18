@@ -45,7 +45,7 @@ export function BlockageDashboardWidget({ onOpenPanel }: BlockageDashboardWidget
       </div>
 
       {/* Severity summary */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div className="flex flex-col items-center p-2 rounded-lg bg-destructive/5">
           <span className="text-lg font-bold text-destructive">{counts.blockers}</span>
           <span className="text-[10px] text-muted-foreground">Critiques</span>
