@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { GlobalSearch } from "./GlobalSearch";
+import { CommandPaletteTrigger } from "./CommandPaletteTrigger";
 import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
 import { CentreSwitcher } from "./CentreSwitcher";
@@ -63,7 +63,7 @@ export function Header({
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <div className="hidden sm:flex items-center gap-2">
-            <GlobalSearch />
+            <CommandPaletteTrigger />
             <CentreSwitcher />
           </div>
           <ThemeToggle />
@@ -100,7 +100,7 @@ export function Header({
               <DropdownMenuSeparator />
               {/* Mobile-only: search & centre switcher */}
               <div className="sm:hidden px-2 py-1.5 space-y-1.5">
-                <GlobalSearch />
+                <CommandPaletteTrigger />
                 <CentreSwitcher />
               </div>
               <div className="sm:hidden"><DropdownMenuSeparator /></div>

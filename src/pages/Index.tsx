@@ -11,6 +11,7 @@ import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -113,7 +114,8 @@ const Index = () => {
   const [activeSection, setActiveSectionState] = useState<string>(getInitialSection);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const commandPaletteOpen = useCommandPalette((s) => s.isOpen);
+  const setCommandPaletteOpen = useCommandPalette((s) => s.setOpen);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
@@ -328,6 +330,8 @@ const Index = () => {
         onOpenChange={setCommandPaletteOpen}
         onNavigate={setActiveSection}
         onOpenContact={(id) => { setActiveSection("contacts"); setSelectedContactId(id); }}
+        onNewContact={() => setNewContactOpen(true)}
+        onNewProspect={() => setNewProspectOpen(true)}
       />
     </div>
   );
