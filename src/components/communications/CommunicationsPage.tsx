@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useEmailTemplates, useDeleteEmailTemplate, type EmailTemplate } from "@/hooks/useEmailTemplates";
 import { EmailTemplateFormDialog } from "./EmailTemplateFormDialog";
 import { EmailTemplatePreviewDialog } from "./EmailTemplatePreviewDialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,20 +141,26 @@ export function CommunicationsPage() {
                 ))}
               </div>
             ) : filteredTemplates.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">Aucun modèle trouvé</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setFormDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Créer un modèle
-                  </Button>
-                </CardContent>
-              </Card>
+              search ? (
+                <EmptyState
+                  variant="search"
+                  searchQuery={search}
+                  onReset={() => setSearch("")}
+                />
+              ) : selectedCategorie !== "all" ? (
+                <EmptyState
+                  variant="filter"
+                  description="Aucun modèle dans cette catégorie."
+                  onReset={() => setSelectedCategorie("all")}
+                />
+              ) : (
+                <EmptyState
+                  icon={Mail}
+                  title="Aucun modèle d'email"
+                  description="Créez votre premier modèle pour standardiser vos communications (convocations, rappels, factures…)."
+                  action={{ label: "Créer un template", onClick: () => setFormDialogOpen(true), icon: Plus }}
+                />
+              )
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredTemplates.map((template) => {

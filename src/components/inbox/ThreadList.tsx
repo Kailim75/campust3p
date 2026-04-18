@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Paperclip, UserCircle, Mail } from "lucide-react";
+import { Paperclip, UserCircle, Mail, Inbox } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CrmLabelBadge } from "./CrmLabelBadge";
 
 interface Thread {
@@ -68,13 +69,12 @@ export function ThreadList({ threads, isLoading, selectedThreadId, onSelect }: T
 
   if (threads.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-        <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center mb-3">
-          <Mail className="h-5 w-5 text-muted-foreground/50" />
-        </div>
-        <p className="text-sm font-medium text-muted-foreground">Aucun email trouvé</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Essayez de modifier vos filtres</p>
-      </div>
+      <EmptyState
+        variant="minimal"
+        icon={Inbox}
+        title="Boîte de réception vide"
+        description="Aucun email ne correspond à cette vue. Essayez d'ajuster les filtres ou la recherche."
+      />
     );
   }
 

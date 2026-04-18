@@ -268,23 +268,26 @@ export function FormationsPage() {
                 ))}
               </div>
             ) : filteredFormations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-dashed border-border/60 bg-muted/20">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/60 mb-4">
-                  <GraduationCap className="h-8 w-8 text-muted-foreground/50" />
-                </div>
-                <p className="text-foreground font-semibold text-base">Aucun article trouvé</p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-xs text-center">
-                  {search ? "Essayez un autre terme de recherche" : "Commencez par ajouter un article au catalogue"}
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-5 rounded-lg"
-                  onClick={() => setFormDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un article
-                </Button>
-              </div>
+              search ? (
+                <EmptyState
+                  variant="search"
+                  searchQuery={search}
+                  onReset={() => setSearch("")}
+                />
+              ) : activeTab !== "all" ? (
+                <EmptyState
+                  variant="filter"
+                  description="Aucun article dans cette catégorie. Réinitialisez le filtre pour voir tout le catalogue."
+                  onReset={() => setActiveTab("all")}
+                />
+              ) : (
+                <EmptyState
+                  icon={GraduationCap}
+                  title="Aucune formation au catalogue"
+                  description="Créez votre première formation pour la rendre disponible à l'inscription et générer des programmes PDF."
+                  action={{ label: "Créer une formation", onClick: () => setFormDialogOpen(true), icon: Plus }}
+                />
+              )
             ) : viewMode === "cards" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                 {filteredFormations.map((formation) => (
