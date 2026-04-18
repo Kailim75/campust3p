@@ -31,7 +31,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContact } from "@/hooks/useContact";
-import { useDeleteContact, type Contact } from "@/hooks/useContacts";
+import { type Contact } from "@/hooks/useContacts";
+import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -129,17 +130,16 @@ export function ContactQuickView({
   const { data: inscriptions = [] } = useContactInscriptions(contactId);
   const { data: documents = [] } = useContactDocuments(contactId);
   const { data: factures = [] } = useContactFactures(contactId);
-  const deleteContact = useDeleteContact();
+  const softDelete = useSoftDeleteWithUndo();
 
   const handleDelete = async () => {
     if (!contact) return;
-    try {
-      await deleteContact.mutateAsync(contact.id);
-      toast.success("Contact archivé avec succès");
-      onOpenChange(false);
-    } catch {
-      toast.error("Erreur lors de l'archivage");
-    }
+    await softDelete({
+      table: "contacts",
+      id: contact.id,
+      message: `${contact.prenom} ${contact.nom} archivé(e)`,
+    });
+    onOpenChange(false);
   };
 
   if (!contactId) return null;
