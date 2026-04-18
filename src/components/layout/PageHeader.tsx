@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { GlobalSearch } from "./GlobalSearch";
+import { CommandPaletteTrigger } from "./CommandPaletteTrigger";
 import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
 import { useNavigation } from "@/contexts/NavigationContext";
@@ -62,8 +62,8 @@ export function PageHeader({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Global Search */}
-          <GlobalSearch />
+          {/* Command Palette ⌘K */}
+          <CommandPaletteTrigger />
 
           {/* Notifications */}
           <NotificationBell />
