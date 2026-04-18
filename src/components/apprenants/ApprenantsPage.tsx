@@ -340,21 +340,32 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={expertMode ? 13 : 7} className="p-0">
-                    {quickFilter === "critical" && contacts && contacts.length > 0 ? null : (
+                    {quickFilter === "critical" && contacts && contacts.length > 0 ? null : search ? (
                       <EmptyState
-                        icon={search || quickFilter !== "all" ? FileWarning : Users}
-                        title={search || quickFilter !== "all" ? "Aucun résultat" : "Aucun apprenant"}
-                        description={
-                          search || quickFilter !== "all"
-                            ? "Essayez avec d'autres critères."
-                            : "Aucun apprenant enregistré."
-                        }
-                        action={
-                          !search && quickFilter === "all" ? (
-                            <EmptyStateAction label="Nouvel apprenant" onClick={() => setFormOpen(true)} />
-                          ) : undefined
-                        }
-                        variant="minimal"
+                        variant="search"
+                        searchQuery={search}
+                        onReset={() => setSearch("")}
+                      />
+                    ) : quickFilter !== "all" || formationFilter !== "all" || activityFilter !== "actifs" ? (
+                      <EmptyState
+                        variant="filter"
+                        description="Aucun apprenant ne correspond à ces filtres. Réinitialisez pour tout afficher."
+                        onReset={() => {
+                          setQuickFilter("all");
+                          setFormationFilter("all");
+                          setActivityFilter("actifs");
+                        }}
+                      />
+                    ) : (
+                      <EmptyState
+                        icon={Users}
+                        title="Aucun apprenant"
+                        description="Créez votre premier apprenant pour suivre ses formations, documents et paiements."
+                        action={{ label: "Créer un apprenant", onClick: () => setFormOpen(true) }}
+                        secondaryAction={{
+                          label: "Importer depuis Excel",
+                          onClick: () => toast.info("L'import Excel sera bientôt disponible."),
+                        }}
                       />
                     )}
                   </TableCell>
@@ -384,21 +395,34 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
           {paginatedFiltered.length === 0 && (
-            <EmptyState
-              icon={search || quickFilter !== "all" ? FileWarning : Users}
-              title={search || quickFilter !== "all" ? "Aucun résultat" : "Aucun apprenant"}
-              description={
-                search || quickFilter !== "all"
-                  ? "Essayez avec d'autres critères."
-                  : "Aucun apprenant enregistré."
-              }
-              action={
-                !search && quickFilter === "all" ? (
-                  <EmptyStateAction label="Nouvel apprenant" onClick={() => setFormOpen(true)} />
-                ) : undefined
-              }
-              variant="minimal"
-            />
+            search ? (
+              <EmptyState
+                variant="search"
+                searchQuery={search}
+                onReset={() => setSearch("")}
+              />
+            ) : quickFilter !== "all" || formationFilter !== "all" || activityFilter !== "actifs" ? (
+              <EmptyState
+                variant="filter"
+                description="Aucun apprenant ne correspond à ces filtres."
+                onReset={() => {
+                  setQuickFilter("all");
+                  setFormationFilter("all");
+                  setActivityFilter("actifs");
+                }}
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="Aucun apprenant"
+                description="Créez votre premier apprenant pour suivre ses formations, documents et paiements."
+                action={{ label: "Créer un apprenant", onClick: () => setFormOpen(true) }}
+                secondaryAction={{
+                  label: "Importer depuis Excel",
+                  onClick: () => toast.info("L'import Excel sera bientôt disponible."),
+                }}
+              />
+            )
           )}
           {paginatedFiltered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();

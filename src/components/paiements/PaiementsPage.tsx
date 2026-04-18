@@ -46,6 +46,7 @@ import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EmptyState } from "@/components/ui/empty-state";
 // XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
@@ -564,28 +565,27 @@ export function PaiementsPage() {
               ))}
             </div>
           ) : filteredFactures.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">
-                {hasActiveFilters ? "Aucune facture ne correspond aux filtres" : "Aucune facture"}
-              </p>
-              {hasActiveFilters ? (
-                <Button variant="link" className="mt-2" onClick={clearFilters}>
-                  Réinitialiser les filtres
-                </Button>
-              ) : (
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => {
+            hasActiveFilters ? (
+              <EmptyState
+                variant="filter"
+                title="Aucune facture trouvée"
+                description="Aucune facture ne correspond aux filtres actifs. Réinitialisez pour tout afficher."
+                onReset={clearFilters}
+              />
+            ) : (
+              <EmptyState
+                icon={FileText}
+                title="Aucune facture"
+                description="Créez votre première facture pour commencer à suivre vos encaissements et impayés."
+                action={{
+                  label: "Créer une facture",
+                  onClick: () => {
                     setEditingFacture(null);
                     setShowFactureForm(true);
-                  }}
-                >
-                  Créer une première facture
-                </Button>
-              )}
-            </div>
+                  },
+                }}
+              />
+            )
           ) : (
             <Table>
               <TableHeader>

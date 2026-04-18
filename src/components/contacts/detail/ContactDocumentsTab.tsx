@@ -16,6 +16,7 @@ import { FolderOpen, File, Download, Trash2, Plus, AlertCircle } from "lucide-re
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Document {
   id: string;
@@ -63,11 +64,13 @@ export function ContactDocumentsTab({
       </div>
 
       {documents.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Aucun document</p>
-          <p className="text-xs mt-1">Ajoutez CNI, permis, attestations...</p>
-        </div>
+        <EmptyState
+          variant="minimal"
+          icon={FolderOpen}
+          title="Aucun document"
+          description="Ajoutez la CNI, le permis, les attestations et tout justificatif requis pour ce contact."
+          action={{ label: "Ajouter un document", onClick: onUpload, icon: Plus }}
+        />
       ) : (
         documents.map((doc) => {
           const typeLabel = documentTypes.find((t) => t.value === doc.type_document)?.label || doc.type_document;
