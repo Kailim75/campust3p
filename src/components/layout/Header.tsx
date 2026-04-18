@@ -1,10 +1,11 @@
-import { Plus, Bell } from "lucide-react";
+import { Plus, Bell, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CommandPaletteTrigger } from "./CommandPaletteTrigger";
@@ -12,6 +13,7 @@ import { NotificationBell } from "./NotificationBell";
 import { AppBreadcrumb } from "./AppBreadcrumb";
 import { CentreSwitcher } from "./CentreSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
+import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { LogOut } from "lucide-react";
 
 interface HeaderProps {
@@ -29,6 +31,7 @@ export function Header({
   title, subtitle, onAddClick, addLabel, activeSection, activeTab, onNavigate, extraActions,
 }: HeaderProps) {
   const { user, signOut } = useAuth();
+  const openShortcuts = useShortcutsDialog((s) => s.open);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -66,6 +69,21 @@ export function Header({
             <CommandPaletteTrigger />
             <CentreSwitcher />
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={openShortcuts}
+                aria-label="Afficher les raccourcis clavier"
+                className="h-8 w-8 sm:h-9 sm:w-9 hidden md:inline-flex"
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Raccourcis clavier (?)</TooltipContent>
+          </Tooltip>
           <ThemeToggle />
           <NotificationBell />
 

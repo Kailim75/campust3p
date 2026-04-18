@@ -13,6 +13,7 @@ import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -114,7 +115,8 @@ const Index = () => {
 
   const [activeSection, setActiveSectionState] = useState<string>(getInitialSection);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
-  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  const shortcutsDialogOpen = useShortcutsDialog((s) => s.isOpen);
+  const setShortcutsDialogOpen = useShortcutsDialog((s) => s.setOpen);
   const commandPaletteOpen = useCommandPalette((s) => s.isOpen);
   const setCommandPaletteOpen = useCommandPalette((s) => s.setOpen);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -346,6 +348,7 @@ const Index = () => {
         onNewContact={() => setNewContactOpen(true)}
         onNewProspect={() => setNewProspectOpen(true)}
       />
+      <ShortcutSequenceIndicator />
     </div>
   );
 };
