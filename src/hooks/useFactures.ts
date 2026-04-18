@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 
 // Types for factures (manually defined since types.ts hasn't updated yet)
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
