@@ -33,6 +33,7 @@ import { type TypeFormation } from "@/constants/formations";
 import { CatalogueFormDialog } from "./CatalogueFormDialog";
 import { CatalogueStatsBar } from "./CatalogueStatsBar";
 import { CatalogueArticleCard } from "./CatalogueArticleCard";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 
 const typeLabels: Record<string, { label: string; class: string }> = {
