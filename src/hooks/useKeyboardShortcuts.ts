@@ -65,28 +65,32 @@ export function useSequenceShortcuts(
   const setPrefix = useShortcutSequence((s) => s.setPrefix);
   const prefixRef = useRef<string | null>(null);
   const timeoutRef = useRef<number | null>(null);
-
-  const clearPrefix = useCallback(() => {
-    prefixRef.current = null;
-    setPrefix(null);
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }, [setPrefix]);
+  // Keep latest sequences in a ref so the listener stays stable across renders
+  const sequencesRef = useRef(sequences);
+  useEffect(() => {
+    sequencesRef.current = sequences;
+  }, [sequences]);
 
   useEffect(() => {
+    const clearPrefix = () => {
+      prefixRef.current = null;
+      setPrefix(null);
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Never intercept while typing
       if (isEditableTarget(e.target)) return;
-      // Ignore modifier-prefixed combos (let other handlers deal with them)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const key = e.key.toLowerCase();
+      const seqs = sequencesRef.current;
 
       // If a prefix is pending, look up the secondary action
       if (prefixRef.current) {
-        const map = sequences[prefixRef.current];
+        const map = seqs[prefixRef.current];
         const handler = map?.[key];
         if (handler) {
           e.preventDefault();
@@ -96,11 +100,12 @@ export function useSequenceShortcuts(
         return;
       }
 
-      // Otherwise, check if this key is a known prefix
-      if (sequences[key]) {
-        e.preventDefault();
+      // Otherwise, check if this key is a known prefix.
+      // Do NOT preventDefault here — we let the key pass through if no follow-up comes.
+      if (seqs[key]) {
         prefixRef.current = key;
         setPrefix(key);
+        if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
         timeoutRef.current = window.setTimeout(clearPrefix, 1500);
       }
     };
@@ -110,7 +115,7 @@ export function useSequenceShortcuts(
       window.removeEventListener("keydown", handleKeyDown);
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     };
-  }, [sequences, setPrefix, clearPrefix]);
+  }, [setPrefix]);
 }
 
 /**
