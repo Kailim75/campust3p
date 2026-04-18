@@ -5185,6 +5185,48 @@ export type Database = {
           },
         ]
       }
+      onboarding_state: {
+        Row: {
+          centre_id: string | null
+          created_at: string
+          dismissed_at: string | null
+          steps_skipped: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          centre_id?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          steps_skipped?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          centre_id?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          steps_skipped?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_state_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_state_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paiements: {
         Row: {
           commentaires: string | null
@@ -7627,6 +7669,7 @@ export type Database = {
           numero_certificat: string
         }[]
       }
+      dismiss_onboarding_checklist: { Args: never; Returns: undefined }
       export_contact_data: { Args: { p_contact_id: string }; Returns: Json }
       generate_breach_code: { Args: never; Returns: string }
       generate_numero_certificat: {
@@ -7694,6 +7737,7 @@ export type Database = {
         Args: { p_record_id: string; p_table_name: string }
         Returns: Json
       }
+      get_onboarding_progress: { Args: { p_centre_id: string }; Returns: Json }
       get_partner_stats: {
         Args: { p_partner_id: string }
         Returns: {
@@ -7825,6 +7869,7 @@ export type Database = {
         }
         Returns: Json
       }
+      skip_onboarding_step: { Args: { p_step_id: string }; Returns: undefined }
       soft_delete_record: {
         Args: { p_reason?: string; p_record_id: string; p_table_name: string }
         Returns: boolean
