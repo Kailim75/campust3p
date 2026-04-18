@@ -396,17 +396,29 @@ export function ProspectsPage() {
               </CardContent>
             </Card>
           ) : filteredProspects.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="Aucun prospect"
-              description="Ajoutez des prospects pour suivre vos opportunités commerciales."
-              action={
-                <Button onClick={() => setFormOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un prospect
-                </Button>
-              }
-            />
+            search ? (
+              <EmptyState
+                variant="search"
+                searchQuery={search}
+                onReset={() => setSearch("")}
+              />
+            ) : (statusFilter !== "all" || quickFilter !== "actifs") ? (
+              <EmptyState
+                variant="filter"
+                description="Aucun prospect ne correspond à ces filtres. Réinitialisez pour tout afficher."
+                onReset={() => {
+                  setStatusFilter("all");
+                  setQuickFilter("actifs");
+                }}
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="Aucun prospect"
+                description="Ajoutez votre premier prospect pour démarrer le suivi commercial et planifier des relances."
+                action={{ label: "Créer un prospect", onClick: () => setFormOpen(true), icon: Plus }}
+              />
+            )
           ) : isMobile ? (
             /* ─── MOBILE CARDS ─── */
             <div className="space-y-3">
