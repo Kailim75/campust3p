@@ -195,150 +195,139 @@ export function CommandPalette({
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.12, ease: "easeOut" }}
-          >
-            <CommandInput
-              placeholder="Rechercher ou taper une commande..."
-              value={query}
-              onValueChange={setQuery}
-            />
-            <CommandList>
-              <CommandEmpty>
-                {loading
-                  ? "Recherche en cours…"
-                  : query
-                    ? `Aucun résultat pour "${query}"`
-                    : "Tapez pour rechercher…"}
-              </CommandEmpty>
+      <CommandInput
+        placeholder="Rechercher ou taper une commande..."
+        value={query}
+        onValueChange={setQuery}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {loading
+            ? "Recherche en cours…"
+            : query
+              ? `Aucun résultat pour "${query}"`
+              : "Tapez pour rechercher…"}
+        </CommandEmpty>
 
-              {/* Quick actions — always visible at top */}
-              <CommandGroup heading="Actions rapides">
-                {onNewContact && (
-                  <CommandItem value="action-new-contact" onSelect={() => { close(); onNewContact(); }}>
-                    <Plus className="h-4 w-4 text-primary" />
-                    <span className="ml-3">Créer un apprenant</span>
-                  </CommandItem>
-                )}
-                {onNewProspect && (
-                  <CommandItem value="action-new-prospect" onSelect={() => { close(); onNewProspect(); }}>
-                    <Plus className="h-4 w-4 text-primary" />
-                    <span className="ml-3">Créer un prospect</span>
-                  </CommandItem>
-                )}
-                <CommandItem value="action-new-session" onSelect={() => handleNavigate("sessions")}>
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="ml-3">Planifier une session</span>
-                </CommandItem>
-                <CommandItem value="action-new-facture" onSelect={() => handleNavigate("finances")}>
-                  <Receipt className="h-4 w-4 text-primary" />
-                  <span className="ml-3">Nouvelle facture</span>
-                </CommandItem>
-                <CommandItem value="action-inbox" onSelect={() => handleNavigate("inbox")}>
-                  <Mail className="h-4 w-4 text-primary" />
-                  <span className="ml-3">Ouvrir l'inbox</span>
-                </CommandItem>
-                <CommandItem value="action-dashboard" onSelect={() => handleNavigate("dashboard")}>
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  <span className="ml-3">Voir le tableau de bord</span>
-                </CommandItem>
-              </CommandGroup>
+        {/* Quick actions — always visible at top */}
+        <CommandGroup heading="Actions rapides">
+          {onNewContact && (
+            <CommandItem value="action-new-contact" onSelect={() => { close(); onNewContact(); }}>
+              <Plus className="h-4 w-4 text-primary" />
+              <span className="ml-3">Créer un apprenant</span>
+            </CommandItem>
+          )}
+          {onNewProspect && (
+            <CommandItem value="action-new-prospect" onSelect={() => { close(); onNewProspect(); }}>
+              <Plus className="h-4 w-4 text-primary" />
+              <span className="ml-3">Créer un prospect</span>
+            </CommandItem>
+          )}
+          <CommandItem value="action-new-session" onSelect={() => handleNavigate("sessions")}>
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="ml-3">Planifier une session</span>
+          </CommandItem>
+          <CommandItem value="action-new-facture" onSelect={() => handleNavigate("finances")}>
+            <Receipt className="h-4 w-4 text-primary" />
+            <span className="ml-3">Nouvelle facture</span>
+          </CommandItem>
+          <CommandItem value="action-inbox" onSelect={() => handleNavigate("inbox")}>
+            <Mail className="h-4 w-4 text-primary" />
+            <span className="ml-3">Ouvrir l'inbox</span>
+          </CommandItem>
+          <CommandItem value="action-dashboard" onSelect={() => handleNavigate("dashboard")}>
+            <BarChart3 className="h-4 w-4 text-primary" />
+            <span className="ml-3">Voir le tableau de bord</span>
+          </CommandItem>
+        </CommandGroup>
 
-              {/* Recents — only when no query */}
-              {showRecents && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Récents">
-                    {recentItems.slice(0, 5).map((item) => {
-                      const Icon = TYPE_ICONS[item.type as SearchResult["type"]] || Clock;
-                      return (
-                        <CommandItem
-                          key={`recent-${item.type}-${item.id}`}
-                          value={`recent-${item.type}-${item.id}`}
-                          onSelect={() => handleRecent(item)}
-                        >
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <div className="ml-3 flex flex-col min-w-0">
-                            <span className="truncate">{item.name}</span>
-                            {item.subtitle && (
-                              <span className="text-xs text-muted-foreground truncate">{item.subtitle}</span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                </>
-              )}
-
-              {/* Search results — grouped by type */}
-              {(["contact", "session", "prospect", "formation", "facture"] as const).map((type) => {
-                const items = groupedResults[type];
-                if (items.length === 0) return null;
-                const Icon = TYPE_ICONS[type];
+        {/* Recents — only when no query */}
+        {showRecents && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Récents">
+              {recentItems.slice(0, 5).map((item) => {
+                const Icon = TYPE_ICONS[item.type as SearchResult["type"]] || Clock;
                 return (
-                  <div key={type}>
-                    <CommandSeparator />
-                    <CommandGroup heading={TYPE_LABELS[type] + "s"}>
-                      {items.map((result) => (
-                        <CommandItem
-                          key={`${result.type}-${result.id}`}
-                          value={`${result.type}-${result.id}-${result.label}`}
-                          onSelect={() => handleResult(result)}
-                        >
-                          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="ml-3 flex flex-col min-w-0 flex-1">
-                            <span className="truncate">{result.label}</span>
-                            {result.sublabel && (
-                              <span className="text-xs text-muted-foreground truncate">{result.sublabel}</span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </div>
+                  <CommandItem
+                    key={`recent-${item.type}-${item.id}`}
+                    value={`recent-${item.type}-${item.id}`}
+                    onSelect={() => handleRecent(item)}
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <div className="ml-3 flex flex-col min-w-0">
+                      <span className="truncate">{item.name}</span>
+                      {item.subtitle && (
+                        <span className="text-xs text-muted-foreground truncate">{item.subtitle}</span>
+                      )}
+                    </div>
+                  </CommandItem>
                 );
               })}
+            </CommandGroup>
+          </>
+        )}
 
-              {/* Navigation — always visible */}
+        {/* Search results — grouped by type */}
+        {(["contact", "session", "prospect", "formation", "facture"] as const).map((type) => {
+          const items = groupedResults[type];
+          if (items.length === 0) return null;
+          const Icon = TYPE_ICONS[type];
+          return (
+            <div key={type}>
               <CommandSeparator />
-              <CommandGroup heading="Navigation">
-                {NAV_SECTIONS.map((section) => (
+              <CommandGroup heading={TYPE_LABELS[type] + "s"}>
+                {items.map((result) => (
                   <CommandItem
-                    key={section.id}
-                    value={`nav-${section.id}`}
-                    onSelect={() => handleNavigate(section.id)}
+                    key={`${result.type}-${result.id}`}
+                    value={`${result.type}-${result.id}-${result.label}`}
+                    onSelect={() => handleResult(result)}
                   >
-                    <section.icon className="h-4 w-4 text-muted-foreground" />
-                    <span className="ml-3">{section.label}</span>
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="ml-3 flex flex-col min-w-0 flex-1">
+                      <span className="truncate">{result.label}</span>
+                      {result.sublabel && (
+                        <span className="text-xs text-muted-foreground truncate">{result.sublabel}</span>
+                      )}
+                    </div>
                   </CommandItem>
                 ))}
               </CommandGroup>
-            </CommandList>
-
-            {/* Footer hints */}
-            <div className="flex items-center gap-4 px-4 py-2 border-t border-border bg-muted/30 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <kbd className="font-mono bg-background border border-border rounded px-1.5">↵</kbd>
-                Sélectionner
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="font-mono bg-background border border-border rounded px-1.5">↑↓</kbd>
-                Naviguer
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="font-mono bg-background border border-border rounded px-1.5">esc</kbd>
-                Fermer
-              </span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          );
+        })}
+
+        {/* Navigation — always visible */}
+        <CommandSeparator />
+        <CommandGroup heading="Navigation">
+          {NAV_SECTIONS.map((section) => (
+            <CommandItem
+              key={section.id}
+              value={`nav-${section.id}`}
+              onSelect={() => handleNavigate(section.id)}
+            >
+              <section.icon className="h-4 w-4 text-muted-foreground" />
+              <span className="ml-3">{section.label}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+
+      {/* Footer hints */}
+      <div className="flex items-center gap-4 px-4 py-2 border-t border-border bg-muted/30 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <kbd className="font-mono bg-background border border-border rounded px-1.5">↵</kbd>
+          Sélectionner
+        </span>
+        <span className="flex items-center gap-1">
+          <kbd className="font-mono bg-background border border-border rounded px-1.5">↑↓</kbd>
+          Naviguer
+        </span>
+        <span className="flex items-center gap-1">
+          <kbd className="font-mono bg-background border border-border rounded px-1.5">esc</kbd>
+          Fermer
+        </span>
+      </div>
     </CommandDialog>
   );
 }
