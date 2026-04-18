@@ -25,7 +25,15 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 /**
  * Register a single keyboard shortcut (with modifiers).
- * Skips when focus is in an editable element.
+ *
+ * Behaviour:
+ * - Shortcuts WITH a Ctrl/Cmd modifier (e.g. ⌘K) always fire, even from inputs
+ *   — this is the standard Gmail / Notion / Linear behaviour.
+ * - Shortcuts WITHOUT a modifier (single-letter or Shift+letter) are skipped
+ *   when focus is in an editable element, so typing isn't intercepted.
+ *
+ * The handler is kept in a ref so the listener is registered once and stays
+ * stable across renders (no tear-down / re-subscribe on every parent render).
  */
 export function useKeyboardShortcut(
   key: string,
@@ -34,9 +42,18 @@ export function useKeyboardShortcut(
 ) {
   const { ctrl = false, shift = false, alt = false } = options;
 
+  // Keep the latest handler in a ref so we don't re-bind the window listener
+  // every render (handler is typically an inline arrow function).
+  const handlerRef = useRef(handler);
+  useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditableTarget(e.target)) return;
+      // Only skip editable targets for shortcuts WITHOUT a ctrl/cmd modifier.
+      // ⌘K must work even from inputs (standard power-user UX).
+      if (!ctrl && isEditableTarget(e.target)) return;
 
       const ctrlMatch = ctrl ? (e.ctrlKey || e.metaKey) : (!e.ctrlKey && !e.metaKey);
       const shiftMatch = shift ? e.shiftKey : !e.shiftKey;
@@ -45,13 +62,13 @@ export function useKeyboardShortcut(
 
       if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
         e.preventDefault();
-        handler();
+        handlerRef.current();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [key, ctrl, shift, alt, handler]);
+  }, [key, ctrl, shift, alt]);
 }
 
 /**
