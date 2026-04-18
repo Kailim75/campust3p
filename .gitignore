@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Environment variables — only .env is tracked (public VITE_ vars).
+# Never commit local overrides, staging or prod secrets:
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.staging
+.env.production
+
+# Supabase local state
+supabase/.branches
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

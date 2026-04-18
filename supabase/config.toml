@@ -1,88 +1,114 @@
 project_id = "zhgbbujqapcigmduuqiy"
 
+# ============================================================================
+# Edge Functions — JWT verification policy
+# ----------------------------------------------------------------------------
+# verify_jwt = true  -> Supabase rejects requests without a valid user JWT.
+#                      Use for anything called by the authenticated frontend.
+# verify_jwt = false -> Endpoint is public. ONLY use for:
+#                        - External webhooks (no JWT available)
+#                        - OAuth callbacks
+#                        - Cron-triggered functions (invoked with service_role)
+#                      Functions with verify_jwt=false MUST perform their own
+#                      authorization check (e.g. signed payload, secret header).
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# PUBLIC — external callers (no JWT available). Must validate themselves.
+# ----------------------------------------------------------------------------
+
+[functions.alma-webhook]
+verify_jwt = false                     # Alma server → us (signature check inside)
+
+[functions.incoming-webhook]
+verify_jwt = false                     # Generic external webhook endpoint
+
+[functions.public-sign-document]
+verify_jwt = false                     # Public signing link (token in URL)
+
+[functions.sync-gmail-inbox]
+verify_jwt = false                     # Google OAuth callback
+
+# ----------------------------------------------------------------------------
+# CRON / SCHEDULED — invoked by service_role, not by end users.
+# Keep public but ensure internal auth (bearer secret) is enforced.
+# ----------------------------------------------------------------------------
+
 [functions.send-automated-emails]
 verify_jwt = false
 
 [functions.send-exam-reminders]
 verify_jwt = false
 
-[functions.create-user]
-verify_jwt = false
-
-[functions.delete-user]
-verify_jwt = false
-
-[functions.list-users]
+[functions.send-daily-report]
 verify_jwt = false
 
 [functions.generate-notifications]
 verify_jwt = false
 
-[functions.send-signature-email]
-verify_jwt = false
+# ----------------------------------------------------------------------------
+# PROTECTED — called by authenticated frontend. JWT now required.
+# ----------------------------------------------------------------------------
+
+[functions.create-user]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.list-users]
+verify_jwt = true
 
 [functions.ai-assistant]
-verify_jwt = false
+verify_jwt = true
 
 [functions.execute-workflow]
-verify_jwt = false
+verify_jwt = true
+
+[functions.send-signature-email]
+verify_jwt = true
 
 [functions.send-enquete-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.alma-payment]
-verify_jwt = false
-
-[functions.incoming-webhook]
-verify_jwt = false
+verify_jwt = true
 
 [functions.prospect-scoring]
-verify_jwt = false
+verify_jwt = true
 
 [functions.centre-scoring]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-template-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ia-action-plan]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ia-predictive-analysis]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-workflow-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-audit-pack]
-verify_jwt = false
+verify_jwt = true
 
 [functions.bulk-send-documents]
-verify_jwt = false
-
-[functions.public-sign-document]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-driveflow]
-verify_jwt = false
-
-[functions.sync-gmail-inbox]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-gmail-reply]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-gmail-new]
-verify_jwt = false
+verify_jwt = true
 
 [functions.promote-attachment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-service-key]
-verify_jwt = false
-
-[functions.send-daily-report]
-verify_jwt = false
-
-[functions.alma-webhook]
-verify_jwt = false
+verify_jwt = true
