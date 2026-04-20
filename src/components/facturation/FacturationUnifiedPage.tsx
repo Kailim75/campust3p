@@ -10,6 +10,7 @@ import { useDevis } from "@/hooks/useDevis";
 import { useFactures } from "@/hooks/useFactures";
 import { FacturationIntelligence } from "./FacturationIntelligence";
 import { AnalyseParSession } from "./AnalyseParSession";
+import { FacturationAuditPanel } from "./FacturationAuditPanel";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "factures" | "devis" | "sessions";
@@ -118,6 +119,9 @@ export function FacturationUnifiedPage() {
 
       {/* Intelligence prédictive */}
       <FacturationIntelligence factures={factures} />
+
+      {/* Audit additif, lecture seule */}
+      <FacturationAuditPanel />
 
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewMode)} className="space-y-4">
         <TabsList className="h-auto p-1">
