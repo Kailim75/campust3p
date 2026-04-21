@@ -493,6 +493,63 @@ export type Database = {
           },
         ]
       }
+      centre_api_keys: {
+        Row: {
+          actif: boolean
+          centre_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          label: string | null
+          last_used_at: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          actif?: boolean
+          centre_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          actif?: boolean
+          centre_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "centre_api_keys_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "centre_api_keys_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       centre_formation: {
         Row: {
           adresse_complete: string
@@ -7907,6 +7964,7 @@ export type Database = {
       }
       unarchive_session: { Args: { p_session_id: string }; Returns: boolean }
       use_reservation_token: { Args: { p_token: string }; Returns: boolean }
+      validate_api_key: { Args: { p_key_hash: string }; Returns: string }
       validate_enquete_token: {
         Args: { p_token: string }
         Returns: {

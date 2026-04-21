@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
   FileText,
   Database,
+  KeyRound,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -52,6 +53,7 @@ const menuItems = [
   { id: "charter", label: "Charte Sécurité", icon: Shield },
   { id: "privacy", label: "Politique Confidentialité", icon: FileText },
   { id: "legal-mentions", label: "Mentions Légales", icon: FileText },
+  { id: "api-keys", label: "Clés API", icon: KeyRound },
 ];
 
 function SidebarContent({ 
