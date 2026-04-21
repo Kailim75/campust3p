@@ -115,3 +115,6 @@ verify_jwt = true
 
 [functions.get-service-key]
 verify_jwt = true
+
+[functions.manage-centre-api-key]
+verify_jwt = true
