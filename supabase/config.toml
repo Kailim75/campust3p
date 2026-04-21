@@ -29,6 +29,9 @@ verify_jwt = false                     # Public signing link (token in URL)
 [functions.sync-gmail-inbox]
 verify_jwt = false                     # Google OAuth callback
 
+[functions.api-v1]
+verify_jwt = false                     # Auth via x-api-key (clé centre)
+
 # ----------------------------------------------------------------------------
 # CRON / SCHEDULED — invoked by service_role, not by end users.
 # Keep public but ensure internal auth (bearer secret) is enforced.
