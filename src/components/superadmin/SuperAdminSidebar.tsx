@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
   FileText,
   Database,
+  KeyRound,
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
