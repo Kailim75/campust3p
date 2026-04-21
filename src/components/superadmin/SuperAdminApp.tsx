@@ -104,6 +104,12 @@ export function SuperAdminApp() {
             <SuperAdminLegalMentions />
           </Suspense>
         );
+      case "api-keys":
+        return (
+          <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <SuperAdminApiKeys />
+          </Suspense>
+        );
       default:
         return <SuperAdminOverview />;
     }
