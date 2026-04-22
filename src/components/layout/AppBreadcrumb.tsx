@@ -1,4 +1,5 @@
-import { Home, ChevronRight, MoreHorizontal, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Home, ChevronRight, MoreHorizontal, ChevronDown, Check } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { getEntryById, MORE_ENTRIES } from "@/config/navigationRegistry";
 
 interface BreadcrumbCrumb {
@@ -66,6 +68,13 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
 export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBreadcrumbProps) {
   const entry = getEntryById(activeSection);
   const isDashboard = activeSection === "dashboard";
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  /** Navigue puis ferme explicitement le dropdown (défense en profondeur). */
+  const handleMoreNavigate = (sectionId: string) => {
+    onNavigate(sectionId);
+    setMoreOpen(false);
+  };
 
   // Construction des miettes en suivant la hiérarchie réelle de la sidebar
   const crumbs: BreadcrumbCrumb[] = [];
@@ -114,16 +123,27 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
                   {crumb.label}
                 </BreadcrumbPage>
               ) : crumb.disabled ? (
-                <DropdownMenu>
+                <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
                   <DropdownMenuTrigger
-                    className="flex items-center gap-1 text-muted-foreground/80 hover:text-foreground text-sm rounded-md px-1 -mx-1 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      "flex items-center gap-1 text-sm rounded-md px-1.5 -mx-1 py-0.5 transition-colors",
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      moreOpen
+                        ? "text-foreground bg-accent"
+                        : "text-muted-foreground/80 hover:text-foreground hover:bg-accent/40"
+                    )}
                     aria-label="Afficher les autres modules"
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
                     <span>{crumb.label}</span>
-                    <ChevronDown className="h-3 w-3 opacity-60" />
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 opacity-60 transition-transform",
+                        moreOpen && "rotate-180"
+                      )}
+                    />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 max-h-[60vh] overflow-y-auto">
+                  <DropdownMenuContent align="start" className="w-60 max-h-[60vh] overflow-y-auto">
                     <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
                       Autres modules
                     </DropdownMenuLabel>
@@ -134,11 +154,24 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
                       return (
                         <DropdownMenuItem
                           key={item.id}
-                          onClick={() => onNavigate(item.id)}
-                          className={isCurrent ? "bg-accent text-accent-foreground" : ""}
+                          onSelect={() => handleMoreNavigate(item.id)}
+                          aria-current={isCurrent ? "page" : undefined}
+                          className={cn(
+                            "cursor-pointer gap-2",
+                            isCurrent &&
+                              "bg-accent text-accent-foreground font-medium data-[highlighted]:bg-accent"
+                          )}
                         >
-                          <ItemIcon className="h-4 w-4 mr-2" />
-                          <span className="flex-1">{item.label}</span>
+                          <ItemIcon
+                            className={cn(
+                              "h-4 w-4",
+                              isCurrent ? "text-primary" : "text-muted-foreground"
+                            )}
+                          />
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {isCurrent && (
+                            <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                          )}
                         </DropdownMenuItem>
                       );
                     })}
