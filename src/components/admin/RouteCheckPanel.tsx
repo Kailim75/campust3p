@@ -170,7 +170,7 @@ export function RouteCheckPanel({ open, onOpenChange }: RouteCheckPanelProps) {
           </Button>
           <div className="ml-auto flex items-center gap-2 text-xs">
             <Badge variant="outline">{total} entrées</Badge>
-            <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-300">{ok} OK</Badge>
+            <Badge className="bg-success/10 text-success border-success/30">{ok} OK</Badge>
             <Badge className="bg-destructive/10 text-destructive border-destructive/30">{ko} KO</Badge>
           </div>
         </div>
