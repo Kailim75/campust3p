@@ -39,55 +39,10 @@ import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { RouteCheckPanel } from "@/components/admin/RouteCheckPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-
-// ─── URL ↔ Section mapping ────────────────────────────────────────────────────
-// Bidirectional map: pathname segment → section key
-const PATH_TO_SECTION: Record<string, string> = {
-  "": "dashboard",
-  "dashboard": "dashboard",
-  "aujourdhui": "aujourdhui",
-  "contacts": "contacts",
-  "apprenants": "contacts",        // legacy alias
-  "formations": "formations",
-  "sessions": "sessions",
-  "prospects": "prospects",
-  "finances": "finances",
-  "facturation": "finances",       // legacy alias
-  "paiements": "finances",         // legacy alias
-  "inbox": "inbox",
-  "automations": "automations",
-  "settings": "settings",
-  "parametres": "settings",        // alias français
-  "formateurs": "formateurs",
-  "alertes": "alertes",
-  "qualite": "qualite",
-  "partenaires": "partenaires",
-  "planning-conduite": "planning-conduite",
-  "security": "security",
-  
-  "corbeille": "corbeille",
-};
-
-const SECTION_TO_PATH: Record<string, string> = {
-  "dashboard": "/",
-  "aujourdhui": "/aujourdhui",
-  "contacts": "/contacts",
-  "formations": "/formations",
-  "sessions": "/sessions",
-  "prospects": "/prospects",
-  "finances": "/finances",
-  "inbox": "/inbox",
-  "automations": "/automations",
-  "settings": "/settings",
-  "formateurs": "/formateurs",
-  "alertes": "/alertes",
-  "qualite": "/qualite",
-  "partenaires": "/partenaires",
-  "planning-conduite": "/planning-conduite",
-  "security": "/security",
-  
-  "corbeille": "/corbeille",
-};
+import {
+  PATH_TO_SECTION,
+  SECTION_TO_PATH,
+} from "@/config/navigationRegistry";
 
 // Legacy redirect map: old section key → {section, tab?}
 const LEGACY_REDIRECTS: Record<string, { section: string; tab?: string }> = {

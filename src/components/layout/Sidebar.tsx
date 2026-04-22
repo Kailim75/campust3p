@@ -1,10 +1,7 @@
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, Users, Calendar, CreditCard, Settings,
-  ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
-  ClipboardList, Plus, UserPlus, Zap, LogOut, GraduationCap,
-  MoreHorizontal, Bell, Award, Handshake, Car, UserCog,
-  Trash2, Inbox,
+import {
+  Settings, ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
+  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,6 +20,7 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { HUB_ENTRIES, MORE_ENTRIES } from "@/config/navigationRegistry";
 
 interface SidebarProps {
   activeSection: string;
@@ -32,32 +30,9 @@ interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-/**
- * Top-level hubs — limit to 5 + "Plus" to reduce cognitive load.
- * Each hub maps to an existing section id so the routing stays unchanged.
- * Secondary destinations open via the page's internal tabs / actions.
- */
-const menuItems = [
-  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList },
-  { id: "contacts", label: "Personnes", icon: Users },
-  { id: "sessions", label: "Formations", icon: Calendar },
-  { id: "finances", label: "Finances", icon: CreditCard },
-  { id: "inbox", label: "Inbox CRM", icon: Inbox },
-];
-
-const moreMenuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "prospects", label: "Prospects", icon: UserPlus },
-  { id: "formations", label: "Catalogue", icon: GraduationCap },
-  { id: "automations", label: "Automations", icon: Zap },
-  { id: "formateurs", label: "Formateurs", icon: UserCog },
-  { id: "planning-conduite", label: "Planning conduite", icon: Car },
-  { id: "alertes", label: "Alertes", icon: Bell },
-  { id: "qualite", label: "Qualité", icon: Award },
-  { id: "partenaires", label: "Partenaires", icon: Handshake },
-  { id: "security", label: "Sécurité", icon: Shield },
-  { id: "corbeille", label: "Corbeille", icon: Trash2 },
-];
+// Source unique de vérité : voir src/config/navigationRegistry.ts
+const menuItems = HUB_ENTRIES;
+const moreMenuItems = MORE_ENTRIES;
 
 /** Wraps children in a Tooltip when sidebar is collapsed */
 function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean; label: string; children: React.ReactNode }) {
