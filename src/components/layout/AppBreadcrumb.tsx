@@ -1,4 +1,4 @@
-import { Home, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Home, ChevronRight, MoreHorizontal, ChevronDown } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,7 +7,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { getEntryById } from "@/config/navigationRegistry";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getEntryById, MORE_ENTRIES } from "@/config/navigationRegistry";
 
 interface BreadcrumbCrumb {
   label: string;
@@ -106,10 +114,36 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
                   {crumb.label}
                 </BreadcrumbPage>
               ) : crumb.disabled ? (
-                <span className="flex items-center gap-1.5 text-muted-foreground/70 text-sm">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                  {crumb.label}
-                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="flex items-center gap-1 text-muted-foreground/80 hover:text-foreground text-sm rounded-md px-1 -mx-1 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Afficher les autres modules"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                    <span>{crumb.label}</span>
+                    <ChevronDown className="h-3 w-3 opacity-60" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 max-h-[60vh] overflow-y-auto">
+                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                      Autres modules
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {MORE_ENTRIES.map((item) => {
+                      const ItemIcon = item.icon;
+                      const isCurrent = item.id === activeSection;
+                      return (
+                        <DropdownMenuItem
+                          key={item.id}
+                          onClick={() => onNavigate(item.id)}
+                          className={isCurrent ? "bg-accent text-accent-foreground" : ""}
+                        >
+                          <ItemIcon className="h-4 w-4 mr-2" />
+                          <span className="flex-1">{item.label}</span>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <BreadcrumbLink
                   onClick={() => crumb.section && onNavigate(crumb.section)}
