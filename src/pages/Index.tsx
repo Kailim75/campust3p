@@ -125,6 +125,7 @@ const Index = () => {
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
+  const [routeCheckOpen, setRouteCheckOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undoLast);
