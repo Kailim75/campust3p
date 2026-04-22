@@ -206,15 +206,27 @@ const Index = () => {
     });
   }, [registerGlobalCreate, setActiveSection]);
 
-  // ── DOM custom events (alerts, blockage panel) ────────────────────────────
+  // ── DOM custom events (alerts, blockage panel, route check) ───────────────
   useEffect(() => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
     const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
+    const handleOpenRouteCheck = () => setRouteCheckOpen(true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Shift + R → ouvre le panneau de vérification de routage
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        setRouteCheckOpen(true);
+      }
+    };
     window.addEventListener("navigate-to-alerts", handleNavigateToAlerts);
     window.addEventListener("open-blockage-panel", handleOpenBlockagePanel);
+    window.addEventListener("open-route-check", handleOpenRouteCheck);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("navigate-to-alerts", handleNavigateToAlerts);
       window.removeEventListener("open-blockage-panel", handleOpenBlockagePanel);
+      window.removeEventListener("open-route-check", handleOpenRouteCheck);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [setActiveSection]);
 
