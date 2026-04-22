@@ -110,9 +110,16 @@ function SidebarContent({
   const handleRecentItemClick = (type: string, id: string) => {
     if (type === "contact") onSectionChange("contacts");
     else if (type === "session") onSectionChange("sessions");
-    else if (type === "facture") onSectionChange("paiements");
+    else if (type === "facture") onSectionChange("finances");
     onItemClick?.();
   };
+
+  // Auto-open "Plus" when current active section lives inside moreMenuItems
+  const isInMore = moreMenuItems.some((m) => m.id === activeSection);
+  const [moreOpen, setMoreOpen] = useState<boolean>(isInMore);
+  useEffect(() => {
+    if (isInMore) setMoreOpen(true);
+  }, [isInMore]);
 
   const confirmSwitchToSuperAdmin = () => {
     setMode("superadmin");
@@ -206,8 +213,8 @@ function SidebarContent({
 
         {/* ── More section ── */}
         {!collapsed ? (
-          <Collapsible className="mt-2">
-            <CollapsibleTrigger className="sidebar-item w-full text-white/40 hover:text-white/70">
+          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+            <CollapsibleTrigger className={cn("sidebar-item w-full text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
               <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
               <span className="truncate">Plus</span>
             </CollapsibleTrigger>
@@ -230,8 +237,8 @@ function SidebarContent({
           </Collapsible>
         ) : (
           <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
-            <Collapsible className="mt-2">
-              <CollapsibleTrigger className="sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70">
+            <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+              <CollapsibleTrigger className={cn("sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
                 <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-px mt-px">
