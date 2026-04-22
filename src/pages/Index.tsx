@@ -36,6 +36,7 @@ import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
 import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
+import { RouteCheckPanel } from "@/components/admin/RouteCheckPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
