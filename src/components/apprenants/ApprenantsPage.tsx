@@ -232,33 +232,19 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           onOpenDuplicates={() => setDuplicatesOpen(true)}
         />
 
-        {/* Bulk actions bar (expert mode) */}
-        {expertMode && someSelected && (
-          <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl animate-in slide-in-from-top-2">
-            <Badge variant="secondary" className="text-sm font-medium">
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
-            </Badge>
-            <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
-              Désélectionner
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("diplome")}>
-                <GraduationCap className="h-3.5 w-3.5" /> Diplômé
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("abandon")}>
-                <XCircle className="h-3.5 w-3.5" /> Abandon
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("archive")}>
-                <Archive className="h-3.5 w-3.5" /> Archiver
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("actif")}>
-                <RefreshCw className="h-3.5 w-3.5" /> Réactiver
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <Download className="h-3.5 w-3.5" /> Export CSV
-              </Button>
-            </div>
-          </div>
+        {/* Bulk actions — floating bar (visible only in expert mode with a selection) */}
+        {expertMode && (
+          <BulkActionBar
+            count={bulk.count}
+            itemLabel={{ singular: "apprenant", plural: "apprenants" }}
+            onClear={bulk.clear}
+          >
+            <BulkActionButton icon={GraduationCap} label="Diplômé" onClick={() => handleBulkStatusChange("diplome")} />
+            <BulkActionButton icon={XCircle} label="Abandon" onClick={() => handleBulkStatusChange("abandon")} />
+            <BulkActionButton icon={Archive} label="Archiver" onClick={() => handleBulkStatusChange("archive")} />
+            <BulkActionButton icon={RefreshCw} label="Réactiver" onClick={() => handleBulkStatusChange("actif")} />
+            <BulkActionButton icon={Download} label="Export CSV" onClick={() => toast.info("Export en préparation")} />
+          </BulkActionBar>
         )}
 
         {/* Critical filter: no results = green badge */}
@@ -278,8 +264,8 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                 {expertMode && (
                   <TableHead className="w-10 h-11">
                     <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleSelectAll}
+                      checked={bulk.allSelected}
+                      onCheckedChange={() => bulk.toggleAll()}
                     />
                   </TableHead>
                 )}
@@ -331,8 +317,8 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                   key={contact.id}
                   contact={contact}
                   expertMode={expertMode}
-                  selected={selectedIds.has(contact.id)}
-                  onSelect={(checked) => toggleSelect(contact.id, checked)}
+                  selected={bulk.isSelected(contact.id)}
+                  onSelect={() => bulk.toggle(contact.id)}
                   onClick={() => {
                     setSelectedContactId(contact.id);
                     setDetailOpen(true);
