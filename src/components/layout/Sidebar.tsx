@@ -110,9 +110,16 @@ function SidebarContent({
   const handleRecentItemClick = (type: string, id: string) => {
     if (type === "contact") onSectionChange("contacts");
     else if (type === "session") onSectionChange("sessions");
-    else if (type === "facture") onSectionChange("paiements");
+    else if (type === "facture") onSectionChange("finances");
     onItemClick?.();
   };
+
+  // Auto-open "Plus" when current active section lives inside moreMenuItems
+  const isInMore = moreMenuItems.some((m) => m.id === activeSection);
+  const [moreOpen, setMoreOpen] = useState<boolean>(isInMore);
+  useEffect(() => {
+    if (isInMore) setMoreOpen(true);
+  }, [isInMore]);
 
   const confirmSwitchToSuperAdmin = () => {
     setMode("superadmin");
