@@ -1,4 +1,5 @@
-import { Home, ChevronRight, MoreHorizontal, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Home, ChevronRight, MoreHorizontal, ChevronDown, Check } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { getEntryById, MORE_ENTRIES } from "@/config/navigationRegistry";
 
 interface BreadcrumbCrumb {
