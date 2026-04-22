@@ -32,22 +32,26 @@ interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
+/**
+ * Top-level hubs — limit to 5 + "Plus" to reduce cognitive load.
+ * Each hub maps to an existing section id so the routing stays unchanged.
+ * Secondary destinations open via the page's internal tabs / actions.
+ */
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList },
-  { id: "prospects", label: "Prospects", icon: UserPlus },
-  { id: "contacts", label: "Apprenants", icon: Users },
-  { id: "sessions", label: "Sessions", icon: Calendar },
-  { id: "formations", label: "Catalogue", icon: GraduationCap },
+  { id: "contacts", label: "Personnes", icon: Users },
+  { id: "sessions", label: "Formations", icon: Calendar },
   { id: "finances", label: "Finances", icon: CreditCard },
   { id: "inbox", label: "Inbox CRM", icon: Inbox },
-  { id: "automations", label: "Automations", icon: Zap },
 ];
 
 const moreMenuItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "prospects", label: "Prospects", icon: UserPlus },
+  { id: "formations", label: "Catalogue", icon: GraduationCap },
+  { id: "automations", label: "Automations", icon: Zap },
   { id: "formateurs", label: "Formateurs", icon: UserCog },
   { id: "planning-conduite", label: "Planning conduite", icon: Car },
-  
   { id: "alertes", label: "Alertes", icon: Bell },
   { id: "qualite", label: "Qualité", icon: Award },
   { id: "partenaires", label: "Partenaires", icon: Handshake },
