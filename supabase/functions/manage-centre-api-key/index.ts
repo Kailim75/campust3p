@@ -49,14 +49,13 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claims?.claims?.sub) {
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user?.id) {
+      console.error("Auth error:", userErr);
       return json(401, { error: "Token invalide" });
     }
 
-    const userId = claims.claims.sub;
+    const userId = userData.user.id;
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Vérifier super_admin
