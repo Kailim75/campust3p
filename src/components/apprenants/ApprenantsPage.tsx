@@ -116,21 +116,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return { actifs, inactifs, tous: contacts.length, termines };
   }, [contacts]);
 
-  // Bulk status change handler
-  const handleBulkStatusChange = useCallback(async (newStatus: StatutApprenant) => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
-    try {
-      await Promise.all(ids.map(id =>
-        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
-      ));
-      toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
-      setSelectedIds(new Set());
-    } catch {
-      toast.error("Erreur lors de la mise à jour");
-    }
-  }, [selectedIds, updateContact]);
+  // Bulk status change handler — selection state declared after `filtered` (see below)
 
   const filtered = useMemo(() => {
     if (!contacts) return [];
