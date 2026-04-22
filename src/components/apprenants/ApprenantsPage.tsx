@@ -23,6 +23,8 @@ import { DuplicatesDialog } from "./DuplicatesDialog";
 import { differenceInDays } from "date-fns";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { toast } from "sonner";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar, BulkActionButton } from "@/components/shared/BulkActionBar";
 
 // Local storage key for expert mode
 const EXPERT_MODE_KEY = "apprenants_expert_mode";
