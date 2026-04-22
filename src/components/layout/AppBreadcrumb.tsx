@@ -165,7 +165,7 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
                     <DropdownMenuSeparator />
                     {MORE_ENTRIES.map((item) => {
                       const ItemIcon = item.icon;
-                      const isCurrent = item.id === activeSection;
+                      const isCurrent = item.id === resolvedSection;
                       return (
                         <DropdownMenuItem
                           key={item.id}
