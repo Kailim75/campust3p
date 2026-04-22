@@ -91,7 +91,7 @@ export function Header({
 
         {/* RIGHT — actions */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {onNavigate && <TodayBadge onClick={() => onNavigate("aujourdhui")} />}
+          {resolvedNavigate && <TodayBadge onClick={() => resolvedNavigate("aujourdhui")} />}
           <div className="hidden lg:flex items-center gap-2">
             <CentreSwitcher />
           </div>
@@ -115,13 +115,14 @@ export function Header({
 
           {extraActions}
 
-          {showGlobalCreate ? (
+          {showGlobalCreate && (
             <GlobalCreateMenu
-              onNewContact={onNewContact!}
-              onNewProspect={onNewProspect!}
-              onNavigate={onNavigate!}
+              onNewContact={resolvedNewContact!}
+              onNewProspect={resolvedNewProspect!}
+              onNavigate={resolvedNavigate!}
             />
-          ) : onAddClick ? (
+          )}
+          {onAddClick && (
             <button
               onClick={onAddClick}
               className="btn-cta flex items-center gap-1 sm:gap-1.5 text-[12px] sm:text-[13px] h-8 sm:h-9 px-2.5 sm:px-4 ml-0.5 sm:ml-1"
