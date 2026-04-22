@@ -102,7 +102,71 @@ serve(async (req) => {
     }
 
     const method = req.method.toUpperCase();
-    const table = admin.from(resource);
+    const subAction = pathParts[apiIndex + 3]; // ex: /contacts/<id>/summary
+
+    // 4bis. Endpoint spécial : GET /contacts/<id>/summary (agrégat lecture seule)
+    if (
+      method === "GET" &&
+      resource === "contacts" &&
+      recordId &&
+      subAction === "summary"
+    ) {
+      const [contact, inscriptions, factures, documents, historique] = await Promise.all([
+        admin.from("contacts").select("*").eq("id", recordId).eq("centre_id", centreId).maybeSingle(),
+        admin
+          .from("session_inscriptions")
+          .select("id, session_id, statut, statut_paiement, date_inscription, track, sessions(id, nom, formation_type, date_debut, date_fin)")
+          .eq("contact_id", recordId)
+          .is("deleted_at", null),
+        admin
+          .from("factures")
+          .select("id, numero_facture, montant_total, statut, date_emission")
+          .eq("contact_id", recordId)
+          .eq("centre_id", centreId)
+          .is("deleted_at", null),
+        admin
+          .from("contact_documents")
+          .select("id, nom, type_document, date_expiration, created_at")
+          .eq("contact_id", recordId)
+          .is("deleted_at", null),
+        admin
+          .from("contact_historique")
+          .select("id, type, titre, contenu, date_echange, date_rappel")
+          .eq("contact_id", recordId)
+          .order("date_echange", { ascending: false })
+          .limit(20),
+      ]);
+
+      if (!contact.data) return json(404, { error: "Contact introuvable" });
+
+      return json(200, {
+        data: {
+          contact: contact.data,
+          inscriptions: inscriptions.data ?? [],
+          factures: factures.data ?? [],
+          documents: documents.data ?? [],
+          historique: historique.data ?? [],
+          stats: {
+            nb_inscriptions: inscriptions.data?.length ?? 0,
+            nb_factures: factures.data?.length ?? 0,
+            nb_documents: documents.data?.length ?? 0,
+            ca_total:
+              factures.data?.reduce((sum: number, f: any) => sum + Number(f.montant_total ?? 0), 0) ??
+              0,
+          },
+        },
+      });
+    }
+
+    // Colonnes de recherche full-text par ressource (paramètre ?search=)
+    const SEARCH_COLUMNS: Record<string, string[]> = {
+      contacts: ["nom", "prenom", "email", "telephone", "telephone_normalise", "ville"],
+      prospects: ["nom", "prenom", "email", "telephone"],
+      sessions: ["nom", "formation_type", "lieu"],
+      catalogue_formations: ["intitule", "code", "categorie"],
+      formateurs: ["nom", "prenom", "email"],
+      factures: ["numero_facture"],
+    };
 
     // 4. Routage CRUD — tout est scopé par centre_id
     switch (method) {
@@ -121,16 +185,30 @@ serve(async (req) => {
 
         const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 500);
         const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+        const orderParam = url.searchParams.get("order") || "created_at.desc";
+        const [orderCol, orderDir] = orderParam.split(".");
+        const searchTerm = url.searchParams.get("search");
+
         let query = admin
           .from(resource)
           .select("*", { count: "exact" })
           .eq("centre_id", centreId)
           .range(offset, offset + limit - 1)
-          .order("created_at", { ascending: false });
+          .order(orderCol || "created_at", { ascending: orderDir !== "desc" });
 
-        // Filtres simples ?field=value (non commençant par limit/offset/order)
+        // Recherche full-text (ILIKE multi-colonnes via .or())
+        if (searchTerm && SEARCH_COLUMNS[resource]) {
+          const safe = searchTerm.replace(/[%,()]/g, "");
+          const orFilter = SEARCH_COLUMNS[resource]
+            .map((col) => `${col}.ilike.%${safe}%`)
+            .join(",");
+          query = query.or(orFilter);
+        }
+
+        // Filtres simples ?field=value (réservé : limit/offset/order/search)
+        const RESERVED = new Set(["limit", "offset", "order", "search"]);
         for (const [key, value] of url.searchParams.entries()) {
-          if (["limit", "offset", "order"].includes(key)) continue;
+          if (RESERVED.has(key)) continue;
           query = query.eq(key, value);
         }
 
