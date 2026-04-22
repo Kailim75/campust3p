@@ -23,6 +23,8 @@ import { DuplicatesDialog } from "./DuplicatesDialog";
 import { differenceInDays } from "date-fns";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { toast } from "sonner";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar, BulkActionButton } from "@/components/shared/BulkActionBar";
 
 // Local storage key for expert mode
 const EXPERT_MODE_KEY = "apprenants_expert_mode";
@@ -73,7 +75,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   const toggleExpertMode = useCallback(() => {
@@ -82,7 +83,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       try {
         localStorage.setItem(EXPERT_MODE_KEY, String(next));
       } catch {}
-      if (!next) setSelectedIds(new Set());
+      // Selection cleared via effect below when expertMode flips off
       return next;
     });
   }, []);
@@ -115,21 +116,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return { actifs, inactifs, tous: contacts.length, termines };
   }, [contacts]);
 
-  // Bulk status change handler
-  const handleBulkStatusChange = useCallback(async (newStatus: StatutApprenant) => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
-    try {
-      await Promise.all(ids.map(id =>
-        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
-      ));
-      toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
-      setSelectedIds(new Set());
-    } catch {
-      toast.error("Erreur lors de la mise à jour");
-    }
-  }, [selectedIds, updateContact]);
+  // Bulk status change handler — selection state declared after `filtered` (see below)
 
   const filtered = useMemo(() => {
     if (!contacts) return [];
@@ -188,25 +175,28 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  const allSelected = paginatedFiltered.length > 0 && paginatedFiltered.every((c) => selectedIds.has(c.id));
-  const someSelected = selectedIds.size > 0;
+  // Bulk selection — generic primitive
+  const bulk = useBulkSelection<EnrichedContact>(filtered, (c) => c.id);
+  useEffect(() => {
+    if (!expertMode) bulk.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expertMode]);
 
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map((c) => c.id)));
+  // Bulk status change handler — uses the new selection primitive
+  const handleBulkStatusChange = useCallback(async (newStatus: StatutApprenant) => {
+    const ids = bulk.selectedIds;
+    if (ids.length === 0) return;
+    const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
+    try {
+      await Promise.all(ids.map((id) =>
+        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
+      ));
+      toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
+      bulk.clear();
+    } catch {
+      toast.error("Erreur lors de la mise à jour");
     }
-  };
-
-  const toggleSelect = (id: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  };
+  }, [bulk, updateContact]);
 
   const activeCount = contacts?.length || 0;
 
@@ -242,33 +232,19 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           onOpenDuplicates={() => setDuplicatesOpen(true)}
         />
 
-        {/* Bulk actions bar (expert mode) */}
-        {expertMode && someSelected && (
-          <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl animate-in slide-in-from-top-2">
-            <Badge variant="secondary" className="text-sm font-medium">
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
-            </Badge>
-            <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
-              Désélectionner
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("diplome")}>
-                <GraduationCap className="h-3.5 w-3.5" /> Diplômé
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("abandon")}>
-                <XCircle className="h-3.5 w-3.5" /> Abandon
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("archive")}>
-                <Archive className="h-3.5 w-3.5" /> Archiver
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => handleBulkStatusChange("actif")}>
-                <RefreshCw className="h-3.5 w-3.5" /> Réactiver
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                <Download className="h-3.5 w-3.5" /> Export CSV
-              </Button>
-            </div>
-          </div>
+        {/* Bulk actions — floating bar (visible only in expert mode with a selection) */}
+        {expertMode && (
+          <BulkActionBar
+            count={bulk.count}
+            itemLabel={{ singular: "apprenant", plural: "apprenants" }}
+            onClear={bulk.clear}
+          >
+            <BulkActionButton icon={GraduationCap} label="Diplômé" onClick={() => handleBulkStatusChange("diplome")} />
+            <BulkActionButton icon={XCircle} label="Abandon" onClick={() => handleBulkStatusChange("abandon")} />
+            <BulkActionButton icon={Archive} label="Archiver" onClick={() => handleBulkStatusChange("archive")} />
+            <BulkActionButton icon={RefreshCw} label="Réactiver" onClick={() => handleBulkStatusChange("actif")} />
+            <BulkActionButton icon={Download} label="Export CSV" onClick={() => toast.info("Export en préparation")} />
+          </BulkActionBar>
         )}
 
         {/* Critical filter: no results = green badge */}
@@ -288,8 +264,8 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                 {expertMode && (
                   <TableHead className="w-10 h-11">
                     <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleSelectAll}
+                      checked={bulk.allSelected}
+                      onCheckedChange={() => bulk.toggleAll()}
                     />
                   </TableHead>
                 )}
@@ -341,8 +317,8 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                   key={contact.id}
                   contact={contact}
                   expertMode={expertMode}
-                  selected={selectedIds.has(contact.id)}
-                  onSelect={(checked) => toggleSelect(contact.id, checked)}
+                  selected={bulk.isSelected(contact.id)}
+                  onSelect={() => bulk.toggle(contact.id)}
                   onClick={() => {
                     setSelectedContactId(contact.id);
                     setDetailOpen(true);
