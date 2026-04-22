@@ -107,12 +107,12 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
   if (!isDashboard && entry) {
     crumbs.push({ label: entry.label, section: entry.id });
   } else if (!isDashboard && !entry) {
-    // Section inconnue du registre : fallback sur l'id brut
-    crumbs.push({ label: activeSection, section: activeSection });
+    // Section inconnue du registre : fallback sur l'id résolu (ou brut)
+    crumbs.push({ label: resolvedSection, section: resolvedSection });
   }
 
-  // 4. Onglet actif s'il existe
-  const tabLabel = activeTab && TAB_LABELS[activeSection]?.[activeTab];
+  // 4. Onglet actif s'il existe (basé sur la section résolue)
+  const tabLabel = activeTab && TAB_LABELS[resolvedSection]?.[activeTab];
   if (tabLabel) {
     crumbs.push({ label: tabLabel });
   }
