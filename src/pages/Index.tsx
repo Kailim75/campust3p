@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
+// QuickActionsMenu remplacé par GlobalCreateMenu dans le Header (Chantier 1)
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
