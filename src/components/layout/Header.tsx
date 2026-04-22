@@ -18,6 +18,7 @@ import { CentreSwitcher } from "./CentreSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 
 interface HeaderProps {
   title: string;
@@ -39,6 +40,7 @@ export function Header({
   const { user, signOut } = useAuth();
   const openShortcuts = useShortcutsDialog((s) => s.open);
   const openPalette = useCommandPalette((s) => s.open);
+  const globalCreate = useGlobalCreate();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -53,9 +55,15 @@ export function Header({
     ? user.email.substring(0, 2).toUpperCase()
     : "?";
 
+  // Resolve handlers: explicit props win, otherwise fall back to global store
+  // registered by <Index /> so every page benefits without prop drilling.
+  const resolvedNewContact = onNewContact ?? globalCreate.onNewContact ?? undefined;
+  const resolvedNewProspect = onNewProspect ?? globalCreate.onNewProspect ?? undefined;
+  const resolvedNavigate = onNavigate ?? globalCreate.onNavigate ?? undefined;
+
   // The unified create menu is preferred. Fall back to the page-level
   // onAddClick if a section provided its own contextual create button.
-  const showGlobalCreate = !!(onNewContact && onNewProspect && onNavigate);
+  const showGlobalCreate = !!(resolvedNewContact && resolvedNewProspect && resolvedNavigate);
 
   return (
     <header className="sticky top-0 z-30 bg-card/98 backdrop-blur-md border-b border-border" style={{ height: '56px', padding: '0 16px' }}>

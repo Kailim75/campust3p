@@ -13,6 +13,7 @@ import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
@@ -192,6 +193,16 @@ const Index = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undoAction]);
+
+  // ── Register global Header handlers (Chantier 1: unified create menu) ─────
+  const registerGlobalCreate = useGlobalCreate((s) => s.register);
+  useEffect(() => {
+    registerGlobalCreate({
+      onNewContact: () => setNewContactOpen(true),
+      onNewProspect: () => setNewProspectOpen(true),
+      onNavigate: setActiveSection,
+    });
+  }, [registerGlobalCreate, setActiveSection]);
 
   // ── DOM custom events (alerts, blockage panel) ────────────────────────────
   useEffect(() => {
