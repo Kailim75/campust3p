@@ -403,6 +403,7 @@ const Index = () => {
         onNewProspect={() => setNewProspectOpen(true)}
       />
       <ShortcutSequenceIndicator />
+      <RouteCheckPanel open={routeCheckOpen} onOpenChange={setRouteCheckOpen} />
     </div>
   );
 };
