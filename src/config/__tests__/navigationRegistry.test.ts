@@ -23,7 +23,7 @@ import {
  * rapide en CI.
  */
 
-const INDEX_PATH = resolve(__dirname, "../pages/Index.tsx");
+const INDEX_PATH = resolve(__dirname, "../../pages/Index.tsx");
 const INDEX_SOURCE = readFileSync(INDEX_PATH, "utf-8");
 
 /** Extrait { sectionId → pageName } depuis le switch de Index.tsx. */
