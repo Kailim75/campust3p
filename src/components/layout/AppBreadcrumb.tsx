@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Home, ChevronRight, MoreHorizontal, ChevronDown, Check } from "lucide-react";
 import {
   Breadcrumb,
@@ -17,7 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { getEntryById, MORE_ENTRIES } from "@/config/navigationRegistry";
+import {
+  getEntryById,
+  MORE_ENTRIES,
+  resolveNavTarget,
+} from "@/config/navigationRegistry";
 
 interface BreadcrumbCrumb {
   label: string;
