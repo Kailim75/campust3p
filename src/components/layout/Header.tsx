@@ -130,7 +130,7 @@ export function Header({
               <span className="hidden sm:inline">{addLabel || "Ajouter"}</span>
               <span className="sm:hidden">+</span>
             </button>
-          ) : null}
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
