@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, XCircle, Loader2, Play, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAV_REGISTRY } from "@/config/navigationRegistry";
 
 interface RouteCheckPanelProps {
   open: boolean;
@@ -13,38 +14,18 @@ interface RouteCheckPanelProps {
 }
 
 /**
- * Catalogue de référence des entrées de la Sidebar (hubs + Plus + footer).
- * Doit rester synchronisé avec src/components/layout/Sidebar.tsx et
- * les mappings PATH_TO_SECTION / SECTION_TO_PATH dans src/pages/Index.tsx.
+ * Catalogue dérivé automatiquement de la source unique de vérité
+ * (`src/config/navigationRegistry.ts`). Ajouter une nouvelle entrée dans
+ * la Sidebar revient à ajouter une ligne dans NAV_REGISTRY : ce panneau
+ * la testera automatiquement au prochain rendu.
  */
-const SIDEBAR_ENTRIES: Array<{
-  id: string;
-  label: string;
-  group: "hub" | "more" | "footer";
-  expectedPath: string;
-  expectedComponent: string;
-}> = [
-  // Hubs principaux
-  { id: "aujourdhui",        label: "Aujourd'hui",        group: "hub",    expectedPath: "/aujourdhui",        expectedComponent: "AujourdhuiPage" },
-  { id: "contacts",          label: "Personnes",          group: "hub",    expectedPath: "/contacts",          expectedComponent: "ApprenantsPage" },
-  { id: "sessions",          label: "Formations",         group: "hub",    expectedPath: "/sessions",          expectedComponent: "SessionsPage" },
-  { id: "finances",          label: "Finances",           group: "hub",    expectedPath: "/finances",          expectedComponent: "FinancesPage" },
-  { id: "inbox",             label: "Inbox CRM",          group: "hub",    expectedPath: "/inbox",             expectedComponent: "InboxCrmPage" },
-  // Menu "Plus"
-  { id: "dashboard",         label: "Dashboard",          group: "more",   expectedPath: "/",                  expectedComponent: "Dashboard" },
-  { id: "prospects",         label: "Prospects",          group: "more",   expectedPath: "/prospects",         expectedComponent: "ProspectsPage" },
-  { id: "formations",        label: "Catalogue",          group: "more",   expectedPath: "/formations",        expectedComponent: "FormationsPage" },
-  { id: "automations",       label: "Automations",        group: "more",   expectedPath: "/automations",       expectedComponent: "AutomationsPage" },
-  { id: "formateurs",        label: "Formateurs",         group: "more",   expectedPath: "/formateurs",        expectedComponent: "FormateursPage" },
-  { id: "planning-conduite", label: "Planning conduite",  group: "more",   expectedPath: "/planning-conduite", expectedComponent: "PlanningConduitePage" },
-  { id: "alertes",           label: "Alertes",            group: "more",   expectedPath: "/alertes",           expectedComponent: "AlertesPage" },
-  { id: "qualite",           label: "Qualité",            group: "more",   expectedPath: "/qualite",           expectedComponent: "QualiteUnifiedPage" },
-  { id: "partenaires",       label: "Partenaires",        group: "more",   expectedPath: "/partenaires",       expectedComponent: "PartnersPage" },
-  { id: "security",          label: "Sécurité",           group: "more",   expectedPath: "/security",          expectedComponent: "SecurityStatusPage" },
-  { id: "corbeille",         label: "Corbeille",          group: "more",   expectedPath: "/corbeille",         expectedComponent: "CorbeillePage" },
-  // Footer
-  { id: "settings",          label: "Paramètres",         group: "footer", expectedPath: "/settings",          expectedComponent: "SettingsPage" },
-];
+const SIDEBAR_ENTRIES = NAV_REGISTRY.map((e) => ({
+  id: e.id,
+  label: e.label,
+  group: e.group,
+  expectedPath: e.path,
+  expectedComponent: e.pageName,
+}));
 
 type CheckStatus = "pending" | "running" | "success" | "fail";
 
