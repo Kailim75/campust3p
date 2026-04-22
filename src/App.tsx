@@ -185,7 +185,7 @@ const App = () => (
                 <Route
                   path="*"
                   element={
-                    <ProtectedRoute fallback={<NotFound />}>
+                    <ProtectedRoute>
                       <AppFallbackRedirect />
                     </ProtectedRoute>
                   }
