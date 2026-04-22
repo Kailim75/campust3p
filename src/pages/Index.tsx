@@ -330,7 +330,7 @@ const Index = () => {
         onNavigate={setActiveSection}
       />
 
-      <QuickActionsMenu onAction={handleQuickAction} />
+      {/* QuickActionsMenu retiré : la création est centralisée dans le bouton "Créer" du Header (Chantier 1). */}
       <ProactiveAlertsToast />
       <KeyboardShortcutsDialog
         open={shortcutsDialogOpen}
