@@ -75,7 +75,6 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [expertMode, setExpertMode] = useState(getInitialExpertMode);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   const toggleExpertMode = useCallback(() => {
