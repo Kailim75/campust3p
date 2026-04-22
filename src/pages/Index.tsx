@@ -256,44 +256,82 @@ const Index = () => {
   };
 
   const renderContent = () => {
+    let node: React.ReactNode;
+    let pageName: string;
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
+        pageName = "Dashboard";
+        node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
+        break;
       case "aujourdhui":
-        return <AujourdhuiPage onNavigate={setActiveSection} />;
+        pageName = "AujourdhuiPage";
+        node = <AujourdhuiPage onNavigate={setActiveSection} />;
+        break;
       case "contacts":
-        return <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        pageName = "ApprenantsPage";
+        node = <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        break;
       case "formations":
-        return <FormationsPage />;
+        pageName = "FormationsPage";
+        node = <FormationsPage />;
+        break;
       case "sessions":
-        return <SessionsPage />;
+        pageName = "SessionsPage";
+        node = <SessionsPage />;
+        break;
       case "prospects":
-        return <ProspectsPage />;
+        pageName = "ProspectsPage";
+        node = <ProspectsPage />;
+        break;
       case "finances":
-        return <FinancesPage />;
+        pageName = "FinancesPage";
+        node = <FinancesPage />;
+        break;
       case "automations":
-        return <AutomationsPage />;
+        pageName = "AutomationsPage";
+        node = <AutomationsPage />;
+        break;
       case "settings":
-        return <SettingsPage />;
+        pageName = "SettingsPage";
+        node = <SettingsPage />;
+        break;
       case "formateurs":
-        return <FormateursPage />;
+        pageName = "FormateursPage";
+        node = <FormateursPage />;
+        break;
       case "alertes":
-        return <AlertesPage />;
+        pageName = "AlertesPage";
+        node = <AlertesPage />;
+        break;
       case "qualite":
-        return <QualiteUnifiedPage />;
+        pageName = "QualiteUnifiedPage";
+        node = <QualiteUnifiedPage />;
+        break;
       case "partenaires":
-        return <PartnersPage />;
+        pageName = "PartnersPage";
+        node = <PartnersPage />;
+        break;
       case "planning-conduite":
-        return <PlanningConduitePage />;
+        pageName = "PlanningConduitePage";
+        node = <PlanningConduitePage />;
+        break;
       case "security":
-        return <SecurityStatusPage />;
+        pageName = "SecurityStatusPage";
+        node = <SecurityStatusPage />;
+        break;
       case "inbox":
-        return <InboxCrmPage />;
+        pageName = "InboxCrmPage";
+        node = <InboxCrmPage />;
+        break;
       case "corbeille":
-        return <CorbeillePage />;
+        pageName = "CorbeillePage";
+        node = <CorbeillePage />;
+        break;
       default:
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
+        pageName = "Dashboard";
+        node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
     }
+    return <div data-page={pageName} className="contents">{node}</div>;
   };
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
