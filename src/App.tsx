@@ -17,6 +17,7 @@ import { CentreProvider } from "@/contexts/CentreContext";
 import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { MainApp } from "@/components/MainApp";
 import { useCrmCustomization } from "@/hooks/useCrmCustomization";
+import { AppFallbackRedirect } from "@/components/layout/AppFallbackRedirect";
 
 function CrmCustomizationInit() {
   useCrmCustomization();
@@ -174,8 +175,21 @@ const App = () => (
                   <Route key={path} path={path} element={<AppShellRoute />} />
                 ))}
 
-                {/* 404 for unknown routes */}
-                <Route path="*" element={<NotFound />} />
+                {/*
+                  Fallback intelligent : tout chemin inconnu de l'app
+                  (utilisateur authentifié) est redirigé vers la meilleure
+                  entrée de la sidebar via resolveNavTarget(). Le NotFound
+                  reste utilisé pour les URLs publiques hors-app via le
+                  catch-all final.
+                */}
+                <Route
+                  path="*"
+                  element={
+                    <ProtectedRoute>
+                      <AppFallbackRedirect />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </Suspense>
             <InstallPWA />

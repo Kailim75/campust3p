@@ -102,3 +102,68 @@ export const SECTION_TO_PAGE_NAME: Record<string, string> = (() => {
 export function getEntryById(id: string): NavEntry | undefined {
   return NAV_REGISTRY.find((e) => e.id === id);
 }
+
+/**
+ * Tente de résoudre une URL inconnue vers la meilleure entrée du registre.
+ * Stratégie en cascade :
+ *  1. Match exact sur PATH_TO_SECTION (segment ou alias legacy)
+ *  2. Match préfixe : `/contacts/123` → `contacts`
+ *  3. Match par mot-clé fuzzy (ex: `/factures` → `finances`)
+ *  4. Fallback ultime : `dashboard`
+ *
+ * `matched=false` indique qu'aucune correspondance pertinente n'a été
+ * trouvée et que le fallback dashboard a été appliqué (utile pour
+ * afficher un toast d'avertissement à l'utilisateur).
+ */
+const FUZZY_KEYWORDS: Array<{ keywords: string[]; section: string }> = [
+  { keywords: ["facture", "paiement", "devis", "tresorerie", "encaiss", "comptab"], section: "finances" },
+  { keywords: ["apprenant", "eleve", "stagiaire", "personne", "client"],            section: "contacts" },
+  { keywords: ["lead", "opportunit"],                                                section: "prospects" },
+  { keywords: ["session", "stage", "promotion"],                                     section: "sessions" },
+  { keywords: ["catalogue", "programme", "module"],                                  section: "formations" },
+  { keywords: ["mail", "email", "message", "courriel"],                              section: "inbox" },
+  { keywords: ["alerte", "notification"],                                            section: "alertes" },
+  { keywords: ["qualiopi", "audit"],                                                 section: "qualite" },
+  { keywords: ["partenaire", "apporteur"],                                           section: "partenaires" },
+  { keywords: ["conduite", "vehicule", "creneau"],                                   section: "planning-conduite" },
+  { keywords: ["formateur", "intervenant"],                                          section: "formateurs" },
+  { keywords: ["param", "config", "reglage"],                                        section: "settings" },
+  { keywords: ["corbeille", "trash", "supprim"],                                     section: "corbeille" },
+  { keywords: ["secur", "rgpd"],                                                     section: "security" },
+  { keywords: ["aujourd"],                                                           section: "aujourdhui" },
+];
+
+export interface ResolvedNavTarget {
+  section: string;
+  matched: boolean;
+  /** Path canonique vers lequel rediriger (issu de SECTION_TO_PATH) */
+  path: string;
+}
+
+export function resolveNavTarget(pathname: string): ResolvedNavTarget {
+  const cleaned = pathname.replace(/^\//, "").toLowerCase();
+  const firstSegment = cleaned.split("/")[0] ?? "";
+
+  // 1. Match exact (inclut alias legacy)
+  if (PATH_TO_SECTION[firstSegment] !== undefined) {
+    const section = PATH_TO_SECTION[firstSegment];
+    return { section, matched: true, path: SECTION_TO_PATH[section] ?? "/" };
+  }
+
+  // 2. Match préfixe sur un id de section connu
+  for (const e of NAV_REGISTRY) {
+    if (firstSegment === e.id || firstSegment.startsWith(`${e.id}-`)) {
+      return { section: e.id, matched: true, path: e.path };
+    }
+  }
+
+  // 3. Match par mot-clé fuzzy
+  for (const { keywords, section } of FUZZY_KEYWORDS) {
+    if (keywords.some((k) => firstSegment.includes(k))) {
+      return { section, matched: true, path: SECTION_TO_PATH[section] ?? "/" };
+    }
+  }
+
+  // 4. Fallback ultime
+  return { section: "dashboard", matched: false, path: "/" };
+}
