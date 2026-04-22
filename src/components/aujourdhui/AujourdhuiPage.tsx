@@ -269,6 +269,16 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     <div className="space-y-6">
       <Header title="Aujourd'hui" subtitle={`${totalActions} action${totalActions > 1 ? "s" : ""} à traiter`} />
 
+      <div className="px-8">
+        <HintBubble
+          id="header-search-cmdk-v1"
+          title="Astuce — Recherche universelle"
+          variant="tip"
+        >
+          Tapez <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-background/60 border">⌘ K</kbd> ou cliquez sur la barre de recherche en haut pour atteindre n'importe quel apprenant, session ou facture en 2 secondes.
+        </HintBubble>
+      </div>
+
       {/* Progress bar + Toggles */}
       <div className="px-8 space-y-3">
         {totalRaw > 0 && (
