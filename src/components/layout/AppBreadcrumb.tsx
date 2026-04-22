@@ -68,6 +68,13 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
 export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBreadcrumbProps) {
   const entry = getEntryById(activeSection);
   const isDashboard = activeSection === "dashboard";
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  /** Navigue puis ferme explicitement le dropdown (défense en profondeur). */
+  const handleMoreNavigate = (sectionId: string) => {
+    onNavigate(sectionId);
+    setMoreOpen(false);
+  };
 
   // Construction des miettes en suivant la hiérarchie réelle de la sidebar
   const crumbs: BreadcrumbCrumb[] = [];
