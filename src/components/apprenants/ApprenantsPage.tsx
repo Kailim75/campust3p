@@ -83,7 +83,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       try {
         localStorage.setItem(EXPERT_MODE_KEY, String(next));
       } catch {}
-      if (!next) setSelectedIds(new Set());
+      // Selection cleared via effect below when expertMode flips off
       return next;
     });
   }, []);
@@ -175,25 +175,28 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  const allSelected = paginatedFiltered.length > 0 && paginatedFiltered.every((c) => selectedIds.has(c.id));
-  const someSelected = selectedIds.size > 0;
+  // Bulk selection — generic primitive
+  const bulk = useBulkSelection<EnrichedContact>(filtered, (c) => c.id);
+  useEffect(() => {
+    if (!expertMode) bulk.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expertMode]);
 
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filtered.map((c) => c.id)));
+  // Bulk status change handler — uses the new selection primitive
+  const handleBulkStatusChange = useCallback(async (newStatus: StatutApprenant) => {
+    const ids = bulk.selectedIds;
+    if (ids.length === 0) return;
+    const label = { actif: "Actif", diplome: "Diplômé", abandon: "Abandon", archive: "Archivé" }[newStatus];
+    try {
+      await Promise.all(ids.map((id) =>
+        updateContact.mutateAsync({ id, updates: { statut_apprenant: newStatus } as any })
+      ));
+      toast.success(`${ids.length} apprenant(s) marqué(s) "${label}"`);
+      bulk.clear();
+    } catch {
+      toast.error("Erreur lors de la mise à jour");
     }
-  };
-
-  const toggleSelect = (id: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  };
+  }, [bulk, updateContact]);
 
   const activeCount = contacts?.length || 0;
 
