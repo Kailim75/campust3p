@@ -237,16 +237,7 @@ const Index = () => {
     onNewFormation: () => setActiveSection("formations"),
   });
 
-  const handleQuickAction = (action: QuickAction) => {
-    switch (action) {
-      case "contact":      setActiveSection("contacts"); break;
-      case "session":      setActiveSection("sessions"); break;
-      case "inscription":  setActiveSection("sessions"); break;
-      case "paiement":     setActiveSection("finances"); break;
-      case "document":     setActiveSection("sessions"); break;
-      case "communication":setActiveSection("contacts"); break;
-    }
-  };
+  // handleQuickAction supprimé : la création est gérée par GlobalCreateMenu (Header).
 
   const handleNavigateWithContact = (section: string, contactId?: string) => {
     setActiveSection(section);
