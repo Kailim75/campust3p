@@ -71,8 +71,18 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
 };
 
 export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBreadcrumbProps) {
-  const entry = getEntryById(activeSection);
-  const isDashboard = activeSection === "dashboard";
+  const location = useLocation();
+
+  // Résolution robuste : si l'activeSection fourni n'existe pas dans le registre
+  // (ex. transition pendant un fallback de redirection, URL inconnue avant que
+  // Index n'ait synchronisé son état), on retombe sur `resolveNavTarget` pour
+  // garantir que le breadcrumb — y compris le surlignage du dropdown « Plus » —
+  // reflète toujours la section cible réellement résolue.
+  const directEntry = getEntryById(activeSection);
+  const fallback = directEntry ? null : resolveNavTarget(location.pathname);
+  const resolvedSection = directEntry ? activeSection : fallback?.section ?? activeSection;
+  const entry = directEntry ?? getEntryById(resolvedSection);
+  const isDashboard = resolvedSection === "dashboard";
   const [moreOpen, setMoreOpen] = useState(false);
 
   /** Navigue puis ferme explicitement le dropdown (défense en profondeur). */
