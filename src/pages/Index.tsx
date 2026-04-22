@@ -36,6 +36,7 @@ import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
 import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
+import { RouteCheckPanel } from "@/components/admin/RouteCheckPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -124,6 +125,7 @@ const Index = () => {
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
+  const [routeCheckOpen, setRouteCheckOpen] = useState(false);
   const isMobile = useIsMobile();
   const { showTour, completeTour } = useOnboarding();
   const undoAction = useUndoStore((state) => state.undoLast);
@@ -204,15 +206,27 @@ const Index = () => {
     });
   }, [registerGlobalCreate, setActiveSection]);
 
-  // ── DOM custom events (alerts, blockage panel) ────────────────────────────
+  // ── DOM custom events (alerts, blockage panel, route check) ───────────────
   useEffect(() => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
     const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
+    const handleOpenRouteCheck = () => setRouteCheckOpen(true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Shift + R → ouvre le panneau de vérification de routage
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        setRouteCheckOpen(true);
+      }
+    };
     window.addEventListener("navigate-to-alerts", handleNavigateToAlerts);
     window.addEventListener("open-blockage-panel", handleOpenBlockagePanel);
+    window.addEventListener("open-route-check", handleOpenRouteCheck);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("navigate-to-alerts", handleNavigateToAlerts);
       window.removeEventListener("open-blockage-panel", handleOpenBlockagePanel);
+      window.removeEventListener("open-route-check", handleOpenRouteCheck);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [setActiveSection]);
 
@@ -255,44 +269,82 @@ const Index = () => {
   };
 
   const renderContent = () => {
+    let node: React.ReactNode;
+    let pageName: string;
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
+        pageName = "Dashboard";
+        node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} onNavigateWithParams={handleNavigateWithParams} />;
+        break;
       case "aujourdhui":
-        return <AujourdhuiPage onNavigate={setActiveSection} />;
+        pageName = "AujourdhuiPage";
+        node = <AujourdhuiPage onNavigate={setActiveSection} />;
+        break;
       case "contacts":
-        return <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        pageName = "ApprenantsPage";
+        node = <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
+        break;
       case "formations":
-        return <FormationsPage />;
+        pageName = "FormationsPage";
+        node = <FormationsPage />;
+        break;
       case "sessions":
-        return <SessionsPage />;
+        pageName = "SessionsPage";
+        node = <SessionsPage />;
+        break;
       case "prospects":
-        return <ProspectsPage />;
+        pageName = "ProspectsPage";
+        node = <ProspectsPage />;
+        break;
       case "finances":
-        return <FinancesPage />;
+        pageName = "FinancesPage";
+        node = <FinancesPage />;
+        break;
       case "automations":
-        return <AutomationsPage />;
+        pageName = "AutomationsPage";
+        node = <AutomationsPage />;
+        break;
       case "settings":
-        return <SettingsPage />;
+        pageName = "SettingsPage";
+        node = <SettingsPage />;
+        break;
       case "formateurs":
-        return <FormateursPage />;
+        pageName = "FormateursPage";
+        node = <FormateursPage />;
+        break;
       case "alertes":
-        return <AlertesPage />;
+        pageName = "AlertesPage";
+        node = <AlertesPage />;
+        break;
       case "qualite":
-        return <QualiteUnifiedPage />;
+        pageName = "QualiteUnifiedPage";
+        node = <QualiteUnifiedPage />;
+        break;
       case "partenaires":
-        return <PartnersPage />;
+        pageName = "PartnersPage";
+        node = <PartnersPage />;
+        break;
       case "planning-conduite":
-        return <PlanningConduitePage />;
+        pageName = "PlanningConduitePage";
+        node = <PlanningConduitePage />;
+        break;
       case "security":
-        return <SecurityStatusPage />;
+        pageName = "SecurityStatusPage";
+        node = <SecurityStatusPage />;
+        break;
       case "inbox":
-        return <InboxCrmPage />;
+        pageName = "InboxCrmPage";
+        node = <InboxCrmPage />;
+        break;
       case "corbeille":
-        return <CorbeillePage />;
+        pageName = "CorbeillePage";
+        node = <CorbeillePage />;
+        break;
       default:
-        return <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
+        pageName = "Dashboard";
+        node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
     }
+    return <div data-page={pageName} className="contents">{node}</div>;
   };
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -351,6 +403,7 @@ const Index = () => {
         onNewProspect={() => setNewProspectOpen(true)}
       />
       <ShortcutSequenceIndicator />
+      <RouteCheckPanel open={routeCheckOpen} onOpenChange={setRouteCheckOpen} />
     </div>
   );
 };
