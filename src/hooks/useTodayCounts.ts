@@ -26,10 +26,10 @@ export function useTodayCounts() {
           .lte("date_rappel", todayStr),
         supabase
           .from("contacts")
-          .select("id, statut_cma, formation")
+          .select("id, statut_cma")
           .eq("archived", false)
           .is("deleted_at", null)
-          .neq("statut_cma", "complet"),
+          .in("statut_cma", ["docs_manquants", "en_cours", "rejete"]),
         supabase
           .from("contact_documents")
           .select("contact_id, type_document")
@@ -45,11 +45,10 @@ export function useTodayCounts() {
         docsMap.get(d.contact_id)!.add(d.type_document);
       });
 
+      const required = CMA_REQUIRED_DOCS as readonly string[];
       const cma = (contactsRes.data ?? []).filter((c: any) => {
-        const required = CMA_REQUIRED_DOCS[c.formation as keyof typeof CMA_REQUIRED_DOCS] ?? [];
-        if (required.length === 0) return false;
         const owned = docsMap.get(c.id) ?? new Set<string>();
-        return required.some((doc: string) => !owned.has(doc));
+        return required.some((doc) => !owned.has(doc));
       }).length;
 
       return { rappels, cma, total: rappels + cma };
