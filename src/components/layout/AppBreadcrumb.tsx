@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Home, ChevronRight, MoreHorizontal, ChevronDown, Check } from "lucide-react";
 import {
   Breadcrumb,
@@ -17,7 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { getEntryById, MORE_ENTRIES } from "@/config/navigationRegistry";
+import {
+  getEntryById,
+  MORE_ENTRIES,
+  resolveNavTarget,
+} from "@/config/navigationRegistry";
 
 interface BreadcrumbCrumb {
   label: string;
@@ -66,8 +71,18 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
 };
 
 export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBreadcrumbProps) {
-  const entry = getEntryById(activeSection);
-  const isDashboard = activeSection === "dashboard";
+  const location = useLocation();
+
+  // Résolution robuste : si l'activeSection fourni n'existe pas dans le registre
+  // (ex. transition pendant un fallback de redirection, URL inconnue avant que
+  // Index n'ait synchronisé son état), on retombe sur `resolveNavTarget` pour
+  // garantir que le breadcrumb — y compris le surlignage du dropdown « Plus » —
+  // reflète toujours la section cible réellement résolue.
+  const directEntry = getEntryById(activeSection);
+  const fallback = directEntry ? null : resolveNavTarget(location.pathname);
+  const resolvedSection = directEntry ? activeSection : fallback?.section ?? activeSection;
+  const entry = directEntry ?? getEntryById(resolvedSection);
+  const isDashboard = resolvedSection === "dashboard";
   const [moreOpen, setMoreOpen] = useState(false);
 
   /** Navigue puis ferme explicitement le dropdown (défense en profondeur). */
@@ -92,12 +107,12 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
   if (!isDashboard && entry) {
     crumbs.push({ label: entry.label, section: entry.id });
   } else if (!isDashboard && !entry) {
-    // Section inconnue du registre : fallback sur l'id brut
-    crumbs.push({ label: activeSection, section: activeSection });
+    // Section inconnue du registre : fallback sur l'id résolu (ou brut)
+    crumbs.push({ label: resolvedSection, section: resolvedSection });
   }
 
-  // 4. Onglet actif s'il existe
-  const tabLabel = activeTab && TAB_LABELS[activeSection]?.[activeTab];
+  // 4. Onglet actif s'il existe (basé sur la section résolue)
+  const tabLabel = activeTab && TAB_LABELS[resolvedSection]?.[activeTab];
   if (tabLabel) {
     crumbs.push({ label: tabLabel });
   }
@@ -150,7 +165,7 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
                     <DropdownMenuSeparator />
                     {MORE_ENTRIES.map((item) => {
                       const ItemIcon = item.icon;
-                      const isCurrent = item.id === activeSection;
+                      const isCurrent = item.id === resolvedSection;
                       return (
                         <DropdownMenuItem
                           key={item.id}
