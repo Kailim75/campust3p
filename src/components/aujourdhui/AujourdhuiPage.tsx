@@ -29,6 +29,7 @@ import { BlocCritiques } from "./BlocCritiques";
 import { BlocCartePro } from "./BlocCartePro";
 import { BlocReprogrammer } from "./BlocReprogrammer";
 import { BlocQualiopi } from "./BlocQualiopi";
+import { HintBubble } from "@/components/shared/HintBubble";
 
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
