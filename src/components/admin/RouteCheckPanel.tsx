@@ -190,14 +190,14 @@ export function RouteCheckPanel({ open, onOpenChange }: RouteCheckPanelProps) {
                       key={r.id}
                       className={cn(
                         "flex items-start gap-3 p-2.5 rounded-md border text-sm",
-                        r.status === "success" && "border-emerald-200 bg-emerald-50/40",
+                        r.status === "success" && "border-success/30 bg-success/5",
                         r.status === "fail" && "border-destructive/30 bg-destructive/5",
                         r.status === "running" && "border-primary/30 bg-primary/5",
                         r.status === "pending" && "border-border bg-muted/30"
                       )}
                     >
                       <div className="mt-0.5">
-                        {r.status === "success" && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                        {r.status === "success" && <CheckCircle2 className="h-4 w-4 text-success" />}
                         {r.status === "fail" && <XCircle className="h-4 w-4 text-destructive" />}
                         {r.status === "running" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                         {r.status === "pending" && <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />}
