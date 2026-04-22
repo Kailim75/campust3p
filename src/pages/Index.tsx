@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { QuickActionsMenu, QuickAction } from "@/components/layout/QuickActionsMenu";
+// QuickActionsMenu remplacé par GlobalCreateMenu dans le Header (Chantier 1)
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
 import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
@@ -13,6 +13,7 @@ import { useUndoStore } from "@/hooks/useUndoAction";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
@@ -193,6 +194,16 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undoAction]);
 
+  // ── Register global Header handlers (Chantier 1: unified create menu) ─────
+  const registerGlobalCreate = useGlobalCreate((s) => s.register);
+  useEffect(() => {
+    registerGlobalCreate({
+      onNewContact: () => setNewContactOpen(true),
+      onNewProspect: () => setNewProspectOpen(true),
+      onNavigate: setActiveSection,
+    });
+  }, [registerGlobalCreate, setActiveSection]);
+
   // ── DOM custom events (alerts, blockage panel) ────────────────────────────
   useEffect(() => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
@@ -226,16 +237,7 @@ const Index = () => {
     onNewFormation: () => setActiveSection("formations"),
   });
 
-  const handleQuickAction = (action: QuickAction) => {
-    switch (action) {
-      case "contact":      setActiveSection("contacts"); break;
-      case "session":      setActiveSection("sessions"); break;
-      case "inscription":  setActiveSection("sessions"); break;
-      case "paiement":     setActiveSection("finances"); break;
-      case "document":     setActiveSection("sessions"); break;
-      case "communication":setActiveSection("contacts"); break;
-    }
-  };
+  // handleQuickAction supprimé : la création est gérée par GlobalCreateMenu (Header).
 
   const handleNavigateWithContact = (section: string, contactId?: string) => {
     setActiveSection(section);
@@ -330,7 +332,7 @@ const Index = () => {
         onNavigate={setActiveSection}
       />
 
-      <QuickActionsMenu onAction={handleQuickAction} />
+      {/* QuickActionsMenu retiré : la création est centralisée dans le bouton "Créer" du Header (Chantier 1). */}
       <ProactiveAlertsToast />
       <KeyboardShortcutsDialog
         open={shortcutsDialogOpen}
