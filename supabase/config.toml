@@ -69,7 +69,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.send-signature-email]
-verify_jwt = true
+verify_jwt = false                     # JWT ES256 incompatible plateforme — auth gérée en interne
 
 [functions.send-enquete-email]
 verify_jwt = true
