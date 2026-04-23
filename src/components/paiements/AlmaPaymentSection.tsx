@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert } from "lucide-react";
 import { useAlmaEligibility, useAlmaCreatePayment } from "@/hooks/useAlma";
+import { useAlmaHealth } from "@/hooks/useAlmaHealth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -29,8 +30,13 @@ export function AlmaPaymentSection({
   const [almaUrl, setAlmaUrl] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
 
+  // Gate everything on a health check first
+  const { data: health, isLoading: checkingHealth } = useAlmaHealth(montantRestant > 0);
+  const isHealthy = health?.status === "ok";
+
   const { data: eligibility, isLoading: checkingEligibility } = useAlmaEligibility(
-    montantRestant > 0 ? montantRestant : null
+    montantRestant > 0 && isHealthy ? montantRestant : null,
+    isHealthy
   );
 
   const createPayment = useAlmaCreatePayment();
@@ -115,18 +121,38 @@ export function AlmaPaymentSection({
       <div className="flex items-center gap-2">
         <CreditCard className="h-4 w-4 text-[#FA5022]" />
         <h4 className="font-semibold text-sm">Paiement Alma</h4>
-        {checkingEligibility && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-        {!checkingEligibility && isEligible && (
+        {(checkingHealth || (isHealthy && checkingEligibility)) && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        )}
+        {!checkingHealth && isHealthy && !checkingEligibility && isEligible && (
           <Badge className="bg-[#FA5022]/10 text-[#FA5022] text-[10px]">
             <Check className="h-3 w-3 mr-0.5" /> Éligible
           </Badge>
         )}
-        {!checkingEligibility && eligibility && !isEligible && (
+        {!checkingHealth && isHealthy && !checkingEligibility && eligibility && !isEligible && (
           <Badge variant="secondary" className="text-[10px]">
             <AlertCircle className="h-3 w-3 mr-0.5" /> Non éligible
           </Badge>
         )}
       </div>
+
+      {/* Health check error — shown before anything Alma-related */}
+      {!checkingHealth && health && health.status !== "ok" && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+          <ShieldAlert className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-semibold text-destructive">
+              {health.status === "unauthorized"
+                ? "Service Alma — accès refusé (401)"
+                : "Service Alma indisponible"}
+            </p>
+            <p className="text-muted-foreground">
+              {health.message ||
+                "Le lien de paiement ne peut pas être généré pour le moment."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {isEligible && !almaUrl && (
         <div className="flex gap-2">
