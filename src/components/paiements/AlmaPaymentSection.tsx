@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert } from "lucide-react";
 import { useAlmaEligibility, useAlmaCreatePayment } from "@/hooks/useAlma";
+import { useAlmaHealth } from "@/hooks/useAlmaHealth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -29,8 +30,13 @@ export function AlmaPaymentSection({
   const [almaUrl, setAlmaUrl] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
 
+  // Gate everything on a health check first
+  const { data: health, isLoading: checkingHealth } = useAlmaHealth(montantRestant > 0);
+  const isHealthy = health?.status === "ok";
+
   const { data: eligibility, isLoading: checkingEligibility } = useAlmaEligibility(
-    montantRestant > 0 ? montantRestant : null
+    montantRestant > 0 && isHealthy ? montantRestant : null,
+    isHealthy
   );
 
   const createPayment = useAlmaCreatePayment();
