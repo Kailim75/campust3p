@@ -75,7 +75,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.alma-payment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.prospect-scoring]
 verify_jwt = true
