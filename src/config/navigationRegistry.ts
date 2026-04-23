@@ -39,15 +39,15 @@ export interface NavEntry {
  * ⚠️ ORDRE IMPORTANT : reflète l'ordre d'affichage dans la Sidebar.
  */
 export const NAV_REGISTRY: NavEntry[] = [
-  // ── Hubs principaux (max 5) ────────────────────────────────────────────────
-  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList, group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage" },
-  { id: "contacts",   label: "Personnes",   icon: Users,         group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
-  { id: "sessions",   label: "Formations",  icon: Calendar,      group: "hub", path: "/sessions",   pageName: "SessionsPage" },
-  { id: "finances",   label: "Finances",    icon: CreditCard,    group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
-  { id: "inbox",      label: "Inbox CRM",   icon: Inbox,         group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
+  // ── Hubs principaux ────────────────────────────────────────────────────────
+  { id: "dashboard",  label: "Dashboard",   icon: LayoutDashboard, group: "hub", path: "/",           pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
+  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList,   group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage" },
+  { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
+  { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
+  { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
+  { id: "inbox",      label: "Inbox CRM",   icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
-  { id: "dashboard",         label: "Dashboard",         icon: LayoutDashboard, group: "more", path: "/",                  pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
   { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
   { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
