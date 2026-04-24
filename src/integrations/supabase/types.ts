@@ -2365,6 +2365,8 @@ export type Database = {
           formateur_id: string | null
           id: string
           metadata: Json | null
+          open_count: number
+          opened_at: string | null
           sent_at: string | null
           session_id: string | null
           statut: string
@@ -2386,6 +2388,8 @@ export type Database = {
           formateur_id?: string | null
           id?: string
           metadata?: Json | null
+          open_count?: number
+          opened_at?: string | null
           sent_at?: string | null
           session_id?: string | null
           statut?: string
@@ -2407,6 +2411,8 @@ export type Database = {
           formateur_id?: string | null
           id?: string
           metadata?: Json | null
+          open_count?: number
+          opened_at?: string | null
           sent_at?: string | null
           session_id?: string | null
           statut?: string
@@ -6217,6 +6223,8 @@ export type Database = {
           id: string
           metadata: Json | null
           numero_relance: number
+          open_count: number
+          opened_at: string | null
           scheduled_at: string
           sent_at: string | null
           statut: string
@@ -6235,6 +6243,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           numero_relance?: number
+          open_count?: number
+          opened_at?: string | null
           scheduled_at: string
           sent_at?: string | null
           statut?: string
@@ -6253,6 +6263,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           numero_relance?: number
+          open_count?: number
+          opened_at?: string | null
           scheduled_at?: string
           sent_at?: string | null
           statut?: string
