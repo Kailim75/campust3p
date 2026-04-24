@@ -57,8 +57,9 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(200),
       supabase
-        .from("session_inscrits")
+        .from("session_inscriptions")
         .select("id, contact_id, session_id, statut, date_inscription, created_at")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(200),
       supabase
