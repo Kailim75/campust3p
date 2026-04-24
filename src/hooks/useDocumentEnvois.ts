@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { newTrackingToken } from "@/lib/tracking/links";
 
 export interface DocumentEnvoiInsert {
   contact_id?: string | null;
@@ -13,6 +14,17 @@ export interface DocumentEnvoiInsert {
   statut?: string;
   metadata?: Json | null;
   commentaires?: string | null;
+  tracking_token?: string | null;
+  sent_at?: string | null;
+}
+
+/** Add a tracking_token + sent_at to an envoi insert if missing. */
+function withTracking<T extends DocumentEnvoiInsert>(envoi: T): T {
+  return {
+    ...envoi,
+    tracking_token: envoi.tracking_token ?? newTrackingToken(),
+    sent_at: envoi.sent_at ?? new Date().toISOString(),
+  };
 }
 
 export function useCreateDocumentEnvoi() {
