@@ -2350,6 +2350,8 @@ export type Database = {
       }
       document_envois: {
         Row: {
+          click_count: number
+          clicked_at: string | null
           commentaires: string | null
           contact_id: string | null
           created_at: string
@@ -2363,10 +2365,14 @@ export type Database = {
           formateur_id: string | null
           id: string
           metadata: Json | null
+          sent_at: string | null
           session_id: string | null
           statut: string
+          tracking_token: string | null
         }
         Insert: {
+          click_count?: number
+          clicked_at?: string | null
           commentaires?: string | null
           contact_id?: string | null
           created_at?: string
@@ -2380,10 +2386,14 @@ export type Database = {
           formateur_id?: string | null
           id?: string
           metadata?: Json | null
+          sent_at?: string | null
           session_id?: string | null
           statut?: string
+          tracking_token?: string | null
         }
         Update: {
+          click_count?: number
+          clicked_at?: string | null
           commentaires?: string | null
           contact_id?: string | null
           created_at?: string
@@ -2397,8 +2407,10 @@ export type Database = {
           formateur_id?: string | null
           id?: string
           metadata?: Json | null
+          sent_at?: string | null
           session_id?: string | null
           statut?: string
+          tracking_token?: string | null
         }
         Relationships: [
           {
@@ -2839,6 +2851,56 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_tracking_events: {
+        Row: {
+          centre_id: string | null
+          contact_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          source_id: string
+          source_table: string
+          target_url: string | null
+          tracking_token: string
+          user_agent: string | null
+        }
+        Insert: {
+          centre_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          source_id: string
+          source_table: string
+          target_url?: string | null
+          tracking_token: string
+          user_agent?: string | null
+        }
+        Update: {
+          centre_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          source_id?: string
+          source_table?: string
+          target_url?: string | null
+          tracking_token?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_tracking_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -6145,6 +6207,8 @@ export type Database = {
       relance_paiement_queue: {
         Row: {
           centre_id: string
+          click_count: number
+          clicked_at: string | null
           contact_id: string
           created_at: string
           email_destinataire: string | null
@@ -6156,10 +6220,13 @@ export type Database = {
           scheduled_at: string
           sent_at: string | null
           statut: string
+          tracking_token: string | null
           updated_at: string
         }
         Insert: {
           centre_id: string
+          click_count?: number
+          clicked_at?: string | null
           contact_id: string
           created_at?: string
           email_destinataire?: string | null
@@ -6171,10 +6238,13 @@ export type Database = {
           scheduled_at: string
           sent_at?: string | null
           statut?: string
+          tracking_token?: string | null
           updated_at?: string
         }
         Update: {
           centre_id?: string
+          click_count?: number
+          clicked_at?: string | null
           contact_id?: string
           created_at?: string
           email_destinataire?: string | null
@@ -6186,6 +6256,7 @@ export type Database = {
           scheduled_at?: string
           sent_at?: string | null
           statut?: string
+          tracking_token?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7784,6 +7855,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_communication_timeline: {
+        Row: {
+          click_count: number | null
+          clicked_at: string | null
+          contact_id: string | null
+          facture_id: string | null
+          id: string | null
+          kind: string | null
+          metadata: Json | null
+          numero_relance: number | null
+          sent_at: string | null
+          session_id: string | null
+          statut: string | null
+          subject_type: string | null
+          title: string | null
+          tracking_token: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
