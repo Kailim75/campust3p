@@ -21,6 +21,11 @@ export interface EnvoiEvent {
   metadata: Record<string, unknown> | null;
   commentaires: string | null;
   created_at: string;
+  /** Tracking columns (added by tracking system) */
+  tracking_token: string | null;
+  sent_at: string | null;
+  clicked_at: string | null;
+  click_count: number;
 }
 
 export interface EnvoiSummary {
