@@ -111,7 +111,10 @@ const signatureStatusConfig: Record<string, { label: string; color: string; icon
   expire: { label: "Expiré", color: "bg-warning/10 text-warning", icon: AlertTriangle },
 };
 
-// Mock document data (replace with real hook when available)
+// Document type — kept for type safety. The "Documents" tab below shows an
+// honest empty state until a real per-stagiaire document store is wired in.
+// Do NOT reintroduce mock rows: the Signatures and Générés tabs already
+// reflect real data; this tab must not display fictional documents.
 interface Document {
   id: string;
   stagiaire: string;
@@ -121,13 +124,7 @@ interface Document {
   dateUpload?: string;
 }
 
-const mockDocuments: Document[] = [
-  { id: "1", stagiaire: "Jean Dupont", type: "Pièce d'identité", status: "valide", dateExpiration: "15/03/2030", dateUpload: "10/01/2026" },
-  { id: "2", stagiaire: "Jean Dupont", type: "Permis de conduire", status: "expire", dateExpiration: "05/01/2026", dateUpload: "01/01/2025" },
-  { id: "3", stagiaire: "Marie Martin", type: "Casier judiciaire", status: "a_verifier", dateUpload: "08/01/2026" },
-  { id: "4", stagiaire: "Marie Martin", type: "Certificat médical", status: "manquant" },
-  { id: "5", stagiaire: "Pierre Bernard", type: "Pièce d'identité", status: "valide", dateExpiration: "20/05/2028", dateUpload: "05/01/2026" },
-];
+const realDocuments: Document[] = [];
 
 type ViewMode = "documents" | "signatures" | "generated";
 
