@@ -6,7 +6,7 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Send, MousePointerClick, Clock } from "lucide-react";
+import { Mail, Send, MousePointerClick, Clock, Eye } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,14 @@ function getEngagement(event: EnvoiEvent): {
       label: count > 1 ? `Lien cliqué ×${count}` : "Lien cliqué",
       variant: "default",
       icon: MousePointerClick,
+    };
+  }
+  if (event.opened_at) {
+    const count = event.open_count ?? 1;
+    return {
+      label: count > 1 ? `Email ouvert ×${count}` : "Email ouvert",
+      variant: "default",
+      icon: Eye,
     };
   }
   // Compute "sans réponse" from sent_at (or fallback date_envoi)
