@@ -139,11 +139,26 @@ export function DocumentEnvoiHistoryPanel({
                           {event.document_name}
                         </span>
                         <EnvoiStatusBadge statut={event.statut} size="sm" />
+                        {(() => {
+                          const eng = getEngagement(event);
+                          const Icon = eng.icon;
+                          return (
+                            <Badge variant={eng.variant} className="text-[10px] px-1.5 py-0 gap-1">
+                              <Icon className="h-2.5 w-2.5" />
+                              {eng.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>
                           {format(parseISO(event.date_envoi), "HH:mm", { locale: fr })}
                         </span>
+                        {event.clicked_at && (
+                          <span className="text-primary">
+                            Cliqué le {format(parseISO(event.clicked_at), "d MMM 'à' HH:mm", { locale: fr })}
+                          </span>
+                        )}
                         {event.envoi_type && (
                           <span className="capitalize">{event.envoi_type}</span>
                         )}
