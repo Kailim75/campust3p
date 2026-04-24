@@ -177,8 +177,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Alma webhook error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Return 200 so Alma stops retrying — failures are logged for manual review
+    return new Response(JSON.stringify({ status: 'error_logged', error: error.message }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
