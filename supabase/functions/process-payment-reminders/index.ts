@@ -89,6 +89,19 @@ Deno.serve(async (req) => {
       const joursRetard = dateEch ? Math.max(0, Math.floor((Date.now() - dateEch.getTime()) / 86400000)) : 0;
       const baseUrl = Deno.env.get("PUBLIC_APP_URL") || "https://campust3p.lovable.app";
 
+      // Generate tracking token + wrapped link
+      const trackingToken = crypto.randomUUID().replace(/-/g, "");
+      const targetUrl = `${baseUrl}/factures/${facture.id}`;
+      const b64url = (s: string) =>
+        btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      const trackedLink = `${SUPABASE_URL}/functions/v1/track-link?t=${trackingToken}&u=${b64url(targetUrl)}`;
+
+      // Persist token on queue row before send (so a click during send still maps)
+      await supabase
+        .from("relance_paiement_queue")
+        .update({ tracking_token: trackingToken })
+        .eq("id", item.id);
+
       const vars: Record<string, string> = {
         civilite: contact?.civilite || "",
         nom: `${contact?.prenom || ""} ${contact?.nom || ""}`.trim(),
@@ -97,7 +110,7 @@ Deno.serve(async (req) => {
         montant_du: String(facture.montant_total ?? ""),
         date_echeance: dateEch ? formatDateFr(dateEch.toISOString()) : "—",
         jours_retard: String(joursRetard),
-        lien_recapitulatif: `${baseUrl}/factures/${facture.id}`,
+        lien_recapitulatif: trackedLink,
       };
 
       const sujet = replaceVars(template.sujet, vars);
