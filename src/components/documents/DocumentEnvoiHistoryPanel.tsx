@@ -6,8 +6,8 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Send } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Mail, Send, MousePointerClick, Clock } from "lucide-react";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import {
@@ -15,6 +15,34 @@ import {
   type EnvoiEvent,
 } from "@/hooks/useDocumentEnvoiHistory";
 import { EnvoiStatusBadge, getEnvoiStatusConfig } from "./EnvoiStatusBadge";
+
+/** Threshold (days) after which an envoi is considered "no response" if never clicked. */
+const NO_RESPONSE_THRESHOLD_DAYS = 7;
+
+function getEngagement(event: EnvoiEvent): {
+  label: string;
+  variant: "default" | "secondary" | "outline" | "destructive";
+  icon: typeof MousePointerClick;
+} {
+  if (event.statut === "echec") {
+    return { label: "Échec", variant: "destructive", icon: Clock };
+  }
+  if (event.clicked_at) {
+    const count = event.click_count ?? 1;
+    return {
+      label: count > 1 ? `Lien cliqué ×${count}` : "Lien cliqué",
+      variant: "default",
+      icon: MousePointerClick,
+    };
+  }
+  // Compute "sans réponse" from sent_at (or fallback date_envoi)
+  const sentAt = event.sent_at ?? event.date_envoi;
+  const days = differenceInDays(new Date(), parseISO(sentAt));
+  if (days >= NO_RESPONSE_THRESHOLD_DAYS) {
+    return { label: "Sans réponse", variant: "outline", icon: Clock };
+  }
+  return { label: "Envoyé", variant: "secondary", icon: Send };
+}
 
 interface DocumentEnvoiHistoryPanelProps {
   contactId?: string | null;
