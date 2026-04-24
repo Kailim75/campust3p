@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Send, MousePointerClick, Clock, AlertCircle } from "lucide-react";
+import { Mail, Send, MousePointerClick, Clock, AlertCircle, Eye } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ interface RelanceRow {
   email_destinataire: string | null;
   clicked_at: string | null;
   click_count: number;
+  opened_at: string | null;
+  open_count: number;
   tracking_token: string | null;
   factures: { numero_facture: string | null } | null;
 }
@@ -38,13 +40,21 @@ function getEngagement(row: RelanceRow) {
   if (row.statut === "pending") {
     return { label: "Programmée", variant: "secondary" as const, icon: Clock };
   }
-  // sent
+  // sent — engagement hierarchy: clicked > opened > no-response > sent
   if (row.clicked_at) {
     const c = row.click_count ?? 1;
     return {
       label: c > 1 ? `Lien cliqué ×${c}` : "Lien cliqué",
       variant: "default" as const,
       icon: MousePointerClick,
+    };
+  }
+  if (row.opened_at) {
+    const o = row.open_count ?? 1;
+    return {
+      label: o > 1 ? `Email ouvert ×${o}` : "Email ouvert",
+      variant: "default" as const,
+      icon: Eye,
     };
   }
   if (row.sent_at) {
