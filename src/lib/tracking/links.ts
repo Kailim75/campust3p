@@ -21,3 +21,14 @@ export function wrapTrackedLink(targetUrl: string, token: string): string {
   if (!targetUrl) return targetUrl;
   return `${SUPABASE_URL}/functions/v1/track-link?t=${token}&u=${b64url(targetUrl)}`;
 }
+
+/** URL of the 1×1 transparent pixel that logs an open when fetched. */
+export function trackingPixelUrl(token: string): string {
+  return `${SUPABASE_URL}/functions/v1/track-open?t=${token}`;
+}
+
+/** Ready-to-inject HTML snippet for the open-tracking pixel. */
+export function trackingPixelHtml(token: string): string {
+  const src = trackingPixelUrl(token);
+  return `<img src="${src}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
+}
