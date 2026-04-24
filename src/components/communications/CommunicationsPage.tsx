@@ -100,22 +100,33 @@ export function CommunicationsPage() {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un modèle..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button onClick={() => setFormDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau modèle
-          </Button>
-        </div>
+        <Tabs defaultValue="templates">
+          <TabsList>
+            <TabsTrigger value="templates">Modèles d'emails</TabsTrigger>
+            <TabsTrigger value="relances">Relances automatiques</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="relances" className="mt-4">
+            <RelancesAutoPanel />
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-4 space-y-6">
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un modèle..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button onClick={() => setFormDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau modèle
+              </Button>
+            </div>
 
         {/* Tabs par catégorie */}
         <Tabs value={selectedCategorie} onValueChange={setSelectedCategorie}>
