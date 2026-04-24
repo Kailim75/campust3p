@@ -34,7 +34,7 @@ export function useCreateDocumentEnvoi() {
     mutationFn: async (envoi: DocumentEnvoiInsert) => {
       const { data, error } = await supabase
         .from("document_envois")
-        .insert(envoi)
+        .insert(withTracking(envoi))
         .select()
         .single();
 
@@ -55,7 +55,7 @@ export function useBulkCreateDocumentEnvois() {
     mutationFn: async (envois: DocumentEnvoiInsert[]) => {
       const { data, error } = await supabase
         .from("document_envois")
-        .insert(envois)
+        .insert(envois.map(withTracking))
         .select();
 
       if (error) throw error;
