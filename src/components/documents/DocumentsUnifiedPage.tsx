@@ -329,7 +329,15 @@ export function DocumentsUnifiedPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.map((doc) => {
+                {filteredDocuments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Aucun document à afficher</p>
+                      <p className="text-xs mt-1">Les pièces justificatives par stagiaire apparaîtront ici lorsqu'elles seront téléversées depuis la fiche apprenant.</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDocuments.map((doc) => {
                   const StatusIcon = documentStatusConfig[doc.status].icon;
                   
                   return (
