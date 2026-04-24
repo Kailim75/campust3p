@@ -24,14 +24,39 @@ serve(async (req) => {
   const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
   try {
-    const body = await req.json();
-    const paymentId = body.payment_id || body.id;
+    // Robust body parsing — Alma may send empty bodies (pings/retries) or query-param-only callbacks
+    const rawBody = await req.text();
+    const url = new URL(req.url);
+    let body: any = {};
 
-    console.log('Alma webhook received:', JSON.stringify(body));
+    if (rawBody && rawBody.trim().length > 0) {
+      try {
+        body = JSON.parse(rawBody);
+      } catch (e) {
+        // Try urlencoded form fallback
+        try {
+          const params = new URLSearchParams(rawBody);
+          body = Object.fromEntries(params.entries());
+        } catch {
+          console.log('Alma webhook: non-JSON body received, length:', rawBody.length);
+        }
+      }
+    }
+
+    // Alma may also include payment_id as a query parameter
+    const paymentId =
+      body.payment_id ||
+      body.id ||
+      url.searchParams.get('payment_id') ||
+      url.searchParams.get('id');
+
+    console.log('Alma webhook received. payment_id:', paymentId, 'body:', JSON.stringify(body), 'query:', url.search);
 
     if (!paymentId) {
-      return new Response(JSON.stringify({ error: 'Missing payment_id' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Always answer 200 so Alma stops retrying — there's nothing actionable without an id
+      console.log('Alma webhook: no payment_id found, acknowledging without action');
+      return new Response(JSON.stringify({ status: 'ignored', reason: 'no_payment_id' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
