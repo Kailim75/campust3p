@@ -179,7 +179,7 @@ export function DocumentsUnifiedPage() {
   const [generateTemplate, setGenerateTemplate] = useState<StudioTemplate | null>(null);
 
   // Document filtering
-  const filteredDocuments = mockDocuments.filter(
+  const filteredDocuments = realDocuments.filter(
     (doc) =>
       doc.stagiaire.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -192,10 +192,10 @@ export function DocumentsUnifiedPage() {
 
   // Stats
   const documentStats = {
-    total: mockDocuments.length,
-    valides: mockDocuments.filter((d) => d.status === "valide").length,
-    expires: mockDocuments.filter((d) => d.status === "expire").length,
-    manquants: mockDocuments.filter((d) => d.status === "manquant").length,
+    total: realDocuments.length,
+    valides: realDocuments.filter((d) => d.status === "valide").length,
+    expires: realDocuments.filter((d) => d.status === "expire").length,
+    manquants: realDocuments.filter((d) => d.status === "manquant").length,
   };
 
   const signatureStats = {
