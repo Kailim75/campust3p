@@ -26,6 +26,8 @@ export interface EnvoiEvent {
   sent_at: string | null;
   clicked_at: string | null;
   click_count: number;
+  opened_at: string | null;
+  open_count: number;
 }
 
 export interface EnvoiSummary {
