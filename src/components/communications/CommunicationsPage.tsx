@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useEmailTemplates, useDeleteEmailTemplate, type EmailTemplate } from "@/hooks/useEmailTemplates";
 import { EmailTemplateFormDialog } from "./EmailTemplateFormDialog";
 import { EmailTemplatePreviewDialog } from "./EmailTemplatePreviewDialog";
+import { RelancesAutoPanel } from "./RelancesAutoPanel";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   AlertDialog,
