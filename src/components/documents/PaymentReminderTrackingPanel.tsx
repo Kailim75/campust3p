@@ -165,6 +165,13 @@ export function PaymentReminderTrackingPanel({ contactId }: Props) {
                   <span>
                     {format(parseISO(dateRef), "d MMM yyyy 'à' HH:mm", { locale: fr })}
                   </span>
+                  {row.opened_at && (
+                    <span className="text-primary inline-flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      Ouvert le{" "}
+                      {format(parseISO(row.opened_at), "d MMM 'à' HH:mm", { locale: fr })}
+                    </span>
+                  )}
                   {row.clicked_at && (
                     <span className="text-primary">
                       Cliqué le{" "}
