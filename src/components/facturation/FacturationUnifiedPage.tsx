@@ -36,12 +36,18 @@ export function FacturationUnifiedPage() {
   // Taux de recouvrement
   const tauxRecouvrement = totalFactures > 0 ? Math.round((totalPaye / totalFactures) * 100) : 100;
 
-  const { setActiveTab } = useNavigation();
-  
-  // Update breadcrumb when tab changes
+  const { setActiveTab, activeSection } = useNavigation();
+
+  // Update breadcrumb only while we're actually inside the Finances section
+  // and never write a value that collides with FinancesPage's own top-level
+  // tab keys (factures / tresorerie / analyse). Without this guard the parent
+  // FinancesPage useEffect would re-snap its tab on every sub-view change.
   useEffect(() => {
+    if (activeSection !== "finances") return;
+    const collidesWithParent = ["factures", "tresorerie", "analyse"].includes(activeView);
+    if (collidesWithParent) return;
     setActiveTab(activeView);
-  }, [activeView, setActiveTab]);
+  }, [activeView, activeSection, setActiveTab]);
 
   // Priority subtitle based on context
   const getSubtitle = () => {

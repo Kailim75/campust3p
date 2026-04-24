@@ -10,13 +10,23 @@ const VALID_TABS = ["factures", "tresorerie", "analyse"] as const;
 
 export function FinancesPage() {
   const { activeTab } = useNavigation();
-  const [tab, setTab] = useState("factures");
-
-  // Sync deep-link tab from NavigationContext
-  useEffect(() => {
+  // Initialize from deep-link once. Subsequent updates to activeTab from
+  // child sub-navigations must NOT re-drive this state, otherwise the parent
+  // tab and the child sub-view fight each other (e.g. "factures" / "devis").
+  const [tab, setTab] = useState<string>(() => {
     if (activeTab && VALID_TABS.includes(activeTab as typeof VALID_TABS[number])) {
+      return activeTab;
+    }
+    return "factures";
+  });
+
+  // One-shot sync: if a deep-link arrives AFTER mount (e.g. external nav),
+  // accept it only when it matches a top-level Finances tab.
+  useEffect(() => {
+    if (activeTab && VALID_TABS.includes(activeTab as typeof VALID_TABS[number]) && activeTab !== tab) {
       setTab(activeTab);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   return (
