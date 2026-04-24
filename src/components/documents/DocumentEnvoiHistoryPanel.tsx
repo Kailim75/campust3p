@@ -158,10 +158,16 @@ export function DocumentEnvoiHistoryPanel({
                           );
                         })()}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span>
                           {format(parseISO(event.date_envoi), "HH:mm", { locale: fr })}
                         </span>
+                        {event.opened_at && (
+                          <span className="text-primary inline-flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            Ouvert le {format(parseISO(event.opened_at), "d MMM 'à' HH:mm", { locale: fr })}
+                          </span>
+                        )}
                         {event.clicked_at && (
                           <span className="text-primary">
                             Cliqué le {format(parseISO(event.clicked_at), "d MMM 'à' HH:mm", { locale: fr })}
