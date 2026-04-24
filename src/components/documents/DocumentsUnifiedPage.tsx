@@ -111,7 +111,10 @@ const signatureStatusConfig: Record<string, { label: string; color: string; icon
   expire: { label: "Expiré", color: "bg-warning/10 text-warning", icon: AlertTriangle },
 };
 
-// Mock document data (replace with real hook when available)
+// Document type — kept for type safety. The "Documents" tab below shows an
+// honest empty state until a real per-stagiaire document store is wired in.
+// Do NOT reintroduce mock rows: the Signatures and Générés tabs already
+// reflect real data; this tab must not display fictional documents.
 interface Document {
   id: string;
   stagiaire: string;
@@ -121,13 +124,7 @@ interface Document {
   dateUpload?: string;
 }
 
-const mockDocuments: Document[] = [
-  { id: "1", stagiaire: "Jean Dupont", type: "Pièce d'identité", status: "valide", dateExpiration: "15/03/2030", dateUpload: "10/01/2026" },
-  { id: "2", stagiaire: "Jean Dupont", type: "Permis de conduire", status: "expire", dateExpiration: "05/01/2026", dateUpload: "01/01/2025" },
-  { id: "3", stagiaire: "Marie Martin", type: "Casier judiciaire", status: "a_verifier", dateUpload: "08/01/2026" },
-  { id: "4", stagiaire: "Marie Martin", type: "Certificat médical", status: "manquant" },
-  { id: "5", stagiaire: "Pierre Bernard", type: "Pièce d'identité", status: "valide", dateExpiration: "20/05/2028", dateUpload: "05/01/2026" },
-];
+const realDocuments: Document[] = [];
 
 type ViewMode = "documents" | "signatures" | "generated";
 
@@ -182,7 +179,7 @@ export function DocumentsUnifiedPage() {
   const [generateTemplate, setGenerateTemplate] = useState<StudioTemplate | null>(null);
 
   // Document filtering
-  const filteredDocuments = mockDocuments.filter(
+  const filteredDocuments = realDocuments.filter(
     (doc) =>
       doc.stagiaire.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -195,10 +192,10 @@ export function DocumentsUnifiedPage() {
 
   // Stats
   const documentStats = {
-    total: mockDocuments.length,
-    valides: mockDocuments.filter((d) => d.status === "valide").length,
-    expires: mockDocuments.filter((d) => d.status === "expire").length,
-    manquants: mockDocuments.filter((d) => d.status === "manquant").length,
+    total: realDocuments.length,
+    valides: realDocuments.filter((d) => d.status === "valide").length,
+    expires: realDocuments.filter((d) => d.status === "expire").length,
+    manquants: realDocuments.filter((d) => d.status === "manquant").length,
   };
 
   const signatureStats = {
@@ -332,7 +329,15 @@ export function DocumentsUnifiedPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.map((doc) => {
+                {filteredDocuments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Aucun document à afficher</p>
+                      <p className="text-xs mt-1">Les pièces justificatives par stagiaire apparaîtront ici lorsqu'elles seront téléversées depuis la fiche apprenant.</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDocuments.map((doc) => {
                   const StatusIcon = documentStatusConfig[doc.status].icon;
                   
                   return (
