@@ -296,6 +296,8 @@ export function CommunicationsPage() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <EmailTemplateFormDialog
