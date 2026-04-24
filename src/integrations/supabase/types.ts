@@ -6084,6 +6084,141 @@ export type Database = {
           },
         ]
       }
+      relance_paiement_config: {
+        Row: {
+          actif: boolean
+          centre_id: string
+          created_at: string
+          delai_premiere_relance_jours: number
+          id: string
+          intervalle_jours: number
+          nb_relances_max: number
+          template_email_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          centre_id: string
+          created_at?: string
+          delai_premiere_relance_jours?: number
+          id?: string
+          intervalle_jours?: number
+          nb_relances_max?: number
+          template_email_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          centre_id?: string
+          created_at?: string
+          delai_premiere_relance_jours?: number
+          id?: string
+          intervalle_jours?: number
+          nb_relances_max?: number
+          template_email_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_paiement_config_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: true
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_config_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: true
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_config_template_email_id_fkey"
+            columns: ["template_email_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relance_paiement_queue: {
+        Row: {
+          centre_id: string
+          contact_id: string
+          created_at: string
+          email_destinataire: string | null
+          error_message: string | null
+          facture_id: string
+          id: string
+          metadata: Json | null
+          numero_relance: number
+          scheduled_at: string
+          sent_at: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          centre_id: string
+          contact_id: string
+          created_at?: string
+          email_destinataire?: string | null
+          error_message?: string | null
+          facture_id: string
+          id?: string
+          metadata?: Json | null
+          numero_relance?: number
+          scheduled_at: string
+          sent_at?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          centre_id?: string
+          contact_id?: string
+          created_at?: string
+          email_destinataire?: string | null
+          error_message?: string | null
+          facture_id?: string
+          id?: string
+          metadata?: Json | null
+          numero_relance?: number
+          scheduled_at?: string
+          sent_at?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_paiement_queue_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_queue_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_queue_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservations_conduite: {
         Row: {
           apprenant_id: string
