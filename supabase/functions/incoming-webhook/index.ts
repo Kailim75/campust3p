@@ -329,13 +329,23 @@ serve(async (req) => {
           contactId = newContact?.id;
         }
 
-        // Si une session est spécifiée, créer l'inscription
+        // Si une session est spécifiée, créer l'inscription (avec déduplication)
         if (session_id && contactId) {
-          await supabase.from('session_inscrits').insert({
-            session_id,
-            contact_id: contactId,
-            statut: 'en_attente',
-          });
+          const { data: existingInscription } = await supabase
+            .from('session_inscriptions')
+            .select('id')
+            .eq('session_id', session_id)
+            .eq('contact_id', contactId)
+            .is('deleted_at', null)
+            .maybeSingle();
+
+          if (!existingInscription) {
+            await supabase.from('session_inscriptions').insert({
+              session_id,
+              contact_id: contactId,
+              statut: 'inscrit',
+            });
+          }
         }
 
         // Historique
