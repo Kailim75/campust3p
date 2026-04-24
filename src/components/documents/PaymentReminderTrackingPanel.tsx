@@ -79,7 +79,7 @@ export function PaymentReminderTrackingPanel({ contactId }: Props) {
       const { data, error } = await supabase
         .from("relance_paiement_queue" as any)
         .select(
-          "id, facture_id, numero_relance, scheduled_at, sent_at, statut, email_destinataire, clicked_at, click_count, tracking_token, factures(numero_facture)"
+          "id, facture_id, numero_relance, scheduled_at, sent_at, statut, email_destinataire, clicked_at, click_count, opened_at, open_count, tracking_token, factures(numero_facture)"
         )
         .eq("contact_id", contactId)
         .order("scheduled_at", { ascending: false });
