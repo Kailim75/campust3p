@@ -262,12 +262,18 @@ serve(async (req) => {
         .replace(/\{session\}/g, session?.nom || "")
         .replace(/\{formation\}/g, session?.formation_type || "");
 
+      // Generate a tracking token for the open-pixel
+      const trackingToken = crypto.randomUUID().replace(/-/g, "");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const pixelUrl = `${supabaseUrl}/functions/v1/track-open?t=${trackingToken}`;
+      const pixelHtml = `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
+
       const htmlContent = buildEmailHtml({
         title: subject,
         preview: subject,
         content: personalizedBody.split("\n").map(p => ({ type: "paragraph", text: p })),
         footerText: "Email envoyé automatiquement par École T3P",
-      });
+      }) + pixelHtml;
 
       try {
         const emailResponse = await resend.emails.send({
@@ -291,6 +297,8 @@ serve(async (req) => {
           document_name: `Pack ${attachments.length} document(s)`,
           statut: "envoye",
           date_envoi: new Date().toISOString(),
+          sent_at: new Date().toISOString(),
+          tracking_token: trackingToken,
           envoi_type: "email",
           "envoyé_par": user.id,
           metadata: {

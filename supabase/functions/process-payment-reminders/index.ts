@@ -115,9 +115,11 @@ Deno.serve(async (req) => {
 
       const sujet = replaceVars(template.sujet, vars);
       const contenu = replaceVars(template.contenu, vars);
+      const pixelUrl = `${SUPABASE_URL}/functions/v1/track-open?t=${trackingToken}`;
+      const pixelHtml = `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
       const html = buildEmailHtml({
         title: `🔔 Relance n°${item.numero_relance}`,
-        bodyHtml: contenu.split("\n").map(l => `<p style="margin:0 0 10px 0;">${l}</p>`).join(""),
+        bodyHtml: contenu.split("\n").map(l => `<p style="margin:0 0 10px 0;">${l}</p>`).join("") + pixelHtml,
         recipientName: `${contact?.prenom || ""} ${contact?.nom || ""}`.trim(),
       });
 
