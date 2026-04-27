@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle, Wand2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle, Wand2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
 import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
@@ -91,6 +91,9 @@ const newKey = () => `tx_${Date.now()}_${_idCounter++}`;
 
 export function ImportBancaireTab() {
   const [drafts, setDrafts] = useState<DraftTx[]>([]);
+  // Snapshot des drafts juste après parsing (avant toute correction auto/manuelle).
+  // Permet de revenir à l'état initial pour comparer.
+  const [originalDrafts, setOriginalDrafts] = useState<DraftTx[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [autoApplyHints, setAutoApplyHints] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -138,6 +141,8 @@ export function ImportBancaireTab() {
         txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
 
       const finalize = (rawDrafts: DraftTx[], origin: "PDF" | "CSV") => {
+        // Snapshot brut (deep copy via spread) avant toute correction
+        setOriginalDrafts(rawDrafts.map((r) => ({ ...r })));
         if (autoApplyHints) {
           const { next, corrected } = applyHintsToDrafts(rawDrafts);
           setDrafts(next);
@@ -295,6 +300,41 @@ export function ImportBancaireTab() {
     toast.success(`${suggestions.size} signe(s) corrigé(s) automatiquement`);
   };
 
+  // ── Reset / annulation des corrections ───────────────────────────────
+  // Compte les lignes modifiées par rapport au snapshot initial (montant ou libellé).
+  const modifiedCount = useMemo(() => {
+    if (originalDrafts.length === 0) return 0;
+    const orig = new Map(originalDrafts.map((r) => [r._key, r] as const));
+    let n = 0;
+    drafts.forEach((r) => {
+      const o = orig.get(r._key);
+      if (!o) {
+        n++;
+        return;
+      }
+      if (
+        Number(o.montant) !== Number(r.montant) ||
+        o.libelle !== r.libelle ||
+        o.date_operation !== r.date_operation
+      ) {
+        n++;
+      }
+    });
+    return n;
+  }, [drafts, originalDrafts]);
+
+  const resetCorrections = () => {
+    if (originalDrafts.length === 0) return;
+    // On préserve l'état de sélection courant pour ne pas perdre le décochage utilisateur.
+    const selectedMap = new Map(drafts.map((r) => [r._key, r._selected] as const));
+    setDrafts(
+      originalDrafts.map((r) => ({ ...r, _selected: selectedMap.get(r._key) ?? true })),
+    );
+    toast.success("État initial restauré", {
+      description: "Les corrections de signe et d'édition ont été annulées.",
+    });
+  };
+
   // ── Import ────────────────────────────────────────────────────────────
   const handleImport = async () => {
     if (selected.length === 0) {
@@ -315,6 +355,7 @@ export function ImportBancaireTab() {
       await importMutation.mutateAsync(payload);
       toast.success(`${payload.length} transactions importées avec succès`);
       setDrafts([]);
+      setOriginalDrafts([]);
       setFileName(null);
     } catch (err: any) {
       toast.error("Erreur d'import", { description: err.message });
@@ -401,10 +442,26 @@ export function ImportBancaireTab() {
               </div>
               <div className="flex gap-2">
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetCorrections}
+                  disabled={modifiedCount === 0}
+                  title="Restaurer les transactions telles que détectées dans le fichier d'origine"
+                >
+                  <Undo2 className="h-4 w-4 mr-1" />
+                  Annuler les corrections
+                  {modifiedCount > 0 && (
+                    <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {modifiedCount}
+                    </Badge>
+                  )}
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setDrafts([]);
+                    setOriginalDrafts([]);
                     setFileName(null);
                   }}
                 >
