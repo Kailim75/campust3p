@@ -46,6 +46,46 @@ const SIGN_SOURCE_LABELS: Record<SignSource, { label: string; tip: string; tone:
   },
 };
 
+// Mots-clés FR — détecte une opération clairement débit ou clairement crédit dans le libellé.
+// Liste alignée avec parseBankPdf.ts pour cohérence.
+const DEBIT_HINTS = [
+  { re: /\bd[ée]bit[ée]?\b/i, label: "débité" },
+  { re: /\bpr[ée]l[èe]v(?:ement|é|e)\b|\bprlv\b/i, label: "prélèvement" },
+  { re: /\bpaiement carte\b|\bachat cb\b|\bcb\s/i, label: "paiement carte" },
+  { re: /\bvir(?:ement)?\s+(?:[ée]mis|sortant)\b/i, label: "virement émis" },
+  { re: /\bretrait(?:\s+dab)?\b/i, label: "retrait" },
+  { re: /\bch(?:e|è)que\s+[ée]mis\b|\bchq\s/i, label: "chèque émis" },
+  { re: /\bagios?\b|\bfrais\b|\bcotisation\b|\bcommission\b/i, label: "frais / agios" },
+];
+const CREDIT_HINTS = [
+  { re: /\bcr[ée]dit[ée]?\b/i, label: "crédité" },
+  { re: /\bvir(?:ement)?\s+re[çc]u\b|\bvir\.?\s+re[çc]u\b/i, label: "virement reçu" },
+  { re: /\bremise\b|\bversement\b|\bencaissement\b/i, label: "remise / versement" },
+  { re: /\bre[çc]u de\b/i, label: "reçu de" },
+  { re: /\bremboursement\b/i, label: "remboursement" },
+];
+
+interface SignSuggestion {
+  expectedSign: 1 | -1;
+  matchedKeyword: string;
+  reason: "débit" | "crédit";
+}
+
+function suggestSignFromLibelle(libelle: string, currentMontant: number): SignSuggestion | null {
+  if (!libelle || !currentMontant) return null;
+  const debitHit = DEBIT_HINTS.find((h) => h.re.test(libelle));
+  const creditHit = CREDIT_HINTS.find((h) => h.re.test(libelle));
+  // Si les deux matchent, on n'invente rien (ambigu)
+  if (debitHit && creditHit) return null;
+  if (debitHit && currentMontant > 0) {
+    return { expectedSign: -1, matchedKeyword: debitHit.label, reason: "débit" };
+  }
+  if (creditHit && currentMontant < 0) {
+    return { expectedSign: 1, matchedKeyword: creditHit.label, reason: "crédit" };
+  }
+  return null;
+}
+
 let _idCounter = 0;
 const newKey = () => `tx_${Date.now()}_${_idCounter++}`;
 
