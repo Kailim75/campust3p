@@ -408,6 +408,29 @@ export function ImportBancaireTab() {
                           </button>
                         </td>
                         <td className="p-2 text-center">
+                          {(() => {
+                            const src = r._signSource;
+                            if (!src) {
+                              return <span className="text-[10px] text-muted-foreground">—</span>;
+                            }
+                            const meta = SIGN_SOURCE_LABELS[src];
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={cn("text-[10px]", meta.tone)}
+                                title={
+                                  r._signOverridden
+                                    ? `${meta.tip} — corrigé manuellement`
+                                    : meta.tip
+                                }
+                              >
+                                {meta.label}
+                                {r._signOverridden && <span className="ml-1">✎</span>}
+                              </Badge>
+                            );
+                          })()}
+                        </td>
+                        <td className="p-2 text-center">
                           <Button
                             variant="ghost"
                             size="sm"
