@@ -1,8 +1,10 @@
-// Parser PDF de relevé bancaire (BNP, et formats similaires)
-// Extrait le texte via pdfjs-dist puis détecte les lignes de transactions
+// Parser PDF de relevé bancaire (BNP, LCL, CA, SG, etc.)
+// Stratégie : on lit les éléments texte avec leurs positions (x, y), on reconstruit
+// les lignes par regroupement vertical, puis on détecte les colonnes Débit/Crédit
+// à partir de l'en-tête. Le libellé est ce qui reste après extraction des dates,
+// montants et numéros de pièce.
 import * as pdfjsLib from "pdfjs-dist";
-// Worker via CDN pour éviter la config Vite
-// @ts-ignore
+// @ts-ignore — Vite résout en URL
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -11,53 +13,30 @@ import type { TransactionBancaire } from "@/hooks/useTresorerie";
 
 type TxInput = Omit<TransactionBancaire, "id" | "created_at" | "rapproche">;
 
-/**
- * Extrait toutes les lignes texte d'un PDF, en regroupant par ligne (même y).
- */
-async function extractLines(file: File): Promise<string[]> {
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  const allLines: string[] = [];
-
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const content = await page.getTextContent();
-
-    // Regroupement par y arrondi
-    const rows: Record<number, { x: number; str: string }[]> = {};
-    for (const item of content.items as any[]) {
-      if (!("str" in item) || !item.str) continue;
-      const y = Math.round(item.transform[5]);
-      const x = item.transform[4];
-      if (!rows[y]) rows[y] = [];
-      rows[y].push({ x, str: item.str });
-    }
-
-    const ys = Object.keys(rows)
-      .map(Number)
-      .sort((a, b) => b - a); // top->bottom
-
-    for (const y of ys) {
-      const line = rows[y]
-        .sort((a, b) => a.x - b.x)
-        .map((i) => i.str)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (line) allLines.push(line);
-    }
-  }
-
-  return allLines;
+interface TextItem {
+  x: number;
+  y: number;
+  width: number;
+  str: string;
 }
 
-// Date dd/mm/yyyy ou dd.mm.yyyy ou dd/mm/yy
-const DATE_RE = /(\d{2})[./](\d{2})[./](\d{2,4})/;
-// Montant français: 1 234,56 ou 1234,56 ou -12,00
-const AMOUNT_RE = /(-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2})/g;
+interface PageData {
+  items: TextItem[];
+  // Bandes verticales détectées : [debit, credit] (x du centre de la colonne)
+  debitX: number | null;
+  creditX: number | null;
+  amountX: number | null; // colonne montant unique (signée)
+}
+
+// ── Regex utilitaires ───────────────────────────────────────────────────────
+const DATE_RE = /^(\d{2})[./-](\d{2})[./-](\d{2,4})$/;
+const DATE_INLINE_RE = /(\d{2})[./-](\d{2})[./-](\d{2,4})/g;
+// Montant FR : 1 234,56 / 1234,56 / -12,00 / 12,00- (signe en suffixe LCL)
+const AMOUNT_TOKEN_RE = /^-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?$/;
+const AMOUNT_INLINE_RE = /-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?/g;
 
 function normalizeDate(d: string): string | null {
-  const m = d.match(DATE_RE);
+  const m = d.match(DATE_RE) ?? d.match(/(\d{2})[./-](\d{2})[./-](\d{2,4})/);
   if (!m) return null;
   let [, dd, mm, yy] = m;
   if (yy.length === 2) yy = (parseInt(yy, 10) > 50 ? "19" : "20") + yy;
@@ -65,72 +44,229 @@ function normalizeDate(d: string): string | null {
 }
 
 function parseAmount(s: string): number {
-  return parseFloat(s.replace(/[ \u00A0]/g, "").replace(",", "."));
+  const trailingMinus = s.endsWith("-");
+  const cleaned = s.replace(/-$/, "").replace(/[ \u00A0]/g, "").replace(",", ".");
+  const v = parseFloat(cleaned);
+  if (isNaN(v)) return NaN;
+  return trailingMinus ? -v : v;
+}
+
+// ── Extraction texte avec coordonnées ───────────────────────────────────────
+async function extractPages(file: File): Promise<PageData[]> {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages: PageData[] = [];
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+
+    const items: TextItem[] = [];
+    for (const it of content.items as any[]) {
+      if (!("str" in it) || !it.str || !it.str.trim()) continue;
+      items.push({
+        x: it.transform[4],
+        y: Math.round(it.transform[5]),
+        width: it.width || 0,
+        str: it.str,
+      });
+    }
+
+    pages.push({ items, ...detectColumns(items) });
+  }
+
+  return pdf.numPages > 0 ? pages : [];
 }
 
 /**
- * Parse un relevé bancaire PDF (BNP et formats compatibles).
- * Heuristique : une transaction = ligne contenant 1 date + au moins 1 montant.
- * Si 2 montants sont trouvés (débit + crédit dans des colonnes), on prend le bon.
+ * Détecte les colonnes Débit / Crédit / Montant à partir des en-têtes textuels.
+ * Retourne le centre x des colonnes ou null si non détectées.
+ */
+function detectColumns(items: TextItem[]): {
+  debitX: number | null;
+  creditX: number | null;
+  amountX: number | null;
+} {
+  let debitX: number | null = null;
+  let creditX: number | null = null;
+  let amountX: number | null = null;
+
+  for (const it of items) {
+    const s = it.str.toLowerCase().trim();
+    const cx = it.x + it.width / 2;
+    if (debitX === null && /^d[ée]bit$/.test(s)) debitX = cx;
+    else if (creditX === null && /^cr[ée]dit$/.test(s)) creditX = cx;
+    else if (amountX === null && /^montant(s)?(\s*\(?eur\)?)?$/.test(s)) amountX = cx;
+  }
+
+  return { debitX, creditX, amountX };
+}
+
+// ── Reconstruction des lignes ───────────────────────────────────────────────
+/**
+ * Regroupe les items par bande verticale (tolérance 3px) et trie par x.
+ */
+function groupRows(items: TextItem[]): TextItem[][] {
+  const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+  const rows: TextItem[][] = [];
+  const TOLERANCE = 3;
+
+  for (const it of sorted) {
+    const last = rows[rows.length - 1];
+    if (last && Math.abs(last[0].y - it.y) <= TOLERANCE) {
+      last.push(it);
+    } else {
+      rows.push([it]);
+    }
+  }
+  // Tri intra-ligne par x
+  rows.forEach((r) => r.sort((a, b) => a.x - b.x));
+  return rows;
+}
+
+/**
+ * Détecte un montant placé sous une colonne donnée (tolérance horizontale).
+ */
+function findAmountInColumn(row: TextItem[], colX: number, tolerance = 60): number | null {
+  let best: { item: TextItem; dist: number } | null = null;
+  for (const it of row) {
+    if (!AMOUNT_TOKEN_RE.test(it.str.trim())) continue;
+    const cx = it.x + it.width / 2;
+    const dist = Math.abs(cx - colX);
+    if (dist > tolerance) continue;
+    if (!best || dist < best.dist) best = { item: it, dist };
+  }
+  if (!best) return null;
+  const v = parseAmount(best.item.str.trim());
+  return isNaN(v) ? null : v;
+}
+
+// Mots-clés indiquant le type d'opération (fallback si pas de colonnes)
+const DEBIT_KEYWORDS =
+  /(prelevement|prlv|paiement carte|cb |achat cb|virement emis|vir emis|frais|cotisation|retrait dab|retrait|cheque emis|chq)/i;
+const CREDIT_KEYWORDS =
+  /(virement recu|vir recu|vir\.? recu|remise|versement|credit|encaissement|recu de)/i;
+
+/**
+ * Parse un relevé bancaire PDF.
+ * - Détecte d'abord les colonnes Débit/Crédit via en-tête → assignation fiable du signe.
+ * - Sinon, fallback : dernier montant + heuristique de mots-clés sur le libellé.
+ * - Multi-lignes : si une ligne n'a pas de date mais que la précédente est une transaction,
+ *   on l'ajoute au libellé (continuation).
  */
 export async function parseBankPdf(file: File): Promise<TxInput[]> {
-  const lines = await extractLines(file);
+  const pages = await extractPages(file);
   const txs: TxInput[] = [];
 
-  // Détection heuristique : une ligne BNP commence souvent par 2 dates (opé + valeur)
-  // suivies du libellé puis du montant en fin de ligne.
-  for (const line of lines) {
-    const dateMatches = [...line.matchAll(new RegExp(DATE_RE, "g"))];
-    if (dateMatches.length === 0) continue;
+  for (const page of pages) {
+    const rows = groupRows(page.items);
 
-    const amountMatches = [...line.matchAll(AMOUNT_RE)];
-    if (amountMatches.length === 0) continue;
+    let lastTx: TxInput | null = null;
 
-    const dateOp = normalizeDate(dateMatches[0][0]);
-    if (!dateOp) continue;
-    const dateVal = dateMatches[1] ? normalizeDate(dateMatches[1][0]) : null;
+    for (const row of rows) {
+      // Détection d'une ligne de transaction = au moins 1 token date au début
+      const dateTokens = row.filter((it) => DATE_RE.test(it.str.trim()));
+      const amountTokens = row.filter((it) => AMOUNT_TOKEN_RE.test(it.str.trim()));
 
-    // Le montant pertinent = dernier montant de la ligne (souvent en fin de ligne)
-    // On regarde aussi le signe : si le dernier est positif et qu'il y en a 2, on
-    // suppose colonne débit/crédit -> on prend le dernier.
-    const last = amountMatches[amountMatches.length - 1][0];
-    let montant = parseAmount(last);
+      if (dateTokens.length === 0) {
+        // Ligne sans date : potentielle continuation de libellé
+        if (lastTx && amountTokens.length === 0) {
+          const extra = row
+            .map((it) => it.str.trim())
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+          // On ignore les lignes manifestement non-libellé (ex: numéros de page)
+          if (extra && extra.length > 2 && !/^page\s+\d+/i.test(extra)) {
+            lastTx.libelle = `${lastTx.libelle} ${extra}`.slice(0, 500);
+          }
+        }
+        continue;
+      }
 
-    // Détection débit/crédit par mot-clé dans le libellé
-    const lower = line.toLowerCase();
-    const isDebit = /(prelevement|prlv|paiement carte|cb |achat cb|virement emis|frais|cotisation|retrait)/i.test(
-      lower,
-    );
-    const isCredit = /(virement recu|vir recu|remise|versement|credit)/i.test(lower);
+      if (amountTokens.length === 0) {
+        lastTx = null;
+        continue;
+      }
 
-    if (montant > 0 && isDebit && !isCredit) montant = -montant;
-    if (montant < 0 && isCredit && !isDebit) montant = Math.abs(montant);
+      const dateOp = normalizeDate(dateTokens[0].str.trim());
+      if (!dateOp) {
+        lastTx = null;
+        continue;
+      }
+      const dateVal = dateTokens[1] ? normalizeDate(dateTokens[1].str.trim()) : null;
 
-    if (isNaN(montant) || montant === 0) continue;
+      // Calcul du montant signé
+      let montant: number | null = null;
 
-    // Libellé = ligne moins les dates et le montant
-    let libelle = line;
-    for (const m of dateMatches) libelle = libelle.replace(m[0], "");
-    for (const m of amountMatches) libelle = libelle.replace(m[0], "");
-    libelle = libelle.replace(/\s+/g, " ").trim();
-    if (!libelle) libelle = "Transaction";
+      if (page.debitX !== null || page.creditX !== null) {
+        const debit = page.debitX !== null ? findAmountInColumn(row, page.debitX) : null;
+        const credit = page.creditX !== null ? findAmountInColumn(row, page.creditX) : null;
+        if (credit !== null && credit !== 0) montant = Math.abs(credit);
+        else if (debit !== null && debit !== 0) montant = -Math.abs(debit);
+      } else if (page.amountX !== null) {
+        const m = findAmountInColumn(row, page.amountX);
+        if (m !== null) montant = m;
+      }
 
-    txs.push({
-      date_operation: dateOp,
-      date_valeur: dateVal,
-      libelle: libelle.slice(0, 500),
-      montant,
-      type_operation: montant > 0 ? "credit" : "debit",
-      categorie: null,
-      reference_bancaire: null,
-      banque: "BNP",
-      compte: null,
-      facture_id: null,
-      paiement_id: null,
-      charge_id: null,
-      notes: null,
-      import_batch_id: null,
-    });
+      // Fallback : dernier montant de la ligne + heuristique mots-clés
+      if (montant === null) {
+        const last = amountTokens[amountTokens.length - 1].str.trim();
+        montant = parseAmount(last);
+        const text = row.map((i) => i.str).join(" ").toLowerCase();
+        const isDebit = DEBIT_KEYWORDS.test(text);
+        const isCredit = CREDIT_KEYWORDS.test(text);
+        if (montant > 0 && isDebit && !isCredit) montant = -montant;
+        else if (montant < 0 && isCredit && !isDebit) montant = Math.abs(montant);
+      }
+
+      if (montant === null || isNaN(montant) || montant === 0) {
+        lastTx = null;
+        continue;
+      }
+
+      // Libellé = items qui ne sont ni dates, ni montants, ni numéros pure
+      const dateStrs = new Set(dateTokens.map((t) => t.str.trim()));
+      const amountStrs = new Set(amountTokens.map((t) => t.str.trim()));
+      const libelleParts = row
+        .filter((it) => {
+          const s = it.str.trim();
+          if (dateStrs.has(s) || amountStrs.has(s)) return false;
+          // Filtre : tokens qui sont uniquement des chiffres/espaces courts (codes pièce courts)
+          // mais on garde les références alphanumériques
+          return s.length > 0;
+        })
+        .map((it) => it.str.trim())
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const libelle = libelleParts || "Transaction";
+
+      // Tentative d'extraction d'une référence (ex: "REF: 12345" ou suite chiffres ≥6)
+      const refMatch = libelle.match(/\b([A-Z0-9]{6,})\b/);
+      const reference_bancaire = refMatch ? refMatch[1] : null;
+
+      const tx: TxInput = {
+        date_operation: dateOp,
+        date_valeur: dateVal,
+        libelle: libelle.slice(0, 500),
+        montant: Number(montant.toFixed(2)),
+        type_operation: montant > 0 ? "credit" : "debit",
+        categorie: null,
+        reference_bancaire,
+        banque: "BNP",
+        compte: null,
+        facture_id: null,
+        paiement_id: null,
+        charge_id: null,
+        notes: null,
+        import_batch_id: null,
+      };
+
+      txs.push(tx);
+      lastTx = tx;
+    }
   }
 
   return txs;
