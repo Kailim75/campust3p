@@ -1,15 +1,66 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+/**
+ * Verify HMAC-SHA256 signature of the raw body against the X-Alma-Signature
+ * header. Returns true if no secret is configured (degraded mode), the
+ * signature matches, or there's no signature header (legacy clients).
+ *
+ * Set ALMA_WEBHOOK_SECRET in Supabase secrets to activate verification.
+ * When the secret is set AND a signature is provided, mismatched signatures
+ * are rejected with 401.
+ */
+async function verifyAlmaSignature(rawBody: string, signature: string | null): Promise<{
+  ok: boolean;
+  reason?: string;
+}> {
+  const secret = Deno.env.get('ALMA_WEBHOOK_SECRET');
+
+  // No secret configured -> degraded mode (current behavior, log warning).
+  if (!secret) {
+    console.warn(
+      '[alma-webhook] ALMA_WEBHOOK_SECRET not set — webhook signatures NOT verified. ' +
+      'Set this secret in Supabase Dashboard > Edge Functions > Secrets to enable verification.'
+    );
+    return { ok: true, reason: 'no_secret_configured' };
+  }
+
+  // Secret set but no signature header -> reject (Alma must be sending one if we expect to verify).
+  if (!signature) {
+    return { ok: false, reason: 'missing_signature_header' };
+  }
+
+  // Compute HMAC-SHA256 of the raw body with the configured secret.
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody));
+  const expected = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Constant-time comparison to avoid timing leaks.
+  const provided = signature.toLowerCase().replace(/^sha256=/, '');
+  if (provided.length !== expected.length) {
+    return { ok: false, reason: 'signature_length_mismatch' };
+  }
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+  }
+  return diff === 0 ? { ok: true } : { ok: false, reason: 'signature_mismatch' };
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
 
   const ALMA_API_KEY = Deno.env.get('ALMA_API_KEY');
   let rawMode = Deno.env.get('ALMA_MODE') || 'test';
@@ -26,6 +77,16 @@ serve(async (req) => {
   try {
     // Robust body parsing — Alma may send empty bodies (pings/retries) or query-param-only callbacks
     const rawBody = await req.text();
+
+    // Verify webhook signature (no-op if ALMA_WEBHOOK_SECRET not set).
+    const sigCheck = await verifyAlmaSignature(rawBody, req.headers.get('x-alma-signature'));
+    if (!sigCheck.ok) {
+      console.error('[alma-webhook] Signature check failed:', sigCheck.reason);
+      return new Response(
+        JSON.stringify({ error: 'Invalid webhook signature', reason: sigCheck.reason }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     const url = new URL(req.url);
     let body: any = {};
 
