@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, FileSpreadsheet, Check, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
+import { parseBankPdf } from "@/lib/parseBankPdf";
 import { formatEuro } from "@/lib/formatFinancial";
 import { cn } from "@/lib/utils";
 
