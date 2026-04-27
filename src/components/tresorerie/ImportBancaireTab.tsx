@@ -198,6 +198,53 @@ export function ImportBancaireTab() {
   const totalCredits = selected.filter((r) => r.montant > 0).reduce((s, r) => s + Number(r.montant), 0);
   const totalDebits = selected.filter((r) => r.montant < 0).reduce((s, r) => s + Math.abs(Number(r.montant)), 0);
 
+  // ── Suggestions de signe basées sur le libellé ───────────────────────
+  const suggestions = useMemo(() => {
+    const map = new Map<string, SignSuggestion>();
+    drafts.forEach((r) => {
+      const s = suggestSignFromLibelle(r.libelle, Number(r.montant));
+      if (s) map.set(r._key, s);
+    });
+    return map;
+  }, [drafts]);
+
+  const applySuggestion = (key: string) => {
+    const s = suggestions.get(key);
+    if (!s) return;
+    setDrafts((prev) =>
+      prev.map((r) => {
+        if (r._key !== key) return r;
+        const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+        return {
+          ...r,
+          montant: newMontant,
+          type_operation: newMontant > 0 ? "credit" : "debit",
+          _signOverridden: true,
+          _signSource: "keyword",
+        };
+      }),
+    );
+  };
+
+  const applyAllSuggestions = () => {
+    if (suggestions.size === 0) return;
+    setDrafts((prev) =>
+      prev.map((r) => {
+        const s = suggestions.get(r._key);
+        if (!s) return r;
+        const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+        return {
+          ...r,
+          montant: newMontant,
+          type_operation: newMontant > 0 ? "credit" : "debit",
+          _signOverridden: true,
+          _signSource: "keyword",
+        };
+      }),
+    );
+    toast.success(`${suggestions.size} signe(s) corrigé(s) automatiquement`);
+  };
+
   // ── Import ────────────────────────────────────────────────────────────
   const handleImport = async () => {
     if (selected.length === 0) {
