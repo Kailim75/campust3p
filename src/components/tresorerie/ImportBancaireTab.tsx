@@ -7,13 +7,43 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
-import { parseBankPdf } from "@/lib/parseBankPdf";
+import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
 import { formatEuro } from "@/lib/formatFinancial";
 import { cn } from "@/lib/utils";
 
 type DraftTx = Omit<TransactionBancaire, "id" | "created_at" | "rapproche"> & {
   _key: string;
   _selected: boolean;
+  _signSource?: SignSource;
+  _signOverridden?: boolean;
+};
+
+const SIGN_SOURCE_LABELS: Record<SignSource, { label: string; tip: string; tone: string }> = {
+  column: {
+    label: "Colonne",
+    tip: "Signe déduit de la colonne Débit ou Crédit du relevé",
+    tone: "border-success/40 text-success bg-success/5",
+  },
+  "amount-column": {
+    label: "Montant ±",
+    tip: "Colonne Montant unique avec signe explicite",
+    tone: "border-success/40 text-success bg-success/5",
+  },
+  explicit: {
+    label: "Signe explicite",
+    tip: "Signe - présent directement sur le montant (ex: -12,00 ou 12,00-)",
+    tone: "border-primary/40 text-primary bg-primary/5",
+  },
+  keyword: {
+    label: "Mots-clés",
+    tip: "Signe déduit du libellé (prélèvement, virement reçu, etc.) — à vérifier",
+    tone: "border-warning/40 text-warning bg-warning/5",
+  },
+  fallback: {
+    label: "À vérifier",
+    tip: "Aucun indice fiable — signe basé sur le dernier montant de la ligne",
+    tone: "border-destructive/40 text-destructive bg-destructive/5",
+  },
 };
 
 let _idCounter = 0;
