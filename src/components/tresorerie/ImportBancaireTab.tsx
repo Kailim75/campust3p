@@ -117,7 +117,7 @@ export function ImportBancaireTab() {
       prev.map((r) => {
         if (r._key !== key) return r;
         const m = -r.montant;
-        return { ...r, montant: m, type_operation: m > 0 ? "credit" : "debit" };
+        return { ...r, montant: m, type_operation: m > 0 ? "credit" : "debit", _signOverridden: true };
       }),
     );
   };
