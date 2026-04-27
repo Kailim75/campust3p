@@ -7,13 +7,43 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
-import { parseBankPdf } from "@/lib/parseBankPdf";
+import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
 import { formatEuro } from "@/lib/formatFinancial";
 import { cn } from "@/lib/utils";
 
 type DraftTx = Omit<TransactionBancaire, "id" | "created_at" | "rapproche"> & {
   _key: string;
   _selected: boolean;
+  _signSource?: SignSource;
+  _signOverridden?: boolean;
+};
+
+const SIGN_SOURCE_LABELS: Record<SignSource, { label: string; tip: string; tone: string }> = {
+  column: {
+    label: "Colonne",
+    tip: "Signe déduit de la colonne Débit ou Crédit du relevé",
+    tone: "border-success/40 text-success bg-success/5",
+  },
+  "amount-column": {
+    label: "Montant ±",
+    tip: "Colonne Montant unique avec signe explicite",
+    tone: "border-success/40 text-success bg-success/5",
+  },
+  explicit: {
+    label: "Signe explicite",
+    tip: "Signe - présent directement sur le montant (ex: -12,00 ou 12,00-)",
+    tone: "border-primary/40 text-primary bg-primary/5",
+  },
+  keyword: {
+    label: "Mots-clés",
+    tip: "Signe déduit du libellé (prélèvement, virement reçu, etc.) — à vérifier",
+    tone: "border-warning/40 text-warning bg-warning/5",
+  },
+  fallback: {
+    label: "À vérifier",
+    tip: "Aucun indice fiable — signe basé sur le dernier montant de la ligne",
+    tone: "border-destructive/40 text-destructive bg-destructive/5",
+  },
 };
 
 let _idCounter = 0;
@@ -31,7 +61,7 @@ export function ImportBancaireTab() {
     setFileName(file.name);
     const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
 
-    const toDrafts = (txs: Omit<TransactionBancaire, "id" | "created_at" | "rapproche">[]): DraftTx[] =>
+    const toDrafts = (txs: any[]): DraftTx[] =>
       txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
 
     if (isPdf) {
@@ -87,7 +117,7 @@ export function ImportBancaireTab() {
       prev.map((r) => {
         if (r._key !== key) return r;
         const m = -r.montant;
-        return { ...r, montant: m, type_operation: m > 0 ? "credit" : "debit" };
+        return { ...r, montant: m, type_operation: m > 0 ? "credit" : "debit", _signOverridden: true };
       }),
     );
   };
@@ -141,8 +171,10 @@ export function ImportBancaireTab() {
       return;
     }
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const payload = selected.map(({ _key, _selected, ...rest }) => rest);
+      const payload = selected.map(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ({ _key, _selected, _signSource, _signOverridden, ...rest }) => rest,
+      );
       await importMutation.mutateAsync(payload);
       toast.success(`${payload.length} transactions importées avec succès`);
       setDrafts([]);
@@ -293,6 +325,7 @@ export function ImportBancaireTab() {
                     <th className="text-left p-2">Libellé</th>
                     <th className="text-right p-2 w-32">Montant</th>
                     <th className="text-center p-2 w-24">Type</th>
+                    <th className="text-center p-2 w-28">Origine</th>
                     <th className="p-2 w-20" />
                   </tr>
                 </thead>
@@ -373,6 +406,29 @@ export function ImportBancaireTab() {
                               {r.montant > 0 ? "Crédit" : "Débit"}
                             </Badge>
                           </button>
+                        </td>
+                        <td className="p-2 text-center">
+                          {(() => {
+                            const src = r._signSource;
+                            if (!src) {
+                              return <span className="text-[10px] text-muted-foreground">—</span>;
+                            }
+                            const meta = SIGN_SOURCE_LABELS[src];
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={cn("text-[10px]", meta.tone)}
+                                title={
+                                  r._signOverridden
+                                    ? `${meta.tip} — corrigé manuellement`
+                                    : meta.tip
+                                }
+                              >
+                                {meta.label}
+                                {r._signOverridden && <span className="ml-1">✎</span>}
+                              </Badge>
+                            );
+                          })()}
                         </td>
                         <td className="p-2 text-center">
                           <Button

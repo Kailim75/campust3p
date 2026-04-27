@@ -11,7 +11,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 import type { TransactionBancaire } from "@/hooks/useTresorerie";
 
-type TxInput = Omit<TransactionBancaire, "id" | "created_at" | "rapproche">;
+export type SignSource =
+  | "column" // signe issu de la colonne Débit/Crédit détectée
+  | "explicit" // signe explicite dans le token (ex: -12,00 ou 12,00-)
+  | "keyword" // déduit via mots-clés (prélèvement, virement reçu, etc.)
+  | "amount-column" // colonne Montant unique signée
+  | "fallback"; // dernier montant + aucun indice → signe brut
+
+type TxInput = Omit<TransactionBancaire, "id" | "created_at" | "rapproche"> & {
+  _signSource?: SignSource;
+};
 
 interface TextItem {
   x: number;
@@ -31,9 +40,9 @@ interface PageData {
 // ── Regex utilitaires ───────────────────────────────────────────────────────
 const DATE_RE = /^(\d{2})[./-](\d{2})[./-](\d{2,4})$/;
 const DATE_INLINE_RE = /(\d{2})[./-](\d{2})[./-](\d{2,4})/g;
-// Montant FR : 1 234,56 / 1234,56 / -12,00 / 12,00- / +12,00 (signes pré/suffixe)
-const AMOUNT_TOKEN_RE = /^[+-]?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}[+-]?$/;
-const AMOUNT_INLINE_RE = /[+-]?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}[+-]?/g;
+// Montant FR : 1 234,56 / 1234,56 / -12,00 / 12,00- (signe en suffixe LCL)
+const AMOUNT_TOKEN_RE = /^-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?$/;
+const AMOUNT_INLINE_RE = /-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?/g;
 
 function normalizeDate(d: string): string | null {
   const m = d.match(DATE_RE) ?? d.match(/(\d{2})[./-](\d{2})[./-](\d{2,4})/);
@@ -45,18 +54,10 @@ function normalizeDate(d: string): string | null {
 
 function parseAmount(s: string): number {
   const trailingMinus = s.endsWith("-");
-  const trailingPlus = s.endsWith("+");
-  const leadingMinus = s.startsWith("-");
-  const leadingPlus = s.startsWith("+");
-  const cleaned = s
-    .replace(/^[+-]/, "")
-    .replace(/[+-]$/, "")
-    .replace(/[ \u00A0]/g, "")
-    .replace(",", ".");
+  const cleaned = s.replace(/-$/, "").replace(/[ \u00A0]/g, "").replace(",", ".");
   const v = parseFloat(cleaned);
   if (isNaN(v)) return NaN;
-  const negative = trailingMinus || leadingMinus;
-  return negative ? -Math.abs(v) : v;
+  return trailingMinus ? -v : v;
 }
 
 // ── Extraction texte avec coordonnées ───────────────────────────────────────
@@ -99,17 +100,12 @@ function detectColumns(items: TextItem[]): {
   let creditX: number | null = null;
   let amountX: number | null = null;
 
-  // Variantes courantes en français selon les banques
-  const DEBIT_HEADER = /^(d[ée]bits?|retraits?|sorties?|d[ée]penses?|paiements?)$/;
-  const CREDIT_HEADER = /^(cr[ée]dits?|d[ée]p[oô]ts?|entr[ée]es?|recettes?|encaissements?|versements?)$/;
-  const AMOUNT_HEADER = /^(montant(s)?(\s*\(?eur\)?)?|somme(s)?)$/;
-
   for (const it of items) {
     const s = it.str.toLowerCase().trim();
     const cx = it.x + it.width / 2;
-    if (debitX === null && DEBIT_HEADER.test(s)) debitX = cx;
-    else if (creditX === null && CREDIT_HEADER.test(s)) creditX = cx;
-    else if (amountX === null && AMOUNT_HEADER.test(s)) amountX = cx;
+    if (debitX === null && /^d[ée]bit$/.test(s)) debitX = cx;
+    else if (creditX === null && /^cr[ée]dit$/.test(s)) creditX = cx;
+    else if (amountX === null && /^montant(s)?(\s*\(?eur\)?)?$/.test(s)) amountX = cx;
   }
 
   return { debitX, creditX, amountX };
@@ -156,23 +152,16 @@ function findAmountInColumn(row: TextItem[], colX: number, tolerance = 60): numb
 
 // Mots-clés indiquant le type d'opération (fallback si pas de colonnes)
 const DEBIT_KEYWORDS =
-  /(pr[ée]l[èe]vement|prlv|paiement\s*(par)?\s*carte|paiement\s*cb|cb\s|carte\s+\d|achat\s*cb|achat\s+carte|virement\s*[ée]mis|vir\.?\s*[ée]mis|vir\.?\s*sepa\s*[ée]mis|frais|commission|cotisation|agios|interets\s*d[ée]biteurs|retrait\s*dab|retrait\s*esp|retrait|cheque\s*[ée]mis|chq\s*[ée]mis|chq\s+\d|remboursement\s*pr[êe]t|[ée]ch[ée]ance\s*pr[êe]t|abonnement|facture)/i;
+  /(prelevement|prlv|paiement carte|cb |achat cb|virement emis|vir emis|frais|cotisation|retrait dab|retrait|cheque emis|chq)/i;
 const CREDIT_KEYWORDS =
-  /(virement\s*re[çc]u|vir\.?\s*re[çc]u|vir\.?\s*sepa\s*re[çc]u|remise\s*(de\s*)?ch[èe]que|remise\s*ch[èe]que|remise\s*esp[èe]ces?|versement|encaissement|recu\s*de|de\s*la\s*part\s*de|salaire|paie|allocation|caf|remboursement\s*re[çc]u)/i;
-
-/**
- * Détecte si une ligne contient un solde (à exclure du montant de transaction).
- */
-const SOLDE_RE = /(solde|nouveau\s*solde|ancien\s*solde|solde\s*pr[ée]c[ée]dent|total)/i;
+  /(virement recu|vir recu|vir\.? recu|remise|versement|credit|encaissement|recu de)/i;
 
 /**
  * Parse un relevé bancaire PDF.
- * Stratégie de détection débit/crédit (par ordre de priorité) :
- * 1. Colonnes Débit/Crédit détectées via en-tête → assignation par position x
- * 2. Si 2 montants dans la ligne (transaction + solde) : on prend l'avant-dernier
- *    et on déduit le signe via les mots-clés ou la position relative
- * 3. Heuristique mots-clés (DEBIT_KEYWORDS / CREDIT_KEYWORDS)
- * 4. Signe explicite dans le token (+/-)
+ * - Détecte d'abord les colonnes Débit/Crédit via en-tête → assignation fiable du signe.
+ * - Sinon, fallback : dernier montant + heuristique de mots-clés sur le libellé.
+ * - Multi-lignes : si une ligne n'a pas de date mais que la précédente est une transaction,
+ *   on l'ajoute au libellé (continuation).
  */
 export async function parseBankPdf(file: File): Promise<TxInput[]> {
   const pages = await extractPages(file);
@@ -184,13 +173,19 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
     let lastTx: TxInput | null = null;
 
     for (const row of rows) {
+      // Détection d'une ligne de transaction = au moins 1 token date au début
       const dateTokens = row.filter((it) => DATE_RE.test(it.str.trim()));
       const amountTokens = row.filter((it) => AMOUNT_TOKEN_RE.test(it.str.trim()));
-      const rowText = row.map((i) => i.str).join(" ");
 
       if (dateTokens.length === 0) {
+        // Ligne sans date : potentielle continuation de libellé
         if (lastTx && amountTokens.length === 0) {
-          const extra = rowText.replace(/\s+/g, " ").trim();
+          const extra = row
+            .map((it) => it.str.trim())
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+          // On ignore les lignes manifestement non-libellé (ex: numéros de page)
           if (extra && extra.length > 2 && !/^page\s+\d+/i.test(extra)) {
             lastTx.libelle = `${lastTx.libelle} ${extra}`.slice(0, 500);
           }
@@ -203,12 +198,6 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
         continue;
       }
 
-      // Ignorer les lignes de solde
-      if (SOLDE_RE.test(rowText)) {
-        lastTx = null;
-        continue;
-      }
-
       const dateOp = normalizeDate(dateTokens[0].str.trim());
       if (!dateOp) {
         lastTx = null;
@@ -216,60 +205,50 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
       }
       const dateVal = dateTokens[1] ? normalizeDate(dateTokens[1].str.trim()) : null;
 
-      // Calcul du montant signé
+      // Calcul du montant signé + traçabilité de l'origine du signe
       let montant: number | null = null;
-      const textLower = rowText.toLowerCase();
-      const isDebitKw = DEBIT_KEYWORDS.test(textLower);
-      const isCreditKw = CREDIT_KEYWORDS.test(textLower);
+      let signSource: SignSource = "fallback";
 
-      // 1. Colonnes Débit / Crédit détectées
       if (page.debitX !== null || page.creditX !== null) {
         const debit = page.debitX !== null ? findAmountInColumn(row, page.debitX) : null;
         const credit = page.creditX !== null ? findAmountInColumn(row, page.creditX) : null;
-        if (credit !== null && credit !== 0) montant = Math.abs(credit);
-        else if (debit !== null && debit !== 0) montant = -Math.abs(debit);
+        if (credit !== null && credit !== 0) {
+          montant = Math.abs(credit);
+          signSource = "column";
+        } else if (debit !== null && debit !== 0) {
+          montant = -Math.abs(debit);
+          signSource = "column";
+        }
       } else if (page.amountX !== null) {
         const m = findAmountInColumn(row, page.amountX);
         if (m !== null) {
           montant = m;
-          // Si valeur absolue mais mots-clés clairs → réajuste le signe
-          if (montant > 0 && isDebitKw && !isCreditKw) montant = -montant;
-          else if (montant < 0 && isCreditKw && !isDebitKw) montant = Math.abs(montant);
+          signSource = "amount-column";
         }
       }
 
-      // 2. Fallback : analyse des montants présents dans la ligne
+      // Fallback : dernier montant de la ligne + heuristique mots-clés
       if (montant === null) {
-        // Si ≥ 2 montants : le dernier est généralement le solde, l'avant-dernier la transaction
-        const txTokenStr =
-          amountTokens.length >= 2
-            ? amountTokens[amountTokens.length - 2].str.trim()
-            : amountTokens[amountTokens.length - 1].str.trim();
-        let raw = parseAmount(txTokenStr);
-
-        if (!isNaN(raw)) {
-          // Signe déjà explicite dans le token → on garde
-          const explicitSign = /^[+-]|[+-]$/.test(txTokenStr);
-          if (!explicitSign) {
-            // Pas de signe explicite : on déduit via mots-clés
-            if (isDebitKw && !isCreditKw) raw = -Math.abs(raw);
-            else if (isCreditKw && !isDebitKw) raw = Math.abs(raw);
-            else {
-              // Aucun indice : on regarde la variation du solde si dispo
-              if (amountTokens.length >= 2 && lastTx) {
-                const newSolde = parseAmount(amountTokens[amountTokens.length - 1].str.trim());
-                // À défaut d'autre info, on suppose un débit (cas le plus fréquent en relevé)
-                if (!isNaN(newSolde)) raw = -Math.abs(raw);
-                else raw = -Math.abs(raw);
-              } else {
-                raw = -Math.abs(raw);
-              }
-            }
-          }
-          montant = raw;
+        const lastRaw = amountTokens[amountTokens.length - 1].str.trim();
+        montant = parseAmount(lastRaw);
+        const hasExplicitSign = /^-/.test(lastRaw) || /-$/.test(lastRaw);
+        const text = row.map((i) => i.str).join(" ").toLowerCase();
+        const isDebit = DEBIT_KEYWORDS.test(text);
+        const isCredit = CREDIT_KEYWORDS.test(text);
+        if (hasExplicitSign) {
+          signSource = "explicit";
+        } else if (montant > 0 && isDebit && !isCredit) {
+          montant = -montant;
+          signSource = "keyword";
+        } else if (montant < 0 && isCredit && !isDebit) {
+          montant = Math.abs(montant);
+          signSource = "keyword";
+        } else if (isDebit || isCredit) {
+          signSource = "keyword";
+        } else {
+          signSource = "fallback";
         }
       }
-
 
       if (montant === null || isNaN(montant) || montant === 0) {
         lastTx = null;
@@ -313,6 +292,7 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
         charge_id: null,
         notes: null,
         import_batch_id: null,
+        _signSource: signSource,
       };
 
       txs.push(tx);
