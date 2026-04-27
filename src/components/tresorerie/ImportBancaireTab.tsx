@@ -141,6 +141,8 @@ export function ImportBancaireTab() {
         txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
 
       const finalize = (rawDrafts: DraftTx[], origin: "PDF" | "CSV") => {
+        // Snapshot brut (deep copy via spread) avant toute correction
+        setOriginalDrafts(rawDrafts.map((r) => ({ ...r })));
         if (autoApplyHints) {
           const { next, corrected } = applyHintsToDrafts(rawDrafts);
           setDrafts(next);
