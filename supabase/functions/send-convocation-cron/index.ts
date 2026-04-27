@@ -103,7 +103,7 @@ serve(async (req) => {
     .from("sessions")
     .select("id, nom, formation_type, date_debut, date_fin, lieu, duree_heures, prix, heure_debut, heure_fin, heure_debut_matin, heure_fin_matin, heure_debut_aprem, heure_fin_aprem, centre_id, statut, updated_at")
     .eq("date_debut", targetDateStr)
-    .in("statut", ["planifiee", "confirmee", "en_cours"]);
+    .in("statut", ["a_venir", "complet", "en_cours"]);
   if (onlySessionId) q = q.eq("id", onlySessionId);
   const { data: sessions, error: sErr } = await q;
 
