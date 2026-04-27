@@ -31,9 +31,9 @@ interface PageData {
 // ── Regex utilitaires ───────────────────────────────────────────────────────
 const DATE_RE = /^(\d{2})[./-](\d{2})[./-](\d{2,4})$/;
 const DATE_INLINE_RE = /(\d{2})[./-](\d{2})[./-](\d{2,4})/g;
-// Montant FR : 1 234,56 / 1234,56 / -12,00 / 12,00- (signe en suffixe LCL)
-const AMOUNT_TOKEN_RE = /^-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?$/;
-const AMOUNT_INLINE_RE = /-?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}-?/g;
+// Montant FR : 1 234,56 / 1234,56 / -12,00 / 12,00- / +12,00 (signes pré/suffixe)
+const AMOUNT_TOKEN_RE = /^[+-]?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}[+-]?$/;
+const AMOUNT_INLINE_RE = /[+-]?\d{1,3}(?:[ \u00A0]\d{3})*,\d{2}[+-]?/g;
 
 function normalizeDate(d: string): string | null {
   const m = d.match(DATE_RE) ?? d.match(/(\d{2})[./-](\d{2})[./-](\d{2,4})/);
