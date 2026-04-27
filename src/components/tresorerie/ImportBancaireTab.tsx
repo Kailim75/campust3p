@@ -19,6 +19,27 @@ export function ImportBancaireTab() {
     if (!file) return;
 
     setFileName(file.name);
+    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+
+    if (isPdf) {
+      (async () => {
+        try {
+          const txs = await parseBankPdf(file);
+          if (txs.length === 0) {
+            toast.error("Aucune transaction détectée dans le PDF", {
+              description: "Le format du relevé n'est pas reconnu. Essayez un export CSV.",
+            });
+            return;
+          }
+          setPreview(txs);
+          toast.success(`${txs.length} transactions détectées (PDF)`);
+        } catch (err: any) {
+          toast.error("Erreur de lecture PDF", { description: err.message });
+        }
+      })();
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
