@@ -11,7 +11,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 import type { TransactionBancaire } from "@/hooks/useTresorerie";
 
-type TxInput = Omit<TransactionBancaire, "id" | "created_at" | "rapproche">;
+export type SignSource =
+  | "column" // signe issu de la colonne Débit/Crédit détectée
+  | "explicit" // signe explicite dans le token (ex: -12,00 ou 12,00-)
+  | "keyword" // déduit via mots-clés (prélèvement, virement reçu, etc.)
+  | "amount-column" // colonne Montant unique signée
+  | "fallback"; // dernier montant + aucun indice → signe brut
+
+type TxInput = Omit<TransactionBancaire, "id" | "created_at" | "rapproche"> & {
+  _signSource?: SignSource;
+};
 
 interface TextItem {
   x: number;
