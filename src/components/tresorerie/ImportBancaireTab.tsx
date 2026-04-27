@@ -171,8 +171,10 @@ export function ImportBancaireTab() {
       return;
     }
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const payload = selected.map(({ _key, _selected, ...rest }) => rest);
+      const payload = selected.map(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ({ _key, _selected, _signSource, _signOverridden, ...rest }) => rest,
+      );
       await importMutation.mutateAsync(payload);
       toast.success(`${payload.length} transactions importées avec succès`);
       setDrafts([]);
