@@ -100,12 +100,17 @@ function detectColumns(items: TextItem[]): {
   let creditX: number | null = null;
   let amountX: number | null = null;
 
+  // En-têtes tolérants : "Débit", "Débit (€)", "Débit EUR", "Montant débit", "Débits"...
+  const DEBIT_HEADER = /^(montant\s+)?d[ée]bit(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+  const CREDIT_HEADER = /^(montant\s+)?cr[ée]dit(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+  const AMOUNT_HEADER = /^montant(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+
   for (const it of items) {
     const s = it.str.toLowerCase().trim();
     const cx = it.x + it.width / 2;
-    if (debitX === null && /^d[ée]bit$/.test(s)) debitX = cx;
-    else if (creditX === null && /^cr[ée]dit$/.test(s)) creditX = cx;
-    else if (amountX === null && /^montant(s)?(\s*\(?eur\)?)?$/.test(s)) amountX = cx;
+    if (debitX === null && DEBIT_HEADER.test(s)) debitX = cx;
+    else if (creditX === null && CREDIT_HEADER.test(s)) creditX = cx;
+    else if (amountX === null && AMOUNT_HEADER.test(s)) amountX = cx;
   }
 
   return { debitX, creditX, amountX };
