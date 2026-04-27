@@ -300,6 +300,41 @@ export function ImportBancaireTab() {
     toast.success(`${suggestions.size} signe(s) corrigé(s) automatiquement`);
   };
 
+  // ── Reset / annulation des corrections ───────────────────────────────
+  // Compte les lignes modifiées par rapport au snapshot initial (montant ou libellé).
+  const modifiedCount = useMemo(() => {
+    if (originalDrafts.length === 0) return 0;
+    const orig = new Map(originalDrafts.map((r) => [r._key, r] as const));
+    let n = 0;
+    drafts.forEach((r) => {
+      const o = orig.get(r._key);
+      if (!o) {
+        n++;
+        return;
+      }
+      if (
+        Number(o.montant) !== Number(r.montant) ||
+        o.libelle !== r.libelle ||
+        o.date_operation !== r.date_operation
+      ) {
+        n++;
+      }
+    });
+    return n;
+  }, [drafts, originalDrafts]);
+
+  const resetCorrections = () => {
+    if (originalDrafts.length === 0) return;
+    // On préserve l'état de sélection courant pour ne pas perdre le décochage utilisateur.
+    const selectedMap = new Map(drafts.map((r) => [r._key, r._selected] as const));
+    setDrafts(
+      originalDrafts.map((r) => ({ ...r, _selected: selectedMap.get(r._key) ?? true })),
+    );
+    toast.success("État initial restauré", {
+      description: "Les corrections de signe et d'édition ont été annulées.",
+    });
+  };
+
   // ── Import ────────────────────────────────────────────────────────────
   const handleImport = async () => {
     if (selected.length === 0) {
@@ -320,6 +355,7 @@ export function ImportBancaireTab() {
       await importMutation.mutateAsync(payload);
       toast.success(`${payload.length} transactions importées avec succès`);
       setDrafts([]);
+      setOriginalDrafts([]);
       setFileName(null);
     } catch (err: any) {
       toast.error("Erreur d'import", { description: err.message });
