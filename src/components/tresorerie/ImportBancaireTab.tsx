@@ -472,6 +472,23 @@ export function ImportBancaireTab() {
                               <AlertCircle className="h-3 w-3" /> {error}
                             </p>
                           )}
+                          {suggestion && (
+                            <div className="mt-1 flex items-center gap-2 text-[10px]">
+                              <span className="text-warning flex items-center gap-1">
+                                <Wand2 className="h-3 w-3" />
+                                Mot-clé «&nbsp;{suggestion.matchedKeyword}&nbsp;» → devrait être un{" "}
+                                <strong>{suggestion.reason}</strong>
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => applySuggestion(r._key)}
+                                className="h-5 px-2 py-0 text-[10px]"
+                              >
+                                Appliquer
+                              </Button>
+                            </div>
+                          )}
                         </td>
                         <td className="p-2">
                           <Input
