@@ -100,12 +100,17 @@ function detectColumns(items: TextItem[]): {
   let creditX: number | null = null;
   let amountX: number | null = null;
 
+  // En-têtes tolérants : "Débit", "Débit (€)", "Débit EUR", "Montant débit", "Débits"...
+  const DEBIT_HEADER = /^(montant\s+)?d[ée]bit(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+  const CREDIT_HEADER = /^(montant\s+)?cr[ée]dit(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+  const AMOUNT_HEADER = /^montant(s)?(\s*\(?\s*(€|eur)\s*\)?)?$/;
+
   for (const it of items) {
     const s = it.str.toLowerCase().trim();
     const cx = it.x + it.width / 2;
-    if (debitX === null && /^d[ée]bit$/.test(s)) debitX = cx;
-    else if (creditX === null && /^cr[ée]dit$/.test(s)) creditX = cx;
-    else if (amountX === null && /^montant(s)?(\s*\(?eur\)?)?$/.test(s)) amountX = cx;
+    if (debitX === null && DEBIT_HEADER.test(s)) debitX = cx;
+    else if (creditX === null && CREDIT_HEADER.test(s)) creditX = cx;
+    else if (amountX === null && AMOUNT_HEADER.test(s)) amountX = cx;
   }
 
   return { debitX, creditX, amountX };
@@ -209,15 +214,49 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
       let montant: number | null = null;
       let signSource: SignSource = "fallback";
 
+      // Texte complet de la ligne pour l'analyse mots-clés (utilisé partout)
+      const rowText = row.map((i) => i.str).join(" ").toLowerCase();
+      const kwIsDebit = DEBIT_KEYWORDS.test(rowText);
+      const kwIsCredit = CREDIT_KEYWORDS.test(rowText);
+
       if (page.debitX !== null || page.creditX !== null) {
-        const debit = page.debitX !== null ? findAmountInColumn(row, page.debitX) : null;
-        const credit = page.creditX !== null ? findAmountInColumn(row, page.creditX) : null;
-        if (credit !== null && credit !== 0) {
-          montant = Math.abs(credit);
+        // Tolérance dynamique = moitié de la distance entre les colonnes (ou 60 par défaut)
+        // pour qu'un montant ne soit pas attribué simultanément aux deux colonnes.
+        let tol = 60;
+        if (page.debitX !== null && page.creditX !== null) {
+          tol = Math.max(20, Math.min(80, Math.abs(page.creditX - page.debitX) / 2 - 2));
+        }
+        const debit = page.debitX !== null ? findAmountInColumn(row, page.debitX, tol) : null;
+        const credit = page.creditX !== null ? findAmountInColumn(row, page.creditX, tol) : null;
+
+        // Attribution exclusive : si les deux colonnes "trouvent" le même token,
+        // on garde celle dont le centre est le plus proche du montant détecté.
+        let chosen: "debit" | "credit" | null = null;
+        if (credit !== null && credit !== 0 && (debit === null || debit === 0)) {
+          chosen = "credit";
+        } else if (debit !== null && debit !== 0 && (credit === null || credit === 0)) {
+          chosen = "debit";
+        } else if (credit !== null && debit !== null && credit !== 0 && debit !== 0) {
+          // Conflit : on tranche via les mots-clés, sinon on n'utilise pas la colonne
+          if (kwIsCredit && !kwIsDebit) chosen = "credit";
+          else if (kwIsDebit && !kwIsCredit) chosen = "debit";
+        }
+
+        if (chosen === "credit") {
+          montant = Math.abs(credit!);
           signSource = "column";
-        } else if (debit !== null && debit !== 0) {
-          montant = -Math.abs(debit);
+        } else if (chosen === "debit") {
+          montant = -Math.abs(debit!);
           signSource = "column";
+        }
+
+        // Validation croisée : la colonne dit X mais les mots-clés disent l'inverse
+        // de façon non-ambiguë → on rétrograde en "keyword" (signal d'alerte UI)
+        if (montant !== null && kwIsDebit !== kwIsCredit) {
+          const kwSign = kwIsCredit ? 1 : -1;
+          if (Math.sign(montant) !== kwSign) {
+            signSource = "keyword";
+          }
         }
       } else if (page.amountX !== null) {
         const m = findAmountInColumn(row, page.amountX);
@@ -232,18 +271,23 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
         const lastRaw = amountTokens[amountTokens.length - 1].str.trim();
         montant = parseAmount(lastRaw);
         const hasExplicitSign = /^-/.test(lastRaw) || /-$/.test(lastRaw);
-        const text = row.map((i) => i.str).join(" ").toLowerCase();
-        const isDebit = DEBIT_KEYWORDS.test(text);
-        const isCredit = CREDIT_KEYWORDS.test(text);
         if (hasExplicitSign) {
           signSource = "explicit";
-        } else if (montant > 0 && isDebit && !isCredit) {
+          // Même avec un signe explicite, si les mots-clés contredisent → keyword
+          if (kwIsDebit !== kwIsCredit) {
+            const kwSign = kwIsCredit ? 1 : -1;
+            if (Math.sign(montant) !== kwSign) {
+              montant = kwSign * Math.abs(montant);
+              signSource = "keyword";
+            }
+          }
+        } else if (montant > 0 && kwIsDebit && !kwIsCredit) {
           montant = -montant;
           signSource = "keyword";
-        } else if (montant < 0 && isCredit && !isDebit) {
+        } else if (montant < 0 && kwIsCredit && !kwIsDebit) {
           montant = Math.abs(montant);
           signSource = "keyword";
-        } else if (isDebit || isCredit) {
+        } else if (kwIsDebit || kwIsCredit) {
           signSource = "keyword";
         } else {
           signSource = "fallback";
