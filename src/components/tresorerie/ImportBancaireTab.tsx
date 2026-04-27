@@ -435,6 +435,7 @@ export function ImportBancaireTab() {
                 <tbody>
                   {drafts.map((r) => {
                     const error = rowErrors.get(r._key);
+                    const suggestion = suggestions.get(r._key);
                     return (
                       <tr
                         key={r._key}
