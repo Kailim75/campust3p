@@ -573,19 +573,78 @@ export function ImportBancaireTab() {
               </div>
             </div>
 
-            {/* Bandeau de suggestions auto */}
+            {/* Panneau de cohérence : suggestions restantes groupées par mot-clé / type */}
             {suggestions.size > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 p-3 rounded-lg border border-warning/40 bg-warning/5">
-                <div className="flex items-center gap-2 text-sm">
-                  <Wand2 className="h-4 w-4 text-warning" />
-                  <span>
-                    <strong>{suggestions.size}</strong> ligne{suggestions.size > 1 ? "s" : ""} avec un signe
-                    incohérent par rapport au libellé (mots-clés détectés)
-                  </span>
+              <div className="mb-3 p-3 rounded-lg border border-warning/40 bg-warning/5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Wand2 className="h-4 w-4 text-warning" />
+                    <span>
+                      <strong>{suggestions.size}</strong> incohérence{suggestions.size > 1 ? "s" : ""} restante
+                      {suggestions.size > 1 ? "s" : ""} entre signe et libellé
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        applySuggestionsForKeys(
+                          suggestionGroups.filter((g) => g.reason === "débit").flatMap((g) => g.keys),
+                          "Tous les débits détectés",
+                        )
+                      }
+                      className="h-8"
+                      disabled={!suggestionGroups.some((g) => g.reason === "débit")}
+                    >
+                      Réappliquer débits
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        applySuggestionsForKeys(
+                          suggestionGroups.filter((g) => g.reason === "crédit").flatMap((g) => g.keys),
+                          "Tous les crédits détectés",
+                        )
+                      }
+                      className="h-8"
+                      disabled={!suggestionGroups.some((g) => g.reason === "crédit")}
+                    >
+                      Réappliquer crédits
+                    </Button>
+                    <Button size="sm" onClick={applyAllSuggestions} className="h-8">
+                      <Wand2 className="h-3.5 w-3.5 mr-1" /> Tout corriger
+                    </Button>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={applyAllSuggestions} className="h-8">
-                  <Wand2 className="h-3.5 w-3.5 mr-1" /> Tout corriger
-                </Button>
+
+                {/* Détail par mot-clé */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {suggestionGroups.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() =>
+                        applySuggestionsForKeys(g.keys, `${g.reason} — « ${g.keyword} »`)
+                      }
+                      title={`Réappliquer ${g.keys.length} ligne(s) — total ${formatEuro(g.totalAmount)}`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-colors",
+                        g.reason === "débit"
+                          ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive"
+                          : "border-success/30 bg-success/5 hover:bg-success/10 text-success",
+                      )}
+                    >
+                      <Wand2 className="h-3 w-3" />
+                      <span className="font-medium">{g.keyword}</span>
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        {g.keys.length}
+                      </Badge>
+                      <span className="text-muted-foreground">→ {g.reason}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
