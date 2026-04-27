@@ -205,28 +205,49 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
       }
       const dateVal = dateTokens[1] ? normalizeDate(dateTokens[1].str.trim()) : null;
 
-      // Calcul du montant signé
+      // Calcul du montant signé + traçabilité de l'origine du signe
       let montant: number | null = null;
+      let signSource: SignSource = "fallback";
 
       if (page.debitX !== null || page.creditX !== null) {
         const debit = page.debitX !== null ? findAmountInColumn(row, page.debitX) : null;
         const credit = page.creditX !== null ? findAmountInColumn(row, page.creditX) : null;
-        if (credit !== null && credit !== 0) montant = Math.abs(credit);
-        else if (debit !== null && debit !== 0) montant = -Math.abs(debit);
+        if (credit !== null && credit !== 0) {
+          montant = Math.abs(credit);
+          signSource = "column";
+        } else if (debit !== null && debit !== 0) {
+          montant = -Math.abs(debit);
+          signSource = "column";
+        }
       } else if (page.amountX !== null) {
         const m = findAmountInColumn(row, page.amountX);
-        if (m !== null) montant = m;
+        if (m !== null) {
+          montant = m;
+          signSource = "amount-column";
+        }
       }
 
       // Fallback : dernier montant de la ligne + heuristique mots-clés
       if (montant === null) {
-        const last = amountTokens[amountTokens.length - 1].str.trim();
-        montant = parseAmount(last);
+        const lastRaw = amountTokens[amountTokens.length - 1].str.trim();
+        montant = parseAmount(lastRaw);
+        const hasExplicitSign = /^-/.test(lastRaw) || /-$/.test(lastRaw);
         const text = row.map((i) => i.str).join(" ").toLowerCase();
         const isDebit = DEBIT_KEYWORDS.test(text);
         const isCredit = CREDIT_KEYWORDS.test(text);
-        if (montant > 0 && isDebit && !isCredit) montant = -montant;
-        else if (montant < 0 && isCredit && !isDebit) montant = Math.abs(montant);
+        if (hasExplicitSign) {
+          signSource = "explicit";
+        } else if (montant > 0 && isDebit && !isCredit) {
+          montant = -montant;
+          signSource = "keyword";
+        } else if (montant < 0 && isCredit && !isDebit) {
+          montant = Math.abs(montant);
+          signSource = "keyword";
+        } else if (isDebit || isCredit) {
+          signSource = "keyword";
+        } else {
+          signSource = "fallback";
+        }
       }
 
       if (montant === null || isNaN(montant) || montant === 0) {
