@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, FileSpreadsheet, Check, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
+import { parseBankPdf } from "@/lib/parseBankPdf";
 import { formatEuro } from "@/lib/formatFinancial";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,27 @@ export function ImportBancaireTab() {
     if (!file) return;
 
     setFileName(file.name);
+    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+
+    if (isPdf) {
+      (async () => {
+        try {
+          const txs = await parseBankPdf(file);
+          if (txs.length === 0) {
+            toast.error("Aucune transaction détectée dans le PDF", {
+              description: "Le format du relevé n'est pas reconnu. Essayez un export CSV.",
+            });
+            return;
+          }
+          setPreview(txs);
+          toast.success(`${txs.length} transactions détectées (PDF)`);
+        } catch (err: any) {
+          toast.error("Erreur de lecture PDF", { description: err.message });
+        }
+      })();
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -63,7 +85,7 @@ export function ImportBancaireTab() {
             Importer un relevé bancaire
           </CardTitle>
           <CardDescription>
-            Format CSV BNP Paribas (séparateur point-virgule). Colonnes attendues : date opération, libellé, montant (ou débit/crédit séparés).
+            Formats acceptés : <strong>CSV</strong> (BNP Paribas, séparateur point-virgule) ou <strong>PDF</strong> (relevé bancaire). Le système extrait automatiquement les transactions.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,12 +107,12 @@ export function ImportBancaireTab() {
                 <>
                   <Upload className="h-8 w-8 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Cliquer ou glisser un fichier CSV
+                    Cliquer ou glisser un fichier CSV ou PDF
                   </span>
                 </>
               )}
             </div>
-            <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileChange} />
+            <input type="file" accept=".csv,.txt,.pdf,application/pdf" className="hidden" onChange={handleFileChange} />
           </label>
         </CardContent>
       </Card>
