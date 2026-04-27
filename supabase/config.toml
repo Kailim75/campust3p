@@ -43,6 +43,9 @@ verify_jwt = false
 [functions.send-exam-reminders]
 verify_jwt = false
 
+[functions.send-convocation-cron]
+verify_jwt = false
+
 [functions.send-daily-report]
 verify_jwt = false
 
