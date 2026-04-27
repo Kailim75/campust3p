@@ -103,7 +103,11 @@ serve(async (req) => {
 
     const [inscriptionsRes, historiqueRes, paiementsRes] = await Promise.all([
       sessionIds.length > 0
-        ? supabaseAdmin.from("session_inscriptions").select("id, session_id, statut").in("session_id", sessionIds).is("deleted_at", null)
+        ? supabaseAdmin
+            .from("session_inscriptions")
+            .select("id, session_id, statut")
+            .is("deleted_at", null)
+            .in("session_id", sessionIds)
         : Promise.resolve({ data: [], error: null }),
       contactIds.length > 0
         ? supabaseAdmin.from("contact_historique").select("id, contact_id, alerte_active, date_rappel").eq("alerte_active", true).in("contact_id", contactIds)
