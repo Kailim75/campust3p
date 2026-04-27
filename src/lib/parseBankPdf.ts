@@ -292,6 +292,7 @@ export async function parseBankPdf(file: File): Promise<TxInput[]> {
         charge_id: null,
         notes: null,
         import_batch_id: null,
+        _signSource: signSource,
       };
 
       txs.push(tx);
