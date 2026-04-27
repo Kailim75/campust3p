@@ -119,8 +119,18 @@ export function SignaturesPage() {
     }
   };
 
-  const copySigningLink = (id: string) => {
-    const link = `${window.location.origin}/signature/${id}`;
+  const copySigningLink = (sig: SignatureRequest) => {
+    // Include the signing_token if the row has been sent at least once;
+    // otherwise the recipient will hit a TOKEN_REQUIRED error from
+    // public-sign-document. Use "Envoyer" first (which generates the token)
+    // before copying the link.
+    if (!sig.signing_token) {
+      toast.error(
+        "Aucun token actif. Envoyez d'abord la demande par email pour générer un lien valide.",
+      );
+      return;
+    }
+    const link = `${window.location.origin}/signature/${sig.id}?token=${sig.signing_token}`;
     navigator.clipboard.writeText(link);
     toast.success("Lien copié dans le presse-papier");
   };
@@ -339,7 +349,7 @@ export function SignaturesPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   Signer (test)
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => copySigningLink(sig.id)}>
+                                <DropdownMenuItem onClick={() => copySigningLink(sig)}>
                                   <Copy className="h-4 w-4 mr-2" />
                                   Copier le lien
                                 </DropdownMenuItem>

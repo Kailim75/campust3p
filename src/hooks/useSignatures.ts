@@ -19,6 +19,7 @@ export interface SignatureRequest {
   ip_signature: string | null;
   user_agent_signature: string | null;
   commentaires: string | null;
+  signing_token: string | null;
   created_at: string;
   updated_at: string;
   contact?: {

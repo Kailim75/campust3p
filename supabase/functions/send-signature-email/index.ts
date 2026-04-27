@@ -79,8 +79,27 @@ serve(async (req) => {
         throw new Error("Contact email not found");
       }
 
+      // Generate a fresh signing token for this delivery (rotates if email is re-sent).
+      // Required by public-sign-document to authorize the signing request.
+      const tokenBytes = new Uint8Array(32);
+      crypto.getRandomValues(tokenBytes);
+      const signingToken = Array.from(tokenBytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      // Persist the token BEFORE building the URL so the row is ready by the time
+      // the recipient clicks the link (idempotent: each send rotates the token).
+      const { error: tokenError } = await supabase
+        .from("signature_requests")
+        .update({ signing_token: signingToken })
+        .eq("id", signatureRequestId);
+      if (tokenError) {
+        console.error("Failed to persist signing_token:", tokenError);
+        throw new Error("Could not persist signing token");
+      }
+
       const publishedBaseUrl = "https://campust3p.lovable.app";
-      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}`;
+      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}?token=${signingToken}`;
       const expirationText = signatureRequest.date_expiration 
         ? `Ce lien expire le <strong>${formatDateFr(signatureRequest.date_expiration)}</strong>.`
         : "";

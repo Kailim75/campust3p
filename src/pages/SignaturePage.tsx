@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SignatureCanvas } from "@/components/signatures/SignatureCanvas";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,11 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function SignaturePage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  // Token from the public signing URL (?token=...). Required by public-sign-document
+  // for any link generated after the signing-token hardening shipped. Older links
+  // without a token still work via the legacy fallback in the edge function.
+  const signingToken = searchParams.get("token") || undefined;
   const [loading, setLoading] = useState(true);
   const [sigRequest, setSigRequest] = useState<SignatureData | null>(null);
   const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
@@ -99,7 +104,7 @@ export default function SignaturePage() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("public-sign-document", {
-        body: { action: "get_document_url", signatureId },
+        body: { action: "get_document_url", signatureId, signingToken },
       });
 
       if (fnError) {
@@ -205,6 +210,7 @@ export default function SignaturePage() {
           signatureId: sigRequest.id,
           signatureDataBase64: base64Data,
           userAgent: navigator.userAgent,
+          signingToken,
         },
       });
 

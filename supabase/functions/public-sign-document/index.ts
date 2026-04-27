@@ -6,8 +6,37 @@ import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 interface SignRequest {
   action?: "sign" | "get_document_url";
   signatureId: string;
+  signingToken?: string;
   signatureDataBase64?: string;
   userAgent?: string;
+}
+
+/**
+ * Verify that the provided signingToken matches the one stored on the row.
+ * Returns:
+ *   "ok"      — token matches OR row has no token (legacy link, accept).
+ *   "missing" — row has a token but the caller did not provide one.
+ *   "invalid" — both present but they don't match (constant-time compare).
+ *
+ * Legacy fallback exists so signature links sent BEFORE this hardening
+ * (no signing_token in DB) keep working until they expire naturally.
+ * Once we're confident no legacy link is in flight, this fallback can be
+ * tightened to require a token unconditionally.
+ */
+function verifySigningToken(
+  storedToken: string | null,
+  providedToken: string | undefined,
+): "ok" | "missing" | "invalid" {
+  if (!storedToken) return "ok"; // legacy row, no token gate
+
+  if (!providedToken) return "missing";
+
+  if (providedToken.length !== storedToken.length) return "invalid";
+  let diff = 0;
+  for (let i = 0; i < storedToken.length; i++) {
+    diff |= storedToken.charCodeAt(i) ^ providedToken.charCodeAt(i);
+  }
+  return diff === 0 ? "ok" : "invalid";
 }
 
 serve(async (req) => {
@@ -32,19 +61,28 @@ serve(async (req) => {
     // ─── ACTION: get_document_url ───
     // Generates a fresh signed URL from the stable storage path
     if (action === "get_document_url") {
-      const { signatureId } = body;
+      const { signatureId, signingToken } = body;
       if (!signatureId) {
         return jsonResponse({ success: false, error: "signatureId requis" }, 400);
       }
 
       const { data: sigRequest, error: fetchError } = await supabase
         .from("signature_requests")
-        .select("id, document_storage_path, document_storage_bucket, document_url")
+        .select("id, document_storage_path, document_storage_bucket, document_url, signing_token")
         .eq("id", signatureId)
         .single();
 
       if (fetchError || !sigRequest) {
         return jsonResponse({ success: false, error: "Document introuvable", code: "NOT_FOUND" }, 404);
+      }
+
+      const tokenCheck = verifySigningToken(sigRequest.signing_token ?? null, signingToken);
+      if (tokenCheck !== "ok") {
+        console.warn("[public-sign-document] get_document_url token check failed:", tokenCheck);
+        return jsonResponse(
+          { success: false, error: "Lien invalide ou expiré", code: tokenCheck === "missing" ? "TOKEN_REQUIRED" : "TOKEN_INVALID" },
+          401,
+        );
       }
 
       // Priority 1: stable storage path
@@ -84,7 +122,7 @@ serve(async (req) => {
     }
 
     // ─── ACTION: sign (default) ───
-    const { signatureId, signatureDataBase64, userAgent } = body;
+    const { signatureId, signatureDataBase64, userAgent, signingToken } = body;
 
     if (!signatureId || !signatureDataBase64) {
       return jsonResponse({ success: false, error: "Paramètres manquants" }, 400);
@@ -92,12 +130,21 @@ serve(async (req) => {
 
     const { data: sigRequest, error: fetchError } = await supabase
       .from("signature_requests")
-      .select("id, statut, date_expiration, contact_id")
+      .select("id, statut, date_expiration, contact_id, signing_token")
       .eq("id", signatureId)
       .single();
 
     if (fetchError || !sigRequest) {
       return jsonResponse({ success: false, error: "Document introuvable" }, 404);
+    }
+
+    const tokenCheck = verifySigningToken(sigRequest.signing_token ?? null, signingToken);
+    if (tokenCheck !== "ok") {
+      console.warn("[public-sign-document] sign token check failed:", tokenCheck);
+      return jsonResponse(
+        { success: false, error: "Lien invalide ou expiré", code: tokenCheck === "missing" ? "TOKEN_REQUIRED" : "TOKEN_INVALID" },
+        401,
+      );
     }
 
     if (!["en_attente", "envoye"].includes(sigRequest.statut)) {
@@ -138,6 +185,8 @@ serve(async (req) => {
         signature_url: fileName,
         date_signature: new Date().toISOString(),
         user_agent_signature: userAgent || null,
+        // Invalidate the token after successful signature — single-use semantics.
+        signing_token: null,
       })
       .eq("id", signatureId);
 
