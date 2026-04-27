@@ -6928,6 +6928,7 @@ export type Database = {
           session_inscription_id: string | null
           signature_data: string | null
           signature_url: string | null
+          signing_token: string | null
           statut: string
           titre: string
           type_document: string
@@ -6951,6 +6952,7 @@ export type Database = {
           session_inscription_id?: string | null
           signature_data?: string | null
           signature_url?: string | null
+          signing_token?: string | null
           statut?: string
           titre: string
           type_document?: string
@@ -6974,6 +6976,7 @@ export type Database = {
           session_inscription_id?: string | null
           signature_data?: string | null
           signature_url?: string | null
+          signing_token?: string | null
           statut?: string
           titre?: string
           type_document?: string
