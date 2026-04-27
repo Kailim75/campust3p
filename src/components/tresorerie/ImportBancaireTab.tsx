@@ -114,7 +114,6 @@ export function ImportBancaireTab() {
             </div>
             <input type="file" accept=".csv,.txt,.pdf,application/pdf" className="hidden" onChange={handleFileChange} />
           </label>
-          </label>
         </CardContent>
       </Card>
 
