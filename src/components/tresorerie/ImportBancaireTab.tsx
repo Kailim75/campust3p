@@ -61,7 +61,7 @@ export function ImportBancaireTab() {
     setFileName(file.name);
     const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
 
-    const toDrafts = (txs: Omit<TransactionBancaire, "id" | "created_at" | "rapproche">[]): DraftTx[] =>
+    const toDrafts = (txs: any[]): DraftTx[] =>
       txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
 
     if (isPdf) {
