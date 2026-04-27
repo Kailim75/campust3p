@@ -9,6 +9,15 @@
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()" />
 
+    <!--
+      Content-Security-Policy in REPORT-ONLY mode.
+      Logs violations in the browser console / dev-tools "Issues" panel
+      without blocking anything. Once we've validated zero false-positive in
+      production traffic, switch the meta name to "Content-Security-Policy"
+      to actually enforce it.
+    -->
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="default-src 'self' https://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://api.getalma.eu https://api.sandbox.getalma.eu; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+
     <title>T3P Campus — Formation Management System</title>
     <meta name="description" content="Plateforme SaaS premium pour la gestion de centres de formation professionnelle" />
     <meta name="author" content="T3P Campus" />
