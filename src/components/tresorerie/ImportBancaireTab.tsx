@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle, Wand2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle, Wand2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
 import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
