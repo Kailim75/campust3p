@@ -300,6 +300,63 @@ export function ImportBancaireTab() {
     toast.success(`${suggestions.size} signe(s) corrigé(s) automatiquement`);
   };
 
+  // Applique les suggestions à un sous-ensemble de clés (par groupe ou par type).
+  const applySuggestionsForKeys = (keys: string[], groupLabel: string) => {
+    const set = new Set(keys);
+    let applied = 0;
+    setDrafts((prev) =>
+      prev.map((r) => {
+        if (!set.has(r._key)) return r;
+        const s = suggestions.get(r._key);
+        if (!s) return r;
+        const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+        applied++;
+        return {
+          ...r,
+          montant: newMontant,
+          type_operation: newMontant > 0 ? "credit" : "debit",
+          _signOverridden: true,
+          _signSource: "keyword",
+        };
+      }),
+    );
+    toast.success(`${applied} ligne(s) corrigée(s)`, { description: groupLabel });
+  };
+
+  // Regroupe les suggestions restantes par mot-clé et par type (débit/crédit)
+  // pour une réapplication ciblée après un "Annuler les corrections".
+  type SuggestionGroup = {
+    id: string; // "débit::prélèvement"
+    reason: "débit" | "crédit";
+    keyword: string;
+    keys: string[];
+    totalAmount: number;
+  };
+
+  const suggestionGroups = useMemo<SuggestionGroup[]>(() => {
+    const map = new Map<string, SuggestionGroup>();
+    drafts.forEach((r) => {
+      const s = suggestions.get(r._key);
+      if (!s) return;
+      const id = `${s.reason}::${s.matchedKeyword}`;
+      const existing = map.get(id);
+      const amt = Math.abs(Number(r.montant));
+      if (existing) {
+        existing.keys.push(r._key);
+        existing.totalAmount += amt;
+      } else {
+        map.set(id, {
+          id,
+          reason: s.reason,
+          keyword: s.matchedKeyword,
+          keys: [r._key],
+          totalAmount: amt,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.keys.length - a.keys.length);
+  }, [drafts, suggestions]);
+
   // ── Reset / annulation des corrections ───────────────────────────────
   // Compte les lignes modifiées par rapport au snapshot initial (montant ou libellé).
   const modifiedCount = useMemo(() => {
