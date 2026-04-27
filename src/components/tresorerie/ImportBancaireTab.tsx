@@ -91,6 +91,9 @@ const newKey = () => `tx_${Date.now()}_${_idCounter++}`;
 
 export function ImportBancaireTab() {
   const [drafts, setDrafts] = useState<DraftTx[]>([]);
+  // Snapshot des drafts juste après parsing (avant toute correction auto/manuelle).
+  // Permet de revenir à l'état initial pour comparer.
+  const [originalDrafts, setOriginalDrafts] = useState<DraftTx[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [autoApplyHints, setAutoApplyHints] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
