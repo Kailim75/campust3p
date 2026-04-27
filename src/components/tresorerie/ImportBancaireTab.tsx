@@ -325,6 +325,7 @@ export function ImportBancaireTab() {
                     <th className="text-left p-2">Libellé</th>
                     <th className="text-right p-2 w-32">Montant</th>
                     <th className="text-center p-2 w-24">Type</th>
+                    <th className="text-center p-2 w-28">Origine</th>
                     <th className="p-2 w-20" />
                   </tr>
                 </thead>
