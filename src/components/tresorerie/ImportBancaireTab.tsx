@@ -85,7 +85,7 @@ export function ImportBancaireTab() {
             Importer un relevé bancaire
           </CardTitle>
           <CardDescription>
-            Format CSV BNP Paribas (séparateur point-virgule). Colonnes attendues : date opération, libellé, montant (ou débit/crédit séparés).
+            Formats acceptés : <strong>CSV</strong> (BNP Paribas, séparateur point-virgule) ou <strong>PDF</strong> (relevé bancaire). Le système extrait automatiquement les transactions.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -107,12 +107,13 @@ export function ImportBancaireTab() {
                 <>
                   <Upload className="h-8 w-8 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Cliquer ou glisser un fichier CSV
+                    Cliquer ou glisser un fichier CSV ou PDF
                   </span>
                 </>
               )}
             </div>
-            <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileChange} />
+            <input type="file" accept=".csv,.txt,.pdf,application/pdf" className="hidden" onChange={handleFileChange} />
+          </label>
           </label>
         </CardContent>
       </Card>
