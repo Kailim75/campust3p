@@ -391,6 +391,22 @@ export function ImportBancaireTab() {
               </div>
             </div>
 
+            {/* Bandeau de suggestions auto */}
+            {suggestions.size > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 p-3 rounded-lg border border-warning/40 bg-warning/5">
+                <div className="flex items-center gap-2 text-sm">
+                  <Wand2 className="h-4 w-4 text-warning" />
+                  <span>
+                    <strong>{suggestions.size}</strong> ligne{suggestions.size > 1 ? "s" : ""} avec un signe
+                    incohérent par rapport au libellé (mots-clés détectés)
+                  </span>
+                </div>
+                <Button size="sm" variant="outline" onClick={applyAllSuggestions} className="h-8">
+                  <Wand2 className="h-3.5 w-3.5 mr-1" /> Tout corriger
+                </Button>
+              </div>
+            )}
+
             {/* Bulk actions */}
             {someSelected && (
               <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
