@@ -92,56 +92,106 @@ const newKey = () => `tx_${Date.now()}_${_idCounter++}`;
 export function ImportBancaireTab() {
   const [drafts, setDrafts] = useState<DraftTx[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [autoApplyHints, setAutoApplyHints] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const v = window.localStorage.getItem("tresorerie.autoApplySignHints");
+    return v === null ? true : v === "1";
+  });
   const importMutation = useImportTransactions();
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const setAutoApplyAndPersist = (v: boolean) => {
+    setAutoApplyHints(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("tresorerie.autoApplySignHints", v ? "1" : "0");
+    }
+  };
 
-    setFileName(file.name);
-    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+  // Applique les suggestions de signe basées sur les mots-clés du libellé.
+  // Retourne le nouveau tableau + le nombre de corrections appliquées.
+  const applyHintsToDrafts = (input: DraftTx[]): { next: DraftTx[]; corrected: number } => {
+    let corrected = 0;
+    const next = input.map((r) => {
+      const s = suggestSignFromLibelle(r.libelle, Number(r.montant));
+      if (!s) return r;
+      const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+      corrected++;
+      return {
+        ...r,
+        montant: newMontant,
+        type_operation: newMontant > 0 ? "credit" : "debit",
+        _signOverridden: true,
+        _signSource: "keyword" as SignSource,
+      };
+    });
+    return { next, corrected };
+  };
 
-    const toDrafts = (txs: any[]): DraftTx[] =>
-      txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (isPdf) {
-      (async () => {
+      setFileName(file.name);
+      const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+
+      const toDrafts = (txs: any[]): DraftTx[] =>
+        txs.map((t) => ({ ...t, _key: newKey(), _selected: true }));
+
+      const finalize = (rawDrafts: DraftTx[], origin: "PDF" | "CSV") => {
+        if (autoApplyHints) {
+          const { next, corrected } = applyHintsToDrafts(rawDrafts);
+          setDrafts(next);
+          if (corrected > 0) {
+            toast.success(
+              `${rawDrafts.length} transactions détectées (${origin}) — ${corrected} signe(s) corrigé(s) automatiquement`,
+            );
+          } else {
+            toast.success(`${rawDrafts.length} transactions détectées (${origin}) — aucun ajustement nécessaire`);
+          }
+        } else {
+          setDrafts(rawDrafts);
+          toast.success(`${rawDrafts.length} transactions détectées (${origin}) — vérifiez avant import`);
+        }
+      };
+
+      if (isPdf) {
+        (async () => {
+          try {
+            const txs = await parseBankPdf(file);
+            if (txs.length === 0) {
+              toast.error("Aucune transaction détectée dans le PDF", {
+                description: "Le format du relevé n'est pas reconnu. Essayez un export CSV.",
+              });
+              return;
+            }
+            finalize(toDrafts(txs), "PDF");
+          } catch (err: any) {
+            toast.error("Erreur de lecture PDF", { description: err.message });
+          }
+        })();
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
         try {
-          const txs = await parseBankPdf(file);
+          const txs = parseBnpCsv(content);
           if (txs.length === 0) {
-            toast.error("Aucune transaction détectée dans le PDF", {
-              description: "Le format du relevé n'est pas reconnu. Essayez un export CSV.",
+            toast.error("Aucune transaction détectée", {
+              description: "Vérifiez le format du fichier CSV (séparateur ;, dates dd/mm/yyyy)",
             });
             return;
           }
-          setDrafts(toDrafts(txs));
-          toast.success(`${txs.length} transactions détectées (PDF) — vérifiez avant import`);
+          finalize(toDrafts(txs), "CSV");
         } catch (err: any) {
-          toast.error("Erreur de lecture PDF", { description: err.message });
+          toast.error("Erreur de parsing", { description: err.message });
         }
-      })();
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      try {
-        const txs = parseBnpCsv(content);
-        if (txs.length === 0) {
-          toast.error("Aucune transaction détectée", {
-            description: "Vérifiez le format du fichier CSV (séparateur ;, dates dd/mm/yyyy)",
-          });
-          return;
-        }
-        setDrafts(toDrafts(txs));
-        toast.success(`${txs.length} transactions détectées — vérifiez avant import`);
-      } catch (err: any) {
-        toast.error("Erreur de parsing", { description: err.message });
-      }
-    };
-    reader.readAsText(file, "utf-8");
-  }, []);
+      };
+      reader.readAsText(file, "utf-8");
+    },
+    [autoApplyHints],
+  );
 
   // ── Edition ───────────────────────────────────────────────────────────
   const updateRow = (key: string, patch: Partial<DraftTx>) => {
