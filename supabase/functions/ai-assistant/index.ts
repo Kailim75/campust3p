@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
 // Simple in-memory cache for dashboard stats (5 minute TTL)
 const statsCache = new Map<string, { data: any; timestamp: number }>();
@@ -981,9 +977,9 @@ async function executeTool(supabase: any, toolName: string, params: any, userId:
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
