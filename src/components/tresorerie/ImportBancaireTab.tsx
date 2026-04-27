@@ -336,7 +336,25 @@ export function ImportBancaireTab() {
             corriger chaque ligne avant validation.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* Toggle correction auto */}
+          <label className="flex items-start gap-2 p-3 rounded-md border bg-muted/30 cursor-pointer">
+            <Checkbox
+              checked={autoApplyHints}
+              onCheckedChange={(v) => setAutoApplyAndPersist(!!v)}
+              className="mt-0.5"
+            />
+            <div className="flex-1 text-xs">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Wand2 className="h-3.5 w-3.5 text-warning" />
+                Corriger automatiquement les signes via mots-clés à l'import
+              </div>
+              <p className="text-muted-foreground mt-0.5">
+                Détecte « débité », « prélèvement », « virement reçu », etc. dans le libellé pour ajuster
+                automatiquement débit / crédit. Vous pouvez toujours vérifier et annuler ligne par ligne avant validation.
+              </p>
+            </div>
+          </label>
           <label
             className={cn(
               "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
