@@ -45,10 +45,18 @@ function normalizeDate(d: string): string | null {
 
 function parseAmount(s: string): number {
   const trailingMinus = s.endsWith("-");
-  const cleaned = s.replace(/-$/, "").replace(/[ \u00A0]/g, "").replace(",", ".");
+  const trailingPlus = s.endsWith("+");
+  const leadingMinus = s.startsWith("-");
+  const leadingPlus = s.startsWith("+");
+  const cleaned = s
+    .replace(/^[+-]/, "")
+    .replace(/[+-]$/, "")
+    .replace(/[ \u00A0]/g, "")
+    .replace(",", ".");
   const v = parseFloat(cleaned);
   if (isNaN(v)) return NaN;
-  return trailingMinus ? -v : v;
+  const negative = trailingMinus || leadingMinus;
+  return negative ? -Math.abs(v) : v;
 }
 
 // ── Extraction texte avec coordonnées ───────────────────────────────────────
