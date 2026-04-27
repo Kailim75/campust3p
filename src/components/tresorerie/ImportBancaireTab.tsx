@@ -442,10 +442,26 @@ export function ImportBancaireTab() {
               </div>
               <div className="flex gap-2">
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetCorrections}
+                  disabled={modifiedCount === 0}
+                  title="Restaurer les transactions telles que détectées dans le fichier d'origine"
+                >
+                  <Undo2 className="h-4 w-4 mr-1" />
+                  Annuler les corrections
+                  {modifiedCount > 0 && (
+                    <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {modifiedCount}
+                    </Badge>
+                  )}
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setDrafts([]);
+                    setOriginalDrafts([]);
                     setFileName(null);
                   }}
                 >
