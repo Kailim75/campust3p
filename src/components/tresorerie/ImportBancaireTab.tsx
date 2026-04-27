@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, Trash2, ArrowLeftRight, AlertCircle, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/hooks/useTresorerie";
 import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
@@ -45,6 +45,46 @@ const SIGN_SOURCE_LABELS: Record<SignSource, { label: string; tip: string; tone:
     tone: "border-destructive/40 text-destructive bg-destructive/5",
   },
 };
+
+// Mots-clés FR — détecte une opération clairement débit ou clairement crédit dans le libellé.
+// Liste alignée avec parseBankPdf.ts pour cohérence.
+const DEBIT_HINTS = [
+  { re: /\bd[ée]bit[ée]?\b/i, label: "débité" },
+  { re: /\bpr[ée]l[èe]v(?:ement|é|e)\b|\bprlv\b/i, label: "prélèvement" },
+  { re: /\bpaiement carte\b|\bachat cb\b|\bcb\s/i, label: "paiement carte" },
+  { re: /\bvir(?:ement)?\s+(?:[ée]mis|sortant)\b/i, label: "virement émis" },
+  { re: /\bretrait(?:\s+dab)?\b/i, label: "retrait" },
+  { re: /\bch(?:e|è)que\s+[ée]mis\b|\bchq\s/i, label: "chèque émis" },
+  { re: /\bagios?\b|\bfrais\b|\bcotisation\b|\bcommission\b/i, label: "frais / agios" },
+];
+const CREDIT_HINTS = [
+  { re: /\bcr[ée]dit[ée]?\b/i, label: "crédité" },
+  { re: /\bvir(?:ement)?\s+re[çc]u\b|\bvir\.?\s+re[çc]u\b/i, label: "virement reçu" },
+  { re: /\bremise\b|\bversement\b|\bencaissement\b/i, label: "remise / versement" },
+  { re: /\bre[çc]u de\b/i, label: "reçu de" },
+  { re: /\bremboursement\b/i, label: "remboursement" },
+];
+
+interface SignSuggestion {
+  expectedSign: 1 | -1;
+  matchedKeyword: string;
+  reason: "débit" | "crédit";
+}
+
+function suggestSignFromLibelle(libelle: string, currentMontant: number): SignSuggestion | null {
+  if (!libelle || !currentMontant) return null;
+  const debitHit = DEBIT_HINTS.find((h) => h.re.test(libelle));
+  const creditHit = CREDIT_HINTS.find((h) => h.re.test(libelle));
+  // Si les deux matchent, on n'invente rien (ambigu)
+  if (debitHit && creditHit) return null;
+  if (debitHit && currentMontant > 0) {
+    return { expectedSign: -1, matchedKeyword: debitHit.label, reason: "débit" };
+  }
+  if (creditHit && currentMontant < 0) {
+    return { expectedSign: 1, matchedKeyword: creditHit.label, reason: "crédit" };
+  }
+  return null;
+}
 
 let _idCounter = 0;
 const newKey = () => `tx_${Date.now()}_${_idCounter++}`;
@@ -157,6 +197,53 @@ export function ImportBancaireTab() {
   const invalidSelected = selected.filter((r) => rowErrors.has(r._key));
   const totalCredits = selected.filter((r) => r.montant > 0).reduce((s, r) => s + Number(r.montant), 0);
   const totalDebits = selected.filter((r) => r.montant < 0).reduce((s, r) => s + Math.abs(Number(r.montant)), 0);
+
+  // ── Suggestions de signe basées sur le libellé ───────────────────────
+  const suggestions = useMemo(() => {
+    const map = new Map<string, SignSuggestion>();
+    drafts.forEach((r) => {
+      const s = suggestSignFromLibelle(r.libelle, Number(r.montant));
+      if (s) map.set(r._key, s);
+    });
+    return map;
+  }, [drafts]);
+
+  const applySuggestion = (key: string) => {
+    const s = suggestions.get(key);
+    if (!s) return;
+    setDrafts((prev) =>
+      prev.map((r) => {
+        if (r._key !== key) return r;
+        const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+        return {
+          ...r,
+          montant: newMontant,
+          type_operation: newMontant > 0 ? "credit" : "debit",
+          _signOverridden: true,
+          _signSource: "keyword",
+        };
+      }),
+    );
+  };
+
+  const applyAllSuggestions = () => {
+    if (suggestions.size === 0) return;
+    setDrafts((prev) =>
+      prev.map((r) => {
+        const s = suggestions.get(r._key);
+        if (!s) return r;
+        const newMontant = s.expectedSign * Math.abs(Number(r.montant));
+        return {
+          ...r,
+          montant: newMontant,
+          type_operation: newMontant > 0 ? "credit" : "debit",
+          _signOverridden: true,
+          _signSource: "keyword",
+        };
+      }),
+    );
+    toast.success(`${suggestions.size} signe(s) corrigé(s) automatiquement`);
+  };
 
   // ── Import ────────────────────────────────────────────────────────────
   const handleImport = async () => {
@@ -304,6 +391,22 @@ export function ImportBancaireTab() {
               </div>
             </div>
 
+            {/* Bandeau de suggestions auto */}
+            {suggestions.size > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 p-3 rounded-lg border border-warning/40 bg-warning/5">
+                <div className="flex items-center gap-2 text-sm">
+                  <Wand2 className="h-4 w-4 text-warning" />
+                  <span>
+                    <strong>{suggestions.size}</strong> ligne{suggestions.size > 1 ? "s" : ""} avec un signe
+                    incohérent par rapport au libellé (mots-clés détectés)
+                  </span>
+                </div>
+                <Button size="sm" variant="outline" onClick={applyAllSuggestions} className="h-8">
+                  <Wand2 className="h-3.5 w-3.5 mr-1" /> Tout corriger
+                </Button>
+              </div>
+            )}
+
             {/* Bulk actions */}
             {someSelected && (
               <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
@@ -332,6 +435,7 @@ export function ImportBancaireTab() {
                 <tbody>
                   {drafts.map((r) => {
                     const error = rowErrors.get(r._key);
+                    const suggestion = suggestions.get(r._key);
                     return (
                       <tr
                         key={r._key}
@@ -367,6 +471,23 @@ export function ImportBancaireTab() {
                             <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
                               <AlertCircle className="h-3 w-3" /> {error}
                             </p>
+                          )}
+                          {suggestion && (
+                            <div className="mt-1 flex items-center gap-2 text-[10px]">
+                              <span className="text-warning flex items-center gap-1">
+                                <Wand2 className="h-3 w-3" />
+                                Mot-clé «&nbsp;{suggestion.matchedKeyword}&nbsp;» → devrait être un{" "}
+                                <strong>{suggestion.reason}</strong>
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => applySuggestion(r._key)}
+                                className="h-5 px-2 py-0 text-[10px]"
+                              >
+                                Appliquer
+                              </Button>
+                            </div>
                           )}
                         </td>
                         <td className="p-2">
