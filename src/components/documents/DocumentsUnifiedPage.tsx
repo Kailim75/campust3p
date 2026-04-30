@@ -288,19 +288,19 @@ export function DocumentsUnifiedPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold">{documentStats.total}</p>
+              <p className="text-2xl font-semibold tabular-nums">{documentStats.total}</p>
             </Card>
             <Card className="p-4 border-success/20">
               <p className="text-sm text-muted-foreground">Valides</p>
-              <p className="text-2xl font-bold text-success">{documentStats.valides}</p>
+              <p className="text-2xl font-semibold tabular-nums text-success">{documentStats.valides}</p>
             </Card>
             <Card className="p-4 border-destructive/20">
               <p className="text-sm text-muted-foreground">Expirés</p>
-              <p className="text-2xl font-bold text-destructive">{documentStats.expires}</p>
+              <p className="text-2xl font-semibold tabular-nums text-destructive">{documentStats.expires}</p>
             </Card>
             <Card className="p-4 border-warning/20">
               <p className="text-sm text-muted-foreground">Manquants</p>
-              <p className="text-2xl font-bold text-warning">{documentStats.manquants}</p>
+              <p className="text-2xl font-semibold tabular-nums text-warning">{documentStats.manquants}</p>
             </Card>
           </div>
 
@@ -386,19 +386,19 @@ export function DocumentsUnifiedPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold">{signatureStats.total}</p>
+              <p className="text-2xl font-semibold tabular-nums">{signatureStats.total}</p>
             </Card>
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">En attente</p>
-              <p className="text-2xl font-bold">{signatureStats.enAttente}</p>
+              <p className="text-2xl font-semibold tabular-nums">{signatureStats.enAttente}</p>
             </Card>
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">Envoyées</p>
-              <p className="text-2xl font-bold text-info">{signatureStats.envoyes}</p>
+              <p className="text-2xl font-semibold tabular-nums text-info">{signatureStats.envoyes}</p>
             </Card>
             <Card className="p-4 border-success/20">
               <p className="text-sm text-muted-foreground">Signées</p>
-              <p className="text-2xl font-bold text-success">{signatureStats.signes}</p>
+              <p className="text-2xl font-semibold tabular-nums text-success">{signatureStats.signes}</p>
             </Card>
           </div>
 

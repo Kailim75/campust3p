@@ -239,7 +239,7 @@ export function InboxCrmPage() {
         <Inbox className="h-5 w-5 text-primary" />
         <h1 className="text-base font-semibold">Inbox CRM</h1>
         {unreadCount > 0 && (
-          <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2 py-0.5 rounded-full leading-none">
+          <span className="bg-primary text-primary-foreground text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-full leading-none">
             {unreadCount}
           </span>
         )}
