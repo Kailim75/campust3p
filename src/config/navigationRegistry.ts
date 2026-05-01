@@ -37,10 +37,17 @@ export interface NavEntry {
 
 /**
  * ⚠️ ORDRE IMPORTANT : reflète l'ordre d'affichage dans la Sidebar.
+ *
+ * Sprint 3 — Hiérarchie produit :
+ *  - Aujourd'hui = point d'entrée opérationnel principal (1er hub).
+ *  - Dashboard = vue de pilotage dirigeante, déplacé en tête de "Plus"
+ *    (libellé "Pilotage"). Sa route "/" est conservée pour ne pas
+ *    casser les bookmarks existants ; seule sa visibilité change.
+ *  - Prospects promu en tête de "Plus" pour l'accès commercial.
+ *  - 5 hubs max, conformément au test navigationRegistry.
  */
 export const NAV_REGISTRY: NavEntry[] = [
-  // ── Hubs principaux ────────────────────────────────────────────────────────
-  { id: "dashboard",  label: "Dashboard",   icon: LayoutDashboard, group: "hub", path: "/",           pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
+  // ── Hubs principaux (5 max) ────────────────────────────────────────────────
   { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList,   group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage" },
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
@@ -48,8 +55,9 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "inbox",      label: "Inbox CRM",   icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
-  // Sprint 2 — Prospects reste en "more" (test navigationRegistry verrouille hubs ≤ 5,
-  // déjà à 6). À promouvoir dans un sprint dédié quand on aura ré-arbitré les hubs.
+  // Pilotage (ex-Dashboard) en tête : accessible mais secondaire vs Aujourd'hui.
+  { id: "dashboard",         label: "Pilotage",          icon: LayoutDashboard, group: "more", path: "/",                  pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
+  // Prospects promu en 2e position pour l'accès commercial rapide.
   { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
   { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
