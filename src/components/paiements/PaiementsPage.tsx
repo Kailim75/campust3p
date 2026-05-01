@@ -47,6 +47,8 @@ import { toast } from "sonner";
 import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePagination } from "@/hooks/usePagination";
 // XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
@@ -144,7 +146,13 @@ export function PaiementsPage() {
   }, [factures, statutFilter, financementFilter, dateFrom, dateTo, activeTab]);
 
   const hasActiveFilters = statutFilter !== "all" || financementFilter !== "all" || dateFrom || dateTo;
-  
+
+  // Sprint 4 — Pagination d'affichage uniquement (le dataset complet reste chargé
+  // pour exports, stats, bulk emit, tri par risque et calcul total_paye).
+  // Hook serveur `useFacturesPaginated` disponible pour Sprint 4.2.
+  const pagination = usePagination({ items: filteredFactures, defaultPageSize: 50 });
+  const { paginatedItems: paginatedFactures } = pagination;
+
   // Taux de recouvrement
   const tauxRecouvrement = stats && stats.total > 0 ? Math.round((stats.paye / stats.total) * 100) : 0;
 
@@ -601,7 +609,7 @@ export function PaiementsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFactures.map((facture) => {
+                {paginatedFactures.map((facture) => {
                   const paidPercentage = (facture.total_paye / Number(facture.montant_total)) * 100;
                   const montantRestant = Number(facture.montant_total) - facture.total_paye;
                   
@@ -754,6 +762,21 @@ export function PaiementsPage() {
                 })}
               </TableBody>
             </Table>
+          )}
+          {!isLoading && filteredFactures.length > 0 && (
+            <TablePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              totalItems={pagination.totalItems}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              hasNextPage={pagination.hasNextPage}
+              hasPreviousPage={pagination.hasPreviousPage}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              itemLabel="factures"
+            />
           )}
         </div>
       </main>
