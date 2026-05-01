@@ -763,6 +763,21 @@ export function PaiementsPage() {
               </TableBody>
             </Table>
           )}
+          {!isLoading && filteredFactures.length > 0 && (
+            <TablePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              totalItems={pagination.totalItems}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              hasNextPage={pagination.hasNextPage}
+              hasPreviousPage={pagination.hasPreviousPage}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              itemLabel="factures"
+            />
+          )}
         </div>
       </main>
 
