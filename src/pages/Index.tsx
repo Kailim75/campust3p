@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Sidebar } from "@/components/layout/Sidebar";
 // QuickActionsMenu remplacé par GlobalCreateMenu dans le Header (Chantier 1)
@@ -17,23 +18,28 @@ import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
-import { Dashboard } from "@/components/dashboard/Dashboard";
-import { AujourdhuiPage } from "@/components/aujourdhui/AujourdhuiPage";
-import { ApprenantsPage } from "@/components/apprenants/ApprenantsPage";
-import { FormationsPage } from "@/components/formations/FormationsPage";
-import { ProspectsPage } from "@/components/prospects/ProspectsPage";
-import { SessionsPage } from "@/components/sessions/SessionsPage";
-import { FinancesPage } from "@/components/finances/FinancesPage";
-import { AutomationsPage } from "@/components/automations/AutomationsPage";
-import { SettingsPage } from "@/components/settings/SettingsPage";
-import { AlertesPage } from "@/components/alertes/AlertesPage";
-import { QualiteUnifiedPage } from "@/components/qualite/QualiteUnifiedPage";
-import { PartnersPage } from "@/components/partners/PartnersPage";
-import { FormateursPage } from "@/components/formateurs/FormateursPage";
-import { PlanningConduitePage } from "@/components/planning-conduite/PlanningConduitePage";
-import { SecurityStatusPage } from "@/components/admin/SecurityStatusPage";
-import { InboxCrmPage } from "@/components/inbox/InboxCrmPage";
-import { CorbeillePage } from "@/components/corbeille/CorbeillePage";
+
+// Sprint 2 — Lazy-loading des sections lourdes pour réduire le bundle initial.
+// Les composants conservent leurs noms d'export pour préserver la cohérence
+// avec navigationRegistry.pageName et le test de cohérence Index ↔ registre.
+const Dashboard           = lazy(() => import("@/components/dashboard/Dashboard").then(m => ({ default: m.Dashboard })));
+const AujourdhuiPage      = lazy(() => import("@/components/aujourdhui/AujourdhuiPage").then(m => ({ default: m.AujourdhuiPage })));
+const ApprenantsPage      = lazy(() => import("@/components/apprenants/ApprenantsPage").then(m => ({ default: m.ApprenantsPage })));
+const FormationsPage      = lazy(() => import("@/components/formations/FormationsPage").then(m => ({ default: m.FormationsPage })));
+const ProspectsPage       = lazy(() => import("@/components/prospects/ProspectsPage").then(m => ({ default: m.ProspectsPage })));
+const SessionsPage        = lazy(() => import("@/components/sessions/SessionsPage").then(m => ({ default: m.SessionsPage })));
+const FinancesPage        = lazy(() => import("@/components/finances/FinancesPage").then(m => ({ default: m.FinancesPage })));
+const AutomationsPage     = lazy(() => import("@/components/automations/AutomationsPage").then(m => ({ default: m.AutomationsPage })));
+const SettingsPage        = lazy(() => import("@/components/settings/SettingsPage").then(m => ({ default: m.SettingsPage })));
+const AlertesPage         = lazy(() => import("@/components/alertes/AlertesPage").then(m => ({ default: m.AlertesPage })));
+const QualiteUnifiedPage  = lazy(() => import("@/components/qualite/QualiteUnifiedPage").then(m => ({ default: m.QualiteUnifiedPage })));
+const PartnersPage        = lazy(() => import("@/components/partners/PartnersPage").then(m => ({ default: m.PartnersPage })));
+const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
+const PlanningConduitePage= lazy(() => import("@/components/planning-conduite/PlanningConduitePage").then(m => ({ default: m.PlanningConduitePage })));
+const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
+const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
+const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
+
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { RouteCheckPanel } from "@/components/admin/RouteCheckPanel";
@@ -43,6 +49,13 @@ import {
   PATH_TO_SECTION,
   SECTION_TO_PATH,
 } from "@/config/navigationRegistry";
+
+const SectionFallback = () => (
+  <div className="flex items-center justify-center py-24">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
+
 
 // Legacy redirect map: old section key → {section, tab?}
 const LEGACY_REDIRECTS: Record<string, { section: string; tab?: string }> = {
