@@ -340,7 +340,9 @@ const Index = () => {
             onNavigate={setActiveSection}
           >
             <PageTransition transitionKey={activeSection}>
-              {renderContent()}
+              <Suspense fallback={<SectionFallback />}>
+                {renderContent()}
+              </Suspense>
             </PageTransition>
           </NavigationProvider>
         </div>
