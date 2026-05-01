@@ -146,7 +146,13 @@ export function PaiementsPage() {
   }, [factures, statutFilter, financementFilter, dateFrom, dateTo, activeTab]);
 
   const hasActiveFilters = statutFilter !== "all" || financementFilter !== "all" || dateFrom || dateTo;
-  
+
+  // Sprint 4 — Pagination d'affichage uniquement (le dataset complet reste chargé
+  // pour exports, stats, bulk emit, tri par risque et calcul total_paye).
+  // Hook serveur `useFacturesPaginated` disponible pour Sprint 4.2.
+  const pagination = usePagination({ items: filteredFactures, defaultPageSize: 50 });
+  const { paginatedItems: paginatedFactures } = pagination;
+
   // Taux de recouvrement
   const tauxRecouvrement = stats && stats.total > 0 ? Math.round((stats.paye / stats.total) * 100) : 0;
 
@@ -603,7 +609,7 @@ export function PaiementsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredFactures.map((facture) => {
+                {paginatedFactures.map((facture) => {
                   const paidPercentage = (facture.total_paye / Number(facture.montant_total)) * 100;
                   const montantRestant = Number(facture.montant_total) - facture.total_paye;
                   
