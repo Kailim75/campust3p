@@ -60,8 +60,9 @@ const queryClient = new QueryClient({
       // Les hooks qui ont besoin de fraîcheur immédiate surchargent
       // déjà localement (staleTime/refetchInterval) — ils restent prioritaires.
       // Les subscriptions Supabase Realtime ne sont pas impactées.
+      // Note: refetchOnWindowFocus laissé au défaut React Query (true) — un CRM
+      // doit rafraîchir les vues Finances/Sessions/Dashboard au retour d'onglet.
       staleTime: 5 * 60 * 1000, // 5 min
-      refetchOnWindowFocus: false,
     },
     mutations: {
       onError: (error: any) => {
