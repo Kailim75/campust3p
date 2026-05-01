@@ -40,15 +40,17 @@ export interface NavEntry {
  */
 export const NAV_REGISTRY: NavEntry[] = [
   // ── Hubs principaux ────────────────────────────────────────────────────────
-  { id: "dashboard",  label: "Dashboard",   icon: LayoutDashboard, group: "hub", path: "/",           pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
   { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList,   group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage" },
+  // Sprint 2 — promotion du pipeline commercial : Prospects remonte dans les hubs principaux.
+  // Le sous-onglet "Pipeline" reste accessible via /prospects (LEGACY_REDIRECTS pipeline → prospects?tab=pipeline).
+  { id: "prospects",  label: "Prospects",   icon: UserPlus,        group: "hub", path: "/prospects",  pageName: "ProspectsPage" },
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
   { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
   { id: "inbox",      label: "Inbox CRM",   icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
+  { id: "dashboard",  label: "Dashboard",   icon: LayoutDashboard, group: "hub", path: "/",           pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
-  { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
   { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
   { id: "formateurs",        label: "Formateurs",        icon: UserCog,         group: "more", path: "/formateurs",        pageName: "FormateursPage" },

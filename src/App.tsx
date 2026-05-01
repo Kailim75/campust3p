@@ -55,6 +55,14 @@ const LazyFallback = () => (
 
 const queryClient = new QueryClient({
   defaultOptions: {
+    queries: {
+      // Sprint 2 — perf quick win: réduit les refetchs agressifs.
+      // Les hooks qui ont besoin de fraîcheur immédiate surchargent
+      // déjà localement (staleTime/refetchInterval) — ils restent prioritaires.
+      // Les subscriptions Supabase Realtime ne sont pas impactées.
+      staleTime: 5 * 60 * 1000, // 5 min
+      refetchOnWindowFocus: false,
+    },
     mutations: {
       onError: (error: any) => {
         // Log RLS violations globally
