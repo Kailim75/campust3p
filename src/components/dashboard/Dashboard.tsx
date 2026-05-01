@@ -1,6 +1,6 @@
 /**
- * Dashboard — Main orchestrator component (cockpit de pilotage).
- * 
+ * Dashboard — Main orchestrator component (page d'accueil pilotage).
+ *
  * Architecture:
  * Level 0 — Sticky header with period picker + CTA
  * Level 1 — Synthesis bar (health overview)
@@ -95,7 +95,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
         <div className="px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">
+              <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">
                 Tableau de bord
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -112,7 +112,7 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
                 <CalendarCheck className="h-4 w-4" />
                 <span className="hidden sm:inline">Aujourd'hui</span>
                 {todayActionCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[10px] font-bold">
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[10px] font-semibold tabular-nums">
                     {todayActionCount}
                   </span>
                 )}

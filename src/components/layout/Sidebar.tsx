@@ -110,7 +110,7 @@ function SidebarContent({
       )} style={{ height: 56 }}>
         <div className="flex items-center justify-center flex-shrink-0 rounded-xl bg-cta" 
           style={{ width: 32, height: 32 }}>
-          <span className="text-cta-foreground font-bold text-[11px] tracking-tight">CF</span>
+          <span className="text-cta-foreground font-semibold text-[11px] tracking-tight">CF</span>
         </div>
         {!collapsed && (
           <div className="animate-fade-in min-w-0">
@@ -280,7 +280,7 @@ function SidebarContent({
           collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
         )} style={{ background: 'hsl(0 0% 100% / 0.04)' }}>
           <div className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0" style={{ width: 30, height: 30 }}>
-            <span className="text-cta text-[11px] font-bold">
+            <span className="text-cta text-[11px] font-semibold">
               {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
             </span>
           </div>
@@ -365,7 +365,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
           </Sheet>
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center rounded-xl bg-cta" style={{ width: 28, height: 28 }}>
-              <span className="text-cta-foreground font-bold text-[9px]">CF</span>
+              <span className="text-cta-foreground font-semibold text-[9px]">CF</span>
             </div>
             <span className="text-foreground font-semibold text-sm">CRM Formation</span>
           </div>

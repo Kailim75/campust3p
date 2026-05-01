@@ -327,11 +327,11 @@ export function ProspectsPage() {
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
               <Card className="p-3">
-                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-2xl font-semibold tabular-nums">{stats.total}</div>
                 <div className="text-xs text-muted-foreground">Total</div>
               </Card>
               <Card className={cn("p-3", stats.overdue > 0 ? "border-destructive/40 bg-destructive/5" : "")}>
-                <div className={cn("text-2xl font-bold", stats.overdue > 0 ? "text-destructive" : "")}>
+                <div className={cn("text-2xl font-semibold tabular-nums", stats.overdue > 0 ? "text-destructive" : "")}>
                   {stats.overdue}
                 </div>
                 <div className={cn("text-xs flex items-center gap-1", stats.overdue > 0 ? "text-destructive" : "text-muted-foreground")}>
@@ -339,19 +339,19 @@ export function ProspectsPage() {
                 </div>
               </Card>
               <Card className="p-3 border-orange-200 bg-orange-50/50">
-                <div className="text-2xl font-bold text-orange-700">{stats.today}</div>
+                <div className="text-2xl font-semibold tabular-nums text-orange-700">{stats.today}</div>
                 <div className="text-xs text-orange-600">Aujourd'hui</div>
               </Card>
               <Card className="p-3 border-blue-200 bg-blue-50/50">
-                <div className="text-2xl font-bold text-blue-700">{stats.nouveaux}</div>
+                <div className="text-2xl font-semibold tabular-nums text-blue-700">{stats.nouveaux}</div>
                 <div className="text-xs text-blue-600">Nouveaux</div>
               </Card>
               <Card className="p-3 border-green-200 bg-green-50/50">
-                <div className="text-2xl font-bold text-green-700">{stats.converti}</div>
+                <div className="text-2xl font-semibold tabular-nums text-green-700">{stats.converti}</div>
                 <div className="text-xs text-green-600">Convertis</div>
               </Card>
               <Card className="p-3">
-                <div className="text-2xl font-bold text-muted-foreground">{stats.perdu}</div>
+                <div className="text-2xl font-semibold tabular-nums text-muted-foreground">{stats.perdu}</div>
                 <div className="text-xs text-muted-foreground">Perdus</div>
               </Card>
             </div>
