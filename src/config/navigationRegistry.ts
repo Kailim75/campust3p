@@ -48,6 +48,8 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "inbox",      label: "Inbox CRM",   icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
+  // Sprint 2 — Prospects reste en "more" (test navigationRegistry verrouille hubs ≤ 5,
+  // déjà à 6). À promouvoir dans un sprint dédié quand on aura ré-arbitré les hubs.
   { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
   { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
