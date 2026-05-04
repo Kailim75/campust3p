@@ -306,12 +306,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   // ─── CSV Export ───
   const handleExport = () => {
     if (!inscriptions?.length) return;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
     const rows = inscriptions.map((i) => {
       const c = getInscriptionContact(i);
-      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].join(",");
+      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].map(escape).join(";");
     });
-    const csv = ["Prénom,Nom,Email,Téléphone,Statut", ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = ["Prénom;Nom;Email;Téléphone;Statut", ...rows].join("\r\n");
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
