@@ -104,6 +104,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
+  const [docSendInitialType, setDocSendInitialType] = useState<import("@/lib/session-document-helpers").SessionDocumentType | null>(null);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
   const [closureWizardOpen, setClosureWizardOpen] = useState(false);
   const { generateBulkDocuments } = useDocumentGenerator();
@@ -149,6 +150,14 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     code_rncp: centreFormation.code_rncp || undefined,
     code_rs: centreFormation.code_rs || undefined,
   } : undefined;
+
+  const centreName = centreFormation?.nom_commercial || centreFormation?.nom_legal || "Notre équipe";
+
+  const openDocSend = (scope?: string) => {
+    const validTypes = new Set(["convocation", "programme", "attestation", "pack"]);
+    setDocSendInitialType(scope && validTypes.has(scope) ? (scope as import("@/lib/session-document-helpers").SessionDocumentType) : null);
+    setDocSendModalOpen(true);
+  };
 
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
@@ -297,12 +306,17 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   // ─── CSV Export ───
   const handleExport = () => {
     if (!inscriptions?.length) return;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
     const rows = inscriptions.map((i) => {
       const c = getInscriptionContact(i);
-      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].join(",");
+      return [c?.prenom, c?.nom, c?.email, c?.telephone, i.statut].map(escape).join(";");
     });
-    const csv = ["Prénom,Nom,Email,Téléphone,Statut", ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = ["Prénom;Nom;Email;Téléphone;Statut", ...rows].join("\r\n");
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -349,7 +363,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 inscriptionCount={inscriptionCount}
                 archived={session.archived}
                 isTerminee={session.statut === "terminee"}
-                onSendDocuments={() => setDocSendModalOpen(true)}
+                onSendDocuments={() => openDocSend()}
                 onSendEmail={() => {
                   openEmailForSession(
                     `${session.nom} — Information`,
@@ -572,15 +586,15 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     inscriptionCount={inscriptionCount}
                     onAssignFormateur={() => onEdit(session)}
                     onSendDocuments={(scope) => {
-                      setDocSendModalOpen(true);
+                      openDocSend(scope);
                     }}
                     onSendEmail={(template) => {
                       const subject = template === "satisfaction"
                         ? `${session.nom} — Enquête de satisfaction`
                         : `${session.nom} — Information`;
                       const body = template === "satisfaction"
-                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
-                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\nÉcole T3P Montrouge`;
+                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\n${centreName}`
+                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\n${centreName}`;
                       openEmailForSession(subject, body);
                     }}
                     onEditSession={() => onEdit(session)}
@@ -684,6 +698,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           sessionName={session.nom}
           company={companyInfo}
           openComposer={openComposer}
+          initialDocType={docSendInitialType}
         />
       )}
 
@@ -704,13 +719,13 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           sessionId={session.id}
           onSendDocuments={(scope) => {
             setClosureWizardOpen(false);
-            setDocSendModalOpen(true);
+            openDocSend(scope);
           }}
           onSendEmail={(template) => {
             setClosureWizardOpen(false);
             openEmailForSession(
               `${session.nom} — Enquête de satisfaction`,
-              `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
+              `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\n${centreName}`
             );
           }}
           onOpenPackAudit={() => {
