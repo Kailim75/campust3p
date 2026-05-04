@@ -698,6 +698,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           sessionName={session.nom}
           company={companyInfo}
           openComposer={openComposer}
+          initialDocType={docSendInitialType}
         />
       )}
 
