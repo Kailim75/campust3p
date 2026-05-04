@@ -77,6 +77,7 @@ interface Props {
   sessionName: string;
   company: CompanyInfo | undefined;
   selectedIds?: string[];
+  initialDocType?: SessionDocumentType | null;
   openComposer: (opts: {
     recipients: EmailRecipient[];
     defaultSubject: string;
@@ -95,9 +96,10 @@ export function SessionDocumentsSendModal({
   sessionName,
   company,
   selectedIds,
+  initialDocType,
   openComposer,
 }: Props) {
-  const [docType, setDocType] = useState<SessionDocumentType | "">("");
+  const [docType, setDocType] = useState<SessionDocumentType | "">(initialDocType ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [todayNotes, setTodayNotes] = useState<
@@ -115,11 +117,11 @@ export function SessionDocumentsSendModal({
   useEffect(() => {
     if (open) {
       fetchTodayAutoNotes().then(setTodayNotes);
-      setDocType("");
+      setDocType(initialDocType ?? "");
       setProgress(0);
       setIsGenerating(false);
     }
-  }, [open]);
+  }, [open, initialDocType]);
 
   const getAlreadySent = () => {
     if (!docType) return [];
