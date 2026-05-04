@@ -151,6 +151,14 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
     code_rs: centreFormation.code_rs || undefined,
   } : undefined;
 
+  const centreName = centreFormation?.nom_commercial || centreFormation?.nom_legal || "Notre équipe";
+
+  const openDocSend = (scope?: string) => {
+    const validTypes = new Set(["convocation", "programme", "attestation", "pack"]);
+    setDocSendInitialType(scope && validTypes.has(scope) ? (scope as import("@/lib/session-document-helpers").SessionDocumentType) : null);
+    setDocSendModalOpen(true);
+  };
+
   const inscribedContactIds = new Set(inscriptions?.map((i) => i.contact_id) ?? []);
   const availableContacts = contacts?.filter((c) => !inscribedContactIds.has(c.id)) ?? [];
   const inscriptionCount = inscriptions?.length ?? 0;
