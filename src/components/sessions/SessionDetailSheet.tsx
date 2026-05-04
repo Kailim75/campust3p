@@ -104,6 +104,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
+  const [docSendInitialType, setDocSendInitialType] = useState<import("@/lib/session-document-helpers").SessionDocumentType | null>(null);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
   const [closureWizardOpen, setClosureWizardOpen] = useState(false);
   const { generateBulkDocuments } = useDocumentGenerator();
