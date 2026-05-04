@@ -363,7 +363,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                 inscriptionCount={inscriptionCount}
                 archived={session.archived}
                 isTerminee={session.statut === "terminee"}
-                onSendDocuments={() => setDocSendModalOpen(true)}
+                onSendDocuments={() => openDocSend()}
                 onSendEmail={() => {
                   openEmailForSession(
                     `${session.nom} — Information`,
@@ -586,15 +586,15 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     inscriptionCount={inscriptionCount}
                     onAssignFormateur={() => onEdit(session)}
                     onSendDocuments={(scope) => {
-                      setDocSendModalOpen(true);
+                      openDocSend(scope);
                     }}
                     onSendEmail={(template) => {
                       const subject = template === "satisfaction"
                         ? `${session.nom} — Enquête de satisfaction`
                         : `${session.nom} — Information`;
                       const body = template === "satisfaction"
-                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
-                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\nÉcole T3P Montrouge`;
+                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\n${centreName}`
+                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\n${centreName}`;
                       openEmailForSession(subject, body);
                     }}
                     onEditSession={() => onEdit(session)}
@@ -718,13 +718,13 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
           sessionId={session.id}
           onSendDocuments={(scope) => {
             setClosureWizardOpen(false);
-            setDocSendModalOpen(true);
+            openDocSend(scope);
           }}
           onSendEmail={(template) => {
             setClosureWizardOpen(false);
             openEmailForSession(
               `${session.nom} — Enquête de satisfaction`,
-              `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\nÉcole T3P Montrouge`
+              `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à remplir l'enquête de satisfaction.\n\nCordialement,\n${centreName}`
             );
           }}
           onOpenPackAudit={() => {
