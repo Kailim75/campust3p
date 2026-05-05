@@ -312,8 +312,8 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
       prenom: i.contact!.prenom || "",
       nom: i.contact!.nom || "",
       customBody: isTheorie
-        ? `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique.\n\nBien cordialement,\nÉcole T3P Montrouge`
-        : `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nBien cordialement,\nÉcole T3P Montrouge`,
+        ? `Bonjour ${i.contact!.prenom},\n\nToutes nos félicitations pour votre réussite à l'examen théorique ! 🎉\n\nC'est une étape importante de franchie. Vous pouvez désormais vous concentrer sur la préparation de l'examen pratique.\n\nNotre équipe pédagogique reviendra très prochainement vers vous pour organiser la suite de votre parcours et planifier vos heures de conduite ainsi que la date de votre examen pratique.\n\nEn attendant, n'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nL'équipe pédagogique`
+        : `Bonjour ${i.contact!.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant faire votre demande de carte professionnelle en préfecture.\n\nBien cordialement,\nL'équipe pédagogique`,
     }));
     openComposer({
       recipients,
