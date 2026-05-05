@@ -232,8 +232,8 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
         ? "🎉 Félicitations — Examen théorique réussi !"
         : "🎉 Félicitations — Examen pratique réussi !",
       defaultBody: isTheorie
-        ? `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen théorique ! 🎉\n\nLa prochaine étape est l'examen pratique. Nous allons vous programmer une session dans les meilleurs délais.\n\nBien cordialement,\nÉcole T3P Montrouge`
-        : `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant entreprendre les démarches pour obtenir votre carte professionnelle auprès de votre préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite (ci-jointe)\n- Pièce d'identité\n- Justificatif de domicile\n- Photo d'identité\n- Permis de conduire\n\nN'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nÉcole T3P Montrouge`,
+        ? `Bonjour ${contact.prenom},\n\nToutes nos félicitations pour votre réussite à l'examen théorique ! 🎉\n\nC'est une étape importante de franchie. Vous pouvez désormais vous concentrer sur la préparation de l'examen pratique.\n\nNotre équipe pédagogique reviendra très prochainement vers vous pour organiser la suite de votre parcours et planifier vos heures de conduite ainsi que la date de votre examen pratique.\n\nEn attendant, n'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nL'équipe pédagogique`
+        : `Bonjour ${contact.prenom},\n\nFélicitations pour votre réussite à l'examen pratique ! 🎉\n\nVous pouvez maintenant entreprendre les démarches pour obtenir votre carte professionnelle auprès de votre préfecture.\n\nDocuments nécessaires :\n- Attestation de réussite (ci-jointe)\n- Pièce d'identité\n- Justificatif de domicile\n- Photo d'identité\n- Permis de conduire\n\nN'hésitez pas à nous contacter pour toute question.\n\nBien cordialement,\nL'équipe pédagogique`,
       autoNoteCategory: isTheorie ? "examen_theorie_reussi" : "examen_pratique_reussi",
       onSuccess: invalidateNotes,
     });
