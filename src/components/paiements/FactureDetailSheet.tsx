@@ -41,8 +41,6 @@ import { generateFacturePDF, downloadPDF, preloadCompanyImages } from "@/lib/pdf
 import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { supabase } from "@/integrations/supabase/client";
-import { useCentreFormation } from "@/hooks/useCentreFormation";
-import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +108,7 @@ export function FactureDetailSheet({
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
-  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
+  const { getCompanyInfo } = useDocumentGenerator();
 
   if (!factureId) return null;
 
