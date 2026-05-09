@@ -257,6 +257,10 @@ const Index = () => {
         pageName = "FormationsPage";
         node = <FormationsPage />;
         break;
+      case "produits":
+        pageName = "ProduitsServicesPage";
+        node = <ProduitsServicesPage />;
+        break;
       case "sessions":
         pageName = "SessionsPage";
         node = <SessionsPage />;
