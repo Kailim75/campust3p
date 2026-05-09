@@ -222,6 +222,9 @@ export function FactureDetailSheet({
 
 
   const handleSendEmail = async () => {
+    // Récupérer les données fraîches avant l'envoi
+    const { data: fresh } = await refetchFacture();
+    const facture = fresh ?? null;
     if (!facture) return;
     const partner = (facture as any).client_partner;
     const email = facture.contact?.email || partner?.email;
