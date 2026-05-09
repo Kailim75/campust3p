@@ -63,7 +63,7 @@ export interface FactureWithDetails extends Facture {
       address: string | null;
     } | null;
   } | null;
-  client_partner_id?: string | null;
+  client_partner_id: string | null;
   client_partner?: {
     id: string;
     company_name: string;
