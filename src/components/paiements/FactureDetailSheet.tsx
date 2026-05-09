@@ -227,6 +227,7 @@ export function FactureDetailSheet({
     const facture = fresh ?? null;
     if (!facture) return;
     const partner = (facture as any).client_partner;
+    const montantRestant = Number(facture.montant_total) - facture.total_paye;
     const email = facture.contact?.email || partner?.email;
     const recipientName = facture.contact
       ? `${facture.contact.prenom} ${facture.contact.nom}`
