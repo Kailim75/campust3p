@@ -265,7 +265,8 @@ export function FactureFormDialog({
         // Mise à jour facture
         await updateFacture.mutateAsync({
           id: facture.id,
-          contact_id: values.contact_id,
+          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
+          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
           montant_total: totalMontant,
           type_financement: values.type_financement,
           statut: values.statut,
