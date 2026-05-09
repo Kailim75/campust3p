@@ -10,7 +10,8 @@ export type FactureStatut = "brouillon" | "emise" | "payee" | "partiel" | "impay
 
 export interface Facture {
   id: string;
-  contact_id: string;
+  contact_id: string | null;
+  client_partner_id: string | null;
   session_inscription_id: string | null;
   numero_facture: string;
   montant_total: number;
