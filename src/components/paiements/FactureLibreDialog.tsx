@@ -141,8 +141,29 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateContact = async () => {
+    if (!newContact.prenom.trim() || !newContact.nom.trim()) {
+      toast.error("Prénom et nom requis");
+      return;
+    }
+    try {
+      const created: any = await createContact.mutateAsync({
+        prenom: newContact.prenom.trim(),
+        nom: newContact.nom.trim(),
+        email: newContact.email.trim() || null,
+        telephone: newContact.telephone.trim() || null,
+        rue: newContact.rue.trim() || null,
+        code_postal: newContact.code_postal.trim() || null,
+        ville: newContact.ville.trim() || null,
+        statut_apprenant: "actif",
+      } as any);
+      setContactId(created.id);
+      setShowNewContact(false);
+      toast.success("Client créé");
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
     if (clientType === "particulier" && !contactId) {
       toast.error("Sélectionnez un contact"); return;
