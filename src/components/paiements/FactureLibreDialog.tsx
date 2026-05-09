@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ContactCombobox } from "@/components/ui/contact-combobox";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { useCreateFacture, useGenerateNumeroFacture, FinancementType } from "@/hooks/useFactures";
 import { useCreateFactureLignes } from "@/hooks/useFactureLignes";
 import { useProduitsServices, PRODUIT_TYPE_LABELS } from "@/hooks/useProduitsServices";
+import { usePartners, useCreatePartner } from "@/hooks/usePartners";
 
 interface FactureLibreDialogProps {
   open: boolean;
@@ -28,29 +30,55 @@ const financementOptions: { value: FinancementType; label: string }[] = [
 
 export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: FactureLibreDialogProps) {
   const { data: contacts = [] } = useContacts();
+  const { data: partners = [] } = usePartners();
   const { data: nextNumero } = useGenerateNumeroFacture();
   const { data: produits = [] } = useProduitsServices({ statut: "actif" });
   const createFacture = useCreateFacture();
   const createLignes = useCreateFactureLignes();
+  const createPartner = useCreatePartner();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Type de client
+  const [clientType, setClientType] = useState<"particulier" | "entreprise">(
+    defaultContactId ? "particulier" : "particulier"
+  );
   const [contactId, setContactId] = useState(defaultContactId || "");
+  const [partnerId, setPartnerId] = useState("");
+
+  // Création rapide entreprise
+  const [showNewPartner, setShowNewPartner] = useState(false);
+  const [newPartner, setNewPartner] = useState({
+    company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "",
+    contact_name: "", phone: "", tva_intracom: "",
+  });
+
+  // Ligne
   const [produitId, setProduitId] = useState<string>("");
   const [libelle, setLibelle] = useState("");
   const [quantite, setQuantite] = useState("1");
   const [prixUnitaire, setPrixUnitaire] = useState("");
   const [tva, setTva] = useState("20");
-  const [financement, setFinancement] = useState<FinancementType>("personnel");
+  const [financement, setFinancement] = useState<FinancementType>("entreprise");
   const [commentaires, setCommentaires] = useState("");
 
+  // Filtre les partenaires de type entreprise (ou tous si aucun typage)
+  const partnersClients = partners.filter(
+    (p) => !p.type_partenaire || p.type_partenaire === "entreprise" || p.type_partenaire === "autre"
+  );
+
   const resetForm = () => {
+    setClientType("particulier");
     setContactId(defaultContactId || "");
+    setPartnerId("");
+    setShowNewPartner(false);
+    setNewPartner({ company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "", contact_name: "", phone: "", tva_intracom: "" });
     setProduitId("");
     setLibelle("");
     setQuantite("1");
     setPrixUnitaire("");
     setTva("20");
-    setFinancement("personnel");
+    setFinancement("entreprise");
     setCommentaires("");
   };
 
@@ -76,9 +104,42 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
   const totalHT = qte * pu;
   const totalTTC = totalHT * (1 + tvaPct / 100);
 
+  const handleCreatePartner = async () => {
+    if (!newPartner.company_name.trim()) {
+      toast.error("Raison sociale requise");
+      return;
+    }
+    try {
+      const created: any = await createPartner.mutateAsync({
+        company_name: newPartner.company_name.trim(),
+        email: newPartner.email.trim() || null,
+        address: newPartner.address.trim() || null,
+        contact_name: newPartner.contact_name.trim() || null,
+        phone: newPartner.phone.trim() || null,
+        type_partenaire: "entreprise",
+        statut_partenaire: "actif",
+        is_active: true,
+        ...(newPartner.siret ? { siret: newPartner.siret.trim() } : {}),
+        ...(newPartner.tva_intracom ? { tva_intracom: newPartner.tva_intracom.trim() } : {}),
+        ...(newPartner.code_postal ? { code_postal: newPartner.code_postal.trim() } : {}),
+        ...(newPartner.ville ? { ville: newPartner.ville.trim() } : {}),
+      } as any);
+      setPartnerId(created.id);
+      setShowNewPartner(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactId) { toast.error("Sélectionnez un contact"); return; }
+
+    if (clientType === "particulier" && !contactId) {
+      toast.error("Sélectionnez un contact"); return;
+    }
+    if (clientType === "entreprise" && !partnerId) {
+      toast.error("Sélectionnez une entreprise cliente"); return;
+    }
     if (!libelle.trim()) { toast.error("Libellé requis"); return; }
     if (qte <= 0) { toast.error("Quantité invalide"); return; }
     if (pu <= 0) { toast.error("Prix unitaire invalide"); return; }
@@ -88,14 +149,15 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
       const today = new Date().toISOString().split("T")[0];
 
       const newFacture = await createFacture.mutateAsync({
-        contact_id: contactId,
+        contact_id: clientType === "particulier" ? contactId : (null as any),
+        ...(clientType === "entreprise" ? { client_partner_id: partnerId } : {}),
         numero_facture: nextNumero || `FAC-${Date.now()}`,
         montant_total: Number(totalTTC.toFixed(2)),
         type_financement: financement,
         statut: "emise",
         date_emission: today,
         commentaires: commentaires || null,
-      });
+      } as any);
 
       await createLignes.mutateAsync([{
         facture_id: newFacture.id,
@@ -121,14 +183,14 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Facture libre (hors parcours de formation)
           </DialogTitle>
           <DialogDescription>
-            Pour facturer une location de salle, prestation ou produit du catalogue sans rattacher à une session.
+            Pour facturer une location de salle, prestation ou produit du catalogue, à un particulier ou une entreprise.
           </DialogDescription>
         </DialogHeader>
 
@@ -140,22 +202,92 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label>Client *</Label>
-            <ContactCombobox
-              options={contacts.map(c => ({ value: c.id, label: `${c.prenom} ${c.nom}` }))}
-              value={contactId}
-              onValueChange={setContactId}
-              placeholder="Rechercher un contact..."
-              searchPlaceholder="Rechercher..."
-              emptyMessage="Aucun contact."
-            />
-          </div>
+          {/* Type de client */}
+          <Tabs value={clientType} onValueChange={(v) => setClientType(v as any)}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="particulier">Particulier (apprenant/contact)</TabsTrigger>
+              <TabsTrigger value="entreprise"><Building2 className="h-4 w-4 mr-1" />Entreprise</TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="particulier" className="space-y-1.5 pt-3">
+              <Label>Client *</Label>
+              <ContactCombobox
+                options={contacts.map(c => ({ value: c.id, label: `${c.prenom} ${c.nom}` }))}
+                value={contactId}
+                onValueChange={setContactId}
+                placeholder="Rechercher un contact..."
+                searchPlaceholder="Rechercher..."
+                emptyMessage="Aucun contact."
+              />
+            </TabsContent>
+
+            <TabsContent value="entreprise" className="space-y-2 pt-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <Label>Entreprise cliente *</Label>
+                  <Select value={partnerId} onValueChange={setPartnerId}>
+                    <SelectTrigger><SelectValue placeholder="Choisir une entreprise…" /></SelectTrigger>
+                    <SelectContent>
+                      {partnersClients.length === 0 && (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">
+                          Aucune entreprise. Cliquez sur « + Nouvelle ».
+                        </div>
+                      )}
+                      {partnersClients.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.company_name}{p.email ? ` · ${p.email}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowNewPartner(s => !s)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  {showNewPartner ? "Annuler" : "Nouvelle"}
+                </Button>
+              </div>
+
+              {showNewPartner && (
+                <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  <p className="text-xs font-semibold text-muted-foreground">Création rapide d'une entreprise cliente</p>
+                  <Input placeholder="Raison sociale *" value={newPartner.company_name}
+                    onChange={e => setNewPartner({ ...newPartner, company_name: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="SIRET" value={newPartner.siret}
+                      onChange={e => setNewPartner({ ...newPartner, siret: e.target.value })} />
+                    <Input placeholder="N° TVA intracom" value={newPartner.tva_intracom}
+                      onChange={e => setNewPartner({ ...newPartner, tva_intracom: e.target.value })} />
+                  </div>
+                  <Input placeholder="Adresse" value={newPartner.address}
+                    onChange={e => setNewPartner({ ...newPartner, address: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Code postal" value={newPartner.code_postal}
+                      onChange={e => setNewPartner({ ...newPartner, code_postal: e.target.value })} />
+                    <Input placeholder="Ville" value={newPartner.ville}
+                      onChange={e => setNewPartner({ ...newPartner, ville: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Contact (nom)" value={newPartner.contact_name}
+                      onChange={e => setNewPartner({ ...newPartner, contact_name: e.target.value })} />
+                    <Input placeholder="Téléphone" value={newPartner.phone}
+                      onChange={e => setNewPartner({ ...newPartner, phone: e.target.value })} />
+                  </div>
+                  <Input type="email" placeholder="Email facturation" value={newPartner.email}
+                    onChange={e => setNewPartner({ ...newPartner, email: e.target.value })} />
+                  <Button type="button" size="sm" onClick={handleCreatePartner} disabled={createPartner.isPending}>
+                    {createPartner.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                    Créer l'entreprise
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* Ligne facture */}
           <div className="space-y-1.5">
             <Label>Produit / Service du catalogue</Label>
             <Select value={produitId} onValueChange={handleProduitChange}>
-              <SelectTrigger><SelectValue placeholder="Choisir dans le catalogue ou saisir libre…" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Choisir dans le catalogue ou saisie libre…" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__libre__">— Saisie libre —</SelectItem>
                 {produits.map(p => (
@@ -165,11 +297,6 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
                 ))}
               </SelectContent>
             </Select>
-            {produits.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                Aucun produit actif. Ajoutez-en dans Catalogue &gt; Produits &amp; Services.
-              </p>
-            )}
           </div>
 
           <div className="space-y-1.5">
