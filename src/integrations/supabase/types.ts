@@ -3327,8 +3327,9 @@ export type Database = {
       factures: {
         Row: {
           centre_id: string
+          client_partner_id: string | null
           commentaires: string | null
-          contact_id: string
+          contact_id: string | null
           created_at: string
           date_echeance: string | null
           date_emission: string | null
@@ -3345,8 +3346,9 @@ export type Database = {
         }
         Insert: {
           centre_id: string
+          client_partner_id?: string | null
           commentaires?: string | null
-          contact_id: string
+          contact_id?: string | null
           created_at?: string
           date_echeance?: string | null
           date_emission?: string | null
@@ -3363,8 +3365,9 @@ export type Database = {
         }
         Update: {
           centre_id?: string
+          client_partner_id?: string | null
           commentaires?: string | null
-          contact_id?: string
+          contact_id?: string | null
           created_at?: string
           date_echeance?: string | null
           date_emission?: string | null
@@ -3392,6 +3395,20 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_client_partner_id_fkey"
+            columns: ["client_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partner_stats"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "factures_client_partner_id_fkey"
+            columns: ["client_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {
@@ -5460,6 +5477,7 @@ export type Database = {
           address: string | null
           category: Database["public"]["Enums"]["partner_category"]
           centre_id: string
+          code_postal: string | null
           commission_payee: number | null
           company_name: string
           contact_name: string | null
@@ -5476,18 +5494,22 @@ export type Database = {
           montant_forfait: number | null
           notes: string | null
           phone: string | null
+          siret: string | null
           statut_partenaire:
             | Database["public"]["Enums"]["partner_status"]
             | null
           taux_commission: number | null
+          tva_intracom: string | null
           type_partenaire: Database["public"]["Enums"]["partner_type"] | null
           updated_at: string
+          ville: string | null
           zone_geographique: string | null
         }
         Insert: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
           centre_id: string
+          code_postal?: string | null
           commission_payee?: number | null
           company_name: string
           contact_name?: string | null
@@ -5504,18 +5526,22 @@ export type Database = {
           montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          siret?: string | null
           statut_partenaire?:
             | Database["public"]["Enums"]["partner_status"]
             | null
           taux_commission?: number | null
+          tva_intracom?: string | null
           type_partenaire?: Database["public"]["Enums"]["partner_type"] | null
           updated_at?: string
+          ville?: string | null
           zone_geographique?: string | null
         }
         Update: {
           address?: string | null
           category?: Database["public"]["Enums"]["partner_category"]
           centre_id?: string
+          code_postal?: string | null
           commission_payee?: number | null
           company_name?: string
           contact_name?: string | null
@@ -5532,12 +5558,15 @@ export type Database = {
           montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          siret?: string | null
           statut_partenaire?:
             | Database["public"]["Enums"]["partner_status"]
             | null
           taux_commission?: number | null
+          tva_intracom?: string | null
           type_partenaire?: Database["public"]["Enums"]["partner_type"] | null
           updated_at?: string
+          ville?: string | null
           zone_geographique?: string | null
         }
         Relationships: [

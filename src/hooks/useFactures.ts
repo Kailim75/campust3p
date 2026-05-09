@@ -10,7 +10,8 @@ export type FactureStatut = "brouillon" | "emise" | "payee" | "partiel" | "impay
 
 export interface Facture {
   id: string;
-  contact_id: string;
+  contact_id: string | null;
+  client_partner_id: string | null;
   session_inscription_id: string | null;
   numero_facture: string;
   montant_total: number;
@@ -62,11 +63,19 @@ export interface FactureWithDetails extends Facture {
       address: string | null;
     } | null;
   } | null;
+  client_partner_id: string | null;
+  client_partner?: {
+    id: string;
+    company_name: string;
+    email: string | null;
+    address: string | null;
+  } | null;
   total_paye: number;
 }
 
 export interface FactureInsert {
-  contact_id: string;
+  contact_id?: string | null;
+  client_partner_id?: string | null;
   session_inscription_id?: string | null;
   numero_facture: string;
   montant_total: number;
@@ -91,6 +100,7 @@ export interface FactureUpdate {
 const FACTURE_SELECT = `
   *,
   contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
+  client_partner:partners!factures_client_partner_id_fkey(id, company_name, email, address),
   session_inscription:session_inscriptions(
     id,
     type_payeur,
