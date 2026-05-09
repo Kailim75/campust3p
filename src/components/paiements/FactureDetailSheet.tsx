@@ -144,6 +144,9 @@ export function FactureDetailSheet({
 
   const handleGeneratePDF = () => {
     void (async () => {
+      // Toujours récupérer les données fraîches avant génération
+      const { data: fresh } = await refetchFacture();
+      const facture = fresh ?? null;
       if (!facture) return;
       const partner = (facture as any).client_partner;
     const contactInfo = facture.contact ? {
