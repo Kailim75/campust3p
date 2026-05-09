@@ -60,6 +60,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   // Prospects promu en 2e position pour l'accès commercial rapide.
   { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
+  { id: "produits",          label: "Produits & Services", icon: Package,       group: "more", path: "/produits",          pageName: "ProduitsServicesPage" },
   { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
   { id: "formateurs",        label: "Formateurs",        icon: UserCog,         group: "more", path: "/formateurs",        pageName: "FormateursPage" },
   { id: "planning-conduite", label: "Planning conduite", icon: Car,             group: "more", path: "/planning-conduite", pageName: "PlanningConduitePage" },
