@@ -36,6 +36,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
   const createFacture = useCreateFacture();
   const createLignes = useCreateFactureLignes();
   const createPartner = useCreatePartner();
+  const createContact = useCreateContact();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,6 +52,13 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
   const [newPartner, setNewPartner] = useState({
     company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "",
     contact_name: "", phone: "", tva_intracom: "",
+  });
+
+  // Création rapide contact (particulier)
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContact, setNewContact] = useState({
+    prenom: "", nom: "", email: "", telephone: "",
+    rue: "", code_postal: "", ville: "",
   });
 
   // Ligne
