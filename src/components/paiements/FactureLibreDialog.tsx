@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ContactCombobox } from "@/components/ui/contact-combobox";
 import { Loader2, FileText, Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useContacts } from "@/hooks/useContacts";
+import { useContacts, useCreateContact } from "@/hooks/useContacts";
 import { useCreateFacture, useGenerateNumeroFacture, FinancementType } from "@/hooks/useFactures";
 import { useCreateFactureLignes } from "@/hooks/useFactureLignes";
 import { useProduitsServices, PRODUIT_TYPE_LABELS } from "@/hooks/useProduitsServices";
