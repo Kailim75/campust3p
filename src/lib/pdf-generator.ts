@@ -180,6 +180,8 @@ export interface FactureInfo {
   montant_pris_en_charge?: number;
   /** Reste à charge for the learner */
   reste_a_charge?: number;
+  /** Lignes de facture (libellés saisis manuellement) - prioritaire sur la session */
+  lignes?: Array<{ description: string; quantite?: number; prix_unitaire_ht?: number }>;
 }
 
 // Helper function to build accreditations line
