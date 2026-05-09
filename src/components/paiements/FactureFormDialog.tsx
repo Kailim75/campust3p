@@ -113,6 +113,7 @@ export function FactureFormDialog({
   const [showAllCatalogue, setShowAllCatalogue] = useState(false);
   
   const { data: contacts = [] } = useContacts();
+  const { data: partners = [] } = usePartners();
   const { data: catalogue = [] } = useCatalogueFormations(true);
   const { data: nextNumero } = useGenerateNumeroFacture();
   const { data: existingLignes = [], isLoading: lignesLoading } = useFactureLignes(facture?.id || null);
@@ -126,7 +127,9 @@ export function FactureFormDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      client_type: "contact",
       contact_id: defaultContactId || "",
+      client_partner_id: "",
       type_financement: "personnel",
       statut: "brouillon",
       date_emission: "",
@@ -135,10 +138,15 @@ export function FactureFormDialog({
     },
   });
 
+  const clientType = form.watch("client_type");
+
   useEffect(() => {
     if (facture) {
+      const isPartner = !!facture.client_partner_id && !facture.contact_id;
       form.reset({
-        contact_id: facture.contact_id,
+        client_type: isPartner ? "partner" : "contact",
+        contact_id: facture.contact_id || "",
+        client_partner_id: facture.client_partner_id || "",
         type_financement: facture.type_financement,
         statut: facture.statut,
         date_emission: facture.date_emission || "",
@@ -147,7 +155,9 @@ export function FactureFormDialog({
       });
     } else {
       form.reset({
+        client_type: "contact",
         contact_id: defaultContactId || "",
+        client_partner_id: "",
         type_financement: "personnel",
         statut: "brouillon",
         date_emission: "",
