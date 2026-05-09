@@ -62,11 +62,19 @@ export interface FactureWithDetails extends Facture {
       address: string | null;
     } | null;
   } | null;
+  client_partner_id?: string | null;
+  client_partner?: {
+    id: string;
+    company_name: string;
+    email: string | null;
+    address: string | null;
+  } | null;
   total_paye: number;
 }
 
 export interface FactureInsert {
-  contact_id: string;
+  contact_id?: string | null;
+  client_partner_id?: string | null;
   session_inscription_id?: string | null;
   numero_facture: string;
   montant_total: number;
