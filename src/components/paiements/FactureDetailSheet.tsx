@@ -198,23 +198,39 @@ export function FactureDetailSheet({
 
 
   const handleSendEmail = async () => {
-    if (!facture?.contact) return;
-    const email = facture.contact.email;
+    if (!facture) return;
+    const partner = (facture as any).client_partner;
+    const email = facture.contact?.email || partner?.email;
+    const recipientName = facture.contact
+      ? `${facture.contact.prenom} ${facture.contact.nom}`
+      : (partner?.company_name || "");
+    const greeting = facture.contact ? facture.contact.prenom : (partner?.company_name || "");
     if (!email) {
-      toast.error("Aucun email pour ce contact");
+      toast.error("Aucun email pour ce client");
       return;
     }
     setIsSendingEmail(true);
     try {
-      const contactInfo = {
+      const contactInfo = facture.contact ? {
         nom: facture.contact.nom,
         prenom: facture.contact.prenom,
         email: facture.contact.email || undefined,
         telephone: facture.contact.telephone || undefined,
-      };
-      const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = extractPayerInfo(
-        facture.session_inscription, facture.contact
-      );
+      } : {
+        nom: partner?.company_name || "",
+        prenom: "",
+        email: partner?.email || undefined,
+        telephone: partner?.phone || undefined,
+        raison_sociale: partner?.company_name,
+        siret: partner?.siret,
+        tva_intracom: partner?.tva_intracom,
+        adresse: partner?.address,
+        code_postal: partner?.code_postal,
+        ville: partner?.ville,
+      } as any;
+      const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = facture.contact
+        ? extractPayerInfo(facture.session_inscription, facture.contact)
+        : { payer: partner?.company_name || "", beneficiaire: partner?.company_name || "", montant_pris_en_charge: Number(facture.montant_total), reste_a_charge: 0 };
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -249,12 +265,12 @@ export function FactureDetailSheet({
         body: {
           type: "document_envoi",
           to: email,
-          recipientName: `${facture.contact.prenom} ${facture.contact.nom}`,
+          recipientName,
           subject: `Facture ${facture.numero_facture} - Ecole T3P Montrouge`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">📄 Facture ${facture.numero_facture}</h2>
-              <p>Bonjour ${facture.contact.prenom},</p>
+              <p>Bonjour ${greeting},</p>
               <p>Veuillez trouver ci-joint votre facture <strong>${facture.numero_facture}</strong>.</p>
               <p><strong>Montant total :</strong> ${Number(facture.montant_total).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€</p>
               <p><strong>Reste à payer :</strong> ${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€</p>
