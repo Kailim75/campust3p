@@ -357,25 +357,63 @@ export function FactureFormDialog({
 
                 <FormField
                   control={form.control}
-                  name="contact_id"
+                  name="client_type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact *</FormLabel>
-                      <ContactCombobox
-                        options={contacts.map((c) => ({
-                          value: c.id,
-                          label: `${c.prenom} ${c.nom}`,
-                        }))}
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        placeholder="Rechercher un contact..."
-                        searchPlaceholder="Rechercher par nom..."
-                        emptyMessage="Aucun contact trouvé."
-                      />
-                      <FormMessage />
+                      <FormLabel>Type de client *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="contact">Particulier (apprenant)</SelectItem>
+                          <SelectItem value="partner">Entreprise / Partenaire</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )}
                 />
+
+                {clientType === "contact" ? (
+                  <FormField
+                    control={form.control}
+                    name="contact_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact *</FormLabel>
+                        <ContactCombobox
+                          options={contacts.map((c) => ({
+                            value: c.id,
+                            label: `${c.prenom} ${c.nom}`,
+                          }))}
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                          placeholder="Rechercher un contact..."
+                          searchPlaceholder="Rechercher par nom..."
+                          emptyMessage="Aucun contact trouvé."
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="client_partner_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Entreprise *</FormLabel>
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue placeholder="Sélectionner une entreprise..." /></SelectTrigger>
+                          <SelectContent>
+                            {partners.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.company_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Lignes de facture */}
                 <div className="space-y-3">
