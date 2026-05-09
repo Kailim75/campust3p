@@ -165,6 +165,9 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (clientType === "particulier" && !contactId) {
       toast.error("Sélectionnez un contact"); return;
     }
