@@ -104,7 +104,7 @@ export function FactureDetailSheet({
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  const { data: facture, isLoading } = useFacture(factureId);
+  const { data: facture, isLoading, refetch: refetchFacture } = useFacture(factureId);
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
