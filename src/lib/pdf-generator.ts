@@ -900,10 +900,18 @@ export function generateFacturePDF(
   let periode = "—";
   let duree = "—";
 
-  if (session) {
+  // Priorité : lignes saisies sur la facture (libellé personnalisé)
+  if (facture.lignes && facture.lignes.length > 0) {
+    description = facture.lignes
+      .map(l => (l.quantite && l.quantite > 1 ? `${l.description} (x${l.quantite})` : l.description))
+      .filter(Boolean)
+      .join("\n");
+  } else if (session) {
     const intituleOfficiel = INTITULE_FACTURE_MAP[session.formation_type || ""];
     description = intituleOfficiel || `Formation : ${session.nom}`;
+  }
 
+  if (session) {
     if (session.date_debut && session.date_fin) {
       const dDebut = format(new Date(session.date_debut), "dd/MM/yyyy");
       const dFin = format(new Date(session.date_fin), "dd/MM/yyyy");
