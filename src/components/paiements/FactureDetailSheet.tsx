@@ -145,16 +145,32 @@ export function FactureDetailSheet({
   };
 
   const handleGeneratePDF = () => {
-    if (!facture || !facture.contact) return;
-    const contactInfo = {
+    if (!facture) return;
+    const partner = (facture as any).client_partner;
+    const contactInfo = facture.contact ? {
       nom: facture.contact.nom,
       prenom: facture.contact.prenom,
       email: facture.contact.email || undefined,
       telephone: facture.contact.telephone || undefined,
-    };
-    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
-      facture.session_inscription, facture.contact
-    );
+    } : partner ? {
+      nom: partner.company_name || "",
+      prenom: "",
+      email: partner.email || undefined,
+      telephone: partner.phone || undefined,
+      raison_sociale: partner.company_name,
+      siret: partner.siret,
+      tva_intracom: partner.tva_intracom,
+      adresse: partner.address,
+      code_postal: partner.code_postal,
+      ville: partner.ville,
+    } as any : null;
+    if (!contactInfo) {
+      toast.error("Aucun client associé à cette facture");
+      return;
+    }
+    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = facture.contact
+      ? extractPayerInfo(facture.session_inscription, facture.contact)
+      : { payer: partner?.company_name || "", beneficiaire: partner?.company_name || "", montant_pris_en_charge: Number(facture.montant_total), reste_a_charge: 0 };
     const factureInfo = {
       numero_facture: facture.numero_facture,
       montant_total: Number(facture.montant_total),
@@ -179,6 +195,7 @@ export function FactureDetailSheet({
     } : undefined;
     generateDocument("facture", contactInfo, sessionInfo, factureInfo);
   };
+
 
   const handleSendEmail = async () => {
     if (!facture?.contact) return;
