@@ -81,6 +81,8 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
     setPartnerId("");
     setShowNewPartner(false);
     setNewPartner({ company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "", contact_name: "", phone: "", tva_intracom: "" });
+    setShowNewContact(false);
+    setNewContact({ prenom: "", nom: "", email: "", telephone: "", rue: "", code_postal: "", ville: "" });
     setProduitId("");
     setLibelle("");
     setQuantite("1");
