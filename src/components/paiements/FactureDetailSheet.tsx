@@ -281,6 +281,16 @@ export function FactureDetailSheet({
             montant_pris_en_charge: Number(facture.montant_total),
             reste_a_charge: 0,
           };
+      const { data: lignesData } = await supabase
+        .from("facture_lignes")
+        .select("description, quantite, prix_unitaire_ht, ordre")
+        .eq("facture_id", facture.id)
+        .order("ordre", { ascending: true });
+      const lignes = (lignesData || []).map((l: any) => ({
+        description: l.description,
+        quantite: l.quantite,
+        prix_unitaire_ht: Number(l.prix_unitaire_ht),
+      }));
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -294,6 +304,7 @@ export function FactureDetailSheet({
         beneficiaire,
         montant_pris_en_charge: mpc,
         reste_a_charge: rac,
+        lignes,
       };
       const session = facture.session_inscription?.session;
       const sessionInfo = session ? {
