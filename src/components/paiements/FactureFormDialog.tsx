@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
+import { usePartners } from "@/hooks/usePartners";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
@@ -61,13 +62,18 @@ interface LigneFacture {
 }
 
 const formSchema = z.object({
-  contact_id: z.string().min(1, "Veuillez sélectionner un contact"),
+  client_type: z.enum(["contact", "partner"]),
+  contact_id: z.string().optional(),
+  client_partner_id: z.string().optional(),
   type_financement: z.enum(["personnel", "entreprise", "cpf", "opco"]),
   statut: z.enum(["brouillon", "emise", "payee", "partiel", "impayee", "annulee"]),
   date_emission: z.string().optional(),
   date_echeance: z.string().optional(),
   commentaires: z.string().optional(),
-});
+}).refine(
+  (data) => (data.client_type === "contact" ? !!data.contact_id : !!data.client_partner_id),
+  { message: "Veuillez sélectionner un client", path: ["contact_id"] }
+);
 
 type FormValues = z.infer<typeof formSchema>;
 
