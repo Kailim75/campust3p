@@ -253,7 +253,17 @@ export function FactureDetailSheet({
       } as any;
       const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = facture.contact
         ? extractPayerInfo(facture.session_inscription, facture.contact)
-        : { payer: partner?.company_name || "", beneficiaire: partner?.company_name || "", montant_pris_en_charge: Number(facture.montant_total), reste_a_charge: 0 };
+        : {
+            payer: {
+              company_name: partner?.company_name || "",
+              address: [partner?.address, partner?.code_postal, partner?.ville].filter(Boolean).join(" ") || undefined,
+              email: partner?.email || undefined,
+              siret: partner?.siret || undefined,
+            },
+            beneficiaire: undefined,
+            montant_pris_en_charge: Number(facture.montant_total),
+            reste_a_charge: 0,
+          };
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -281,6 +291,7 @@ export function FactureDetailSheet({
         toast.error("Configuration du centre manquante");
         return;
       }
+      await preloadCompanyImages(company);
       const doc = generateFacturePDF(factureInfo, contactInfo, sessionInfo, company);
       const pdfBase64 = doc.output("datauristring").split(",")[1];
       const filename = `facture-${facture.numero_facture}.pdf`;
