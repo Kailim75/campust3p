@@ -37,12 +37,10 @@ import { useFacturePaiements, useDeletePaiement, ModePaiement } from "@/hooks/us
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
-import { generateFacturePDF } from "@/lib/pdf-generator";
+import { generateFacturePDF, downloadPDF, preloadCompanyImages } from "@/lib/pdf-generator";
 import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { supabase } from "@/integrations/supabase/client";
-import { useCentreFormation } from "@/hooks/useCentreFormation";
-import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +108,7 @@ export function FactureDetailSheet({
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
-  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
+  const { getCompanyInfo } = useDocumentGenerator();
 
   if (!factureId) return null;
 
@@ -145,8 +143,9 @@ export function FactureDetailSheet({
   };
 
   const handleGeneratePDF = () => {
-    if (!facture) return;
-    const partner = (facture as any).client_partner;
+    void (async () => {
+      if (!facture) return;
+      const partner = (facture as any).client_partner;
     const contactInfo = facture.contact ? {
       nom: facture.contact.nom,
       prenom: facture.contact.prenom,
@@ -170,7 +169,17 @@ export function FactureDetailSheet({
     }
     const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = facture.contact
       ? extractPayerInfo(facture.session_inscription, facture.contact)
-      : { payer: partner?.company_name || "", beneficiaire: partner?.company_name || "", montant_pris_en_charge: Number(facture.montant_total), reste_a_charge: 0 };
+      : {
+          payer: {
+            company_name: partner?.company_name || "",
+            address: [partner?.address, partner?.code_postal, partner?.ville].filter(Boolean).join(" ") || undefined,
+            email: partner?.email || undefined,
+            siret: partner?.siret || undefined,
+          },
+          beneficiaire: undefined,
+          montant_pris_en_charge: Number(facture.montant_total),
+          reste_a_charge: 0,
+        };
     const factureInfo = {
       numero_facture: facture.numero_facture,
       montant_total: Number(facture.montant_total),
@@ -193,7 +202,19 @@ export function FactureDetailSheet({
       date_fin: session.date_fin || "",
       duree_heures: session.duree_heures || undefined,
     } : undefined;
-    generateDocument("facture", contactInfo, sessionInfo, factureInfo);
+      const company = getCompanyInfo();
+      if (!company) {
+        toast.error("Configuration du centre manquante");
+        return;
+      }
+      await preloadCompanyImages(company);
+      const doc = generateFacturePDF(factureInfo, contactInfo, sessionInfo, company);
+      downloadPDF(doc, `facture-${facture.numero_facture}.pdf`);
+      toast.success("Facture téléchargée");
+    })().catch((error) => {
+      console.error("Erreur génération facture:", error);
+      toast.error(error?.message || "Erreur lors de la génération du PDF");
+    });
   };
 
 
@@ -230,7 +251,17 @@ export function FactureDetailSheet({
       } as any;
       const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = facture.contact
         ? extractPayerInfo(facture.session_inscription, facture.contact)
-        : { payer: partner?.company_name || "", beneficiaire: partner?.company_name || "", montant_pris_en_charge: Number(facture.montant_total), reste_a_charge: 0 };
+        : {
+            payer: {
+              company_name: partner?.company_name || "",
+              address: [partner?.address, partner?.code_postal, partner?.ville].filter(Boolean).join(" ") || undefined,
+              email: partner?.email || undefined,
+              siret: partner?.siret || undefined,
+            },
+            beneficiaire: undefined,
+            montant_pris_en_charge: Number(facture.montant_total),
+            reste_a_charge: 0,
+          };
       const factureInfo = {
         numero_facture: facture.numero_facture,
         montant_total: Number(facture.montant_total),
@@ -258,6 +289,7 @@ export function FactureDetailSheet({
         toast.error("Configuration du centre manquante");
         return;
       }
+      await preloadCompanyImages(company);
       const doc = generateFacturePDF(factureInfo, contactInfo, sessionInfo, company);
       const pdfBase64 = doc.output("datauristring").split(",")[1];
       const filename = `facture-${facture.numero_facture}.pdf`;

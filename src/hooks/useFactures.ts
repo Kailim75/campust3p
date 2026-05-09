@@ -69,6 +69,11 @@ export interface FactureWithDetails extends Facture {
     company_name: string;
     email: string | null;
     address: string | null;
+    code_postal?: string | null;
+    ville?: string | null;
+    phone?: string | null;
+    siret?: string | null;
+    tva_intracom?: string | null;
   } | null;
   total_paye: number;
 }
@@ -100,7 +105,7 @@ export interface FactureUpdate {
 const FACTURE_SELECT = `
   *,
   contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
-  client_partner:partners!factures_client_partner_id_fkey(id, company_name, email, address),
+  client_partner:partners!factures_client_partner_id_fkey(id, company_name, email, address, code_postal, ville, phone, siret, tva_intracom),
   session_inscription:session_inscriptions(
     id,
     type_payeur,
@@ -109,7 +114,7 @@ const FACTURE_SELECT = `
     montant_pris_en_charge,
     reste_a_charge,
     session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code)),
-    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
+    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret)
   )
 `;
 
