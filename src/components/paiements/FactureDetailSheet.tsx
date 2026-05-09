@@ -104,7 +104,7 @@ export function FactureDetailSheet({
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  const { data: facture, isLoading } = useFacture(factureId);
+  const { data: facture, isLoading, refetch: refetchFacture } = useFacture(factureId);
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
   const deletePaiement = useDeletePaiement();
@@ -144,6 +144,9 @@ export function FactureDetailSheet({
 
   const handleGeneratePDF = () => {
     void (async () => {
+      // Toujours récupérer les données fraîches avant génération
+      const { data: fresh } = await refetchFacture();
+      const facture = fresh ?? null;
       if (!facture) return;
       const partner = (facture as any).client_partner;
     const contactInfo = facture.contact ? {
@@ -219,8 +222,12 @@ export function FactureDetailSheet({
 
 
   const handleSendEmail = async () => {
+    // Récupérer les données fraîches avant l'envoi
+    const { data: fresh } = await refetchFacture();
+    const facture = fresh ?? null;
     if (!facture) return;
     const partner = (facture as any).client_partner;
+    const montantRestant = Number(facture.montant_total) - facture.total_paye;
     const email = facture.contact?.email || partner?.email;
     const recipientName = facture.contact
       ? `${facture.contact.prenom} ${facture.contact.nom}`
