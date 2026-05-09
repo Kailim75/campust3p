@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
+import { usePartners } from "@/hooks/usePartners";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
@@ -61,13 +62,18 @@ interface LigneFacture {
 }
 
 const formSchema = z.object({
-  contact_id: z.string().min(1, "Veuillez sélectionner un contact"),
+  client_type: z.enum(["contact", "partner"]),
+  contact_id: z.string().optional(),
+  client_partner_id: z.string().optional(),
   type_financement: z.enum(["personnel", "entreprise", "cpf", "opco"]),
   statut: z.enum(["brouillon", "emise", "payee", "partiel", "impayee", "annulee"]),
   date_emission: z.string().optional(),
   date_echeance: z.string().optional(),
   commentaires: z.string().optional(),
-});
+}).refine(
+  (data) => (data.client_type === "contact" ? !!data.contact_id : !!data.client_partner_id),
+  { message: "Veuillez sélectionner un client", path: ["contact_id"] }
+);
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -107,6 +113,7 @@ export function FactureFormDialog({
   const [showAllCatalogue, setShowAllCatalogue] = useState(false);
   
   const { data: contacts = [] } = useContacts();
+  const { data: partners = [] } = usePartners();
   const { data: catalogue = [] } = useCatalogueFormations(true);
   const { data: nextNumero } = useGenerateNumeroFacture();
   const { data: existingLignes = [], isLoading: lignesLoading } = useFactureLignes(facture?.id || null);
@@ -120,7 +127,9 @@ export function FactureFormDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      client_type: "contact",
       contact_id: defaultContactId || "",
+      client_partner_id: "",
       type_financement: "personnel",
       statut: "brouillon",
       date_emission: "",
@@ -129,10 +138,15 @@ export function FactureFormDialog({
     },
   });
 
+  const clientType = form.watch("client_type");
+
   useEffect(() => {
     if (facture) {
+      const isPartner = !!facture.client_partner_id && !facture.contact_id;
       form.reset({
-        contact_id: facture.contact_id,
+        client_type: isPartner ? "partner" : "contact",
+        contact_id: facture.contact_id || "",
+        client_partner_id: facture.client_partner_id || "",
         type_financement: facture.type_financement,
         statut: facture.statut,
         date_emission: facture.date_emission || "",
@@ -141,7 +155,9 @@ export function FactureFormDialog({
       });
     } else {
       form.reset({
+        client_type: "contact",
         contact_id: defaultContactId || "",
+        client_partner_id: "",
         type_financement: "personnel",
         statut: "brouillon",
         date_emission: "",
@@ -249,7 +265,8 @@ export function FactureFormDialog({
         // Mise à jour facture
         await updateFacture.mutateAsync({
           id: facture.id,
-          contact_id: values.contact_id,
+          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
+          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
           montant_total: totalMontant,
           type_financement: values.type_financement,
           statut: values.statut,
@@ -276,7 +293,8 @@ export function FactureFormDialog({
       } else {
         // Création facture
         const newFacture = await createFacture.mutateAsync({
-          contact_id: values.contact_id,
+          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
+          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
           session_inscription_id: defaultSessionInscriptionId || null,
           numero_facture: nextNumero || `FAC-${Date.now()}`,
           montant_total: totalMontant,
@@ -339,25 +357,63 @@ export function FactureFormDialog({
 
                 <FormField
                   control={form.control}
-                  name="contact_id"
+                  name="client_type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact *</FormLabel>
-                      <ContactCombobox
-                        options={contacts.map((c) => ({
-                          value: c.id,
-                          label: `${c.prenom} ${c.nom}`,
-                        }))}
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        placeholder="Rechercher un contact..."
-                        searchPlaceholder="Rechercher par nom..."
-                        emptyMessage="Aucun contact trouvé."
-                      />
-                      <FormMessage />
+                      <FormLabel>Type de client *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="contact">Particulier (apprenant)</SelectItem>
+                          <SelectItem value="partner">Entreprise / Partenaire</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )}
                 />
+
+                {clientType === "contact" ? (
+                  <FormField
+                    control={form.control}
+                    name="contact_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact *</FormLabel>
+                        <ContactCombobox
+                          options={contacts.map((c) => ({
+                            value: c.id,
+                            label: `${c.prenom} ${c.nom}`,
+                          }))}
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                          placeholder="Rechercher un contact..."
+                          searchPlaceholder="Rechercher par nom..."
+                          emptyMessage="Aucun contact trouvé."
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="client_partner_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Entreprise *</FormLabel>
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue placeholder="Sélectionner une entreprise..." /></SelectTrigger>
+                          <SelectContent>
+                            {partners.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.company_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Lignes de facture */}
                 <div className="space-y-3">
