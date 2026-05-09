@@ -2273,6 +2273,7 @@ export type Database = {
           montant_tva: number | null
           ordre: number
           prix_unitaire_ht: number
+          produit_service_id: string | null
           quantite: number
           remise_percent: number
           tva_percent: number
@@ -2288,6 +2289,7 @@ export type Database = {
           montant_tva?: number | null
           ordre?: number
           prix_unitaire_ht: number
+          produit_service_id?: string | null
           quantite?: number
           remise_percent?: number
           tva_percent?: number
@@ -2303,6 +2305,7 @@ export type Database = {
           montant_tva?: number | null
           ordre?: number
           prix_unitaire_ht?: number
+          produit_service_id?: string | null
           quantite?: number
           remise_percent?: number
           tva_percent?: number
@@ -2320,6 +2323,13 @@ export type Database = {
             columns: ["devis_id"]
             isOneToOne: false
             referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_lignes_produit_service_id_fkey"
+            columns: ["produit_service_id"]
+            isOneToOne: false
+            referencedRelation: "produits_services"
             referencedColumns: ["id"]
           },
         ]
@@ -3256,6 +3266,7 @@ export type Database = {
           montant_tva: number | null
           ordre: number
           prix_unitaire_ht: number
+          produit_service_id: string | null
           quantite: number
           tva_percent: number
         }
@@ -3270,6 +3281,7 @@ export type Database = {
           montant_tva?: number | null
           ordre?: number
           prix_unitaire_ht: number
+          produit_service_id?: string | null
           quantite?: number
           tva_percent?: number
         }
@@ -3284,6 +3296,7 @@ export type Database = {
           montant_tva?: number | null
           ordre?: number
           prix_unitaire_ht?: number
+          produit_service_id?: string | null
           quantite?: number
           tva_percent?: number
         }
@@ -3300,6 +3313,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facture_lignes_produit_service_id_fkey"
+            columns: ["produit_service_id"]
+            isOneToOne: false
+            referencedRelation: "produits_services"
             referencedColumns: ["id"]
           },
         ]
@@ -5593,6 +5613,207 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produit_categories: {
+        Row: {
+          actif: boolean
+          centre_id: string
+          couleur: string | null
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          icone: string | null
+          id: string
+          nom: string
+          ordre: number
+          parent_id: string | null
+          slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          centre_id: string
+          couleur?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          icone?: string | null
+          id?: string
+          nom: string
+          ordre?: number
+          parent_id?: string | null
+          slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          centre_id?: string
+          couleur?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          icone?: string | null
+          id?: string
+          nom?: string
+          ordre?: number
+          parent_id?: string | null
+          slug?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produit_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "produit_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produit_tarifs: {
+        Row: {
+          actif: boolean
+          created_at: string
+          id: string
+          libelle: string | null
+          prix_ht: number
+          produit_id: string
+          quantite_min: number
+          remise_percent: number
+          segment: Database["public"]["Enums"]["produit_tarif_segment"]
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          libelle?: string | null
+          prix_ht: number
+          produit_id: string
+          quantite_min?: number
+          remise_percent?: number
+          segment?: Database["public"]["Enums"]["produit_tarif_segment"]
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          libelle?: string | null
+          prix_ht?: number
+          produit_id?: string
+          quantite_min?: number
+          remise_percent?: number
+          segment?: Database["public"]["Enums"]["produit_tarif_segment"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produit_tarifs_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produits_services: {
+        Row: {
+          categorie_id: string | null
+          caution_montant: number | null
+          centre_id: string
+          created_at: string
+          created_by: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description_courte: string | null
+          description_longue: string | null
+          duree_minutes: number | null
+          gestion_stock: boolean
+          id: string
+          metadata: Json
+          nom: string
+          photos: Json
+          prix_ht: number
+          seuil_alerte: number | null
+          sku: string | null
+          sous_categorie: string | null
+          statut: Database["public"]["Enums"]["produit_statut"]
+          stock_actuel: number | null
+          tags: string[]
+          tva_percent: number
+          type: Database["public"]["Enums"]["produit_type"]
+          unite: string | null
+          updated_at: string
+        }
+        Insert: {
+          categorie_id?: string | null
+          caution_montant?: number | null
+          centre_id: string
+          created_at?: string
+          created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description_courte?: string | null
+          description_longue?: string | null
+          duree_minutes?: number | null
+          gestion_stock?: boolean
+          id?: string
+          metadata?: Json
+          nom: string
+          photos?: Json
+          prix_ht?: number
+          seuil_alerte?: number | null
+          sku?: string | null
+          sous_categorie?: string | null
+          statut?: Database["public"]["Enums"]["produit_statut"]
+          stock_actuel?: number | null
+          tags?: string[]
+          tva_percent?: number
+          type?: Database["public"]["Enums"]["produit_type"]
+          unite?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categorie_id?: string | null
+          caution_montant?: number | null
+          centre_id?: string
+          created_at?: string
+          created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description_courte?: string | null
+          description_longue?: string | null
+          duree_minutes?: number | null
+          gestion_stock?: boolean
+          id?: string
+          metadata?: Json
+          nom?: string
+          photos?: Json
+          prix_ht?: number
+          seuil_alerte?: number | null
+          sku?: string | null
+          sous_categorie?: string | null
+          statut?: Database["public"]["Enums"]["produit_statut"]
+          stock_actuel?: number | null
+          tags?: string[]
+          tva_percent?: number
+          type?: Database["public"]["Enums"]["produit_type"]
+          unite?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produits_services_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "produit_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -8349,6 +8570,22 @@ export type Database = {
         | "test_positionnement"
         | "attestation"
         | "autre"
+      produit_statut: "actif" | "inactif" | "brouillon" | "archive"
+      produit_tarif_segment:
+        | "public"
+        | "professionnel"
+        | "partenaire"
+        | "preferentiel"
+      produit_type:
+        | "unitaire"
+        | "horaire"
+        | "demi_journee"
+        | "journalier"
+        | "forfaitaire"
+        | "abonnement"
+        | "consommable"
+        | "location"
+        | "pack"
       prospect_status: "nouveau" | "contacte" | "relance" | "converti" | "perdu"
       session_status:
         | "a_venir"
@@ -8647,6 +8884,24 @@ export const Constants = {
         "test_positionnement",
         "attestation",
         "autre",
+      ],
+      produit_statut: ["actif", "inactif", "brouillon", "archive"],
+      produit_tarif_segment: [
+        "public",
+        "professionnel",
+        "partenaire",
+        "preferentiel",
+      ],
+      produit_type: [
+        "unitaire",
+        "horaire",
+        "demi_journee",
+        "journalier",
+        "forfaitaire",
+        "abonnement",
+        "consommable",
+        "location",
+        "pack",
       ],
       prospect_status: ["nouveau", "contacte", "relance", "converti", "perdu"],
       session_status: ["a_venir", "en_cours", "terminee", "annulee", "complet"],
