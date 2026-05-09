@@ -99,6 +99,7 @@ export interface FactureUpdate {
 const FACTURE_SELECT = `
   *,
   contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
+  client_partner:partners!factures_client_partner_id_fkey(id, company_name, email, address),
   session_inscription:session_inscriptions(
     id,
     type_payeur,
