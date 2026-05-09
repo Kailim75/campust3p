@@ -625,7 +625,7 @@ export function PaiementsPage() {
                       <TableCell className="font-medium text-foreground">
                         {facture.contact
                           ? `${facture.contact.prenom} ${facture.contact.nom}`
-                          : "—"}
+                          : (facture as any).client_partner?.company_name || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {facture.session_inscription?.session?.catalogue_formation?.intitule || facture.session_inscription?.session?.nom || "—"}
