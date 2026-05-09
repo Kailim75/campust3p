@@ -293,7 +293,8 @@ export function FactureFormDialog({
       } else {
         // Création facture
         const newFacture = await createFacture.mutateAsync({
-          contact_id: values.contact_id,
+          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
+          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
           session_inscription_id: defaultSessionInscriptionId || null,
           numero_facture: nextNumero || `FAC-${Date.now()}`,
           montant_total: totalMontant,
