@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ContactCombobox } from "@/components/ui/contact-combobox";
 import { Loader2, FileText, Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useContacts } from "@/hooks/useContacts";
+import { useContacts, useCreateContact } from "@/hooks/useContacts";
 import { useCreateFacture, useGenerateNumeroFacture, FinancementType } from "@/hooks/useFactures";
 import { useCreateFactureLignes } from "@/hooks/useFactureLignes";
 import { useProduitsServices, PRODUIT_TYPE_LABELS } from "@/hooks/useProduitsServices";
@@ -36,6 +36,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
   const createFacture = useCreateFacture();
   const createLignes = useCreateFactureLignes();
   const createPartner = useCreatePartner();
+  const createContact = useCreateContact();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,6 +52,13 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
   const [newPartner, setNewPartner] = useState({
     company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "",
     contact_name: "", phone: "", tva_intracom: "",
+  });
+
+  // Création rapide contact (particulier)
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContact, setNewContact] = useState({
+    prenom: "", nom: "", email: "", telephone: "",
+    rue: "", code_postal: "", ville: "",
   });
 
   // Ligne
@@ -73,6 +81,8 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
     setPartnerId("");
     setShowNewPartner(false);
     setNewPartner({ company_name: "", email: "", siret: "", address: "", code_postal: "", ville: "", contact_name: "", phone: "", tva_intracom: "" });
+    setShowNewContact(false);
+    setNewContact({ prenom: "", nom: "", email: "", telephone: "", rue: "", code_postal: "", ville: "" });
     setProduitId("");
     setLibelle("");
     setQuantite("1");
@@ -126,6 +136,30 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
       } as any);
       setPartnerId(created.id);
       setShowNewPartner(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateContact = async () => {
+    if (!newContact.prenom.trim() || !newContact.nom.trim()) {
+      toast.error("Prénom et nom requis");
+      return;
+    }
+    try {
+      const created: any = await createContact.mutateAsync({
+        prenom: newContact.prenom.trim(),
+        nom: newContact.nom.trim(),
+        email: newContact.email.trim() || null,
+        telephone: newContact.telephone.trim() || null,
+        rue: newContact.rue.trim() || null,
+        code_postal: newContact.code_postal.trim() || null,
+        ville: newContact.ville.trim() || null,
+        statut_apprenant: "actif",
+      } as any);
+      setContactId(created.id);
+      setShowNewContact(false);
+      toast.success("Client créé");
     } catch (e) {
       console.error(e);
     }
@@ -209,16 +243,54 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
               <TabsTrigger value="entreprise"><Building2 className="h-4 w-4 mr-1" />Entreprise</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="particulier" className="space-y-1.5 pt-3">
-              <Label>Client *</Label>
-              <ContactCombobox
-                options={contacts.map(c => ({ value: c.id, label: `${c.prenom} ${c.nom}` }))}
-                value={contactId}
-                onValueChange={setContactId}
-                placeholder="Rechercher un contact..."
-                searchPlaceholder="Rechercher..."
-                emptyMessage="Aucun contact."
-              />
+            <TabsContent value="particulier" className="space-y-2 pt-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <Label>Client *</Label>
+                  <ContactCombobox
+                    options={contacts.map(c => ({ value: c.id, label: `${c.prenom} ${c.nom}` }))}
+                    value={contactId}
+                    onValueChange={setContactId}
+                    placeholder="Rechercher un contact..."
+                    searchPlaceholder="Rechercher..."
+                    emptyMessage="Aucun contact."
+                  />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowNewContact(s => !s)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  {showNewContact ? "Annuler" : "Nouveau"}
+                </Button>
+              </div>
+
+              {showNewContact && (
+                <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  <p className="text-xs font-semibold text-muted-foreground">Création rapide d'un client particulier</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Prénom *" value={newContact.prenom}
+                      onChange={e => setNewContact({ ...newContact, prenom: e.target.value })} />
+                    <Input placeholder="Nom *" value={newContact.nom}
+                      onChange={e => setNewContact({ ...newContact, nom: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input type="email" placeholder="Email" value={newContact.email}
+                      onChange={e => setNewContact({ ...newContact, email: e.target.value })} />
+                    <Input placeholder="Téléphone" value={newContact.telephone}
+                      onChange={e => setNewContact({ ...newContact, telephone: e.target.value })} />
+                  </div>
+                  <Input placeholder="Adresse" value={newContact.rue}
+                    onChange={e => setNewContact({ ...newContact, rue: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Code postal" value={newContact.code_postal}
+                      onChange={e => setNewContact({ ...newContact, code_postal: e.target.value })} />
+                    <Input placeholder="Ville" value={newContact.ville}
+                      onChange={e => setNewContact({ ...newContact, ville: e.target.value })} />
+                  </div>
+                  <Button type="button" size="sm" onClick={handleCreateContact} disabled={createContact.isPending}>
+                    {createContact.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                    Créer le client
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="entreprise" className="space-y-2 pt-3">
