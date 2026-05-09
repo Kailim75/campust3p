@@ -92,7 +92,8 @@ export interface FactureInsert {
 }
 
 export interface FactureUpdate {
-  contact_id?: string;
+  contact_id?: string | null;
+  client_partner_id?: string | null;
   session_inscription_id?: string | null;
   montant_total?: number;
   type_financement?: FinancementType;
