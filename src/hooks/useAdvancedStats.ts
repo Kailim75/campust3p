@@ -251,7 +251,8 @@ export function useCAByFormationType() {
           contact_id,
           session:sessions(formation_type)
         `)
-        .in("contact_id", contactIds as string[]);
+        .in("contact_id", contactIds as string[])
+        .is("deleted_at", null);
 
       // Map contacts to their formation types
       const contactFormationMap = new Map<string, string>();
