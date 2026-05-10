@@ -18,13 +18,14 @@ interface BlocRelancesProps extends BlocProspectSharedProps {
   toggleBulkRelance: (id: string) => void;
   bulkProcessing: boolean;
   handleBulkRelance: (items: any[]) => void;
+  handleBulkRelanceDone: (items: Prospect[]) => void;
   handleRelanceEmail: (p: any) => void;
   handleRelanceWhatsApp: (p: any) => void;
 }
 
 export function BlocRelances({
   relances, bulkRelanceSelected, toggleBulkRelance, bulkProcessing,
-  handleBulkRelance, handleRelanceEmail, handleRelanceWhatsApp,
+  handleBulkRelance, handleBulkRelanceDone, handleRelanceEmail, handleRelanceWhatsApp,
   todayNotes, recentNotes, openProspect, markDone,
 }: BlocRelancesProps) {
   return (
@@ -39,9 +40,9 @@ export function BlocRelances({
             <p className="text-[11px] text-muted-foreground">{relances.length} prospect{relances.length > 1 ? "s" : ""} en attente</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
           {bulkRelanceSelected.size > 0 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
                 size="sm" variant="default" className="h-7 text-[10px] gap-1"
                 disabled={bulkProcessing}
@@ -49,6 +50,16 @@ export function BlocRelances({
               >
                 <ListChecks className="h-3 w-3" />
                 Relancer {bulkRelanceSelected.size}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
+                disabled={bulkProcessing}
+                onClick={() => handleBulkRelanceDone(relances)}
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Traiter {bulkRelanceSelected.size}
               </Button>
               {bulkRelanceSelected.size > 10 && (
                 <span className="text-[9px] text-warning font-medium">⚠️ {bulkRelanceSelected.size} dest.</span>

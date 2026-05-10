@@ -32,6 +32,7 @@ interface BlocCmaProps extends BlocSharedProps {
   toggleBulkCma: (id: string) => void;
   bulkProcessing: boolean;
   handleBulkCmaRelance: (items: any[]) => void;
+  handleBulkCmaDone: (items: any[]) => void;
   handleCmaRelanceDocs: (item: any) => void;
   handleCmaWhatsApp: (item: any) => void;
   isCmaRelancedToday: (contactId: string) => boolean;
@@ -41,7 +42,7 @@ export function BlocCma({
   allCmaFiltered, cmaItems, cmaHiddenCount, cmaExpanded, setCmaExpanded,
   cmaFilter, setCmaFilter, cmaCountAll, cmaCountDocs, cmaCountRejete, cmaCountEnCours,
   bulkCmaSelected, toggleBulkCma, bulkProcessing, handleBulkCmaRelance,
-  handleCmaRelanceDocs, handleCmaWhatsApp, isCmaRelancedToday,
+  handleBulkCmaDone, handleCmaRelanceDocs, handleCmaWhatsApp, isCmaRelancedToday,
   todayNotes, recentNotes, openContact, markDone,
 }: BlocCmaProps) {
   const CMA_FILTER_OPTIONS: { value: CmaFilter; label: string; count: number }[] = [
@@ -63,9 +64,9 @@ export function BlocCma({
             <p className="text-[11px] text-muted-foreground">{cmaCountAll} dossier{cmaCountAll > 1 ? "s" : ""} incomplet{cmaCountAll > 1 ? "s" : ""}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
           {bulkCmaSelected.size > 0 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
                 size="sm" variant="default" className="h-7 text-[10px] gap-1"
                 disabled={bulkProcessing}
@@ -73,6 +74,16 @@ export function BlocCma({
               >
                 <ListChecks className="h-3 w-3" />
                 Relancer {bulkCmaSelected.size}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
+                disabled={bulkProcessing}
+                onClick={() => handleBulkCmaDone(allCmaFiltered)}
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Traiter {bulkCmaSelected.size}
               </Button>
               {bulkCmaSelected.size > 10 && (
                 <span className="text-[9px] text-warning font-medium">⚠️ {bulkCmaSelected.size} dest.</span>

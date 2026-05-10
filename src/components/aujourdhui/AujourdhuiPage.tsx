@@ -56,6 +56,11 @@ function makeHandledKey(contactId: string, blocLabel: string) {
   return `${blocLabel}:${contactId}`;
 }
 
+interface BulkDoneLabel {
+  singular: string;
+  plural: string;
+}
+
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
   const { data, isLoading } = useAujourdhuiData();
   const queryClient = useQueryClient();
@@ -182,6 +187,84 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   }, [invalidate]);
 
   // ─── Bulk action handlers ───
+  const markSelectedDone = useCallback(async (
+    items: Array<{ id: string }>,
+    selectedIds: Set<string>,
+    blocLabel: string,
+    labels: BulkDoneLabel,
+    clearSuccessfulSelection: (successfulIds: Set<string>) => void,
+  ) => {
+    const selected = items.filter(item => selectedIds.has(item.id));
+
+    if (selected.length === 0) {
+      toast.error("Aucun élément sélectionné");
+      return;
+    }
+
+    const selectedKeys = selected.map(item => makeHandledKey(item.id, blocLabel));
+    setBulkProcessing(true);
+    setLocallyHandledKeys(prev => {
+      const next = new Set(prev);
+      selectedKeys.forEach(key => next.add(key));
+      return next;
+    });
+
+    try {
+      const results = await Promise.all(
+        selected.map(item => createAutoNote(item.id, "marquer_fait", `Bloc: ${blocLabel} · Traitement en lot`))
+      );
+      const successfulNotes = results.filter((result): result is NonNullable<typeof result> => Boolean(result));
+      const successfulIds = new Set(successfulNotes.map(note => note.contact_id));
+      const failedItems = selected.filter(item => !successfulIds.has(item.id));
+
+      if (failedItems.length > 0) {
+        const failedKeys = failedItems.map(item => makeHandledKey(item.id, blocLabel));
+        setLocallyHandledKeys(prev => {
+          const next = new Set(prev);
+          failedKeys.forEach(key => next.delete(key));
+          return next;
+        });
+        toast.error(`${failedItems.length} élément${failedItems.length > 1 ? "s" : ""} non traité${failedItems.length > 1 ? "s" : ""}`);
+      }
+
+      if (successfulNotes.length > 0) {
+        clearSuccessfulSelection(successfulIds);
+        const successLabel = successfulNotes.length === 1
+          ? `1 ${labels.singular}`
+          : `${successfulNotes.length} ${labels.plural}`;
+
+        toast.success(successLabel, {
+          description: "Les éléments sont masqués de la liste du jour",
+          action: {
+            label: "Annuler",
+            onClick: async () => {
+              const undoResults = await Promise.all(successfulNotes.map(note => deleteAutoNote(note.id)));
+              const undoneIds = new Set(
+                successfulNotes
+                  .filter((_, index) => undoResults[index])
+                  .map(note => note.contact_id)
+              );
+
+              if (undoneIds.size > 0) {
+                setLocallyHandledKeys(prev => {
+                  const next = new Set(prev);
+                  undoneIds.forEach(id => next.delete(makeHandledKey(id, blocLabel)));
+                  return next;
+                });
+                toast.info(`${undoneIds.size} action${undoneIds.size > 1 ? "s" : ""} annulée${undoneIds.size > 1 ? "s" : ""}`);
+                invalidate();
+              }
+            },
+          },
+          duration: 10000,
+        });
+        invalidate();
+      }
+    } finally {
+      setBulkProcessing(false);
+    }
+  }, [invalidate]);
+
   const handleBulkCmaRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
@@ -200,6 +283,22 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     });
   }, [bulkCmaSelected, invalidate, openComposer]);
 
+  const handleBulkCmaDone = useCallback((items: any[]) => {
+    markSelectedDone(
+      items,
+      bulkCmaSelected,
+      "CMA",
+      { singular: "dossier marqué traité", plural: "dossiers marqués traités" },
+      (successfulIds) => {
+        setBulkCmaSelected(prev => {
+          const next = new Set(prev);
+          successfulIds.forEach(id => next.delete(id));
+          return next;
+        });
+      },
+    );
+  }, [bulkCmaSelected, markSelectedDone]);
+
   const handleBulkRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkRelanceSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun prospect sélectionné avec email"); return; }
@@ -212,6 +311,22 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
       onSuccess: () => { setBulkRelanceSelected(new Set()); invalidate(); },
     });
   }, [bulkRelanceSelected, invalidate, openComposer]);
+
+  const handleBulkRelanceDone = useCallback((items: Prospect[]) => {
+    markSelectedDone(
+      items,
+      bulkRelanceSelected,
+      "Relance",
+      { singular: "prospect marqué traité", plural: "prospects marqués traités" },
+      (successfulIds) => {
+        setBulkRelanceSelected(prev => {
+          const next = new Set(prev);
+          successfulIds.forEach(id => next.delete(id));
+          return next;
+        });
+      },
+    );
+  }, [bulkRelanceSelected, markSelectedDone]);
 
   const openContact = (id: string) => { setSelectedContactId(id); setContactDetailOpen(true); };
   const openProspect = (p: Prospect) => { setSelectedProspect(p); setProspectDetailOpen(true); };
@@ -512,7 +627,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             cmaFilter={cmaFilter} setCmaFilter={setCmaFilter}
             cmaCountAll={cmaCountAll} cmaCountDocs={cmaCountDocs} cmaCountRejete={cmaCountRejete} cmaCountEnCours={cmaCountEnCours}
             bulkCmaSelected={bulkCmaSelected} toggleBulkCma={toggleBulkCma}
-            bulkProcessing={bulkProcessing} handleBulkCmaRelance={handleBulkCmaRelance}
+            bulkProcessing={bulkProcessing} handleBulkCmaRelance={handleBulkCmaRelance} handleBulkCmaDone={handleBulkCmaDone}
             handleCmaRelanceDocs={handleCmaRelanceDocs} handleCmaWhatsApp={handleCmaWhatsApp}
             isCmaRelancedToday={isCmaRelancedToday}
             todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
@@ -528,7 +643,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           <BlocRelances
             relances={relances}
             bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance}
-            bulkProcessing={bulkProcessing} handleBulkRelance={handleBulkRelance}
+            bulkProcessing={bulkProcessing} handleBulkRelance={handleBulkRelance} handleBulkRelanceDone={handleBulkRelanceDone}
             handleRelanceEmail={handleRelanceEmail} handleRelanceWhatsApp={handleRelanceWhatsApp}
             todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
           />
