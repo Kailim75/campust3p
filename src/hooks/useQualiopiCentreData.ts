@@ -119,7 +119,8 @@ export function useQualiopiCentreData() {
         supabase.from('enquete_tokens').select('id, session_id, type, used_at')
           .eq('type', 'satisfaction'),
         supabase.from('session_inscriptions').select('id, session_id, contact_id, statut')
-          .in('statut', ['inscrit', 'confirme', 'present', 'encours', 'valide', 'en_attente', 'document']),
+          .in('statut', ['inscrit', 'confirme', 'present', 'encours', 'valide', 'en_attente', 'document'])
+          .is('deleted_at', null),
         supabase.from('pedagogical_documents').select('id, contact_id, session_id, document_type, status')
           .eq('status', 'actif'),
         supabase.from('signature_requests').select('id, contact_id, type_document, statut'),
