@@ -575,9 +575,19 @@ export function ProspectsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">
-                          <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
-                            {prospect.prenom} {prospect.nom}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn("h-2 w-2 rounded-full shrink-0", getProspectPriority(prospect).dotClass)} aria-label={getProspectPriority(prospect).label} />
+                                </TooltipTrigger>
+                                <TooltipContent>Priorité : {getProspectPriority(prospect).label}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
+                              {prospect.prenom} {prospect.nom}
+                            </button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={STATUS_COLORS[prospect.statut]}>
