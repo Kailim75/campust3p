@@ -13,6 +13,7 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { ActionJournal } from "./ActionJournal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   createAutoNote, deleteAutoNote, isHandledToday,
   type ActionCategory,
@@ -74,6 +75,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
   const [cmaExpanded, setCmaExpanded] = useState(false);
   const [locallyHandledKeys, setLocallyHandledKeys] = useState<Set<string>>(new Set());
+  const [locallyPostponedKeys, setLocallyPostponedKeys] = useState<Set<string>>(new Set());
   const CMA_INITIAL_LIMIT = 5;
 
   // ─── Bulk selection state ───
@@ -96,6 +98,36 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
       return next;
     });
   };
+
+  const toggleBulkCmaVisible = useCallback((items: Array<{ id: string }>) => {
+    const visibleIds = items.map((item) => item.id);
+    if (visibleIds.length === 0) return;
+
+    setBulkCmaSelected(prev => {
+      const next = new Set(prev);
+      const allSelected = visibleIds.every((id) => next.has(id));
+      visibleIds.forEach((id) => {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      });
+      return next;
+    });
+  }, []);
+
+  const toggleBulkRelanceVisible = useCallback((items: Array<{ id: string }>) => {
+    const visibleIds = items.map((item) => item.id);
+    if (visibleIds.length === 0) return;
+
+    setBulkRelanceSelected(prev => {
+      const next = new Set(prev);
+      const allSelected = visibleIds.every((id) => next.has(id));
+      visibleIds.forEach((id) => {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      });
+      return next;
+    });
+  }, []);
 
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
@@ -185,6 +217,90 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     });
     invalidate();
   }, [invalidate]);
+
+  const postponeAction = useCallback(async (contactId: string, blocLabel: string, targetDate: string) => {
+    if (targetDate <= format(new Date(), "yyyy-MM-dd")) {
+      toast.error("Choisissez une date future pour reporter");
+      return;
+    }
+
+    const postponedKey = makeHandledKey(contactId, blocLabel);
+    const previousProspect = blocLabel === "Relance" ? data?.relances?.find((item: Prospect) => item.id === contactId) : null;
+
+    setLocallyPostponedKeys(prev => {
+      if (prev.has(postponedKey)) return prev;
+      const next = new Set(prev);
+      next.add(postponedKey);
+      return next;
+    });
+    setBulkCmaSelected(prev => {
+      if (blocLabel !== "CMA" || !prev.has(contactId)) return prev;
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+    setBulkRelanceSelected(prev => {
+      if (blocLabel !== "Relance" || !prev.has(contactId)) return prev;
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+
+    try {
+      if (blocLabel === "Relance") {
+        const { error } = await supabase
+          .from("prospects")
+          .update({
+            date_prochaine_relance: targetDate,
+            next_action_at: targetDate,
+            statut: "relance",
+          } as any)
+          .eq("id", contactId);
+
+        if (error) throw error;
+      }
+
+      const note = await createAutoNote(contactId, "reporter_action", `Bloc: ${blocLabel} · Jusqu'au: ${targetDate}`);
+      if (!note) throw new Error("Auto note creation failed");
+
+      const label = blocLabel === "CMA" ? "Dossier reporté" : "Prospect reporté";
+      toast.success(label, {
+        description: `L'action ressortira le ${format(parseISO(targetDate), "dd/MM/yyyy", { locale: fr })}`,
+        action: {
+          label: "Annuler",
+          onClick: async () => {
+            await deleteAutoNote(note.id);
+            if (blocLabel === "Relance" && previousProspect) {
+              await supabase
+                .from("prospects")
+                .update({
+                  date_prochaine_relance: previousProspect.date_prochaine_relance,
+                  next_action_at: previousProspect.next_action_at,
+                } as any)
+                .eq("id", contactId);
+            }
+            setLocallyPostponedKeys(prev => {
+              const next = new Set(prev);
+              next.delete(postponedKey);
+              return next;
+            });
+            toast.info("Report annulé");
+            invalidate();
+          },
+        },
+        duration: 10000,
+      });
+      invalidate();
+    } catch (error) {
+      setLocallyPostponedKeys(prev => {
+        const next = new Set(prev);
+        next.delete(postponedKey);
+        return next;
+      });
+      toast.error("Impossible de reporter cette action");
+      console.error(error);
+    }
+  }, [data?.relances, invalidate]);
 
   // ─── Bulk action handlers ───
   const markSelectedDone = useCallback(async (
@@ -505,7 +621,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     qualiopiSessions = [],
     crmQualityItems: rawCrmQualityItems = [],
     crmQualitySummary = null,
-    todayNotes = [], recentNotes = [], journalEntries = [],
+    todayNotes = [], recentNotes = [], journalEntries = [], postponedKeys = [],
   } = data || {};
 
   // Active filter
@@ -517,9 +633,20 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     categoryKeywords: string[],
     blocLabel: string,
   ) => locallyHandledKeys.has(makeHandledKey(contactId, blocLabel)) || isHandledToday(contactId, todayNotes, categoryKeywords);
+  const isPostponedForBloc = (contactId: string, blocLabel: string) => (
+    locallyPostponedKeys.has(makeHandledKey(contactId, blocLabel)) ||
+    postponedKeys.includes(makeHandledKey(contactId, blocLabel))
+  );
 
   // Anti-double-relance
-  const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")));
+  const availableCma = activeCma.filter(c => !isPostponedForBloc(c.id, "CMA"));
+  const availableRdv = rawRdv.filter(p => !isPostponedForBloc(p.id, "RDV"));
+  const availableRelances = rawRelances.filter(p => !isPostponedForBloc(p.id, "Relance"));
+  const availableCritiques = activeCritiques.filter(c => !isPostponedForBloc(c.id, "Critique"));
+  const availableCartePro = rawCartePro.filter((c: any) => !isPostponedForBloc(c.id, "Carte Pro"));
+  const availableCrmQualityItems = rawCrmQualityItems.filter((item: any) => !isPostponedForBloc(item.ownerId, "Qualité CRM"));
+
+  const filteredCma = (showHandled ? availableCma : availableCma.filter(c => !isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")));
   const allCmaFiltered = cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter);
   const cmaItems = cmaExpanded ? allCmaFiltered : allCmaFiltered.slice(0, CMA_INITIAL_LIMIT);
   const cmaHiddenCount = allCmaFiltered.length - cmaItems.length;
@@ -529,25 +656,25 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const cmaCountRejete = filteredCma.filter(c => c.cmaCategory === "rejete").length;
   const cmaCountEnCours = filteredCma.filter(c => c.cmaCategory === "en_cours").length;
 
-  const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledForBloc(p.id, RDV_KEYWORDS, "RDV"))).slice(0, 10);
-  const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance"))).slice(0, 10);
-  const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique"))).slice(0, 10);
-  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledForBloc(c.id, CARTE_PRO_KEYWORDS, "Carte Pro"))).slice(0, 10);
+  const rdvToday = (showHandled ? availableRdv : availableRdv.filter(p => !isHandledForBloc(p.id, RDV_KEYWORDS, "RDV"))).slice(0, 10);
+  const relances = (showHandled ? availableRelances : availableRelances.filter(p => !isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance"))).slice(0, 10);
+  const critiques = (showHandled ? availableCritiques : availableCritiques.filter(c => !isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique"))).slice(0, 10);
+  const cartePro = (showHandled ? availableCartePro : availableCartePro.filter((c: any) => !isHandledForBloc(c.id, CARTE_PRO_KEYWORDS, "Carte Pro"))).slice(0, 10);
   const crmQualityItems = (showHandled
-    ? rawCrmQualityItems
-    : rawCrmQualityItems.filter((item: any) => !isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM"))
+    ? availableCrmQualityItems
+    : availableCrmQualityItems.filter((item: any) => !isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM"))
   ).slice(0, 12);
 
-  const handledCmaCount = activeCma.filter(c => isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")).length;
-  const handledRdvCount = rawRdv.filter(p => isHandledForBloc(p.id, RDV_KEYWORDS, "RDV")).length;
-  const handledRelanceCount = rawRelances.filter(p => isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance")).length;
-  const handledCritiqueCount = activeCritiques.filter(c => isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique")).length;
-  const handledCrmQualityCount = rawCrmQualityItems.filter((item: any) => isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM")).length;
+  const handledCmaCount = availableCma.filter(c => isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")).length;
+  const handledRdvCount = availableRdv.filter(p => isHandledForBloc(p.id, RDV_KEYWORDS, "RDV")).length;
+  const handledRelanceCount = availableRelances.filter(p => isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance")).length;
+  const handledCritiqueCount = availableCritiques.filter(c => isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique")).length;
+  const handledCrmQualityCount = availableCrmQualityItems.filter((item: any) => isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM")).length;
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount + handledCrmQualityCount;
 
   const reprogramItems = rawReprogram;
   const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
-  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + rawCrmQualityItems.length;
+  const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   return (
@@ -626,10 +753,11 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             cmaExpanded={cmaExpanded} setCmaExpanded={setCmaExpanded}
             cmaFilter={cmaFilter} setCmaFilter={setCmaFilter}
             cmaCountAll={cmaCountAll} cmaCountDocs={cmaCountDocs} cmaCountRejete={cmaCountRejete} cmaCountEnCours={cmaCountEnCours}
-            bulkCmaSelected={bulkCmaSelected} toggleBulkCma={toggleBulkCma}
+            bulkCmaSelected={bulkCmaSelected} toggleBulkCma={toggleBulkCma} toggleBulkCmaVisible={toggleBulkCmaVisible}
             bulkProcessing={bulkProcessing} handleBulkCmaRelance={handleBulkCmaRelance} handleBulkCmaDone={handleBulkCmaDone}
             handleCmaRelanceDocs={handleCmaRelanceDocs} handleCmaWhatsApp={handleCmaWhatsApp}
             isCmaRelancedToday={isCmaRelancedToday}
+            postponeAction={postponeAction}
             todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
           />
 
@@ -642,9 +770,10 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
 
           <BlocRelances
             relances={relances}
-            bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance}
+            bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance} toggleBulkRelanceVisible={toggleBulkRelanceVisible}
             bulkProcessing={bulkProcessing} handleBulkRelance={handleBulkRelance} handleBulkRelanceDone={handleBulkRelanceDone}
             handleRelanceEmail={handleRelanceEmail} handleRelanceWhatsApp={handleRelanceWhatsApp}
+            postponeAction={postponeAction}
             todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
           />
 

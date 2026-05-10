@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, Check, ExternalLink } from "lucide-react";
+import { Bot, CalendarClock, Check, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { addDays, format, parseISO, differenceInDays } from "date-fns";
 import type { UrgencyInfo } from "@/lib/urgency-utils";
 import type { AutoNote } from "./aujourdhui-types";
 
@@ -82,5 +85,77 @@ export function MarkDoneBtn({
     >
       <Check className="h-3 w-3 mr-1" /> {label}
     </Button>
+  );
+}
+
+const POSTPONE_PRESETS = [
+  { label: "Demain", days: 1 },
+  { label: "Dans 3 jours", days: 3 },
+  { label: "Semaine prochaine", days: 7 },
+];
+
+export function PostponeBtn({
+  contactId,
+  bloc,
+  postponeAction,
+}: {
+  contactId: string;
+  bloc: string;
+  postponeAction: (id: string, bloc: string, targetDate: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [customDate, setCustomDate] = useState("");
+  const minDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
+
+  const postpone = (targetDate: string) => {
+    postponeAction(contactId, bloc, targetDate);
+    setOpen(false);
+    setCustomDate("");
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-[10px] text-muted-foreground hover:text-primary"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <CalendarClock className="h-3 w-3 mr-1" /> Reporter
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3" align="end" onClick={(event) => event.stopPropagation()}>
+        <p className="text-xs font-medium mb-2">Reporter l'action</p>
+        <div className="grid gap-1.5 mb-2">
+          {POSTPONE_PRESETS.map((preset) => {
+            const targetDate = format(addDays(new Date(), preset.days), "yyyy-MM-dd");
+            return (
+              <Button
+                key={preset.label}
+                size="sm"
+                variant="ghost"
+                className="h-7 justify-start text-xs"
+                onClick={() => postpone(targetDate)}
+              >
+                {preset.label}
+              </Button>
+            );
+          })}
+        </div>
+        <div className="flex gap-1.5">
+          <Input
+            type="date"
+            min={minDate}
+            value={customDate}
+            onChange={(event) => setCustomDate(event.target.value)}
+            className="h-8 text-xs"
+          />
+          <Button size="sm" className="h-8 text-xs" disabled={!customDate} onClick={() => postpone(customDate)}>
+            OK
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

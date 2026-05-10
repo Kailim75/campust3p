@@ -3,14 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileCheck, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot } from "lucide-react";
+import { FileCheck, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
-import { UrgencyDot, LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { UrgencyDot, LastActionLine, MarkDoneBtn, PostponeBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps, CmaFilter } from "./aujourdhui-types";
 import { CMA_KEYWORDS } from "./aujourdhui-types";
 
@@ -30,20 +30,22 @@ interface BlocCmaProps extends BlocSharedProps {
   cmaCountEnCours: number;
   bulkCmaSelected: Set<string>;
   toggleBulkCma: (id: string) => void;
+  toggleBulkCmaVisible: (items: any[]) => void;
   bulkProcessing: boolean;
   handleBulkCmaRelance: (items: any[]) => void;
   handleBulkCmaDone: (items: any[]) => void;
   handleCmaRelanceDocs: (item: any) => void;
   handleCmaWhatsApp: (item: any) => void;
   isCmaRelancedToday: (contactId: string) => boolean;
+  postponeAction: (contactId: string, blocLabel: string, targetDate: string) => void;
 }
 
 export function BlocCma({
   allCmaFiltered, cmaItems, cmaHiddenCount, cmaExpanded, setCmaExpanded,
   cmaFilter, setCmaFilter, cmaCountAll, cmaCountDocs, cmaCountRejete, cmaCountEnCours,
-  bulkCmaSelected, toggleBulkCma, bulkProcessing, handleBulkCmaRelance,
+  bulkCmaSelected, toggleBulkCma, toggleBulkCmaVisible, bulkProcessing, handleBulkCmaRelance,
   handleBulkCmaDone, handleCmaRelanceDocs, handleCmaWhatsApp, isCmaRelancedToday,
-  todayNotes, recentNotes, openContact, markDone,
+  postponeAction, todayNotes, recentNotes, openContact, markDone,
 }: BlocCmaProps) {
   const CMA_FILTER_OPTIONS: { value: CmaFilter; label: string; count: number }[] = [
     { value: "all", label: "Tous", count: cmaCountAll },
@@ -51,6 +53,7 @@ export function BlocCma({
     { value: "rejete", label: "Rejeté", count: cmaCountRejete },
     { value: "en_cours", label: "En cours", count: cmaCountEnCours },
   ];
+  const allVisibleSelected = cmaItems.length > 0 && cmaItems.every((item) => bulkCmaSelected.has(item.id));
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -65,6 +68,18 @@ export function BlocCma({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 flex-wrap">
+          {cmaItems.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-[10px] gap-1"
+              disabled={bulkProcessing}
+              onClick={() => toggleBulkCmaVisible(cmaItems)}
+            >
+              <CheckSquare className="h-3 w-3" />
+              {allVisibleSelected ? "Désélectionner" : "Tout sélectionner"}
+            </Button>
+          )}
           {bulkCmaSelected.size > 0 && (
             <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
@@ -188,6 +203,7 @@ export function BlocCma({
                   </Button>
                 )}
                 <MarkDoneBtn contactId={item.id} bloc="CMA" markDone={markDone} label="Dossier traité" />
+                <PostponeBtn contactId={item.id} bloc="CMA" postponeAction={postponeAction} />
               </div>
             </div>
           );

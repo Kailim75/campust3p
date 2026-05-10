@@ -14,6 +14,7 @@ export type ActionCategory =
   | "prospect_relance"
   | "prospect_relance_whatsapp"
   | "prospect_appel"
+  | "reporter_action"
   | "apprenant_demander_docs"
   | "apprenant_relance_paiement"
   | "apprenant_whatsapp"
@@ -54,6 +55,7 @@ const ACTION_META: Record<ActionCategory, ActionMeta> = {
   prospect_relance:            { label: "Relance prospect",             canal: "Email",     modele: "Relance prospect" },
   prospect_relance_whatsapp:   { label: "Relance prospect",             canal: "WhatsApp" },
   prospect_appel:              { label: "Prospect: appel",              canal: "Téléphone" },
+  reporter_action:             { label: "Reporté",                      canal: "—" },
   apprenant_demander_docs:     { label: "Apprenant: demande docs",      canal: "Email",     modele: "Demande docs apprenant" },
   apprenant_relance_paiement:  { label: "Apprenant: relance paiement",  canal: "Email",     modele: "Relance paiement" },
   apprenant_whatsapp:          { label: "Apprenant: contact",           canal: "WhatsApp" },

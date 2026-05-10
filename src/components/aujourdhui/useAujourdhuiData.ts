@@ -26,10 +26,11 @@ export function useAujourdhuiData() {
       const todayStr = new Date().toISOString().split("T")[0];
       const in14Days = addDays(new Date(), 14).toISOString().split("T")[0];
 
+      const postponeSince = addDays(new Date(), -90).toISOString();
       const [
         contactsRes, docsRes, facturesRes, paiementsRes,
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
-        examensPratiqueRes, examensTheorieRes,
+        postponedNotesRes, examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
         supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false).is("deleted_at", null),
         supabase.from("contact_documents").select("contact_id, type_document").is("deleted_at", null),
@@ -45,6 +46,12 @@ export function useAujourdhuiData() {
         supabase.from("session_inscriptions").select("id, contact_id, session_id, statut, statut_paiement, track").is("deleted_at", null),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
+        supabase
+          .from("contact_historique")
+          .select("contact_id, titre, contenu, date_echange, created_at")
+          .like("titre", "[AUTO] Reporté%")
+          .gte("date_echange", postponeSince)
+          .order("date_echange", { ascending: false }),
         supabase.from("examens_pratique").select("contact_id, resultat"),
         supabase.from("examens_t3p").select("contact_id, resultat"),
       ]);
@@ -66,6 +73,22 @@ export function useAujourdhuiData() {
       prospects.forEach((p: any) => {
         contactNameMap.set(p.id, `${p.prenom} ${p.nom}`);
       });
+
+      const latestPostponedUntilByKey = new Map<string, string>();
+      (postponedNotesRes.data || []).forEach((note: any) => {
+        const content = String(note.contenu || "");
+        const blocLabel = content.match(/Bloc:\s*([^·]+)/)?.[1]?.trim();
+        const postponedUntil = content.match(/Jusqu'au:\s*(\d{4}-\d{2}-\d{2})/)?.[1];
+        if (!blocLabel || !postponedUntil) return;
+
+        const key = `${blocLabel}:${note.contact_id}`;
+        if (!latestPostponedUntilByKey.has(key)) {
+          latestPostponedUntilByKey.set(key, postponedUntil);
+        }
+      });
+      const postponedKeys = Array.from(latestPostponedUntilByKey.entries())
+        .filter(([, postponedUntil]) => postponedUntil > todayStr)
+        .map(([key]) => key);
 
       // Build docs map
       const docsMap = new Map<string, Set<string>>();
@@ -457,6 +480,7 @@ export function useAujourdhuiData() {
         todayNotes,
         recentNotes,
         journalEntries,
+        postponedKeys,
         totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length,
       };
     },

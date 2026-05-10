@@ -2,13 +2,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, Mail, ExternalLink, CheckCircle2, ListChecks } from "lucide-react";
+import { Clock, Mail, ExternalLink, CheckCircle2, ListChecks, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { isPast, parseISO, differenceInDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { computeProspectUrgency } from "@/lib/urgency-utils";
-import { UrgencyDot, LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { UrgencyDot, LastActionLine, MarkDoneBtn, PostponeBtn } from "./AujourdhuiShared";
 import type { BlocProspectSharedProps } from "./aujourdhui-types";
 import type { Prospect } from "@/hooks/useProspects";
 
@@ -16,18 +16,22 @@ interface BlocRelancesProps extends BlocProspectSharedProps {
   relances: Prospect[];
   bulkRelanceSelected: Set<string>;
   toggleBulkRelance: (id: string) => void;
+  toggleBulkRelanceVisible: (items: Prospect[]) => void;
   bulkProcessing: boolean;
   handleBulkRelance: (items: any[]) => void;
   handleBulkRelanceDone: (items: Prospect[]) => void;
   handleRelanceEmail: (p: any) => void;
   handleRelanceWhatsApp: (p: any) => void;
+  postponeAction: (contactId: string, blocLabel: string, targetDate: string) => void;
 }
 
 export function BlocRelances({
-  relances, bulkRelanceSelected, toggleBulkRelance, bulkProcessing,
+  relances, bulkRelanceSelected, toggleBulkRelance, toggleBulkRelanceVisible, bulkProcessing,
   handleBulkRelance, handleBulkRelanceDone, handleRelanceEmail, handleRelanceWhatsApp,
-  todayNotes, recentNotes, openProspect, markDone,
+  postponeAction, todayNotes, recentNotes, openProspect, markDone,
 }: BlocRelancesProps) {
+  const allVisibleSelected = relances.length > 0 && relances.every((item) => bulkRelanceSelected.has(item.id));
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
@@ -41,6 +45,18 @@ export function BlocRelances({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 flex-wrap">
+          {relances.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-[10px] gap-1"
+              disabled={bulkProcessing}
+              onClick={() => toggleBulkRelanceVisible(relances)}
+            >
+              <CheckSquare className="h-3 w-3" />
+              {allVisibleSelected ? "Désélectionner" : "Tout sélectionner"}
+            </Button>
+          )}
           {bulkRelanceSelected.size > 0 && (
             <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
@@ -124,6 +140,7 @@ export function BlocRelances({
                   </Button>
                 )}
                 <MarkDoneBtn contactId={p.id} bloc="Relance" markDone={markDone} label="Prospect traité" />
+                <PostponeBtn contactId={p.id} bloc="Relance" postponeAction={postponeAction} />
               </div>
             </div>
           );
