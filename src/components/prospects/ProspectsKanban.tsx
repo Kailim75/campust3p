@@ -98,8 +98,25 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
     setSelectedProspect(null);
   };
 
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "medium" | "none-action">("all");
+
+  const matchesPriority = (p: Prospect) => {
+    if (priorityFilter === "all") return true;
+    const pr = getProspectPriority(p);
+    if (priorityFilter === "high") return pr.level === "high";
+    if (priorityFilter === "medium") return pr.level === "medium";
+    if (priorityFilter === "none-action") return !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu";
+    return true;
+  };
+
   const getProspectsByStatus = (status: ProspectStatus) =>
-    prospects.filter((p) => p.statut === status);
+    prospects.filter((p) => p.statut === status && matchesPriority(p));
+
+  const counts = {
+    high: prospects.filter((p) => getProspectPriority(p).level === "high").length,
+    medium: prospects.filter((p) => getProspectPriority(p).level === "medium").length,
+    none: prospects.filter((p) => !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu").length,
+  };
 
   if (isLoading) {
     return (
