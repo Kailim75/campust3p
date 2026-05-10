@@ -25,7 +25,7 @@ export function useAujourdhuiData() {
         supabase.from("paiements").select("facture_id, montant"),
         supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
         supabase.from("sessions").select("id, nom, date_debut, date_fin, statut, formateur_id, objectifs, prerequis, lieu, duree_heures").eq("archived", false).neq("statut", "annulee"),
-        supabase.from("session_inscriptions").select("contact_id, session_id"),
+        supabase.from("session_inscriptions").select("contact_id, session_id").is("deleted_at", null),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
         supabase.from("examens_pratique").select("contact_id, resultat"),
