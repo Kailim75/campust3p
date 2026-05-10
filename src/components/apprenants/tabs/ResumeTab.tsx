@@ -44,7 +44,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
         supabase.from("contact_documents").select("type_document").eq("contact_id", contactId),
         supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contactId),
         supabase.from("paiements").select("facture_id, montant"),
-        supabase.from("session_inscriptions").select("id, session_id, sessions(nom, date_debut)").eq("contact_id", contactId).limit(1),
+        supabase.from("session_inscriptions").select("id, session_id, sessions(nom, date_debut)").eq("contact_id", contactId).is("deleted_at", null).limit(1),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")
           .eq("contact_id", contactId).eq("alerte_active", true).not("date_rappel", "is", null)
           .order("date_rappel", { ascending: true }).limit(1),
