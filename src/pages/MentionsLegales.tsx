@@ -115,7 +115,17 @@ export default function MentionsLegales() {
             {activeMention ? (
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(activeMention.contenu) }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(renderMarkdown(activeMention.contenu), {
+                    ALLOWED_TAGS: [
+                      "h1", "h2", "h3", "h4", "h5", "h6",
+                      "p", "br", "hr", "strong", "em", "u", "s",
+                      "ul", "ol", "li", "blockquote", "pre", "code",
+                      "a", "span", "div",
+                    ],
+                    ALLOWED_ATTR: ["href", "title", "target", "rel", "class"],
+                  }),
+                }}
               />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
