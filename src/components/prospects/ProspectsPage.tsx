@@ -90,10 +90,6 @@ function getNextActionLabel(prospect: Prospect): React.ReactNode {
     </span>
   );
 }
-
-// Re-export from shared util to keep API compatibility
-import { getProspectPriority } from "@/lib/prospect-priority";
-
 export function ProspectsPage() {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: stats } = useProspectsStats();
