@@ -161,6 +161,9 @@ export function ProspectsPage() {
         const d = new Date(p.next_action_at);
         return d >= todayS && d <= weekE;
       }
+      if (quickFilter === "no_action") {
+        return !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu";
+      }
       if (quickFilter === "mine") {
         return currentUserId && p.assigned_to === currentUserId;
       }
