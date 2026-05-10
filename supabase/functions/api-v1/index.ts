@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,23 +7,49 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
 };
 
-// Tables exposées via l'API publique (CRUD complet, scopé par centre_id)
-const ALLOWED_RESOURCES = new Set([
-  "contacts",
-  "prospects",
-  "sessions",
-  "session_inscriptions",
-  "factures",
-  "paiements",
-  "catalogue_formations",
-  "formateurs",
-  "vehicules",
-  "creneaux_conduite",
-  "contact_documents",
-  "contact_historique",
-  "emargements",
-  "rappels",
-]);
+// ---------------------------------------------------------------------------
+// Resource scoping configuration
+// ---------------------------------------------------------------------------
+// Some tables have `centre_id` directly. Others must be scoped through a
+// related entity (session, contact, facture). We declare per-resource how to
+// enforce centre isolation so we never leak data across centres.
+// ---------------------------------------------------------------------------
+
+type ScopeConfig =
+  | { kind: "direct" }
+  | {
+      kind: "via";
+      // FK column on this table
+      fkColumn: string;
+      // Parent table holding centre_id
+      parentTable: "sessions" | "contacts" | "factures";
+    };
+
+const RESOURCE_SCOPE: Record<string, ScopeConfig> = {
+  // Direct centre_id
+  contacts: { kind: "direct" },
+  prospects: { kind: "direct" },
+  sessions: { kind: "direct" },
+  factures: { kind: "direct" },
+  catalogue_formations: { kind: "direct" },
+  formateurs: { kind: "direct" },
+  vehicules: { kind: "direct" },
+  creneaux_conduite: { kind: "direct" },
+  rappels: { kind: "direct" },
+
+  // Indirect via session
+  session_inscriptions: { kind: "via", fkColumn: "session_id", parentTable: "sessions" },
+  emargements: { kind: "via", fkColumn: "session_id", parentTable: "sessions" },
+
+  // Indirect via contact
+  contact_documents: { kind: "via", fkColumn: "contact_id", parentTable: "contacts" },
+  contact_historique: { kind: "via", fkColumn: "contact_id", parentTable: "contacts" },
+
+  // Indirect via facture
+  paiements: { kind: "via", fkColumn: "facture_id", parentTable: "factures" },
+};
+
+const ALLOWED_RESOURCES = new Set(Object.keys(RESOURCE_SCOPE));
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -37,6 +63,102 @@ async function sha256(text: string): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+// ---------------------------------------------------------------------------
+// Centre scoping helpers
+// ---------------------------------------------------------------------------
+
+/** Build the select clause: for indirect resources, embed parent for inner join. */
+function selectWithScope(resource: string, baseSelect = "*"): string {
+  const scope = RESOURCE_SCOPE[resource];
+  if (scope.kind === "direct") return baseSelect;
+  // PostgREST inner join — restricts rows to those whose parent matches the filter.
+  return `${baseSelect}, ${scope.parentTable}!inner(centre_id)`;
+}
+
+/** Apply the centre_id filter to a select query, accounting for indirect scopes. */
+function applyCentreScope<T>(query: any, resource: string, centreId: string) {
+  const scope = RESOURCE_SCOPE[resource];
+  if (scope.kind === "direct") {
+    return query.eq("centre_id", centreId);
+  }
+  return query.eq(`${scope.parentTable}.centre_id`, centreId);
+}
+
+/**
+ * For indirect resources on POST: verify the parent FK provided in payload
+ * actually belongs to the caller's centre. Returns null if OK, otherwise an
+ * error response.
+ */
+async function verifyParentBelongsToCentre(
+  admin: SupabaseClient,
+  resource: string,
+  payload: Record<string, unknown>,
+  centreId: string,
+): Promise<Response | null> {
+  const scope = RESOURCE_SCOPE[resource];
+  if (scope.kind === "direct") return null;
+
+  const parentId = payload[scope.fkColumn];
+  if (!parentId || typeof parentId !== "string") {
+    return json(400, {
+      error: `Champ '${scope.fkColumn}' requis pour créer une ressource '${resource}'`,
+    });
+  }
+  const { data, error } = await admin
+    .from(scope.parentTable)
+    .select("centre_id")
+    .eq("id", parentId)
+    .maybeSingle();
+
+  if (error) return json(400, { error: error.message });
+  if (!data) return json(404, { error: `${scope.parentTable} introuvable` });
+  if ((data as any).centre_id !== centreId) {
+    return json(403, { error: "Accès refusé : la ressource parente appartient à un autre centre" });
+  }
+  return null;
+}
+
+/**
+ * For indirect resources on PATCH/DELETE/GET-by-id: verify the record exists
+ * AND its parent belongs to the caller's centre. Returns null if OK, otherwise
+ * an error response.
+ */
+async function verifyRecordInCentre(
+  admin: SupabaseClient,
+  resource: string,
+  recordId: string,
+  centreId: string,
+): Promise<Response | null> {
+  const scope = RESOURCE_SCOPE[resource];
+  if (scope.kind === "direct") {
+    const { data, error } = await admin
+      .from(resource)
+      .select("centre_id")
+      .eq("id", recordId)
+      .maybeSingle();
+    if (error) return json(400, { error: error.message });
+    if (!data) return json(404, { error: "Introuvable" });
+    if ((data as any).centre_id !== centreId) {
+      return json(404, { error: "Introuvable" });
+    }
+    return null;
+  }
+
+  const { data, error } = await admin
+    .from(resource)
+    .select(`id, ${scope.parentTable}!inner(centre_id)`)
+    .eq("id", recordId)
+    .maybeSingle();
+  if (error) return json(400, { error: error.message });
+  if (!data) return json(404, { error: "Introuvable" });
+  const parent = (data as any)[scope.parentTable];
+  const parentCentreId = Array.isArray(parent) ? parent[0]?.centre_id : parent?.centre_id;
+  if (parentCentreId !== centreId) {
+    return json(404, { error: "Introuvable" });
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -74,7 +196,6 @@ serve(async (req) => {
     // 3. Parser l'URL : /api-v1/<resource>/<id?>
     const url = new URL(req.url);
     const pathParts = url.pathname.replace(/^\/+|\/+$/g, "").split("/");
-    // Format attendu : ["api-v1", "<resource>", "<id?>"]
     const apiIndex = pathParts.indexOf("api-v1");
     const resource = pathParts[apiIndex + 1];
     const recordId = pathParts[apiIndex + 2];
@@ -115,8 +236,9 @@ serve(async (req) => {
         admin.from("contacts").select("*").eq("id", recordId).eq("centre_id", centreId).maybeSingle(),
         admin
           .from("session_inscriptions")
-          .select("id, session_id, statut, statut_paiement, date_inscription, track, sessions(id, nom, formation_type, date_debut, date_fin)")
+          .select("id, session_id, statut, statut_paiement, date_inscription, track, sessions!inner(id, nom, formation_type, date_debut, date_fin, centre_id)")
           .eq("contact_id", recordId)
+          .eq("sessions.centre_id", centreId)
           .is("deleted_at", null),
         admin
           .from("factures")
@@ -168,18 +290,27 @@ serve(async (req) => {
       factures: ["numero_facture"],
     };
 
-    // 4. Routage CRUD — tout est scopé par centre_id
+    const scope = RESOURCE_SCOPE[resource];
+
+    // 4. Routage CRUD — tout est scopé par centre_id (direct ou indirect)
     switch (method) {
       case "GET": {
         if (recordId) {
           const { data, error } = await admin
             .from(resource)
-            .select("*")
+            .select(selectWithScope(resource))
             .eq("id", recordId)
-            .eq("centre_id", centreId)
             .maybeSingle();
           if (error) return json(400, { error: error.message });
           if (!data) return json(404, { error: "Introuvable" });
+          // For indirect scopes, verify parent's centre_id
+          if (scope.kind === "via") {
+            const parent = (data as any)[scope.parentTable];
+            const parentCentreId = Array.isArray(parent) ? parent[0]?.centre_id : parent?.centre_id;
+            if (parentCentreId !== centreId) return json(404, { error: "Introuvable" });
+          } else if ((data as any).centre_id !== centreId) {
+            return json(404, { error: "Introuvable" });
+          }
           return json(200, { data });
         }
 
@@ -191,10 +322,11 @@ serve(async (req) => {
 
         let query = admin
           .from(resource)
-          .select("*", { count: "exact" })
-          .eq("centre_id", centreId)
+          .select(selectWithScope(resource), { count: "exact" })
           .range(offset, offset + limit - 1)
           .order(orderCol || "created_at", { ascending: orderDir !== "desc" });
+
+        query = applyCentreScope(query, resource, centreId);
 
         // Recherche full-text (ILIKE multi-colonnes via .or())
         if (searchTerm && SEARCH_COLUMNS[resource]) {
@@ -222,7 +354,18 @@ serve(async (req) => {
         if (!body || typeof body !== "object") {
           return json(400, { error: "Body JSON invalide" });
         }
-        const payload = { ...body, centre_id: centreId };
+        // Build payload — for direct scopes inject centre_id; for indirect scopes
+        // verify parent belongs to centre and DON'T inject centre_id (no such column).
+        let payload: Record<string, unknown>;
+        if (scope.kind === "direct") {
+          payload = { ...body, centre_id: centreId };
+        } else {
+          payload = { ...body };
+          // Remove any spurious centre_id the caller might pass (column doesn't exist)
+          delete (payload as any).centre_id;
+          const verifyErr = await verifyParentBelongsToCentre(admin, resource, payload, centreId);
+          if (verifyErr) return verifyErr;
+        }
         const { data, error } = await admin
           .from(resource)
           .insert(payload)
@@ -239,13 +382,24 @@ serve(async (req) => {
         if (!body || typeof body !== "object") {
           return json(400, { error: "Body JSON invalide" });
         }
-        // On ignore toute tentative de changer centre_id (immuable)
+        // Vérifie d'abord que l'enregistrement appartient bien au centre
+        const scopeErr = await verifyRecordInCentre(admin, resource, recordId, centreId);
+        if (scopeErr) return scopeErr;
+
+        // On ignore toute tentative de changer centre_id (immuable / inexistant)
         const { centre_id: _omit, ...patch } = body as Record<string, unknown>;
+
+        // Pour les ressources indirectes, si le caller change le FK parent,
+        // re-vérifier que le nouveau parent est bien dans le centre.
+        if (scope.kind === "via" && patch[scope.fkColumn]) {
+          const verifyErr = await verifyParentBelongsToCentre(admin, resource, patch, centreId);
+          if (verifyErr) return verifyErr;
+        }
+
         const { data, error } = await admin
           .from(resource)
           .update(patch)
           .eq("id", recordId)
-          .eq("centre_id", centreId)
           .select()
           .maybeSingle();
         if (error) return json(400, { error: error.message });
@@ -255,11 +409,9 @@ serve(async (req) => {
 
       case "DELETE": {
         if (!recordId) return json(400, { error: "ID manquant dans l'URL" });
-        const { error } = await admin
-          .from(resource)
-          .delete()
-          .eq("id", recordId)
-          .eq("centre_id", centreId);
+        const scopeErr = await verifyRecordInCentre(admin, resource, recordId, centreId);
+        if (scopeErr) return scopeErr;
+        const { error } = await admin.from(resource).delete().eq("id", recordId);
         if (error) return json(400, { error: error.message });
         return json(200, { success: true });
       }
