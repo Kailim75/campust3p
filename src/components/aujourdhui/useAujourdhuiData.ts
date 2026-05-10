@@ -2,7 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, differenceInCalendarDays, isToday, isPast, parseISO } from "date-fns";
 import { fetchTodayAutoNotes, fetchRecentAutoNotes, isProspectRdv } from "@/lib/aujourdhui-actions";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import {
+  countReceivedCmaDocs,
+  getCmaDossierShortLabelForTrack,
+  getCmaRequiredDocsForTrack,
+  getMissingCmaDocs,
+} from "@/lib/cma-constants";
+import { resolveFormationTrack, type FormationTrack } from "@/lib/formation-track";
 import { computeContactUrgency } from "@/lib/urgency-utils";
 import {
   computeSessionReadinessScore,
@@ -68,6 +74,18 @@ export function useAujourdhuiData() {
         docsMap.get(d.contact_id)!.add(d.type_document);
       });
 
+      const contactTrackById = new Map<string, FormationTrack>();
+      inscriptions.forEach((i: any) => {
+        const contact = contactsById.get(i.contact_id);
+        const track = resolveFormationTrack(i.track, contact?.formation);
+        const currentTrack = contactTrackById.get(i.contact_id);
+        if (!currentTrack || currentTrack !== "initial") {
+          contactTrackById.set(i.contact_id, track);
+        }
+      });
+      const getContactTrack = (contact: any) =>
+        contactTrackById.get(contact.id) || resolveFormationTrack(null, contact.formation);
+
       // Build paiements map
       const paiementsMap = new Map<string, number>();
       paiements.forEach((p: any) => {
@@ -105,8 +123,10 @@ export function useAujourdhuiData() {
         if (contactHasOpenFacture.has(c.id)) return true;
         if (contactHasRappel.has(c.id)) return true;
         const contactDocs = docsMap.get(c.id) || new Set();
-        const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
-        if (missingDocs.length > 0 && missingDocs.length < CMA_REQUIRED_DOCS.length) return true;
+        const track = getContactTrack(c);
+        const requiredDocs = getCmaRequiredDocsForTrack(track);
+        const missingDocs = getMissingCmaDocs(contactDocs, track);
+        if (missingDocs.length > 0 && missingDocs.length < requiredDocs.length) return true;
         if (c.updated_at && c.updated_at >= thirtyDaysAgo) return true;
         return false;
       };
@@ -117,14 +137,18 @@ export function useAujourdhuiData() {
         .filter(c => c.statut !== "Abandonné" && c.statut !== "En attente de validation" && !terminatedStatuses.includes((c as any).statut_apprenant || ''))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
-          const missingDocs = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
+          const track = getContactTrack(c);
+          const requiredDocs = getCmaRequiredDocsForTrack(track);
+          const missingDocs = getMissingCmaDocs(contactDocs, track);
+          const docCount = countReceivedCmaDocs(contactDocs, track);
+          const dossierShortLabel = getCmaDossierShortLabelForTrack(track);
           const statStr = String(c.statut || "").toLowerCase();
           const cmaCategory: CmaFilter =
             statStr.includes("rejet") || statStr.includes("complex") ? "rejete" :
             statStr.includes("en cours") || statStr.includes("document") || statStr.includes("en formation") ? "en_cours" :
             "docs_manquants";
           const lastCmaNote = todayNotes
-            .filter(n => n.contact_id === c.id && n.titre.includes("CMA"))
+            .filter(n => n.contact_id === c.id && (n.titre.includes("CMA") || n.titre.includes("Carte Pro")))
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || null;
 
           const urgency = computeContactUrgency({
@@ -134,7 +158,18 @@ export function useAujourdhuiData() {
             cmaRejected: cmaCategory === "rejete",
           });
 
-          return { ...c, missingDocs, docCount: contactDocs.size, _isActive: isContactActive(c), cmaCategory, lastCmaNote, urgency };
+          return {
+            ...c,
+            track,
+            missingDocs,
+            docCount,
+            requiredDocCount: requiredDocs.length,
+            dossierShortLabel,
+            _isActive: isContactActive(c),
+            cmaCategory,
+            lastCmaNote,
+            urgency,
+          };
         })
         .filter(c => c.missingDocs.length > 0)
         .sort((a, b) => {
@@ -173,14 +208,16 @@ export function useAujourdhuiData() {
         .filter(c => !cmaContactIds.has(c.id))
         .map(c => {
           const contactDocs = docsMap.get(c.id) || new Set();
-          const missingCMA = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
+          const track = getContactTrack(c);
+          const missingCMA = getMissingCmaDocs(contactDocs, track);
+          const dossierShortLabel = getCmaDossierShortLabelForTrack(track);
           const contactFactures = factures.filter((f: any) => f.contact_id === c.id);
           const hasLatePayment = contactFactures.some((f: any) =>
             f.statut === "emise" && f.date_echeance && f.date_echeance < todayStr
           );
           const isInscribed = inscribedContactIds.has(c.id);
           const reasons: string[] = [];
-          if (missingCMA.length > 0) reasons.push("Docs CMA manquants");
+          if (missingCMA.length > 0) reasons.push(`${dossierShortLabel} incomplet`);
           if (hasLatePayment) reasons.push("Paiement en retard");
           if (isInscribed && missingCMA.length > 0) reasons.push("Session proche + dossier incomplet");
 
@@ -190,7 +227,7 @@ export function useAujourdhuiData() {
             hasSessionSoon: isInscribed,
           });
 
-          return { ...c, reasons, missingCMA, hasLatePayment, _isActive: isContactActive(c), urgency };
+          return { ...c, track, dossierShortLabel, reasons, missingCMA, hasLatePayment, _isActive: isContactActive(c), urgency };
         })
         .filter(c => c.reasons.length > 0)
         .sort((a, b) => {
@@ -290,10 +327,9 @@ export function useAujourdhuiData() {
               const contact = contactsById.get(inscription.contact_id);
               if (!contact) return null;
               const contactDocs = docsMap.get(contact.id) || new Set();
-              const shouldCheckCmaDocs = inscription.track === "initial";
-              const missingDocs = shouldCheckCmaDocs
-                ? CMA_REQUIRED_DOCS.filter((d) => !contactDocs.has(d))
-                : [];
+              const track = resolveFormationTrack(inscription.track, contact.formation);
+              const requiredDocs = getCmaRequiredDocsForTrack(track);
+              const missingDocs = getMissingCmaDocs(contactDocs, track);
               const linkedFactures = facturesByInscriptionId.get(inscription.id) || [];
               const factureSettled =
                 linkedFactures.length > 0 &&
@@ -306,6 +342,9 @@ export function useAujourdhuiData() {
                 nom: contact.nom,
                 email: contact.email,
                 telephone: contact.telephone,
+                track,
+                requiredDocCount: requiredDocs.length,
+                dossierShortLabel: getCmaDossierShortLabelForTrack(track),
                 missingDocs,
                 statutPaiement,
               };

@@ -16,7 +16,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CMA_PIECES, CMA_DOC_LABELS } from "@/lib/cma-constants";
+import {
+  CMA_DOC_LABELS,
+  getCmaDossierLabelForTrack,
+  getCmaDossierShortLabelForTrack,
+  getCmaPiecesForTrack,
+  hasCmaDocument,
+} from "@/lib/cma-constants";
+import { getTrackFromFormationType } from "@/lib/formation-track";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -33,6 +40,10 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
   const { data: historique = [] } = useContactHistorique(contactId);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
+  const track = getTrackFromFormationType(formation);
+  const dossierLabel = getCmaDossierLabelForTrack(track);
+  const dossierShortLabel = getCmaDossierShortLabelForTrack(track);
+  const dossierLabelLower = track === "continuing" ? "dossier de renouvellement carte pro" : "dossier CMA";
 
   const docsMap = useMemo(() => {
     const map = new Map<string, { id: string; date: string; commentaires: string | null }>();
@@ -44,21 +55,26 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
     return map;
   }, [documents]);
 
-  const pieces = CMA_PIECES.map(p => ({
-    ...p,
-    received: docsMap.has(p.type),
-    doc: docsMap.get(p.type),
-  }));
+  const pieces = getCmaPiecesForTrack(track).map(p => {
+    const matchingDocument = documents.find((d: any) => hasCmaDocument([d.type_document], p.type));
+    return {
+      ...p,
+      received: hasCmaDocument(Array.from(docsMap.keys()), p.type),
+      doc: matchingDocument
+        ? { id: matchingDocument.id, date: matchingDocument.created_at, commentaires: matchingDocument.commentaires }
+        : undefined,
+    };
+  });
 
   const receivedCount = pieces.filter(p => p.received).length;
   const totalPieces = pieces.length;
   const progressPct = Math.round((receivedCount / totalPieces) * 100);
   const missingPieces = pieces.filter(p => !p.received);
 
-  // Last CMA relance from [AUTO] notes
+  // Last dossier relance from [AUTO] notes
   const lastRelance = useMemo(() => {
     const cmaAutoNotes = historique
-      .filter((h: any) => h.titre?.startsWith("[AUTO]") && h.titre?.includes("CMA"))
+      .filter((h: any) => h.titre?.startsWith("[AUTO]") && (h.titre?.includes("CMA") || h.titre?.includes("Carte Pro")))
       .sort((a: any, b: any) => new Date(b.date_echange).getTime() - new Date(a.date_echange).getTime());
     return cmaAutoNotes[0] || null;
   }, [historique]);
@@ -79,7 +95,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
         type_document: type,
         nom: label,
         file_path: `cma/${type}_${Date.now()}`,
-        commentaires: "Reçu — marqué manuellement (CMA)",
+        commentaires: `Reçu — marqué manuellement (${dossierShortLabel})`,
       });
       if (error) throw error;
     },
@@ -94,8 +110,8 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
     const missingList = missingPieces.map(p => CMA_DOC_LABELS[p.type] || p.label).join(", ");
     openComposer({
       recipients: [{ id: contactId, email: contactEmail || "", prenom: contactPrenom, nom: "" }],
-      defaultSubject: `Documents CMA manquants — ${contactPrenom}`,
-      defaultBody: `Bonjour ${contactPrenom},\n\nPour compléter votre dossier CMA, il nous manque les documents suivants :\n\n${missingPieces.map(p => `- ${p.label}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`,
+      defaultSubject: `Documents manquants — ${contactPrenom}`,
+      defaultBody: `Bonjour ${contactPrenom},\n\nPour compléter votre ${dossierLabelLower}, il nous manque les documents suivants :\n\n${missingPieces.map(p => `- ${p.label}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`,
       autoNoteCategory: "cma_relance_docs",
       autoNoteExtra: `Docs manquants: ${missingList}`,
       onSuccess: invalidate,
@@ -105,8 +121,8 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
   const handleRelanceCMA = async () => {
     openComposer({
       recipients: [{ id: contactId, email: contactEmail || "", prenom: contactPrenom, nom: "" }],
-      defaultSubject: `Relance dossier CMA — ${contactPrenom}`,
-      defaultBody: `Bonjour ${contactPrenom},\n\nNous revenons vers vous concernant votre dossier CMA. Il manque encore ${missingPieces.length} document(s).\n\nMerci de les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
+      defaultSubject: `Relance dossier — ${contactPrenom}`,
+      defaultBody: `Bonjour ${contactPrenom},\n\nNous revenons vers vous concernant votre ${dossierLabelLower}. Il manque encore ${missingPieces.length} document(s).\n\nMerci de les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
       autoNoteCategory: "cma_relance",
       autoNoteExtra: `${missingPieces.length} pièce(s) manquante(s)`,
       onSuccess: invalidate,
@@ -121,7 +137,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">Dossier CMA</p>
+            <p className="text-sm font-semibold text-foreground">{dossierLabel}</p>
             <p className="text-xs text-muted-foreground">
               {receivedCount}/{totalPieces} pièces reçues
             </p>
@@ -191,7 +207,7 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
                       disabled={!!alreadyRelancedToday}
                       onClick={handleRelanceCMA}
                     >
-                      <Send className="h-3 w-3 mr-1" /> Relance CMA
+                      <Send className="h-3 w-3 mr-1" /> Relance dossier
                     </Button>
                   </span>
                 </TooltipTrigger>
@@ -262,11 +278,11 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
         ))}
       </div>
 
-      {/* CMA status info */}
+      {/* Dossier status info */}
       <Card className="p-4 bg-muted/30">
         <p className="text-xs text-muted-foreground">
           <FileText className="h-3 w-3 inline mr-1" />
-          Le statut CMA est déterminé automatiquement par la complétude des {totalPieces} pièces obligatoires.
+          Le statut du dossier est déterminé automatiquement par la complétude des {totalPieces} pièces obligatoires.
           {progressPct === 100 
             ? " Le dossier est complet et prêt pour soumission."
             : ` Il manque ${missingPieces.length} pièce(s) obligatoire(s).`

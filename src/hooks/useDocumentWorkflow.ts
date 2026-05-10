@@ -14,7 +14,7 @@ import {
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
 import type { ContractContext } from "@/lib/document-workflow/contractDocumentFilter";
-import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
+import { resolveFormationTrack, type FormationTrack } from "@/lib/formation-track";
 
 interface UseDocumentWorkflowParams {
   contactId: string | null;
@@ -87,7 +87,7 @@ export function useDocumentWorkflow({
           .eq("id", sessionId)
           .single();
         sessionData = s ? { ...s, prix_total: s.prix ?? null } as EligibilitySession : null;
-        track = s?.track ?? getTrackFromFormationType(s?.formation_type);
+        track = resolveFormationTrack(s?.track, s?.formation_type);
       }
 
       // 6. Fetch contract qualification from inscription

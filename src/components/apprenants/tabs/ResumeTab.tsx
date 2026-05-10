@@ -13,7 +13,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isToday, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
+import {
+  CMA_DOC_LABELS,
+  countReceivedCmaDocs,
+  getCmaDossierShortLabelForTrack,
+  getCmaRequiredDocsForTrack,
+  getMissingCmaDocs,
+} from "@/lib/cma-constants";
+import { resolveFormationTrack } from "@/lib/formation-track";
+import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
 
@@ -38,24 +46,45 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["apprenant-resume", contactId],
+    queryKey: ["apprenant-resume", contactId, formation],
     queryFn: async () => {
-      const [docsRes, facturesRes, paiementsRes, inscRes, rappelsRes, notesRes] = await Promise.all([
+      const [contactRes, docsRes, facturesRes, paiementsRes, inscRes, rappelsRes, notesRes, carteProRes] = await Promise.all([
+        supabase.from("contacts").select("numero_carte_professionnelle, prefecture_carte, date_expiration_carte").eq("id", contactId).single(),
         supabase.from("contact_documents").select("type_document").eq("contact_id", contactId),
         supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contactId),
         supabase.from("paiements").select("facture_id, montant"),
-        supabase.from("session_inscriptions").select("id, session_id, sessions(nom, date_debut)").eq("contact_id", contactId).is("deleted_at", null).limit(1),
+        supabase.from("session_inscriptions").select("id, session_id, track, sessions(nom, date_debut, formation_type)").eq("contact_id", contactId).is("deleted_at", null).limit(1),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")
           .eq("contact_id", contactId).eq("alerte_active", true).not("date_rappel", "is", null)
           .order("date_rappel", { ascending: true }).limit(1),
         supabase.from("contact_historique").select("id, titre, contenu, date_echange")
           .eq("contact_id", contactId).like("titre", "[AUTO]%")
           .order("date_echange", { ascending: false }).limit(10),
+        supabase.from("cartes_professionnelles").select("numero_carte, prefecture, date_expiration").eq("contact_id", contactId).order("created_at", { ascending: false }).limit(1),
       ]);
 
       const docTypes = new Set((docsRes.data || []).map((d: any) => d.type_document));
-      const cmaReceived = CMA_REQUIRED_DOCS.filter(d => docTypes.has(d)).length;
-      const missingCMA = CMA_REQUIRED_DOCS.filter(d => !docTypes.has(d));
+      const inscription = inscRes.data?.[0] || null;
+      const sessionFormation = ((inscription as any)?.sessions as any)?.formation_type || formation;
+      const track = resolveFormationTrack((inscription as any)?.track, sessionFormation);
+      const dossierShortLabel = getCmaDossierShortLabelForTrack(track);
+      const requirementLabels = track === "initial" ? CMA_DOC_LABELS : getRequirementLabels(track);
+      const requiredTotal = track === "initial" ? getCmaRequiredDocsForTrack(track).length : 3;
+      const cartePro = carteProRes.data?.[0] || null;
+      const contact = contactRes.data || null;
+      const continuingCompletion = computeTrackCompletion("continuing", {
+        carteProData: {
+          numero_carte: (cartePro as any)?.numero_carte || (contact as any)?.numero_carte_professionnelle,
+          prefecture: (cartePro as any)?.prefecture || (contact as any)?.prefecture_carte,
+          date_expiration: (cartePro as any)?.date_expiration || (contact as any)?.date_expiration_carte,
+        },
+      });
+      const cmaReceived = track === "initial"
+        ? countReceivedCmaDocs(docTypes, track)
+        : continuingCompletion.received;
+      const missingCMA = track === "initial"
+        ? getMissingCmaDocs(docTypes, track)
+        : continuingCompletion.missing;
 
       const factures = facturesRes.data || [];
       const paiementsList = paiementsRes.data || [];
@@ -63,14 +92,13 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
       const totalPaye = paiementsList.reduce((s, p) => s + Number((p as any).montant || 0), 0);
       const restant = totalFacture - totalPaye;
 
-      const inscription = inscRes.data?.[0] || null;
       const nextRappel = rappelsRes.data?.[0] || null;
 
       const autoNotes = (notesRes.data || []) as Array<{ id: string; titre: string; contenu: string | null; date_echange: string }>;
       const todayNotes = autoNotes.filter(n => isToday(new Date(n.date_echange)));
 
       // Anti-double-relance
-      const alreadyRelancedCMA = todayNotes.some(n => n.titre.includes("CMA"));
+      const alreadyRelancedCMA = todayNotes.some(n => n.titre.includes("CMA") || n.titre.includes("Carte Pro"));
       const alreadyRelancedPaiement = todayNotes.some(n => n.titre.includes("relance paiement"));
 
       // Last contact (latest note of any kind)
@@ -81,6 +109,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
         inscription, nextRappel, hasFacture: factures.length > 0,
         todayNotes, alreadyRelancedCMA, alreadyRelancedPaiement,
         lastContact,
+        track, dossierShortLabel, requiredTotal, requirementLabels,
       };
     },
   });
@@ -108,20 +137,21 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
   const {
     missingCMA = [], cmaReceived = 0, restant = 0, inscription, nextRappel,
     hasFacture, todayNotes = [], alreadyRelancedCMA, alreadyRelancedPaiement,
-    lastContact,
+    lastContact, track = "initial", dossierShortLabel = "CMA", requiredTotal = 5,
+    requirementLabels = CMA_DOC_LABELS,
   } = data || {};
 
   // ─── A) Single Priority Action ───
   let priorityAction: PriorityAction | null = null;
 
   if (missingCMA.length > 0) {
-    const missingLabels = missingCMA.map(d => CMA_DOC_LABELS[d] || d).join(", ");
+    const missingLabels = missingCMA.map(d => requirementLabels[d] || d).join(", ");
     priorityAction = {
-      label: `Demander docs manquants (${missingCMA.length})`,
-      description: `CMA ${cmaReceived}/5 — Manquants : ${missingLabels}`,
-      tab: "cma",
+      label: track === "continuing" ? `Compléter carte pro (${missingCMA.length})` : `Demander docs manquants (${missingCMA.length})`,
+      description: `${dossierShortLabel} ${cmaReceived}/${requiredTotal} — Manquants : ${missingLabels}`,
+      tab: track === "continuing" ? "carte-pro" : "cma",
       variant: "destructive",
-      actionCategory: "cma_relance_docs",
+      actionCategory: track === "continuing" ? "carte_pro_relance" : "cma_relance_docs",
       actionExtra: `Docs: ${missingLabels}`,
     };
   } else if (restant > 0) {
@@ -143,16 +173,16 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
   }
 
   const isActionDisabled = priorityAction?.actionCategory
-    ? (priorityAction.actionCategory.includes("cma") ? alreadyRelancedCMA : alreadyRelancedPaiement)
+    ? (priorityAction.actionCategory.includes("cma") || priorityAction.actionCategory.includes("carte_pro") ? alreadyRelancedCMA : alreadyRelancedPaiement)
     : false;
 
   // ─── B) Checklist courte ───
   const checklist = [
     {
-      label: "CMA",
+      label: dossierShortLabel,
       done: missingCMA.length === 0,
-      detail: missingCMA.length > 0 ? `${cmaReceived}/5 — ${missingCMA.length} manquant(s)` : "5/5 complet",
-      tab: "cma",
+      detail: missingCMA.length > 0 ? `${cmaReceived}/${requiredTotal} — ${missingCMA.length} manquant(s)` : `${requiredTotal}/${requiredTotal} complet`,
+      tab: track === "continuing" ? "carte-pro" : "cma",
     },
     {
       label: "Paiement",

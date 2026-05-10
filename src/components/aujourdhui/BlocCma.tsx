@@ -8,7 +8,7 @@ import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CMA_REQUIRED_DOCS, CMA_DOC_LABELS } from "@/lib/cma-constants";
+import { CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
 import { UrgencyDot, LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps, CmaFilter } from "./aujourdhui-types";
@@ -59,7 +59,7 @@ export function BlocCma({
             <FileCheck className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">CMA à traiter</h3>
+            <h3 className="text-sm font-semibold text-foreground">Dossiers à traiter</h3>
             <p className="text-[11px] text-muted-foreground">{cmaCountAll} dossier{cmaCountAll > 1 ? "s" : ""} incomplet{cmaCountAll > 1 ? "s" : ""}</p>
           </div>
         </div>
@@ -104,7 +104,7 @@ export function BlocCma({
         {cmaItems.length === 0 ? (
           <div className="p-5 text-center text-muted-foreground text-xs">
             <CheckCircle2 className="h-6 w-6 mx-auto mb-1.5 text-success/50" />
-            {cmaFilter === "all" ? "Tous les dossiers CMA sont complets" : "Aucun dans cette catégorie"}
+            {cmaFilter === "all" ? "Tous les dossiers sont complets" : "Aucun dans cette catégorie"}
           </div>
         ) : cmaItems.map((item) => {
           const relancedToday = isCmaRelancedToday(item.id);
@@ -125,8 +125,9 @@ export function BlocCma({
                 </div>
                 <div className="flex items-center gap-1.5">
                   {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                  {item.dossierShortLabel && <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary">{item.dossierShortLabel}</Badge>}
                   <Badge variant="outline" className="text-[9px] bg-muted text-muted-foreground">
-                    {item.docCount}/{CMA_REQUIRED_DOCS.length}
+                    {item.docCount}/{item.requiredDocCount || 5}
                   </Badge>
                 </div>
               </div>

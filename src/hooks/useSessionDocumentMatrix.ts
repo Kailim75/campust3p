@@ -14,7 +14,7 @@ import {
 } from "@/lib/document-workflow/documentWorkflowMapper";
 import type { SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 import type { EligibilityContact, EligibilitySession } from "@/lib/document-workflow/documentEligibility";
-import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
+import { resolveFormationTrack, type FormationTrack } from "@/lib/formation-track";
 
 interface UseSessionDocumentMatrixParams {
   sessionId: string | null;
@@ -56,7 +56,7 @@ export function useSessionDocumentMatrix({
       };
       const centreId = sessionRaw.centre_id as string;
       // Resolve formation track
-      const track: FormationTrack = sessionRaw.track ?? getTrackFromFormationType(sessionRaw.formation_type);
+      const track: FormationTrack = resolveFormationTrack(sessionRaw.track, sessionRaw.formation_type);
 
       // Fetch inscriptions with contact data + contract qualification
       const { data: inscriptions, error: inscError } = await (supabase as any)

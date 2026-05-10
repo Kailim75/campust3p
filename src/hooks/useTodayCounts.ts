@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import { getMissingCmaDocs } from "@/lib/cma-constants";
+import { resolveFormationTrack, type FormationTrack } from "@/lib/formation-track";
 
 /**
  * Lightweight counts for the global Today badge in the header.
@@ -17,7 +18,7 @@ export function useTodayCounts() {
     queryFn: async () => {
       const todayStr = new Date().toISOString().split("T")[0];
 
-      const [rappelsRes, contactsRes, docsRes] = await Promise.all([
+      const [rappelsRes, contactsRes, docsRes, inscriptionsRes] = await Promise.all([
         supabase
           .from("contact_historique")
           .select("contact_id, date_rappel", { count: "exact", head: false })
@@ -26,13 +27,17 @@ export function useTodayCounts() {
           .lte("date_rappel", todayStr),
         supabase
           .from("contacts")
-          .select("id, statut_cma")
+          .select("id, statut_cma, formation")
           .eq("archived", false)
           .is("deleted_at", null)
           .in("statut_cma", ["docs_manquants", "en_cours", "rejete"]),
         supabase
           .from("contact_documents")
           .select("contact_id, type_document")
+          .is("deleted_at", null),
+        supabase
+          .from("session_inscriptions")
+          .select("contact_id, track")
           .is("deleted_at", null),
       ]);
 
@@ -45,10 +50,21 @@ export function useTodayCounts() {
         docsMap.get(d.contact_id)!.add(d.type_document);
       });
 
-      const required = CMA_REQUIRED_DOCS as readonly string[];
+      const contactsById = new Map((contactsRes.data ?? []).map((c: any) => [c.id, c]));
+      const trackByContactId = new Map<string, FormationTrack>();
+      (inscriptionsRes.data ?? []).forEach((inscription: any) => {
+        const contact = contactsById.get(inscription.contact_id) as any;
+        const track = resolveFormationTrack(inscription.track, contact?.formation);
+        const currentTrack = trackByContactId.get(inscription.contact_id);
+        if (!currentTrack || currentTrack !== "initial") {
+          trackByContactId.set(inscription.contact_id, track);
+        }
+      });
+
       const cma = (contactsRes.data ?? []).filter((c: any) => {
         const owned = docsMap.get(c.id) ?? new Set<string>();
-        return required.some((doc) => !owned.has(doc));
+        const track = trackByContactId.get(c.id) || resolveFormationTrack(null, c.formation);
+        return getMissingCmaDocs(owned, track).length > 0;
       }).length;
 
       return { rappels, cma, total: rappels + cma };

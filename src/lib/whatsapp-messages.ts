@@ -12,6 +12,7 @@ type RappelRdvContext = PersonContext & {
 
 type CmaDocsContext = PersonContext & {
   missingDocsLabels?: string[];
+  dossierLabel?: string | null;
 };
 
 function salutation(prenom?: string | null) {
@@ -53,8 +54,9 @@ export function buildRdvConfirmationWhatsAppMessage({ prenom, dateLabel }: Rappe
   ].join("\n");
 }
 
-export function buildCmaDocsWhatsAppMessage({ prenom, missingDocsLabels = [] }: CmaDocsContext): string {
+export function buildCmaDocsWhatsAppMessage({ prenom, missingDocsLabels = [], dossierLabel }: CmaDocsContext): string {
   const docs = missingDocsLabels.filter(Boolean);
+  const label = dossierLabel || "dossier CMA";
   const docsBlock = docs.length
     ? `\n\nDocuments manquants :\n${docs.map((label) => `- ${label}`).join("\n")}`
     : "";
@@ -62,7 +64,7 @@ export function buildCmaDocsWhatsAppMessage({ prenom, missingDocsLabels = [] }: 
   return [
     salutation(prenom),
     "",
-    `Pour finaliser votre dossier CMA, il nous manque encore certains éléments.${docsBlock}`,
+    `Pour finaliser votre ${label}, il nous manque encore certains éléments.${docsBlock}`,
     "",
     "Merci de nous les transmettre dès que possible.",
     "",

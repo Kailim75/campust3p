@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PeriodValue, getPreviousPeriod } from "./useDashboardPeriodV2";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import { getMissingCmaDocs } from "@/lib/cma-constants";
 
 export interface DashboardMetrics {
   // Pilotage
@@ -142,7 +142,7 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
   let dossiersInitialManquants = 0;
   initialContactIds.forEach(cid => {
     const contactDocs = docsMap.get(cid) || new Set();
-    if (CMA_REQUIRED_DOCS.some(d => !contactDocs.has(d))) dossiersInitialManquants++;
+    if (getMissingCmaDocs(contactDocs, "initial").length > 0) dossiersInitialManquants++;
   });
 
   const cartesMap = new Map<string, any[]>();

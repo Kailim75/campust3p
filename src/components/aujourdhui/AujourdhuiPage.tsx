@@ -125,11 +125,12 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     openComposer({
       recipients: selected.map(s => {
         const missingLabels = (s.missingDocs || []).map((d: string) => CMA_DOC_LABELS[d] || d);
-        const customBody = `Bonjour ${s.prenom},\n\nPour compléter votre dossier CMA, il nous manque les documents suivants :\n\n${missingLabels.map((l: string) => `- ${l}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`;
+        const dossierLabel = s.dossierShortLabel === "Carte Pro" ? "dossier de renouvellement carte pro" : "dossier CMA";
+        const customBody = `Bonjour ${s.prenom},\n\nPour compléter votre ${dossierLabel}, il nous manque les documents suivants :\n\n${missingLabels.map((l: string) => `- ${l}`).join('\n')}\n\nMerci de nous les transmettre dans les meilleurs délais.\n\nCordialement,\nT3P Campus`;
         return { id: s.id, email: s.email, prenom: s.prenom, nom: s.nom, customBody };
       }),
-      defaultSubject: "Documents CMA manquants",
-      defaultBody: "Bonjour,\n\nIl manque des documents pour compléter votre dossier CMA.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
+      defaultSubject: "Documents manquants",
+      defaultBody: "Bonjour,\n\nIl manque des documents pour compléter votre dossier.\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus",
       autoNoteCategory: "cma_relance_docs",
       autoNoteExtra: "Docs manquants (bulk)",
       onSuccess: () => { setBulkCmaSelected(new Set()); invalidate(); },
@@ -155,10 +156,11 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   // ─── Action handlers ───
   const handleCmaRelanceDocs = (item: any) => {
     const missingList = item.missingDocs.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");
+    const dossierLabel = item.dossierShortLabel === "Carte Pro" ? "dossier de renouvellement carte pro" : "dossier CMA";
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
-      defaultSubject: "Documents CMA manquants",
-      defaultBody: `Bonjour ${item.prenom},\n\nIl manque les documents suivants pour compléter votre dossier CMA :\n${item.missingDocs.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('\n')}\n\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
+      defaultSubject: "Documents manquants",
+      defaultBody: `Bonjour ${item.prenom},\n\nIl manque les documents suivants pour compléter votre ${dossierLabel} :\n${item.missingDocs.map((d: string) => `- ${CMA_DOC_LABELS[d] || d}`).join('\n')}\n\nMerci de nous les transmettre rapidement.\n\nCordialement,\nT3P Campus`,
       autoNoteCategory: "cma_relance_docs",
       autoNoteExtra: `Docs manquants: ${missingList}`,
       onSuccess: invalidate,
@@ -167,8 +169,9 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
 
   const handleCmaWhatsApp = (item: any) => {
     const missingLabels = (item.missingDocs || []).map((d: string) => CMA_DOC_LABELS[d] || d);
-    logAction(item.id, "apprenant_whatsapp", `Docs CMA manquants: ${missingLabels.join(", ")}`);
-    openWhatsApp(item.telephone, buildCmaDocsWhatsAppMessage({ prenom: item.prenom, missingDocsLabels: missingLabels }));
+    const dossierLabel = item.dossierShortLabel === "Carte Pro" ? "dossier de renouvellement carte pro" : "dossier CMA";
+    logAction(item.id, "apprenant_whatsapp", `Docs ${item.dossierShortLabel || "CMA"} manquants: ${missingLabels.join(", ")}`);
+    openWhatsApp(item.telephone, buildCmaDocsWhatsAppMessage({ prenom: item.prenom, missingDocsLabels: missingLabels, dossierLabel }));
   };
 
   const handleRdvConfirm = (p: any) => {
@@ -238,12 +241,13 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
       .filter((contact) => contact.email)
       .map((contact) => {
         const missingLabels = contact.missingDocs.map((d) => CMA_DOC_LABELS[d] || d);
+        const dossierLabel = contact.dossierShortLabel === "Carte Pro" ? "dossier de renouvellement carte pro" : "dossier";
         return {
           id: contact.id,
           email: contact.email!,
           prenom: contact.prenom,
           nom: contact.nom,
-          customBody: `Bonjour ${contact.prenom},\n\nVotre session "${session.nom}" est prévue ${session.timingLabel.toLowerCase()} (${format(parseISO(session.date_debut), "EEEE d MMMM", { locale: fr })}).\n\nPour finaliser votre dossier avant la session, il nous manque :\n\n${missingLabels.map((label) => `- ${label}`).join("\n")}\n\nMerci de nous transmettre ces éléments rapidement.\n\nCordialement,\nT3P Campus`,
+          customBody: `Bonjour ${contact.prenom},\n\nVotre session "${session.nom}" est prévue ${session.timingLabel.toLowerCase()} (${format(parseISO(session.date_debut), "EEEE d MMMM", { locale: fr })}).\n\nPour finaliser votre ${dossierLabel} avant la session, il nous manque :\n\n${missingLabels.map((label) => `- ${label}`).join("\n")}\n\nMerci de nous transmettre ces éléments rapidement.\n\nCordialement,\nT3P Campus`,
         };
       });
 
@@ -301,7 +305,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const handleCarteProMarkDone = async (item: any) => { await logAction(item.id, "carte_pro_envoyee", "Marqué manuellement"); };
 
   const isCmaRelancedToday = (contactId: string) => {
-    return (data?.todayNotes || []).some(n => n.contact_id === contactId && (n.titre.includes("CMA") && n.titre.includes("[AUTO]")));
+    return (data?.todayNotes || []).some(n => n.contact_id === contactId && ((n.titre.includes("CMA") || n.titre.includes("Carte Pro")) && n.titre.includes("[AUTO]")));
   };
 
   if (isLoading) {

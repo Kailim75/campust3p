@@ -1,4 +1,5 @@
 // ─── Centralized track-specific requirements ───
+import { CMA_INITIAL_PIECES, hasCmaDocument } from "./cma-constants";
 import type { FormationTrack } from "./formation-track";
 
 export interface TrackRequirement {
@@ -8,19 +9,15 @@ export interface TrackRequirement {
 }
 
 // Initial track: CMA documents required
-export const INITIAL_REQUIREMENTS: TrackRequirement[] = [
-  { type: "cni", label: "Pièce d'identité (recto/verso)", required: true },
-  { type: "permis_b", label: "Permis de conduire (recto/verso)", required: true },
-  { type: "attestation_domicile", label: "Justificatif de domicile < 3 mois", required: true },
-  { type: "photo", label: "Photo d'identité", required: true },
-  { type: "signature", label: "Signature", required: true },
-];
+export const INITIAL_REQUIREMENTS: TrackRequirement[] = CMA_INITIAL_PIECES.map((piece) => ({
+  ...piece,
+  required: true,
+}));
 
 // Continuing track: Carte Pro fields required
 export const CONTINUING_REQUIREMENTS: TrackRequirement[] = [
   { type: "carte_pro_numero", label: "N° Carte professionnelle", required: true },
   { type: "carte_pro_prefecture", label: "Préfecture / Département", required: true },
-  { type: "carte_pro_date_obtention", label: "Date de délivrance", required: true },
   { type: "carte_pro_date_expiration", label: "Date d'expiration", required: true },
   { type: "carte_pro_scan", label: "Scan de la carte (optionnel)", required: false },
 ];
@@ -60,8 +57,8 @@ export function computeTrackCompletion(
   if (track === "initial") {
     const requiredTypes = INITIAL_REQUIREMENTS.filter(r => r.required).map(r => r.type);
     const docs = opts.uploadedDocTypes || new Set<string>();
-    const received = requiredTypes.filter(t => docs.has(t)).length;
-    const missing = requiredTypes.filter(t => !docs.has(t));
+    const received = requiredTypes.filter(t => hasCmaDocument(docs, t)).length;
+    const missing = requiredTypes.filter(t => !hasCmaDocument(docs, t));
     return {
       received,
       total: requiredTypes.length,
@@ -74,7 +71,6 @@ export function computeTrackCompletion(
     const fields = [
       { key: "numero_carte", type: "carte_pro_numero" },
       { key: "prefecture", type: "carte_pro_prefecture" },
-      { key: "date_obtention", type: "carte_pro_date_obtention" },
       { key: "date_expiration", type: "carte_pro_date_expiration" },
     ];
     const filled = fields.filter(f => {

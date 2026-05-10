@@ -51,7 +51,8 @@ function buildChecklist(session: SessionPrepItem): string {
   if (session.missingDocsContacts.length > 0) {
     lines.push("", "Docs manquants :");
     session.missingDocsContacts.forEach((c) => {
-      lines.push(`- ${c.prenom} ${c.nom}: ${c.missingDocs.map((d) => CMA_DOC_LABELS[d] || d).join(", ")}`);
+      const dossierLabel = c.dossierShortLabel ? `${c.dossierShortLabel} - ` : "";
+      lines.push(`- ${c.prenom} ${c.nom}: ${dossierLabel}${c.missingDocs.map((d) => CMA_DOC_LABELS[d] || d).join(", ")}`);
     });
   }
 

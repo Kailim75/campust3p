@@ -36,6 +36,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { resolveFormationTrack } from "@/lib/formation-track";
 
 const VALID_FORMATIONS = [
   "ACC VTC",
@@ -160,14 +161,14 @@ export function ProspectConvertDialog({
       // Enroll in session if requested
       if (values.enrollInSession && values.sessionId && contact) {
         // Fetch session track for snapshot
-        const { data: sessData } = await supabase.from("sessions").select("track").eq("id", values.sessionId).single();
+        const { data: sessData } = await supabase.from("sessions").select("track, formation_type").eq("id", values.sessionId).single();
         const { error: inscriptionError } = await supabase
           .from("session_inscriptions")
           .insert({
             session_id: values.sessionId,
             contact_id: contact.id,
             statut: "inscrit",
-            track: (sessData as any)?.track || "initial",
+            track: resolveFormationTrack((sessData as any)?.track, (sessData as any)?.formation_type),
           });
 
         if (inscriptionError) {

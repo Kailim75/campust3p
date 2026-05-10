@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getTrackFromFormationType, type FormationTrack } from "@/lib/formation-track";
+import { resolveFormationTrack, type FormationTrack } from "@/lib/formation-track";
 
 export interface ActiveEnrollment {
   id: string;
@@ -41,7 +41,7 @@ export function useActiveEnrollment(contactId: string | undefined) {
         return {
           id: insc.id,
           session_id: insc.session_id,
-          track: (insc.track as FormationTrack) || getTrackFromFormationType(insc.session?.formation_type),
+          track: resolveFormationTrack(insc.track as FormationTrack, insc.session?.formation_type),
           session: insc.session,
         };
       }
@@ -59,7 +59,7 @@ export function useActiveEnrollment(contactId: string | undefined) {
         return {
           id: insc.id,
           session_id: insc.session_id,
-          track: (insc.track as FormationTrack) || getTrackFromFormationType(insc.session?.formation_type),
+          track: resolveFormationTrack(insc.track as FormationTrack, insc.session?.formation_type),
           session: insc.session,
         };
       }

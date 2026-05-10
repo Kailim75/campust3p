@@ -20,6 +20,11 @@ export interface ContactDocument {
 export const documentTypes = [
   { value: "cni", label: "Carte d'identité" },
   { value: "permis", label: "Permis de conduire" },
+  { value: "permis_b", label: "Permis de conduire (recto/verso)" },
+  { value: "attestation_domicile", label: "Justificatif de domicile" },
+  { value: "photo", label: "Photo d'identité" },
+  { value: "signature", label: "Signature" },
+  { value: "carte_professionnelle", label: "Carte professionnelle" },
   { value: "casier", label: "Casier judiciaire" },
   { value: "certificat_medical", label: "Certificat médical" },
   { value: "attestation", label: "Attestation de formation" },

@@ -15,7 +15,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import { getMissingCmaDocs } from "@/lib/cma-constants";
 import { PeriodValue, getPreviousPeriod } from "./useDashboardPeriodV2";
 import {
   isToday,
@@ -433,7 +433,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   let dossiersInitialManquants = 0;
   initialContactIds.forEach((cid) => {
     const contactDocs = docsMap.get(cid) || new Set();
-    if (CMA_REQUIRED_DOCS.some((d) => !contactDocs.has(d)))
+    if (getMissingCmaDocs(contactDocs, "initial").length > 0)
       dossiersInitialManquants++;
   });
 
@@ -598,7 +598,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
 
     if (insc.track === "initial") {
       const contactDocs = docsMap.get(cid) || new Set();
-      const missing = CMA_REQUIRED_DOCS.filter((d) => !contactDocs.has(d));
+      const missing = getMissingCmaDocs(contactDocs, "initial");
       if (missing.length > 0) {
         seenContacts.add(cid);
         todayActions.push({

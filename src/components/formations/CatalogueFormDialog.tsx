@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { getTrackFromFormationType } from "@/lib/formation-track";
 import {
   Dialog,
   DialogContent,
@@ -213,7 +212,7 @@ export function CatalogueFormDialog({
                 setTypeFormation(v);
                 // Auto-suggest track based on type (user can override)
                 if (!isEditing) {
-                  const inferred = ["continue", "mobilite"].includes(v) ? "continuing" : "initial";
+                  const inferred = v === "continue" ? "continuing" : "initial";
                   setTrack(inferred);
                 }
               }}>

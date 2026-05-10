@@ -40,6 +40,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { resolveFormationTrack } from "@/lib/formation-track";
 
 const formationTypes = Constants.public.Enums.formation_type;
 const statutTypes = Constants.public.Enums.contact_statut;
@@ -240,14 +241,14 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
         // Auto-inscribe to selected session
         if (selectedSessionId && selectedSessionId !== "none" && newContact?.id) {
           // Fetch session track for snapshot
-          const { data: sessData } = await supabase.from("sessions").select("track").eq("id", selectedSessionId).single();
+          const { data: sessData } = await supabase.from("sessions").select("track, formation_type").eq("id", selectedSessionId).single();
           const { error: inscError } = await supabase
             .from("session_inscriptions")
             .insert({
               session_id: selectedSessionId,
               contact_id: newContact.id,
               statut: "inscrit",
-              track: (sessData as any)?.track || "initial",
+              track: resolveFormationTrack((sessData as any)?.track, (sessData as any)?.formation_type),
             });
           if (inscError) {
             console.error("Erreur inscription session:", inscError);

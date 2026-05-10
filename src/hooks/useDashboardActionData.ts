@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isToday, isPast, parseISO, addDays, format, differenceInDays } from "date-fns";
-import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
+import { getMissingCmaDocs } from "@/lib/cma-constants";
 
 export interface ActionItem {
   id: string;
@@ -132,7 +132,7 @@ export function useTodayActions() {
 
         if (insc.track === "initial") {
           const contactDocs = docsMap.get(cid) || new Set();
-          const missing = CMA_REQUIRED_DOCS.filter(d => !contactDocs.has(d));
+          const missing = getMissingCmaDocs(contactDocs, "initial");
           if (missing.length > 0) {
             seenContacts.add(cid);
             items.push({

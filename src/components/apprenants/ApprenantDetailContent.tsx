@@ -170,9 +170,14 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       const hasPaid = factures.some((f) => f.statut === "payee" || f.statut === "partiel");
 
       // Track-aware completion
+      const cartePro = carteProRes.data?.[0] || null;
       const trackCompletion = computeTrackCompletion(contactTrack, {
         uploadedDocTypes: docTypes,
-        carteProData: carteProRes.data?.[0] || null,
+        carteProData: {
+          numero_carte: (cartePro as any)?.numero_carte || (contact as any).numero_carte_professionnelle,
+          prefecture: (cartePro as any)?.prefecture || (contact as any).prefecture_carte,
+          date_expiration: (cartePro as any)?.date_expiration || (contact as any).date_expiration_carte,
+        },
       });
 
       const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);

@@ -6,7 +6,7 @@ import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
 export type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
 // Keywords used to detect if an action category was already done today
-export const CMA_KEYWORDS = ["CMA:", "relance docs", "Marqué comme traité"];
+export const CMA_KEYWORDS = ["CMA:", "Carte Pro", "relance docs", "Marqué comme traité"];
 export const RDV_KEYWORDS = ["RDV", "Confirmation", "Marqué comme traité"];
 export const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 export const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
@@ -21,6 +21,9 @@ export interface SessionPrepContact {
   nom: string;
   email: string | null;
   telephone: string | null;
+  track?: "initial" | "continuing";
+  requiredDocCount?: number;
+  dossierShortLabel?: string;
   missingDocs: string[];
   statutPaiement: string | null;
 }
