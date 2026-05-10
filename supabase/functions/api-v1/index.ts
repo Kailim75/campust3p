@@ -51,6 +51,34 @@ const RESOURCE_SCOPE: Record<string, ScopeConfig> = {
 
 const ALLOWED_RESOURCES = new Set(Object.keys(RESOURCE_SCOPE));
 
+// Resources that support soft-delete (have a `deleted_at` column).
+const SOFT_DELETE_RESOURCES = new Set<string>([
+  "contacts",
+  "prospects",
+  "sessions",
+  "factures",
+  "catalogue_formations",
+  "session_inscriptions",
+  "emargements",
+  "contact_documents",
+  "paiements",
+]);
+
+function hasSoftDelete(resource: string): boolean {
+  return SOFT_DELETE_RESOURCES.has(resource);
+}
+
+function shouldIncludeDeleted(params: URLSearchParams): boolean {
+  const v = params.get("include_deleted");
+  return v === "true" || v === "1";
+}
+
+function applySoftDeleteScope(query: any, resource: string, params: URLSearchParams) {
+  if (!hasSoftDelete(resource)) return query;
+  if (shouldIncludeDeleted(params)) return query;
+  return query.is("deleted_at", null);
+}
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -303,12 +331,19 @@ serve(async (req) => {
             .maybeSingle();
           if (error) return json(400, { error: error.message });
           if (!data) return json(404, { error: "Introuvable" });
-          // For indirect scopes, verify parent's centre_id
           if (scope.kind === "via") {
             const parent = (data as any)[scope.parentTable];
             const parentCentreId = Array.isArray(parent) ? parent[0]?.centre_id : parent?.centre_id;
             if (parentCentreId !== centreId) return json(404, { error: "Introuvable" });
           } else if ((data as any).centre_id !== centreId) {
+            return json(404, { error: "Introuvable" });
+          }
+          // Soft-delete: par défaut, ne pas exposer une ligne supprimée
+          if (
+            hasSoftDelete(resource) &&
+            !shouldIncludeDeleted(url.searchParams) &&
+            (data as any).deleted_at != null
+          ) {
             return json(404, { error: "Introuvable" });
           }
           return json(200, { data });
@@ -326,9 +361,13 @@ serve(async (req) => {
           .range(offset, offset + limit - 1)
           .order(orderCol || "created_at", { ascending: orderDir !== "desc" });
 
+        // 1. Centre scoping
         query = applyCentreScope(query, resource, centreId);
 
-        // Recherche full-text (ILIKE multi-colonnes via .or())
+        // 2. Soft-delete par défaut (sauf include_deleted=true)
+        query = applySoftDeleteScope(query, resource, url.searchParams);
+
+        // 3. Recherche full-text
         if (searchTerm && SEARCH_COLUMNS[resource]) {
           const safe = searchTerm.replace(/[%,()]/g, "");
           const orFilter = SEARCH_COLUMNS[resource]
@@ -337,8 +376,8 @@ serve(async (req) => {
           query = query.or(orFilter);
         }
 
-        // Filtres simples ?field=value (réservé : limit/offset/order/search)
-        const RESERVED = new Set(["limit", "offset", "order", "search"]);
+        // 4. Filtres simples ?field=value
+        const RESERVED = new Set(["limit", "offset", "order", "search", "include_deleted"]);
         for (const [key, value] of url.searchParams.entries()) {
           if (RESERVED.has(key)) continue;
           query = query.eq(key, value);
