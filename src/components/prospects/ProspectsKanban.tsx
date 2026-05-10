@@ -7,7 +7,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProspects, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, GraduationCap, MoreHorizontal, Pencil, UserCheck, Trash2 } from "lucide-react";
+import { Phone, Mail, GraduationCap, MoreHorizontal, Pencil, UserCheck, Trash2, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getProspectPriority } from "@/lib/prospect-priority";
+import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -158,8 +161,16 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
                                 }`}
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <div className="font-medium text-sm">
-                                    {prospect.prenom} {prospect.nom}
+                                  <div className="font-medium text-sm flex items-center gap-1.5 min-w-0">
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className={cn("h-2 w-2 rounded-full shrink-0", getProspectPriority(prospect).dotClass)} aria-label={getProspectPriority(prospect).label} />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Priorité : {getProspectPriority(prospect).label}</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <span className="truncate">{prospect.prenom} {prospect.nom}</span>
                                   </div>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
