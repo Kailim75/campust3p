@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getProspectPriority } from "@/lib/prospect-priority";
 import {
   Plus, Search, Users, Phone, Mail, MoreHorizontal, Pencil, Trash2,
   UserCheck, TrendingUp, Clock, XCircle, CheckCircle, LayoutList, Kanban,
