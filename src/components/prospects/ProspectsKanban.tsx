@@ -7,7 +7,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProspects, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
 import { ProspectFormDialog } from "./ProspectFormDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, GraduationCap, MoreHorizontal, Pencil, UserCheck, Trash2 } from "lucide-react";
+import { Phone, Mail, GraduationCap, MoreHorizontal, Pencil, UserCheck, Trash2, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getProspectPriority } from "@/lib/prospect-priority";
+import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
