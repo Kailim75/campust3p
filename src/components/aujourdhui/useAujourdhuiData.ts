@@ -1,11 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, isToday, isPast, parseISO } from "date-fns";
+import { addDays, differenceInCalendarDays, isToday, isPast, parseISO } from "date-fns";
 import { fetchTodayAutoNotes, fetchRecentAutoNotes, isProspectRdv } from "@/lib/aujourdhui-actions";
 import { CMA_REQUIRED_DOCS } from "@/lib/cma-constants";
 import { computeContactUrgency } from "@/lib/urgency-utils";
+import {
+  computeSessionReadinessScore,
+  getSessionReadinessSeverity,
+  isSettledPaymentStatus,
+} from "@/lib/session-readiness";
 import type { Prospect } from "@/hooks/useProspects";
-import type { CmaFilter } from "./aujourdhui-types";
+import type { CmaFilter, SessionPrepContact, SessionPrepItem } from "./aujourdhui-types";
 
 export function useAujourdhuiData() {
   return useQuery({
@@ -19,13 +24,18 @@ export function useAujourdhuiData() {
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
         examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false),
-        supabase.from("contact_documents").select("contact_id, type_document"),
-        supabase.from("factures").select("id, contact_id, montant_total, statut, date_echeance"),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false).is("deleted_at", null),
+        supabase.from("contact_documents").select("contact_id, type_document").is("deleted_at", null),
+        supabase.from("factures").select("id, contact_id, session_inscription_id, montant_total, statut, date_echeance").is("deleted_at", null),
         supabase.from("paiements").select("facture_id, montant"),
         supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
-        supabase.from("sessions").select("id, nom, date_debut, date_fin, statut, formateur_id, objectifs, prerequis, lieu, duree_heures").eq("archived", false).neq("statut", "annulee"),
-        supabase.from("session_inscriptions").select("contact_id, session_id").is("deleted_at", null),
+        supabase
+          .from("sessions")
+          .select("id, nom, date_debut, date_fin, statut, formateur, formateur_id, objectifs, prerequis, lieu, adresse_rue, adresse_code_postal, adresse_ville, duree_heures, heure_debut, heure_fin, heure_debut_matin, heure_fin_matin, places_totales")
+          .eq("archived", false)
+          .neq("statut", "annulee")
+          .is("deleted_at", null),
+        supabase.from("session_inscriptions").select("id, contact_id, session_id, statut, statut_paiement, track").is("deleted_at", null),
         supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
         fetchTodayAutoNotes(),
         supabase.from("examens_pratique").select("contact_id, resultat"),
@@ -39,10 +49,13 @@ export function useAujourdhuiData() {
       const prospects = (prospectsRes.data || []) as Prospect[];
       const inscriptions = inscriptionsRes.data || [];
       const rappels = rappelsRes.data || [];
+      const sessions = sessionsRes.data || [];
 
       // Contact name map for journal
       const contactNameMap = new Map<string, string>();
+      const contactsById = new Map<string, any>();
       contacts.forEach((c: any) => contactNameMap.set(c.id, `${c.prenom} ${c.nom}`));
+      contacts.forEach((c: any) => contactsById.set(c.id, c));
       prospects.forEach((p: any) => {
         contactNameMap.set(p.id, `${p.prenom} ${p.nom}`);
       });
@@ -72,6 +85,15 @@ export function useAujourdhuiData() {
             contactHasLatePayment.add(f.contact_id);
           }
         }
+      });
+
+      const facturesByInscriptionId = new Map<string, any[]>();
+      factures.forEach((f: any) => {
+        if (!f.session_inscription_id) return;
+        if (!facturesByInscriptionId.has(f.session_inscription_id)) {
+          facturesByInscriptionId.set(f.session_inscription_id, []);
+        }
+        facturesByInscriptionId.get(f.session_inscription_id)!.push(f);
       });
 
       const contactHasRappel = new Set(rappels.map((r: any) => r.contact_id));
@@ -236,7 +258,112 @@ export function useAujourdhuiData() {
         });
 
       // ─── Bloc F: Qualiopi ───
-      const sessions = sessionsRes.data || [];
+      // ─── Bloc H: Préparation sessions J-1 / Jour J ───
+      const today = new Date();
+      const sessionPrepItems: SessionPrepItem[] = sessions
+        .filter((s: any) => s.statut !== "annulee" && s.statut !== "terminee")
+        .map((s: any) => {
+          const startDiff = differenceInCalendarDays(parseISO(s.date_debut), today);
+          const endDiff = differenceInCalendarDays(parseISO(s.date_fin || s.date_debut), today);
+          const isCurrentSession = startDiff <= 0 && endDiff >= 0;
+          const daysUntil = isCurrentSession ? 0 : startDiff;
+          return { session: s, daysUntil };
+        })
+        .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 1)
+        .map(({ session: s, daysUntil }) => {
+          const addressLabel =
+            s.lieu ||
+            [s.adresse_rue, s.adresse_code_postal, s.adresse_ville].filter(Boolean).join(", ") ||
+            null;
+          const setupIssues: string[] = [];
+          if (!s.formateur_id && !s.formateur) setupIssues.push("Formateur non assigné");
+          if (!addressLabel) setupIssues.push("Lieu manquant");
+          if (!s.heure_debut && !s.heure_debut_matin) setupIssues.push("Horaire manquant");
+          if (!s.places_totales || s.places_totales <= 0) setupIssues.push("Places non renseignées");
+
+          const sessionInscriptions = inscriptions.filter((i: any) => i.session_id === s.id);
+          if (sessionInscriptions.length === 0) setupIssues.push("Aucun inscrit");
+
+          const contactsForSession: SessionPrepContact[] = sessionInscriptions
+            .map((inscription: any) => {
+              const contact = contactsById.get(inscription.contact_id);
+              if (!contact) return null;
+              const contactDocs = docsMap.get(contact.id) || new Set();
+              const shouldCheckCmaDocs = inscription.track === "initial";
+              const missingDocs = shouldCheckCmaDocs
+                ? CMA_REQUIRED_DOCS.filter((d) => !contactDocs.has(d))
+                : [];
+              const linkedFactures = facturesByInscriptionId.get(inscription.id) || [];
+              const factureSettled =
+                linkedFactures.length > 0 &&
+                linkedFactures.every((f: any) => f.statut === "payee" || f.statut === "annulee");
+              const statutPaiement = factureSettled ? "paye" : inscription.statut_paiement;
+
+              return {
+                id: contact.id,
+                prenom: contact.prenom,
+                nom: contact.nom,
+                email: contact.email,
+                telephone: contact.telephone,
+                missingDocs,
+                statutPaiement,
+              };
+            })
+            .filter(Boolean) as SessionPrepContact[];
+
+          const unavailableContactCount = sessionInscriptions.length - contactsForSession.length;
+          if (unavailableContactCount > 0) {
+            setupIssues.push(`${unavailableContactCount} fiche contact non disponible`);
+          }
+
+          const missingDocsContacts = contactsForSession.filter((c) => c.missingDocs.length > 0);
+          const unpaidContacts = contactsForSession.filter((c) => !isSettledPaymentStatus(c.statutPaiement));
+          const missingContactContacts = contactsForSession.filter((c) => !c.email || !c.telephone);
+          const readinessScore = computeSessionReadinessScore({
+            inscriptionCount: sessionInscriptions.length,
+            missingDocsCount: missingDocsContacts.length,
+            unpaidCount: unpaidContacts.length,
+            missingContactCount: missingContactContacts.length,
+            setupIssuesCount: setupIssues.length,
+          });
+          const issueCount =
+            setupIssues.length +
+            missingDocsContacts.length +
+            unpaidContacts.length +
+            missingContactContacts.length;
+
+          return {
+            id: s.id,
+            nom: s.nom,
+            date_debut: s.date_debut,
+            date_fin: s.date_fin,
+            heure_debut: s.heure_debut || s.heure_debut_matin,
+            heure_fin: s.heure_fin || s.heure_fin_matin,
+            lieu: s.lieu,
+            addressLabel,
+            daysUntil,
+            timingLabel: daysUntil === 0 ? "Aujourd'hui" : "Demain",
+            inscriptionCount: sessionInscriptions.length,
+            placesTotales: s.places_totales || 0,
+            readinessScore,
+            severity: getSessionReadinessSeverity({ daysUntil, readinessScore, issueCount }),
+            setupIssues,
+            missingDocsContacts,
+            unpaidContacts,
+            missingContactContacts,
+          };
+        })
+        .sort((a, b) => {
+          if (a.daysUntil !== b.daysUntil) return a.daysUntil - b.daysUntil;
+          if (a.severity !== b.severity) {
+            const order = { critical: 0, warning: 1, ready: 2 };
+            return order[a.severity] - order[b.severity];
+          }
+          return a.readinessScore - b.readinessScore;
+        })
+        .slice(0, 5);
+
+      // ─── Bloc F: Qualiopi ───
       const qualiopiSessions = sessions
         .filter((s: any) => s.statut !== "annulee" && s.statut !== "terminee")
         .map((s: any) => {
@@ -260,6 +387,10 @@ export function useAujourdhuiData() {
         ...critiques.map(c => c.id),
         ...carteProItems.map((c: any) => c.id),
         ...reprogramItems.map((r: any) => r.contactId),
+        ...sessionPrepItems.flatMap((s) => [
+          ...s.missingDocsContacts.map((c) => c.id),
+          ...s.unpaidContacts.map((c) => c.id),
+        ]),
       ];
       const contactsWithoutTodayNote = allContactIds.filter(
         id => !todayNotes.some(n => n.contact_id === id)
@@ -273,11 +404,12 @@ export function useAujourdhuiData() {
         critiques,
         carteProItems,
         reprogramItems,
+        sessionPrepItems,
         qualiopiSessions,
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + qualiopiSessions.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length,
       };
     },
     staleTime: 30_000,

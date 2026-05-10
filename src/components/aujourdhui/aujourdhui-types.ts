@@ -13,6 +13,37 @@ export const CARTE_PRO_KEYWORDS = ["Carte Pro"];
 
 export type AutoNote = { contact_id: string; titre: string; created_at: string; id?: string };
 
+export interface SessionPrepContact {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  missingDocs: string[];
+  statutPaiement: string | null;
+}
+
+export interface SessionPrepItem {
+  id: string;
+  nom: string;
+  date_debut: string;
+  date_fin: string;
+  heure_debut: string | null;
+  heure_fin: string | null;
+  lieu: string | null;
+  addressLabel: string | null;
+  daysUntil: number;
+  timingLabel: string;
+  inscriptionCount: number;
+  placesTotales: number;
+  readinessScore: number;
+  severity: "ready" | "warning" | "critical";
+  setupIssues: string[];
+  missingDocsContacts: SessionPrepContact[];
+  unpaidContacts: SessionPrepContact[];
+  missingContactContacts: SessionPrepContact[];
+}
+
 export interface BlocSharedProps {
   todayNotes: AutoNote[];
   recentNotes: AutoNote[];

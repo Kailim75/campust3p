@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Header } from "@/components/layout/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -21,7 +23,7 @@ import type { Prospect } from "@/hooks/useProspects";
 
 import { useAujourdhuiData } from "./useAujourdhuiData";
 import { CMA_KEYWORDS, RDV_KEYWORDS, RELANCE_KEYWORDS, CRITIQUE_KEYWORDS, CARTE_PRO_KEYWORDS } from "./aujourdhui-types";
-import type { CmaFilter } from "./aujourdhui-types";
+import type { CmaFilter, SessionPrepItem } from "./aujourdhui-types";
 import { BlocCma } from "./BlocCma";
 import { BlocRdv } from "./BlocRdv";
 import { BlocRelances } from "./BlocRelances";
@@ -29,6 +31,7 @@ import { BlocCritiques } from "./BlocCritiques";
 import { BlocCartePro } from "./BlocCartePro";
 import { BlocReprogrammer } from "./BlocReprogrammer";
 import { BlocQualiopi } from "./BlocQualiopi";
+import { BlocSessionPreparation } from "./BlocSessionPreparation";
 import { HintBubble } from "@/components/shared/HintBubble";
 
 interface AujourdhuiPageProps {
@@ -199,6 +202,61 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     });
   };
 
+  const handleSessionRelanceDocs = useCallback((session: SessionPrepItem) => {
+    const recipients = session.missingDocsContacts
+      .filter((contact) => contact.email)
+      .map((contact) => {
+        const missingLabels = contact.missingDocs.map((d) => CMA_DOC_LABELS[d] || d);
+        return {
+          id: contact.id,
+          email: contact.email!,
+          prenom: contact.prenom,
+          nom: contact.nom,
+          customBody: `Bonjour ${contact.prenom},\n\nVotre session "${session.nom}" est prévue ${session.timingLabel.toLowerCase()} (${format(parseISO(session.date_debut), "EEEE d MMMM", { locale: fr })}).\n\nPour finaliser votre dossier avant la session, il nous manque :\n\n${missingLabels.map((label) => `- ${label}`).join("\n")}\n\nMerci de nous transmettre ces éléments rapidement.\n\nCordialement,\nT3P Campus`,
+        };
+      });
+
+    if (recipients.length === 0) {
+      toast.error("Aucun apprenant à relancer avec email");
+      return;
+    }
+
+    openComposer({
+      recipients,
+      defaultSubject: `Documents à fournir avant la session ${session.nom}`,
+      defaultBody: `Bonjour,\n\nVotre session "${session.nom}" approche. Merci de nous transmettre les documents manquants afin de finaliser votre dossier.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "session_relance_cma",
+      autoNoteExtra: `Session: ${session.nom}`,
+      onSuccess: invalidate,
+    });
+  }, [invalidate, openComposer]);
+
+  const handleSessionRelancePaiement = useCallback((session: SessionPrepItem) => {
+    const recipients = session.unpaidContacts
+      .filter((contact) => contact.email)
+      .map((contact) => ({
+        id: contact.id,
+        email: contact.email!,
+        prenom: contact.prenom,
+        nom: contact.nom,
+        customBody: `Bonjour ${contact.prenom},\n\nVotre session "${session.nom}" est prévue ${session.timingLabel.toLowerCase()} (${format(parseISO(session.date_debut), "EEEE d MMMM", { locale: fr })}).\n\nSauf erreur de notre part, votre paiement n'est pas encore finalisé. Merci de régulariser votre situation avant la session.\n\nCordialement,\nT3P Campus`,
+      }));
+
+    if (recipients.length === 0) {
+      toast.error("Aucun apprenant à relancer avec email");
+      return;
+    }
+
+    openComposer({
+      recipients,
+      defaultSubject: `Paiement à finaliser avant la session ${session.nom}`,
+      defaultBody: `Bonjour,\n\nVotre session "${session.nom}" approche. Merci de finaliser votre paiement avant le démarrage.\n\nCordialement,\nT3P Campus`,
+      autoNoteCategory: "apprenant_relance_paiement",
+      autoNoteExtra: `Session: ${session.nom}`,
+      onSuccess: invalidate,
+    });
+  }, [invalidate, openComposer]);
+
   const handleCarteProEmail = (item: any) => {
     openComposer({
       recipients: [{ id: item.id, email: item.email, prenom: item.prenom, nom: item.nom }],
@@ -230,6 +288,7 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
     critiques: rawCritiques = [], carteProItems: rawCartePro = [],
     reprogramItems: rawReprogram = [],
+    sessionPrepItems = [],
     qualiopiSessions = [],
     todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
@@ -262,8 +321,8 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
 
   const reprogramItems = rawReprogram;
-  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + qualiopiSessions.length;
-  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + qualiopiSessions.length;
+  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length;
+  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   return (
@@ -313,6 +372,13 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
       </div>
 
       <div className="px-8 pb-8 space-y-5">
+        <BlocSessionPreparation
+          sessions={sessionPrepItems}
+          onRelanceDocs={handleSessionRelanceDocs}
+          onRelancePaiement={handleSessionRelancePaiement}
+          onNavigate={onNavigate}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <BlocCma
             allCmaFiltered={allCmaFiltered} cmaItems={cmaItems} cmaHiddenCount={cmaHiddenCount}
