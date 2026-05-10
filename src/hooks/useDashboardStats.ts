@@ -95,7 +95,8 @@ export function useFormationStats() {
             formation_type,
             prix
           )
-        `);
+        `)
+        .is("deleted_at", null);
 
       if (error) throw error;
 
