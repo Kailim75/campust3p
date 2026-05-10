@@ -36,9 +36,10 @@ import { HintBubble } from "@/components/shared/HintBubble";
 
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
+  onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
 }
 
-export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
+export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
   const { data, isLoading } = useAujourdhuiData();
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
@@ -376,7 +377,13 @@ export function AujourdhuiPage({ onNavigate }: AujourdhuiPageProps) {
           sessions={sessionPrepItems}
           onRelanceDocs={handleSessionRelanceDocs}
           onRelancePaiement={handleSessionRelancePaiement}
-          onNavigate={onNavigate}
+          onOpenSession={(session) => {
+            if (onNavigateWithParams) {
+              onNavigateWithParams("sessions", { id: session.id });
+            } else {
+              onNavigate?.("sessions");
+            }
+          }}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

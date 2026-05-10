@@ -25,7 +25,7 @@ interface BlocSessionPreparationProps {
   sessions: SessionPrepItem[];
   onRelanceDocs: (session: SessionPrepItem) => void;
   onRelancePaiement: (session: SessionPrepItem) => void;
-  onNavigate?: (section: string) => void;
+  onOpenSession?: (session: SessionPrepItem) => void;
 }
 
 const severityStyles = {
@@ -78,7 +78,7 @@ export function BlocSessionPreparation({
   sessions,
   onRelanceDocs,
   onRelancePaiement,
-  onNavigate,
+  onOpenSession,
 }: BlocSessionPreparationProps) {
   if (sessions.length === 0) return null;
 
@@ -231,14 +231,14 @@ export function BlocSessionPreparation({
                   <Copy className="h-3 w-3 mr-1" />
                   Copier checklist
                 </Button>
-                {onNavigate && (
+                {onOpenSession && (
                   <Button
                     size="sm"
                     variant="ghost"
                     className="h-7 text-[10px]"
-                    onClick={() => onNavigate("sessions")}
+                    onClick={() => onOpenSession(session)}
                   >
-                    Ouvrir sessions
+                    Ouvrir session
                   </Button>
                 )}
               </div>
@@ -278,4 +278,3 @@ function StatusPill({
     </div>
   );
 }
-

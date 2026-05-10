@@ -230,11 +230,14 @@ const Index = () => {
   const handleContactOpened = () => setSelectedContactId(null);
 
   const handleNavigateWithParams = (section: string, params: Record<string, string>) => {
-    setActiveSection(section);
-    if (params.tab) setActiveTab(params.tab);
-    const next = new URLSearchParams(searchParams);
+    const redirect = LEGACY_REDIRECTS[section];
+    const targetSection = redirect?.section ?? section;
+    setActiveSectionState(targetSection);
+    if (params.tab || redirect?.tab) setActiveTab(params.tab ?? redirect?.tab);
+    const next = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => next.set(k, v));
-    setSearchParams(next, { replace: true });
+    const path = SECTION_TO_PATH[targetSection] ?? "/";
+    navigate({ pathname: path, search: next.toString() ? `?${next.toString()}` : "" });
   };
 
   const renderContent = () => {
@@ -247,7 +250,7 @@ const Index = () => {
         break;
       case "aujourdhui":
         pageName = "AujourdhuiPage";
-        node = <AujourdhuiPage onNavigate={setActiveSection} />;
+        node = <AujourdhuiPage onNavigate={setActiveSection} onNavigateWithParams={handleNavigateWithParams} />;
         break;
       case "contacts":
         pageName = "ApprenantsPage";
