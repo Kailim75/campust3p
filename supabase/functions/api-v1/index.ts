@@ -51,6 +51,34 @@ const RESOURCE_SCOPE: Record<string, ScopeConfig> = {
 
 const ALLOWED_RESOURCES = new Set(Object.keys(RESOURCE_SCOPE));
 
+// Resources that support soft-delete (have a `deleted_at` column).
+const SOFT_DELETE_RESOURCES = new Set<string>([
+  "contacts",
+  "prospects",
+  "sessions",
+  "factures",
+  "catalogue_formations",
+  "session_inscriptions",
+  "emargements",
+  "contact_documents",
+  "paiements",
+]);
+
+function hasSoftDelete(resource: string): boolean {
+  return SOFT_DELETE_RESOURCES.has(resource);
+}
+
+function shouldIncludeDeleted(params: URLSearchParams): boolean {
+  const v = params.get("include_deleted");
+  return v === "true" || v === "1";
+}
+
+function applySoftDeleteScope(query: any, resource: string, params: URLSearchParams) {
+  if (!hasSoftDelete(resource)) return query;
+  if (shouldIncludeDeleted(params)) return query;
+  return query.is("deleted_at", null);
+}
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
