@@ -91,26 +91,8 @@ function getNextActionLabel(prospect: Prospect): React.ReactNode {
   );
 }
 
-type Priority = { level: "high" | "medium" | "low" | "none"; label: string; dotClass: string };
-
-function getProspectPriority(prospect: Prospect): Priority {
-  if (prospect.statut === "converti" || prospect.statut === "perdu") {
-    return { level: "none", label: "—", dotClass: "bg-muted" };
-  }
-  if (!prospect.next_action_at) {
-    return { level: "low", label: "Sans prochaine action", dotClass: "bg-muted-foreground/40" };
-  }
-  const d = new Date(prospect.next_action_at);
-  const now = new Date();
-  if (isBefore(d, now)) {
-    return { level: "high", label: "En retard", dotClass: "bg-destructive" };
-  }
-  const diffH = (d.getTime() - now.getTime()) / (1000 * 60 * 60);
-  if (diffH <= 24) {
-    return { level: "medium", label: "Dans les 24h", dotClass: "bg-warning" };
-  }
-  return { level: "low", label: "À venir", dotClass: "bg-success" };
-}
+// Re-export from shared util to keep API compatibility
+import { getProspectPriority } from "@/lib/prospect-priority";
 
 export function ProspectsPage() {
   const { data: prospects = [], isLoading } = useProspects();
