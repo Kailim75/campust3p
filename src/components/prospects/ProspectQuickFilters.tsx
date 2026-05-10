@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, CalendarDays, User } from "lucide-react";
+import { AlertTriangle, CalendarCheck, CalendarDays, CircleSlash, User } from "lucide-react";
 
-export type QuickFilter = "all" | "actifs" | "overdue" | "today" | "week" | "mine";
+export type QuickFilter = "all" | "actifs" | "overdue" | "today" | "week" | "no_action" | "mine";
 
 interface ProspectQuickFiltersProps {
   activeFilter: QuickFilter;
@@ -11,15 +11,17 @@ interface ProspectQuickFiltersProps {
     overdue: number;
     today: number;
     week: number;
+    no_action?: number;
   };
 }
 
-const FILTERS: { value: QuickFilter; label: string; icon: React.ReactNode; countKey?: "overdue" | "today" | "week" }[] = [
+const FILTERS: { value: QuickFilter; label: string; icon: React.ReactNode; countKey?: "overdue" | "today" | "week" | "no_action" }[] = [
   { value: "actifs", label: "Actifs", icon: null },
   { value: "all", label: "Tous", icon: null },
   { value: "overdue", label: "En retard", icon: <AlertTriangle className="h-3 w-3" />, countKey: "overdue" },
   { value: "today", label: "Aujourd'hui", icon: <CalendarCheck className="h-3 w-3" />, countKey: "today" },
   { value: "week", label: "Cette semaine", icon: <CalendarDays className="h-3 w-3" />, countKey: "week" },
+  { value: "no_action", label: "Sans prochaine action", icon: <CircleSlash className="h-3 w-3" />, countKey: "no_action" },
   { value: "mine", label: "Assigné à moi", icon: <User className="h-3 w-3" /> },
 ];
 
