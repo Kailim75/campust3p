@@ -9,7 +9,7 @@ import { ProspectFormDialog } from "./ProspectFormDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Phone, Mail, GraduationCap, MoreHorizontal, Pencil, UserCheck, Trash2, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getProspectPriority } from "@/lib/prospect-priority";
+import { getProspectPriority, getProspectPrioritySortValue } from "@/lib/prospect-priority";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -105,17 +105,19 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
     const pr = getProspectPriority(p);
     if (priorityFilter === "high") return pr.level === "high";
     if (priorityFilter === "medium") return pr.level === "medium";
-    if (priorityFilter === "none-action") return !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu";
+    if (priorityFilter === "none-action") return !p.next_action_at && !p.date_prochaine_relance && p.statut !== "converti" && p.statut !== "perdu";
     return true;
   };
 
   const getProspectsByStatus = (status: ProspectStatus) =>
-    prospects.filter((p) => p.statut === status && matchesPriority(p));
+    prospects
+      .filter((p) => p.statut === status && matchesPriority(p))
+      .sort((a, b) => getProspectPrioritySortValue(a) - getProspectPrioritySortValue(b));
 
   const counts = {
     high: prospects.filter((p) => getProspectPriority(p).level === "high").length,
     medium: prospects.filter((p) => getProspectPriority(p).level === "medium").length,
-    none: prospects.filter((p) => !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu").length,
+    none: prospects.filter((p) => !p.next_action_at && !p.date_prochaine_relance && p.statut !== "converti" && p.statut !== "perdu").length,
   };
 
   if (isLoading) {

@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
+import { openWhatsApp } from "@/lib/phone-utils";
 
 interface RelanceItem {
   id: string;
@@ -138,8 +139,7 @@ export function RelancesDrawer({ open, onOpenChange, rappels, financials }: Rela
 
   const handleWhatsApp = (item: RelanceItem) => {
     const msg = editedMessages[item.id] || generateMessage(item);
-    const phone = (item.contactTelephone || "").replace(/\s/g, "").replace(/^0/, "33");
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    openWhatsApp(item.contactTelephone, msg);
   };
 
   const handleEmail = (item: RelanceItem) => {

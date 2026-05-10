@@ -19,6 +19,11 @@ import {
 } from "@/lib/aujourdhui-actions";
 import { CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { openWhatsApp } from "@/lib/phone-utils";
+import {
+  buildCmaDocsWhatsAppMessage,
+  buildProspectFollowUpWhatsAppMessage,
+  buildRdvConfirmationWhatsAppMessage,
+} from "@/lib/whatsapp-messages";
 import type { Prospect } from "@/hooks/useProspects";
 
 import { useAujourdhuiData } from "./useAujourdhuiData";
@@ -37,6 +42,13 @@ import { HintBubble } from "@/components/shared/HintBubble";
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
   onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
+}
+
+function formatDateLabel(value: string | null | undefined, fallback = "aujourd'hui") {
+  if (!value) return fallback;
+  const date = parseISO(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return `le ${format(date, "EEEE d MMMM", { locale: fr })}`;
 }
 
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
@@ -152,7 +164,11 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     });
   };
 
-  const handleCmaWhatsApp = (item: any) => { logAction(item.id, "apprenant_whatsapp"); openWhatsApp(item.telephone); };
+  const handleCmaWhatsApp = (item: any) => {
+    const missingLabels = (item.missingDocs || []).map((d: string) => CMA_DOC_LABELS[d] || d);
+    logAction(item.id, "apprenant_whatsapp", `Docs CMA manquants: ${missingLabels.join(", ")}`);
+    openWhatsApp(item.telephone, buildCmaDocsWhatsAppMessage({ prenom: item.prenom, missingDocsLabels: missingLabels }));
+  };
 
   const handleRdvConfirm = (p: any) => {
     openComposer({
@@ -166,7 +182,11 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   };
 
   const handleRdvAppel = (p: any) => { logAction(p.id, "prospect_appel"); };
-  const handleRdvWhatsApp = (p: any) => { logAction(p.id, "prospect_relance_whatsapp"); openWhatsApp(p.telephone); };
+  const handleRdvWhatsApp = (p: any) => {
+    const dateLabel = formatDateLabel(p.date_prochaine_relance);
+    logAction(p.id, "prospect_relance_whatsapp", `RDV: ${p.date_prochaine_relance || "aujourd'hui"}`);
+    openWhatsApp(p.telephone, buildRdvConfirmationWhatsAppMessage({ prenom: p.prenom, dateLabel }));
+  };
 
   const handleRelanceEmail = (p: any) => {
     openComposer({
@@ -179,7 +199,16 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     });
   };
 
-  const handleRelanceWhatsApp = (p: any) => { logAction(p.id, "prospect_relance_whatsapp"); openWhatsApp(p.telephone); };
+  const handleRelanceWhatsApp = (p: any) => {
+    logAction(p.id, "prospect_relance_whatsapp", `Formation: ${p.formation_souhaitee || ""}`);
+    openWhatsApp(
+      p.telephone,
+      buildProspectFollowUpWhatsAppMessage({
+        prenom: p.prenom,
+        formationSouhaitee: p.formation_souhaitee,
+      }),
+    );
+  };
 
   const handleCritiqueDemanderDocs = (item: any) => {
     const missingList = item.missingCMA.map((d: string) => CMA_DOC_LABELS[d] || d).join(", ");

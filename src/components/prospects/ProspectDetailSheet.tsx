@@ -48,6 +48,7 @@ import {
 import { useSheetSize } from "@/hooks/useSheetSize";
 import { SheetSizeSelector } from "@/components/ui/sheet-size-selector";
 import { openWhatsApp } from "@/lib/phone-utils";
+import { buildProspectFollowUpWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { useDeleteProspect, useUpdateProspect, type Prospect, type ProspectStatus } from "@/hooks/useProspects";
 import { useProspectHistorique, type ProspectHistoriqueType } from "@/hooks/useProspectHistorique";
 import { ProspectHistoriqueDialog } from "./ProspectHistoriqueDialog";
@@ -142,6 +143,10 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
   const followUpDate = prospect.date_prochaine_relance ? new Date(prospect.date_prochaine_relance) : null;
   const isFollowUpToday = followUpDate && isToday(followUpDate);
   const isFollowUpPast = followUpDate && isPast(followUpDate) && !isToday(followUpDate);
+  const whatsAppMessage = buildProspectFollowUpWhatsAppMessage({
+    prenom: prospect.prenom,
+    formationSouhaitee: prospect.formation_souhaitee,
+  });
 
   return (
     <>
@@ -205,7 +210,7 @@ export function ProspectDetailSheet({ prospect, open, onOpenChange }: ProspectDe
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => openWhatsApp(prospect.telephone)}
+                    onClick={() => openWhatsApp(prospect.telephone, whatsAppMessage)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     WhatsApp

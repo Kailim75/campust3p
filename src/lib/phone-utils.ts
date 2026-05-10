@@ -36,14 +36,29 @@ export function formatPhoneForWhatsApp(phone: string | null | undefined): string
 }
 
 /**
+ * Builds a WhatsApp URL for the given phone number.
+ * @param phone - The phone number to open WhatsApp with
+ * @param message - Optional pre-filled message
+ * @returns The wa.me URL, or null if the phone number is invalid
+ */
+export function buildWhatsAppUrl(phone: string | null | undefined, message?: string | null): string | null {
+  const formatted = formatPhoneForWhatsApp(phone);
+  if (!formatted) return null;
+
+  // wa.me requires the number WITHOUT the + prefix
+  const waNumber = formatted.replace(/^\+/, "");
+  const text = message?.trim();
+  const query = text ? `?text=${encodeURIComponent(text)}` : "";
+
+  return `https://wa.me/${waNumber}${query}`;
+}
+
+/**
  * Opens WhatsApp with the given phone number
  * @param phone - The phone number to open WhatsApp with
+ * @param message - Optional pre-filled message
  */
-export function openWhatsApp(phone: string | null | undefined): void {
-  const formatted = formatPhoneForWhatsApp(phone);
-  if (formatted) {
-    // wa.me requires the number WITHOUT the + prefix
-    const waNumber = formatted.replace(/^\+/, "");
-    window.open(`https://wa.me/${waNumber}`, "_blank");
-  }
+export function openWhatsApp(phone: string | null | undefined, message?: string | null): void {
+  const url = buildWhatsAppUrl(phone, message);
+  if (url) window.open(url, "_blank");
 }

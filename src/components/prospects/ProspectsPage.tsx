@@ -11,7 +11,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getProspectPriority } from "@/lib/prospect-priority";
+import { getProspectPriority, getProspectPrioritySortValue } from "@/lib/prospect-priority";
+import { openWhatsApp } from "@/lib/phone-utils";
+import { buildProspectFollowUpWhatsAppMessage } from "@/lib/whatsapp-messages";
 import {
   Plus, Search, Users, Phone, Mail, MoreHorizontal, Pencil, Trash2,
   UserCheck, TrendingUp, Clock, XCircle, CheckCircle, LayoutList, Kanban,
@@ -33,7 +35,7 @@ import { ProspectReplanDialog } from "./ProspectReplanDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { formatDistanceToNow, isAfter, isBefore, startOfDay, endOfDay, addDays } from "date-fns";
+import { formatDistanceToNow, isBefore, isToday, startOfDay, endOfDay, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,13 +69,22 @@ function getLeadAge(createdAt: string): string {
   return formatDistanceToNow(new Date(createdAt), { locale: fr });
 }
 
+function getActionDateValue(prospect: Prospect): string | null {
+  return prospect.next_action_at || prospect.date_prochaine_relance;
+}
+
+function isActionOverdue(value: string, now = new Date()) {
+  const date = new Date(value);
+  return isBefore(date, now) && !isToday(date);
+}
+
 function getNextActionLabel(prospect: Prospect): React.ReactNode {
-  if (!prospect.next_action_at) {
+  const actionDate = getActionDateValue(prospect);
+  if (!actionDate) {
     return <span className="text-muted-foreground text-xs">—</span>;
   }
-  const d = new Date(prospect.next_action_at);
-  const now = new Date();
-  const isOverdue = isBefore(d, now);
+  const d = new Date(actionDate);
+  const isOverdue = isActionOverdue(actionDate);
   const label = formatDistanceToNow(d, { addSuffix: true, locale: fr });
   const typeIcon = prospect.next_action_type === "whatsapp" ? (
     <MessageCircle className="h-3 w-3" />
@@ -149,20 +160,23 @@ export function ProspectsPage() {
         return p.statut !== "converti" && p.statut !== "perdu";
       }
       if (quickFilter === "overdue") {
-        return p.next_action_at && isBefore(new Date(p.next_action_at), now) && p.statut !== "converti" && p.statut !== "perdu";
+        const actionDate = getActionDateValue(p);
+        return !!actionDate && isActionOverdue(actionDate, now) && p.statut !== "converti" && p.statut !== "perdu";
       }
       if (quickFilter === "today") {
-        if (!p.next_action_at) return false;
-        const d = new Date(p.next_action_at);
+        const actionDate = getActionDateValue(p);
+        if (!actionDate) return false;
+        const d = new Date(actionDate);
         return d >= todayS && d <= todayE;
       }
       if (quickFilter === "week") {
-        if (!p.next_action_at) return false;
-        const d = new Date(p.next_action_at);
+        const actionDate = getActionDateValue(p);
+        if (!actionDate) return false;
+        const d = new Date(actionDate);
         return d >= todayS && d <= weekE;
       }
       if (quickFilter === "no_action") {
-        return !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu";
+        return !getActionDateValue(p) && p.statut !== "converti" && p.statut !== "perdu";
       }
       if (quickFilter === "mine") {
         return currentUserId && p.assigned_to === currentUserId;
@@ -181,10 +195,8 @@ export function ProspectsPage() {
       const matchesStatus = statusFilter === "all" || prospect.statut === statusFilter;
       return matchesSearch && matchesStatus;
     }).sort((a, b) => {
-      // Sort by urgency: next_action_at asc (overdue first), nulls last
-      const aTime = a.next_action_at ? new Date(a.next_action_at).getTime() : Infinity;
-      const bTime = b.next_action_at ? new Date(b.next_action_at).getTime() : Infinity;
-      if (aTime !== bTime) return aTime - bTime;
+      const priorityDiff = getProspectPrioritySortValue(a) - getProspectPrioritySortValue(b);
+      if (priorityDiff !== 0) return priorityDiff;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [quickFiltered, search, statusFilter]);
@@ -220,8 +232,13 @@ export function ProspectsPage() {
     if (action === "call" && prospect.telephone) {
       window.open(`tel:${prospect.telephone}`, "_blank");
     } else if (action === "whatsapp" && prospect.telephone) {
-      const phone = prospect.telephone.replace(/\s+/g, "").replace(/^0/, "33");
-      window.open(`https://wa.me/${phone}`, "_blank");
+      openWhatsApp(
+        prospect.telephone,
+        buildProspectFollowUpWhatsAppMessage({
+          prenom: prospect.prenom,
+          formationSouhaitee: prospect.formation_souhaitee,
+        }),
+      );
     } else if (action === "email" && prospect.email) {
       window.open(`mailto:${prospect.email}`, "_blank");
     }
@@ -266,7 +283,7 @@ export function ProspectsPage() {
 
   const filterCounts = useMemo(() => {
     const noActionCount = prospects.filter(
-      (p) => !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu"
+      (p) => !getActionDateValue(p) && p.statut !== "converti" && p.statut !== "perdu"
     ).length;
     return {
       overdue: stats?.overdue || 0,
@@ -491,7 +508,7 @@ export function ProspectsPage() {
                             </TooltipTrigger>
                             <TooltipContent>Replanifier</TooltipContent>
                           </Tooltip>
-                          {prospect.next_action_at && (
+                          {getActionDateValue(prospect) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleMarkDone(prospect)}>
@@ -541,7 +558,8 @@ export function ProspectsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredProspects.map((prospect) => {
-                    const isOverdue = prospect.next_action_at && isBefore(new Date(prospect.next_action_at), new Date());
+                    const actionDate = getActionDateValue(prospect);
+                    const isOverdue = actionDate && isActionOverdue(actionDate);
                     return (
                       <TableRow
                         key={prospect.id}
@@ -641,7 +659,7 @@ export function ProspectsPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>Replanifier</TooltipContent>
                               </Tooltip>
-                              {prospect.next_action_at && (
+                              {getActionDateValue(prospect) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => handleMarkDone(prospect)}>

@@ -17,6 +17,11 @@ import { cn } from "@/lib/utils";
 import { useProspects, useUpdateProspect, type Prospect } from "@/hooks/useProspects";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { openWhatsApp } from "@/lib/phone-utils";
+import {
+  buildProspectFollowUpWhatsAppMessage,
+  buildRdvConfirmationWhatsAppMessage,
+} from "@/lib/whatsapp-messages";
+import { getProspectPriority, getProspectPrioritySortValue } from "@/lib/prospect-priority";
 import { format, parseISO, isPast, isToday, isTomorrow, endOfWeek, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -55,6 +60,13 @@ const RELANCE_KEYWORDS = ["Relance prospect", "Relance", "Marqué comme traité"
 const RDV_KEYWORDS = ["RDV", "Confirmation"];
 
 type TypeFilter = "all" | "rdv" | "relance";
+
+function formatDateLabel(value: string | null | undefined, fallback = "aujourd'hui") {
+  if (!value) return fallback;
+  const date = parseISO(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return `le ${format(date, "EEEE d MMMM", { locale: fr })}`;
+}
 
 export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
   const { data: prospects = [], isLoading } = useProspects();
@@ -133,11 +145,13 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
       else groups.later.push(enriched);
     });
 
-    // Stable sort: overdue → oldest first, rest → date ascending
+    // Stable sort: date first, then business priority to surface the hottest follow-ups.
     Object.values(groups).forEach(g => g.sort((a, b) => {
       const da = a.date_prochaine_relance ? new Date(a.date_prochaine_relance).getTime() : Infinity;
       const db = b.date_prochaine_relance ? new Date(b.date_prochaine_relance).getTime() : Infinity;
-      return da - db;
+      const dateDiff = da - db;
+      if (dateDiff !== 0) return dateDiff;
+      return getProspectPrioritySortValue(a) - getProspectPrioritySortValue(b);
     }));
 
     return groups;
@@ -204,8 +218,23 @@ export function ProspectsAgenda({ onViewDetail }: ProspectsAgendaProps) {
   };
 
   const handleWhatsApp = (p: Prospect) => {
-    logAction(p.id, "prospect_relance_whatsapp");
-    openWhatsApp(p.telephone);
+    const isRdv = isProspectRdv(p);
+    const message = isRdv
+      ? buildRdvConfirmationWhatsAppMessage({
+          prenom: p.prenom,
+          dateLabel: formatDateLabel(p.date_prochaine_relance),
+        })
+      : buildProspectFollowUpWhatsAppMessage({
+          prenom: p.prenom,
+          formationSouhaitee: p.formation_souhaitee,
+        });
+
+    logAction(
+      p.id,
+      "prospect_relance_whatsapp",
+      isRdv ? `RDV: ${p.date_prochaine_relance || "aujourd'hui"}` : `Formation: ${p.formation_souhaitee || ""}`,
+    );
+    openWhatsApp(p.telephone, message);
   };
 
   const handleAppel = (p: Prospect) => {
@@ -353,6 +382,8 @@ function AgendaCard({
     if (groupKey === "today") return `Aujourd'hui — ${format(d, "HH:mm", { locale: fr }) !== "00:00" ? format(d, "HH:mm") : ""}`;
     return format(d, "EEEE dd MMM", { locale: fr });
   }, [p.date_prochaine_relance, groupKey, daysLate]);
+  const priority = getProspectPriority(p);
+  const showPriorityBadge = priority.level === "high" || priority.level === "medium";
 
   return (
     <Card className={cn(
@@ -375,6 +406,19 @@ function AgendaCard({
           ) : (
             <Badge variant="outline" className="text-[9px] bg-accent/15 text-accent border-accent/30 shrink-0">
               <RotateCcw className="h-2.5 w-2.5 mr-0.5" /> Relance
+            </Badge>
+          )}
+          {showPriorityBadge && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[9px] shrink-0",
+                priority.level === "high"
+                  ? "bg-destructive/10 text-destructive border-destructive/25"
+                  : "bg-warning/10 text-warning border-warning/25",
+              )}
+            >
+              {priority.label}
             </Badge>
           )}
         </div>
