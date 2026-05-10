@@ -59,11 +59,19 @@ export function ContactMobileCard({ contact, onClick, onEnroll, onCall, onEmail,
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground truncate">
-                {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
+              <p className="font-semibold text-foreground truncate flex items-center gap-1.5">
+                <span className="truncate">
+                  {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
+                </span>
+                {(!contact.email || !contact.telephone) && (
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 text-warning shrink-0"
+                    aria-label={`Informations manquantes : ${[!contact.email && 'email', !contact.telephone && 'téléphone'].filter(Boolean).join(', ')}`}
+                  />
+                )}
               </p>
               <p className="text-sm text-muted-foreground truncate">
-                {contact.email || 'Pas d\'email'}
+                {contact.email || <span className="italic text-warning/80">Pas d'email</span>}
               </p>
               {contact.custom_id && (
                 <p className="text-xs text-muted-foreground font-mono">
