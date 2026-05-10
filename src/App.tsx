@@ -95,6 +95,7 @@ const APP_SECTION_PATHS = [
   "/apprenants", // legacy alias
   "/sessions",
   "/formations",
+  "/produits",
   "/finances",
   "/facturation", // legacy alias
   "/paiements", // legacy alias
