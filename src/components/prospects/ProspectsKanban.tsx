@@ -137,6 +137,27 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
 
   return (
     <>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <span className="text-xs font-medium text-muted-foreground mr-1">Priorité :</span>
+        <Button size="sm" variant={priorityFilter === "all" ? "default" : "outline"} onClick={() => setPriorityFilter("all")} className="h-7 text-xs">
+          Tous
+        </Button>
+        <Button size="sm" variant={priorityFilter === "high" ? "default" : "outline"} onClick={() => setPriorityFilter("high")} className="h-7 text-xs gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-destructive" />
+          En retard
+          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{counts.high}</Badge>
+        </Button>
+        <Button size="sm" variant={priorityFilter === "medium" ? "default" : "outline"} onClick={() => setPriorityFilter("medium")} className="h-7 text-xs gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-warning" />
+          Dans 24h
+          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{counts.medium}</Badge>
+        </Button>
+        <Button size="sm" variant={priorityFilter === "none-action" ? "default" : "outline"} onClick={() => setPriorityFilter("none-action")} className="h-7 text-xs gap-1.5">
+          <AlertTriangle className="h-3 w-3" />
+          Sans action
+          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{counts.none}</Badge>
+        </Button>
+      </div>
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {COLUMNS.map((column) => {
