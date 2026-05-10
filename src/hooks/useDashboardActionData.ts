@@ -189,12 +189,14 @@ export function useUpcomingSessions() {
         supabase.from("sessions")
           .select("id, nom, date_debut, formation_type, track, places_totales, statut")
           .eq("archived", false)
+          .is("deleted_at", null)
           .gte("date_debut", todayStr)
           .lte("date_debut", in7days)
           .order("date_debut", { ascending: true })
           .limit(10),
         supabase.from("session_inscriptions")
-          .select("session_id"),
+          .select("session_id")
+          .is("deleted_at", null),
       ]);
 
       const sessions = sessionsRes.data || [];
