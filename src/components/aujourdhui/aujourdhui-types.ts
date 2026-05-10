@@ -1,6 +1,7 @@
 import type { ActionCategory } from "@/lib/aujourdhui-actions";
 import type { UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
+import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
 
 export type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
@@ -10,6 +11,7 @@ export const RDV_KEYWORDS = ["RDV", "Confirmation", "Marqué comme traité"];
 export const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
 export const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
 export const CARTE_PRO_KEYWORDS = ["Carte Pro"];
+export const CRM_QUALITY_KEYWORDS = ["Qualité CRM", "Marqué comme traité"];
 
 export type AutoNote = { contact_id: string; titre: string; created_at: string; id?: string };
 
@@ -43,6 +45,8 @@ export interface SessionPrepItem {
   unpaidContacts: SessionPrepContact[];
   missingContactContacts: SessionPrepContact[];
 }
+
+export type { CrmQualityItem, CrmQualitySummary };
 
 export interface BlocSharedProps {
   todayNotes: AutoNote[];

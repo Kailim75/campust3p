@@ -27,7 +27,7 @@ import {
 import type { Prospect } from "@/hooks/useProspects";
 
 import { useAujourdhuiData } from "./useAujourdhuiData";
-import { CMA_KEYWORDS, RDV_KEYWORDS, RELANCE_KEYWORDS, CRITIQUE_KEYWORDS, CARTE_PRO_KEYWORDS } from "./aujourdhui-types";
+import { CMA_KEYWORDS, RDV_KEYWORDS, RELANCE_KEYWORDS, CRITIQUE_KEYWORDS, CARTE_PRO_KEYWORDS, CRM_QUALITY_KEYWORDS } from "./aujourdhui-types";
 import type { CmaFilter, SessionPrepItem } from "./aujourdhui-types";
 import { BlocCma } from "./BlocCma";
 import { BlocRdv } from "./BlocRdv";
@@ -37,6 +37,7 @@ import { BlocCartePro } from "./BlocCartePro";
 import { BlocReprogrammer } from "./BlocReprogrammer";
 import { BlocQualiopi } from "./BlocQualiopi";
 import { BlocSessionPreparation } from "./BlocSessionPreparation";
+import { BlocQualiteCrm } from "./BlocQualiteCrm";
 import { HintBubble } from "@/components/shared/HintBubble";
 
 interface AujourdhuiPageProps {
@@ -320,6 +321,8 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     reprogramItems: rawReprogram = [],
     sessionPrepItems = [],
     qualiopiSessions = [],
+    crmQualityItems: rawCrmQualityItems = [],
+    crmQualitySummary = null,
     todayNotes = [], recentNotes = [], journalEntries = [],
   } = data || {};
 
@@ -343,16 +346,21 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
   const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
   const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledToday(c.id, todayNotes, CARTE_PRO_KEYWORDS))).slice(0, 10);
+  const crmQualityItems = (showHandled
+    ? rawCrmQualityItems
+    : rawCrmQualityItems.filter((item: any) => !isHandledToday(item.ownerId, todayNotes, CRM_QUALITY_KEYWORDS))
+  ).slice(0, 12);
 
   const handledCmaCount = activeCma.length - (showHandled ? 0 : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)).length);
   const handledRdvCount = rawRdv.length - (showHandled ? 0 : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS)).length);
   const handledRelanceCount = rawRelances.length - (showHandled ? 0 : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS)).length);
   const handledCritiqueCount = activeCritiques.length - (showHandled ? 0 : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS)).length);
-  const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount;
+  const handledCrmQualityCount = rawCrmQualityItems.length - (showHandled ? 0 : rawCrmQualityItems.filter((item: any) => !isHandledToday(item.ownerId, todayNotes, CRM_QUALITY_KEYWORDS)).length);
+  const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount + handledCrmQualityCount;
 
   const reprogramItems = rawReprogram;
-  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length;
-  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length;
+  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
+  const totalRaw = allCmaFiltered.length + rawRdv.length + rawRelances.length + activeCritiques.length + rawCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + rawCrmQualityItems.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   return (
@@ -413,6 +421,16 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
               onNavigate?.("sessions");
             }
           }}
+        />
+
+        <BlocQualiteCrm
+          items={crmQualityItems}
+          summary={crmQualitySummary}
+          todayNotes={todayNotes}
+          recentNotes={recentNotes}
+          openContact={openContact}
+          openProspect={openProspect}
+          markDone={markDone}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

@@ -9,6 +9,7 @@ import {
   getSessionReadinessSeverity,
   isSettledPaymentStatus,
 } from "@/lib/session-readiness";
+import { computeCrmQuality } from "@/lib/crm-quality";
 import type { Prospect } from "@/hooks/useProspects";
 import type { CmaFilter, SessionPrepContact, SessionPrepItem } from "./aujourdhui-types";
 
@@ -379,6 +380,11 @@ export function useAujourdhuiData() {
         .sort((a: any, b: any) => b.issues.length - a.issues.length)
         .slice(0, 5);
 
+      // ─── Bloc I: Qualité CRM / anti-oublis ───
+      const crmQuality = computeCrmQuality({ contacts, prospects });
+      const crmQualityItems = crmQuality.items;
+      const crmQualitySummary = crmQuality.summary;
+
       // Fetch recent notes
       const allContactIds = [
         ...cmaItems.map(c => c.id),
@@ -391,6 +397,7 @@ export function useAujourdhuiData() {
           ...s.missingDocsContacts.map((c) => c.id),
           ...s.unpaidContacts.map((c) => c.id),
         ]),
+        ...crmQualityItems.map((item) => item.ownerId),
       ];
       const contactsWithoutTodayNote = allContactIds.filter(
         id => !todayNotes.some(n => n.contact_id === id)
@@ -406,10 +413,12 @@ export function useAujourdhuiData() {
         reprogramItems,
         sessionPrepItems,
         qualiopiSessions,
+        crmQualityItems,
+        crmQualitySummary,
         todayNotes,
         recentNotes,
         journalEntries,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length,
       };
     },
     staleTime: 30_000,
