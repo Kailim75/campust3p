@@ -414,11 +414,23 @@ export function ContactsTable() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-foreground hover:text-primary transition-colors">
+                              <p className="font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1.5">
                                 {contact.civilite ? `${contact.civilite} ` : ''}{contact.prenom} {contact.nom}
+                                {(!contact.email || !contact.telephone) && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Informations manquantes : {[!contact.email && 'email', !contact.telephone && 'téléphone'].filter(Boolean).join(', ')}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {contact.email || 'Pas d\'email'}
+                                {contact.email || <span className="italic text-warning/80">Pas d'email</span>}
                               </p>
                             </div>
                           </div>
