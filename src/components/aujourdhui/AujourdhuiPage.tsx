@@ -52,6 +52,10 @@ function formatDateLabel(value: string | null | undefined, fallback = "aujourd'h
   return `le ${format(date, "EEEE d MMMM", { locale: fr })}`;
 }
 
+function makeHandledKey(contactId: string, blocLabel: string) {
+  return `${blocLabel}:${contactId}`;
+}
+
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
   const { data, isLoading } = useAujourdhuiData();
   const queryClient = useQueryClient();
@@ -64,6 +68,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const [showHandled, setShowHandled] = useState(false);
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
   const [cmaExpanded, setCmaExpanded] = useState(false);
+  const [locallyHandledKeys, setLocallyHandledKeys] = useState<Set<string>>(new Set());
   const CMA_INITIAL_LIMIT = 5;
 
   // ─── Bulk selection state ───
@@ -115,8 +120,66 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   }, [invalidate]);
 
   const markDone = useCallback(async (contactId: string, blocLabel: string) => {
-    await logAction(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
-  }, [logAction]);
+    const handledKey = makeHandledKey(contactId, blocLabel);
+
+    setLocallyHandledKeys(prev => {
+      if (prev.has(handledKey)) return prev;
+      const next = new Set(prev);
+      next.add(handledKey);
+      return next;
+    });
+    setBulkCmaSelected(prev => {
+      if (blocLabel !== "CMA" || !prev.has(contactId)) return prev;
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+    setBulkRelanceSelected(prev => {
+      if (blocLabel !== "Relance" || !prev.has(contactId)) return prev;
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+
+    const result = await createAutoNote(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
+    if (!result) {
+      setLocallyHandledKeys(prev => {
+        const next = new Set(prev);
+        next.delete(handledKey);
+        return next;
+      });
+      toast.error("Impossible de marquer comme traité");
+      return;
+    }
+
+    const successLabel =
+      blocLabel === "CMA"
+        ? "Dossier traité"
+        : blocLabel === "Relance"
+          ? "Prospect traité"
+          : "Action traitée";
+
+    toast.success(successLabel, {
+      description: "L'élément est masqué de la liste du jour",
+      action: {
+        label: "Annuler",
+        onClick: async () => {
+          const deleted = await deleteAutoNote(result.id);
+          if (deleted) {
+            setLocallyHandledKeys(prev => {
+              const next = new Set(prev);
+              next.delete(handledKey);
+              return next;
+            });
+            toast.info("Action annulée");
+            invalidate();
+          }
+        },
+      },
+      duration: 10000,
+    });
+    invalidate();
+  }, [invalidate]);
 
   // ─── Bulk action handlers ───
   const handleBulkCmaRelance = useCallback((items: any[]) => {
@@ -334,9 +397,14 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const activeCma = includeInactive ? rawCma : rawCma.filter(c => c._isActive);
   const activeCritiques = includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive);
   const hiddenCount = (rawCma.length - rawCma.filter(c => c._isActive).length) + (rawCritiques.length - rawCritiques.filter(c => c._isActive).length);
+  const isHandledForBloc = (
+    contactId: string,
+    categoryKeywords: string[],
+    blocLabel: string,
+  ) => locallyHandledKeys.has(makeHandledKey(contactId, blocLabel)) || isHandledToday(contactId, todayNotes, categoryKeywords);
 
   // Anti-double-relance
-  const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)));
+  const filteredCma = (showHandled ? activeCma : activeCma.filter(c => !isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")));
   const allCmaFiltered = cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter);
   const cmaItems = cmaExpanded ? allCmaFiltered : allCmaFiltered.slice(0, CMA_INITIAL_LIMIT);
   const cmaHiddenCount = allCmaFiltered.length - cmaItems.length;
@@ -346,20 +414,20 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const cmaCountRejete = filteredCma.filter(c => c.cmaCategory === "rejete").length;
   const cmaCountEnCours = filteredCma.filter(c => c.cmaCategory === "en_cours").length;
 
-  const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS))).slice(0, 10);
-  const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS))).slice(0, 10);
-  const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS))).slice(0, 10);
-  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledToday(c.id, todayNotes, CARTE_PRO_KEYWORDS))).slice(0, 10);
+  const rdvToday = (showHandled ? rawRdv : rawRdv.filter(p => !isHandledForBloc(p.id, RDV_KEYWORDS, "RDV"))).slice(0, 10);
+  const relances = (showHandled ? rawRelances : rawRelances.filter(p => !isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance"))).slice(0, 10);
+  const critiques = (showHandled ? activeCritiques : activeCritiques.filter(c => !isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique"))).slice(0, 10);
+  const cartePro = (showHandled ? rawCartePro : rawCartePro.filter((c: any) => !isHandledForBloc(c.id, CARTE_PRO_KEYWORDS, "Carte Pro"))).slice(0, 10);
   const crmQualityItems = (showHandled
     ? rawCrmQualityItems
-    : rawCrmQualityItems.filter((item: any) => !isHandledToday(item.ownerId, todayNotes, CRM_QUALITY_KEYWORDS))
+    : rawCrmQualityItems.filter((item: any) => !isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM"))
   ).slice(0, 12);
 
-  const handledCmaCount = activeCma.length - (showHandled ? 0 : activeCma.filter(c => !isHandledToday(c.id, todayNotes, CMA_KEYWORDS)).length);
-  const handledRdvCount = rawRdv.length - (showHandled ? 0 : rawRdv.filter(p => !isHandledToday(p.id, todayNotes, RDV_KEYWORDS)).length);
-  const handledRelanceCount = rawRelances.length - (showHandled ? 0 : rawRelances.filter(p => !isHandledToday(p.id, todayNotes, RELANCE_KEYWORDS)).length);
-  const handledCritiqueCount = activeCritiques.length - (showHandled ? 0 : activeCritiques.filter(c => !isHandledToday(c.id, todayNotes, CRITIQUE_KEYWORDS)).length);
-  const handledCrmQualityCount = rawCrmQualityItems.length - (showHandled ? 0 : rawCrmQualityItems.filter((item: any) => !isHandledToday(item.ownerId, todayNotes, CRM_QUALITY_KEYWORDS)).length);
+  const handledCmaCount = activeCma.filter(c => isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")).length;
+  const handledRdvCount = rawRdv.filter(p => isHandledForBloc(p.id, RDV_KEYWORDS, "RDV")).length;
+  const handledRelanceCount = rawRelances.filter(p => isHandledForBloc(p.id, RELANCE_KEYWORDS, "Relance")).length;
+  const handledCritiqueCount = activeCritiques.filter(c => isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique")).length;
+  const handledCrmQualityCount = rawCrmQualityItems.filter((item: any) => isHandledForBloc(item.ownerId, CRM_QUALITY_KEYWORDS, "Qualité CRM")).length;
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount + handledCrmQualityCount;
 
   const reprogramItems = rawReprogram;

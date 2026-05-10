@@ -176,7 +176,7 @@ export function BlocCma({
                     <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}
-                <MarkDoneBtn contactId={item.id} bloc="CMA" markDone={markDone} />
+                <MarkDoneBtn contactId={item.id} bloc="CMA" markDone={markDone} label="Dossier traité" />
               </div>
             </div>
           );

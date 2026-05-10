@@ -62,15 +62,25 @@ export function LastActionLine({
   return null;
 }
 
-export function MarkDoneBtn({ contactId, bloc, markDone }: { contactId: string; bloc: string; markDone: (id: string, bloc: string) => void }) {
+export function MarkDoneBtn({
+  contactId,
+  bloc,
+  markDone,
+  label = "Traité",
+}: {
+  contactId: string;
+  bloc: string;
+  markDone: (id: string, bloc: string) => void;
+  label?: string;
+}) {
   return (
     <Button
       size="sm"
-      variant="ghost"
-      className="h-7 text-[10px] text-muted-foreground hover:text-success"
+      variant="outline"
+      className="h-7 text-[10px] text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
       onClick={(e) => { e.stopPropagation(); markDone(contactId, bloc); }}
     >
-      <Check className="h-3 w-3 mr-1" /> Fait
+      <Check className="h-3 w-3 mr-1" /> {label}
     </Button>
   );
 }

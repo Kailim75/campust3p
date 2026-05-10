@@ -112,7 +112,7 @@ export function BlocRelances({
                     <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}
-                <MarkDoneBtn contactId={p.id} bloc="Relance" markDone={markDone} />
+                <MarkDoneBtn contactId={p.id} bloc="Relance" markDone={markDone} label="Prospect traité" />
               </div>
             </div>
           );
