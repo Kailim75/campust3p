@@ -23,6 +23,10 @@ interface ApprenantDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (contact: any) => void;
+  /** When false, opening the sheet does not add ?contact=... to the current URL. */
+  syncUrl?: boolean;
+  /** Show the shortcut that navigates to the full contact page. */
+  showFullPageAction?: boolean;
   /** Filtered list ids to allow ↑/↓ navigation between contacts */
   navigationIds?: string[];
   /** Called when the user navigates to another contact (↑ ↓ J K) */
@@ -34,6 +38,8 @@ export function ApprenantDetailSheet({
   open,
   onOpenChange,
   onEdit,
+  syncUrl = true,
+  showFullPageAction = true,
   navigationIds = [],
   onNavigate,
 }: ApprenantDetailSheetProps) {
@@ -44,6 +50,7 @@ export function ApprenantDetailSheet({
 
   // ── URL sync : ?contact=<id> ────────────────────────────────────
   useEffect(() => {
+    if (!syncUrl) return;
     if (open && contactId) {
       if (searchParams.get("contact") !== contactId) {
         const next = new URLSearchParams(searchParams);
@@ -56,7 +63,7 @@ export function ApprenantDetailSheet({
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, contactId]);
+  }, [open, contactId, syncUrl]);
 
   // ── Keyboard navigation between contacts (↑ ↓ J K) ───────────────
   const nav = useContactSheetNavigation({
@@ -118,25 +125,27 @@ export function ApprenantDetailSheet({
           )}
         </div>
 
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1 text-xs mr-8"
-                onClick={handleOpenFullPage}
-                disabled={!contactId}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Pleine page</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[11px]">
-              Ouvrir la fiche complète
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {showFullPageAction && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1 text-xs mr-8"
+                  onClick={handleOpenFullPage}
+                  disabled={!contactId}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Pleine page</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[11px]">
+                Ouvrir la fiche complète
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Navigator (only if list provided) */}

@@ -489,7 +489,13 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
       </div>
 
       {/* Detail sheets */}
-      <ApprenantDetailSheet contactId={selectedContactId} open={contactDetailOpen} onOpenChange={setContactDetailOpen} />
+      <ApprenantDetailSheet
+        contactId={selectedContactId}
+        open={contactDetailOpen}
+        onOpenChange={setContactDetailOpen}
+        syncUrl={false}
+        showFullPageAction={false}
+      />
       <ProspectDetailSheet prospect={selectedProspect} open={prospectDetailOpen} onOpenChange={setProspectDetailOpen} />
       <EmailComposerModal {...composerProps} />
     </div>
