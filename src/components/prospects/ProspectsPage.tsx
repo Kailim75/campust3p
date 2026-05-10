@@ -161,6 +161,9 @@ export function ProspectsPage() {
         const d = new Date(p.next_action_at);
         return d >= todayS && d <= weekE;
       }
+      if (quickFilter === "no_action") {
+        return !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu";
+      }
       if (quickFilter === "mine") {
         return currentUserId && p.assigned_to === currentUserId;
       }
@@ -262,12 +265,16 @@ export function ProspectsPage() {
   };
 
   const filterCounts = useMemo(() => {
+    const noActionCount = prospects.filter(
+      (p) => !p.next_action_at && p.statut !== "converti" && p.statut !== "perdu"
+    ).length;
     return {
       overdue: stats?.overdue || 0,
       today: stats?.today || 0,
       week: stats?.week || 0,
+      no_action: noActionCount,
     };
-  }, [stats]);
+  }, [stats, prospects]);
 
   return (
     <div className="space-y-6">

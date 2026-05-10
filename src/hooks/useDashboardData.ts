@@ -252,6 +252,9 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .is("deleted_at", null),
 
     // 5. Inscriptions with contact info (active, not deleted)
+    // TODO(P2): paginer / agréger côté serveur si volume > 1000 par centre.
+    // Pour l'instant on garde un cap conservateur de 1000 lignes pour ne pas
+    // saturer le navigateur ; les KPI peuvent être sous-estimés au-delà.
     supabase
       .from("session_inscriptions")
       .select("id, session_id, contact_id, track, date_inscription, statut_paiement, montant_formation, contact:contacts(id, nom, prenom, telephone)")

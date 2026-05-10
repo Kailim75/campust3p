@@ -40,19 +40,23 @@ export function useTodayActions() {
         supabase.from("prospects")
           .select("id, nom, prenom, statut, date_prochaine_relance, telephone")
           .eq("is_active", true)
+          .is("deleted_at", null)
           .not("statut", "in", '("converti","perdu")')
           .order("date_prochaine_relance", { ascending: true })
           .limit(20),
         supabase.from("factures")
           .select("id, numero_facture, statut, date_echeance, montant_total, contact_id")
+          .is("deleted_at", null)
           .in("statut", ["emise"])
           .order("date_echeance", { ascending: true })
           .limit(20),
         supabase.from("session_inscriptions")
           .select("id, contact_id, track, contact:contacts(id, nom, prenom, telephone)")
+          .is("deleted_at", null)
           .limit(500),
         supabase.from("contact_documents")
-          .select("contact_id, type_document"),
+          .select("contact_id, type_document")
+          .is("deleted_at", null),
         supabase.from("cartes_professionnelles")
           .select("contact_id, statut, date_expiration"),
       ]);
@@ -185,12 +189,14 @@ export function useUpcomingSessions() {
         supabase.from("sessions")
           .select("id, nom, date_debut, formation_type, track, places_totales, statut")
           .eq("archived", false)
+          .is("deleted_at", null)
           .gte("date_debut", todayStr)
           .lte("date_debut", in7days)
           .order("date_debut", { ascending: true })
           .limit(10),
         supabase.from("session_inscriptions")
-          .select("session_id"),
+          .select("session_id")
+          .is("deleted_at", null),
       ]);
 
       const sessions = sessionsRes.data || [];

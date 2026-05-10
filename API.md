@@ -57,7 +57,30 @@ Crée un enregistrement. `centre_id` est ajouté automatiquement.
 Met à jour un enregistrement. Toute tentative de changer `centre_id` est ignorée.
 
 ### `DELETE /api-v1/<resource>/<id>`
-Supprime un enregistrement. ⚠️ Pour les ressources soumises à soft-delete (sessions, contacts, factures), préférez un PATCH `{deleted_at: "..."}` ou utilisez l'interface CRM.
+Effectue un **soft-delete** pour les ressources qui supportent `deleted_at`
+(`contacts`, `prospects`, `sessions`, `factures`, `catalogue_formations`,
+`session_inscriptions`, `emargements`, `contact_documents`, `paiements`).
+Aucune donnée n'est supprimée physiquement.
+
+- Optionnel : `?delete_reason=...` pour tracer le motif.
+- Pour les ressources sans `deleted_at`, l'endpoint renvoie `405`.
+- Réponse : `{ "success": true, "soft_deleted": true }`.
+
+### Lecture des lignes supprimées
+Par défaut, les requêtes `GET` excluent les lignes soft-deleted.
+Ajoutez `?include_deleted=true` pour récupérer aussi les lignes supprimées
+(lecture seule). Exemple :
+
+```
+GET /api-v1/session_inscriptions?session_id=<id>&include_deleted=true
+```
+
+### Scoping multi-tenant indirect
+Les ressources sans colonne `centre_id` (ex. `session_inscriptions`,
+`emargements`, `contact_documents`, `contact_historique`, `paiements`) sont
+isolées via leur entité parente (`sessions`, `contacts`, `factures`).
+Une clé API ne peut donc lire ou modifier que les lignes dont le parent
+appartient à son centre.
 
 ## 🎯 Endpoint spécial
 

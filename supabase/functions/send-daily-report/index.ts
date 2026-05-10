@@ -248,7 +248,7 @@ serve(async (req) => {
       html,
     });
 
-    console.log("[send-daily-report] Resend response:", JSON.stringify(emailResponse));
+    console.log("[send-daily-report] Resend response:", JSON.stringify({ id: emailResponse?.data?.id ?? null, hasError: !!(emailResponse as any)?.error }));
 
     const emailError = (emailResponse as any)?.error;
     const resendId = emailResponse?.data?.id;
