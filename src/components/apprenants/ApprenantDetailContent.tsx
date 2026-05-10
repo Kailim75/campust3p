@@ -623,6 +623,28 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         </div>
       </div>
 
+      {/* ─── BANDEAU INFOS MANQUANTES ─── */}
+      {(() => {
+        const missing: string[] = [];
+        if (!contact.email) missing.push("Email");
+        if (!contact.telephone) missing.push("Téléphone");
+        if (!contact.date_naissance) missing.push("Date de naissance");
+        if (missing.length === 0) return null;
+        return (
+          <div className="mx-3 sm:mx-5 mt-2 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            <span className="text-foreground">
+              <span className="font-medium">Informations manquantes :</span> {missing.join(", ")}
+            </span>
+            {onEdit && (
+              <Button size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={() => onEdit(contact)}>
+                <Edit className="h-3 w-3 mr-1" /> Compléter
+              </Button>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ─── TABS ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <div className="mx-3 sm:mx-5 mt-2 sm:mt-3 mb-0 overflow-x-auto scrollbar-hide">
