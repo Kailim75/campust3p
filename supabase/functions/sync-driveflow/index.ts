@@ -86,9 +86,9 @@ serve(async (req) => {
       driveFlowHeaders['X-API-KEY'] = DRIVEFLOW_API_KEY;
     }
 
-    console.log('Sending to Drive Flow:', DRIVEFLOW_WEBHOOK_URL);
-    console.log('Payload:', JSON.stringify(payload));
-    console.log('Has API key:', !!DRIVEFLOW_API_KEY);
+    console.log("Sending to Drive Flow:", redactUrl(DRIVEFLOW_WEBHOOK_URL));
+    console.log("Payload (redacted):", JSON.stringify(redactPayload(payload)));
+    console.log("Has API key:", !!DRIVEFLOW_API_KEY);
 
     const driveFlowResponse = await fetch(DRIVEFLOW_WEBHOOK_URL, {
       method: 'POST',
@@ -97,8 +97,9 @@ serve(async (req) => {
     });
 
     const responseText = await driveFlowResponse.text();
-    console.log('Drive Flow response status:', driveFlowResponse.status);
-    console.log('Drive Flow response body:', responseText);
+    console.log("Drive Flow response status:", driveFlowResponse.status);
+    // On ne logge plus le body brut (peut contenir données client). Tronqué.
+    console.log("Drive Flow response (truncated):", responseText.slice(0, 120));
 
     let driveFlowResult: any = {};
     try { driveFlowResult = JSON.parse(responseText); } catch {}
