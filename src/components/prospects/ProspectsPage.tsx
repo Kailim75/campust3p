@@ -91,6 +91,27 @@ function getNextActionLabel(prospect: Prospect): React.ReactNode {
   );
 }
 
+type Priority = { level: "high" | "medium" | "low" | "none"; label: string; dotClass: string };
+
+function getProspectPriority(prospect: Prospect): Priority {
+  if (prospect.statut === "converti" || prospect.statut === "perdu") {
+    return { level: "none", label: "—", dotClass: "bg-muted" };
+  }
+  if (!prospect.next_action_at) {
+    return { level: "low", label: "Sans prochaine action", dotClass: "bg-muted-foreground/40" };
+  }
+  const d = new Date(prospect.next_action_at);
+  const now = new Date();
+  if (isBefore(d, now)) {
+    return { level: "high", label: "En retard", dotClass: "bg-destructive" };
+  }
+  const diffH = (d.getTime() - now.getTime()) / (1000 * 60 * 60);
+  if (diffH <= 24) {
+    return { level: "medium", label: "Dans les 24h", dotClass: "bg-warning" };
+  }
+  return { level: "low", label: "À venir", dotClass: "bg-success" };
+}
+
 export function ProspectsPage() {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: stats } = useProspectsStats();
@@ -554,9 +575,19 @@ export function ProspectsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">
-                          <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
-                            {prospect.prenom} {prospect.nom}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn("h-2 w-2 rounded-full shrink-0", getProspectPriority(prospect).dotClass)} aria-label={getProspectPriority(prospect).label} />
+                                </TooltipTrigger>
+                                <TooltipContent>Priorité : {getProspectPriority(prospect).label}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <button className="hover:underline text-left" onClick={() => handleViewDetail(prospect)}>
+                              {prospect.prenom} {prospect.nom}
+                            </button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={STATUS_COLORS[prospect.statut]}>
