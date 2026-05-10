@@ -450,9 +450,26 @@ serve(async (req) => {
         if (!recordId) return json(400, { error: "ID manquant dans l'URL" });
         const scopeErr = await verifyRecordInCentre(admin, resource, recordId, centreId);
         if (scopeErr) return scopeErr;
-        const { error } = await admin.from(resource).delete().eq("id", recordId);
-        if (error) return json(400, { error: error.message });
-        return json(200, { success: true });
+
+        // Soft-delete pour les ressources qui le supportent (jamais de DELETE physique)
+        if (hasSoftDelete(resource)) {
+          const reason = url.searchParams.get("delete_reason") || "Supprimé via API";
+          const { error } = await admin
+            .from(resource)
+            .update({ deleted_at: new Date().toISOString(), delete_reason: reason })
+            .eq("id", recordId)
+            .is("deleted_at", null);
+          if (error) {
+            console.error("api-v1 soft-delete error:", error);
+            return json(400, { error: "Suppression impossible" });
+          }
+          return json(200, { success: true, soft_deleted: true });
+        }
+
+        // Refus pour les ressources qui n'ont pas de colonne deleted_at
+        return json(405, {
+          error: `La suppression n'est pas supportée pour la ressource '${resource}'`,
+        });
       }
 
       default:
@@ -460,6 +477,6 @@ serve(async (req) => {
     }
   } catch (err) {
     console.error("api-v1 error:", err);
-    return json(500, { error: (err as Error).message });
+    return json(500, { error: "Erreur interne du serveur" });
   }
 });
