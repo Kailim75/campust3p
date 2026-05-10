@@ -48,6 +48,7 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
           )
         `)
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("date_inscription", { ascending: false });
       if (error) throw error;
       return data || [];
