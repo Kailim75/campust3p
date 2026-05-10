@@ -433,7 +433,10 @@ export function ProspectsPage() {
                 <Card key={prospect.id} className="p-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-2 flex-1">
-                      <div className="font-semibold">{prospect.prenom} {prospect.nom}</div>
+                      <div className="font-semibold flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full shrink-0", getProspectPriority(prospect).dotClass)} aria-label={getProspectPriority(prospect).label} />
+                        {prospect.prenom} {prospect.nom}
+                      </div>
                       <div className="flex gap-2 flex-wrap">
                         <Badge className={STATUS_COLORS[prospect.statut]}>
                           {STATUS_ICONS[prospect.statut]}
