@@ -23,7 +23,7 @@ function useStrategicData() {
         supabase.from("factures").select("montant_total, statut, date_emission").not("statut", "eq", "annulee"),
         supabase.from("paiements").select("montant, date_paiement"),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut, formation_type").eq("archived", false).gte("date_fin", todayStr),
-        supabase.from("session_inscriptions").select("session_id"),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         supabase.from("contacts").select("id, statut, source").eq("archived", false),
         supabase.from("charges").select("montant").eq("type_charge", "fixe"),
       ]);

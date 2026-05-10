@@ -135,7 +135,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
     queryFn: async () => {
       if (!contact) return null;
       const [inscRes, docRes, factRes, rappRes, notesRes, carteProRes] = await Promise.all([
-        supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).limit(1),
+        supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).is("deleted_at", null).limit(1),
         supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id),
         supabase.from("factures").select("id, statut, montant_total").eq("contact_id", contact.id).is("deleted_at", null),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")

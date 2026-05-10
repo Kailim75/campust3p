@@ -37,7 +37,7 @@ export function SessionsUpcoming({ onClick }: SessionsUpcomingProps) {
       const [sessionsRes, inscriptionsRes] = await Promise.all([
         supabase.from("sessions").select("id, nom, date_debut, places_totales, formation_type, statut, prix_ht, prix")
           .eq("archived", false).gte("date_fin", todayStr).order("date_debut", { ascending: true }).limit(5),
-        supabase.from("session_inscriptions").select("session_id"),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
       ]);
 
       const rawSessions = sessionsRes.data || [];

@@ -124,7 +124,8 @@ export function useDynamicSessionStats() {
         const { data: inscriptions, error: inscError } = await supabase
           .from("session_inscriptions")
           .select("session_id")
-          .in("session_id", sessionIds);
+          .in("session_id", sessionIds)
+          .is("deleted_at", null);
         
         if (inscError) throw inscError;
         

@@ -60,7 +60,8 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
       .eq("archived", false)
       .gte("date_fin", todayStr),
     supabase.from("session_inscriptions")
-      .select("id, session_id, contact_id, track"),
+      .select("id, session_id, contact_id, track")
+      .is("deleted_at", null),
     supabase.from("contacts")
       .select("id, archived")
       .eq("archived", false),

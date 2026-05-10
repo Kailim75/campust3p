@@ -22,7 +22,7 @@ function useAlertsData() {
           .eq("statut", "emise"),
         supabase.from("prospects").select("id, created_at")
           .eq("statut", "nouveau"),
-        supabase.from("session_inscriptions").select("session_id"),
+        supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
       ]);
 
       const sessions = sessionsRes.data || [];
