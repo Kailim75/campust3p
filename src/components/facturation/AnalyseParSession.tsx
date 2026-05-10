@@ -81,7 +81,8 @@ function useSessionAnalysis() {
               id, montant_total, statut, date_echeance,
               paiements:paiements!paiements_facture_id_fkey(montant)
             )
-          `),
+          `)
+          .is("deleted_at", null),
       ]);
 
       if (sessionsRes.error) throw sessionsRes.error;
