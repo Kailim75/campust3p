@@ -128,9 +128,10 @@ serve(async (req) => {
     const payment = await almaRes.json();
 
     if (!almaRes.ok) {
-      console.error('Alma API error:', JSON.stringify(payment));
-      return new Response(JSON.stringify({ error: 'Failed to verify payment' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Log for manual review but ACK so Alma stops retrying (their retry loop spams the inbox).
+      console.error('[alma-webhook] Alma API verify failed (acknowledged to stop retries):', almaRes.status, JSON.stringify(payment));
+      return new Response(JSON.stringify({ status: 'error_logged', reason: 'alma_api_verify_failed', alma_status: almaRes.status, payment_id: paymentId }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
