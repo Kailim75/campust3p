@@ -188,9 +188,10 @@ serve(async (req) => {
       .single();
 
     if (insertErr) {
-      console.error('Error inserting payment:', insertErr);
-      return new Response(JSON.stringify({ error: insertErr.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Log for manual review but ACK so Alma stops retrying.
+      console.error('[alma-webhook] Insert paiement failed (acknowledged to stop retries):', insertErr, { facture_id: factureId, payment_id: paymentId, montant: totalAmount });
+      return new Response(JSON.stringify({ status: 'error_logged', reason: 'insert_failed', error: insertErr.message, facture_id: factureId, payment_id: paymentId }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
