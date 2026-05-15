@@ -77,7 +77,9 @@ export function useTodayCounts() {
         return getMissingCmaDocs(owned, track).length > 0;
       }).length;
 
-      return { rappels, cma, total: rappels + cma };
+      const workflowAlerts = workflowRes.data?.length ?? 0;
+
+      return { rappels, cma, workflowAlerts, total: rappels + cma + workflowAlerts };
     },
   });
 }
