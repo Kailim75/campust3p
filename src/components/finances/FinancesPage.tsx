@@ -3,10 +3,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
 import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
 import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
-import { CreditCard, Landmark, BarChart3 } from "lucide-react";
+import { AlmaReconciliationPage } from "@/components/finances/AlmaReconciliationPage";
+import { CreditCard, Landmark, BarChart3, Link as LinkIcon } from "lucide-react";
 import { useNavigation } from "@/contexts/NavigationContext";
 
-const VALID_TABS = ["factures", "tresorerie", "analyse"] as const;
+const VALID_TABS = ["factures", "tresorerie", "analyse", "alma"] as const;
 
 export function FinancesPage() {
   const { activeTab } = useNavigation();
@@ -48,6 +49,9 @@ export function FinancesPage() {
             <TabsTrigger value="analyse" className="gap-1.5 text-xs">
               <BarChart3 className="h-3.5 w-3.5" /> Analyse
             </TabsTrigger>
+            <TabsTrigger value="alma" className="gap-1.5 text-xs">
+              <LinkIcon className="h-3.5 w-3.5" /> Réconciliation Alma
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="factures">
@@ -58,6 +62,9 @@ export function FinancesPage() {
           </TabsContent>
           <TabsContent value="analyse">
             <CockpitFinancierPage />
+          </TabsContent>
+          <TabsContent value="alma">
+            <AlmaReconciliationPage />
           </TabsContent>
         </Tabs>
       </div>
