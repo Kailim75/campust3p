@@ -382,10 +382,14 @@ export function generateConventionFormationV2(
   writeParagraph(ctx, `La présente convention est établie conformément aux articles L.6353-1 et suivants du Code du travail. L'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}". Cette formation entre dans le cadre des actions de formation au sens de l'article L.6313-1 du Code du travail.`);
 
   // Article 2 — Nature et caractéristiques
+  const isFC = isFormationContinue(session);
+  const t3pRef = getT3PRegulatoryRef(formationType);
   writeArticle(ctx, "Article 2 — Nature et caractéristiques de l'action");
   const art2Items: Array<{ label: string; value: string }> = [
     { label: "Intitulé", value: session.nom },
-    { label: "Type d'action", value: "Action de formation professionnelle continue" },
+    { label: "Type d'action", value: "Action de formation professionnelle continue (art. L.6313-1 CT)" },
+    { label: "Parcours", value: isFC ? "Formation continue T3P (recyclage obligatoire)" : "Formation initiale T3P (préparation à l'examen)" },
+    { label: "Cadre réglementaire T3P", value: `${t3pRef.decret} — ${t3pRef.articles}` },
     { label: "Dates", value: `Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` },
   ];
   if (session.duree_heures) art2Items.push({ label: "Durée", value: `${session.duree_heures} heures` });
