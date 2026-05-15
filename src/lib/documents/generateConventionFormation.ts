@@ -216,6 +216,48 @@ function getFormationType(name: string): TypeFormation {
   return "VTC";
 }
 
+// ── T3P helpers (réglementation Décret 2017-483 / Code des transports) ──
+function isFormationContinue(s: SessionInfo): boolean {
+  const ft = (s.formation_type || "").toLowerCase();
+  if (/_fc|continue|recyclage|renouvel/.test(ft)) return true;
+  if (typeof s.duree_heures === "number" && s.duree_heures > 0 && s.duree_heures <= 16) return true;
+  return false;
+}
+
+function getT3PRegulatoryRef(type: TypeFormation): { decret: string; articles: string } {
+  switch (type) {
+    case "TAXI":
+    case "TAXI-75":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national Taxi",
+        articles: "Code des transports : R.3120-8 (initial) / R.3120-9 (FC, 14h tous les 5 ans)",
+      };
+    case "VTC":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national VTC",
+        articles: "Code des transports : R.3122-8 (initial) / R.3122-9 (FC, 14h tous les 5 ans)",
+      };
+    case "VMDTR":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national VMDTR",
+        articles: "Code des transports : R.3123-1 et suivants",
+      };
+    default:
+      return { decret: "Décret n° 2017-483 du 6 avril 2017", articles: "Code des transports" };
+  }
+}
+
+function calcAge(d?: string | null): number | null {
+  if (!d) return null;
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  const now = new Date();
+  let a = now.getFullYear() - dt.getFullYear();
+  const m = now.getMonth() - dt.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dt.getDate())) a--;
+  return a;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATOR
 // ═══════════════════════════════════════════════════════════════
@@ -340,10 +382,14 @@ export function generateConventionFormationV2(
   writeParagraph(ctx, `La présente convention est établie conformément aux articles L.6353-1 et suivants du Code du travail. L'Organisme s'engage à organiser l'action de formation intitulée "${session.nom}". Cette formation entre dans le cadre des actions de formation au sens de l'article L.6313-1 du Code du travail.`);
 
   // Article 2 — Nature et caractéristiques
+  const isFC = isFormationContinue(session);
+  const t3pRef = getT3PRegulatoryRef(formationType);
   writeArticle(ctx, "Article 2 — Nature et caractéristiques de l'action");
   const art2Items: Array<{ label: string; value: string }> = [
     { label: "Intitulé", value: session.nom },
-    { label: "Type d'action", value: "Action de formation professionnelle continue" },
+    { label: "Type d'action", value: "Action de formation professionnelle continue (art. L.6313-1 CT)" },
+    { label: "Parcours", value: isFC ? "Formation continue T3P (recyclage obligatoire)" : "Formation initiale T3P (préparation à l'examen)" },
+    { label: "Cadre réglementaire T3P", value: `${t3pRef.decret} — ${t3pRef.articles}` },
     { label: "Dates", value: `Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` },
   ];
   if (session.duree_heures) art2Items.push({ label: "Durée", value: `${session.duree_heures} heures` });
@@ -373,13 +419,25 @@ export function generateConventionFormationV2(
 
   // Article 4 — Programme
   writeArticle(ctx, "Article 4 — Programme de formation");
-  writeParagraph(ctx, "Le programme détaillé de la formation figure en ANNEXE 1 de la présente convention.");
+  writeParagraph(ctx, `Le programme suit ${t3pRef.decret} et comprend les modules nationaux obligatoires (réglementation T3P, sécurité routière, gestion d'entreprise, langue française et anglaise — initial uniquement, développement commercial et relation client). Le détail par module et volume horaire figure en ANNEXE 1 de la présente convention.`);
 
   // Article 5 — Prérequis
   writeArticle(ctx, "Article 5 — Prérequis");
-  writeParagraph(ctx, "Pour s'inscrire à cette formation, le candidat doit satisfaire aux conditions suivantes :");
-  const prerequis = getPrerequis(formationType);
-  prerequis.forEach((p, i) => writeBullet(ctx, `${i + 1}. ${p}`));
+  if (isFC) {
+    writeParagraph(ctx, "Conditions pour une formation continue T3P (R.3120-9 / R.3122-9 du Code des transports) :");
+    writeBullet(ctx, "Être titulaire d'une carte professionnelle T3P en cours de validité (ou expirée depuis moins de 5 ans)");
+    writeBullet(ctx, "Permis de conduire B en cours de validité");
+    writeBullet(ctx, "Justifier d'une activité professionnelle de conducteur T3P sur la période");
+    writeParagraph(ctx, "La formation continue (14 heures minimum, tous les 5 ans) ne donne pas lieu à un examen : elle débouche sur une attestation de suivi nécessaire au renouvellement de la carte professionnelle auprès de la préfecture.");
+  } else {
+    writeParagraph(ctx, "Conditions pour une formation initiale T3P (R.3120-8 / R.3122-8 du Code des transports) :");
+    const prerequis = getPrerequis(formationType);
+    prerequis.forEach((p, i) => writeBullet(ctx, `${i + 1}. ${p}`));
+    writeBullet(ctx, "Permis de conduire B en cours de validité depuis au moins 3 ans (2 ans en conduite accompagnée)");
+    writeBullet(ctx, "Bulletin n° 2 du casier judiciaire compatible avec l'exercice de la profession (R.3120-8)");
+    writeBullet(ctx, "Certificat médical délivré par un médecin agréé par la préfecture (visite médicale T3P)");
+    writeBullet(ctx, "Attestation préfectorale d'aptitude médicale et inscription à l'examen national T3P");
+  }
 
   // Article 6 — Public et accessibilité
   writeArticle(ctx, "Article 6 — Public visé et accessibilité");
@@ -400,8 +458,29 @@ export function generateConventionFormationV2(
   // Article 8 — Évaluation
   writeArticle(ctx, "Article 8 — Modalités d'évaluation et de validation");
   writeParagraph(ctx, "Évaluation continue : QCM de contrôle des connaissances, exercices pratiques notés.");
-  writeParagraph(ctx, "Évaluation finale : Examen blanc dans les conditions réelles de l'examen CMA.");
-  writeParagraph(ctx, "Validation : Attestation de fin de formation mentionnant les compétences acquises, attestation d'assiduité, questionnaire de satisfaction.");
+  if (isFC) {
+    writeParagraph(ctx, "Validation : attestation de suivi de formation continue T3P, à présenter à la préfecture pour le renouvellement de la carte professionnelle.");
+  } else {
+    writeParagraph(ctx, "Évaluation finale : examen blanc dans les conditions réelles de l'examen national T3P.");
+    writeParagraph(ctx, "Validation : attestation de fin de formation mentionnant les compétences acquises et l'assiduité.");
+    ctx.yPos += 2;
+    checkPageBreak(ctx, 22);
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, 22, 3, 3, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, 22, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("⚠ Obligation de moyens — Examens externes", ctx.mL + 8, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7.5);
+    setColor(doc, C.warmGray700);
+    doc.text("L'examen national T3P (théorique CMA et pratique préfecture) est organisé par des autorités externes,", ctx.mL + 8, ctx.yPos + 13);
+    doc.text("indépendamment de l'Organisme. La formation constitue une obligation de moyens, non de résultat.", ctx.mL + 8, ctx.yPos + 17);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += 24;
+  }
 
   // Article 9 — Dispositions financières
   writeArticle(ctx, "Article 9 — Dispositions financières");
@@ -417,11 +496,12 @@ export function generateConventionFormationV2(
     doc.setFontSize(9.5);
     doc.setFont(DOCUMENT_FONTS.primary, "bold");
     setColor(doc, C.forestGreenDark);
-    doc.text(`Coût total : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, ctx.mL + 8, ctx.yPos + 7);
+    const tvaApplicable = (company as unknown as { tva_applicable?: boolean }).tva_applicable === true;
+    doc.text(`Coût total : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €${tvaApplicable ? " TTC" : ""}`, ctx.mL + 8, ctx.yPos + 7);
     doc.setFontSize(7.5);
     doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(doc, C.warmGray600);
-    doc.text("TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
+    doc.text(tvaApplicable ? "Prix exprimé toutes taxes comprises (TVA 20 % incluse)." : "TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
     ctx.yPos += priceBoxH + 3;
 
     writeParagraph(ctx, "Ce tarif comprend : formation, supports de cours, accès e-learning, attestation.");
@@ -523,6 +603,32 @@ export function generateConventionFormationV2(
   doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 5, ctx.yPos + 30);
 
   ctx.yPos += sigBoxH + 8;
+
+  // Représentant légal — si stagiaire mineur
+  const beneficiaireAge = calcAge(contact.date_naissance);
+  if (beneficiaireAge !== null && beneficiaireAge < 18) {
+    checkPageBreak(ctx, 50);
+    const repBoxH = 42;
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, repBoxH, 2, 2, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, repBoxH, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("Le représentant légal du Bénéficiaire mineur", ctx.mL + 8, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7.5);
+    setColor(doc, C.warmGray700);
+    doc.text("Nom et prénom : ............................................................", ctx.mL + 8, ctx.yPos + 14);
+    doc.text("Qualité (père / mère / tuteur) : ............................................................", ctx.mL + 8, ctx.yPos + 20);
+    doc.text("Adresse : ............................................................", ctx.mL + 8, ctx.yPos + 26);
+    doc.setFontSize(6.5);
+    setColor(doc, C.warmGray500);
+    doc.text("Signature obligatoire précédée de la mention \"Lu et approuvé, bon pour accord\"", ctx.mL + 8, ctx.yPos + 36);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += repBoxH + 8;
+  }
 
   checkPageBreak(ctx, 8);
   doc.setFontSize(6.5);
