@@ -23,11 +23,7 @@ export function useContratCoherence(inscriptionId: string | null) {
           contact_id,
           session_id,
           contacts:contact_id (
-            date_naissance,
-            representant_legal_nom,
-            representant_legal_lien,
-            representant_legal_telephone,
-            representant_legal_email
+            date_naissance
           ),
           sessions:session_id (
             formation_type,
@@ -45,12 +41,9 @@ export function useContratCoherence(inscriptionId: string | null) {
       const contact: any = ins.contacts || {};
       const session: any = ins.sessions || {};
 
-      const hasRepresentantLegal = !!(
-        contact.representant_legal_nom ||
-        contact.representant_legal_email ||
-        contact.representant_legal_telephone ||
-        contact.representant_legal_lien
-      );
+      // Pas de stockage dédié du représentant légal pour l'instant : la vérification
+      // signalera systématiquement l'absence du bloc lorsque le bénéficiaire est mineur.
+      const hasRepresentantLegal = false;
 
       return runContratCoherenceCheck({
         formationType: session.formation_type,
