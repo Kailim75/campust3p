@@ -318,6 +318,42 @@ function getFormationLabel(formationType: string): string {
   return labels[formationType.toLowerCase()] || formationType;
 }
 
+/**
+ * Détecte si la formation est une Formation Continue T3P (14h tous les 5 ans)
+ * vs Formation Initiale (préparation à l'examen carte pro).
+ */
+function isFormationContinue(s: SessionInfo): boolean {
+  const t = (s.formation_type || "").toLowerCase();
+  if (/(_fc|-fc|continue|recyclage|renouvel)/.test(t)) return true;
+  if (s.duree_heures && s.duree_heures <= 16) return true;
+  return false;
+}
+
+/**
+ * Cadre réglementaire T3P selon le métier.
+ */
+function getT3PRegulatoryRef(formationType: string): string {
+  const t = (formationType || "").toLowerCase();
+  if (/taxi/.test(t)) return "Décret n°2017-483 du 6 avril 2017 et arrêté du 11 août 2017 (Taxi) — Art. R.3120-8 et s. du Code des transports";
+  if (/vtc/.test(t)) return "Décret n°2017-483 du 6 avril 2017 et arrêté du 11 août 2017 (VTC) — Art. R.3122-9 et s. du Code des transports";
+  if (/vmdtr/.test(t)) return "Décret n°2017-483 du 6 avril 2017 (VMDTR) — Art. R.3123-1 et s. du Code des transports";
+  return "Décret n°2017-483 du 6 avril 2017 relatif aux activités de transport public particulier de personnes (T3P)";
+}
+
+/**
+ * Calcule l'âge à partir de la date de naissance (renvoie null si invalide).
+ */
+function calcAge(dateNaissance?: string): number | null {
+  if (!dateNaissance) return null;
+  const d = new Date(dateNaissance);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATOR
 // ═══════════════════════════════════════════════════════════════
