@@ -773,6 +773,41 @@ export function generateContratFormationV2(
 
   ctx.yPos += sigBoxH + 5;
 
+  // Bloc représentant légal si stagiaire mineur
+  const age = calcAge(contact.date_naissance);
+  if (age !== null && age < 18) {
+    checkPageBreak(ctx, 50);
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, 10, 2, 2, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("⚠ Stagiaire mineur — Signature du représentant légal obligatoire", ctx.mL + 5, ctx.yPos + 6.5);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += 14;
+
+    const repBoxH = 42;
+    setFill(doc, C.creamLight);
+    doc.setDrawColor(C.forestGreen.r, C.forestGreen.g, C.forestGreen.b);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, repBoxH, 2, 2, "FD");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreen);
+    doc.text("Le représentant légal du Stagiaire mineur", ctx.mL + 5, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7);
+    setColor(doc, C.warmGray700);
+    doc.text("Nom et prénom : ____________________________________________", ctx.mL + 5, ctx.yPos + 14);
+    doc.text("Qualité (père, mère, tuteur) : _________________________________", ctx.mL + 5, ctx.yPos + 20);
+    doc.text("Adresse : ___________________________________________________", ctx.mL + 5, ctx.yPos + 26);
+    doc.setFontSize(6.5);
+    setColor(doc, C.warmGray500);
+    doc.text("Signature précédée de la mention \"Lu et approuvé, bon pour accord pour le mineur\"", ctx.mL + 5, ctx.yPos + 36);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += repBoxH + 5;
+  }
+
   // Mention légale finale
   checkPageBreak(ctx, 8);
   doc.setFontSize(6.5);
