@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ResultatsFormationCard } from "./ResultatsFormationCard";
 import { InscriptionWorkflowTimeline } from "@/components/workflow/InscriptionWorkflowTimeline";
+import { ContratCoherencePanel } from "@/components/compliance/ContratCoherencePanel";
 
 const PRESENCE_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
   valide: { icon: CheckCircle2, label: "Validé", className: "bg-success/15 text-success" },
@@ -85,11 +86,13 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
       {inscriptions && inscriptions.length > 0 && (
         <div className="space-y-3">
           {inscriptions.map((ins: any) => (
-            <InscriptionWorkflowTimeline
-              key={`wf-${ins.id}`}
-              inscriptionId={ins.id}
-              onOpenDocuments={() => setSearchParams({ section: "documents" })}
-            />
+            <div key={`wf-${ins.id}`} className="space-y-3">
+              <InscriptionWorkflowTimeline
+                inscriptionId={ins.id}
+                onOpenDocuments={() => setSearchParams({ section: "documents" })}
+              />
+              <ContratCoherencePanel inscriptionId={ins.id} />
+            </div>
           ))}
         </div>
       )}
