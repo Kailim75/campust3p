@@ -216,6 +216,48 @@ function getFormationType(name: string): TypeFormation {
   return "VTC";
 }
 
+// ── T3P helpers (réglementation Décret 2017-483 / Code des transports) ──
+function isFormationContinue(s: SessionInfo): boolean {
+  const ft = (s.formation_type || "").toLowerCase();
+  if (/_fc|continue|recyclage|renouvel/.test(ft)) return true;
+  if (typeof s.duree_heures === "number" && s.duree_heures > 0 && s.duree_heures <= 16) return true;
+  return false;
+}
+
+function getT3PRegulatoryRef(type: TypeFormation): { decret: string; articles: string } {
+  switch (type) {
+    case "TAXI":
+    case "TAXI-75":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national Taxi",
+        articles: "Code des transports : R.3120-8 (initial) / R.3120-9 (FC, 14h tous les 5 ans)",
+      };
+    case "VTC":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national VTC",
+        articles: "Code des transports : R.3122-8 (initial) / R.3122-9 (FC, 14h tous les 5 ans)",
+      };
+    case "VMDTR":
+      return {
+        decret: "Décret n° 2017-483 du 6 avril 2017 — programme national VMDTR",
+        articles: "Code des transports : R.3123-1 et suivants",
+      };
+    default:
+      return { decret: "Décret n° 2017-483 du 6 avril 2017", articles: "Code des transports" };
+  }
+}
+
+function calcAge(d?: string | null): number | null {
+  if (!d) return null;
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return null;
+  const now = new Date();
+  let a = now.getFullYear() - dt.getFullYear();
+  const m = now.getMonth() - dt.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dt.getDate())) a--;
+  return a;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATOR
 // ═══════════════════════════════════════════════════════════════
