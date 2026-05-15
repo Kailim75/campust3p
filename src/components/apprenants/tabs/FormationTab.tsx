@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ResultatsFormationCard } from "./ResultatsFormationCard";
 import { InscriptionWorkflowTimeline } from "@/components/workflow/InscriptionWorkflowTimeline";
+import { ContratCoherencePanel } from "@/components/compliance/ContratCoherencePanel";
 
 const PRESENCE_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
   valide: { icon: CheckCircle2, label: "Validé", className: "bg-success/15 text-success" },
