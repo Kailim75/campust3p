@@ -18,7 +18,7 @@ export function useTodayCounts() {
     queryFn: async () => {
       const todayStr = new Date().toISOString().split("T")[0];
 
-      const [rappelsRes, contactsRes, docsRes, inscriptionsRes] = await Promise.all([
+      const [rappelsRes, contactsRes, docsRes, inscriptionsRes, workflowRes] = await Promise.all([
         supabase
           .from("contact_historique")
           .select("contact_id, date_rappel", { count: "exact", head: false })
@@ -39,6 +39,16 @@ export function useTodayCounts() {
           .from("session_inscriptions")
           .select("contact_id, track")
           .is("deleted_at", null),
+        (supabase as any)
+          .from("v_inscription_workflow")
+          .select("inscription_id, alert_convocation_missing, alert_convocation_unsent, alert_contract_unsigned, alert_emargement_missing, alert_attestation_late")
+          .or(
+            "alert_convocation_missing.eq.true," +
+            "alert_convocation_unsent.eq.true," +
+            "alert_contract_unsigned.eq.true," +
+            "alert_emargement_missing.eq.true," +
+            "alert_attestation_late.eq.true"
+          ),
       ]);
 
       const rappels = rappelsRes.data?.length ?? 0;
@@ -67,7 +77,9 @@ export function useTodayCounts() {
         return getMissingCmaDocs(owned, track).length > 0;
       }).length;
 
-      return { rappels, cma, total: rappels + cma };
+      const workflowAlerts = workflowRes.data?.length ?? 0;
+
+      return { rappels, cma, workflowAlerts, total: rappels + cma + workflowAlerts };
     },
   });
 }

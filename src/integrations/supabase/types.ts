@@ -2259,6 +2259,13 @@ export type Database = {
             referencedRelation: "session_inscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "devis_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_inscription_workflow"
+            referencedColumns: ["inscription_id"]
+          },
         ]
       }
       devis_lignes: {
@@ -3425,6 +3432,13 @@ export type Database = {
             referencedRelation: "session_inscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "factures_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_inscription_workflow"
+            referencedColumns: ["inscription_id"]
+          },
         ]
       }
       fiches_pratique: {
@@ -4043,6 +4057,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "session_inscriptions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_v2_inscription_id_fkey"
+            columns: ["inscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_inscription_workflow"
+            referencedColumns: ["inscription_id"]
           },
           {
             foreignKeyName: "generated_documents_v2_pack_id_fkey"
@@ -7248,6 +7269,13 @@ export type Database = {
             referencedRelation: "session_inscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "signature_requests_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_inscription_workflow"
+            referencedColumns: ["inscription_id"]
+          },
         ]
       }
       template_approval_logs: {
@@ -8139,6 +8167,64 @@ export type Database = {
           tracking_token: string | null
         }
         Relationships: []
+      }
+      v_inscription_workflow: {
+        Row: {
+          alert_attestation_late: boolean | null
+          alert_contract_unsigned: boolean | null
+          alert_convocation_missing: boolean | null
+          alert_convocation_unsent: boolean | null
+          alert_emargement_missing: boolean | null
+          attestation_generated: boolean | null
+          attestation_sent: boolean | null
+          centre_id: string | null
+          contact_id: string | null
+          contract_document_type: string | null
+          contract_frame_status: string | null
+          contract_signed: boolean | null
+          convocation_generated: boolean | null
+          convocation_sent: boolean | null
+          date_debut: string | null
+          date_fin: string | null
+          duree_heures: number | null
+          emargement_signed: number | null
+          emargement_total: number | null
+          inscription_id: string | null
+          inscription_statut: string | null
+          session_id: string | null
+          session_nom: string | null
+          workflow_step: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_inscriptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_inscriptions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
