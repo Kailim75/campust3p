@@ -26,9 +26,14 @@ async function verifyAlmaSignature(rawBody: string, signature: string | null): P
     return { ok: true, reason: 'no_secret_configured' };
   }
 
-  // Secret set but no signature header -> reject (Alma must be sending one if we expect to verify).
+  // Secret set but no signature header -> degraded mode (accept).
+  // Alma's per-payment ipn_callback_url does NOT send x-alma-signature
+  // (signing only applies to dashboard-configured global webhooks).
+  // We still verify the payment state via the Alma API after parsing the body,
+  // so an unsigned IPN cannot forge a paid status.
   if (!signature) {
-    return { ok: false, reason: 'missing_signature_header' };
+    console.warn('[alma-webhook] No x-alma-signature header (expected for IPN callbacks) — accepting in degraded mode');
+    return { ok: true, reason: 'no_signature_header_ipn_mode' };
   }
 
   // Compute HMAC-SHA256 of the raw body with the configured secret.
