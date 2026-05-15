@@ -458,8 +458,29 @@ export function generateConventionFormationV2(
   // Article 8 — Évaluation
   writeArticle(ctx, "Article 8 — Modalités d'évaluation et de validation");
   writeParagraph(ctx, "Évaluation continue : QCM de contrôle des connaissances, exercices pratiques notés.");
-  writeParagraph(ctx, "Évaluation finale : Examen blanc dans les conditions réelles de l'examen CMA.");
-  writeParagraph(ctx, "Validation : Attestation de fin de formation mentionnant les compétences acquises, attestation d'assiduité, questionnaire de satisfaction.");
+  if (isFC) {
+    writeParagraph(ctx, "Validation : attestation de suivi de formation continue T3P, à présenter à la préfecture pour le renouvellement de la carte professionnelle.");
+  } else {
+    writeParagraph(ctx, "Évaluation finale : examen blanc dans les conditions réelles de l'examen national T3P.");
+    writeParagraph(ctx, "Validation : attestation de fin de formation mentionnant les compétences acquises et l'assiduité.");
+    ctx.yPos += 2;
+    checkPageBreak(ctx, 22);
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, 22, 3, 3, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, 22, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("⚠ Obligation de moyens — Examens externes", ctx.mL + 8, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7.5);
+    setColor(doc, C.warmGray700);
+    doc.text("L'examen national T3P (théorique CMA et pratique préfecture) est organisé par des autorités externes,", ctx.mL + 8, ctx.yPos + 13);
+    doc.text("indépendamment de l'Organisme. La formation constitue une obligation de moyens, non de résultat.", ctx.mL + 8, ctx.yPos + 17);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += 24;
+  }
 
   // Article 9 — Dispositions financières
   writeArticle(ctx, "Article 9 — Dispositions financières");
