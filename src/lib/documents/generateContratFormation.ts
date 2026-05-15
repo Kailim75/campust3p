@@ -633,7 +633,13 @@ export function generateContratFormationV2(
     doc.setFontSize(7.5);
     doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(doc, C.warmGray600);
-    doc.text("TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
+    doc.text(
+      tvaApplicable
+        ? "Prix exprimé toutes taxes comprises (TVA 20 % incluse)"
+        : "TVA non applicable — art. 293 B du CGI",
+      ctx.mL + 8,
+      ctx.yPos + 12
+    );
     setColor(doc, C.warmGray800);
     ctx.yPos += priceBoxH + 3;
 
