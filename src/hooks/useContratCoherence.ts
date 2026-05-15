@@ -28,8 +28,7 @@ export function useContratCoherence(inscriptionId: string | null) {
           sessions:session_id (
             formation_type,
             duree_heures,
-            objectifs,
-            programme_id
+            objectifs
           )
         `)
         .eq("id", inscriptionId)
