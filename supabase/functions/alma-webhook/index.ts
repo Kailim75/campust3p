@@ -202,18 +202,17 @@ serve(async (req) => {
 
     console.log('Payment recorded successfully:', newPaiement.id);
 
-    // Get contact name for the notification
+    // Get full facture + contact details for the receipt email
     const { data: facture } = await supabase
       .from('factures')
-      .select('contact_id, contacts(nom, prenom)')
+      .select('id, numero_facture, montant_total, date_emission, contact_id, centre_id, contacts(nom, prenom, email)')
       .eq('id', factureId)
       .single();
 
-    const contactName = facture?.contacts
-      ? `${(facture.contacts as any).prenom} ${(facture.contacts as any).nom}`
-      : 'Client';
+    const contact: any = facture?.contacts ?? null;
+    const contactName = contact ? `${contact.prenom ?? ''} ${contact.nom ?? ''}`.trim() : 'Client';
 
-    // Create in-app notification for all admin/staff users
+    // ── 1. In-app notifications for staff ──
     const { data: adminUsers } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -228,18 +227,138 @@ serve(async (req) => {
         link: `/factures`,
         metadata: { facture_id: factureId, alma_payment_id: paymentId, amount: totalAmount },
       }));
-
-      const { error: notifErr } = await supabase
-        .from('notifications')
-        .insert(notifications);
-
+      const { error: notifErr } = await supabase.from('notifications').insert(notifications);
       if (notifErr) console.error('Error creating notifications:', notifErr);
     }
 
-    return new Response(JSON.stringify({ 
-      status: 'recorded', 
+    // ── 2. Auto-generate + email PDF receipt to the client ──
+    let emailStatus: 'sent' | 'skipped' | 'failed' = 'skipped';
+    let emailError: string | null = null;
+    if (contact?.email && facture) {
+      try {
+        const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+        if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured');
+
+        // Resolve centre branding (fromAddress, raison sociale)
+        const { data: centreCfg } = await supabase
+          .from('centre_formation')
+          .select('raison_sociale, email_contact, telephone_contact, siege_social, siret')
+          .limit(1)
+          .maybeSingle();
+
+        const fromAddress = (centreCfg?.email_contact)
+          ? `${centreCfg.raison_sociale ?? 'Centre de formation'} <${centreCfg.email_contact}>`
+          : 'Ecole T3P Montrouge <montrouge@ecolet3p.fr>';
+
+        // Build PDF receipt with jsPDF (Deno-compatible build)
+        const { jsPDF } = await import('https://esm.sh/jspdf@2.5.1');
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        const FOREST = '#1E462D';
+        doc.setFillColor(FOREST);
+        doc.rect(0, 0, 210, 28, 'F');
+        doc.setTextColor('#FFFFFF');
+        doc.setFontSize(18);
+        doc.text('Reçu de paiement', 20, 18);
+
+        doc.setTextColor('#000000');
+        doc.setFontSize(10);
+        let y = 40;
+        const line = (label: string, value: string) => {
+          doc.setFont('helvetica', 'bold'); doc.text(label, 20, y);
+          doc.setFont('helvetica', 'normal'); doc.text(value, 70, y);
+          y += 7;
+        };
+        line('Émetteur :', centreCfg?.raison_sociale ?? 'Centre de formation');
+        if (centreCfg?.siret) line('SIRET :', centreCfg.siret);
+        if (centreCfg?.siege_social) line('Adresse :', String(centreCfg.siege_social).slice(0, 80));
+        y += 4;
+        line('Bénéficiaire :', contactName);
+        if (contact.email) line('Email :', contact.email);
+        y += 4;
+        line('Facture liée :', facture.numero_facture ?? facture.id);
+        line('Date du paiement :', new Date().toLocaleDateString('fr-FR'));
+        line('Mode de paiement :', `Alma — paiement en ${payment.installments_count}x`);
+        line('Référence Alma :', `ALMA-${paymentId}`);
+        y += 4;
+
+        doc.setFillColor(FOREST);
+        doc.setTextColor('#FFFFFF');
+        doc.rect(20, y, 170, 14, 'F');
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Montant encaissé : ${totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`, 25, y + 9);
+
+        doc.setTextColor('#666666');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('Ce reçu vaut confirmation de l\'encaissement de votre paiement Alma.', 20, 280);
+        doc.text('Conservez-le pour vos archives. Pour toute question : ' + (centreCfg?.email_contact ?? 'contact@ecolet3p.fr'), 20, 285);
+
+        const pdfB64 = doc.output('datauristring').split(',')[1];
+        const fileName = `Recu-${facture.numero_facture ?? paymentId}.pdf`;
+
+        const html = `
+          <div style="font-family:Arial,sans-serif;color:#1f2937;max-width:560px;margin:0 auto">
+            <div style="background:${FOREST};color:#fff;padding:18px 24px;border-radius:8px 8px 0 0">
+              <h2 style="margin:0;font-size:18px">Paiement bien reçu — Merci !</h2>
+            </div>
+            <div style="padding:20px 24px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
+              <p>Bonjour ${contactName},</p>
+              <p>Nous confirmons la validation de votre paiement Alma en <strong>${payment.installments_count}×</strong>
+                 d'un montant de <strong>${totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</strong>
+                 pour la facture <strong>${facture.numero_facture ?? ''}</strong>.</p>
+              <p>Vous trouverez en pièce jointe votre reçu officiel.</p>
+              <p style="margin-top:24px;color:#6b7280;font-size:13px">Cordialement,<br/>${centreCfg?.raison_sociale ?? 'Votre centre de formation'}</p>
+            </div>
+          </div>`;
+
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [contact.email],
+            subject: `Reçu de paiement — Facture ${facture.numero_facture ?? ''}`,
+            html,
+            attachments: [{ filename: fileName, content: pdfB64 }],
+          }),
+        });
+
+        if (!resendRes.ok) {
+          const errBody = await resendRes.text();
+          throw new Error(`Resend ${resendRes.status}: ${errBody}`);
+        }
+        emailStatus = 'sent';
+
+        // Log envoi pour traçabilité
+        await supabase.from('document_envois').insert({
+          contact_id: facture.contact_id,
+          document_type: 'recu_paiement',
+          document_name: fileName,
+          statut: 'envoye',
+          envoi_type: 'email',
+          date_envoi: new Date().toISOString(),
+        }).then(({ error }) => { if (error) console.warn('document_envois log failed:', error.message); });
+
+        console.log(`[alma-webhook] Receipt PDF emailed to ${contact.email}`);
+      } catch (e) {
+        emailStatus = 'failed';
+        emailError = (e as Error).message;
+        console.error('[alma-webhook] Failed to send receipt email:', emailError);
+      }
+    } else {
+      console.log('[alma-webhook] No contact email, skipping receipt email');
+    }
+
+    return new Response(JSON.stringify({
+      status: 'recorded',
       paiement_id: newPaiement.id,
       amount: totalAmount,
+      email: { status: emailStatus, error: emailError },
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
