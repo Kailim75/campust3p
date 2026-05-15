@@ -1,72 +1,85 @@
-## Lot P0/P1 — CampusT3P CRM
+# Workflow documentaire CRM : Prospect → Inscription → Fin de formation
 
-Objectif : sécuriser l'API, fiabiliser le dashboard, améliorer prospects/contacts/sessions, durcir la sécurité UI/logs. Changements petits, réversibles, sans refonte.
+## Objectif
+Automatiser la génération et le suivi des 3 documents clés (convocation, feuille d'émargement, attestation) le long du parcours apprenant, avec statuts visibles et alertes de blocage.
 
----
+## Étapes du workflow (statuts par inscription)
 
-### A. Sync `supabase/functions/api-v1/index.ts` (sécurité API)
+```text
+Prospect ─► Inscrit ─► Convoqué ─► En formation ─► Émargé ─► Terminé ─► Attesté
+                │           │                          │                     │
+                │           ▼                          ▼                     ▼
+                │   doc: Convocation              doc: Émargement      doc: Attestation
+                │   (J-7 avant session)           (chaque journée)     (J+1 fin session)
+                ▼
+        contrat/convention signé
+```
 
-- Lire l'état actuel du fichier pour comparer avec le déployé.
-- Réintroduire/garder :
-  - `RESOURCE_CONFIG` par ressource : `hasDirectCentreId`, `hasDeletedAt`, `centreScope` (`direct` ou `via {fkColumn, parentTable}`), `defaultOrder`.
-  - Helpers `applyCentreScope`, `applySoftDeleteScope`, `verifyParentBelongsToCentre`, `verifyRecordInCentre`.
-  - Scoping indirect : `session_inscriptions`, `emargements` → `sessions`; `contact_documents`, `contact_historique` → `contacts`; `paiements` → `factures`.
-  - Soft-delete par défaut, `?include_deleted=true` en lecture seule.
-  - DELETE → soft-delete (`deleted_at`, `deleted_by` si possible) ou 405 si non soft-deletable.
-  - Bloquer changement `centre_id` dans POST/PATCH.
-  - Erreurs sans détails internes (logger côté serveur, message générique côté client).
-- Mettre à jour `API.md` (section soft-delete, scoping indirect, `include_deleted`).
-- Déployer la fonction.
+## 1. Modèle de données (migration)
+Ajouter sur `session_inscriptions` :
+- `workflow_step` (enum: `inscrit`, `convoque`, `en_formation`, `emarge`, `termine`, `atteste`)
+- `convocation_generated_at`, `convocation_sent_at`
+- `emargement_ready_at`
+- `attestation_generated_at`, `attestation_sent_at`
+- `workflow_blocked_reason` (text nullable)
 
-### B. Dashboard hooks fiables
+Trigger DB : recalcule `workflow_step` à chaque update (signature contrat, émargements complétés, session passée…).
 
-- `src/hooks/useDashboardActionData.ts` :
-  - `prospects` : ajouter `.is("deleted_at", null)`.
-  - `factures` : ajouter `.is("deleted_at", null)`.
-  - `session_inscriptions` (déjà filtré, vérifier).
-  - `contact_documents` : ajouter `.is("deleted_at", null)`.
-  - `useUpcomingSessions` : ajouter `.is("deleted_at", null)` sur sessions et inscriptions.
-- `src/hooks/useDashboardData.ts` : ajouter TODO de pagination claire sur `.limit(1000)`, vérifier filtres `deleted_at`.
-- Helper `countActiveEnrollmentsBySession(inscriptions)` partagé pour éviter duplication.
+## 2. Hook unifié `useInscriptionWorkflow`
+Retourne pour chaque inscription :
+- étape courante + étapes complétées
+- documents associés (statut généré/envoyé/signé via `useDocumentWorkflow`)
+- prochaine action recommandée
+- alertes (convocation manquante J-3, émargement non signé, attestation en retard…)
 
-### C. Prospects — priorisation visible
+## 3. Génération automatique
+Edge function `auto-generate-workflow-docs` (cron quotidien) :
+- J-7 avant session : génère convocations manquantes (statut `inscrit`+contrat OK)
+- J0 chaque jour de session : crée feuille d'émargement du jour
+- J+1 fin de session : génère attestations (si émargement ≥ seuil présence)
 
-- `ProspectQuickFilters.tsx` : ajouter filtres `en_retard`, `aujourdhui`, `cette_semaine`, `sans_action`, `mes_leads` (si pas déjà présents).
-- `ProspectsKanban.tsx` / list : afficher badge priorité + retard `next_action_at` si présent.
-- Empty states contextuels selon filtre actif.
-- Garder tous les flux existants (create/edit/convert/delete/quick actions).
+Tous les docs vont dans `generated_documents_v2` → réutilise pipeline existant (Template Studio + pdfResolver).
 
-### D. Contacts / Apprenants
+## 4. UI — Composant `InscriptionWorkflowTimeline`
+Réutilise `WorkflowStepper` existant. Affiché :
+- dans la fiche apprenant (onglet Parcours)
+- dans la matrice session (ligne par apprenant, colonnes = étapes)
 
-- Vérifier que `ApprenantsPage.tsx` utilise bien la version paginée.
-- Badge "coordonnées incomplètes" si pas de tel ni email.
-- Empty state si liste vide.
+Chaque étape : statut (complete/active/blocked/pending) + bouton action contextuelle (Générer / Renvoyer / Voir).
 
-### E. Sessions
+## 5. Alertes & cockpit "Aujourd'hui"
+Nouveau bloc dans l'inbox `today-action-hub` :
+- "Convocations à envoyer" (J-7 à J-1)
+- "Émargements incomplets" (sessions du jour)
+- "Attestations en retard" (sessions terminées >48h sans attestation)
 
-- Vérifier `useSessionsList`, `useSessionEnrollments`, `useSessionInscrits` filtrent `deleted_at IS NULL`.
-- Compteurs inscrits = inscriptions actives uniquement.
-- Empty state si aucune session.
+Source : vue SQL `v_workflow_alerts` agrégeant les inscriptions par type d'alerte.
 
-### F. Sécurité UI / logs
+## 6. Notifications
+- Email auto à l'apprenant à chaque doc envoyé (template centre)
+- Notification in-app au staff si blocage > 24h
 
-- `src/pages/MentionsLegales.tsx` : ajouter `DOMPurify.sanitize()` avant `dangerouslySetInnerHTML`.
-- Créer `supabase/functions/_shared/redact.ts` avec helpers `redactEmail`, `redactPhone`, `redactToken`, `redactUrl`, `redactPayload`.
-- Appliquer dans `sync-driveflow/index.ts` et `send-daily-report/index.ts` (si présent).
+## Détails techniques
 
-### G. Tests ciblés
+**Fichiers créés**
+- `supabase/migrations/*_inscription_workflow.sql` (colonnes + trigger + vue)
+- `supabase/functions/auto-generate-workflow-docs/index.ts` (cron)
+- `src/hooks/useInscriptionWorkflow.ts`
+- `src/components/workflow/InscriptionWorkflowTimeline.tsx`
+- `src/components/inbox/blocks/WorkflowAlertsBlock.tsx`
 
-- Test pour `countActiveEnrollmentsBySession`.
-- Test pour helpers de redaction.
-- Si bloqué par Rollup optionnel → documenter, ne pas supprimer.
+**Fichiers modifiés**
+- `src/components/apprenants/...DetailView` → ajout onglet Parcours
+- `src/components/sessions/SessionMatrix...` → colonne workflow
+- `src/hooks/useTodayCounts.ts` → +alertes workflow
+- `src/lib/document-workflow/types.ts` → expose `workflowStep`
 
----
+**Compat**
+- `useDocumentWorkflow` reste source de vérité pour les statuts doc, le nouveau hook l'agrège côté inscription.
+- Pas de changement sur Template Studio ni signatures (réutilisés tels quels).
+- Cron : pg_cron + pg_net (déjà actifs).
 
-### Notes
-
-- Tous les changements respectent RLS, multi-tenant, soft-delete, et la mémoire projet.
-- Pas de DELETE physique. Pas de modification de migrations.
-- Pas de secrets en clair. Pas de payloads loggés.
-- Si un fichier (ex. `ProspectQuickFilters.tsx`, `ApprenantsPage.tsx`) n'existe pas exactement comme décrit, je m'adapte sans inventer.
-
-Le lot est volumineux : je l'exécute en séquence (A → B → F → C → D → E → G), en s'arrêtant si un point bloque.
+## Hors scope
+- Pas de refonte du Template Studio ni de la signature.
+- Pas de modification du parcours prospect amont (déjà géré par `prospect-follow-up-engine`).
+- Pas de touch sur la facturation.
