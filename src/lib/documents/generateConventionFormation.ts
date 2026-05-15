@@ -419,13 +419,25 @@ export function generateConventionFormationV2(
 
   // Article 4 — Programme
   writeArticle(ctx, "Article 4 — Programme de formation");
-  writeParagraph(ctx, "Le programme détaillé de la formation figure en ANNEXE 1 de la présente convention.");
+  writeParagraph(ctx, `Le programme suit ${t3pRef.decret} et comprend les modules nationaux obligatoires (réglementation T3P, sécurité routière, gestion d'entreprise, langue française et anglaise — initial uniquement, développement commercial et relation client). Le détail par module et volume horaire figure en ANNEXE 1 de la présente convention.`);
 
   // Article 5 — Prérequis
   writeArticle(ctx, "Article 5 — Prérequis");
-  writeParagraph(ctx, "Pour s'inscrire à cette formation, le candidat doit satisfaire aux conditions suivantes :");
-  const prerequis = getPrerequis(formationType);
-  prerequis.forEach((p, i) => writeBullet(ctx, `${i + 1}. ${p}`));
+  if (isFC) {
+    writeParagraph(ctx, "Conditions pour une formation continue T3P (R.3120-9 / R.3122-9 du Code des transports) :");
+    writeBullet(ctx, "Être titulaire d'une carte professionnelle T3P en cours de validité (ou expirée depuis moins de 5 ans)");
+    writeBullet(ctx, "Permis de conduire B en cours de validité");
+    writeBullet(ctx, "Justifier d'une activité professionnelle de conducteur T3P sur la période");
+    writeParagraph(ctx, "La formation continue (14 heures minimum, tous les 5 ans) ne donne pas lieu à un examen : elle débouche sur une attestation de suivi nécessaire au renouvellement de la carte professionnelle auprès de la préfecture.");
+  } else {
+    writeParagraph(ctx, "Conditions pour une formation initiale T3P (R.3120-8 / R.3122-8 du Code des transports) :");
+    const prerequis = getPrerequis(formationType);
+    prerequis.forEach((p, i) => writeBullet(ctx, `${i + 1}. ${p}`));
+    writeBullet(ctx, "Permis de conduire B en cours de validité depuis au moins 3 ans (2 ans en conduite accompagnée)");
+    writeBullet(ctx, "Bulletin n° 2 du casier judiciaire compatible avec l'exercice de la profession (R.3120-8)");
+    writeBullet(ctx, "Certificat médical délivré par un médecin agréé par la préfecture (visite médicale T3P)");
+    writeBullet(ctx, "Attestation préfectorale d'aptitude médicale et inscription à l'examen national T3P");
+  }
 
   // Article 6 — Public et accessibilité
   writeArticle(ctx, "Article 6 — Public visé et accessibilité");
