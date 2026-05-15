@@ -48,7 +48,6 @@ export function useContratCoherence(inscriptionId: string | null) {
         formationType: session.formation_type,
         dureeHeures: session.duree_heures,
         dateNaissance: contact.date_naissance,
-        hasProgramme: !!session.programme_id,
         hasObjectifs: !!session.objectifs,
         hasRepresentantLegal,
       });
