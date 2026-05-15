@@ -86,11 +86,13 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
       {inscriptions && inscriptions.length > 0 && (
         <div className="space-y-3">
           {inscriptions.map((ins: any) => (
-            <InscriptionWorkflowTimeline
-              key={`wf-${ins.id}`}
-              inscriptionId={ins.id}
-              onOpenDocuments={() => setSearchParams({ section: "documents" })}
-            />
+            <div key={`wf-${ins.id}`} className="space-y-3">
+              <InscriptionWorkflowTimeline
+                inscriptionId={ins.id}
+                onOpenDocuments={() => setSearchParams({ section: "documents" })}
+              />
+              <ContratCoherencePanel inscriptionId={ins.id} />
+            </div>
           ))}
         </div>
       )}
