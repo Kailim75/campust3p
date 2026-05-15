@@ -604,6 +604,32 @@ export function generateConventionFormationV2(
 
   ctx.yPos += sigBoxH + 8;
 
+  // Représentant légal — si stagiaire mineur
+  const beneficiaireAge = calcAge(contact.date_naissance);
+  if (beneficiaireAge !== null && beneficiaireAge < 18) {
+    checkPageBreak(ctx, 50);
+    const repBoxH = 42;
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, repBoxH, 2, 2, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, repBoxH, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("Le représentant légal du Bénéficiaire mineur", ctx.mL + 8, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7.5);
+    setColor(doc, C.warmGray700);
+    doc.text("Nom et prénom : ............................................................", ctx.mL + 8, ctx.yPos + 14);
+    doc.text("Qualité (père / mère / tuteur) : ............................................................", ctx.mL + 8, ctx.yPos + 20);
+    doc.text("Adresse : ............................................................", ctx.mL + 8, ctx.yPos + 26);
+    doc.setFontSize(6.5);
+    setColor(doc, C.warmGray500);
+    doc.text("Signature obligatoire précédée de la mention \"Lu et approuvé, bon pour accord\"", ctx.mL + 8, ctx.yPos + 36);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += repBoxH + 8;
+  }
+
   checkPageBreak(ctx, 8);
   doc.setFontSize(6.5);
   setColor(doc, C.warmGray500);
