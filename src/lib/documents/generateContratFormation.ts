@@ -318,6 +318,42 @@ function getFormationLabel(formationType: string): string {
   return labels[formationType.toLowerCase()] || formationType;
 }
 
+/**
+ * Détecte si la formation est une Formation Continue T3P (14h tous les 5 ans)
+ * vs Formation Initiale (préparation à l'examen carte pro).
+ */
+function isFormationContinue(s: SessionInfo): boolean {
+  const t = (s.formation_type || "").toLowerCase();
+  if (/(_fc|-fc|continue|recyclage|renouvel)/.test(t)) return true;
+  if (s.duree_heures && s.duree_heures <= 16) return true;
+  return false;
+}
+
+/**
+ * Cadre réglementaire T3P selon le métier.
+ */
+function getT3PRegulatoryRef(formationType: string): string {
+  const t = (formationType || "").toLowerCase();
+  if (/taxi/.test(t)) return "Décret n°2017-483 du 6 avril 2017 et arrêté du 11 août 2017 (Taxi) — Art. R.3120-8 et s. du Code des transports";
+  if (/vtc/.test(t)) return "Décret n°2017-483 du 6 avril 2017 et arrêté du 11 août 2017 (VTC) — Art. R.3122-9 et s. du Code des transports";
+  if (/vmdtr/.test(t)) return "Décret n°2017-483 du 6 avril 2017 (VMDTR) — Art. R.3123-1 et s. du Code des transports";
+  return "Décret n°2017-483 du 6 avril 2017 relatif aux activités de transport public particulier de personnes (T3P)";
+}
+
+/**
+ * Calcule l'âge à partir de la date de naissance (renvoie null si invalide).
+ */
+function calcAge(dateNaissance?: string): number | null {
+  if (!dateNaissance) return null;
+  const d = new Date(dateNaissance);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATOR
 // ═══════════════════════════════════════════════════════════════
@@ -463,9 +499,15 @@ export function generateContratFormationV2(
   // Article 2 — Nature et caractéristiques
   writeArticle(ctx, "Article 2 — Nature, durée et caractéristiques de l'action de formation");
   const formationLabel = session.formation_type ? getFormationLabel(session.formation_type) : session.nom;
+  const isFC = isFormationContinue(session);
+  const parcoursLabel = isFC
+    ? "Formation continue obligatoire T3P (renouvellement carte professionnelle, périodicité 5 ans)"
+    : "Formation initiale T3P (préparation à l'examen d'accès à la profession)";
   const art2Items: Array<{ label: string; value: string }> = [
     { label: "Intitulé", value: session.nom },
     { label: "Nature de l'action", value: `${formationLabel} — Action de formation professionnelle (Art. L6313-1 du Code du travail)` },
+    { label: "Parcours", value: parcoursLabel },
+    { label: "Cadre réglementaire T3P", value: getT3PRegulatoryRef(session.formation_type || "") },
     { label: "Dates", value: `Du ${format(new Date(session.date_debut), "dd/MM/yyyy")} au ${format(new Date(session.date_fin), "dd/MM/yyyy")}` },
   ];
   if (session.duree_heures) art2Items.push({ label: "Durée totale", value: `${session.duree_heures} heures` });
@@ -485,8 +527,23 @@ export function generateContratFormationV2(
   // Article 4 — Public visé et prérequis
   writeArticle(ctx, "Article 4 — Public visé et prérequis");
   writeParagraph(ctx, "Public visé : toute personne physique souhaitant obtenir ou renouveler sa carte professionnelle dans le domaine du transport public particulier de personnes (T3P).");
-  const prerequisText = session.prerequis || "Être titulaire d'un permis de conduire en cours de validité (catégorie B). Aucun autre prérequis spécifique n'est demandé. Les conditions d'accès détaillées figurent dans le programme annexé.";
-  writeParagraph(ctx, prerequisText);
+  if (isFC) {
+    writeParagraph(ctx, "Prérequis spécifiques à la Formation Continue T3P :");
+    writeBullet(ctx, "Être titulaire d'une carte professionnelle T3P (Taxi, VTC ou VMDTR) en cours de validité ou expirée depuis moins de 5 ans");
+    writeBullet(ctx, "Permis de conduire de catégorie B en cours de validité");
+    writeBullet(ctx, "Aucune condition d'examen — la formation continue ne donne pas lieu à examen mais à une attestation de suivi (Art. R.3120-9 / R.3122-9 du Code des transports)");
+  } else {
+    writeParagraph(ctx, "Prérequis réglementaires à l'accès à la profession T3P (Art. R.3120-8 / R.3122-9 du Code des transports) :");
+    writeBullet(ctx, "Permis de conduire de catégorie B en cours de validité depuis au moins 3 ans (2 ans en cas de conduite accompagnée)");
+    writeBullet(ctx, "Bulletin n°2 du casier judiciaire ne comportant pas certaines mentions (notamment celles incompatibles avec l'exercice de la profession)");
+    writeBullet(ctx, "Avis médical favorable délivré par un médecin agréé par la préfecture (visite médicale de l'aptitude à la conduite)");
+    writeBullet(ctx, "Attestation préfectorale d'aptitude physique en cours de validité");
+  }
+  if (session.prerequis) {
+    ctx.yPos += 2;
+    writeParagraph(ctx, `Prérequis pédagogiques complémentaires : ${session.prerequis}`);
+  }
+  writeParagraph(ctx, "L'Organisme attire l'attention du Stagiaire sur le fait que la vérification effective de ces prérequis incombe à la préfecture lors de la constitution du dossier de demande de carte professionnelle.");
 
   // Article 5 — Programme
   writeArticle(ctx, "Article 5 — Programme de formation");
@@ -522,13 +579,45 @@ export function generateContratFormationV2(
 
   // Article 9 — Sanction de la formation
   writeArticle(ctx, "Article 9 — Sanction de la formation");
-  writeParagraph(ctx, "À l'issue de la formation et sous réserve de l'assiduité requise et de la réussite aux évaluations, le Stagiaire reçoit :");
+  writeParagraph(ctx, "À l'issue de la formation et sous réserve de l'assiduité requise et de la réussite aux évaluations internes, le Stagiaire reçoit :");
   writeBullet(ctx, "Une attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation (Art. L6353-1 du Code du travail)");
-  writeBullet(ctx, "Le cas échéant, une attestation d'aptitude permettant de constituer le dossier de demande de carte professionnelle auprès de la préfecture compétente");
+  if (isFC) {
+    writeBullet(ctx, "Une attestation de suivi de formation continue T3P, à présenter à la préfecture pour le renouvellement de la carte professionnelle");
+  } else {
+    writeBullet(ctx, "Une attestation de fin de formation initiale T3P permettant au Stagiaire de constituer son dossier d'inscription à l'examen d'accès à la profession");
+  }
+  ctx.yPos += 2;
+  if (!isFC) {
+    // ⚠ OBLIGATION DE MOYENS — examens externes
+    const obligBoxH = 22;
+    checkPageBreak(ctx, obligBoxH + 4);
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, obligBoxH, 3, 3, "F");
+    setFill(doc, C.gold);
+    doc.roundedRect(ctx.mL, ctx.yPos, 3, obligBoxH, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("⚠ Obligation de moyens — Examens externes", ctx.mL + 8, ctx.yPos + 6);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7.5);
+    setColor(doc, C.warmGray700);
+    const obligLines = doc.splitTextToSize(
+      "L'Organisme s'engage à mettre en œuvre tous les moyens pédagogiques nécessaires à la préparation du Stagiaire (obligation de moyens). L'examen théorique est organisé par la Chambre de Métiers et de l'Artisanat (CMA) et l'examen pratique par la préfecture compétente. Ces épreuves sont indépendantes de l'Organisme : la réussite n'est pas garantie et ne peut engager la responsabilité de l'Organisme.",
+      ctx.cW - 14
+    ) as string[];
+    let oy = ctx.yPos + 11;
+    for (const l of obligLines) { doc.text(l, ctx.mL + 8, oy); oy += 3.5; }
+    setColor(doc, C.warmGray800);
+    ctx.yPos += obligBoxH + 4;
+  }
 
   // Article 10 — Prix et modalités de paiement
   writeArticle(ctx, "Article 10 — Prix de la formation et modalités de paiement");
   checkPageBreak(ctx, 25);
+
+  // TVA conditionnelle : si company.tva_applicable === true, on n'affiche pas la mention 293 B
+  const tvaApplicable = (company as unknown as { tva_applicable?: boolean }).tva_applicable === true;
 
   if (prix > 0) {
     const priceBoxH = 16;
@@ -544,7 +633,13 @@ export function generateContratFormationV2(
     doc.setFontSize(7.5);
     doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(doc, C.warmGray600);
-    doc.text("TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
+    doc.text(
+      tvaApplicable
+        ? "Prix exprimé toutes taxes comprises (TVA 20 % incluse)"
+        : "TVA non applicable — art. 293 B du CGI",
+      ctx.mL + 8,
+      ctx.yPos + 12
+    );
     setColor(doc, C.warmGray800);
     ctx.yPos += priceBoxH + 3;
 
@@ -677,6 +772,41 @@ export function generateContratFormationV2(
   doc.text("\"Lu et approuvé, bon pour accord\")", rightX + 5, ctx.yPos + 30);
 
   ctx.yPos += sigBoxH + 5;
+
+  // Bloc représentant légal si stagiaire mineur
+  const age = calcAge(contact.date_naissance);
+  if (age !== null && age < 18) {
+    checkPageBreak(ctx, 50);
+    setFill(doc, { r: 255, g: 248, b: 225 });
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, 10, 2, 2, "F");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreenDark);
+    doc.text("⚠ Stagiaire mineur — Signature du représentant légal obligatoire", ctx.mL + 5, ctx.yPos + 6.5);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += 14;
+
+    const repBoxH = 42;
+    setFill(doc, C.creamLight);
+    doc.setDrawColor(C.forestGreen.r, C.forestGreen.g, C.forestGreen.b);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(ctx.mL, ctx.yPos, ctx.cW, repBoxH, 2, 2, "FD");
+    doc.setFontSize(8);
+    doc.setFont(DOCUMENT_FONTS.primary, "bold");
+    setColor(doc, C.forestGreen);
+    doc.text("Le représentant légal du Stagiaire mineur", ctx.mL + 5, ctx.yPos + 7);
+    doc.setFont(DOCUMENT_FONTS.primary, "normal");
+    doc.setFontSize(7);
+    setColor(doc, C.warmGray700);
+    doc.text("Nom et prénom : ____________________________________________", ctx.mL + 5, ctx.yPos + 14);
+    doc.text("Qualité (père, mère, tuteur) : _________________________________", ctx.mL + 5, ctx.yPos + 20);
+    doc.text("Adresse : ___________________________________________________", ctx.mL + 5, ctx.yPos + 26);
+    doc.setFontSize(6.5);
+    setColor(doc, C.warmGray500);
+    doc.text("Signature précédée de la mention \"Lu et approuvé, bon pour accord pour le mineur\"", ctx.mL + 5, ctx.yPos + 36);
+    setColor(doc, C.warmGray800);
+    ctx.yPos += repBoxH + 5;
+  }
 
   // Mention légale finale
   checkPageBreak(ctx, 8);
