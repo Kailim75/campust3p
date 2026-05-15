@@ -496,11 +496,12 @@ export function generateConventionFormationV2(
     doc.setFontSize(9.5);
     doc.setFont(DOCUMENT_FONTS.primary, "bold");
     setColor(doc, C.forestGreenDark);
-    doc.text(`Coût total : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`, ctx.mL + 8, ctx.yPos + 7);
+    const tvaApplicable = (company as unknown as { tva_applicable?: boolean }).tva_applicable === true;
+    doc.text(`Coût total : ${prix.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €${tvaApplicable ? " TTC" : ""}`, ctx.mL + 8, ctx.yPos + 7);
     doc.setFontSize(7.5);
     doc.setFont(DOCUMENT_FONTS.primary, "normal");
     setColor(doc, C.warmGray600);
-    doc.text("TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
+    doc.text(tvaApplicable ? "Prix exprimé toutes taxes comprises (TVA 20 % incluse)." : "TVA non applicable — art. 293 B du CGI", ctx.mL + 8, ctx.yPos + 12);
     ctx.yPos += priceBoxH + 3;
 
     writeParagraph(ctx, "Ce tarif comprend : formation, supports de cours, accès e-learning, attestation.");
