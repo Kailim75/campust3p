@@ -69,6 +69,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "partenaires",       label: "Partenaires",       icon: Handshake,       group: "more", path: "/partenaires",       pageName: "PartnersPage" },
   { id: "security",          label: "Sécurité",          icon: Shield,          group: "more", path: "/security",          pageName: "SecurityStatusPage" },
   { id: "corbeille",         label: "Corbeille",         icon: Trash2,          group: "more", path: "/corbeille",         pageName: "CorbeillePage" },
+  { id: "attestations-retard", label: "Attestations retard", icon: Award,        group: "more", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   { id: "settings", label: "Paramètres", icon: Settings, group: "footer", path: "/settings", pageName: "SettingsPage", legacyPaths: ["parametres"] },
