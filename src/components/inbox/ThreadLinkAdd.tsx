@@ -151,6 +151,7 @@ export function ThreadLinkAdd({ threadId, centreId }: ThreadLinkAddProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-email-links", threadId] });
+      queryClient.invalidateQueries({ queryKey: ["crm-email-threads"] });
       setSelectedId(null);
       setSearch("");
       setIsOpen(false);
