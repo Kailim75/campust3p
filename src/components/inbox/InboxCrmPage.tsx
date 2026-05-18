@@ -126,7 +126,9 @@ export function InboxCrmPage() {
           const hasLabel = Array.isArray(t.crm_labels) && t.crm_labels.length > 0;
           const hasAssignee = !!t.assigned_to;
           const hasLink = linkedIds.has(t.id);
-          return !hasLabel && !hasAssignee && !hasLink;
+          const isAttributed = hasLabel || hasAssignee || hasLink;
+          // Hide only once attributed AND already opened (read). Unread stays in inbox.
+          return !(isAttributed && t.is_unread === false);
         });
       }
 
