@@ -23,7 +23,7 @@ import { useLateAttestations } from "@/hooks/useLateAttestations";
 import { useSession } from "@/hooks/useSessions";
 import { useSessionInscrits } from "@/hooks/useSessionInscrits";
 import { CloseSessionDialog } from "@/components/sessions/CloseSessionDialog";
-import { useCentre } from "@/contexts/CentreContext";
+import { useCentreContext } from "@/contexts/CentreContext";
 
 function CloseSessionLauncher({
   sessionId,
