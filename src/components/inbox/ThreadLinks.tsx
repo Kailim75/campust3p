@@ -54,6 +54,7 @@ export function ThreadLinks({ threadId, centreId }: ThreadLinksProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-email-links", threadId] });
+      queryClient.invalidateQueries({ queryKey: ["crm-email-threads"] });
       toast.success("Lien supprimé");
     },
   });

@@ -74,10 +74,6 @@ export function InboxCrmPage() {
         // Direction filter
         if (directionFilter === "inbox") {
           query = query.eq("has_inbound", true);
-          // Hide threads that have CRM labels (they appear under their label filter instead)
-          if (!advancedFilters.crmLabel || advancedFilters.crmLabel === "all") {
-            query = query.filter("crm_labels", "eq", "{}");
-          }
         } else if (directionFilter === "sent") {
           query = query.eq("has_inbound", false);
         }
@@ -108,6 +104,31 @@ export function InboxCrmPage() {
       if (error) throw error;
 
       let filtered = data || [];
+
+      // Inbox view: hide threads already "attribués" (labelled, assigned to a user,
+      // or linked to a CRM entity). They live under their respective tabs.
+      if (
+        directionFilter === "inbox" &&
+        (!advancedFilters.crmLabel || advancedFilters.crmLabel === "all") &&
+        assignedFilter === "all"
+      ) {
+        const candidateIds = filtered.map((t: any) => t.id);
+        let linkedIds = new Set<string>();
+        if (candidateIds.length > 0) {
+          const { data: links } = await supabase
+            .from("crm_email_links")
+            .select("thread_id")
+            .in("thread_id", candidateIds)
+            .eq("centre_id", centreId);
+          linkedIds = new Set((links || []).map((l: any) => l.thread_id));
+        }
+        filtered = filtered.filter((t: any) => {
+          const hasLabel = Array.isArray(t.crm_labels) && t.crm_labels.length > 0;
+          const hasAssignee = !!t.assigned_to;
+          const hasLink = linkedIds.has(t.id);
+          return !hasLabel && !hasAssignee && !hasLink;
+        });
+      }
 
       // Client-side filters for sender (search in participants JSON)
       if (debouncedSender.trim()) {
