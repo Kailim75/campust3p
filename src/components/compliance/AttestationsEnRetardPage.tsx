@@ -60,8 +60,7 @@ function CloseSessionLauncher({
 }
 
 export function AttestationsEnRetardPage() {
-  const { data: centres } = useCentres();
-  const centreId = centres?.[0]?.id ?? null;
+  const { centreId } = useCentreContext();
   const { data: items, isLoading, refetch } = useLateAttestations(centreId);
   const [activeSession, setActiveSession] = useState<string | null>(null);
 
