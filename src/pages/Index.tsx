@@ -317,6 +317,10 @@ const Index = () => {
         pageName = "CorbeillePage";
         node = <CorbeillePage />;
         break;
+      case "attestations-retard":
+        pageName = "AttestationsEnRetardPage";
+        node = <AttestationsEnRetardPage />;
+        break;
       default:
         pageName = "Dashboard";
         node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
