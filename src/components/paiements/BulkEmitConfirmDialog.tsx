@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, FileText, ShieldAlert, Loader2, CheckCircle2 } from "lucide-react";
 import { FactureWithDetails } from "@/hooks/useFactures";
 import { useInvoiceComplianceBatch } from "@/hooks/useInvoiceComplianceBatch";
+import { useEInvoicingSettings } from "@/hooks/useEInvoicingSettings";
 import { cn } from "@/lib/utils";
 
 interface BulkEmitConfirmDialogProps {
@@ -37,17 +38,19 @@ export function BulkEmitConfirmDialog({
 
   const totalMontant = brouillons.reduce((s, f) => s + Number(f.montant_total), 0);
 
-  // Sprint 5 — pre-emission compliance check
+  // Sprint 5/7 — pre-emission compliance check (threshold piloted at center level)
   const factureIds = useMemo(() => brouillons.map((b) => b.id), [brouillons]);
   const { data: compliance, isLoading: complianceLoading } = useInvoiceComplianceBatch(
     factureIds,
     open,
   );
+  const { settings } = useEInvoicingSettings();
+  const threshold = settings.einv_blocking_threshold;
 
   const nonConforming = useMemo(() => {
     if (!compliance) return [];
-    return brouillons.filter((f) => (compliance[f.id]?.score ?? 100) < 70);
-  }, [compliance, brouillons]);
+    return brouillons.filter((f) => (compliance[f.id]?.score ?? 100) < threshold);
+  }, [compliance, brouillons, threshold]);
 
   const hasBlockers = nonConforming.length > 0;
 
@@ -129,7 +132,7 @@ export function BulkEmitConfirmDialog({
                   <>
                     <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
                     <span className="text-destructive">
-                      {nonConforming.length} facture{nonConforming.length > 1 ? "s" : ""} non conforme{nonConforming.length > 1 ? "s" : ""} (score &lt; 70)
+                      {nonConforming.length} facture{nonConforming.length > 1 ? "s" : ""} non conforme{nonConforming.length > 1 ? "s" : ""} (score &lt; {threshold})
                     </span>
                   </>
                 ) : (

@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ShieldAlert, Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sirenError, siretError } from "@/lib/validation/siret";
 
 interface Props {
   factureId: string | null;
@@ -132,6 +133,10 @@ export function BuyerSnapshotEditDialog({ factureId, open, onOpenChange }: Props
 
   const set = <K extends keyof BuyerForm>(k: K, v: BuyerForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const sirenErr = sirenError(form.buyer_siren);
+  const siretErr = siretError(form.buyer_siret);
+  const hasIdentityError = (form.buyer_type !== "b2c") && (!!sirenErr || !!siretErr);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -190,13 +195,15 @@ export function BuyerSnapshotEditDialog({ factureId, open, onOpenChange }: Props
                   <Label>SIREN (9 chiffres)</Label>
                   <Input value={form.buyer_siren} maxLength={11}
                     onChange={(e) => set("buyer_siren", e.target.value.replace(/[^\d\s]/g, ""))}
-                    placeholder="123 456 789" />
+                    placeholder="123 456 789"
+                    error={sirenErr ?? undefined} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>SIRET (14 chiffres)</Label>
                   <Input value={form.buyer_siret} maxLength={17}
                     onChange={(e) => set("buyer_siret", e.target.value.replace(/[^\d\s]/g, ""))}
-                    placeholder="123 456 789 00012" />
+                    placeholder="123 456 789 00012"
+                    error={siretErr ?? undefined} />
                 </div>
               </div>
             )}
@@ -258,7 +265,7 @@ export function BuyerSnapshotEditDialog({ factureId, open, onOpenChange }: Props
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button
             onClick={() => save.mutate()}
-            disabled={!isDraft || save.isPending || !form.buyer_name_snapshot.trim()}
+            disabled={!isDraft || save.isPending || !form.buyer_name_snapshot.trim() || hasIdentityError}
           >
             {save.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
