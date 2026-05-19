@@ -45,6 +45,8 @@ import { ExportFECDialog } from "./ExportFECDialog";
 import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
+import { InvoiceComplianceBadge } from "@/components/facturation/InvoiceComplianceBadge";
+import { InvoiceComplianceDrawer } from "@/components/facturation/InvoiceComplianceDrawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TablePagination } from "@/components/ui/table-pagination";
