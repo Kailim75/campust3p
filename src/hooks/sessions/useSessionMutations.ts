@@ -128,6 +128,8 @@ export function useAddInscription() {
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "count", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["session_inscriptions", "all_counts"] });
+      queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
