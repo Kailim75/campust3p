@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileText } from "lucide-react";
+import { AlertTriangle, FileText, ShieldAlert, Loader2, CheckCircle2 } from "lucide-react";
 import { FactureWithDetails } from "@/hooks/useFactures";
+import { useInvoiceComplianceBatch } from "@/hooks/useInvoiceComplianceBatch";
 import { cn } from "@/lib/utils";
 
 interface BulkEmitConfirmDialogProps {
