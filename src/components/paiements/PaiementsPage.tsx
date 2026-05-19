@@ -620,7 +620,17 @@ export function PaiementsPage() {
                       onClick={() => handleOpenDetail(facture.id)}
                     >
                       <TableCell className="font-mono text-sm">
-                        {facture.numero_facture}
+                        <div className="flex items-center gap-2">
+                          <span>{facture.numero_facture}</span>
+                          <InvoiceComplianceBadge
+                            factureId={facture.id}
+                            onClick={() => {
+                              setComplianceFactureId(facture.id);
+                              setComplianceNumero(facture.numero_facture);
+                              setComplianceOpen(true);
+                            }}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium text-foreground">
                         {facture.contact
