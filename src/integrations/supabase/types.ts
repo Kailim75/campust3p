@@ -8478,6 +8478,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
+      compute_invoice_compliance: {
+        Args: { p_facture_id: string }
+        Returns: Json
+      }
       create_attestation_certificate: {
         Args: {
           p_contact_id: string
