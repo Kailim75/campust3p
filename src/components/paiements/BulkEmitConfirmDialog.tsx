@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileText } from "lucide-react";
+import { AlertTriangle, FileText, ShieldAlert, Loader2, CheckCircle2 } from "lucide-react";
 import { FactureWithDetails } from "@/hooks/useFactures";
+import { useInvoiceComplianceBatch } from "@/hooks/useInvoiceComplianceBatch";
 import { cn } from "@/lib/utils";
 
 interface BulkEmitConfirmDialogProps {
@@ -36,8 +37,23 @@ export function BulkEmitConfirmDialog({
 
   const totalMontant = brouillons.reduce((s, f) => s + Number(f.montant_total), 0);
 
+  // Sprint 5 — pre-emission compliance check
+  const factureIds = useMemo(() => brouillons.map((b) => b.id), [brouillons]);
+  const { data: compliance, isLoading: complianceLoading } = useInvoiceComplianceBatch(
+    factureIds,
+    open,
+  );
+
+  const nonConforming = useMemo(() => {
+    if (!compliance) return [];
+    return brouillons.filter((f) => (compliance[f.id]?.score ?? 100) < 70);
+  }, [compliance, brouillons]);
+
+  const hasBlockers = nonConforming.length > 0;
+
   const handleConfirm = () => {
     if (needsConfirmText && !isConfirmed) return;
+    if (hasBlockers) return;
     onConfirm();
     setConfirmText("");
   };
@@ -101,6 +117,50 @@ export function BulkEmitConfirmDialog({
               <span className="font-bold">{totalMontant.toLocaleString("fr-FR")} €</span>
             </div>
 
+            {/* Sprint 5 — pre-emission compliance check (e-invoicing 2026/2027) */}
+            <div className="rounded-md border p-3 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-medium">
+                {complianceLoading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Analyse de conformité e-invoicing…</span>
+                  </>
+                ) : hasBlockers ? (
+                  <>
+                    <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+                    <span className="text-destructive">
+                      {nonConforming.length} facture{nonConforming.length > 1 ? "s" : ""} non conforme{nonConforming.length > 1 ? "s" : ""} (score &lt; 70)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                    <span className="text-success">Toutes conformes à la réforme 2026/2027</span>
+                  </>
+                )}
+              </div>
+              {hasBlockers && (
+                <>
+                  <ul className="space-y-1 max-h-[100px] overflow-auto">
+                    {nonConforming.slice(0, 5).map((f) => (
+                      <li key={f.id} className="flex justify-between gap-2">
+                        <span className="font-mono truncate">{f.numero_facture}</span>
+                        <Badge variant="destructive" className="text-[10px] h-4">
+                          {compliance?.[f.id]?.score ?? 0}/100
+                        </Badge>
+                      </li>
+                    ))}
+                    {nonConforming.length > 5 && (
+                      <li className="text-muted-foreground italic">… et {nonConforming.length - 5} autre(s)</li>
+                    )}
+                  </ul>
+                  <p className="text-[11px] text-muted-foreground border-t pt-1.5">
+                    Émission bloquée. Complétez les données acheteur/vendeur depuis la fiche facture.
+                  </p>
+                </>
+              )}
+            </div>
+
             {/* Confirmation input for large batches */}
             {needsConfirmText && (
               <div className="space-y-1.5 pt-1">
@@ -122,10 +182,10 @@ export function BulkEmitConfirmDialog({
           <AlertDialogCancel className="font-medium">Annuler</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={isPending || (needsConfirmText && !isConfirmed)}
+            disabled={isPending || complianceLoading || hasBlockers || (needsConfirmText && !isConfirmed)}
             className={cn(
               "bg-warning text-warning-foreground hover:bg-warning/90",
-              (isPending || (needsConfirmText && !isConfirmed)) && "opacity-50"
+              (isPending || complianceLoading || hasBlockers || (needsConfirmText && !isConfirmed)) && "opacity-50"
             )}
           >
             <FileText className="h-4 w-4 mr-1.5" />
