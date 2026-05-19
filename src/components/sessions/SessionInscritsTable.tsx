@@ -466,7 +466,12 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         selectedFactureId={selectedFactureId} allFactures={allFactures}
         onEditFactureFromDetail={() => {
           const f = allFactures.find(f => f.id === selectedFactureId);
-          if (f) { setFactureDetailOpen(false); handleEditFacture(f); }
+          if (f) {
+            setFactureDetailOpen(false);
+            // Wait for the Sheet close animation + Radix pointer-events cleanup
+            // before opening the edit Dialog, otherwise body keeps pointer-events:none
+            setTimeout(() => handleEditFacture(f), 200);
+          }
         }}
         selectedContactId={selectedContactId} setSelectedContactId={setSelectedContactId}
         editingContact={editingContact} setEditingContact={setEditingContact}
