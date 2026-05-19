@@ -37,8 +37,23 @@ export function BulkEmitConfirmDialog({
 
   const totalMontant = brouillons.reduce((s, f) => s + Number(f.montant_total), 0);
 
+  // Sprint 5 — pre-emission compliance check
+  const factureIds = useMemo(() => brouillons.map((b) => b.id), [brouillons]);
+  const { data: compliance, isLoading: complianceLoading } = useInvoiceComplianceBatch(
+    factureIds,
+    open,
+  );
+
+  const nonConforming = useMemo(() => {
+    if (!compliance) return [];
+    return brouillons.filter((f) => (compliance[f.id]?.score ?? 100) < 70);
+  }, [compliance, brouillons]);
+
+  const hasBlockers = nonConforming.length > 0;
+
   const handleConfirm = () => {
     if (needsConfirmText && !isConfirmed) return;
+    if (hasBlockers) return;
     onConfirm();
     setConfirmText("");
   };
