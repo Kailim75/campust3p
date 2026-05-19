@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
+import { EInvoicingSettings } from "./EInvoicingSettings";
 import { TemplateFilesSection } from "./TemplateFilesSection";
 import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
@@ -615,6 +616,7 @@ export function SettingsPage() {
           {/* Tab: Financier */}
           <TabsContent value="financier" className="space-y-6">
             <FinancialSettingsSection />
+            <EInvoicingSettings />
           </TabsContent>
 
           {/* Tab: Utilisateurs */}
