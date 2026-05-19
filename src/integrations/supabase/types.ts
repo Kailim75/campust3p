@@ -562,6 +562,9 @@ export type Database = {
           code_rncp: string | null
           code_rs: string | null
           created_at: string | null
+          einv_blocking_threshold: number
+          einv_default_vat_regime: string
+          einv_pdp_choice: string
           email: string
           forme_juridique: string
           iban: string
@@ -596,6 +599,9 @@ export type Database = {
           code_rncp?: string | null
           code_rs?: string | null
           created_at?: string | null
+          einv_blocking_threshold?: number
+          einv_default_vat_regime?: string
+          einv_pdp_choice?: string
           email: string
           forme_juridique: string
           iban: string
@@ -630,6 +636,9 @@ export type Database = {
           code_rncp?: string | null
           code_rs?: string | null
           created_at?: string | null
+          einv_blocking_threshold?: number
+          einv_default_vat_regime?: string
+          einv_pdp_choice?: string
           email?: string
           forme_juridique?: string
           iban?: string
