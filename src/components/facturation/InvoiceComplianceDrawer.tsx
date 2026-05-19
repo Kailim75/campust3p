@@ -1,9 +1,14 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, ShieldAlert, FileWarning } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, AlertTriangle, ShieldAlert, FileWarning, Pencil } from "lucide-react";
 import { useInvoiceCompliance, complianceTone } from "@/hooks/useInvoiceCompliance";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { BuyerSnapshotEditDialog } from "./BuyerSnapshotEditDialog";
 
 interface Props {
   factureId: string | null;
@@ -14,6 +19,17 @@ interface Props {
 
 export function InvoiceComplianceDrawer({ factureId, open, onOpenChange, numeroFacture }: Props) {
   const { data, isLoading } = useInvoiceCompliance(open ? factureId : null);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  const { data: statutRow } = useQuery({
+    queryKey: ["facture-statut-mini", factureId],
+    enabled: open && !!factureId,
+    queryFn: async () => {
+      const { data } = await supabase.from("factures").select("statut").eq("id", factureId!).single();
+      return data;
+    },
+  });
+  const isDraft = statutRow?.statut === "brouillon";
 
   const tone = complianceTone(data?.score);
   const blocking = data?.issues.filter((i) => i.severity === "bloquant") ?? [];
