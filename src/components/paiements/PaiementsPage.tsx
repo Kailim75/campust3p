@@ -45,6 +45,8 @@ import { ExportFECDialog } from "./ExportFECDialog";
 import { FactureLibreDialog } from "./FactureLibreDialog";
 import { toast } from "sonner";
 import { BulkEmitConfirmDialog } from "./BulkEmitConfirmDialog";
+import { InvoiceComplianceBadge } from "@/components/facturation/InvoiceComplianceBadge";
+import { InvoiceComplianceDrawer } from "@/components/facturation/InvoiceComplianceDrawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -78,6 +80,9 @@ export function PaiementsPage() {
   const [showBulkEmitDialog, setShowBulkEmitDialog] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
+  const [complianceOpen, setComplianceOpen] = useState(false);
+  const [complianceFactureId, setComplianceFactureId] = useState<string | null>(null);
+  const [complianceNumero, setComplianceNumero] = useState<string | undefined>(undefined);
 
   // Filters state
   const [statutFilter, setStatutFilter] = useState<string>("all");
@@ -620,7 +625,17 @@ export function PaiementsPage() {
                       onClick={() => handleOpenDetail(facture.id)}
                     >
                       <TableCell className="font-mono text-sm">
-                        {facture.numero_facture}
+                        <div className="flex items-center gap-2">
+                          <span>{facture.numero_facture}</span>
+                          <InvoiceComplianceBadge
+                            factureId={facture.id}
+                            onClick={() => {
+                              setComplianceFactureId(facture.id);
+                              setComplianceNumero(facture.numero_facture);
+                              setComplianceOpen(true);
+                            }}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium text-foreground">
                         {facture.contact
@@ -822,6 +837,12 @@ export function PaiementsPage() {
         brouillons={brouillons}
         onConfirm={handleBulkEmitConfirm}
         isPending={bulkEmit.isPending}
+      />
+      <InvoiceComplianceDrawer
+        factureId={complianceFactureId}
+        open={complianceOpen}
+        onOpenChange={setComplianceOpen}
+        numeroFacture={complianceNumero}
       />
     </div>
   );

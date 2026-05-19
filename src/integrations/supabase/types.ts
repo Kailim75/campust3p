@@ -557,6 +557,8 @@ export type Database = {
           agrement_prefecture_date: string | null
           agrements_autres: Json | null
           bic: string
+          capital_social: number | null
+          code_naf: string | null
           code_rncp: string | null
           code_rs: string | null
           created_at: string | null
@@ -565,18 +567,22 @@ export type Database = {
           iban: string
           id: string
           logo_url: string | null
+          mention_exoneration_default: string | null
           nda: string
           nom_commercial: string
           nom_legal: string
+          numero_da_formation: string | null
           qualiopi_date_expiration: string | null
           qualiopi_date_obtention: string | null
           qualiopi_numero: string | null
+          regime_tva: string | null
           region_declaration: string
           responsable_legal_fonction: string
           responsable_legal_nom: string
           signature_cachet_url: string | null
           siret: string
           telephone: string
+          tva_intracom: string | null
           updated_at: string | null
         }
         Insert: {
@@ -585,6 +591,8 @@ export type Database = {
           agrement_prefecture_date?: string | null
           agrements_autres?: Json | null
           bic: string
+          capital_social?: number | null
+          code_naf?: string | null
           code_rncp?: string | null
           code_rs?: string | null
           created_at?: string | null
@@ -593,18 +601,22 @@ export type Database = {
           iban: string
           id?: string
           logo_url?: string | null
+          mention_exoneration_default?: string | null
           nda: string
           nom_commercial: string
           nom_legal: string
+          numero_da_formation?: string | null
           qualiopi_date_expiration?: string | null
           qualiopi_date_obtention?: string | null
           qualiopi_numero?: string | null
+          regime_tva?: string | null
           region_declaration: string
           responsable_legal_fonction: string
           responsable_legal_nom: string
           signature_cachet_url?: string | null
           siret: string
           telephone: string
+          tva_intracom?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -613,6 +625,8 @@ export type Database = {
           agrement_prefecture_date?: string | null
           agrements_autres?: Json | null
           bic?: string
+          capital_social?: number | null
+          code_naf?: string | null
           code_rncp?: string | null
           code_rs?: string | null
           created_at?: string | null
@@ -621,18 +635,22 @@ export type Database = {
           iban?: string
           id?: string
           logo_url?: string | null
+          mention_exoneration_default?: string | null
           nda?: string
           nom_commercial?: string
           nom_legal?: string
+          numero_da_formation?: string | null
           qualiopi_date_expiration?: string | null
           qualiopi_date_obtention?: string | null
           qualiopi_numero?: string | null
+          regime_tva?: string | null
           region_declaration?: string
           responsable_legal_fonction?: string
           responsable_legal_nom?: string
           signature_cachet_url?: string | null
           siret?: string
           telephone?: string
+          tva_intracom?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1197,6 +1215,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          accepte_facture_electronique: boolean | null
           archived: boolean
           centre_id: string
           civilite: Database["public"]["Enums"]["civilite"] | null
@@ -1212,6 +1231,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           email: string | null
+          email_facturation: string | null
           filleul: string | null
           fonction: string | null
           formation: Database["public"]["Enums"]["formation_type"] | null
@@ -1235,12 +1255,14 @@ export type Database = {
           statut_cma: Database["public"]["Enums"]["statut_cma"]
           telephone: string | null
           telephone_normalise: string | null
+          type_client: string | null
           uid: string | null
           updated_at: string
           ville: string | null
           ville_naissance: string | null
         }
         Insert: {
+          accepte_facture_electronique?: boolean | null
           archived?: boolean
           centre_id: string
           civilite?: Database["public"]["Enums"]["civilite"] | null
@@ -1256,6 +1278,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           email?: string | null
+          email_facturation?: string | null
           filleul?: string | null
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
@@ -1279,12 +1302,14 @@ export type Database = {
           statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
           telephone_normalise?: string | null
+          type_client?: string | null
           uid?: string | null
           updated_at?: string
           ville?: string | null
           ville_naissance?: string | null
         }
         Update: {
+          accepte_facture_electronique?: boolean | null
           archived?: boolean
           centre_id?: string
           civilite?: Database["public"]["Enums"]["civilite"] | null
@@ -1300,6 +1325,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           email?: string | null
+          email_facturation?: string | null
           filleul?: string | null
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
@@ -1323,6 +1349,7 @@ export type Database = {
           statut_cma?: Database["public"]["Enums"]["statut_cma"]
           telephone?: string | null
           telephone_normalise?: string | null
+          type_client?: string | null
           uid?: string | null
           updated_at?: string
           ville?: string | null
@@ -3264,6 +3291,7 @@ export type Database = {
       facture_lignes: {
         Row: {
           catalogue_formation_id: string | null
+          code_produit: string | null
           created_at: string
           description: string
           facture_id: string
@@ -3276,9 +3304,11 @@ export type Database = {
           produit_service_id: string | null
           quantite: number
           tva_percent: number
+          unite: string | null
         }
         Insert: {
           catalogue_formation_id?: string | null
+          code_produit?: string | null
           created_at?: string
           description: string
           facture_id: string
@@ -3291,9 +3321,11 @@ export type Database = {
           produit_service_id?: string | null
           quantite?: number
           tva_percent?: number
+          unite?: string | null
         }
         Update: {
           catalogue_formation_id?: string | null
+          code_produit?: string | null
           created_at?: string
           description?: string
           facture_id?: string
@@ -3306,6 +3338,7 @@ export type Database = {
           produit_service_id?: string | null
           quantite?: number
           tva_percent?: number
+          unite?: string | null
         }
         Relationships: [
           {
@@ -3333,9 +3366,21 @@ export type Database = {
       }
       factures: {
         Row: {
+          buyer_address_snapshot: Json | null
+          buyer_country: string | null
+          buyer_email_facturation: string | null
+          buyer_name_snapshot: string | null
+          buyer_platform_provider: string | null
+          buyer_routing_code: string | null
+          buyer_siren: string | null
+          buyer_siret: string | null
+          buyer_tva_intracom: string | null
+          buyer_type: string | null
           centre_id: string
           client_partner_id: string | null
           commentaires: string | null
+          compliance_issues: Json | null
+          compliance_score: number | null
           contact_id: string | null
           created_at: string
           date_echeance: string | null
@@ -3343,18 +3388,47 @@ export type Database = {
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          delivery_address_snapshot: Json | null
+          devise: string | null
+          e_invoice_status: string | null
+          e_reporting_status: string | null
+          facture_origine_id: string | null
           id: string
+          montant_ht: number | null
           montant_total: number
+          montant_tva: number | null
+          motif_exoneration_tva: string | null
           numero_facture: string
+          operation_category: string | null
+          platform_error_message: string | null
+          platform_last_sync_at: string | null
+          platform_provider: string | null
+          platform_reference_id: string | null
+          regime_tva: string | null
+          service_period_end: string | null
+          service_period_start: string | null
           session_inscription_id: string | null
           statut: Database["public"]["Enums"]["facture_statut"]
+          type_facture: string | null
           type_financement: Database["public"]["Enums"]["financement_type"]
           updated_at: string
         }
         Insert: {
+          buyer_address_snapshot?: Json | null
+          buyer_country?: string | null
+          buyer_email_facturation?: string | null
+          buyer_name_snapshot?: string | null
+          buyer_platform_provider?: string | null
+          buyer_routing_code?: string | null
+          buyer_siren?: string | null
+          buyer_siret?: string | null
+          buyer_tva_intracom?: string | null
+          buyer_type?: string | null
           centre_id: string
           client_partner_id?: string | null
           commentaires?: string | null
+          compliance_issues?: Json | null
+          compliance_score?: number | null
           contact_id?: string | null
           created_at?: string
           date_echeance?: string | null
@@ -3362,18 +3436,47 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_address_snapshot?: Json | null
+          devise?: string | null
+          e_invoice_status?: string | null
+          e_reporting_status?: string | null
+          facture_origine_id?: string | null
           id?: string
+          montant_ht?: number | null
           montant_total: number
+          montant_tva?: number | null
+          motif_exoneration_tva?: string | null
           numero_facture: string
+          operation_category?: string | null
+          platform_error_message?: string | null
+          platform_last_sync_at?: string | null
+          platform_provider?: string | null
+          platform_reference_id?: string | null
+          regime_tva?: string | null
+          service_period_end?: string | null
+          service_period_start?: string | null
           session_inscription_id?: string | null
           statut?: Database["public"]["Enums"]["facture_statut"]
+          type_facture?: string | null
           type_financement?: Database["public"]["Enums"]["financement_type"]
           updated_at?: string
         }
         Update: {
+          buyer_address_snapshot?: Json | null
+          buyer_country?: string | null
+          buyer_email_facturation?: string | null
+          buyer_name_snapshot?: string | null
+          buyer_platform_provider?: string | null
+          buyer_routing_code?: string | null
+          buyer_siren?: string | null
+          buyer_siret?: string | null
+          buyer_tva_intracom?: string | null
+          buyer_type?: string | null
           centre_id?: string
           client_partner_id?: string | null
           commentaires?: string | null
+          compliance_issues?: Json | null
+          compliance_score?: number | null
           contact_id?: string | null
           created_at?: string
           date_echeance?: string | null
@@ -3381,11 +3484,28 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_address_snapshot?: Json | null
+          devise?: string | null
+          e_invoice_status?: string | null
+          e_reporting_status?: string | null
+          facture_origine_id?: string | null
           id?: string
+          montant_ht?: number | null
           montant_total?: number
+          montant_tva?: number | null
+          motif_exoneration_tva?: string | null
           numero_facture?: string
+          operation_category?: string | null
+          platform_error_message?: string | null
+          platform_last_sync_at?: string | null
+          platform_provider?: string | null
+          platform_reference_id?: string | null
+          regime_tva?: string | null
+          service_period_end?: string | null
+          service_period_start?: string | null
           session_inscription_id?: string | null
           statut?: Database["public"]["Enums"]["facture_statut"]
+          type_facture?: string | null
           type_financement?: Database["public"]["Enums"]["financement_type"]
           updated_at?: string
         }
@@ -3423,6 +3543,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
             referencedColumns: ["id"]
           },
           {
@@ -4316,6 +4443,56 @@ export type Database = {
             columns: ["centre_id"]
             isOneToOne: false
             referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_transmission_logs: {
+        Row: {
+          centre_id: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          facture_id: string
+          id: string
+          provider: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+        }
+        Insert: {
+          centre_id: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          facture_id: string
+          id?: string
+          provider?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+        }
+        Update: {
+          centre_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          facture_id?: string
+          id?: string
+          provider?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_transmission_logs_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
             referencedColumns: ["id"]
           },
         ]
@@ -5507,6 +5684,7 @@ export type Database = {
           date_debut_contrat: string | null
           date_fin_contrat: string | null
           email: string | null
+          email_facturation: string | null
           id: string
           is_active: boolean
           mode_remuneration:
@@ -5515,6 +5693,9 @@ export type Database = {
           montant_forfait: number | null
           notes: string | null
           phone: string | null
+          platform_provider: string | null
+          regime_tva: string | null
+          routing_code: string | null
           siret: string | null
           statut_partenaire:
             | Database["public"]["Enums"]["partner_status"]
@@ -5539,6 +5720,7 @@ export type Database = {
           date_debut_contrat?: string | null
           date_fin_contrat?: string | null
           email?: string | null
+          email_facturation?: string | null
           id?: string
           is_active?: boolean
           mode_remuneration?:
@@ -5547,6 +5729,9 @@ export type Database = {
           montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          platform_provider?: string | null
+          regime_tva?: string | null
+          routing_code?: string | null
           siret?: string | null
           statut_partenaire?:
             | Database["public"]["Enums"]["partner_status"]
@@ -5571,6 +5756,7 @@ export type Database = {
           date_debut_contrat?: string | null
           date_fin_contrat?: string | null
           email?: string | null
+          email_facturation?: string | null
           id?: string
           is_active?: boolean
           mode_remuneration?:
@@ -5579,6 +5765,9 @@ export type Database = {
           montant_forfait?: number | null
           notes?: string | null
           phone?: string | null
+          platform_provider?: string | null
+          regime_tva?: string | null
+          routing_code?: string | null
           siret?: string | null
           statut_partenaire?:
             | Database["public"]["Enums"]["partner_status"]
@@ -8289,6 +8478,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_old_dismissed_alerts: { Args: never; Returns: undefined }
+      compute_invoice_compliance: {
+        Args: { p_facture_id: string }
+        Returns: Json
+      }
       create_attestation_certificate: {
         Args: {
           p_contact_id: string
