@@ -838,6 +838,12 @@ export function PaiementsPage() {
         onConfirm={handleBulkEmitConfirm}
         isPending={bulkEmit.isPending}
       />
+      <InvoiceComplianceDrawer
+        factureId={complianceFactureId}
+        open={complianceOpen}
+        onOpenChange={setComplianceOpen}
+        numeroFacture={complianceNumero}
+      />
     </div>
   );
 }
