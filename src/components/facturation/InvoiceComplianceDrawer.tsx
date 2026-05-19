@@ -132,9 +132,31 @@ export function InvoiceComplianceDrawer({ factureId, open, onOpenChange, numeroF
                 manquants ci-dessus seront alors rejetés par la plateforme.
               </p>
             </div>
+
+            {isDraft && (
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={() => setEditorOpen(true)}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Corriger les données acheteur
+              </Button>
+            )}
+            {!isDraft && statutRow && (
+              <p className="text-[11px] text-center text-muted-foreground italic">
+                Facture émise — les snapshots acheteur sont figés (réglementaire).
+              </p>
+            )}
           </div>
         )}
       </SheetContent>
+
+      <BuyerSnapshotEditDialog
+        factureId={factureId}
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+      />
     </Sheet>
   );
 }
