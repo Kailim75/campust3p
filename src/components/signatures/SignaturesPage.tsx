@@ -130,7 +130,7 @@ export function SignaturesPage() {
       );
       return;
     }
-    const link = `${window.location.origin}/signature/${sig.id}?token=${sig.signing_token}`;
+    const link = `${window.location.origin}/signature/${sig.id}/${sig.signing_token}?token=${sig.signing_token}`;
     navigator.clipboard.writeText(link);
     toast.success("Lien copié dans le presse-papier");
   };

@@ -64,12 +64,11 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function SignaturePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, tokenParam } = useParams<{ id: string; tokenParam?: string }>();
   const [searchParams] = useSearchParams();
-  // Token from the public signing URL (?token=...). Required by public-sign-document
-  // for any link generated after the signing-token hardening shipped. Older links
-  // without a token still work via the legacy fallback in the edge function.
-  const signingToken = searchParams.get("token") || undefined;
+  // Token can come from the URL path (/signature/:id/:tokenParam) — preferred,
+  // survives query-stripping mail redirectors — or from the query (?token=...) as fallback.
+  const signingToken = tokenParam || searchParams.get("token") || undefined;
   const [loading, setLoading] = useState(true);
   const [sigRequest, setSigRequest] = useState<SignatureData | null>(null);
   const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);

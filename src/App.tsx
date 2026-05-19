@@ -139,6 +139,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/enquete/:token" element={<Enquete />} />
                 <Route path="/signature/:id" element={<SignaturePage />} />
+                <Route path="/signature/:id/:tokenParam" element={<SignaturePage />} />
                 <Route path="/apprenants/portail" element={<LearnerPortal />} />
                 <Route path="/certificat" element={<VerifyCertificate />} />
                 <Route path="/install" element={<Install />} />
