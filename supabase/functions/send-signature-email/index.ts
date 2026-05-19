@@ -64,7 +64,7 @@ serve(async (req) => {
       const { data: signatureRequest, error: fetchError } = await supabase
         .from("signature_requests")
         .select(`
-          id, titre, description, type_document, date_expiration,
+          id, titre, description, type_document, date_expiration, signing_token,
           contact:contacts(id, nom, prenom, email)
         `)
         .eq("id", signatureRequestId)
@@ -79,27 +79,31 @@ serve(async (req) => {
         throw new Error("Contact email not found");
       }
 
-      // Generate a fresh signing token for this delivery (rotates if email is re-sent).
-      // Required by public-sign-document to authorize the signing request.
-      const tokenBytes = new Uint8Array(32);
-      crypto.getRandomValues(tokenBytes);
-      const signingToken = Array.from(tokenBytes)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      // Reuse existing signing_token if present so previously sent links keep working.
+      // Only generate a new token when none exists yet (first send, or after a signature reset).
+      let signingToken = signatureRequest.signing_token as string | null;
+      if (!signingToken) {
+        const tokenBytes = new Uint8Array(32);
+        crypto.getRandomValues(tokenBytes);
+        signingToken = Array.from(tokenBytes)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
 
-      // Persist the token BEFORE building the URL so the row is ready by the time
-      // the recipient clicks the link (idempotent: each send rotates the token).
-      const { error: tokenError } = await supabase
-        .from("signature_requests")
-        .update({ signing_token: signingToken })
-        .eq("id", signatureRequestId);
-      if (tokenError) {
-        console.error("Failed to persist signing_token:", tokenError);
-        throw new Error("Could not persist signing token");
+        const { error: tokenError } = await supabase
+          .from("signature_requests")
+          .update({ signing_token: signingToken })
+          .eq("id", signatureRequestId);
+        if (tokenError) {
+          console.error("Failed to persist signing_token:", tokenError);
+          throw new Error("Could not persist signing token");
+        }
       }
 
       const publishedBaseUrl = "https://campust3p.lovable.app";
-      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}?token=${signingToken}`;
+      // Embed the token in the URL PATH (not just query) so email clients or
+      // tracking redirectors that strip query strings don't break the link.
+      // The query variant is kept as a fallback for any legacy link in flight.
+      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}/${signingToken}?token=${signingToken}`;
       const expirationText = signatureRequest.date_expiration 
         ? `Ce lien expire le <strong>${formatDateFr(signatureRequest.date_expiration)}</strong>.`
         : "";
