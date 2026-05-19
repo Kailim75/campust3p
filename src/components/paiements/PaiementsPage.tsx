@@ -80,6 +80,9 @@ export function PaiementsPage() {
   const [showBulkEmitDialog, setShowBulkEmitDialog] = useState(false);
   // Tab filter
   const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
+  const [complianceOpen, setComplianceOpen] = useState(false);
+  const [complianceFactureId, setComplianceFactureId] = useState<string | null>(null);
+  const [complianceNumero, setComplianceNumero] = useState<string | undefined>(undefined);
 
   // Filters state
   const [statutFilter, setStatutFilter] = useState<string>("all");
