@@ -40,6 +40,7 @@ import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { generateFacturePDF, downloadPDF, preloadCompanyImages } from "@/lib/pdf-generator";
 import { extractPayerInfo } from "@/lib/facture-payer-utils";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
+import { PdpTransmissionPanel } from "@/components/facturation/PdpTransmissionPanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -653,6 +654,17 @@ export function FactureDetailSheet({
                       </Button>
                     </div>
                   </div>
+
+                  <Separator />
+
+                  {/* Sprint 8 — Facturation électronique 2026/2027 */}
+                  <PdpTransmissionPanel
+                    factureId={facture.id}
+                    factureStatut={facture.statut}
+                    facturxGeneratedAt={(facture as any).facturx_generated_at ?? null}
+                    einvoiceStatus={(facture as any).e_invoice_status ?? null}
+                    numeroFacture={facture.numero_facture}
+                  />
 
                   <Separator />
 

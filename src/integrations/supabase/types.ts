@@ -2289,6 +2289,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "devis_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "devis_session_inscription_id_fkey"
             columns: ["session_inscription_id"]
             isOneToOne: false
@@ -2843,6 +2850,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_logs_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "email_logs_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
@@ -3365,10 +3379,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "facture_lignes_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "facture_lignes_produit_service_id_fkey"
             columns: ["produit_service_id"]
             isOneToOne: false
             referencedRelation: "produits_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facture_pdp_transmissions: {
+        Row: {
+          centre_id: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          facture_id: string
+          id: string
+          payload: Json | null
+          pdp_reference: string | null
+          pdp_target: string
+          response: Json | null
+          statut: string
+        }
+        Insert: {
+          centre_id: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          facture_id: string
+          id?: string
+          payload?: Json | null
+          pdp_reference?: string | null
+          pdp_target: string
+          response?: Json | null
+          statut?: string
+        }
+        Update: {
+          centre_id?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          facture_id?: string
+          id?: string
+          payload?: Json | null
+          pdp_reference?: string | null
+          pdp_target?: string
+          response?: Json | null
+          statut?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_pdp_transmissions_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facture_pdp_transmissions_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
             referencedColumns: ["id"]
           },
         ]
@@ -3402,6 +3480,8 @@ export type Database = {
           e_invoice_status: string | null
           e_reporting_status: string | null
           facture_origine_id: string | null
+          facturx_generated_at: string | null
+          facturx_xml: string | null
           id: string
           montant_ht: number | null
           montant_total: number
@@ -3450,6 +3530,8 @@ export type Database = {
           e_invoice_status?: string | null
           e_reporting_status?: string | null
           facture_origine_id?: string | null
+          facturx_generated_at?: string | null
+          facturx_xml?: string | null
           id?: string
           montant_ht?: number | null
           montant_total: number
@@ -3498,6 +3580,8 @@ export type Database = {
           e_invoice_status?: string | null
           e_reporting_status?: string | null
           facture_origine_id?: string | null
+          facturx_generated_at?: string | null
+          facturx_xml?: string | null
           id?: string
           montant_ht?: number | null
           montant_total?: number
@@ -3559,6 +3643,13 @@ export type Database = {
             columns: ["facture_origine_id"]
             isOneToOne: false
             referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
             referencedColumns: ["id"]
           },
           {
@@ -4502,6 +4593,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_transmission_logs_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
             referencedColumns: ["id"]
           },
         ]
@@ -5644,6 +5742,13 @@ export type Database = {
             referencedRelation: "factures"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "paiements_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
         ]
       }
       parametres_financiers: {
@@ -6767,6 +6872,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_paiement_queue_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
             referencedColumns: ["id"]
           },
         ]
@@ -7922,6 +8034,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_bancaires_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_bancaires_paiement_id_fkey"
             columns: ["paiement_id"]
             isOneToOne: false
@@ -8366,6 +8485,127 @@ export type Database = {
         }
         Relationships: []
       }
+      v_factures_enriched: {
+        Row: {
+          buyer_address_snapshot: Json | null
+          buyer_country: string | null
+          buyer_email_facturation: string | null
+          buyer_name_snapshot: string | null
+          buyer_platform_provider: string | null
+          buyer_routing_code: string | null
+          buyer_siren: string | null
+          buyer_siret: string | null
+          buyer_tva_intracom: string | null
+          buyer_type: string | null
+          centre_id: string | null
+          client_partner_id: string | null
+          commentaires: string | null
+          compliance_issues: Json | null
+          compliance_score: number | null
+          contact_id: string | null
+          created_at: string | null
+          date_echeance: string | null
+          date_emission: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          delivery_address_snapshot: Json | null
+          devise: string | null
+          e_invoice_status: string | null
+          e_reporting_status: string | null
+          facture_origine_id: string | null
+          id: string | null
+          is_overdue: boolean | null
+          montant_ht: number | null
+          montant_total: number | null
+          montant_tva: number | null
+          motif_exoneration_tva: string | null
+          numero_facture: string | null
+          operation_category: string | null
+          platform_error_message: string | null
+          platform_last_sync_at: string | null
+          platform_provider: string | null
+          platform_reference_id: string | null
+          regime_tva: string | null
+          reste_a_payer: number | null
+          risk_score: number | null
+          service_period_end: string | null
+          service_period_start: string | null
+          session_inscription_id: string | null
+          statut: Database["public"]["Enums"]["facture_statut"] | null
+          total_paye: number | null
+          type_facture: string | null
+          type_financement:
+            | Database["public"]["Enums"]["financement_type"]
+            | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_centre_id_fkey"
+            columns: ["centre_id"]
+            isOneToOne: false
+            referencedRelation: "centres_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_client_partner_id_fkey"
+            columns: ["client_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partner_stats"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "factures_client_partner_id_fkey"
+            columns: ["client_partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "v_factures_enriched"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "session_inscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_session_inscription_id_fkey"
+            columns: ["session_inscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_inscription_workflow"
+            referencedColumns: ["inscription_id"]
+          },
+        ]
+      }
       v_inscription_workflow: {
         Row: {
           alert_attestation_late: boolean | null
@@ -8570,6 +8810,20 @@ export type Database = {
       }
       get_delete_impact: {
         Args: { p_record_id: string; p_table_name: string }
+        Returns: Json
+      }
+      get_factures_paginated: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_financement?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_sort_by?: string
+          p_sort_dir?: string
+          p_statut?: string
+        }
         Returns: Json
       }
       get_onboarding_progress: { Args: { p_centre_id: string }; Returns: Json }
