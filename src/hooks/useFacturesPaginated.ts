@@ -3,26 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { FactureStatut, FinancementType, FactureWithDetails } from "./useFactures";
 
 /**
- * Sprint 4 — Paginated server-side hook for factures (P1).
+ * Sprint 4.2 — Pagination 100% serveur via la RPC `get_factures_paginated`,
+ * qui lit la vue `v_factures_enriched` (total_paye, reste_a_payer, risk_score,
+ * is_overdue précalculés). Aucun mapping JS, aucun second appel `paiements`.
  *
- * NOT YET wired into PaiementsPage because the current UI relies on:
- *   - client-side risk sorting (`sortByRiskPriority`)
- *   - `total_paye` aggregated from paiements
- *   - global exports / bulk emit on the whole filtered dataset
- *
- * This hook is shipped now so it is available for the table view migration
- * planned in Sprint 4.2, once the risk-scoring + total_paye logic is moved
- * to a database view or RPC.
- *
- * Usage (future):
- *   const { data, isLoading } = useFacturesPaginated({
- *     page: 1, pageSize: 50,
- *     statut: "emise", financement: "cpf",
- *     dateFrom: "2025-01-01", dateTo: "2025-12-31",
- *     sortBy: "created_at", sortDir: "desc",
- *   });
- *   data?.rows  // FactureWithDetails[] (without total_paye yet)
- *   data?.total // count exact
+ * NB: les joins relationnels (contact, session, partner) ne sont pas exposés
+ * par la RPC. Les UIs qui en ont besoin doivent continuer d'utiliser `useFactures`
+ * jusqu'à un futur enrichissement de la RPC. Ce hook reste destiné aux vues
+ * tabulaires (table densifiée, exports) où la perf prime.
  */
 export interface UseFacturesPaginatedParams {
   page: number;
@@ -31,7 +19,7 @@ export interface UseFacturesPaginatedParams {
   financement?: FinancementType | "all";
   dateFrom?: string | null;
   dateTo?: string | null;
-  sortBy?: "created_at" | "date_emission" | "date_echeance" | "montant_total";
+  sortBy?: "created_at" | "date_emission" | "date_echeance" | "montant_total" | "risk_score";
   sortDir?: "asc" | "desc";
   search?: string;
 }
@@ -43,21 +31,6 @@ export interface PaginatedFactures {
   pageSize: number;
   totalPages: number;
 }
-
-const FACTURE_SELECT_LIGHT = `
-  *,
-  contact:contacts(id, nom, prenom, email, telephone, civilite, rue, code_postal, ville),
-  session_inscription:session_inscriptions(
-    id,
-    type_payeur,
-    payeur_partner_id,
-    montant_formation,
-    montant_pris_en_charge,
-    reste_a_charge,
-    session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code)),
-    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address)
-  )
-`;
 
 export function useFacturesPaginated(params: UseFacturesPaginatedParams) {
   const {
@@ -75,45 +48,30 @@ export function useFacturesPaginated(params: UseFacturesPaginatedParams) {
   return useQuery<PaginatedFactures>({
     queryKey: [
       "factures",
-      "paginated",
+      "paginated-v2",
       { page, pageSize, statut, financement, dateFrom, dateTo, sortBy, sortDir, search },
     ],
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      let query = supabase
-        .from("factures")
-        .select(FACTURE_SELECT_LIGHT, { count: "exact" })
-        .is("deleted_at", null);
-
-      if (statut !== "all") query = query.eq("statut", statut);
-      if (financement !== "all") query = query.eq("type_financement", financement);
-      if (dateFrom) query = query.gte("date_emission", dateFrom);
-      if (dateTo) query = query.lte("date_emission", dateTo);
-      if (search.trim()) {
-        const s = `%${search.trim()}%`;
-        query = query.or(`numero_facture.ilike.${s},commentaires.ilike.${s}`);
-      }
-
-      query = query.order(sortBy, { ascending: sortDir === "asc" });
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
+      const { data, error } = await supabase.rpc("get_factures_paginated" as any, {
+        p_page: page,
+        p_page_size: pageSize,
+        p_statut: statut === "all" ? null : statut,
+        p_financement: financement === "all" ? null : financement,
+        p_date_from: dateFrom,
+        p_date_to: dateTo,
+        p_search: search.trim() || null,
+        p_sort_by: sortBy,
+        p_sort_dir: sortDir,
+      });
       if (error) throw error;
-
-      // total_paye not computed here yet (requires aggregate join).
-      // Sprint 4.2: move to RPC or DB view.
-      const rows = (data || []).map((f) => ({ ...f, total_paye: 0 })) as FactureWithDetails[];
-
-      const total = count ?? 0;
+      const res = (data ?? {}) as any;
       return {
-        rows,
-        total,
-        page,
-        pageSize,
-        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        rows: (res.rows ?? []) as FactureWithDetails[],
+        total: res.total ?? 0,
+        page: res.page ?? page,
+        pageSize: res.page_size ?? pageSize,
+        totalPages: res.total_pages ?? 1,
       };
     },
   });
