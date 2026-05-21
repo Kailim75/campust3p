@@ -101,8 +101,7 @@ export function AlmaPaymentSection({
               <p style="color: #666; font-size: 13px;">Ce lien est sécurisé et vous redirigera vers la plateforme Alma pour finaliser votre paiement.</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
               <p style="color: #888; font-size: 12px;">
-                Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
-                📧 montrouge@ecolet3p.fr
+                ${centreName}${centreEmail ? `<br>📧 ${centreEmail}` : ""}
               </p>
             </div>
           `,
