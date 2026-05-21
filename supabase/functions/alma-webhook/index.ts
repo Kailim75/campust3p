@@ -215,11 +215,12 @@ serve(async (req) => {
     const contact: any = facture?.contacts ?? null;
     const contactName = contact ? `${contact.prenom ?? ''} ${contact.nom ?? ''}`.trim() : 'Client';
 
-    // ── 1. In-app notifications for staff ──
+    // ── 1. In-app notifications for staff (scoped to facture's centre) ──
     const { data: adminUsers } = await supabase
       .from('user_roles')
       .select('user_id')
-      .in('role', ['admin', 'staff']);
+      .in('role', ['admin', 'staff'])
+      .eq('centre_id', facture?.centre_id ?? '');
 
     if (adminUsers && adminUsers.length > 0) {
       const notifications = adminUsers.map((u: any) => ({
@@ -242,16 +243,16 @@ serve(async (req) => {
         const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
         if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured');
 
-        // Resolve centre branding (fromAddress, raison sociale)
+        // Resolve centre branding from the facture's own centre (multi-tenant safe)
         const { data: centreCfg } = await supabase
-          .from('centre_formation')
-          .select('raison_sociale, email_contact, telephone_contact, siege_social, siret')
-          .limit(1)
+          .from('centres')
+          .select('nom, nom_commercial, email, telephone, adresse_complete, siret')
+          .eq('id', facture.centre_id)
           .maybeSingle();
 
-        const fromAddress = (centreCfg?.email_contact)
-          ? `${centreCfg.raison_sociale ?? 'Centre de formation'} <${centreCfg.email_contact}>`
-          : 'Ecole T3P Montrouge <montrouge@ecolet3p.fr>';
+        const centreName = centreCfg?.nom_commercial || centreCfg?.nom || 'Centre de formation';
+        const centreEmail = centreCfg?.email || 'contact@ecolet3p.fr';
+        const fromAddress = `${centreName} <${centreEmail}>`;
 
         // Build PDF receipt with jsPDF (Deno-compatible build)
         const { jsPDF } = await import('https://esm.sh/jspdf@2.5.1');
