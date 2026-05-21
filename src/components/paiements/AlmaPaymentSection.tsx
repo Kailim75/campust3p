@@ -243,6 +243,33 @@ export function AlmaPaymentSection({
               </Button>
             )}
           </div>
+          {customerPhone && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-green-600/30 text-green-700 hover:bg-green-50 hover:text-green-800"
+                onClick={handleSendWhatsApp}
+              >
+                <MessageCircle className="h-3 w-3 mr-1" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleSendSms}
+              >
+                <Smartphone className="h-3 w-3 mr-1" />
+                SMS
+              </Button>
+            </div>
+          )}
+          {!customerPhone && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Ajoutez un téléphone au contact pour envoyer le lien par SMS/WhatsApp.
+            </p>
+          )}
         </div>
       )}
 
