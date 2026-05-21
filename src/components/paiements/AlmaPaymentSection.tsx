@@ -30,6 +30,10 @@ export function AlmaPaymentSection({
 }: AlmaPaymentSectionProps) {
   const [almaUrl, setAlmaUrl] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
+  const { centreFormation } = useCentreFormation();
+  const centreName =
+    centreFormation?.nom_commercial || centreFormation?.nom_legal || "Centre de formation";
+  const centreEmail = centreFormation?.email || "";
 
   // Gate everything on a health check first
   const { data: health, isLoading: checkingHealth } = useAlmaHealth(montantRestant > 0);
