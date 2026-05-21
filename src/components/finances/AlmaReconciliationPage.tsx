@@ -70,6 +70,7 @@ export function AlmaReconciliationPage() {
 
   return (
     <div className="max-w-3xl space-y-5">
+      <AlmaCronMonitorPanel />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
