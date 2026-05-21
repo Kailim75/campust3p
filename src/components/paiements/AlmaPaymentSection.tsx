@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert, MessageCircle, Smartphone } from "lucide-react";
 import { useAlmaEligibility, useAlmaCreatePayment } from "@/hooks/useAlma";
 import { useAlmaHealth } from "@/hooks/useAlmaHealth";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildWhatsAppUrl } from "@/lib/phone-utils";
 
 interface AlmaPaymentSectionProps {
   factureId: string;
