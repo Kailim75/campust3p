@@ -8,6 +8,7 @@ import { Loader2, CheckCircle2, AlertCircle, Link as LinkIcon } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { AlmaCronMonitorPanel } from "./AlmaCronMonitorPanel";
 
 type Result =
   | { kind: "success"; status: "recorded" | "already_recorded"; data: any }
@@ -69,6 +70,7 @@ export function AlmaReconciliationPage() {
 
   return (
     <div className="max-w-3xl space-y-5">
+      <AlmaCronMonitorPanel />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
