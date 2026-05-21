@@ -119,6 +119,28 @@ export function AlmaPaymentSection({
     }
   };
 
+  const shortMessage = almaUrl
+    ? `Bonjour ${customerFirstName}, voici votre lien de paiement Alma pour la facture ${numeroFacture} (${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€) : ${almaUrl}\n— ${centreName}`
+    : "";
+
+  const handleSendSms = () => {
+    if (!almaUrl || !customerPhone) return;
+    const url = `sms:${customerPhone.replace(/\s/g, "")}?&body=${encodeURIComponent(shortMessage)}`;
+    window.location.href = url;
+    toast.success("Ouverture de l'application SMS");
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!almaUrl || !customerPhone) return;
+    const url = buildWhatsAppUrl(customerPhone, shortMessage);
+    if (!url) {
+      toast.error("Numéro de téléphone invalide");
+      return;
+    }
+    window.open(url, "_blank");
+    toast.success("Ouverture de WhatsApp");
+  };
+
   if (montantRestant <= 0) return null;
 
   return (
