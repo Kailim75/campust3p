@@ -273,9 +273,9 @@ serve(async (req) => {
           doc.setFont('helvetica', 'normal'); doc.text(value, 70, y);
           y += 7;
         };
-        line('Émetteur :', centreCfg?.raison_sociale ?? 'Centre de formation');
+        line('Émetteur :', centreName);
         if (centreCfg?.siret) line('SIRET :', centreCfg.siret);
-        if (centreCfg?.siege_social) line('Adresse :', String(centreCfg.siege_social).slice(0, 80));
+        if (centreCfg?.adresse_complete) line('Adresse :', String(centreCfg.adresse_complete).slice(0, 80));
         y += 4;
         line('Bénéficiaire :', contactName);
         if (contact.email) line('Email :', contact.email);
@@ -297,7 +297,7 @@ serve(async (req) => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.text('Ce reçu vaut confirmation de l\'encaissement de votre paiement Alma.', 20, 280);
-        doc.text('Conservez-le pour vos archives. Pour toute question : ' + (centreCfg?.email_contact ?? 'contact@ecolet3p.fr'), 20, 285);
+        doc.text('Conservez-le pour vos archives. Pour toute question : ' + centreEmail, 20, 285);
 
         const pdfB64 = doc.output('datauristring').split(',')[1];
         const fileName = `Recu-${facture.numero_facture ?? paymentId}.pdf`;
@@ -313,7 +313,7 @@ serve(async (req) => {
                  d'un montant de <strong>${totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</strong>
                  pour la facture <strong>${facture.numero_facture ?? ''}</strong>.</p>
               <p>Vous trouverez en pièce jointe votre reçu officiel.</p>
-              <p style="margin-top:24px;color:#6b7280;font-size:13px">Cordialement,<br/>${centreCfg?.raison_sociale ?? 'Votre centre de formation'}</p>
+              <p style="margin-top:24px;color:#6b7280;font-size:13px">Cordialement,<br/>${centreName}</p>
             </div>
           </div>`;
 
