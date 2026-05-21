@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert } from "lucide-react";
 import { useAlmaEligibility, useAlmaCreatePayment } from "@/hooks/useAlma";
 import { useAlmaHealth } from "@/hooks/useAlmaHealth";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,10 @@ export function AlmaPaymentSection({
 }: AlmaPaymentSectionProps) {
   const [almaUrl, setAlmaUrl] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
+  const { centreFormation } = useCentreFormation();
+  const centreName =
+    centreFormation?.nom_commercial || centreFormation?.nom_legal || "Centre de formation";
+  const centreEmail = centreFormation?.email || "";
 
   // Gate everything on a health check first
   const { data: health, isLoading: checkingHealth } = useAlmaHealth(montantRestant > 0);
@@ -96,8 +101,7 @@ export function AlmaPaymentSection({
               <p style="color: #666; font-size: 13px;">Ce lien est sécurisé et vous redirigera vers la plateforme Alma pour finaliser votre paiement.</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
               <p style="color: #888; font-size: 12px;">
-                Ecole T3P Montrouge - Centre de formation Taxi, VTC et VMDTR<br>
-                📧 montrouge@ecolet3p.fr
+                ${centreName}${centreEmail ? `<br>📧 ${centreEmail}` : ""}
               </p>
             </div>
           `,

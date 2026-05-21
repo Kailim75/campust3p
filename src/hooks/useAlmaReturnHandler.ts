@@ -15,34 +15,47 @@ export function useAlmaReturnHandler() {
 
     if (almaSuccess === "true" && factureId && !processed.current) {
       processed.current = true;
-      
-      // Call the alma-webhook edge function to verify & record
-      // The webhook may have already handled it, this is a fallback
+
       const verifyPayment = async () => {
-        try {
-          // Use the alma-payment function to get payment status by checking facture
-          // The webhook should have already recorded it, but let's confirm
-          toast.info("Vérification du paiement Alma en cours...");
-          
-          // Wait a moment for the webhook to process
-          await new Promise(r => setTimeout(r, 2000));
-          
-          // Invalidate queries to refresh payment data
-          queryClient.invalidateQueries({ queryKey: ["apprenant-paiements"] });
-          queryClient.invalidateQueries({ queryKey: ["apprenant-factures"] });
-          queryClient.invalidateQueries({ queryKey: ["factures"] });
-          queryClient.invalidateQueries({ queryKey: ["paiements"] });
-          
-          toast.success("Paiement Alma confirmé !");
-        } catch (err) {
-          console.error("Alma return verification error:", err);
-          toast.error("Impossible de vérifier le paiement. Vérifiez manuellement.");
+        toast.info("Vérification du paiement Alma en cours…");
+
+        // Poll DB up to ~15s waiting for the webhook to record the ALMA-* reference
+        let recorded: { id: string; montant: number } | null = null;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          await new Promise((r) => setTimeout(r, attempt === 0 ? 1500 : 2500));
+          const { data } = await supabase
+            .from("paiements")
+            .select("id, montant, reference")
+            .eq("facture_id", factureId)
+            .ilike("reference", "ALMA-%")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (data) {
+            recorded = { id: data.id, montant: Number(data.montant) };
+            break;
+          }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["apprenant-paiements"] });
+        queryClient.invalidateQueries({ queryKey: ["apprenant-factures"] });
+        queryClient.invalidateQueries({ queryKey: ["factures"] });
+        queryClient.invalidateQueries({ queryKey: ["paiements"] });
+
+        if (recorded) {
+          toast.success(
+            `Paiement Alma confirmé (${recorded.montant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €)`,
+          );
+        } else {
+          toast.warning(
+            "Paiement Alma initié — la confirmation tarde. Utilisez « Réconciliation Alma » si elle n'apparaît pas dans 1 min.",
+            { duration: 8000 },
+          );
         }
       };
 
       verifyPayment();
 
-      // Clean URL params
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("alma_success");
       newParams.delete("alma_cancel");
