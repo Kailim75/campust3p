@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, Mail, Check, AlertCircle, ShieldAlert, MessageCircle, Smartphone } from "lucide-react";
 import { useAlmaEligibility, useAlmaCreatePayment } from "@/hooks/useAlma";
 import { useAlmaHealth } from "@/hooks/useAlmaHealth";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildWhatsAppUrl } from "@/lib/phone-utils";
 
 interface AlmaPaymentSectionProps {
   factureId: string;
@@ -118,6 +119,28 @@ export function AlmaPaymentSection({
     }
   };
 
+  const shortMessage = almaUrl
+    ? `Bonjour ${customerFirstName}, voici votre lien de paiement Alma pour la facture ${numeroFacture} (${montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€) : ${almaUrl}\n— ${centreName}`
+    : "";
+
+  const handleSendSms = () => {
+    if (!almaUrl || !customerPhone) return;
+    const url = `sms:${customerPhone.replace(/\s/g, "")}?&body=${encodeURIComponent(shortMessage)}`;
+    window.location.href = url;
+    toast.success("Ouverture de l'application SMS");
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!almaUrl || !customerPhone) return;
+    const url = buildWhatsAppUrl(customerPhone, shortMessage);
+    if (!url) {
+      toast.error("Numéro de téléphone invalide");
+      return;
+    }
+    window.open(url, "_blank");
+    toast.success("Ouverture de WhatsApp");
+  };
+
   if (montantRestant <= 0) return null;
 
   return (
@@ -220,6 +243,33 @@ export function AlmaPaymentSection({
               </Button>
             )}
           </div>
+          {customerPhone && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 border-green-600/30 text-green-700 hover:bg-green-50 hover:text-green-800"
+                onClick={handleSendWhatsApp}
+              >
+                <MessageCircle className="h-3 w-3 mr-1" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleSendSms}
+              >
+                <Smartphone className="h-3 w-3 mr-1" />
+                SMS
+              </Button>
+            </div>
+          )}
+          {!customerPhone && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Ajoutez un téléphone au contact pour envoyer le lien par SMS/WhatsApp.
+            </p>
+          )}
         </div>
       )}
 
