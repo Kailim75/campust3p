@@ -52,6 +52,9 @@ verify_jwt = false
 [functions.generate-notifications]
 verify_jwt = false
 
+[functions.alma-reconcile-cron]
+verify_jwt = false                     # Cron, invoked by service_role
+
 # ----------------------------------------------------------------------------
 # PROTECTED — called by authenticated frontend. JWT now required.
 # ----------------------------------------------------------------------------
