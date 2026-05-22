@@ -269,8 +269,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         toast.success("Session créée avec succès");
       }
       onOpenChange(false);
-    } catch (error) {
-      toast.error(isEditing ? "Erreur lors de la mise à jour" : "Erreur lors de la création");
+    } catch (error: any) {
+      console.error("[SessionFormDialog] submit error", error);
+      const msg = error?.message || error?.error_description || error?.details || "Erreur inconnue";
+      toast.error(`${isEditing ? "Erreur lors de la mise à jour" : "Erreur lors de la création"} : ${msg}`);
     }
   };
 
