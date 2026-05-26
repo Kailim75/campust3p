@@ -41,6 +41,7 @@ const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatus
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
+const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
