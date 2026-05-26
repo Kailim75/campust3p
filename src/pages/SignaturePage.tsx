@@ -49,6 +49,7 @@ interface RelatedDocument {
   document_url: string | null;
   date_envoi: string | null;
   date_signature: string | null;
+  access_token: string | null;
 }
 
 type DocumentStatus = "loading" | "ready" | "legacy" | "unavailable" | "error";
