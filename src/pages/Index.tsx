@@ -18,6 +18,7 @@ import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
+import { HelpFloatingButton } from "@/components/help/HelpFloatingButton";
 
 // Sprint 2 — Lazy-loading des sections lourdes pour réduire le bundle initial.
 // Les composants conservent leurs noms d'export pour préserver la cohérence
