@@ -87,6 +87,14 @@ export const HUB_ENTRIES    = NAV_REGISTRY.filter((e) => e.group === "hub");
 export const MORE_ENTRIES   = NAV_REGISTRY.filter((e) => e.group === "more");
 export const FOOTER_ENTRIES = NAV_REGISTRY.filter((e) => e.group === "footer");
 
+/** Ordre + libellé des sous-sections du menu « Plus ». */
+export const MORE_SUBGROUPS: Array<{ id: NavSubgroup; label: string }> = [
+  { id: "pilotage",   label: "Pilotage commercial" },
+  { id: "production", label: "Production & catalogue" },
+  { id: "qualite",    label: "Qualité & conformité" },
+  { id: "admin",      label: "Administration" },
+];
+
 // ── Mappings dérivés (consommés par Index.tsx) ───────────────────────────────
 
 /** pathname segment → section id (inclut alias legacy) */
