@@ -192,80 +192,15 @@ function SidebarContent({
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
-        <div className="space-y-px">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
-                <button
-                  onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                  className={cn(
-                    "sidebar-item w-full relative",
-                    isActive && "active",
-                    collapsed && "justify-center px-0"
-                  )}
-                >
-                  <Icon className="h-[17px] w-[17px] flex-shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </button>
-              </SidebarTooltipItem>
-            );
-          })}
-        </div>
-
-        {/* ── More section ── */}
-        {!collapsed ? (
-          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
-            <CollapsibleTrigger className={cn("sidebar-item w-full text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
-              <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
-              <span className="truncate">Plus</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-px mt-px">
-              {moreMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeSection === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                    className={cn("sidebar-item w-full relative pl-8", isActive && "active")}
-                  >
-                    <Icon className="h-[15px] w-[15px] flex-shrink-0" />
-                    <span className="truncate text-[12px]">{item.label}</span>
-                  </button>
-                );
-              })}
-            </CollapsibleContent>
-          </Collapsible>
-        ) : (
-          <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
-            <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
-              <CollapsibleTrigger className={cn("sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
-                <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-px mt-px">
-                {moreMenuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-                  return (
-                    <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
-                      <button
-                        onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                        className={cn("sidebar-item w-full justify-center px-0", isActive && "active")}
-                      >
-                        <Icon className="h-[15px] w-[15px] flex-shrink-0" />
-                      </button>
-                    </SidebarTooltipItem>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarTooltipItem>
-        )}
-      </nav>
+      <SidebarNav
+        activeSection={activeSection}
+        onSectionChange={onSectionChange}
+        onItemClick={onItemClick}
+        collapsed={collapsed}
+        moreOpen={moreOpen}
+        setMoreOpen={setMoreOpen}
+        isInMore={isInMore}
+      />
 
       {/* ── Footer ── */}
       <div className="px-2 py-2 space-y-px border-t border-white/[0.06] shrink-0">
