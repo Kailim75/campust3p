@@ -32,7 +32,7 @@ export function HelpFloatingButton() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-40 print:hidden">
+      <div className="fixed bottom-5 left-5 z-40 print:hidden">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
