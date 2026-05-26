@@ -483,6 +483,12 @@ serve(async (req) => {
           html: finalHtml,
           reply_to: EMAIL_CONFIG.REPLY_TO,
         };
+
+        // Support BCC recipients (used by CRM composer in BCC mode)
+        if (body.bcc && Array.isArray(body.bcc) && body.bcc.length > 0) {
+          emailPayload.bcc = body.bcc.filter((e: any) => typeof e === "string" && e.includes("@"));
+        }
+        
         
         // Support attachments passed from client (base64 encoded)
         // IMPORTANT: Resend HTTP API expects `content` as a base64 STRING (not Uint8Array).
