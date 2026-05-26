@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   Settings, ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
-  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal,
+  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,7 +10,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RecentItemsMenu } from "./RecentItemsMenu";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useAuth } from "@/hooks/useAuth";
-import { 
+import { useSidebarBadges } from "@/hooks/useSidebarBadges";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -20,7 +21,11 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { HUB_ENTRIES, MORE_ENTRIES } from "@/config/navigationRegistry";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, type NavSubgroup } from "@/config/navigationRegistry";
 
 interface SidebarProps {
   activeSection: string;
@@ -34,6 +39,31 @@ interface SidebarProps {
 const menuItems = HUB_ENTRIES;
 const moreMenuItems = MORE_ENTRIES;
 
+/** Map id de hub → clé du compteur sidebar (useSidebarBadges). */
+const HUB_BADGE_KEY: Record<string, "aujourdhui" | "inbox" | "finances"> = {
+  aujourdhui: "aujourdhui",
+  inbox: "inbox",
+  finances: "finances",
+};
+
+/** Pastille compteur affichée sur un item de menu. */
+function SidebarBadge({ count, tone = "default" }: { count: number; tone?: "default" | "danger" }) {
+  if (!count) return null;
+  return (
+    <span
+      className={cn(
+        "ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none",
+        tone === "danger"
+          ? "bg-destructive/90 text-destructive-foreground"
+          : "bg-cta/90 text-cta-foreground"
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+
 /** Wraps children in a Tooltip when sidebar is collapsed */
 function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean; label: string; children: React.ReactNode }) {
   if (!collapsed) return <>{children}</>;
@@ -44,6 +74,136 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
         {label}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+/** Navigation : hubs principaux avec badges + menu « Plus » regroupé par sous-sections. */
+function SidebarNav({
+  activeSection, onSectionChange, onItemClick, collapsed,
+  moreOpen, setMoreOpen, isInMore,
+}: {
+  activeSection: string;
+  onSectionChange: (s: string) => void;
+  onItemClick?: () => void;
+  collapsed: boolean;
+  moreOpen: boolean;
+  setMoreOpen: (v: boolean) => void;
+  isInMore: boolean;
+}) {
+  const { data: badges } = useSidebarBadges();
+
+  const getBadge = (id: string): number => {
+    const key = HUB_BADGE_KEY[id];
+    if (!key || !badges) return 0;
+    return badges[key] ?? 0;
+  };
+
+  return (
+    <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
+      {/* Hubs principaux */}
+      <div className="space-y-px">
+        {HUB_ENTRIES.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          const count = getBadge(item.id);
+          return (
+            <SidebarTooltipItem
+              key={item.id}
+              collapsed={collapsed}
+              label={count ? `${item.label} (${count})` : item.label}
+            >
+              <button
+                onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                className={cn(
+                  "sidebar-item w-full relative",
+                  isActive && "active",
+                  collapsed && "justify-center px-0"
+                )}
+              >
+                <Icon className="h-[17px] w-[17px] flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && (
+                  <SidebarBadge count={count} tone={item.id === "aujourdhui" || item.id === "finances" ? "danger" : "default"} />
+                )}
+                {collapsed && count > 0 && (
+                  <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
+                )}
+              </button>
+            </SidebarTooltipItem>
+          );
+        })}
+      </div>
+
+      {/* Menu « Plus » regroupé par sous-sections */}
+      {!collapsed ? (
+        <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+          <CollapsibleTrigger
+            className={cn("sidebar-item w-full text-white/40 hover:text-white/70", isInMore && "text-white/80")}
+          >
+            <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+            <span className="truncate">Plus</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-px">
+            {MORE_SUBGROUPS.map((sub) => {
+              const items = MORE_ENTRIES.filter((e) => e.subgroup === sub.id);
+              if (!items.length) return null;
+              return (
+                <div key={sub.id} className="mt-2 first:mt-1">
+                  <div className="px-3 pb-1 text-[10px] uppercase tracking-wider font-semibold text-white/30">
+                    {sub.label}
+                  </div>
+                  <div className="space-y-px">
+                    {items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeSection === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                          className={cn("sidebar-item w-full relative pl-8", isActive && "active")}
+                        >
+                          <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                          <span className="truncate text-[12px]">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
+          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+            <CollapsibleTrigger
+              className={cn(
+                "sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70",
+                isInMore && "text-white/80"
+              )}
+            >
+              <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-px mt-px">
+              {MORE_ENTRIES.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
+                    <button
+                      onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                      className={cn("sidebar-item w-full justify-center px-0", isActive && "active")}
+                    >
+                      <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                    </button>
+                  </SidebarTooltipItem>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarTooltipItem>
+      )}
+    </nav>
   );
 }
 
@@ -162,154 +322,91 @@ function SidebarContent({
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
-        <div className="space-y-px">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            
-            return (
-              <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
-                <button
-                  onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                  className={cn(
-                    "sidebar-item w-full relative",
-                    isActive && "active",
-                    collapsed && "justify-center px-0"
-                  )}
-                >
-                  <Icon className="h-[17px] w-[17px] flex-shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </button>
-              </SidebarTooltipItem>
-            );
-          })}
-        </div>
+      <SidebarNav
+        activeSection={activeSection}
+        onSectionChange={onSectionChange}
+        onItemClick={onItemClick}
+        collapsed={collapsed}
+        moreOpen={moreOpen}
+        setMoreOpen={setMoreOpen}
+        isInMore={isInMore}
+      />
 
-        {/* ── More section ── */}
-        {!collapsed ? (
-          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
-            <CollapsibleTrigger className={cn("sidebar-item w-full text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
-              <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
-              <span className="truncate">Plus</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-px mt-px">
-              {moreMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeSection === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                    className={cn("sidebar-item w-full relative pl-8", isActive && "active")}
-                  >
-                    <Icon className="h-[15px] w-[15px] flex-shrink-0" />
-                    <span className="truncate text-[12px]">{item.label}</span>
-                  </button>
-                );
-              })}
-            </CollapsibleContent>
-          </Collapsible>
-        ) : (
-          <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
-            <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
-              <CollapsibleTrigger className={cn("sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70", isInMore && "text-white/80")}>
-                <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-px mt-px">
-                {moreMenuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-                  return (
-                    <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
-                      <button
-                        onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
-                        className={cn("sidebar-item w-full justify-center px-0", isActive && "active")}
-                      >
-                        <Icon className="h-[15px] w-[15px] flex-shrink-0" />
-                      </button>
-                    </SidebarTooltipItem>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarTooltipItem>
-        )}
-      </nav>
-
-      {/* ── Footer ── */}
+      {/* ── Footer compact ── */}
       <div className="px-2 py-2 space-y-px border-t border-white/[0.06] shrink-0">
         <RecentItemsMenu onItemClick={handleRecentItemClick} collapsed={collapsed} />
-        
-        <SidebarTooltipItem collapsed={collapsed} label="Paramètres">
-          <button onClick={() => { onSectionChange("settings"); onItemClick?.(); }} className={cn("sidebar-item w-full", activeSection === "settings" && "active", collapsed && "justify-center px-0")}>
-            <Settings className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Paramètres</span>}
-          </button>
-        </SidebarTooltipItem>
-        
-        <SidebarTooltipItem collapsed={collapsed} label="Aide & Support">
-          <button onClick={() => { window.open("mailto:support@campust3p.fr"); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
-            <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Aide & Support</span>}
-          </button>
-        </SidebarTooltipItem>
 
-        <SidebarTooltipItem collapsed={collapsed} label="Espace formateur">
-          <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
-            <ClipboardList className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Espace formateur</span>}
-          </button>
-        </SidebarTooltipItem>
-        
-        {canSwitchMode && (
-          <SidebarTooltipItem collapsed={collapsed} label="Super Admin">
-            <button onClick={() => setShowSwitchDialog(true)} className={cn(
-              "sidebar-item w-full border border-dashed border-white/[0.1] hover:border-cta/30 hover:bg-cta/5",
-              collapsed && "justify-center px-0"
-            )}>
-              <Shield className="h-[17px] w-[17px] flex-shrink-0" />
-              {!collapsed && <span className="text-xs font-medium">Super Admin</span>}
+        {/* Carte utilisateur + menu unifié (profil, aide, formateur, admin, déconnexion) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-2.5 mt-2 rounded-xl transition-colors duration-150 hover:bg-white/[0.07]",
+                collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
+              )}
+              style={{ background: "hsl(0 0% 100% / 0.04)" }}
+              aria-label="Menu utilisateur"
+            >
+              <div
+                className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0"
+                style={{ width: 30, height: 30 }}
+              >
+                <span className="text-cta text-[11px] font-semibold">
+                  {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
+                </span>
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">
+                      {user?.email || "Utilisateur"}
+                    </p>
+                    <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/40 flex-shrink-0" />
+                </>
+              )}
             </button>
-          </SidebarTooltipItem>
-        )}
-
-        {/* ── User Profile ── */}
-        <div className={cn(
-          "flex items-center gap-2.5 mt-2 rounded-xl transition-colors duration-150",
-          collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
-        )} style={{ background: 'hsl(0 0% 100% / 0.04)' }}>
-          <div className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0" style={{ width: 30, height: 30 }}>
-            <span className="text-cta text-[11px] font-semibold">
-              {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
-            </span>
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">{user?.email || "Utilisateur"}</p>
-              <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
-            </div>
-          )}
-        </div>
-
-        {/* ── Logout ── */}
-        <SidebarTooltipItem collapsed={collapsed} label="Se déconnecter">
-          <button 
-            onClick={() => { signOut(); onItemClick?.(); }} 
-            className={cn(
-              "sidebar-item w-full text-destructive/70 hover:text-destructive hover:bg-destructive/10",
-              collapsed && "justify-center px-0"
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium truncate">{user?.email}</span>
+                <span className="text-xs text-muted-foreground">{userRole}</span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => { onSectionChange("settings"); onItemClick?.(); }}>
+              <Settings className="h-4 w-4 mr-2" /> Paramètres
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onSectionChange("aide"); onItemClick?.(); }}>
+              <HelpCircle className="h-4 w-4 mr-2" /> Aide & mémo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { window.location.href = "/formateur"; }}>
+              <ClipboardList className="h-4 w-4 mr-2" /> Espace formateur
+            </DropdownMenuItem>
+            {canSwitchMode && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowSwitchDialog(true)}>
+                  <Shield className="h-4 w-4 mr-2" /> Super Admin
+                </DropdownMenuItem>
+              </>
             )}
-          >
-            <LogOut className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Se déconnecter</span>}
-          </button>
-        </SidebarTooltipItem>
-        
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => { signOut(); onItemClick?.(); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Se déconnecter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* ── Collapse Toggle ── */}
         {setCollapsed && (
-          <button 
-            onClick={() => setCollapsed(!collapsed)} 
+          <button
+            onClick={() => setCollapsed(!collapsed)}
             className="sidebar-item w-full justify-center mt-1 hidden md:flex opacity-50 hover:opacity-100"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : (

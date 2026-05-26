@@ -18,6 +18,8 @@ import {
 
 export type NavGroup = "hub" | "more" | "footer";
 
+export type NavSubgroup = "pilotage" | "production" | "qualite" | "admin";
+
 export interface NavEntry {
   /** Identifiant interne (clé `activeSection` dans Index.tsx) */
   id: string;
@@ -27,6 +29,8 @@ export interface NavEntry {
   icon: LucideIcon;
   /** Groupe d'appartenance dans la Sidebar */
   group: NavGroup;
+  /** Sous-groupe pour entrées « more » — sert au regroupement visuel */
+  subgroup?: NavSubgroup;
   /** URL canonique (pathname) — alimente SECTION_TO_PATH */
   path: string;
   /** Nom du composant React monté par Index.tsx (alimente data-page) */
@@ -56,20 +60,22 @@ export const NAV_REGISTRY: NavEntry[] = [
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
   // Pilotage (ex-Dashboard) en tête : accessible mais secondaire vs Aujourd'hui.
-  { id: "dashboard",         label: "Pilotage",          icon: LayoutDashboard, group: "more", path: "/",                  pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
-  // Prospects promu en 2e position pour l'accès commercial rapide.
-  { id: "prospects",         label: "Prospects",         icon: UserPlus,        group: "more", path: "/prospects",         pageName: "ProspectsPage" },
-  { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", path: "/formations",        pageName: "FormationsPage" },
-  { id: "produits",          label: "Produits & Services", icon: Package,       group: "more", path: "/produits",          pageName: "ProduitsServicesPage" },
-  { id: "automations",       label: "Automations",       icon: Zap,             group: "more", path: "/automations",       pageName: "AutomationsPage" },
-  { id: "formateurs",        label: "Formateurs",        icon: UserCog,         group: "more", path: "/formateurs",        pageName: "FormateursPage" },
-  { id: "planning-conduite", label: "Planning conduite", icon: Car,             group: "more", path: "/planning-conduite", pageName: "PlanningConduitePage" },
-  { id: "alertes",           label: "Alertes",           icon: Bell,            group: "more", path: "/alertes",           pageName: "AlertesPage" },
-  { id: "qualite",           label: "Qualité",           icon: Award,           group: "more", path: "/qualite",           pageName: "QualiteUnifiedPage" },
-  { id: "partenaires",       label: "Partenaires",       icon: Handshake,       group: "more", path: "/partenaires",       pageName: "PartnersPage" },
-  { id: "security",          label: "Sécurité",          icon: Shield,          group: "more", path: "/security",          pageName: "SecurityStatusPage" },
-  { id: "corbeille",         label: "Corbeille",         icon: Trash2,          group: "more", path: "/corbeille",         pageName: "CorbeillePage" },
-  { id: "attestations-retard", label: "Attestations retard", icon: Award,        group: "more", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
+  { id: "dashboard",         label: "Pilotage",            icon: LayoutDashboard, group: "more", subgroup: "pilotage",   path: "/",                  pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
+  { id: "prospects",         label: "Prospects",           icon: UserPlus,        group: "more", subgroup: "pilotage",   path: "/prospects",         pageName: "ProspectsPage" },
+  { id: "alertes",           label: "Alertes",             icon: Bell,            group: "more", subgroup: "pilotage",   path: "/alertes",           pageName: "AlertesPage" },
+
+  { id: "formations",        label: "Catalogue",           icon: GraduationCap,   group: "more", subgroup: "production", path: "/formations",        pageName: "FormationsPage" },
+  { id: "produits",          label: "Produits & Services", icon: Package,         group: "more", subgroup: "production", path: "/produits",          pageName: "ProduitsServicesPage" },
+  { id: "formateurs",        label: "Formateurs",          icon: UserCog,         group: "more", subgroup: "production", path: "/formateurs",        pageName: "FormateursPage" },
+  { id: "planning-conduite", label: "Planning conduite",   icon: Car,             group: "more", subgroup: "production", path: "/planning-conduite", pageName: "PlanningConduitePage" },
+  { id: "partenaires",       label: "Partenaires",         icon: Handshake,       group: "more", subgroup: "production", path: "/partenaires",       pageName: "PartnersPage" },
+
+  { id: "qualite",           label: "Qualité",             icon: Award,           group: "more", subgroup: "qualite",    path: "/qualite",           pageName: "QualiteUnifiedPage" },
+  { id: "attestations-retard", label: "Attestations retard", icon: Award,         group: "more", subgroup: "qualite",    path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
+
+  { id: "automations",       label: "Automations",         icon: Zap,             group: "more", subgroup: "admin",      path: "/automations",       pageName: "AutomationsPage" },
+  { id: "security",          label: "Sécurité",            icon: Shield,          group: "more", subgroup: "admin",      path: "/security",          pageName: "SecurityStatusPage" },
+  { id: "corbeille",         label: "Corbeille",           icon: Trash2,          group: "more", subgroup: "admin",      path: "/corbeille",         pageName: "CorbeillePage" },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   { id: "aide", label: "Aide & mémo", icon: HelpCircle, group: "footer", path: "/aide", pageName: "AidePage" },
@@ -80,6 +86,14 @@ export const NAV_REGISTRY: NavEntry[] = [
 export const HUB_ENTRIES    = NAV_REGISTRY.filter((e) => e.group === "hub");
 export const MORE_ENTRIES   = NAV_REGISTRY.filter((e) => e.group === "more");
 export const FOOTER_ENTRIES = NAV_REGISTRY.filter((e) => e.group === "footer");
+
+/** Ordre + libellé des sous-sections du menu « Plus ». */
+export const MORE_SUBGROUPS: Array<{ id: NavSubgroup; label: string }> = [
+  { id: "pilotage",   label: "Pilotage commercial" },
+  { id: "production", label: "Production & catalogue" },
+  { id: "qualite",    label: "Qualité & conformité" },
+  { id: "admin",      label: "Administration" },
+];
 
 // ── Mappings dérivés (consommés par Index.tsx) ───────────────────────────────
 
