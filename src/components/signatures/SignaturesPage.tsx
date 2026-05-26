@@ -64,6 +64,8 @@ import {
 } from "@/hooks/useSignatures";
 import { SignatureFormDialog } from "./SignatureFormDialog";
 import { SignatureSigningDialog } from "./SignatureSigningDialog";
+import { SignaturesTrackingPanel } from "./SignaturesTrackingPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
