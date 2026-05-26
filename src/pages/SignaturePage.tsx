@@ -397,6 +397,21 @@ export default function SignaturePage() {
                 <p className="text-slate-500 text-center max-w-md">
                   Votre signature a été enregistrée avec succès.
                 </p>
+                {(() => {
+                  const nextPending = relatedDocs.find(
+                    (d) => d.statut === "envoye" && d.id !== id
+                  );
+                  if (!nextPending) return null;
+                  const href = nextPending.access_token
+                    ? `/signature/${nextPending.id}/${nextPending.access_token}`
+                    : `/signature/${nextPending.id}`;
+                  return (
+                    <Button size="lg" className="gap-2" onClick={() => { window.location.href = href; }}>
+                      <FileSignature className="h-4 w-4" />
+                      Signer le document suivant : {TYPE_LABELS[nextPending.type_document] || nextPending.titre}
+                    </Button>
+                  );
+                })()}
               </div>
 
               {relatedDocs.length > 0 && (
