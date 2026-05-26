@@ -72,6 +72,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "attestations-retard", label: "Attestations retard", icon: Award,        group: "more", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
 
   // ── Footer ────────────────────────────────────────────────────────────────
+  { id: "aide", label: "Aide & mémo", icon: HelpCircle, group: "footer", path: "/aide", pageName: "AidePage" },
   { id: "settings", label: "Paramètres", icon: Settings, group: "footer", path: "/settings", pageName: "SettingsPage", legacyPaths: ["parametres"] },
 ];
 
