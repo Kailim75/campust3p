@@ -8154,6 +8154,39 @@ export type Database = {
           },
         ]
       }
+      user_onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          dismissed_hints: Json
+          id: string
+          skipped: boolean
+          tour_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_hints?: Json
+          id?: string
+          skipped?: boolean
+          tour_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_hints?: Json
+          id?: string
+          skipped?: boolean
+          tour_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -18,6 +18,7 @@ import { useGlobalCreate } from "@/hooks/useGlobalCreate";
 import { useShortcutsDialog } from "@/hooks/useShortcutsDialog";
 import { BlockageBanner } from "@/components/blockage/BlockageBanner";
 import { BlockagePanel } from "@/components/blockage/BlockagePanel";
+import { HelpFloatingButton } from "@/components/help/HelpFloatingButton";
 
 // Sprint 2 — Lazy-loading des sections lourdes pour réduire le bundle initial.
 // Les composants conservent leurs noms d'export pour préserver la cohérence
@@ -41,6 +42,7 @@ const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatus
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
+const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
@@ -321,6 +323,10 @@ const Index = () => {
         pageName = "AttestationsEnRetardPage";
         node = <AttestationsEnRetardPage />;
         break;
+      case "aide":
+        pageName = "AidePage";
+        node = <AidePage />;
+        break;
       default:
         pageName = "Dashboard";
         node = <Dashboard onNavigate={setActiveSection} onNavigateWithContact={handleNavigateWithContact} />;
@@ -387,6 +393,7 @@ const Index = () => {
       />
       <ShortcutSequenceIndicator />
       <RouteCheckPanel open={routeCheckOpen} onOpenChange={setRouteCheckOpen} />
+      <HelpFloatingButton />
     </div>
   );
 };
