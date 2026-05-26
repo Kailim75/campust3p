@@ -28,6 +28,7 @@ import { useEmailTemplates, useDeleteEmailTemplate, type EmailTemplate } from "@
 import { EmailTemplateFormDialog } from "./EmailTemplateFormDialog";
 import { EmailTemplatePreviewDialog } from "./EmailTemplatePreviewDialog";
 import { RelancesAutoPanel } from "./RelancesAutoPanel";
+import { EnvoisMonitoringPanel } from "./EnvoisMonitoringPanel";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   AlertDialog,
@@ -100,11 +101,16 @@ export function CommunicationsPage() {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
-        <Tabs defaultValue="templates">
+        <Tabs defaultValue="monitoring">
           <TabsList>
+            <TabsTrigger value="monitoring">Monitoring envois</TabsTrigger>
             <TabsTrigger value="templates">Modèles d'emails</TabsTrigger>
             <TabsTrigger value="relances">Relances automatiques</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="monitoring" className="mt-4">
+            <EnvoisMonitoringPanel />
+          </TabsContent>
 
           <TabsContent value="relances" className="mt-4">
             <RelancesAutoPanel />
