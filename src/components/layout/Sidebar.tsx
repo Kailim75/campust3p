@@ -77,6 +77,136 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
   );
 }
 
+/** Navigation : hubs principaux avec badges + menu « Plus » regroupé par sous-sections. */
+function SidebarNav({
+  activeSection, onSectionChange, onItemClick, collapsed,
+  moreOpen, setMoreOpen, isInMore,
+}: {
+  activeSection: string;
+  onSectionChange: (s: string) => void;
+  onItemClick?: () => void;
+  collapsed: boolean;
+  moreOpen: boolean;
+  setMoreOpen: (v: boolean) => void;
+  isInMore: boolean;
+}) {
+  const { data: badges } = useSidebarBadges();
+
+  const getBadge = (id: string): number => {
+    const key = HUB_BADGE_KEY[id];
+    if (!key || !badges) return 0;
+    return badges[key] ?? 0;
+  };
+
+  return (
+    <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
+      {/* Hubs principaux */}
+      <div className="space-y-px">
+        {HUB_ENTRIES.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          const count = getBadge(item.id);
+          return (
+            <SidebarTooltipItem
+              key={item.id}
+              collapsed={collapsed}
+              label={count ? `${item.label} (${count})` : item.label}
+            >
+              <button
+                onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                className={cn(
+                  "sidebar-item w-full relative",
+                  isActive && "active",
+                  collapsed && "justify-center px-0"
+                )}
+              >
+                <Icon className="h-[17px] w-[17px] flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && (
+                  <SidebarBadge count={count} tone={item.id === "aujourdhui" || item.id === "finances" ? "danger" : "default"} />
+                )}
+                {collapsed && count > 0 && (
+                  <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
+                )}
+              </button>
+            </SidebarTooltipItem>
+          );
+        })}
+      </div>
+
+      {/* Menu « Plus » regroupé par sous-sections */}
+      {!collapsed ? (
+        <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+          <CollapsibleTrigger
+            className={cn("sidebar-item w-full text-white/40 hover:text-white/70", isInMore && "text-white/80")}
+          >
+            <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+            <span className="truncate">Plus</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-px">
+            {MORE_SUBGROUPS.map((sub) => {
+              const items = MORE_ENTRIES.filter((e) => e.subgroup === sub.id);
+              if (!items.length) return null;
+              return (
+                <div key={sub.id} className="mt-2 first:mt-1">
+                  <div className="px-3 pb-1 text-[10px] uppercase tracking-wider font-semibold text-white/30">
+                    {sub.label}
+                  </div>
+                  <div className="space-y-px">
+                    {items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeSection === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                          className={cn("sidebar-item w-full relative pl-8", isActive && "active")}
+                        >
+                          <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                          <span className="truncate text-[12px]">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <SidebarTooltipItem collapsed={collapsed} label="Plus de modules">
+          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="mt-2">
+            <CollapsibleTrigger
+              className={cn(
+                "sidebar-item w-full justify-center px-0 text-white/40 hover:text-white/70",
+                isInMore && "text-white/80"
+              )}
+            >
+              <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-px mt-px">
+              {MORE_ENTRIES.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <SidebarTooltipItem key={item.id} collapsed={collapsed} label={item.label}>
+                    <button
+                      onClick={() => { onSectionChange(item.id); onItemClick?.(); }}
+                      className={cn("sidebar-item w-full justify-center px-0", isActive && "active")}
+                    >
+                      <Icon className="h-[15px] w-[15px] flex-shrink-0" />
+                    </button>
+                  </SidebarTooltipItem>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarTooltipItem>
+      )}
+    </nav>
+  );
+}
+
 function SidebarContent({ 
   activeSection, onSectionChange, onNewContact, onNewProspect, collapsed, setCollapsed, onItemClick 
 }: SidebarProps & { 
