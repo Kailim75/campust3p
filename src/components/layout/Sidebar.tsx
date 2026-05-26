@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   Settings, ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
-  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal,
+  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,7 +10,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RecentItemsMenu } from "./RecentItemsMenu";
 import { useAdminMode } from "@/contexts/AdminModeContext";
 import { useAuth } from "@/hooks/useAuth";
-import { 
+import { useSidebarBadges } from "@/hooks/useSidebarBadges";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -20,7 +21,47 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { HUB_ENTRIES, MORE_ENTRIES } from "@/config/navigationRegistry";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, type NavSubgroup } from "@/config/navigationRegistry";
+
+interface SidebarProps {
+  activeSection: string;
+  onSectionChange: (section: string) => void;
+  onNewContact?: () => void;
+  onNewProspect?: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+// Source unique de vérité : voir src/config/navigationRegistry.ts
+const menuItems = HUB_ENTRIES;
+const moreMenuItems = MORE_ENTRIES;
+
+/** Map id de hub → clé du compteur sidebar (useSidebarBadges). */
+const HUB_BADGE_KEY: Record<string, "aujourdhui" | "inbox" | "finances"> = {
+  aujourdhui: "aujourdhui",
+  inbox: "inbox",
+  finances: "finances",
+};
+
+/** Pastille compteur affichée sur un item de menu. */
+function SidebarBadge({ count, tone = "default" }: { count: number; tone?: "default" | "danger" }) {
+  if (!count) return null;
+  return (
+    <span
+      className={cn(
+        "ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none",
+        tone === "danger"
+          ? "bg-destructive/90 text-destructive-foreground"
+          : "bg-cta/90 text-cta-foreground"
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 interface SidebarProps {
   activeSection: string;
