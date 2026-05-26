@@ -12,7 +12,7 @@
 import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Bell, Award,
-  Handshake, Car, UserCog, Trash2, Inbox, Shield, Package,
+  Handshake, Car, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 
