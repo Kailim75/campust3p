@@ -393,6 +393,7 @@ const Index = () => {
       />
       <ShortcutSequenceIndicator />
       <RouteCheckPanel open={routeCheckOpen} onOpenChange={setRouteCheckOpen} />
+      <HelpFloatingButton />
     </div>
   );
 };
