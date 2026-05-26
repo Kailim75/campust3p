@@ -485,21 +485,17 @@ serve(async (req) => {
         };
         
         // Support attachments passed from client (base64 encoded)
+        // IMPORTANT: Resend HTTP API expects `content` as a base64 STRING (not Uint8Array).
+        // Passing a typed array gets JSON-serialized to an object and the attachment ends up empty.
         if (body.attachments && Array.isArray(body.attachments) && body.attachments.length > 0) {
-          emailPayload.attachments = body.attachments.map((att: any) => {
-            // Decode base64 string to Uint8Array for Resend SDK
-            const binaryStr = atob(att.content);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) {
-              bytes[i] = binaryStr.charCodeAt(i);
-            }
-            return {
+          emailPayload.attachments = body.attachments
+            .filter((att: any) => att && typeof att.content === "string" && att.content.length > 0)
+            .map((att: any) => ({
               filename: att.filename || "document.pdf",
-              content: bytes,
+              content: att.content, // base64 string — Resend decodes it server-side
               content_type: att.content_type || att.type || "application/pdf",
-            };
-          });
-          console.log(`[EMAIL] Adding ${body.attachments.length} attachment(s) to single email, sizes: ${emailPayload.attachments.map((a: any) => a.content.length + ' bytes').join(', ')}`);
+            }));
+          console.log(`[EMAIL] Adding ${emailPayload.attachments.length} attachment(s) to single email, base64 sizes: ${emailPayload.attachments.map((a: any) => a.content.length + ' chars').join(', ')}`);
         }
         
         const emailResponse = await resend.emails.send(emailPayload);
