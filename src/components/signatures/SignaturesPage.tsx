@@ -158,6 +158,17 @@ export function SignaturesPage() {
       />
 
       <main className="p-6 space-y-6 animate-fade-in">
+        <Tabs defaultValue="tracking">
+          <TabsList>
+            <TabsTrigger value="tracking">Suivi par session</TabsTrigger>
+            <TabsTrigger value="all">Toutes les demandes</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tracking" className="mt-4">
+            <SignaturesTrackingPanel />
+          </TabsContent>
+
+          <TabsContent value="all" className="mt-4 space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <Card className="card-elevated">
