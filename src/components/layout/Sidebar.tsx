@@ -63,17 +63,6 @@ function SidebarBadge({ count, tone = "default" }: { count: number; tone?: "defa
   );
 }
 
-interface SidebarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onNewContact?: () => void;
-  onNewProspect?: () => void;
-  onCollapsedChange?: (collapsed: boolean) => void;
-}
-
-// Source unique de vérité : voir src/config/navigationRegistry.ts
-const menuItems = HUB_ENTRIES;
-const moreMenuItems = MORE_ENTRIES;
 
 /** Wraps children in a Tooltip when sidebar is collapsed */
 function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean; label: string; children: React.ReactNode }) {
