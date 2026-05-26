@@ -45,7 +45,7 @@ export function HelpFloatingButton() {
               <HelpCircle className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Aide & raccourcis</TooltipContent>
+          <TooltipContent side="right">Aide & raccourcis</TooltipContent>
         </Tooltip>
       </div>
       <HelpCenterDrawer open={open} onOpenChange={setOpen} />
