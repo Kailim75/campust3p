@@ -8851,6 +8851,7 @@ export type Database = {
       get_related_signature_docs: {
         Args: { p_contact_id: string }
         Returns: {
+          access_token: string
           date_envoi: string
           date_signature: string
           document_url: string

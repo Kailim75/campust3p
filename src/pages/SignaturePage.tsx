@@ -49,6 +49,7 @@ interface RelatedDocument {
   document_url: string | null;
   date_envoi: string | null;
   date_signature: string | null;
+  access_token: string | null;
 }
 
 type DocumentStatus = "loading" | "ready" | "legacy" | "unavailable" | "error";
@@ -396,6 +397,21 @@ export default function SignaturePage() {
                 <p className="text-slate-500 text-center max-w-md">
                   Votre signature a été enregistrée avec succès.
                 </p>
+                {(() => {
+                  const nextPending = relatedDocs.find(
+                    (d) => d.statut === "envoye" && d.id !== id
+                  );
+                  if (!nextPending) return null;
+                  const href = nextPending.access_token
+                    ? `/signature/${nextPending.id}/${nextPending.access_token}`
+                    : `/signature/${nextPending.id}`;
+                  return (
+                    <Button size="lg" className="gap-2" onClick={() => { window.location.href = href; }}>
+                      <FileSignature className="h-4 w-4" />
+                      Signer le document suivant : {TYPE_LABELS[nextPending.type_document] || nextPending.titre}
+                    </Button>
+                  );
+                })()}
               </div>
 
               {relatedDocs.length > 0 && (
@@ -619,7 +635,7 @@ function DocumentsSection({
               {getStatusBadge(doc.statut)}
               {doc.statut === "envoye" && doc.id !== currentId && (
                 <a
-                  href={`/signature/${doc.id}`}
+                  href={doc.access_token ? `/signature/${doc.id}/${doc.access_token}` : `/signature/${doc.id}`}
                   className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
                 >
                   <FileSignature className="h-3 w-3" />
