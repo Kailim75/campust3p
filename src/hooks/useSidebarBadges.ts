@@ -45,7 +45,7 @@ export function useSidebarBadges() {
           supabase
             .from("factures")
             .select("id", { count: "exact", head: true })
-            .in("statut", ["non_paye", "partiel"])
+            .in("statut", ["impayee", "partiel"])
             .lt("date_echeance", todayIso)
             .is("deleted_at", null) as any
         ),
