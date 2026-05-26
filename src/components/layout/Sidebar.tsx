@@ -202,79 +202,81 @@ function SidebarContent({
         isInMore={isInMore}
       />
 
-      {/* ── Footer ── */}
+      {/* ── Footer compact ── */}
       <div className="px-2 py-2 space-y-px border-t border-white/[0.06] shrink-0">
         <RecentItemsMenu onItemClick={handleRecentItemClick} collapsed={collapsed} />
-        
-        <SidebarTooltipItem collapsed={collapsed} label="Paramètres">
-          <button onClick={() => { onSectionChange("settings"); onItemClick?.(); }} className={cn("sidebar-item w-full", activeSection === "settings" && "active", collapsed && "justify-center px-0")}>
-            <Settings className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Paramètres</span>}
-          </button>
-        </SidebarTooltipItem>
-        
-        <SidebarTooltipItem collapsed={collapsed} label="Aide & Support">
-          <button onClick={() => { window.open("mailto:support@campust3p.fr"); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
-            <HelpCircle className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Aide & Support</span>}
-          </button>
-        </SidebarTooltipItem>
 
-        <SidebarTooltipItem collapsed={collapsed} label="Espace formateur">
-          <button onClick={() => { window.location.href = "/formateur"; onItemClick?.(); }} className={cn("sidebar-item w-full", collapsed && "justify-center px-0")}>
-            <ClipboardList className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Espace formateur</span>}
-          </button>
-        </SidebarTooltipItem>
-        
-        {canSwitchMode && (
-          <SidebarTooltipItem collapsed={collapsed} label="Super Admin">
-            <button onClick={() => setShowSwitchDialog(true)} className={cn(
-              "sidebar-item w-full border border-dashed border-white/[0.1] hover:border-cta/30 hover:bg-cta/5",
-              collapsed && "justify-center px-0"
-            )}>
-              <Shield className="h-[17px] w-[17px] flex-shrink-0" />
-              {!collapsed && <span className="text-xs font-medium">Super Admin</span>}
+        {/* Carte utilisateur + menu unifié (profil, aide, formateur, admin, déconnexion) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-2.5 mt-2 rounded-xl transition-colors duration-150 hover:bg-white/[0.07]",
+                collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
+              )}
+              style={{ background: "hsl(0 0% 100% / 0.04)" }}
+              aria-label="Menu utilisateur"
+            >
+              <div
+                className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0"
+                style={{ width: 30, height: 30 }}
+              >
+                <span className="text-cta text-[11px] font-semibold">
+                  {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
+                </span>
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">
+                      {user?.email || "Utilisateur"}
+                    </p>
+                    <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/40 flex-shrink-0" />
+                </>
+              )}
             </button>
-          </SidebarTooltipItem>
-        )}
-
-        {/* ── User Profile ── */}
-        <div className={cn(
-          "flex items-center gap-2.5 mt-2 rounded-xl transition-colors duration-150",
-          collapsed ? "justify-center py-2.5" : "px-3 py-2.5"
-        )} style={{ background: 'hsl(0 0% 100% / 0.04)' }}>
-          <div className="flex items-center justify-center rounded-lg bg-cta/20 flex-shrink-0" style={{ width: 30, height: 30 }}>
-            <span className="text-cta text-[11px] font-semibold">
-              {user?.email ? user.email.substring(0, 2).toUpperCase() : "?"}
-            </span>
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">{user?.email || "Utilisateur"}</p>
-              <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
-            </div>
-          )}
-        </div>
-
-        {/* ── Logout ── */}
-        <SidebarTooltipItem collapsed={collapsed} label="Se déconnecter">
-          <button 
-            onClick={() => { signOut(); onItemClick?.(); }} 
-            className={cn(
-              "sidebar-item w-full text-destructive/70 hover:text-destructive hover:bg-destructive/10",
-              collapsed && "justify-center px-0"
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium truncate">{user?.email}</span>
+                <span className="text-xs text-muted-foreground">{userRole}</span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => { onSectionChange("settings"); onItemClick?.(); }}>
+              <Settings className="h-4 w-4 mr-2" /> Paramètres
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onSectionChange("aide"); onItemClick?.(); }}>
+              <HelpCircle className="h-4 w-4 mr-2" /> Aide & mémo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { window.location.href = "/formateur"; }}>
+              <ClipboardList className="h-4 w-4 mr-2" /> Espace formateur
+            </DropdownMenuItem>
+            {canSwitchMode && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowSwitchDialog(true)}>
+                  <Shield className="h-4 w-4 mr-2" /> Super Admin
+                </DropdownMenuItem>
+              </>
             )}
-          >
-            <LogOut className="h-[17px] w-[17px] flex-shrink-0" />
-            {!collapsed && <span>Se déconnecter</span>}
-          </button>
-        </SidebarTooltipItem>
-        
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => { signOut(); onItemClick?.(); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Se déconnecter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* ── Collapse Toggle ── */}
         {setCollapsed && (
-          <button 
-            onClick={() => setCollapsed(!collapsed)} 
+          <button
+            onClick={() => setCollapsed(!collapsed)}
             className="sidebar-item w-full justify-center mt-1 hidden md:flex opacity-50 hover:opacity-100"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : (
