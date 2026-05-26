@@ -112,6 +112,7 @@ const APP_SECTION_PATHS = [
   "/security",
   "/corbeille",
   "/attestations-retard",
+  "/aide",
 ] as const;
 
 const AppShellRoute = () => (
