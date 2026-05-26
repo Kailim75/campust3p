@@ -620,7 +620,7 @@ function DocumentsSection({
               {getStatusBadge(doc.statut)}
               {doc.statut === "envoye" && doc.id !== currentId && (
                 <a
-                  href={`/signature/${doc.id}`}
+                  href={doc.access_token ? `/signature/${doc.id}/${doc.access_token}` : `/signature/${doc.id}`}
                   className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
                 >
                   <FileSignature className="h-3 w-3" />
