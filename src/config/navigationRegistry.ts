@@ -18,6 +18,8 @@ import {
 
 export type NavGroup = "hub" | "more" | "footer";
 
+export type NavSubgroup = "pilotage" | "production" | "qualite" | "admin";
+
 export interface NavEntry {
   /** Identifiant interne (clé `activeSection` dans Index.tsx) */
   id: string;
@@ -27,6 +29,8 @@ export interface NavEntry {
   icon: LucideIcon;
   /** Groupe d'appartenance dans la Sidebar */
   group: NavGroup;
+  /** Sous-groupe pour entrées « more » — sert au regroupement visuel */
+  subgroup?: NavSubgroup;
   /** URL canonique (pathname) — alimente SECTION_TO_PATH */
   path: string;
   /** Nom du composant React monté par Index.tsx (alimente data-page) */
