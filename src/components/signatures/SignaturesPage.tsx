@@ -391,6 +391,8 @@ export function SignaturesPage() {
             </TableBody>
           </Table>
         </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Form Dialog */}
