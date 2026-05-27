@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertTriangle, CheckCircle2, XCircle, Loader2, Play, Square, FileText,
+  AlertTriangle, CheckCircle2, XCircle, Loader2, Play, Square, FileText, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ interface BulkGenerationDialogProps {
   selectedContactIds: Set<string>;
   onGenerate: (contactId: string, item: DocumentWorkflowItem) => Promise<boolean>;
   onComplete: () => void;
+  /** Optional: triggered when user clicks "Envoyer maintenant" after successful generation */
+  onSendAfter?: (successfulContactIds: Set<string>) => void;
 }
 
 interface BulkResult {
@@ -45,6 +47,7 @@ export function BulkGenerationDialog({
   selectedContactIds,
   onGenerate,
   onComplete,
+  onSendAfter,
 }: BulkGenerationDialogProps) {
   const [phase, setPhase] = useState<BulkPhase>("preview");
   const [results, setResults] = useState<BulkResult[]>([]);
@@ -298,7 +301,26 @@ export function BulkGenerationDialog({
             </Button>
           )}
           {phase === "done" && (
-            <Button size="sm" onClick={handleClose}>Fermer</Button>
+            <>
+              {onSendAfter && successCount > 0 && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    const successIds = new Set(
+                      results.filter(r => r.success).map(r => r.contactId),
+                    );
+                    onSendAfter(successIds);
+                    handleClose();
+                  }}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Envoyer maintenant ({successCount})
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={handleClose}>Fermer</Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>
