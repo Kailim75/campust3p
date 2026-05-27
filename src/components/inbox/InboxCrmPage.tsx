@@ -5,6 +5,7 @@ import { useCentreContext } from "@/contexts/CentreContext";
 import { ThreadList } from "./ThreadList";
 import { ThreadView } from "./ThreadView";
 import { InboxToolbar } from "./InboxToolbar";
+import { AiInboxSuggestions, type SuggestionAction } from "./AiInboxSuggestions";
 import { InboxEmptyState } from "./InboxEmptyState";
 import { NewMessageModal } from "./NewMessageModal";
 import { EMPTY_FILTERS, type AdvancedFilters, hasActiveAdvancedFilters } from "./InboxAdvancedFilters";
