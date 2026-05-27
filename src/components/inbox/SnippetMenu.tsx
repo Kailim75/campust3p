@@ -76,7 +76,7 @@ export function SnippetMenu({ onInsert, context }: SnippetMenuProps) {
                 <>
                   Aucun snippet.<br />
                   <Link
-                    to="/parametres/snippets"
+                    to="/parametres"
                     onClick={() => setOpen(false)}
                     className="text-primary hover:underline inline-flex items-center gap-1 mt-2"
                   >
@@ -112,7 +112,7 @@ export function SnippetMenu({ onInsert, context }: SnippetMenuProps) {
         </div>
         <div className="border-t p-1.5">
           <Link
-            to="/parametres/snippets"
+            to="/parametres"
             onClick={() => setOpen(false)}
             className="block text-center text-[11px] text-muted-foreground hover:text-primary py-1 transition-colors"
           >
