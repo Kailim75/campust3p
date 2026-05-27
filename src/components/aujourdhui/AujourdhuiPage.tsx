@@ -73,6 +73,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const [prospectDetailOpen, setProspectDetailOpen] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [showHandled, setShowHandled] = useState(false);
+  const [focusBloc, setFocusBloc] = useState<FocusBlocKey | null>(null);
   const [cmaFilter, setCmaFilter] = useState<CmaFilter>("all");
   const [cmaExpanded, setCmaExpanded] = useState(false);
   const [locallyHandledKeys, setLocallyHandledKeys] = useState<Set<string>>(new Set());
