@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Search, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEmailSnippets, useIncrementSnippetUsage, applySnippetVariables, type EmailSnippet } from "@/hooks/useEmailSnippets";
-import { useCentre } from "@/contexts/CentreContext";
+import { useCentreContext } from "@/contexts/CentreContext";
 
 interface SnippetMenuProps {
   /** Called with the resolved (variables substituted) body */
@@ -24,7 +24,7 @@ export function SnippetMenu({ onInsert, context }: SnippetMenuProps) {
   const [search, setSearch] = useState("");
   const { data: snippets = [] } = useEmailSnippets();
   const increment = useIncrementSnippetUsage();
-  const { currentCentre } = useCentre();
+  const { currentCentre } = useCentreContext();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

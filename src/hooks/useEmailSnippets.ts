@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCentre } from "@/contexts/CentreContext";
+import { useCentreContext } from "@/contexts/CentreContext";
 import { toast } from "sonner";
 
 export interface EmailSnippet {
@@ -18,7 +18,7 @@ export interface EmailSnippet {
 }
 
 export function useEmailSnippets() {
-  const { centreId } = useCentre();
+  const { centreId } = useCentreContext();
 
   return useQuery({
     queryKey: ["email-snippets", centreId],
@@ -41,7 +41,7 @@ export function useEmailSnippets() {
 
 export function useCreateSnippet() {
   const qc = useQueryClient();
-  const { centreId } = useCentre();
+  const { centreId } = useCentreContext();
   return useMutation({
     mutationFn: async (input: Omit<EmailSnippet, "id" | "centre_id" | "usage_count" | "created_at" | "updated_at" | "created_by"> & { user_id: string | null }) => {
       if (!centreId) throw new Error("Aucun centre actif");
