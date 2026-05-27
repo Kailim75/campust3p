@@ -44,6 +44,7 @@ export function SessionsPage() {
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  const [recurringTemplate, setRecurringTemplate] = useState<Session | null>(null);
 
   const { filteredSessions, hasActiveFilters } = useSessionsFilters(sessions, filters, inscriptionsCounts);
 
