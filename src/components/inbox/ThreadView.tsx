@@ -309,11 +309,16 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
         />
         <div className="flex items-center justify-between">
           <SnippetMenu
-            context={{
-              prenom: (thread?.from_name ?? "").split(" ")[0],
-              nom: (thread?.from_name ?? "").split(" ").slice(1).join(" "),
-              email: thread?.from_email ?? undefined,
-            }}
+            context={(() => {
+              const firstInbound = messages.find((m: any) => m.direction === "inbound") as any;
+              const fullName: string = firstInbound?.from_name ?? "";
+              const [prenom, ...rest] = fullName.split(" ");
+              return {
+                prenom: prenom || undefined,
+                nom: rest.join(" ") || undefined,
+                email: firstInbound?.from_email ?? undefined,
+              };
+            })()}
             onInsert={(text) =>
               setReplyText((prev) => (prev.trim() ? prev + "\n\n" + text : text))
             }
