@@ -275,6 +275,21 @@ export function InboxCrmPage() {
         </div>
       </div>
 
+      {/* Suggestions IA groupées */}
+      <AiInboxSuggestions
+        centreId={centreId!}
+        onAction={(a: SuggestionAction) => {
+          if (a.type === "unanswered_threads") {
+            setStatusFilter("nouveau");
+            setDirectionFilter("inbox");
+          } else if (a.type === "unassigned_threads") {
+            setAssignedFilter("unassigned");
+          } else if (a.type === "stale_prospects") {
+            window.location.href = "/prospects";
+          }
+        }}
+      />
+
       {/* Toolbar */}
       <InboxToolbar
         statusFilter={statusFilter}
