@@ -246,6 +246,26 @@ export function SessionDocumentMatrixView({
       <SessionDocumentsOverviewCard
         rows={rows}
         onFilterIncomplete={() => setStatusFilter("incomplete")}
+        onBulkGenerate={() => {
+          // Auto-select every learner who has at least one eligible doc to generate
+          const eligibleIds = new Set(
+            rows
+              .filter(r =>
+                r.blocks.some(b =>
+                  b.items.some(it =>
+                    it.businessStatus === "a_generer" && !it.isBlocked && it.templateId,
+                  ),
+                ),
+              )
+              .map(r => r.contactId),
+          );
+          if (eligibleIds.size === 0) {
+            toast.info("Aucun document éligible à la génération");
+            return;
+          }
+          setSelectedIds(eligibleIds);
+          setBulkOpen(true);
+        }}
       />
 
       {/* Filters */}
