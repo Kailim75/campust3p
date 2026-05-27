@@ -13,6 +13,7 @@ import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { ActionJournal } from "./ActionJournal";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   createAutoNote, deleteAutoNote, isHandledToday,
