@@ -172,6 +172,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/ma-journee" element={<MaJourneePage />} />
 
                 {/* Apprenant full page */}
                 <Route path="/contacts/:id" element={
