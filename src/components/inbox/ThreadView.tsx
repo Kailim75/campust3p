@@ -300,39 +300,56 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
       </div>
 
       {/* ── Reply ── */}
-      <div className="border-t bg-muted/15 p-4">
-        <Textarea
-          value={replyText}
-          onChange={(e) => setReplyText(e.target.value)}
-          placeholder="Écrire une réponse… (insérez un snippet ci-dessous)"
-          rows={3}
-          className="mb-2.5 resize-none bg-background text-sm focus-visible:ring-primary/30"
+      <ReplyBox
+        replyText={replyText}
+        setReplyText={setReplyText}
+        messages={messages}
+        onSend={() => sendReply.mutate()}
+        sending={sendReply.isPending}
+      />
+    </div>
+  );
+}
+
+function ReplyBox({
+  replyText, setReplyText, messages, onSend, sending,
+}: {
+  replyText: string;
+  setReplyText: (v: string) => void;
+  messages: any[];
+  onSend: () => void;
+  sending: boolean;
+}) {
+  const firstInbound = messages.find((m) => m.direction === "inbound");
+  const fullName: string = firstInbound?.from_name ?? "";
+  const [prenomPart, ...restParts] = fullName.split(" ");
+  const ctx = {
+    prenom: prenomPart || undefined,
+    nom: restParts.join(" ") || undefined,
+    email: firstInbound?.from_email ?? undefined,
+  };
+  const { handleChange } = useSlashSnippet({ value: replyText, setValue: setReplyText, context: ctx });
+
+  return (
+    <div className="border-t bg-muted/15 p-4">
+      <Textarea
+        value={replyText}
+        onChange={handleChange}
+        placeholder="Écrire une réponse… Astuce : tapez /raccourci puis espace pour insérer un snippet"
+        rows={3}
+        className="mb-2.5 resize-none bg-background text-sm focus-visible:ring-primary/30"
+      />
+      <div className="flex items-center justify-between">
+        <SnippetMenu
+          context={ctx}
+          onInsert={(text) =>
+            setReplyText(replyText.trim() ? replyText + "\n\n" + text : text)
+          }
         />
-        <div className="flex items-center justify-between">
-          <SnippetMenu
-            context={(() => {
-              const firstInbound = messages.find((m: any) => m.direction === "inbound") as any;
-              const fullName: string = firstInbound?.from_name ?? "";
-              const [prenom, ...rest] = fullName.split(" ");
-              return {
-                prenom: prenom || undefined,
-                nom: rest.join(" ") || undefined,
-                email: firstInbound?.from_email ?? undefined,
-              };
-            })()}
-            onInsert={(text) =>
-              setReplyText((prev) => (prev.trim() ? prev + "\n\n" + text : text))
-            }
-          />
-          <Button
-            onClick={() => sendReply.mutate()}
-            disabled={!replyText.trim() || sendReply.isPending}
-            size="sm"
-          >
-            <Send className="h-3.5 w-3.5 mr-1.5" />
-            {sendReply.isPending ? "Envoi…" : "Répondre"}
-          </Button>
-        </div>
+        <Button onClick={onSend} disabled={!replyText.trim() || sending} size="sm">
+          <Send className="h-3.5 w-3.5 mr-1.5" />
+          {sending ? "Envoi…" : "Répondre"}
+        </Button>
       </div>
     </div>
   );
