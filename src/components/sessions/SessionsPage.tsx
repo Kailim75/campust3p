@@ -93,11 +93,17 @@ export function SessionsPage() {
     try {
       const { id, created_at, updated_at, numero_session, ...sessionData } = session as any;
       await createSession.mutateAsync({ ...sessionData, nom: `${session.nom} (copie)`, statut: 'a_venir' });
-      toast.success("Session dupliquée avec succès");
+      toast.success("Session dupliquée avec succès", {
+        description: "Créer une série de sessions récurrentes à partir de ce modèle ?",
+        action: { label: "Série récurrente", onClick: () => setRecurringTemplate(session) },
+        duration: 8000,
+      });
     } catch { toast.error("Erreur lors de la duplication"); }
   };
 
   const handleCreateRecurring = (session: Session) => setRecurringTemplate(session);
+
+
 
 
 
