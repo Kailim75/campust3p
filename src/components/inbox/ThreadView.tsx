@@ -21,6 +21,7 @@ import { ThreadAssignment } from "./ThreadAssignment";
 import { ThreadAttachments } from "./ThreadAttachments";
 import { cn } from "@/lib/utils";
 import type { InboxStatus } from "./InboxCrmPage";
+import { SnippetMenu } from "./SnippetMenu";
 
 interface ThreadViewProps {
   threadId: string;
@@ -302,11 +303,26 @@ export function ThreadView({ threadId, centreId, onThreadRemoved }: ThreadViewPr
         <Textarea
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
-          placeholder="Écrire une réponse…"
+          placeholder="Écrire une réponse… (insérez un snippet ci-dessous)"
           rows={3}
           className="mb-2.5 resize-none bg-background text-sm focus-visible:ring-primary/30"
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <SnippetMenu
+            context={(() => {
+              const firstInbound = messages.find((m: any) => m.direction === "inbound") as any;
+              const fullName: string = firstInbound?.from_name ?? "";
+              const [prenom, ...rest] = fullName.split(" ");
+              return {
+                prenom: prenom || undefined,
+                nom: rest.join(" ") || undefined,
+                email: firstInbound?.from_email ?? undefined,
+              };
+            })()}
+            onInsert={(text) =>
+              setReplyText((prev) => (prev.trim() ? prev + "\n\n" + text : text))
+            }
+          />
           <Button
             onClick={() => sendReply.mutate()}
             disabled={!replyText.trim() || sendReply.isPending}

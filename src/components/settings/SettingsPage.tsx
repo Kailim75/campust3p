@@ -20,9 +20,11 @@ import {
   Webhook,
   CreditCard as CreditCardIcon,
   Palette,
+  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
+import { SnippetsSettings } from "./SnippetsSettings";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { EInvoicingSettings } from "./EInvoicingSettings";
 import { TemplateFilesSection } from "./TemplateFilesSection";
@@ -441,7 +443,7 @@ export function SettingsPage() {
 
       <main className="p-6 animate-fade-in">
         <Tabs defaultValue="centre" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9 lg:w-auto lg:inline-flex">
             <TabsTrigger value="centre" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Centre</span>
@@ -457,6 +459,10 @@ export function SettingsPage() {
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="snippets" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Snippets</span>
             </TabsTrigger>
             <TabsTrigger value="financier" className="gap-2">
               <CreditCardIcon className="h-4 w-4" />
@@ -612,6 +618,12 @@ export function SettingsPage() {
             <DocumentTemplatesSection />
             <TemplateFilesSection />
           </TabsContent>
+
+          {/* Tab: Snippets */}
+          <TabsContent value="snippets" className="space-y-6">
+            <SnippetsSettings />
+          </TabsContent>
+
 
           {/* Tab: Financier */}
           <TabsContent value="financier" className="space-y-6">
