@@ -22,6 +22,7 @@ import { ThreadAttachments } from "./ThreadAttachments";
 import { cn } from "@/lib/utils";
 import type { InboxStatus } from "./InboxCrmPage";
 import { SnippetMenu } from "./SnippetMenu";
+import { useSlashSnippet } from "@/hooks/useSlashSnippet";
 
 interface ThreadViewProps {
   threadId: string;
