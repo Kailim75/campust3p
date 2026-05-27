@@ -744,81 +744,105 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
 
 
       <div className="px-8 pb-8 space-y-5">
-        <BlocSessionPreparation
-          sessions={sessionPrepItems}
-          onRelanceDocs={handleSessionRelanceDocs}
-          onRelancePaiement={handleSessionRelancePaiement}
-          onOpenSession={(session) => {
-            if (onNavigateWithParams) {
-              onNavigateWithParams("sessions", { id: session.id });
-            } else {
-              onNavigate?.("sessions");
-            }
-          }}
-        />
-
-        <BlocQualiteCrm
-          items={crmQualityItems}
-          summary={crmQualitySummary}
-          todayNotes={todayNotes}
-          recentNotes={recentNotes}
-          openContact={openContact}
-          openProspect={openProspect}
-          markDone={markDone}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <BlocCma
-            allCmaFiltered={allCmaFiltered} cmaItems={cmaItems} cmaHiddenCount={cmaHiddenCount}
-            cmaExpanded={cmaExpanded} setCmaExpanded={setCmaExpanded}
-            cmaFilter={cmaFilter} setCmaFilter={setCmaFilter}
-            cmaCountAll={cmaCountAll} cmaCountDocs={cmaCountDocs} cmaCountRejete={cmaCountRejete} cmaCountEnCours={cmaCountEnCours}
-            bulkCmaSelected={bulkCmaSelected} toggleBulkCma={toggleBulkCma} toggleBulkCmaVisible={toggleBulkCmaVisible}
-            bulkProcessing={bulkProcessing} handleBulkCmaRelance={handleBulkCmaRelance} handleBulkCmaDone={handleBulkCmaDone}
-            handleCmaRelanceDocs={handleCmaRelanceDocs} handleCmaWhatsApp={handleCmaWhatsApp}
-            isCmaRelancedToday={isCmaRelancedToday}
-            postponeAction={postponeAction}
-            todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
+        {(!focusBloc || focusBloc === "session_prep") && (
+          <BlocSessionPreparation
+            sessions={sessionPrepItems}
+            onRelanceDocs={handleSessionRelanceDocs}
+            onRelancePaiement={handleSessionRelancePaiement}
+            onOpenSession={(session) => {
+              if (onNavigateWithParams) {
+                onNavigateWithParams("sessions", { id: session.id });
+              } else {
+                onNavigate?.("sessions");
+              }
+            }}
           />
+        )}
 
-          <BlocRdv
-            rdvToday={rdvToday}
-            handleRdvConfirm={handleRdvConfirm} handleRdvAppel={handleRdvAppel} handleRdvWhatsApp={handleRdvWhatsApp}
-            todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
-            onNavigate={onNavigate}
+        {(!focusBloc || focusBloc === "qualite_crm") && (
+          <BlocQualiteCrm
+            items={crmQualityItems}
+            summary={crmQualitySummary}
+            todayNotes={todayNotes}
+            recentNotes={recentNotes}
+            openContact={openContact}
+            openProspect={openProspect}
+            markDone={markDone}
           />
+        )}
 
-          <BlocRelances
-            relances={relances}
-            bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance} toggleBulkRelanceVisible={toggleBulkRelanceVisible}
-            bulkProcessing={bulkProcessing} handleBulkRelance={handleBulkRelance} handleBulkRelanceDone={handleBulkRelanceDone}
-            handleRelanceEmail={handleRelanceEmail} handleRelanceWhatsApp={handleRelanceWhatsApp}
-            postponeAction={postponeAction}
-            todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
-          />
+        <div className={cn(
+          "grid gap-5",
+          focusBloc ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
+        )}>
+          {(!focusBloc || focusBloc === "cma") && (
+            <BlocCma
+              allCmaFiltered={allCmaFiltered} cmaItems={cmaItems} cmaHiddenCount={cmaHiddenCount}
+              cmaExpanded={cmaExpanded} setCmaExpanded={setCmaExpanded}
+              cmaFilter={cmaFilter} setCmaFilter={setCmaFilter}
+              cmaCountAll={cmaCountAll} cmaCountDocs={cmaCountDocs} cmaCountRejete={cmaCountRejete} cmaCountEnCours={cmaCountEnCours}
+              bulkCmaSelected={bulkCmaSelected} toggleBulkCma={toggleBulkCma} toggleBulkCmaVisible={toggleBulkCmaVisible}
+              bulkProcessing={bulkProcessing} handleBulkCmaRelance={handleBulkCmaRelance} handleBulkCmaDone={handleBulkCmaDone}
+              handleCmaRelanceDocs={handleCmaRelanceDocs} handleCmaWhatsApp={handleCmaWhatsApp}
+              isCmaRelancedToday={isCmaRelancedToday}
+              postponeAction={postponeAction}
+              todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
+            />
+          )}
 
-          <BlocCritiques
-            critiques={critiques}
-            handleCritiqueDemanderDocs={handleCritiqueDemanderDocs} handleCritiqueRelancePaiement={handleCritiqueRelancePaiement}
-            todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
-          />
+          {(!focusBloc || focusBloc === "rdv") && (
+            <BlocRdv
+              rdvToday={rdvToday}
+              handleRdvConfirm={handleRdvConfirm} handleRdvAppel={handleRdvAppel} handleRdvWhatsApp={handleRdvWhatsApp}
+              todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
+              onNavigate={onNavigate}
+            />
+          )}
+
+          {(!focusBloc || focusBloc === "relances") && (
+            <BlocRelances
+              relances={relances}
+              bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance} toggleBulkRelanceVisible={toggleBulkRelanceVisible}
+              bulkProcessing={bulkProcessing} handleBulkRelance={handleBulkRelance} handleBulkRelanceDone={handleBulkRelanceDone}
+              handleRelanceEmail={handleRelanceEmail} handleRelanceWhatsApp={handleRelanceWhatsApp}
+              postponeAction={postponeAction}
+              todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
+            />
+          )}
+
+          {(!focusBloc || focusBloc === "critiques") && (
+            <BlocCritiques
+              critiques={critiques}
+              handleCritiqueDemanderDocs={handleCritiqueDemanderDocs} handleCritiqueRelancePaiement={handleCritiqueRelancePaiement}
+              todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
+            />
+          )}
         </div>
 
-        <BlocReprogrammer
-          reprogramItems={reprogramItems}
-          todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
-        />
+        {(!focusBloc || focusBloc === "reprogrammer") && (
+          <BlocReprogrammer
+            reprogramItems={reprogramItems}
+            todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
+          />
+        )}
 
-        <BlocCartePro
-          cartePro={cartePro}
-          handleCarteProEmail={handleCarteProEmail} handleCarteProMarkDone={handleCarteProMarkDone}
-          todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
-        />
+        {(!focusBloc || focusBloc === "carte_pro") && (
+          <BlocCartePro
+            cartePro={cartePro}
+            handleCarteProEmail={handleCarteProEmail} handleCarteProMarkDone={handleCarteProMarkDone}
+            todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
+          />
+        )}
 
-        <BlocQualiopi qualiopiSessions={qualiopiSessions} onNavigate={onNavigate} />
+        {(!focusBloc || focusBloc === "qualiopi") && (
+          <BlocQualiopi qualiopiSessions={qualiopiSessions} onNavigate={onNavigate} />
+        )}
 
-        <ActionJournal entries={journalEntries} onOpenContact={openContact} />
+        {!focusBloc && (
+          <ActionJournal entries={journalEntries} onOpenContact={openContact} />
+        )}
       </div>
+
 
       {/* Detail sheets */}
       <ApprenantDetailSheet
