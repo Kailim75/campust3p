@@ -18,6 +18,7 @@ import { SessionsGroupedTable } from "./SessionsGroupedTable";
 import { SessionsKanban } from "./SessionsKanban";
 import { SessionsToolbar } from "./SessionsToolbar";
 import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
+import { RecurringSessionsDialog } from "./RecurringSessionsDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export function SessionsPage() {
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  const [recurringTemplate, setRecurringTemplate] = useState<Session | null>(null);
 
   const { filteredSessions, hasActiveFilters } = useSessionsFilters(sessions, filters, inscriptionsCounts);
 
@@ -91,9 +93,19 @@ export function SessionsPage() {
     try {
       const { id, created_at, updated_at, numero_session, ...sessionData } = session as any;
       await createSession.mutateAsync({ ...sessionData, nom: `${session.nom} (copie)`, statut: 'a_venir' });
-      toast.success("Session dupliquée avec succès");
+      toast.success("Session dupliquée avec succès", {
+        description: "Créer une série de sessions récurrentes à partir de ce modèle ?",
+        action: { label: "Série récurrente", onClick: () => setRecurringTemplate(session) },
+        duration: 8000,
+      });
     } catch { toast.error("Erreur lors de la duplication"); }
   };
+
+  const handleCreateRecurring = (session: Session) => setRecurringTemplate(session);
+
+
+
+
 
   const handleExport = (formatType: 'xlsx' | 'csv') => {
     exportSessions(filteredSessions, inscriptionsCounts, formatType);
@@ -205,6 +217,12 @@ export function SessionsPage() {
         onEdit={(session) => { setDetailOpen(false); handleEdit(session); }}
       />
       <ArchivedSessionsSheet open={archivedOpen} onOpenChange={setArchivedOpen} />
+      <RecurringSessionsDialog
+        open={!!recurringTemplate}
+        onOpenChange={(o) => { if (!o) setRecurringTemplate(null); }}
+        templateSession={recurringTemplate}
+      />
     </div>
   );
 }
+
