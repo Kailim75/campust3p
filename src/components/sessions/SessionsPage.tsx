@@ -18,6 +18,7 @@ import { SessionsGroupedTable } from "./SessionsGroupedTable";
 import { SessionsKanban } from "./SessionsKanban";
 import { SessionsToolbar } from "./SessionsToolbar";
 import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
+import { RecurringSessionsDialog } from "./RecurringSessionsDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
