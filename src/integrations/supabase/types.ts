@@ -2865,6 +2865,54 @@ export type Database = {
           },
         ]
       }
+      email_snippets: {
+        Row: {
+          body: string
+          centre_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          scope: string
+          shortcut: string
+          title: string
+          updated_at: string
+          usage_count: number
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          centre_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          scope?: string
+          shortcut: string
+          title: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          centre_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          scope?: string
+          shortcut?: string
+          title?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           actif: boolean
