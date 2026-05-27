@@ -211,6 +211,12 @@ export function SessionsPage() {
         onEdit={(session) => { setDetailOpen(false); handleEdit(session); }}
       />
       <ArchivedSessionsSheet open={archivedOpen} onOpenChange={setArchivedOpen} />
+      <RecurringSessionsDialog
+        open={!!recurringTemplate}
+        onOpenChange={(o) => { if (!o) setRecurringTemplate(null); }}
+        templateSession={recurringTemplate}
+      />
     </div>
   );
 }
+
