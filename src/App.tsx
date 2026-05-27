@@ -41,6 +41,7 @@ const FlyerTaxiPage = lazy(() => import("./pages/FlyerTaxiPage"));
 const FlyerVMDTRPage = lazy(() => import("./pages/FlyerVMDTRPage"));
 const FlyersPDFPage = lazy(() => import("./pages/FlyersPDFPage"));
 const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
+const MaJourneePage = lazy(() => import("./pages/MaJourneePage"));
 const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
@@ -171,6 +172,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/ma-journee" element={<MaJourneePage />} />
 
                 {/* Apprenant full page */}
                 <Route path="/contacts/:id" element={
