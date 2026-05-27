@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SnippetMenu } from "./SnippetMenu";
+import { useSlashSnippet } from "@/hooks/useSlashSnippet";
 
 interface NewMessageModalProps {
   open: boolean;
