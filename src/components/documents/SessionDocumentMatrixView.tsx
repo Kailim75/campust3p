@@ -503,8 +503,12 @@ export function SessionDocumentMatrixView({
         selectedContactIds={selectedIds}
         onGenerate={handleBulkGenerate}
         onComplete={() => {
-          setSelectedIds(new Set());
           refetch();
+        }}
+        onSendAfter={(successIds) => {
+          setSelectedIds(successIds);
+          // small delay so refetch settles before opening the email picker
+          setTimeout(() => setBulkEmailOpen(true), 200);
         }}
       />
 
