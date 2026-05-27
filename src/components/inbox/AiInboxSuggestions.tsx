@@ -54,7 +54,7 @@ export function AiInboxSuggestions({ centreId, onAction }: AiInboxSuggestionsPro
         .eq("centre_id", centreId)
         .is("deleted_at", null)
         .lt("updated_at", sevenDaysAgo)
-        .in("statut", ["nouveau", "en_cours"])
+        .in("statut", ["nouveau", "contacte", "relance"])
         .limit(50);
 
       // 2. Threads entrants sans réponse depuis 3j
