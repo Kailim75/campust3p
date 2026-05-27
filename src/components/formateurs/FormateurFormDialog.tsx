@@ -218,13 +218,14 @@ export function FormateurFormDialog({ open, onOpenChange, formateur }: Formateur
             </div>
             <div className="space-y-2">
               <Label htmlFor="adresse">Adresse</Label>
-              <Input
-                id="adresse"
+              <AddressAutocomplete
                 value={form.adresse}
-                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+                onChange={(v) => setForm({ ...form, adresse: v })}
+                onSelect={(addr) => setForm({ ...form, adresse: addr.rue, code_postal: addr.code_postal, ville: addr.ville })}
                 placeholder="123 rue de la Formation"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code_postal">Code postal</Label>
