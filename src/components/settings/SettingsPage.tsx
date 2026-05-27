@@ -619,6 +619,12 @@ export function SettingsPage() {
             <TemplateFilesSection />
           </TabsContent>
 
+          {/* Tab: Snippets */}
+          <TabsContent value="snippets" className="space-y-6">
+            <SnippetsSettings />
+          </TabsContent>
+
+
           {/* Tab: Financier */}
           <TabsContent value="financier" className="space-y-6">
             <FinancialSettingsSection />
