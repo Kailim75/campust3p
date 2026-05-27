@@ -82,6 +82,7 @@ import { SessionFinancesTabContent } from "./SessionFinancesTabContent";
 // Typed inscription helpers
 import type { InscriptionWithContact, InscriptionContact } from "@/types/session-inscription";
 import { extractRecipientsFromInscriptions } from "@/types/session-inscription";
+import { useSessionRealtimeSync } from "@/hooks/useSessionRealtimeSync";
 
 interface SessionDetailSheetProps {
   sessionId: string | null;
@@ -94,6 +95,8 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   const { size, setSize, sizeClass } = useSheetSize("session");
   const isMobile = useIsMobile();
   const { data: session, isLoading } = useSession(sessionId);
+  // Keep the sheet in sync with billing/inscription changes in real time
+  useSessionRealtimeSync(sessionId, open);
   const { data: rawInscriptions } = useSessionInscriptions(sessionId);
   const { data: contacts } = useContacts();
   const { data: formateur } = useFormateur(session?.formateur_id ?? null);
