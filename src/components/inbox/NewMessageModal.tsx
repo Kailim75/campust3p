@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SnippetMenu } from "./SnippetMenu";
+import { useSlashSnippet } from "@/hooks/useSlashSnippet";
 
 interface NewMessageModalProps {
   open: boolean;
@@ -26,6 +27,8 @@ export function NewMessageModal({ open, onOpenChange, centreId, onSuccess }: New
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const slashCtx = { email: to.trim() };
+  const { handleChange: handleBodyChange } = useSlashSnippet({ value: body, setValue: setBody, context: slashCtx });
   const queryClient = useQueryClient();
 
   const sendMessage = useMutation({
@@ -103,8 +106,8 @@ export function NewMessageModal({ open, onOpenChange, centreId, onSuccess }: New
             <Textarea
               id="nm-body"
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Rédigez votre message… (cliquez « Snippet » pour insérer un modèle)"
+              onChange={handleBodyChange}
+              placeholder="Rédigez votre message… Astuce : tapez /raccourci puis espace pour insérer un snippet"
               rows={6}
               className="resize-none text-sm"
             />
