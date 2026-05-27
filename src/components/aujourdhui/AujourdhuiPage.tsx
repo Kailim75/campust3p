@@ -40,6 +40,7 @@ import { BlocQualiopi } from "./BlocQualiopi";
 import { BlocSessionPreparation } from "./BlocSessionPreparation";
 import { BlocQualiteCrm } from "./BlocQualiteCrm";
 import { HintBubble } from "@/components/shared/HintBubble";
+import { FocusModeBar, type FocusBlocKey } from "./FocusModeBar";
 
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
