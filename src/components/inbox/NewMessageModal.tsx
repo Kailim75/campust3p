@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SnippetMenu } from "./SnippetMenu";
 
 interface NewMessageModalProps {
   open: boolean;
@@ -90,12 +91,20 @@ export function NewMessageModal({ open, onOpenChange, centreId, onSuccess }: New
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="nm-body" className="text-xs text-muted-foreground">Message</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="nm-body" className="text-xs text-muted-foreground">Message</Label>
+              <SnippetMenu
+                context={{ email: to.trim() }}
+                onInsert={(text) =>
+                  setBody((prev) => (prev.trim() ? prev + "\n\n" + text : text))
+                }
+              />
+            </div>
             <Textarea
               id="nm-body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Rédigez votre message…"
+              placeholder="Rédigez votre message… (cliquez « Snippet » pour insérer un modèle)"
               rows={6}
               className="resize-none text-sm"
             />
