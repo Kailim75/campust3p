@@ -693,7 +693,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
         </HintBubble>
       </div>
 
-      {/* Progress bar + Toggles */}
+      {/* Progress bar + Toggles + Focus */}
       <div className="px-8 space-y-3">
         {totalRaw > 0 && (
           <div className="flex items-center gap-3">
@@ -703,27 +703,45 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             </span>
           </div>
         )}
-        <div className="flex items-center justify-end gap-4">
-          <div className="flex items-center gap-2">
-            <Switch id="show-handled" checked={showHandled} onCheckedChange={setShowHandled} />
-            <Label htmlFor="show-handled" className="text-xs text-muted-foreground cursor-pointer">
-              Afficher traités
-              {totalHandled > 0 && !showHandled && (
-                <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
-              )}
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
-            <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
-              Inclure inactifs
-              {hiddenCount > 0 && !includeInactive && (
-                <span className="ml-1 text-muted-foreground/60">({hiddenCount} masqués)</span>
-              )}
-            </Label>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <FocusModeBar
+            focus={focusBloc}
+            onChange={setFocusBloc}
+            counts={{
+              session_prep: sessionPrepItems.length,
+              qualite_crm: crmQualityItems.length,
+              cma: allCmaFiltered.length,
+              rdv: rdvToday.length,
+              relances: relances.length,
+              critiques: critiques.length,
+              reprogrammer: reprogramItems.length,
+              carte_pro: cartePro.length,
+              qualiopi: qualiopiSessions.length,
+            }}
+          />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch id="show-handled" checked={showHandled} onCheckedChange={setShowHandled} />
+              <Label htmlFor="show-handled" className="text-xs text-muted-foreground cursor-pointer">
+                Afficher traités
+                {totalHandled > 0 && !showHandled && (
+                  <span className="ml-1 text-muted-foreground/60">({totalHandled})</span>
+                )}
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="include-inactive" checked={includeInactive} onCheckedChange={setIncludeInactive} />
+              <Label htmlFor="include-inactive" className="text-xs text-muted-foreground cursor-pointer">
+                Inclure inactifs
+                {hiddenCount > 0 && !includeInactive && (
+                  <span className="ml-1 text-muted-foreground/60">({hiddenCount} masqués)</span>
+                )}
+              </Label>
+            </div>
           </div>
         </div>
       </div>
+
 
       <div className="px-8 pb-8 space-y-5">
         <BlocSessionPreparation
