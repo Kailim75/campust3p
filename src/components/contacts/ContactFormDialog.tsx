@@ -293,15 +293,20 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
       }
       onOpenChange(false);
     } catch (error) {
-      toast.error("Erreur", {
-        description: isEditing 
-          ? "Impossible de mettre à jour le contact. Veuillez réessayer."
-          : "Impossible de créer le contact. Veuillez réessayer.",
-      });
+      // Le toast spécifique anti-doublon est déjà émis par useCreateContact/useUpdateContact.
+      // On évite le double-toast générique dans ce cas.
+      if (!(error instanceof DuplicateActiveContactError)) {
+        toast.error("Erreur", {
+          description: isEditing
+            ? "Impossible de mettre à jour le contact. Veuillez réessayer."
+            : "Impossible de créer le contact. Veuillez réessayer.",
+        });
+      }
     }
   };
 
   const isLoading = createContact.isPending || updateContact.isPending;
+  const blockedByActiveDuplicate = !!activeDup.match;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
