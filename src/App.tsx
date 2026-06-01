@@ -41,7 +41,7 @@ const FlyerTaxiPage = lazy(() => import("./pages/FlyerTaxiPage"));
 const FlyerVMDTRPage = lazy(() => import("./pages/FlyerVMDTRPage"));
 const FlyersPDFPage = lazy(() => import("./pages/FlyersPDFPage"));
 const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
-const MaJourneePage = lazy(() => import("./pages/MaJourneePage"));
+// MaJourneePage is now mounted via Index.tsx (AppShellRoute) — see APP_SECTION_PATHS
 const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
