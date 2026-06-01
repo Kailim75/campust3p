@@ -107,7 +107,7 @@ function SidebarNav({
     <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
       {/* Hubs principaux */}
       <div className="space-y-px">
-        {HUB_ENTRIES.map((item) => {
+        {visibleHubs.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           const count = getBadge(item.id);
