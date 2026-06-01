@@ -28,41 +28,48 @@ const ALLOWED_HEADERS =
 
 const ALLOWED_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS";
 
-function getAllowedOrigins(): string[] | null {
+// Origines toujours autorisées (domaines officiels du projet + previews Lovable).
+// Évite les soucis CORS si ALLOWED_ORIGINS est incomplet (ex: www oublié).
+const ALWAYS_ALLOWED = [
+  "https://t3pcampus.net",
+  "https://www.t3pcampus.net",
+  "https://campust3p.lovable.app",
+];
+
+// Previews Lovable: id-preview--*.lovable.app, *.lovable.app
+function isLovablePreviewOrigin(origin: string): boolean {
+  return /^https:\/\/[a-z0-9-]+\.lovable\.app$/i.test(origin);
+}
+
+function getAllowedOrigins(): string[] {
   const env = Deno.env.get("ALLOWED_ORIGINS");
-  if (!env) return null;
-  const list = env.split(",").map((s) => s.trim()).filter(Boolean);
-  return list.length > 0 ? list : null;
+  const fromEnv = env
+    ? env.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  // Union des origines configurées + des domaines officiels du projet
+  return Array.from(new Set([...fromEnv, ...ALWAYS_ALLOWED]));
 }
 
 /**
  * Build the CORS response headers for the given request.
- * Use this inside your serve() handler:
- *   const corsHeaders = getCorsHeaders(req);
  */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const allowed = getAllowedOrigins();
   const origin = req.headers.get("origin") || "";
 
-  // No env -> fallback to wildcard (preserves legacy behavior).
-  // Env present -> reflect origin only if whitelisted, else use first allowed.
-  let allowOrigin = "*";
-  if (allowed) {
-    allowOrigin = allowed.includes(origin) ? origin : allowed[0];
+  let allowOrigin: string;
+  if (origin && (allowed.includes(origin) || isLovablePreviewOrigin(origin))) {
+    allowOrigin = origin;
+  } else {
+    allowOrigin = allowed[0] || "*";
   }
 
-  const headers: Record<string, string> = {
+  return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": ALLOWED_HEADERS,
     "Access-Control-Allow-Methods": ALLOWED_METHODS,
+    "Vary": "Origin",
   };
-
-  // Vary is only meaningful when the value depends on the request.
-  if (allowed) {
-    headers["Vary"] = "Origin";
-  }
-
-  return headers;
 }
 
 /**
