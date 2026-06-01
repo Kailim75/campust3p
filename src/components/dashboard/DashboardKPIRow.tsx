@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { Euro, GraduationCap, Calendar, UserPlus } from "lucide-react";
+import { Euro, GraduationCap, Calendar, UserPlus, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { estOperationnellementActif, TOOLTIP_SMARTOF_EXCLUS } from "@/lib/apprenant-active";
 
 interface DashboardKPIRowProps {
   onNavigate: (section: string) => void;
@@ -18,7 +20,7 @@ function useKPIData() {
       const monthEnd = endOfMonth(now).toISOString();
       const todayStr = now.toISOString().split("T")[0];
 
-      const [facturesRes, sessionsRes, contactsRes, prospectsRes] = await Promise.all([
+      const [facturesRes, sessionsRes, contactsRes, inscriptionsRes, prospectsRes] = await Promise.all([
         supabase.from("factures").select("montant_total, statut, date_emission")
           .not("statut", "eq", "annulee")
           .gte("date_emission", monthStart)
@@ -26,7 +28,13 @@ function useKPIData() {
         supabase.from("sessions").select("id, statut, date_debut, date_fin")
           .eq("archived", false)
           .gte("date_fin", todayStr),
-        supabase.from("contacts").select("id, statut").eq("archived", false),
+        supabase.from("contacts")
+          .select("id, statut, statut_apprenant, archived, deleted_at, is_historical_import, requalification_category")
+          .eq("archived", false)
+          .is("deleted_at", null),
+        supabase.from("session_inscriptions").select("contact_id")
+          .eq("statut", "inscrit")
+          .is("deleted_at", null),
         supabase.from("prospects").select("id, created_at")
           .gte("created_at", monthStart),
       ]);
@@ -34,11 +42,21 @@ function useKPIData() {
       const factures = facturesRes.data || [];
       const sessions = sessionsRes.data || [];
       const contacts = contactsRes.data || [];
+      const inscriptions = inscriptionsRes.data || [];
       const prospects = prospectsRes.data || [];
+
+      const activeInscriptionContactIds = new Set(
+        inscriptions.map((i: any) => i.contact_id).filter(Boolean),
+      );
 
       const caMonth = factures.reduce((s, f) => s + (f.montant_total || 0), 0);
       const activeSessions = sessions.filter(s => s.statut === "en_cours" || s.statut === "a_venir").length;
-      const activeApprenants = contacts.filter(c => c.statut === "En formation théorique" || c.statut === "En formation pratique").length;
+      const activeApprenants = contacts.filter((c: any) =>
+        estOperationnellementActif({
+          ...c,
+          hasActiveInscription: activeInscriptionContactIds.has(c.id),
+        }),
+      ).length;
       const newProspects = prospects.length;
 
       return { caMonth, activeSessions, activeApprenants, newProspects };
@@ -71,26 +89,39 @@ export function DashboardKPIRow({ onNavigate }: DashboardKPIRowProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-      {kpiCards.map((kpi) => {
-        const Icon = kpi.icon;
-        const value = data?.[kpi.key as keyof typeof data] ?? 0;
-        return (
-          <button
-            key={kpi.key}
-            onClick={() => onNavigate(kpi.section)}
-            className="rounded-xl border border-border bg-card p-6 text-left hover:border-primary/30 hover:shadow-sm transition-all group"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
-                <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+    <TooltipProvider>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {kpiCards.map((kpi) => {
+          const Icon = kpi.icon;
+          const value = data?.[kpi.key as keyof typeof data] ?? 0;
+          const isApprenants = kpi.key === "activeApprenants";
+          return (
+            <button
+              key={kpi.key}
+              onClick={() => onNavigate(kpi.section)}
+              className="rounded-xl border border-border bg-card p-6 text-left hover:border-primary/30 hover:shadow-sm transition-all group"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
+                  <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
+                {isApprenants && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">{TOOLTIP_SMARTOF_EXCLUS}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
-              <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
-            </div>
-            <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.format(value as number)}</p>
-          </button>
-        );
-      })}
-    </div>
+              <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.format(value as number)}</p>
+            </button>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }

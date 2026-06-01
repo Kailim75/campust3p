@@ -142,3 +142,67 @@ export function getActiveReasons(contact: ActiveInput, recentDays?: number): Act
 export function isActiveApprenant(contact: ActiveInput, recentDays?: number): boolean {
   return getActiveReasons(contact, recentDays).length > 0;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Règle unique « opérationnellement actif » — utilisée par tous les KPI métier.
+// Ne touche jamais aux données ni à statut_apprenant.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Statuts métier considérés comme « réellement en parcours ». */
+export const STATUTS_EN_PARCOURS = [
+  "En formation théorique",
+  "En formation pratique",
+  "Examen pratique programmé",
+] as const;
+
+export interface EstActifInput {
+  deleted_at?: string | null;
+  archived?: boolean | null;
+  is_historical_import?: boolean | null;
+  requalification_category?: string | null;
+  statut_apprenant?: string | null;
+  statut?: string | null;
+  /** true s'il existe au moins une session_inscriptions.statut='inscrit' active (deleted_at IS NULL). */
+  hasActiveInscription?: boolean;
+}
+
+export interface EstActifOptions {
+  /** Par défaut false. true = inclure les imports historiques SmartOF dans le résultat. */
+  inclureHistorique?: boolean;
+}
+
+/**
+ * Règle unique d'apprenant opérationnellement actif.
+ *
+ * Conditions cumulatives :
+ *  - deleted_at est null
+ *  - archived est false
+ *  - n'est pas un import historique SmartOF (sauf si inclureHistorique=true)
+ *  - statut_apprenant ∉ { diplome, abandon, archive }
+ *  - ET (inscription active OU statut métier en parcours)
+ *
+ * « Client » seul n'est PAS un apprenant actif opérationnel.
+ */
+export function estOperationnellementActif(
+  contact: EstActifInput,
+  options: EstActifOptions = {},
+): boolean {
+  if (contact.deleted_at) return false;
+  if (contact.archived === true) return false;
+  if (!options.inclureHistorique && isHistoricalImport(contact)) return false;
+  if (isTerminated(contact)) return false;
+
+  const hasInscription = contact.hasActiveInscription === true;
+  const statutEnParcours =
+    typeof contact.statut === "string" &&
+    (STATUTS_EN_PARCOURS as readonly string[]).includes(contact.statut);
+
+  return hasInscription || statutEnParcours;
+}
+
+/** Alias anglophone pour API homogène. */
+export const isOperationallyActive = estOperationnellementActif;
+
+/** Tooltip standard à afficher sur les KPI « apprenants actifs ». */
+export const TOOLTIP_SMARTOF_EXCLUS =
+  "Les apprenants historiques importés de SmartOF sont exclus des actifs opérationnels.";

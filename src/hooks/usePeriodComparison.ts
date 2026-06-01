@@ -165,7 +165,8 @@ export function usePeriodComparison(periodType: ComparisonPeriod) {
       const { data: contacts } = await supabase
         .from("contacts")
         .select("id, statut, created_at")
-        .eq("archived", false);
+        .eq("archived", false)
+        .eq("is_historical_import", false);
 
       // Fetch all sessions
       const { data: sessions } = await supabase

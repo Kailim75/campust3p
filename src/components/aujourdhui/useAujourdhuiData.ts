@@ -32,7 +32,7 @@ export function useAujourdhuiData() {
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
         postponedNotesRes, examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at").eq("archived", false).is("deleted_at", null),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at, is_historical_import, requalification_category, archived, deleted_at").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
         supabase.from("contact_documents").select("contact_id, type_document").is("deleted_at", null),
         supabase.from("factures").select("id, contact_id, session_inscription_id, montant_total, statut, date_echeance").is("deleted_at", null),
         supabase.from("paiements").select("facture_id, montant"),
