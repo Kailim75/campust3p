@@ -30,11 +30,12 @@ export function useDynamicContactStats() {
       const currentStartStr = format(currentStart, "yyyy-MM-dd");
       const previousStartStr = format(previousStart, "yyyy-MM-dd");
 
-      // Fetch all contacts (not archived)
+      // Fetch all contacts (not archived, exclude historical SmartOF from operational KPIs)
       const { data: contacts, error } = await supabase
         .from("contacts")
         .select("id, statut, created_at")
-        .eq("archived", false);
+        .eq("archived", false)
+        .eq("is_historical_import", false);
 
       if (error) throw error;
 
