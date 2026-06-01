@@ -160,7 +160,7 @@ export function FinancesPage() {
             <TresoreriePage />
           </TabsContent>
           <TabsContent value="charges">
-            <ChargesTab />
+            <ChargesTabContainer />
           </TabsContent>
           <TabsContent value="previsionnel">
             <PrevisionnelTab />
