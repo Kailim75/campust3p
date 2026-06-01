@@ -85,9 +85,26 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const { duplicates, checkDuplicates, clearDuplicates } = useDuplicateCheck();
+  const activeDup = useActiveDuplicateCheck();
+  const [currentCentreId, setCurrentCentreId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isEditing = !!contact;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+
+  // Récupère le centre courant pour la pré-vérification anti-doublon actif
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const cid = contact?.centre_id ?? (await getUserCentreId().catch(() => null));
+      if (!cancelled) setCurrentCentreId(cid ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, contact]);
+
+
 
   // Fetch available sessions (upcoming or in progress)
   const { data: availableSessions = [] } = useQuery({
