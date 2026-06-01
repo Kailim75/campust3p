@@ -261,11 +261,12 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .is("deleted_at", null)
       .limit(1000),
 
-    // 6. Contacts (not archived)
+    // 6. Contacts (not archived, exclude historical SmartOF imports)
     supabase
       .from("contacts")
       .select("id, archived")
-      .eq("archived", false),
+      .eq("archived", false)
+      .eq("is_historical_import", false),
 
     // 7. Contact documents (active)
     supabase
