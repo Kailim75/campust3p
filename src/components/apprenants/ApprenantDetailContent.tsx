@@ -25,6 +25,7 @@ import { SuiviTab } from "./tabs/SuiviTab";
 import { FormationTab } from "./tabs/FormationTab";
 import { ExamensTab } from "./tabs/ExamensTab";
 import { SmartOFHistoricalBanner } from "./SmartOFHistoricalBanner";
+import { ApprenantHeaderActions } from "./ApprenantHeaderActions";
 import { WorkflowStepper, type StepStatus } from "@/components/workflow/WorkflowStepper";
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
