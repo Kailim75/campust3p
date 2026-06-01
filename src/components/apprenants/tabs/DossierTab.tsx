@@ -1,13 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Phone, MapPin, Calendar, User, Car, Hash } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Mail, Phone, MapPin, Calendar, User, Car, Hash, FileCheck, IdCard } from "lucide-react";
 import { useContact } from "@/hooks/useContact";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { CMATab } from "./CMATab";
+import { CarteProTab } from "./CarteProTab";
+import { getTrackFromFormationType } from "@/lib/formation-track";
 
 interface DossierTabProps {
   contactId: string;
   formation: string | null;
+  /** Pré-ouvrir l'accordéon réglementaire (par défaut si dossier incomplet). */
+  defaultOpenRegulatory?: boolean;
 }
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
@@ -25,7 +31,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
-export function DossierTab({ contactId }: DossierTabProps) {
+export function DossierTab({ contactId, formation, defaultOpenRegulatory = false }: DossierTabProps) {
   const { data: contact, isLoading } = useContact(contactId);
 
   if (isLoading || !contact) return <Skeleton className="h-[300px] rounded-xl" />;
@@ -48,6 +54,9 @@ export function DossierTab({ contactId }: DossierTabProps) {
           : ""
       }`
     : null;
+
+  const track = getTrackFromFormationType(formation);
+  const isInitial = track === "initial";
 
   return (
     <div className="space-y-6">
@@ -75,6 +84,42 @@ export function DossierTab({ contactId }: DossierTabProps) {
           <InfoRow icon={Car} label="Permis" value={permisInfo} />
         </Card>
       )}
+
+      {/* Réglementaire : CMA (initial) ou Carte Pro (formation continue) */}
+      <Card className="p-2">
+        <Accordion type="single" collapsible defaultValue={defaultOpenRegulatory ? "regulatory" : undefined}>
+          <AccordionItem value="regulatory" className="border-b-0">
+            <AccordionTrigger className="px-2 py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                {isInitial ? (
+                  <FileCheck className="h-4 w-4 text-primary" />
+                ) : (
+                  <IdCard className="h-4 w-4 text-accent" />
+                )}
+                <span className="text-sm font-semibold">
+                  {isInitial ? "Dossier CMA réglementaire" : "Carte professionnelle"}
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-2 pb-3">
+              {isInitial ? (
+                <CMATab
+                  contactId={contactId}
+                  contactPrenom={contact.prenom}
+                  contactEmail={contact.email}
+                  formation={formation}
+                />
+              ) : (
+                <CarteProTab
+                  contactId={contactId}
+                  contactPrenom={contact.prenom}
+                  formation={formation}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
     </div>
   );
 }
