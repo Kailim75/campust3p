@@ -8,9 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Phone, Mail, FolderOpen, GraduationCap,
-  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard,
+  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard, Award,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
-  Edit, Trash2, Star, SquareUser,
+  Edit, Trash2, Star, SquareUser, CalendarPlus, StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
@@ -22,7 +22,9 @@ import { CarteProTab } from "./tabs/CarteProTab";
 import { PaiementsTab } from "./tabs/PaiementsTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { SuiviTab } from "./tabs/SuiviTab";
-import { FormationExamensTab } from "./tabs/FormationExamensTab";
+import { FormationTab } from "./tabs/FormationTab";
+import { ExamensTab } from "./tabs/ExamensTab";
+import { SmartOFHistoricalBanner } from "./SmartOFHistoricalBanner";
 import { WorkflowStepper, type StepStatus } from "@/components/workflow/WorkflowStepper";
 import { WorkflowDynamicCTA, type WorkflowStep } from "@/components/workflow/WorkflowDynamicCTA";
 import { SessionAssignDialog } from "@/components/workflow/SessionAssignDialog";
@@ -116,18 +118,14 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const trackBadge = TRACK_BADGES[contactTrack];
   const isInitial = contactTrack === "initial";
 
-  // Tab guard: prevent accessing track-incompatible tabs
+  // Tab guard kept for legacy deep-links; CMA/Carte Pro now live inside Dossier
   const setActiveTab = useCallback((tab: string) => {
-    if (tab === "cma" && !isInitial) {
-      toast.info("Non applicable à ce parcours (Formation Continue)");
-      return;
-    }
-    if (tab === "carte-pro" && isInitial) {
-      toast.info("Non applicable à ce parcours (Parcours Initial)");
+    if (tab === "cma" || tab === "carte-pro") {
+      setActiveTabRaw("dossier");
       return;
     }
     setActiveTabRaw(tab);
-  }, [isInitial]);
+  }, []);
 
   // Fetch cockpit data (workflow + CMA + paiements + rappels + auto notes)
   const { data: cockpitData } = useQuery({
@@ -325,17 +323,15 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   ];
   const dossierProgress = Math.round((progressItems.filter(Boolean).length / progressItems.length) * 100);
 
+  // 7 onglets max : CMA/Carte Pro sont désormais intégrés dans "Identité"
   const tabs = [
     { value: "resume", icon: LayoutDashboard, label: "Résumé" },
     { value: "dossier", icon: FolderOpen, label: "Identité" },
-    ...(isInitial
-      ? [{ value: "cma", icon: FileCheck, label: "CMA" }]
-      : [{ value: "carte-pro", icon: IdCard, label: "Carte Pro" }]
-    ),
+    { value: "formation", icon: GraduationCap, label: "Formation" },
     { value: "documents", icon: FileText, label: "Documents" },
     { value: "paiements", icon: CreditCard, label: "Paiements" },
-    { value: "formation", icon: GraduationCap, label: "Formation" },
-    { value: "suivi", icon: MessageCircle, label: "Suivi" },
+    { value: "examens", icon: Award, label: "Examens" },
+    { value: "suivi", icon: MessageCircle, label: "Historique" },
   ];
 
   return (
@@ -628,6 +624,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         </div>
       </div>
 
+      {/* ─── BANDEAU IMPORT HISTORIQUE SMARTOF ─── */}
+      {(contact as Contact & { is_historical_import?: boolean; import_source?: string | null }).is_historical_import && (
+        <SmartOFHistoricalBanner
+          importSource={(contact as Contact & { import_source?: string | null }).import_source}
+        />
+      )}
+
       {/* ─── BANDEAU INFOS MANQUANTES ─── */}
       {(() => {
         const missing: string[] = [];
@@ -673,25 +676,23 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
           </TabsContent>
           <TabsContent value="dossier" className="mt-0">
-            <DossierTab contactId={contact.id} formation={contact.formation} />
+            <DossierTab
+              contactId={contact.id}
+              formation={contact.formation}
+              defaultOpenRegulatory={cmaMissing > 0}
+            />
           </TabsContent>
-          {isInitial ? (
-            <TabsContent value="cma" className="mt-0">
-              <CMATab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email} formation={contact.formation} />
-            </TabsContent>
-          ) : (
-            <TabsContent value="carte-pro" className="mt-0">
-              <CarteProTab contactId={contact.id} contactPrenom={contact.prenom} formation={contact.formation} />
-            </TabsContent>
-          )}
+          <TabsContent value="formation" className="mt-0">
+            <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
+          </TabsContent>
           <TabsContent value="documents" className="mt-0">
             <DocumentsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
           <TabsContent value="paiements" className="mt-0">
             <PaiementsTab contactId={contact.id} />
           </TabsContent>
-          <TabsContent value="formation" className="mt-0">
-            <FormationExamensTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} contactFormation={contact.formation} />
+          <TabsContent value="examens" className="mt-0">
+            <ExamensTab contactId={contact.id} formation={contact.formation} />
           </TabsContent>
           <TabsContent value="suivi" className="mt-0">
             <SuiviTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />

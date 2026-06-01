@@ -24,6 +24,7 @@ import { resolveFormationTrack } from "@/lib/formation-track";
 import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
+import { ApprenantTimeline } from "@/components/apprenants/ApprenantTimeline";
 
 interface ResumeTabProps {
   contactId: string;
@@ -300,7 +301,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
       <Card className="p-4 space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Historique du jour</p>
-          <Button size="sm" variant="ghost" className="text-xs h-6 px-2" onClick={() => onNavigateTab("notes")}>
+          <Button size="sm" variant="ghost" className="text-xs h-6 px-2" onClick={() => onNavigateTab("suivi")}>
             Voir tout
           </Button>
         </div>
@@ -320,6 +321,9 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
           ))
         )}
       </Card>
+
+      {/* D) Timeline parcours apprenant */}
+      <ApprenantTimeline contactId={contactId} />
     </div>
   );
 }
