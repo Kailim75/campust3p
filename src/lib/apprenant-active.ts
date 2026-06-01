@@ -50,6 +50,18 @@ export function isTerminated(contact: { statut_apprenant?: string | null }): boo
   return s === "diplome" || s === "abandon" || s === "archive";
 }
 
+/**
+ * Contact importé depuis SmartOF (ou autre import historique) :
+ * exclu des KPI actifs courants sans toucher au statut_apprenant officiel.
+ */
+export function isHistoricalImport(contact: {
+  is_historical_import?: boolean | null;
+  requalification_category?: string | null;
+}): boolean {
+  if (contact.is_historical_import === true) return true;
+  return contact.requalification_category === "apprenant_historique_smartof";
+}
+
 export type ActiveReason =
   | "session_future"
   | "docs_manquants"
