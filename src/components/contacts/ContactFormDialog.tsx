@@ -443,6 +443,15 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
             {/* === ALERTE DOUBLONS === */}
             {!isEditing && <DuplicateAlert duplicates={duplicates} />}
+            <ActiveDuplicateAlert
+              match={activeDup.match}
+              onOpenExisting={(id) => {
+                onOpenChange(false);
+                window.dispatchEvent(
+                  new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
+                );
+              }}
+            />
 
             {/* === TOGGLE POUR FORMULAIRE COMPLET === */}
             {!isEditing && (
