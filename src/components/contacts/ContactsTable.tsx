@@ -270,8 +270,28 @@ export function ContactsTable() {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
           <span>{totalCount} contact{totalCount > 1 ? 's' : ''}</span>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <Checkbox
+              checked={inclureHistorique}
+              onCheckedChange={(v) => setInclureHistorique(v === true)}
+            />
+            <span>Inclure les imports historiques SmartOF</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground/60" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">
+                    Par défaut les apprenants importés de SmartOF (historiques) sont
+                    masqués des listes opérationnelles. Cochez pour les afficher.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </label>
         </div>
 
         {/* Bulk Actions Bar */}
