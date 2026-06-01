@@ -334,6 +334,10 @@ const Index = () => {
         pageName = "DoublonsContactsPage";
         node = <DoublonsContactsPage />;
         break;
+      case "requalification-contacts":
+        pageName = "RequalificationPage";
+        node = <RequalificationPage />;
+        break;
       case "attestations-retard":
         pageName = "AttestationsEnRetardPage";
         node = <AttestationsEnRetardPage />;
