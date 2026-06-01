@@ -50,18 +50,41 @@ export function SessionClosureWizard({
   onOpenPackAudit,
 }: SessionClosureWizardProps) {
   const { data: qualiopi } = useSessionQualiopi(sessionId);
-  const [currentStep, setCurrentStep] = useState<WizardStep>("attestations");
+  const { data: role } = useCurrentUserRole();
+  const [currentStep, setCurrentStep] = useState<WizardStep>("prechecks");
+  const [adminConfirmed, setAdminConfirmed] = useState(false);
+  const [justification, setJustification] = useState("");
 
   const criteria = qualiopi?.criteria || [];
   const attestation = criteria.find(c => c.id === "attestations");
   const satisfaction = criteria.find(c => c.id === "satisfaction");
+  const emargement = criteria.find(c => c.id === "emargements" || c.id === "emargement");
+  const paiements = criteria.find(c => c.id === "paiements");
 
   const attestationDone = attestation?.status === "conforme" || attestation?.status === "na";
   const satisfactionDone = satisfaction?.status === "conforme" || satisfaction?.status === "na";
+  const emargementBlocking = emargement?.required && emargement?.status === "non_conforme";
+  const paiementsWarning = paiements?.status === "non_conforme" || paiements?.status === "partiel";
+  const attestationsWarning = !attestationDone;
+  const satisfactionWarning = !satisfactionDone;
+
+  const isAdmin = role === "admin" || role === "super_admin";
+
+  // Précheck pass condition : émargement obligatoire OK, et si alertes non bloquantes
+  // → admin confirme + justification renseignée si besoin.
+  const hasAnyWarning = paiementsWarning || attestationsWarning || satisfactionWarning;
+  const precheckPass = useMemo(() => {
+    if (emargementBlocking) return false;
+    if (!isAdmin) return false;
+    if (!adminConfirmed) return false;
+    if (hasAnyWarning && justification.trim().length < 5) return false;
+    return true;
+  }, [emargementBlocking, isAdmin, adminConfirmed, hasAnyWarning, justification]);
 
   const currentIndex = STEPS.findIndex(s => s.key === currentStep);
 
   const handleNext = () => {
+    if (currentStep === "prechecks" && !precheckPass) return;
     if (currentIndex < STEPS.length - 1) {
       setCurrentStep(STEPS[currentIndex + 1].key);
     }
@@ -83,9 +106,10 @@ export function SessionClosureWizard({
   };
 
   const getStepStatus = (key: WizardStep) => {
+    if (key === "prechecks") return precheckPass;
     if (key === "attestations") return attestationDone;
     if (key === "satisfaction") return satisfactionDone;
-    return false; // export is always actionable
+    return false;
   };
 
   return (
