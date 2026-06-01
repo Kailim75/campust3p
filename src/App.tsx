@@ -175,7 +175,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/ma-journee" element={<MaJourneePage />} />
+                {/* /ma-journee est désormais monté via AppShellRoute (APP_SECTION_PATHS) */}
 
                 {/* Apprenant full page */}
                 <Route path="/contacts/:id" element={
