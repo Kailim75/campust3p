@@ -142,6 +142,7 @@ export function useRestoreRecord() {
       });
       if (error) throw error;
       return data;
+    },
     onSuccess: (_, { table }) => {
       const keys = tableQueryKeys[table] || [[table]];
       keys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
