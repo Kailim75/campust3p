@@ -82,13 +82,13 @@ export function useSessionTimeline(sessionId: string | null) {
       let paiements: any[] = [];
       if (inscriptionIds.length > 0) {
         try {
-          const payRes = await supabase
+          const payRes: any = await (supabase as any)
             .from("paiements")
             .select("id, montant, date_paiement, created_at, session_inscription_id")
             .in("session_inscription_id", inscriptionIds)
             .order("date_paiement", { ascending: false })
             .limit(50);
-          paiements = (payRes.data ?? []) as any[];
+          paiements = (payRes?.data ?? []) as any[];
         } catch {
           paiements = [];
         }
