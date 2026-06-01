@@ -121,7 +121,8 @@ export function useContactsStats() {
         .from("contacts")
         .select("statut, formation")
         .eq("archived", false)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .eq("is_historical_import", false);
 
       if (error) throw error;
 
