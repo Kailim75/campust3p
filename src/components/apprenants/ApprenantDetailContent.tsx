@@ -669,25 +669,23 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
           </TabsContent>
           <TabsContent value="dossier" className="mt-0">
-            <DossierTab contactId={contact.id} formation={contact.formation} />
+            <DossierTab
+              contactId={contact.id}
+              formation={contact.formation}
+              defaultOpenRegulatory={cmaMissing > 0}
+            />
           </TabsContent>
-          {isInitial ? (
-            <TabsContent value="cma" className="mt-0">
-              <CMATab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email} formation={contact.formation} />
-            </TabsContent>
-          ) : (
-            <TabsContent value="carte-pro" className="mt-0">
-              <CarteProTab contactId={contact.id} contactPrenom={contact.prenom} formation={contact.formation} />
-            </TabsContent>
-          )}
+          <TabsContent value="formation" className="mt-0">
+            <FormationTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} />
+          </TabsContent>
           <TabsContent value="documents" className="mt-0">
             <DocumentsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
           <TabsContent value="paiements" className="mt-0">
             <PaiementsTab contactId={contact.id} />
           </TabsContent>
-          <TabsContent value="formation" className="mt-0">
-            <FormationExamensTab contactId={contact.id} contactPrenom={contact.prenom} contactEmail={contact.email || undefined} contactFormation={contact.formation} />
+          <TabsContent value="examens" className="mt-0">
+            <ExamensTab contactId={contact.id} formation={contact.formation} />
           </TabsContent>
           <TabsContent value="suivi" className="mt-0">
             <SuiviTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
