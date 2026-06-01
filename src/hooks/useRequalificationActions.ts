@@ -6,6 +6,11 @@ import type {
   RequalificationCategory,
 } from "@/lib/requalification/categories";
 import type { RequalificationContact } from "./useRequalificationContacts";
+import {
+  BULK_MAX,
+  filterEligibleForSmartOF,
+  type BulkRowResult,
+} from "@/lib/requalification/bulkSelection";
 
 export interface RequalificationActionPayload {
   contact: RequalificationContact;
