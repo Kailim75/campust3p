@@ -624,6 +624,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         </div>
       </div>
 
+      {/* ─── BANDEAU IMPORT HISTORIQUE SMARTOF ─── */}
+      {(contact as Contact & { is_historical_import?: boolean; import_source?: string | null }).is_historical_import && (
+        <SmartOFHistoricalBanner
+          importSource={(contact as Contact & { import_source?: string | null }).import_source}
+        />
+      )}
+
       {/* ─── BANDEAU INFOS MANQUANTES ─── */}
       {(() => {
         const missing: string[] = [];
