@@ -307,7 +307,7 @@ export function SessionClosureWizard({
             Fermer
           </Button>
           {currentIndex < STEPS.length - 1 && (
-            <Button variant="ghost" onClick={handleNext}>
+            <Button variant="ghost" onClick={handleNext} disabled={currentStep === "prechecks" && !precheckPass}>
               Étape suivante <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           )}
