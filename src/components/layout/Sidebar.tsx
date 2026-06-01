@@ -335,6 +335,7 @@ function SidebarContent({
         moreOpen={moreOpen}
         setMoreOpen={setMoreOpen}
         isInMore={isInMore}
+        role={sidebarRole}
       />
 
       {/* ── Footer compact ── */}
