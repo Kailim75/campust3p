@@ -41,6 +41,7 @@ const PlanningConduitePage= lazy(() => import("@/components/planning-conduite/Pl
 const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
+const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
 const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
