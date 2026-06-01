@@ -112,6 +112,8 @@ const APP_SECTION_PATHS = [
   
   "/security",
   "/corbeille",
+  "/doublons-contacts",
+  "/requalification-contacts",
   "/attestations-retard",
   "/aide",
 ] as const;
