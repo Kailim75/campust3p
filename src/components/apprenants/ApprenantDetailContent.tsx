@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Phone, Mail, FolderOpen, GraduationCap,
-  MessageCircle, FileText, LayoutDashboard, FileCheck, Award,
+  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard, Award,
   CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
   Edit, Trash2, Star, SquareUser, CalendarPlus, StickyNote,
 } from "lucide-react";
