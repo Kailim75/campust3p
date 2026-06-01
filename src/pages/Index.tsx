@@ -25,6 +25,7 @@ import { HelpFloatingButton } from "@/components/help/HelpFloatingButton";
 // avec navigationRegistry.pageName et le test de cohérence Index ↔ registre.
 const Dashboard           = lazy(() => import("@/components/dashboard/Dashboard").then(m => ({ default: m.Dashboard })));
 const AujourdhuiPage      = lazy(() => import("@/components/aujourdhui/AujourdhuiPage").then(m => ({ default: m.AujourdhuiPage })));
+const MaJourneePage       = lazy(() => import("@/pages/MaJourneePage"));
 const ApprenantsPage      = lazy(() => import("@/components/apprenants/ApprenantsPage").then(m => ({ default: m.ApprenantsPage })));
 const FormationsPage      = lazy(() => import("@/components/formations/FormationsPage").then(m => ({ default: m.FormationsPage })));
 const ProduitsServicesPage = lazy(() => import("@/components/produits/ProduitsServicesPage").then(m => ({ default: m.ProduitsServicesPage })));
