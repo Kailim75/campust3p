@@ -116,6 +116,7 @@ const APP_SECTION_PATHS = [
   "/requalification-contacts",
   "/attestations-retard",
   "/aide",
+  "/ma-journee",
 ] as const;
 
 const AppShellRoute = () => (
