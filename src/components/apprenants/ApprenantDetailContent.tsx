@@ -480,36 +480,66 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </div>
         )}
 
-        {/* Quick CTA actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          {contact.telephone && (
-            <Button size="sm" variant="outline" className="text-xs"
-              onClick={() => {
-                window.open(`tel:${contact.telephone}`, "_blank");
-                setCallLogOpen(true);
-              }}
-            >
-              <Phone className="h-3 w-3 mr-1" /> Appeler
-            </Button>
-          )}
-          {contact.email && (
-            <Button size="sm" variant="outline" className="text-xs"
-              onClick={() => openComposer({
-                recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
-                defaultSubject: "",
-                defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
-              })}
-            >
-              <Mail className="h-3 w-3 mr-1" /> Email
-            </Button>
-          )}
-          {contact.telephone && (
-            <Button size="sm" variant="outline" className="text-xs text-success border-success/20 hover:bg-success/5" onClick={() => openWhatsApp(contact.telephone)}>
-              <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
-            </Button>
-          )}
+        {/* Header actions — unified bar */}
+        <ApprenantHeaderActions
+          isSmartOFHistorical={!!(contact as Contact & { is_historical_import?: boolean }).is_historical_import}
+          hasEmail={!!contact.email}
+          hasPhone={!!contact.telephone}
+          hasActiveEnrollment={!!activeEnrollment?.session}
+          onEmail={() => openComposer({
+            recipients: [{ id: contact.id, email: contact.email!, prenom: contact.prenom, nom: contact.nom }],
+            defaultSubject: "",
+            defaultBody: `Bonjour ${contact.prenom},\n\n\n\nCordialement,\nT3P Campus`,
+          })}
+          onWhatsApp={() => openWhatsApp(contact.telephone)}
+          onCall={() => {
+            window.open(`tel:${contact.telephone}`, "_blank");
+            setCallLogOpen(true);
+          }}
+          onNote={() => setActiveTab("suivi")}
+          onAssignSession={() => setShowAssignDialog(true)}
+          onPayment={() => setActiveTab("paiements")}
+          onGenerateDocument={() => setGenerateDialogOpen(true)}
+          onExam={() => setActiveTab("examens")}
+          onChevalet={() => setChevaletOpen(true)}
+          onAttestationPresence={async () => {
+            if (!contact || !activeEnrollment?.session_id) return;
+            const { data: fullSession } = await supabase
+              .from("sessions").select("*").eq("id", activeEnrollment.session_id).single();
+            if (!fullSession) { toast.error("Session introuvable"); return; }
+            generateDocument("attestation_presence", {
+              civilite: contact.civilite || undefined,
+              nom: contact.nom, prenom: contact.prenom,
+              email: contact.email || undefined,
+              telephone: contact.telephone || undefined,
+              rue: contact.rue || undefined,
+              code_postal: contact.code_postal || undefined,
+              ville: contact.ville || undefined,
+              date_naissance: contact.date_naissance || undefined,
+              ville_naissance: contact.ville_naissance || undefined,
+            }, {
+              nom: fullSession.nom,
+              formation_type: fullSession.formation_type,
+              date_debut: fullSession.date_debut,
+              date_fin: fullSession.date_fin,
+              lieu: fullSession.lieu || undefined,
+              duree_heures: fullSession.duree_heures || undefined,
+              heure_debut: fullSession.heure_debut || undefined,
+              heure_fin: fullSession.heure_fin || undefined,
+              heure_debut_matin: fullSession.heure_debut_matin || undefined,
+              heure_fin_matin: fullSession.heure_fin_matin || undefined,
+              heure_debut_aprem: fullSession.heure_debut_aprem || undefined,
+              heure_fin_aprem: fullSession.heure_fin_aprem || undefined,
+              adresse_rue: fullSession.adresse_rue || undefined,
+              adresse_code_postal: fullSession.adresse_code_postal || undefined,
+              adresse_ville: fullSession.adresse_ville || undefined,
+            });
+          }}
+          onEnquete={() => setEnqueteDialogOpen(true)}
+        />
 
-          {/* Relance CMA (anti-double) — only for initial track */}
+        {/* Actions opérationnelles anti-double (préservées) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {isInitial && cmaMissing > 0 && contact.email && (
             <TooltipProvider>
               <Tooltip>
@@ -531,8 +561,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
               </Tooltip>
             </TooltipProvider>
           )}
-
-          {/* Marquer fait (anti-double) */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -552,75 +580,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
               )}
             </Tooltip>
           </TooltipProvider>
-
-          {/* Générer document */}
-          <Button size="sm" variant="default" className="text-xs"
-            onClick={() => setGenerateDialogOpen(true)}
-          >
-            <FileText className="h-3 w-3 mr-1" /> Générer doc
-          </Button>
-
-          {/* Chevalet */}
-          <Button size="sm" variant="outline" className="text-xs"
-            onClick={() => setChevaletOpen(true)}
-          >
-            <SquareUser className="h-3 w-3 mr-1" /> Chevalet
-          </Button>
-
-          {/* Attestation de présence */}
-          {activeEnrollment?.session && (
-            <Button size="sm" variant="outline" className="text-xs"
-              onClick={async () => {
-                if (!contact) return;
-                // Fetch full session data
-                const { data: fullSession } = await supabase
-                  .from("sessions")
-                  .select("*")
-                  .eq("id", activeEnrollment.session_id)
-                  .single();
-                if (!fullSession) {
-                  toast.error("Session introuvable");
-                  return;
-                }
-                generateDocument("attestation_presence", {
-                  civilite: contact.civilite || undefined,
-                  nom: contact.nom,
-                  prenom: contact.prenom,
-                  email: contact.email || undefined,
-                  telephone: contact.telephone || undefined,
-                  rue: contact.rue || undefined,
-                  code_postal: contact.code_postal || undefined,
-                  ville: contact.ville || undefined,
-                  date_naissance: contact.date_naissance || undefined,
-                  ville_naissance: contact.ville_naissance || undefined,
-                }, {
-                  nom: fullSession.nom,
-                  formation_type: fullSession.formation_type,
-                  date_debut: fullSession.date_debut,
-                  date_fin: fullSession.date_fin,
-                  lieu: fullSession.lieu || undefined,
-                  duree_heures: fullSession.duree_heures || undefined,
-                  heure_debut: fullSession.heure_debut || undefined,
-                  heure_fin: fullSession.heure_fin || undefined,
-                  heure_debut_matin: fullSession.heure_debut_matin || undefined,
-                  heure_fin_matin: fullSession.heure_fin_matin || undefined,
-                  heure_debut_aprem: fullSession.heure_debut_aprem || undefined,
-                  heure_fin_aprem: fullSession.heure_fin_aprem || undefined,
-                  adresse_rue: fullSession.adresse_rue || undefined,
-                  adresse_code_postal: fullSession.adresse_code_postal || undefined,
-                  adresse_ville: fullSession.adresse_ville || undefined,
-                });
-              }}
-            >
-              <FileCheck className="h-3 w-3 mr-1" /> Att. présence
-            </Button>
-          )}
-
-          <Button size="sm" variant="outline" className="text-xs"
-            onClick={() => setEnqueteDialogOpen(true)}
-          >
-            <Star className="h-3 w-3 mr-1" /> Enquête
-          </Button>
         </div>
       </div>
 
