@@ -210,11 +210,11 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
   // Debounced duplicate check when key fields change
   const triggerDuplicateCheck = useCallback(() => {
-    if (isEditing) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const values = form.getValues();
-      if (values.nom && values.prenom) {
+      // Détection floue (nom/prénom/email/date) — uniquement en création
+      if (!isEditing && values.nom && values.prenom) {
         checkDuplicates(
           values.nom,
           values.prenom,
@@ -222,8 +222,13 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
           values.date_naissance || undefined,
         );
       }
+      // Vérification stricte (email actif dans le même centre) — création ET édition
+      if (currentCentreId) {
+        activeDup.checkDebounced(values.email, currentCentreId, contact?.id ?? null);
+      }
     }, 500);
-  }, [isEditing, form, checkDuplicates]);
+  }, [isEditing, form, checkDuplicates, currentCentreId, activeDup, contact?.id]);
+
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
