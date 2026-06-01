@@ -44,11 +44,19 @@ const REQUIRED_DOC_TYPES = [
   "permis_conduire",
 ];
 
-export function useEnrichedContacts() {
+export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {}) {
+  const { inclureHistorique = false } = options;
   return useQuery({
-    queryKey: ["contacts", "enriched"],
+    queryKey: ["contacts", "enriched", { inclureHistorique }],
     queryFn: async () => {
       // Parallel fetches — no N+1
+      const contactsQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("archived", false)
+        .order("created_at", { ascending: false });
+      if (!inclureHistorique) contactsQuery.eq("is_historical_import", false);
+
       const [
         contactsRes,
         inscriptionsRes,
@@ -58,11 +66,7 @@ export function useEnrichedContacts() {
         examensRes,
         fichesRes,
       ] = await Promise.all([
-        supabase
-          .from("contacts")
-          .select("*")
-          .eq("archived", false)
-          .order("created_at", { ascending: false }),
+        contactsQuery,
         supabase
           .from("session_inscriptions")
           .select("contact_id, session_id, sessions(id, nom, date_debut)")
