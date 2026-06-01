@@ -320,6 +320,10 @@ const Index = () => {
         pageName = "CorbeillePage";
         node = <CorbeillePage />;
         break;
+      case "doublons-contacts":
+        pageName = "DoublonsContactsPage";
+        node = <DoublonsContactsPage />;
+        break;
       case "attestations-retard":
         pageName = "AttestationsEnRetardPage";
         node = <AttestationsEnRetardPage />;
