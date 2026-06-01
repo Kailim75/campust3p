@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, CreditCard, Euro, FileText, Landmark, Receipt, TrendingUp, Link as LinkIcon } from "lucide-react";
+import { LayoutDashboard, CreditCard, Euro, FileText, Landmark, Receipt, TrendingUp, Link as LinkIcon, CalendarDays } from "lucide-react";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { FinancesPilotageTab } from "./FinancesPilotageTab";
 import { PaiementsListTab } from "./PaiementsListTab";
@@ -11,6 +11,31 @@ import { ChargesTab } from "@/components/cockpit-financier/ChargesTab";
 import { PrevisionnelTab } from "@/components/cockpit-financier/PrevisionnelTab";
 import { AlmaReconciliationPage } from "@/components/finances/AlmaReconciliationPage";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { computePeriodRange, type Periode } from "@/hooks/useFinancialData";
+
+function ChargesTabContainer() {
+  const [periode, setPeriode] = useState<Periode>("mois");
+  const range = useMemo(() => computePeriodRange(periode), [periode]);
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Select value={periode} onValueChange={(v) => setPeriode(v as Periode)}>
+          <SelectTrigger className="w-[200px]">
+            <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mois">Ce mois</SelectItem>
+            <SelectItem value="trimestre">Ce trimestre</SelectItem>
+            <SelectItem value="annee">Cette année</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <ChargesTab range={range} />
+    </div>
+  );
+}
 
 /**
  * FinancesPage — 7 onglets (Pilotage / Factures / Paiements / Devis /
