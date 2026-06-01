@@ -118,18 +118,14 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const trackBadge = TRACK_BADGES[contactTrack];
   const isInitial = contactTrack === "initial";
 
-  // Tab guard: prevent accessing track-incompatible tabs
+  // Tab guard kept for legacy deep-links; CMA/Carte Pro now live inside Dossier
   const setActiveTab = useCallback((tab: string) => {
-    if (tab === "cma" && !isInitial) {
-      toast.info("Non applicable à ce parcours (Formation Continue)");
-      return;
-    }
-    if (tab === "carte-pro" && isInitial) {
-      toast.info("Non applicable à ce parcours (Parcours Initial)");
+    if (tab === "cma" || tab === "carte-pro") {
+      setActiveTabRaw("dossier");
       return;
     }
     setActiveTabRaw(tab);
-  }, [isInitial]);
+  }, []);
 
   // Fetch cockpit data (workflow + CMA + paiements + rappels + auto notes)
   const { data: cockpitData } = useQuery({
