@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { Euro, GraduationCap, Calendar, UserPlus } from "lucide-react";
+import { Euro, GraduationCap, Calendar, UserPlus, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { estOperationnellementActif, TOOLTIP_SMARTOF_EXCLUS } from "@/lib/apprenant-active";
 
 interface DashboardKPIRowProps {
   onNavigate: (section: string) => void;
