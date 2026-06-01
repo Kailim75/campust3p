@@ -107,7 +107,12 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
+  // Tab alias: legacy ?tab=qualiopi → resume
+  const [activeTab, setActiveTabRaw] = useState("resume");
+  const setActiveTab = (tab: string) => {
+    if (tab === "qualiopi") return setActiveTabRaw("resume");
+    setActiveTabRaw(tab);
+  };
   const [docSendModalOpen, setDocSendModalOpen] = useState(false);
   const [docSendInitialType, setDocSendInitialType] = useState<import("@/lib/session-document-helpers").SessionDocumentType | null>(null);
   const [packAuditOpen, setPackAuditOpen] = useState(false);
