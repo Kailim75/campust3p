@@ -392,38 +392,50 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     "w-max",
                     !isMobile && "sm:grid sm:w-full sm:grid-cols-7"
                   )}>
-                    <TabsTrigger value="info" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
-                      <Info className="h-3.5 w-3.5" />
-                      <span>Infos</span>
+                    <TabsTrigger value="resume" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      <span>Résumé</span>
                     </TabsTrigger>
                     <TabsTrigger value="inscriptions" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <Users className="h-3.5 w-3.5" />
                       <span>Inscrits</span> ({inscriptionCount})
                     </TabsTrigger>
+                    <TabsTrigger value="info" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Info className="h-3.5 w-3.5" />
+                      <span>Planning</span>
+                    </TabsTrigger>
                     <TabsTrigger value="documents" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <FileText className="h-3.5 w-3.5" />
                       <span>Docs</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="parcours" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
-                      <GraduationCap className="h-3.5 w-3.5" />
-                      <span>Parcours</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="finances" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
-                      <Euro className="h-3.5 w-3.5" />
-                      <span>Finances</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="qualiopi" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
-                      <Shield className="h-3.5 w-3.5" />
-                      <span>Qualiopi</span>
                     </TabsTrigger>
                     <TabsTrigger value="emargement" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <ClipboardList className="h-3.5 w-3.5" />
                       <span>Émarg.</span>
                     </TabsTrigger>
+                    <TabsTrigger value="parcours" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      <span>Examens</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="finances" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
+                      <Euro className="h-3.5 w-3.5" />
+                      <span>Finances</span>
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
-                {/* Tab: Infos — clean, structural only */}
+                {/* Tab: Résumé — opérationnel */}
+                <TabsContent value="resume" className="space-y-4 pt-4">
+                  <SessionResumeTab
+                    session={session}
+                    inscriptionCount={inscriptionCount}
+                    onNavigateTab={setActiveTab}
+                    onOpenClosure={() => setClosureWizardOpen(true)}
+                    onAddInscription={() => setAddDialogOpen(true)}
+                    onSendDocuments={() => openDocSend()}
+                  />
+                </TabsContent>
+
+                {/* Tab: Planning (ancien "Infos") — clean, structural only */}
                 <TabsContent value="info" className="space-y-4 pt-4">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-muted-foreground">
