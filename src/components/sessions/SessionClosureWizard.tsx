@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,16 +8,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2,
   Award,
   Star,
   FileDown,
   ChevronRight,
-  Loader2,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
+import { useCurrentUserRole } from "@/hooks/useUsers";
 
 interface SessionClosureWizardProps {
   open: boolean;
@@ -28,9 +32,10 @@ interface SessionClosureWizardProps {
   onOpenPackAudit?: () => void;
 }
 
-type WizardStep = "attestations" | "satisfaction" | "export";
+type WizardStep = "prechecks" | "attestations" | "satisfaction" | "export";
 
 const STEPS: { key: WizardStep; label: string; icon: React.ElementType }[] = [
+  { key: "prechecks", label: "Préchecks", icon: ShieldCheck },
   { key: "attestations", label: "Attestations", icon: Award },
   { key: "satisfaction", label: "Enquête satisfaction", icon: Star },
   { key: "export", label: "Export Pack Audit", icon: FileDown },
