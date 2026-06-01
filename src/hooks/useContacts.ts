@@ -144,6 +144,39 @@ export function useContactsStats() {
   });
 }
 
+/**
+ * Erreur typée levée quand le trigger `contacts_block_active_duplicate`
+ * (ou la contrainte unique partielle) bloque l'insert/update.
+ */
+export class DuplicateActiveContactError extends Error {
+  code = "DUPLICATE_ACTIVE_CONTACT" as const;
+  existingContactId: string | null;
+  constructor(message: string, existingContactId: string | null = null) {
+    super(message);
+    this.name = "DuplicateActiveContactError";
+    this.existingContactId = existingContactId;
+  }
+}
+
+/**
+ * Détecte le blocage anti-doublon côté serveur :
+ *  - Trigger qui RAISE EXCEPTION 'DUPLICATE_ACTIVE_CONTACT: ... (id=<uuid>)' (errcode 23505)
+ *  - Conflit sur l'index unique partiel `contacts_active_email_centre_uidx` (errcode 23505)
+ */
+function parseDuplicateError(error: any): DuplicateActiveContactError | null {
+  if (!error) return null;
+  const msg = String(error.message ?? "");
+  const code = String(error.code ?? "");
+  const isOurTrigger = msg.includes("DUPLICATE_ACTIVE_CONTACT");
+  const isUniqueIdx = code === "23505" && msg.includes("contacts_active_email_centre_uidx");
+  if (!isOurTrigger && !isUniqueIdx) return null;
+  const m = msg.match(/id=([0-9a-f-]{36})/i);
+  return new DuplicateActiveContactError(
+    "Un contact actif avec cet email existe déjà dans ce centre.",
+    m ? m[1] : null,
+  );
+}
+
 export function useCreateContact() {
   const queryClient = useQueryClient();
 
@@ -156,13 +189,23 @@ export function useCreateContact() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        const dup = parseDuplicateError(error);
+        if (dup) throw dup;
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
     onError: (error: Error) => {
+      if (error instanceof DuplicateActiveContactError) {
+        toast.error("Contact actif déjà existant", {
+          description: "Un contact actif avec cet email existe déjà dans ce centre. Réactivation/création bloquée.",
+        });
+        return;
+      }
       toast.error("Erreur lors de la création du contact : " + error.message);
     },
   });
@@ -180,13 +223,23 @@ export function useUpdateContact() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        const dup = parseDuplicateError(error);
+        if (dup) throw dup;
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
     onError: (error: Error) => {
+      if (error instanceof DuplicateActiveContactError) {
+        toast.error("Modification bloquée", {
+          description: "Un contact actif avec cet email existe déjà dans ce centre.",
+        });
+        return;
+      }
       toast.error("Erreur lors de la mise à jour du contact : " + error.message);
     },
   });
