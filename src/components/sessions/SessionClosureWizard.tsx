@@ -154,6 +154,89 @@ export function SessionClosureWizard({
 
         {/* Current step content */}
         <div className="p-4 rounded-lg border bg-card space-y-3">
+          {currentStep === "prechecks" && (
+            <>
+              <p className="text-sm font-medium">Vérifications avant clôture</p>
+
+              {/* Bloquant : émargements obligatoires */}
+              <div className={cn(
+                "p-2.5 rounded-md border text-xs flex items-start gap-2",
+                emargementBlocking
+                  ? "bg-destructive/5 border-destructive/30 text-destructive"
+                  : "bg-success/5 border-success/30 text-success"
+              )}>
+                {emargementBlocking ? <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />}
+                <div>
+                  <p className="font-semibold">Émargements obligatoires</p>
+                  <p className="text-[11px] opacity-90">
+                    {emargementBlocking
+                      ? "Bloquant : feuilles d'émargement manquantes. Compléter avant clôture."
+                      : (emargement?.detail || "Émargement conforme")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Non bloquants */}
+              {paiementsWarning && (
+                <div className="p-2.5 rounded-md border border-warning/30 bg-warning/5 text-xs flex items-start gap-2 text-warning">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p>Paiements non soldés — justifier ci-dessous.</p>
+                </div>
+              )}
+              {attestationsWarning && (
+                <div className="p-2.5 rounded-md border border-warning/30 bg-warning/5 text-xs flex items-start gap-2 text-warning">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p>Attestations non générées — sera proposée à l'étape suivante.</p>
+                </div>
+              )}
+              {satisfactionWarning && (
+                <div className="p-2.5 rounded-md border border-warning/30 bg-warning/5 text-xs flex items-start gap-2 text-warning">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p>Enquête de satisfaction non envoyée.</p>
+                </div>
+              )}
+
+              {hasAnyWarning && !emargementBlocking && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">
+                    Justification (obligatoire pour passer outre les alertes)
+                  </label>
+                  <Textarea
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    placeholder="Ex. paiement OPCO en attente, attestations à générer ensuite…"
+                    className="text-xs min-h-16"
+                  />
+                </div>
+              )}
+
+              {/* Confirmation rôle admin */}
+              {!emargementBlocking && (
+                <label className={cn(
+                  "flex items-start gap-2 p-2.5 rounded-md border cursor-pointer",
+                  isAdmin ? "border-primary/30 bg-primary/5" : "border-muted bg-muted/30 opacity-60 cursor-not-allowed"
+                )}>
+                  <Checkbox
+                    checked={adminConfirmed}
+                    onCheckedChange={(v) => setAdminConfirmed(v === true)}
+                    disabled={!isAdmin}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <p className="text-xs font-medium">
+                      Je confirme la clôture en tant qu'administrateur
+                    </p>
+                    {!isAdmin && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Seul un administrateur peut valider la clôture.
+                      </p>
+                    )}
+                  </div>
+                </label>
+              )}
+            </>
+          )}
+
           {currentStep === "attestations" && (
             <>
               <div className="flex items-center justify-between">
