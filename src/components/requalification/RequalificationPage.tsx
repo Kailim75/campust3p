@@ -3,10 +3,11 @@ import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, Archive } from "lucide-react";
 import { useRequalificationContacts, type RequalificationContact } from "@/hooks/useRequalificationContacts";
 import { RequalificationKPIs } from "./RequalificationKPIs";
 import {
@@ -14,6 +15,9 @@ import {
 } from "./RequalificationFilters";
 import { RequalificationCategoryBadge } from "./RequalificationCategoryBadge";
 import { RequalificationActionDialog } from "./RequalificationActionDialog";
+import { BulkSmartOFDialog } from "./BulkSmartOFDialog";
+import { BulkResultDialog } from "./BulkResultDialog";
+import type { BulkMarkSmartOFResult } from "@/hooks/useRequalificationActions";
 
 function matchTriState(value: "all" | "yes" | "no", actual: boolean) {
   if (value === "all") return true;
@@ -59,7 +63,40 @@ export function RequalificationPage() {
   const [filters, setFilters] = useState<RequalificationFilterState>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<RequalificationContact | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkMarkSmartOFResult | null>(null);
+
   const filtered = useMemo(() => applyFilters(data ?? [], filters), [data, filters]);
+
+  const selectedContacts = useMemo(
+    () => filtered.filter((c) => selectedIds.has(c.id)),
+    [filtered, selectedIds],
+  );
+
+  const allVisibleSelected =
+    filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+
+  const toggleAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filtered.forEach((c) => next.delete(c.id));
+      } else {
+        filtered.forEach((c) => next.add(c.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen">
@@ -81,10 +118,34 @@ export function RequalificationPage() {
               <RequalificationFilters value={filters} onChange={setFilters} />
             </Card>
 
+            {selectedIds.size > 0 && (
+              <Card className="p-3 flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-primary/5">
+                <div className="text-sm">
+                  <span className="font-semibold">{selectedIds.size}</span> contact(s) sélectionné(s)
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    Désélectionner
+                  </Button>
+                  <Button size="sm" onClick={() => setBulkOpen(true)}>
+                    <Archive className="h-4 w-4 mr-2" />
+                    Marquer comme historique SmartOF
+                  </Button>
+                </div>
+              </Card>
+            )}
+
             <Card className="p-0 overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={toggleAll}
+                        aria-label="Tout sélectionner"
+                      />
+                    </TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Formation</TableHead>
                     <TableHead>Statut</TableHead>
@@ -96,7 +157,14 @@ export function RequalificationPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((c) => (
-                    <TableRow key={c.id}>
+                    <TableRow key={c.id} data-state={selectedIds.has(c.id) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(c.id)}
+                          onCheckedChange={() => toggleOne(c.id)}
+                          aria-label="Sélectionner"
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{c.prenom} {c.nom}</div>
                         <div className="text-xs text-muted-foreground">{c.email ?? "—"}</div>
@@ -141,7 +209,7 @@ export function RequalificationPage() {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
+                      <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
                         Aucun contact ne correspond aux filtres.
                       </TableCell>
                     </TableRow>
@@ -157,6 +225,22 @@ export function RequalificationPage() {
         contact={selected}
         open={!!selected}
         onOpenChange={(o) => !o && setSelected(null)}
+      />
+
+      <BulkSmartOFDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        contacts={selectedContacts}
+        onCompleted={(res) => {
+          setBulkResult(res);
+          setSelectedIds(new Set());
+        }}
+      />
+
+      <BulkResultDialog
+        open={!!bulkResult}
+        onOpenChange={(o) => !o && setBulkResult(null)}
+        result={bulkResult}
       />
     </div>
   );
