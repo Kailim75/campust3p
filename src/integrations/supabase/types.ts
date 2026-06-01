@@ -1123,6 +1123,42 @@ export type Database = {
           },
         ]
       }
+      contact_duplicate_block_log: {
+        Row: {
+          attempted_at: string
+          attempted_by: string | null
+          attempted_contact_id: string | null
+          centre_id: string | null
+          context: Json | null
+          email: string | null
+          existing_contact_id: string | null
+          id: string
+          operation: string
+        }
+        Insert: {
+          attempted_at?: string
+          attempted_by?: string | null
+          attempted_contact_id?: string | null
+          centre_id?: string | null
+          context?: Json | null
+          email?: string | null
+          existing_contact_id?: string | null
+          id?: string
+          operation: string
+        }
+        Update: {
+          attempted_at?: string
+          attempted_by?: string | null
+          attempted_contact_id?: string | null
+          centre_id?: string | null
+          context?: Json | null
+          email?: string | null
+          existing_contact_id?: string | null
+          id?: string
+          operation?: string
+        }
+        Relationships: []
+      }
       contact_historique: {
         Row: {
           alerte_active: boolean | null
@@ -8762,6 +8798,15 @@ export type Database = {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
       }
+      check_active_duplicate_email: {
+        Args: { p_centre_id: string; p_email: string; p_exclude_id?: string }
+        Returns: {
+          existing_contact_id: string
+          existing_contact_nom: string
+          existing_contact_prenom: string
+          has_duplicate: boolean
+        }[]
+      }
       check_creneau_conflicts: {
         Args: {
           p_contact_id?: string
@@ -9000,6 +9045,7 @@ export type Database = {
         Args: { p_amount: number; p_partner_id: string }
         Returns: boolean
       }
+      reactivate_contact: { Args: { p_contact_id: string }; Returns: Json }
       reconcile_factures_inscriptions: {
         Args: never
         Returns: {
