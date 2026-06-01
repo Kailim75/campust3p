@@ -1,70 +1,169 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FacturationUnifiedPage } from "@/components/facturation/FacturationUnifiedPage";
-import { CockpitFinancierPage } from "@/components/cockpit-financier/CockpitFinancierPage";
-import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
-import { AlmaReconciliationPage } from "@/components/finances/AlmaReconciliationPage";
-import { CreditCard, Landmark, BarChart3, Link as LinkIcon } from "lucide-react";
+import { LayoutDashboard, CreditCard, Euro, FileText, Landmark, Receipt, TrendingUp, Link as LinkIcon, CalendarDays } from "lucide-react";
 import { useNavigation } from "@/contexts/NavigationContext";
+import { FinancesPilotageTab } from "./FinancesPilotageTab";
+import { PaiementsListTab } from "./PaiementsListTab";
+import { PaiementsPage } from "@/components/paiements/PaiementsPage";
+import { DevisPage } from "@/components/devis/DevisPage";
+import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
+import { ChargesTab } from "@/components/cockpit-financier/ChargesTab";
+import { PrevisionnelTab } from "@/components/cockpit-financier/PrevisionnelTab";
+import { AlmaReconciliationPage } from "@/components/finances/AlmaReconciliationPage";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { computePeriodRange, type Periode } from "@/hooks/useFinancialData";
 
-const VALID_TABS = ["factures", "tresorerie", "analyse", "alma"] as const;
+function ChargesTabContainer() {
+  const [periode, setPeriode] = useState<Periode>("mois");
+  const range = useMemo(() => computePeriodRange(periode), [periode]);
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Select value={periode} onValueChange={(v) => setPeriode(v as Periode)}>
+          <SelectTrigger className="w-[200px]">
+            <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mois">Ce mois</SelectItem>
+            <SelectItem value="trimestre">Ce trimestre</SelectItem>
+            <SelectItem value="annee">Cette année</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <ChargesTab range={range} />
+    </div>
+  );
+}
+
+/**
+ * FinancesPage — 7 onglets (Pilotage / Factures / Paiements / Devis /
+ * Trésorerie / Charges / Prévisionnel) + accès secondaires (Alma).
+ *
+ * Mapping deep-link rétro-compatible :
+ *  - ?tab=factures      → factures
+ *  - ?tab=tresorerie    → tresorerie
+ *  - ?tab=analyse       → pilotage  (remap depuis ancienne nomenclature)
+ *  - ?tab=alma          → alma
+ *  - ?tab=devis         → devis
+ *  - ?tab=charges       → charges
+ *  - ?tab=previsionnel  → previsionnel
+ *  - ?tab=pilotage      → pilotage (nouveau)
+ *  - ?tab=paiements     → paiements (nouveau)
+ */
+const VALID_TABS = [
+  "pilotage",
+  "factures",
+  "paiements",
+  "devis",
+  "tresorerie",
+  "charges",
+  "previsionnel",
+  "alma",
+] as const;
+
+type FinanceTab = (typeof VALID_TABS)[number];
+
+const LEGACY_MAP: Record<string, FinanceTab> = {
+  analyse: "pilotage", // ancien onglet "Analyse" → nouveau Pilotage
+};
+
+function resolveTab(input?: string | null): FinanceTab {
+  if (!input) return "pilotage";
+  if ((VALID_TABS as readonly string[]).includes(input)) return input as FinanceTab;
+  if (LEGACY_MAP[input]) return LEGACY_MAP[input];
+  return "pilotage";
+}
 
 export function FinancesPage() {
   const { activeTab } = useNavigation();
-  // Initialize from deep-link once. Subsequent updates to activeTab from
-  // child sub-navigations must NOT re-drive this state, otherwise the parent
-  // tab and the child sub-view fight each other (e.g. "factures" / "devis").
-  const [tab, setTab] = useState<string>(() => {
-    if (activeTab && VALID_TABS.includes(activeTab as typeof VALID_TABS[number])) {
-      return activeTab;
-    }
-    return "factures";
-  });
+  const [tab, setTab] = useState<FinanceTab>(() => resolveTab(activeTab));
+  const [almaOpen, setAlmaOpen] = useState(false);
 
-  // One-shot sync: if a deep-link arrives AFTER mount (e.g. external nav),
-  // accept it only when it matches a top-level Finances tab.
+  // One-shot sync : accepter un deep-link arrivant après mount.
   useEffect(() => {
-    if (activeTab && VALID_TABS.includes(activeTab as typeof VALID_TABS[number]) && activeTab !== tab) {
-      setTab(activeTab);
-    }
+    if (!activeTab) return;
+    const next = resolveTab(activeTab);
+    if (next !== tab) setTab(next);
+    if (activeTab === "alma") setAlmaOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   return (
     <div className="min-h-screen">
-      <div className="px-6 pt-6 pb-2">
-        <h1 className="text-2xl font-display font-bold text-foreground">Finances</h1>
-        <p className="text-sm text-muted-foreground">Gestion financière de votre centre</p>
+      <div className="px-6 pt-6 pb-2 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Finances</h1>
+          <p className="text-sm text-muted-foreground">
+            Pilotage, facturation, encaissements et trésorerie de votre centre
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAlmaOpen((v) => !v)}
+          className="gap-1.5"
+        >
+          <LinkIcon className="h-3.5 w-3.5" />
+          Réconciliation Alma
+        </Button>
       </div>
 
+      {almaOpen && (
+        <div className="px-6 pb-4">
+          <div className="card-elevated p-4">
+            <AlmaReconciliationPage />
+          </div>
+        </div>
+      )}
+
       <div className="px-6 pb-6">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-muted/50 mb-5">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as FinanceTab)}>
+          <TabsList className="bg-muted/50 mb-5 flex-wrap h-auto">
+            <TabsTrigger value="pilotage" className="gap-1.5 text-xs">
+              <LayoutDashboard className="h-3.5 w-3.5" /> Pilotage
+            </TabsTrigger>
             <TabsTrigger value="factures" className="gap-1.5 text-xs">
-              <CreditCard className="h-3.5 w-3.5" /> Facturation
+              <CreditCard className="h-3.5 w-3.5" /> Factures
+            </TabsTrigger>
+            <TabsTrigger value="paiements" className="gap-1.5 text-xs">
+              <Euro className="h-3.5 w-3.5" /> Paiements
+            </TabsTrigger>
+            <TabsTrigger value="devis" className="gap-1.5 text-xs">
+              <FileText className="h-3.5 w-3.5" /> Devis
             </TabsTrigger>
             <TabsTrigger value="tresorerie" className="gap-1.5 text-xs">
               <Landmark className="h-3.5 w-3.5" /> Trésorerie
             </TabsTrigger>
-            <TabsTrigger value="analyse" className="gap-1.5 text-xs">
-              <BarChart3 className="h-3.5 w-3.5" /> Analyse
+            <TabsTrigger value="charges" className="gap-1.5 text-xs">
+              <Receipt className="h-3.5 w-3.5" /> Charges
             </TabsTrigger>
-            <TabsTrigger value="alma" className="gap-1.5 text-xs">
-              <LinkIcon className="h-3.5 w-3.5" /> Réconciliation Alma
+            <TabsTrigger value="previsionnel" className="gap-1.5 text-xs">
+              <TrendingUp className="h-3.5 w-3.5" /> Prévisionnel
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="pilotage">
+            <FinancesPilotageTab />
+          </TabsContent>
           <TabsContent value="factures">
-            <FacturationUnifiedPage />
+            <PaiementsPage />
+          </TabsContent>
+          <TabsContent value="paiements">
+            <PaiementsListTab />
+          </TabsContent>
+          <TabsContent value="devis">
+            <DevisPage />
           </TabsContent>
           <TabsContent value="tresorerie">
             <TresoreriePage />
           </TabsContent>
-          <TabsContent value="analyse">
-            <CockpitFinancierPage />
+          <TabsContent value="charges">
+            <ChargesTabContainer />
           </TabsContent>
-          <TabsContent value="alma">
-            <AlmaReconciliationPage />
+          <TabsContent value="previsionnel">
+            <PrevisionnelTab />
           </TabsContent>
         </Tabs>
       </div>
