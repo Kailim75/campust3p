@@ -41,6 +41,7 @@ const PlanningConduitePage= lazy(() => import("@/components/planning-conduite/Pl
 const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
+const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
 const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
@@ -183,6 +184,13 @@ const Index = () => {
     const handleNavigateToAlerts = () => setActiveSection("alertes");
     const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
     const handleOpenRouteCheck = () => setRouteCheckOpen(true);
+    const handleNavigateToContact = (e: Event) => {
+      const ce = e as CustomEvent<{ contactId?: string }>;
+      const cid = ce.detail?.contactId;
+      if (!cid) return;
+      setSelectedContactId(cid);
+      setActiveSection("contacts");
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl + Shift + R → ouvre le panneau de vérification de routage
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "r") {
@@ -193,11 +201,13 @@ const Index = () => {
     window.addEventListener("navigate-to-alerts", handleNavigateToAlerts);
     window.addEventListener("open-blockage-panel", handleOpenBlockagePanel);
     window.addEventListener("open-route-check", handleOpenRouteCheck);
+    window.addEventListener("navigate-to-contact", handleNavigateToContact);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("navigate-to-alerts", handleNavigateToAlerts);
       window.removeEventListener("open-blockage-panel", handleOpenBlockagePanel);
       window.removeEventListener("open-route-check", handleOpenRouteCheck);
+      window.removeEventListener("navigate-to-contact", handleNavigateToContact);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [setActiveSection]);
@@ -318,6 +328,10 @@ const Index = () => {
       case "corbeille":
         pageName = "CorbeillePage";
         node = <CorbeillePage />;
+        break;
+      case "doublons-contacts":
+        pageName = "DoublonsContactsPage";
+        node = <DoublonsContactsPage />;
         break;
       case "attestations-retard":
         pageName = "AttestationsEnRetardPage";

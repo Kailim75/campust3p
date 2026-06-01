@@ -114,6 +114,28 @@ export function useRestoreRecord() {
         return data;
       }
 
+      // Réactivation contrôlée pour les contacts : passe par la RPC
+      // `reactivate_contact` qui bloque si un doublon actif existe déjà.
+      if (table === "contacts") {
+        const { data, error } = await supabase.rpc("reactivate_contact", {
+          p_contact_id: id,
+        });
+        if (error) throw error;
+        const payload = (data ?? {}) as { success?: boolean; error?: string; existing_contact_id?: string };
+        if (!payload.success) {
+          if (payload.error === "DUPLICATE_ACTIVE_CONTACT") {
+            const err = new Error(
+              "Réactivation bloquée : un contact actif avec cet email existe déjà dans ce centre.",
+            );
+            (err as any).code = "DUPLICATE_ACTIVE_CONTACT";
+            (err as any).existingContactId = payload.existing_contact_id ?? null;
+            throw err;
+          }
+          throw new Error(payload.error || "Réactivation impossible");
+        }
+        return data;
+      }
+
       const { data, error } = await supabase.rpc("restore_record", {
         p_table_name: table,
         p_record_id: id,

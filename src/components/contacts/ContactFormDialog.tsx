@@ -29,9 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateContact, useUpdateContact, type Contact, type ContactInsert } from "@/hooks/useContacts";
+import { useCreateContact, useUpdateContact, DuplicateActiveContactError, type Contact, type ContactInsert } from "@/hooks/useContacts";
 import { useDuplicateCheck } from "@/hooks/useDuplicateCheck";
+import { useActiveDuplicateCheck } from "@/hooks/useActiveDuplicateCheck";
 import { DuplicateAlert } from "./DuplicateAlert";
+import { ActiveDuplicateAlert } from "./ActiveDuplicateAlert";
+import { getUserCentreId } from "@/utils/getCentreId";
 import { toast } from "sonner";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
@@ -82,9 +85,26 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const { duplicates, checkDuplicates, clearDuplicates } = useDuplicateCheck();
+  const activeDup = useActiveDuplicateCheck();
+  const [currentCentreId, setCurrentCentreId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isEditing = !!contact;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+
+  // Récupère le centre courant pour la pré-vérification anti-doublon actif
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const cid = contact?.centre_id ?? (await getUserCentreId().catch(() => null));
+      if (!cancelled) setCurrentCentreId(cid ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, contact]);
+
+
 
   // Fetch available sessions (upcoming or in progress)
   const { data: availableSessions = [] } = useQuery({
@@ -161,6 +181,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
       setShowCompleteForm(false);
       setSelectedSessionId("");
       clearDuplicates();
+      activeDup.clear();
       form.reset({
         civilite: null,
         nom: "",
@@ -189,11 +210,11 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
   // Debounced duplicate check when key fields change
   const triggerDuplicateCheck = useCallback(() => {
-    if (isEditing) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const values = form.getValues();
-      if (values.nom && values.prenom) {
+      // Détection floue (nom/prénom/email/date) — uniquement en création
+      if (!isEditing && values.nom && values.prenom) {
         checkDuplicates(
           values.nom,
           values.prenom,
@@ -201,8 +222,13 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
           values.date_naissance || undefined,
         );
       }
+      // Vérification stricte (email actif dans le même centre) — création ET édition
+      if (currentCentreId) {
+        activeDup.checkDebounced(values.email, currentCentreId, contact?.id ?? null);
+      }
     }, 500);
-  }, [isEditing, form, checkDuplicates]);
+  }, [isEditing, form, checkDuplicates, currentCentreId, activeDup, contact?.id]);
+
 
   const onSubmit = async (values: ContactFormValues) => {
     try {
@@ -267,15 +293,20 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
       }
       onOpenChange(false);
     } catch (error) {
-      toast.error("Erreur", {
-        description: isEditing 
-          ? "Impossible de mettre à jour le contact. Veuillez réessayer."
-          : "Impossible de créer le contact. Veuillez réessayer.",
-      });
+      // Le toast spécifique anti-doublon est déjà émis par useCreateContact/useUpdateContact.
+      // On évite le double-toast générique dans ce cas.
+      if (!(error instanceof DuplicateActiveContactError)) {
+        toast.error("Erreur", {
+          description: isEditing
+            ? "Impossible de mettre à jour le contact. Veuillez réessayer."
+            : "Impossible de créer le contact. Veuillez réessayer.",
+        });
+      }
     }
   };
 
   const isLoading = createContact.isPending || updateContact.isPending;
+  const blockedByActiveDuplicate = !!activeDup.match;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -412,6 +443,15 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
             {/* === ALERTE DOUBLONS === */}
             {!isEditing && <DuplicateAlert duplicates={duplicates} />}
+            <ActiveDuplicateAlert
+              match={activeDup.match}
+              onOpenExisting={(id) => {
+                onOpenChange(false);
+                window.dispatchEvent(
+                  new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
+                );
+              }}
+            />
 
             {/* === TOGGLE POUR FORMULAIRE COMPLET === */}
             {!isEditing && (
@@ -1043,9 +1083,11 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || blockedByActiveDuplicate}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Enregistrer" : "Créer l'apprenant"}
+                {blockedByActiveDuplicate
+                  ? "Création bloquée (doublon actif)"
+                  : isEditing ? "Enregistrer" : "Créer l'apprenant"}
               </Button>
             </div>
           </form>
