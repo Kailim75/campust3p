@@ -323,17 +323,15 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   ];
   const dossierProgress = Math.round((progressItems.filter(Boolean).length / progressItems.length) * 100);
 
+  // 7 onglets max : CMA/Carte Pro sont désormais intégrés dans "Identité"
   const tabs = [
     { value: "resume", icon: LayoutDashboard, label: "Résumé" },
     { value: "dossier", icon: FolderOpen, label: "Identité" },
-    ...(isInitial
-      ? [{ value: "cma", icon: FileCheck, label: "CMA" }]
-      : [{ value: "carte-pro", icon: IdCard, label: "Carte Pro" }]
-    ),
+    { value: "formation", icon: GraduationCap, label: "Formation" },
     { value: "documents", icon: FileText, label: "Documents" },
     { value: "paiements", icon: CreditCard, label: "Paiements" },
-    { value: "formation", icon: GraduationCap, label: "Formation" },
-    { value: "suivi", icon: MessageCircle, label: "Suivi" },
+    { value: "examens", icon: Award, label: "Examens" },
+    { value: "suivi", icon: MessageCircle, label: "Historique" },
   ];
 
   return (
