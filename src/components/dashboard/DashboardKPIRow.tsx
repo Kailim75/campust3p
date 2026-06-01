@@ -89,26 +89,39 @@ export function DashboardKPIRow({ onNavigate }: DashboardKPIRowProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-      {kpiCards.map((kpi) => {
-        const Icon = kpi.icon;
-        const value = data?.[kpi.key as keyof typeof data] ?? 0;
-        return (
-          <button
-            key={kpi.key}
-            onClick={() => onNavigate(kpi.section)}
-            className="rounded-xl border border-border bg-card p-6 text-left hover:border-primary/30 hover:shadow-sm transition-all group"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
-                <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+    <TooltipProvider>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {kpiCards.map((kpi) => {
+          const Icon = kpi.icon;
+          const value = data?.[kpi.key as keyof typeof data] ?? 0;
+          const isApprenants = kpi.key === "activeApprenants";
+          return (
+            <button
+              key={kpi.key}
+              onClick={() => onNavigate(kpi.section)}
+              className="rounded-xl border border-border bg-card p-6 text-left hover:border-primary/30 hover:shadow-sm transition-all group"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted">
+                  <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
+                {isApprenants && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground/60" onClick={(e) => e.stopPropagation()} />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">{TOOLTIP_SMARTOF_EXCLUS}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
-              <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
-            </div>
-            <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.format(value as number)}</p>
-          </button>
-        );
-      })}
-    </div>
+              <p className="text-3xl font-bold text-foreground tracking-tight">{kpi.format(value as number)}</p>
+            </button>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
