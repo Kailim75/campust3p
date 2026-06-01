@@ -27,7 +27,9 @@ import {
   Archive,
   ArchiveRestore,
   Shield,
+  LayoutDashboard,
 } from "lucide-react";
+import { SessionResumeTab } from "./tabs/SessionResumeTab";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, type Session } from "@/hooks/useSessions";
 import { useContacts, type Contact } from "@/hooks/useContacts";
