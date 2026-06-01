@@ -267,6 +267,10 @@ const Index = () => {
         pageName = "AujourdhuiPage";
         node = <AujourdhuiPage onNavigate={setActiveSection} onNavigateWithParams={handleNavigateWithParams} />;
         break;
+      case "ma-journee":
+        pageName = "MaJourneePage";
+        node = <MaJourneePage />;
+        break;
       case "contacts":
         pageName = "ApprenantsPage";
         node = <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
