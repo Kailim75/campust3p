@@ -13,12 +13,18 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Bell, Award,
   Handshake, Car, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
 export type NavGroup = "hub" | "more" | "footer";
 
 export type NavSubgroup = "pilotage" | "production" | "qualite" | "admin";
+
+/** Rôles applicatifs utilisés pour filtrer la visibilité de la sidebar.
+ *  NB : `formateur` et `apprenant` ont des portails dédiés, ils n'arrivent
+ *  pas sur cette sidebar — on ne les liste donc pas ici. */
+export type SidebarRole = "super_admin" | "admin" | "staff";
 
 export interface NavEntry {
   /** Identifiant interne (clé `activeSection` dans Index.tsx) */
@@ -37,18 +43,23 @@ export interface NavEntry {
   pageName: string;
   /** Alias d'URL legacy (alimente PATH_TO_SECTION) */
   legacyPaths?: string[];
+  /** Rôles autorisés à voir l'item dans la sidebar.
+   *  Si omis, l'item est visible par tous les rôles authentifiés. La route
+   *  reste accessible via URL directe — ce filtre n'agit que sur l'affichage. */
+  allowedRoles?: SidebarRole[];
 }
 
 /**
  * ⚠️ ORDRE IMPORTANT : reflète l'ordre d'affichage dans la Sidebar.
  *
- * Sprint 3 — Hiérarchie produit :
- *  - Aujourd'hui = point d'entrée opérationnel principal (1er hub).
- *  - Dashboard = vue de pilotage dirigeante, déplacé en tête de "Plus"
- *    (libellé "Pilotage"). Sa route "/" est conservée pour ne pas
- *    casser les bookmarks existants ; seule sa visibilité change.
- *  - Prospects promu en tête de "Plus" pour l'accès commercial.
- *  - 5 hubs max, conformément au test navigationRegistry.
+ * Sprint 4 — Simplification UX :
+ *  - 5 hubs opérationnels (Aujourd'hui, Apprenants, Sessions, Finances, Inbox).
+ *  - Pilotage (Dashboard) renvoyé en "Plus / Pilotage" pour clarifier la
+ *    hiérarchie ; route "/" conservée pour ne pas casser les bookmarks.
+ *  - Ma Journée découvrable depuis "Plus / Pilotage" (route /ma-journee
+ *    déjà existante, ajoutée au shell applicatif).
+ *  - Libellés raccourcis ("Inbox", "Tableau de bord", "Forfaits & extras"...).
+ *  - allowedRoles ajouté pour masquer les outils admin aux profils staff.
  */
 export const NAV_REGISTRY: NavEntry[] = [
   // ── Hubs principaux (5 max) ────────────────────────────────────────────────
@@ -56,32 +67,36 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
   { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
-  { id: "inbox",      label: "Inbox CRM",   icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
+  { id: "inbox",      label: "Inbox",       icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
-  // Pilotage (ex-Dashboard) en tête : accessible mais secondaire vs Aujourd'hui.
-  { id: "dashboard",         label: "Pilotage",            icon: LayoutDashboard, group: "more", subgroup: "pilotage",   path: "/",                  pageName: "Dashboard", legacyPaths: ["", "dashboard"] },
-  { id: "prospects",         label: "Prospects",           icon: UserPlus,        group: "more", subgroup: "pilotage",   path: "/prospects",         pageName: "ProspectsPage" },
-  { id: "alertes",           label: "Alertes",             icon: Bell,            group: "more", subgroup: "pilotage",   path: "/alertes",           pageName: "AlertesPage" },
+  // Pilotage commercial
+  { id: "dashboard",   label: "Tableau de bord", icon: LayoutDashboard, group: "more", subgroup: "pilotage",   path: "/",            pageName: "Dashboard", legacyPaths: ["", "dashboard"], allowedRoles: ["super_admin", "admin"] },
+  { id: "prospects",   label: "Prospects",       icon: UserPlus,        group: "more", subgroup: "pilotage",   path: "/prospects",   pageName: "ProspectsPage" },
+  { id: "ma-journee",  label: "Ma journée",      icon: CalendarDays,    group: "more", subgroup: "pilotage",   path: "/ma-journee",  pageName: "MaJourneePage" },
+  { id: "alertes",     label: "Alertes",         icon: Bell,            group: "more", subgroup: "pilotage",   path: "/alertes",     pageName: "AlertesPage" },
 
-  { id: "formations",        label: "Catalogue",           icon: GraduationCap,   group: "more", subgroup: "production", path: "/formations",        pageName: "FormationsPage" },
-  { id: "produits",          label: "Produits & Services", icon: Package,         group: "more", subgroup: "production", path: "/produits",          pageName: "ProduitsServicesPage" },
-  { id: "formateurs",        label: "Formateurs",          icon: UserCog,         group: "more", subgroup: "production", path: "/formateurs",        pageName: "FormateursPage" },
-  { id: "planning-conduite", label: "Planning conduite",   icon: Car,             group: "more", subgroup: "production", path: "/planning-conduite", pageName: "PlanningConduitePage" },
-  { id: "partenaires",       label: "Partenaires",         icon: Handshake,       group: "more", subgroup: "production", path: "/partenaires",       pageName: "PartnersPage" },
+  // Production & catalogue
+  { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", subgroup: "production", path: "/formations",        pageName: "FormationsPage" },
+  { id: "produits",          label: "Forfaits & extras", icon: Package,         group: "more", subgroup: "production", path: "/produits",          pageName: "ProduitsServicesPage", allowedRoles: ["super_admin", "admin"] },
+  { id: "formateurs",        label: "Formateurs",        icon: UserCog,         group: "more", subgroup: "production", path: "/formateurs",        pageName: "FormateursPage",       allowedRoles: ["super_admin", "admin"] },
+  { id: "planning-conduite", label: "Planning conduite", icon: Car,             group: "more", subgroup: "production", path: "/planning-conduite", pageName: "PlanningConduitePage" },
+  { id: "partenaires",       label: "Partenaires",       icon: Handshake,       group: "more", subgroup: "production", path: "/partenaires",       pageName: "PartnersPage",         allowedRoles: ["super_admin", "admin"] },
 
-  { id: "qualite",           label: "Qualité",             icon: Award,           group: "more", subgroup: "qualite",    path: "/qualite",           pageName: "QualiteUnifiedPage" },
-  { id: "attestations-retard", label: "Attestations retard", icon: Award,         group: "more", subgroup: "qualite",    path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
+  // Qualité & conformité
+  { id: "qualite",             label: "Qualité",                 icon: Award, group: "more", subgroup: "qualite", path: "/qualite",             pageName: "QualiteUnifiedPage",        allowedRoles: ["super_admin", "admin"] },
+  { id: "attestations-retard", label: "Attestations en retard",  icon: Award, group: "more", subgroup: "qualite", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
 
-  { id: "automations",       label: "Automations",         icon: Zap,             group: "more", subgroup: "admin",      path: "/automations",       pageName: "AutomationsPage" },
-  { id: "security",          label: "Sécurité",            icon: Shield,          group: "more", subgroup: "admin",      path: "/security",          pageName: "SecurityStatusPage" },
-  { id: "corbeille",         label: "Corbeille",           icon: Trash2,          group: "more", subgroup: "admin",      path: "/corbeille",         pageName: "CorbeillePage" },
-  { id: "doublons-contacts", label: "Doublons contacts",   icon: Users,           group: "more", subgroup: "admin",      path: "/doublons-contacts", pageName: "DoublonsContactsPage" },
-  { id: "requalification-contacts", label: "Requalification contacts", icon: Users, group: "more", subgroup: "admin",  path: "/requalification-contacts", pageName: "RequalificationPage" },
+  // Administration
+  { id: "automations",              label: "Automations",     icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin"] },
+  { id: "security",                 label: "Sécurité",        icon: Shield, group: "more", subgroup: "admin", path: "/security",                 pageName: "SecurityStatusPage",   allowedRoles: ["super_admin", "admin"] },
+  { id: "corbeille",                label: "Corbeille",       icon: Trash2, group: "more", subgroup: "admin", path: "/corbeille",                pageName: "CorbeillePage",        allowedRoles: ["admin"] },
+  { id: "doublons-contacts",        label: "Doublons",        icon: Users,  group: "more", subgroup: "admin", path: "/doublons-contacts",        pageName: "DoublonsContactsPage", allowedRoles: ["admin"] },
+  { id: "requalification-contacts", label: "Requalification", icon: Users,  group: "more", subgroup: "admin", path: "/requalification-contacts", pageName: "RequalificationPage",  allowedRoles: ["admin"] },
 
   // ── Footer ────────────────────────────────────────────────────────────────
-  { id: "aide", label: "Aide & mémo", icon: HelpCircle, group: "footer", path: "/aide", pageName: "AidePage" },
-  { id: "settings", label: "Paramètres", icon: Settings, group: "footer", path: "/settings", pageName: "SettingsPage", legacyPaths: ["parametres"] },
+  { id: "aide",     label: "Aide",       icon: HelpCircle, group: "footer", path: "/aide",     pageName: "AidePage" },
+  { id: "settings", label: "Paramètres", icon: Settings,   group: "footer", path: "/settings", pageName: "SettingsPage", legacyPaths: ["parametres"] },
 ];
 
 // ── Sélecteurs de groupe (utilisés par la Sidebar) ───────────────────────────
@@ -96,6 +111,18 @@ export const MORE_SUBGROUPS: Array<{ id: NavSubgroup; label: string }> = [
   { id: "qualite",    label: "Qualité & conformité" },
   { id: "admin",      label: "Administration" },
 ];
+
+/**
+ * Filtre une liste d'entrées selon le rôle utilisateur.
+ * - Une entrée sans `allowedRoles` est visible par tous.
+ * - Si role est null/undefined (en cours de chargement), on affiche tout
+ *   pour éviter un "flash vide" — la sécurité d'accès reste assurée par RLS
+ *   côté base + ProtectedRoute côté React.
+ */
+export function filterEntriesByRole<T extends NavEntry>(entries: T[], role: SidebarRole | null | undefined): T[] {
+  if (!role) return entries;
+  return entries.filter((e) => !e.allowedRoles || e.allowedRoles.includes(role));
+}
 
 // ── Mappings dérivés (consommés par Index.tsx) ───────────────────────────────
 
@@ -160,6 +187,7 @@ const FUZZY_KEYWORDS: Array<{ keywords: string[]; section: string }> = [
   { keywords: ["corbeille", "trash", "supprim"],                                     section: "corbeille" },
   { keywords: ["secur", "rgpd"],                                                     section: "security" },
   { keywords: ["aujourd"],                                                           section: "aujourdhui" },
+  { keywords: ["journee", "agenda-perso"],                                           section: "ma-journee" },
 ];
 
 export interface ResolvedNavTarget {
