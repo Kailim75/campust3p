@@ -29,9 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateContact, useUpdateContact, type Contact, type ContactInsert } from "@/hooks/useContacts";
+import { useCreateContact, useUpdateContact, DuplicateActiveContactError, type Contact, type ContactInsert } from "@/hooks/useContacts";
 import { useDuplicateCheck } from "@/hooks/useDuplicateCheck";
+import { useActiveDuplicateCheck } from "@/hooks/useActiveDuplicateCheck";
 import { DuplicateAlert } from "./DuplicateAlert";
+import { ActiveDuplicateAlert } from "./ActiveDuplicateAlert";
+import { getUserCentreId } from "@/utils/getCentreId";
 import { toast } from "sonner";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
