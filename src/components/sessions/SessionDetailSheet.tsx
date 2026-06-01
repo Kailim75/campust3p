@@ -599,34 +599,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                   <SessionParcoursTab sessionId={session.id} />
                 </TabsContent>
 
-                {/* Tab: Qualiopi */}
-                <TabsContent value="qualiopi" className="pt-4">
-                  <SessionQualiopiTab
-                    sessionId={session.id}
-                    hasCatalogueFormation={!!session.catalogue_formation_id}
-                    isTerminee={session.statut === "terminee"}
-                    inscriptionCount={inscriptionCount}
-                    onAssignFormateur={() => onEdit(session)}
-                    onSendDocuments={(scope) => {
-                      openDocSend(scope);
-                    }}
-                    onSendEmail={(template) => {
-                      const subject = template === "satisfaction"
-                        ? `${session.nom} — Enquête de satisfaction`
-                        : `${session.nom} — Information`;
-                      const body = template === "satisfaction"
-                        ? `Bonjour,\n\nVotre session "${session.nom}" est terminée. Nous vous invitons à compléter l'enquête de satisfaction.\n\nCordialement,\n${centreName}`
-                        : `Bonjour,\n\nNous vous contactons au sujet de la session "${session.nom}".\n\nCordialement,\n${centreName}`;
-                      openEmailForSession(subject, body);
-                    }}
-                    onEditSession={() => onEdit(session)}
-                    onOpenEmargement={() => setActiveTab("emargement")}
-                    onImportFromCatalogue={(field) => {
-                      toast.info(`Importation des ${field} depuis le catalogue — Modifiez la session`);
-                      onEdit(session);
-                    }}
-                  />
-                </TabsContent>
+                {/* Tab: Qualiopi (absorbé dans Résumé) — composant conservé pour rétro-compat, non monté */}
 
                 {/* Tab: Émargement */}
                 <TabsContent value="emargement" className="pt-4">
