@@ -81,7 +81,7 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
 /** Navigation : hubs principaux avec badges + menu « Plus » regroupé par sous-sections. */
 function SidebarNav({
   activeSection, onSectionChange, onItemClick, collapsed,
-  moreOpen, setMoreOpen, isInMore,
+  moreOpen, setMoreOpen, isInMore, role,
 }: {
   activeSection: string;
   onSectionChange: (s: string) => void;
@@ -90,8 +90,12 @@ function SidebarNav({
   moreOpen: boolean;
   setMoreOpen: (v: boolean) => void;
   isInMore: boolean;
+  role: SidebarRole | null | undefined;
 }) {
   const { data: badges } = useSidebarBadges();
+
+  const visibleHubs = filterEntriesByRole(HUB_ENTRIES, role);
+  const visibleMore = filterEntriesByRole(MORE_ENTRIES, role);
 
   const getBadge = (id: string): number => {
     const key = HUB_BADGE_KEY[id];
