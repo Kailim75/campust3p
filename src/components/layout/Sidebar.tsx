@@ -190,7 +190,7 @@ function SidebarNav({
               <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-px mt-px">
-              {MORE_ENTRIES.map((item) => {
+              {visibleMore.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
                 return (
