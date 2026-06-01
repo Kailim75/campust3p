@@ -22,7 +22,7 @@ export function useDashboardHealthScore() {
 
       // Parallel queries
       const [contactsRes, sessionsRes, inscriptionsRes, facturesRes, paiementsRes, alertsPaymentRes] = await Promise.all([
-        supabase.from("contacts").select("id, statut").eq("archived", false),
+        supabase.from("contacts").select("id, statut").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut").eq("archived", false).gte("date_fin", todayStr),
         supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         supabase.from("factures").select("montant_total, statut, date_echeance").is("deleted_at", null).not("statut", "eq", "annulee"),
