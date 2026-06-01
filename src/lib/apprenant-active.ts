@@ -50,6 +50,18 @@ export function isTerminated(contact: { statut_apprenant?: string | null }): boo
   return s === "diplome" || s === "abandon" || s === "archive";
 }
 
+/**
+ * Contact importé depuis SmartOF (ou autre import historique) :
+ * exclu des KPI actifs courants sans toucher au statut_apprenant officiel.
+ */
+export function isHistoricalImport(contact: {
+  is_historical_import?: boolean | null;
+  requalification_category?: string | null;
+}): boolean {
+  if (contact.is_historical_import === true) return true;
+  return contact.requalification_category === "apprenant_historique_smartof";
+}
+
 export type ActiveReason =
   | "session_future"
   | "docs_manquants"
@@ -74,14 +86,20 @@ interface ActiveInput {
   paymentStatus?: string;
   totalFacture?: number;
   updated_at?: string;
+  is_historical_import?: boolean | null;
+  requalification_category?: string | null;
 }
 
 /**
  * Returns the list of reasons why this apprenant is considered active.
- * If statut_apprenant is set to diplome/abandon/archive → always inactive.
- * Otherwise fallback to heuristic (backward compatible).
+ * - statut_apprenant terminé (diplome/abandon/archive) → toujours inactif.
+ * - import historique SmartOF (is_historical_import OU catégorie = apprenant_historique_smartof)
+ *   → toujours inactif, sans toucher au statut officiel (Qualiopi préservé).
+ * - Sinon fallback heuristique.
  */
 export function getActiveReasons(contact: ActiveInput, recentDays?: number): ActiveReason[] {
+  // Historic SmartOF imports are excluded from KPI without altering statut_apprenant
+  if (isHistoricalImport(contact)) return [];
   // Official status takes precedence
   if (isTerminated(contact)) return [];
 

@@ -1258,6 +1258,60 @@ export type Database = {
           },
         ]
       }
+      contact_requalification_log: {
+        Row: {
+          action_type: string
+          centre_id: string
+          comment: string
+          contact_id: string
+          created_at: string
+          id: string
+          is_smartof_source: boolean
+          new_category: string | null
+          new_statut_apprenant: string | null
+          previous_category: string | null
+          previous_statut_apprenant: string | null
+          reason: string
+          recommended_category: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          centre_id: string
+          comment: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          is_smartof_source?: boolean
+          new_category?: string | null
+          new_statut_apprenant?: string | null
+          previous_category?: string | null
+          previous_statut_apprenant?: string | null
+          reason: string
+          recommended_category?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          centre_id?: string
+          comment?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          is_smartof_source?: boolean
+          new_category?: string | null
+          new_statut_apprenant?: string | null
+          previous_category?: string | null
+          previous_statut_apprenant?: string | null
+          reason?: string
+          recommended_category?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           accepte_facture_electronique: boolean | null
@@ -1281,6 +1335,9 @@ export type Database = {
           fonction: string | null
           formation: Database["public"]["Enums"]["formation_type"] | null
           id: string
+          import_source: string | null
+          imported_at: string | null
+          is_historical_import: boolean
           nom: string
           nom_naissance: string | null
           numero_carte_professionnelle: string | null
@@ -1293,6 +1350,9 @@ export type Database = {
           prefecture_carte: string | null
           prefecture_permis: string | null
           prenom: string
+          requalification_category: string | null
+          requalification_reviewed_at: string | null
+          requalification_reviewed_by: string | null
           rue: string | null
           source: string | null
           statut: Database["public"]["Enums"]["contact_statut"] | null
@@ -1328,6 +1388,9 @@ export type Database = {
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
           id?: string
+          import_source?: string | null
+          imported_at?: string | null
+          is_historical_import?: boolean
           nom: string
           nom_naissance?: string | null
           numero_carte_professionnelle?: string | null
@@ -1340,6 +1403,9 @@ export type Database = {
           prefecture_carte?: string | null
           prefecture_permis?: string | null
           prenom: string
+          requalification_category?: string | null
+          requalification_reviewed_at?: string | null
+          requalification_reviewed_by?: string | null
           rue?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["contact_statut"] | null
@@ -1375,6 +1441,9 @@ export type Database = {
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
           id?: string
+          import_source?: string | null
+          imported_at?: string | null
+          is_historical_import?: boolean
           nom?: string
           nom_naissance?: string | null
           numero_carte_professionnelle?: string | null
@@ -1387,6 +1456,9 @@ export type Database = {
           prefecture_carte?: string | null
           prefecture_permis?: string | null
           prenom?: string
+          requalification_category?: string | null
+          requalification_reviewed_at?: string | null
+          requalification_reviewed_by?: string | null
           rue?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["contact_statut"] | null

@@ -42,6 +42,7 @@ const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatus
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
+const RequalificationPage = lazy(() => import("@/components/requalification/RequalificationPage").then(m => ({ default: m.RequalificationPage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
 const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
@@ -332,6 +333,10 @@ const Index = () => {
       case "doublons-contacts":
         pageName = "DoublonsContactsPage";
         node = <DoublonsContactsPage />;
+        break;
+      case "requalification-contacts":
+        pageName = "RequalificationPage";
+        node = <RequalificationPage />;
         break;
       case "attestations-retard":
         pageName = "AttestationsEnRetardPage";

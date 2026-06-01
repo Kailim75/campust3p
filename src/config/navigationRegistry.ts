@@ -77,6 +77,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "security",          label: "Sécurité",            icon: Shield,          group: "more", subgroup: "admin",      path: "/security",          pageName: "SecurityStatusPage" },
   { id: "corbeille",         label: "Corbeille",           icon: Trash2,          group: "more", subgroup: "admin",      path: "/corbeille",         pageName: "CorbeillePage" },
   { id: "doublons-contacts", label: "Doublons contacts",   icon: Users,           group: "more", subgroup: "admin",      path: "/doublons-contacts", pageName: "DoublonsContactsPage" },
+  { id: "requalification-contacts", label: "Requalification contacts", icon: Users, group: "more", subgroup: "admin",  path: "/requalification-contacts", pageName: "RequalificationPage" },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   { id: "aide", label: "Aide & mémo", icon: HelpCircle, group: "footer", path: "/aide", pageName: "AidePage" },
