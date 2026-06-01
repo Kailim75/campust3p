@@ -223,6 +223,7 @@ function SidebarContent({
   const { user, signOut } = useAuth();
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [userRole, setUserRole] = useState<string>("Utilisateur");
+  const { data: sidebarRole } = useCurrentUserRole();
 
   useEffect(() => {
     if (!user?.id) return;
