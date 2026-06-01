@@ -20,7 +20,7 @@ function useKPIData() {
       const monthEnd = endOfMonth(now).toISOString();
       const todayStr = now.toISOString().split("T")[0];
 
-      const [facturesRes, sessionsRes, contactsRes, prospectsRes] = await Promise.all([
+      const [facturesRes, sessionsRes, contactsRes, inscriptionsRes, prospectsRes] = await Promise.all([
         supabase.from("factures").select("montant_total, statut, date_emission")
           .not("statut", "eq", "annulee")
           .gte("date_emission", monthStart)
@@ -28,7 +28,13 @@ function useKPIData() {
         supabase.from("sessions").select("id, statut, date_debut, date_fin")
           .eq("archived", false)
           .gte("date_fin", todayStr),
-        supabase.from("contacts").select("id, statut").eq("archived", false),
+        supabase.from("contacts")
+          .select("id, statut, statut_apprenant, archived, deleted_at, is_historical_import, requalification_category")
+          .eq("archived", false)
+          .is("deleted_at", null),
+        supabase.from("session_inscriptions").select("contact_id")
+          .eq("statut", "inscrit")
+          .is("deleted_at", null),
         supabase.from("prospects").select("id, created_at")
           .gte("created_at", monthStart),
       ]);
@@ -36,11 +42,21 @@ function useKPIData() {
       const factures = facturesRes.data || [];
       const sessions = sessionsRes.data || [];
       const contacts = contactsRes.data || [];
+      const inscriptions = inscriptionsRes.data || [];
       const prospects = prospectsRes.data || [];
+
+      const activeInscriptionContactIds = new Set(
+        inscriptions.map((i: any) => i.contact_id).filter(Boolean),
+      );
 
       const caMonth = factures.reduce((s, f) => s + (f.montant_total || 0), 0);
       const activeSessions = sessions.filter(s => s.statut === "en_cours" || s.statut === "a_venir").length;
-      const activeApprenants = contacts.filter(c => c.statut === "En formation théorique" || c.statut === "En formation pratique").length;
+      const activeApprenants = contacts.filter((c: any) =>
+        estOperationnellementActif({
+          ...c,
+          hasActiveInscription: activeInscriptionContactIds.has(c.id),
+        }),
+      ).length;
       const newProspects = prospects.length;
 
       return { caMonth, activeSessions, activeApprenants, newProspects };
