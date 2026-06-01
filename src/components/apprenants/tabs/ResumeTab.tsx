@@ -24,6 +24,7 @@ import { resolveFormationTrack } from "@/lib/formation-track";
 import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requirements";
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
+import { ApprenantTimeline } from "@/components/apprenants/ApprenantTimeline";
 
 interface ResumeTabProps {
   contactId: string;
