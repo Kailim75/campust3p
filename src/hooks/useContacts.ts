@@ -31,6 +31,8 @@ export interface UseContactsPaginatedOptions {
   search?: string;
   statusFilter?: string;
   formationFilter?: string;
+  /** Si true, inclut aussi les imports historiques SmartOF dans la liste. Défaut: false. */
+  inclureHistorique?: boolean;
 }
 
 export function useContactsPaginated({
@@ -39,9 +41,10 @@ export function useContactsPaginated({
   search,
   statusFilter,
   formationFilter,
+  inclureHistorique = false,
 }: UseContactsPaginatedOptions) {
   return useQuery({
-    queryKey: ["contacts", "paginated", page, pageSize, search, statusFilter, formationFilter],
+    queryKey: ["contacts", "paginated", page, pageSize, search, statusFilter, formationFilter, inclureHistorique],
     queryFn: async () => {
       // Count query
       let countQuery = supabase
@@ -56,6 +59,11 @@ export function useContactsPaginated({
         .select("*")
         .eq("archived", false)
         .is("deleted_at", null);
+
+      if (!inclureHistorique) {
+        countQuery = countQuery.eq("is_historical_import", false);
+        dataQuery = dataQuery.eq("is_historical_import", false);
+      }
 
       // Apply filters to both queries
       if (search && search.trim()) {
