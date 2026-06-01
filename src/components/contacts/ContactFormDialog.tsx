@@ -1083,9 +1083,11 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || blockedByActiveDuplicate}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Enregistrer" : "Créer l'apprenant"}
+                {blockedByActiveDuplicate
+                  ? "Création bloquée (doublon actif)"
+                  : isEditing ? "Enregistrer" : "Créer l'apprenant"}
               </Button>
             </div>
           </form>
