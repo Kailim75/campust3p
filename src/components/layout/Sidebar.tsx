@@ -150,7 +150,7 @@ function SidebarNav({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-px">
             {MORE_SUBGROUPS.map((sub) => {
-              const items = MORE_ENTRIES.filter((e) => e.subgroup === sub.id);
+              const items = visibleMore.filter((e) => e.subgroup === sub.id);
               if (!items.length) return null;
               return (
                 <div key={sub.id} className="mt-2 first:mt-1">
