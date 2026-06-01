@@ -25,7 +25,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, type NavSubgroup } from "@/config/navigationRegistry";
+import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, filterEntriesByRole, type NavSubgroup, type SidebarRole } from "@/config/navigationRegistry";
+import { useCurrentUserRole } from "@/hooks/useUsers";
 
 interface SidebarProps {
   activeSection: string;
@@ -80,7 +81,7 @@ function SidebarTooltipItem({ collapsed, label, children }: { collapsed: boolean
 /** Navigation : hubs principaux avec badges + menu « Plus » regroupé par sous-sections. */
 function SidebarNav({
   activeSection, onSectionChange, onItemClick, collapsed,
-  moreOpen, setMoreOpen, isInMore,
+  moreOpen, setMoreOpen, isInMore, role,
 }: {
   activeSection: string;
   onSectionChange: (s: string) => void;
@@ -89,8 +90,12 @@ function SidebarNav({
   moreOpen: boolean;
   setMoreOpen: (v: boolean) => void;
   isInMore: boolean;
+  role: SidebarRole | null | undefined;
 }) {
   const { data: badges } = useSidebarBadges();
+
+  const visibleHubs = filterEntriesByRole(HUB_ENTRIES, role);
+  const visibleMore = filterEntriesByRole(MORE_ENTRIES, role);
 
   const getBadge = (id: string): number => {
     const key = HUB_BADGE_KEY[id];
@@ -102,7 +107,7 @@ function SidebarNav({
     <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-hide">
       {/* Hubs principaux */}
       <div className="space-y-px">
-        {HUB_ENTRIES.map((item) => {
+        {visibleHubs.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           const count = getBadge(item.id);
@@ -145,7 +150,7 @@ function SidebarNav({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-px">
             {MORE_SUBGROUPS.map((sub) => {
-              const items = MORE_ENTRIES.filter((e) => e.subgroup === sub.id);
+              const items = visibleMore.filter((e) => e.subgroup === sub.id);
               if (!items.length) return null;
               return (
                 <div key={sub.id} className="mt-2 first:mt-1">
@@ -185,7 +190,7 @@ function SidebarNav({
               <MoreHorizontal className="h-[17px] w-[17px] flex-shrink-0" />
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-px mt-px">
-              {MORE_ENTRIES.map((item) => {
+              {visibleMore.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
                 return (
@@ -218,6 +223,7 @@ function SidebarContent({
   const { user, signOut } = useAuth();
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [userRole, setUserRole] = useState<string>("Utilisateur");
+  const { data: sidebarRole } = useCurrentUserRole();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -330,6 +336,7 @@ function SidebarContent({
         moreOpen={moreOpen}
         setMoreOpen={setMoreOpen}
         isInMore={isInMore}
+        role={sidebarRole}
       />
 
       {/* ── Footer compact ── */}

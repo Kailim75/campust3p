@@ -1,116 +1,168 @@
 
-# Harmonisation KPI apprenants actifs — exclusion SmartOF
+# Audit navigation CRM — simplification UX sans casse
 
-## Objectif
-Centraliser la règle "apprenant opérationnellement actif" dans un seul helper et refactoriser tous les hooks/composants KPI pour l'utiliser, **sans toucher aux données** ni à `statut_apprenant`. Les SmartOF restent visibles partout (recherche, fiche, requalification, exports historiques).
+## 1. Navigation actuelle (source : `src/config/navigationRegistry.ts`)
 
-## Nouvelle règle centralisée
+**Hubs principaux (5)** : Aujourd'hui · Apprenants · Sessions · Finances · Inbox CRM  
+**Plus / Pilotage commercial** : Pilotage (Dashboard `/`) · Prospects · Alertes  
+**Plus / Production & catalogue** : Catalogue · Produits & Services · Formateurs · Planning conduite · Partenaires  
+**Plus / Qualité & conformité** : Qualité · Attestations retard  
+**Plus / Administration** : Automations · Sécurité · Corbeille · Doublons contacts · Requalification contacts  
+**Footer** : Aide & mémo · Paramètres  
 
-Fichier : `src/lib/apprenant-active.ts`
+**Routes hors registre** (existantes mais hors sidebar) :
+- `/ma-journee` (MaJourneePage)
+- `/formateur` (FormateurPortal)
+- `/actions` (ActionLogs)
+- `/apprenants/portail` (LearnerPortal)
+- `/contacts/:id` (ApprenantFullPage)
+- Routes publiques : `/auth`, `/landing`, `/presentation`, `/onboarding`, `/install`, `/flyer*`, `/signature/*`, `/enquete/:token`, `/certificat`, `/reserver/:token`, `/mentions-legales`, `/politique-confidentialite`, `/reset-password`
 
-```ts
-estOperationnellementActif(contact, options?: { inclureHistorique?: boolean })
-```
+## 2. Doublons / chevauchements détectés
 
-Un contact est **opérationnellement actif** si TOUTES ces conditions sont réunies :
-- `deleted_at` est `null`
-- `archived === false`
-- `is_historical_import !== true` ET `requalification_category !== 'apprenant_historique_smartof'`  
-  (sauf si `options.inclureHistorique === true`)
-- `statut_apprenant` n'est pas `diplome` / `abandon` / `archive`
-- **ET** au moins une de ces deux conditions :
-  - a une inscription session active (`session_inscriptions.statut = 'inscrit'`, `deleted_at IS NULL`)
-  - OU `statut` ∈ { `En formation théorique`, `En formation pratique`, `Examen pratique programmé` }
+| # | Pages | Chevauchement | Recommandation |
+|---|---|---|---|
+| D1 | **Aujourd'hui** (`/aujourdhui`) vs **Ma Journée** (`/ma-journee`) | Deux inbox opérationnelles d'actions du jour | Garder Aujourd'hui comme hub. Ma Journée devient vue alternative accessible via toggle ou route legacy (redirection douce). |
+| D2 | **Pilotage** (Dashboard `/`) vs **Aujourd'hui** | Dashboard contient des KPI + actions du jour qui sont aussi dans Aujourd'hui | Pilotage = vue dirigeante (KPI macro), Aujourd'hui = opérationnel. Statu quo, mais clarifier les libellés via tooltip "Vue stratégique". |
+| D3 | **Alertes** (`/alertes`) vs **Aujourd'hui** (bloc critiques) | Alertes système réapparaissent dans Aujourd'hui/BlocCritiques | Garder Alertes en "Plus / Pilotage" (vue admin). Lien direct depuis BlocCritiques. |
+| D4 | **Apprenants** (`/contacts`) vs **Prospects** (`/prospects`) vs **Doublons contacts** vs **Requalification contacts** | 4 entrées sur le même domaine contact | Apprenants = hub. Prospects reste séparé (pipeline commercial). Doublons + Requalification = outils admin, OK dans "Plus / Administration". |
+| D5 | **Catalogue** vs **Produits & Services** | Catalogue = formations CPF/Qualiopi. Produits = forfaits / vente libre | Renommer "Produits & Services" → **"Forfaits & extras"** pour lever l'ambiguïté. |
+| D6 | **Qualité** vs **Attestations retard** | Attestations retard est une sous-vue qualité | Garder Attestations retard accessible mais comme onglet dans Qualité (à terme). Pour l'instant ne rien casser : conserver la route + le lien Plus. |
+| D7 | **Inbox CRM** (emails) vs blocs RDV / relances dans Aujourd'hui | Émissions email visibles dans plusieurs endroits | Conserver. Inbox = correspondance entrante/sortante, Aujourd'hui = actions à faire. |
 
-**Important** : `Client` seul n'est PAS considéré comme actif opérationnel.
+## 3. Navigation cible (déjà conforme à 95%)
 
-Helpers exportés complémentaires :
-- `estHistoriqueSmartOF(contact)` (déjà existant sous `isHistoricalImport`, on garde alias)
-- `estTermine(contact)` (déjà existant `isTerminated`)
+L'architecture actuelle correspond DÉJÀ aux 5 hubs + 4 sous-sections demandés. Les ajustements proposés sont mineurs et **non destructifs** :
 
-## Fichiers modifiés (frontend uniquement, aucune migration SQL)
-
-### Helper
-1. `src/lib/apprenant-active.ts` — ajout de `estOperationnellementActif` + type `EstActifOptions`. Conserve les helpers existants (rétrocompatibilité).
-
-### Hooks / composants KPI refactorés
-2. `src/components/dashboard/DashboardKPIRow.tsx`  
-   Remplace `c.statut === "En formation théorique" || c.statut === "En formation pratique"` par `estOperationnellementActif(c)`. Ajoute `is_historical_import, requalification_category, deleted_at, statut_apprenant` au SELECT. Joint inscriptions actives.
-
-3. `src/hooks/useDashboardStats.ts` — idem.
-4. `src/hooks/useDashboardDynamicStats.ts` — filtre les listes contacts via helper avant comptage statut.
-5. `src/hooks/useDashboardHealthScore.ts` — exclut SmartOF du score.
-6. `src/hooks/useContacts.ts` (`useContactsStats`) — KPI stats exclut SmartOF par défaut.
-7. `src/hooks/useEnrichedContacts.ts` — ajoute champ `estActifOperationnel` calculé ; ne filtre pas (la liste reste complète, masquage côté UI via toggle).
-8. `src/hooks/usePeriodComparison.ts` — exclut SmartOF des comparaisons.
-9. `src/components/dashboard/StrategicPillars.tsx` — exclut SmartOF.
-10. `src/components/aujourdhui/useAujourdhuiData.ts` — `isContactActive` délègue au helper.
-11. `src/hooks/useDashboardData.ts` — si concerné, idem.
-
-### UI — masquage par défaut + filtre
-12. `src/components/contacts/ContactsTable.tsx` (liste Apprenants) — masque SmartOF par défaut, ajoute toggle "Inclure historiques SmartOF" (badge compteur).
-
-### Tooltips
-13. Ajout d'un `<Tooltip>` sur les cartes "Apprenants actifs" (DashboardKPIRow + StrategicPillars + Aujourd'hui) :  
-    *"Les apprenants historiques importés de SmartOF sont exclus des actifs opérationnels."*
-
-### Tests
-14. `src/lib/__tests__/apprenant-active.test.ts` (nouveau) couvrant les 8 cas listés mission §6.
-
-## Zones NON modifiées (SmartOF reste visible)
-- Recherche globale (`GlobalSearch`, etc.)
-- Fiche contact (`ContactDetailPage`, drawers)
-- Page requalification (`RequalificationPage`)
-- Exports historiques (passeront `inclureHistorique: true`)
-- Aucune modification DB, aucune modification de `statut_apprenant`, aucune écriture
-
-## Anciens calculs remplacés (résumé)
-
-| Fichier | Ancien | Nouveau |
+### Hubs (5)
+| Actuel | Cible | Action |
 |---|---|---|
-| DashboardKPIRow | filter sur `statut` 2 valeurs | `estOperationnellementActif` |
-| useDashboardStats | filter inline `statut` | helper |
-| useDashboardDynamicStats | total = tous non-archivés | total opérationnel via helper |
-| useDashboardHealthScore | comptage brut | exclut SmartOF |
-| useContactsStats | comptage brut | exclut SmartOF |
-| useAujourdhuiData.isContactActive | heuristique `updated_at ≤ 30j` | helper strict |
-| StrategicPillars | filter `statut` | helper |
-| usePeriodComparison | comptage brut | exclut SmartOF |
+| Aujourd'hui | **Aujourd'hui** | inchangé |
+| Apprenants | **Apprenants** | inchangé (libellé "Apprenants" plus inclusif que "Apprentis") |
+| Sessions | **Sessions** | inchangé |
+| Finances | **Finances** | inchangé |
+| Inbox CRM | **Inbox** | renommer label "Inbox CRM" → "Inbox" (path inchangé) |
 
-## Risques
-- **Chute visuelle des KPI** : "Apprenants actifs" passera de N à N - (~365 SmartOF + clients sans inscription). C'est volontaire mais à communiquer. Tooltip ajouté.
-- **Régression liste Apprenants** : masquage par défaut peut surprendre. Toggle visible + compteur "X historiques masqués".
-- **Performances** : besoin de joindre `session_inscriptions` dans les hooks dashboard. Mitigation : 1 seule requête `select id, session_id` filtrée `statut='inscrit'`, Set côté JS.
-- **Aujourd'hui** : `isContactActive` actuel est plus laxiste (`updated_at`). Certains contacts récemment touchés mais sans inscription disparaîtront → conforme à la spec.
+### Plus / Pilotage commercial
+- Pilotage (Dashboard) · Prospects · Alertes · **+ Ma Journée** (ajouter ici en alternative à Aujourd'hui)
 
-## Plan de rollback
-- Pas de migration → rollback = revert des fichiers TS listés ci-dessus.
-- Helper conserve les anciennes fonctions (`isActiveApprenant`, `getActiveReasons`) → aucun appelant cassé pendant la transition.
-- Toggle "Inclure historiques" permet un rollback visuel immédiat pour les utilisateurs.
+### Plus / Production & catalogue
+- Catalogue · **Forfaits & extras** (renommé) · Formateurs · Planning conduite · Partenaires
 
-## Tests à exécuter (mission §6)
-Unitaires (`apprenant-active.test.ts`) :
-1. Actif + inscription active → `true`
-2. SmartOF historique → `false`
-3. Archived → `false`
-4. deleted_at non null → `false`
-5. statut_apprenant=diplome → `false`
-6. statut_apprenant=abandon → `false`
-7. Client sans inscription → `false`
-8. "En formation théorique" sans inscription → `true` (statut métier de parcours)
-9. SmartOF + `{ inclureHistorique: true }` → `true` si reste actif
+### Plus / Qualité & conformité
+- Qualité · Attestations retard
 
-Manuels :
-- Recherche globale retourne SmartOF ✓
-- Fiche contact SmartOF accessible ✓
-- Page requalification liste SmartOF ✓
-- `statut_apprenant` en DB inchangé (vérif SQL `select count` avant/après) ✓
-- KPI Dashboard "Apprenants actifs" diminue du nombre attendu ✓
-- Toggle liste Apprenants ré-affiche SmartOF ✓
+### Plus / Administration
+- Automations · Sécurité · Corbeille · Doublons contacts · Requalification contacts
 
-## Migration nécessaire ?
-**Non.** Aucune SQL, aucune RPC. 100% frontend.
+## 4. Routes à conserver (aucune suppression)
 
----
+100% des routes actuelles restent montées dans `src/App.tsx` (`APP_SECTION_PATHS`). Aucun changement à ce tableau.
 
-Validez ce plan pour que j'applique les modifications.
+Alias legacy déjà gérés via `legacyPaths` dans le registre + `resolveNavTarget()` :
+- `/dashboard` → Pilotage
+- `/apprenants` → Apprenants
+- `/facturation`, `/paiements` → Finances
+- `/parametres` → Paramètres
+
+## 5. Routes à rediriger (ZÉRO)
+
+Aucune redirection forcée. Le fallback intelligent `resolveNavTarget()` continue de résoudre les chemins inconnus (favoris cassés, vieux liens) vers le hub le plus pertinent — comportement déjà en place.
+
+**Ma Journée** : route `/ma-journee` reste accessible. On ajoute simplement une entrée dans la sidebar (Plus / Pilotage) pour la rendre découvrable.
+
+## 6. Libellés clarifiés (centre T3P)
+
+| Avant | Après | Raison |
+|---|---|---|
+| Inbox CRM | **Inbox** | Plus court, contexte CRM implicite |
+| Produits & Services | **Forfaits & extras** | Distingue de Catalogue (formations réglementées) |
+| Pilotage (Dashboard) | **Tableau de bord** | "Pilotage" est le nom du sous-groupe, créait confusion |
+| Doublons contacts | **Doublons** | Sous "Administration" le mot "contacts" est implicite |
+| Requalification contacts | **Requalification** | idem |
+| Attestations retard | **Attestations en retard** | grammaire |
+| Aide & mémo | **Aide** | plus simple |
+
+## 7. Visibilité par rôle
+
+Pas de retrait de droits, juste un **masquage de l'item dans la sidebar** (la route reste accessible si l'utilisateur a l'URL). Implémentation via un champ optionnel `allowedRoles?: Role[]` dans `NavEntry`, filtré côté `Sidebar.tsx`.
+
+| Entrée | dirigeant | admin | staff | formateur | apprenant |
+|---|---|---|---|---|---|
+| Aujourd'hui | ✓ | ✓ | ✓ | – (portail dédié) | – |
+| Apprenants | ✓ | ✓ | ✓ | lecture session | – |
+| Sessions | ✓ | ✓ | ✓ | ses sessions | – |
+| Finances | ✓ | ✓ | ✓ | – | – |
+| Inbox | ✓ | ✓ | ✓ | lecture session | – |
+| Tableau de bord (Pilotage) | ✓ | ✓ | – | – | – |
+| Prospects | ✓ | ✓ | ✓ | – | – |
+| Alertes | ✓ | ✓ | ✓ | – | – |
+| Ma Journée | ✓ | ✓ | ✓ | – | – |
+| Catalogue | ✓ | ✓ | ✓ | lecture | – |
+| Forfaits & extras | ✓ | ✓ | – | – | – |
+| Formateurs | ✓ | ✓ | – | – | – |
+| Planning conduite | ✓ | ✓ | ✓ | ses créneaux | – |
+| Partenaires | ✓ | ✓ | – | – | – |
+| Qualité | ✓ | ✓ | – | – | – |
+| Attestations en retard | ✓ | ✓ | ✓ | – | – |
+| Automations | ✓ | ✓ | – | – | – |
+| Sécurité | ✓ | ✓ | – | – | – |
+| Corbeille | – | ✓ | – | – | – |
+| Doublons | – | ✓ | – | – | – |
+| Requalification | – | ✓ | – | – | – |
+| Paramètres | ✓ | ✓ | profil | profil | – |
+
+**Formateur** : continue d'avoir son portail dédié `/formateur` (sidebar minimaliste actuelle).  
+**Apprenant** : portail séparé `/apprenants/portail`, hors de cette sidebar.
+
+## 8. Risques
+
+| Risque | Mitigation |
+|---|---|
+| Renommage "Inbox CRM" → "Inbox" perdu si recherche utilisateur | tooltip + redirection inchangée |
+| Renommage "Produits & Services" → "Forfaits & extras" | mémoire utilisateur ; ajouter `legacyPaths` n'est pas requis (path inchangé) |
+| Masquage par rôle masque un item qu'un user croyait avoir | accès URL direct toujours fonctionnel ; afficher dans Aide la liste des sections |
+| Ajout `allowedRoles` impacte le test `navigationRegistry.test.ts` | mettre à jour les snapshots en gardant l'ordre |
+| Ma Journée ajouté en double avec Aujourd'hui | l'utiliser pour disambig clairement via icône/sous-titre |
+
+## 9. Plan de rollback
+
+- Aucune modif DB, aucune modif de route → rollback = revert des 3 fichiers TS suivants :
+  - `src/config/navigationRegistry.ts` (libellés + champ `allowedRoles`)
+  - `src/components/layout/Sidebar.tsx` (filtre par rôle)
+  - `src/config/__tests__/navigationRegistry.test.ts` (snapshots)
+- Aucune URL ne change. Aucun favori ne casse.
+- Si le filtre par rôle pose problème : feature flag localStorage `nav_role_filter_enabled` permet de tout réafficher instantanément.
+
+## 10. Tests à effectuer
+
+**Automatisés**
+- `navigationRegistry.test.ts` : 5 hubs max ✓ ; chaque entrée a path + pageName ✓ ; `resolveNavTarget` continue à résoudre `/dashboard`, `/apprenants`, `/facturation`, `/paiements`, `/parametres`.
+- Nouveau test : `allowedRoles` filtre correctement par rôle.
+
+**Manuels (chaque rôle)**
+- dirigeant connecté → voit 5 hubs + tous les sous-groupes "Plus" sauf Corbeille/Doublons/Requalification.
+- admin → voit tout.
+- staff → ne voit pas Forfaits, Formateurs, Partenaires, Automations, Sécurité, Corbeille, Doublons, Requalification, Tableau de bord.
+- formateur → reste sur `/formateur` (portail dédié) ; si bascule sur sidebar principale, ne voit que Sessions/Apprenants/Planning conduite/Catalogue/Inbox/Paramètres en lecture.
+- apprenant → reste sur `/apprenants/portail`.
+
+**Non-régression URL**
+- `/dashboard` → ouvre Pilotage ✓
+- `/apprenants` → ouvre Apprenants ✓
+- `/facturation`, `/paiements` → ouvrent Finances ✓
+- `/parametres` → ouvre Paramètres ✓
+- `/inbox` → ouvre Inbox (libellé court) ✓
+- Tout chemin random → `resolveNavTarget` redirige vers le bon hub ✓
+
+## Synthèse exécutive
+
+La navigation actuelle **est déjà à 95% conforme** à la cible demandée (5 hubs + 4 sous-sections Plus). Les changements sont **purement cosmétiques et de visibilité** :
+
+1. **3 fichiers modifiés**, aucune route ajoutée/supprimée
+2. **7 renommages** de libellés
+3. **1 ajout** : Ma Journée dans Plus/Pilotage (route déjà existante)
+4. **1 champ ajouté** : `allowedRoles?: Role[]` pour masquer par rôle
+5. **0 redirection nouvelle** — `resolveNavTarget` fait déjà le job
+
+Validez ce plan pour appliquer les modifications.

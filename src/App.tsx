@@ -41,7 +41,7 @@ const FlyerTaxiPage = lazy(() => import("./pages/FlyerTaxiPage"));
 const FlyerVMDTRPage = lazy(() => import("./pages/FlyerVMDTRPage"));
 const FlyersPDFPage = lazy(() => import("./pages/FlyersPDFPage"));
 const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
-const MaJourneePage = lazy(() => import("./pages/MaJourneePage"));
+// MaJourneePage is now mounted via Index.tsx (AppShellRoute) — see APP_SECTION_PATHS
 const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
@@ -116,6 +116,7 @@ const APP_SECTION_PATHS = [
   "/requalification-contacts",
   "/attestations-retard",
   "/aide",
+  "/ma-journee",
 ] as const;
 
 const AppShellRoute = () => (
@@ -174,7 +175,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/ma-journee" element={<MaJourneePage />} />
+                {/* /ma-journee est désormais monté via AppShellRoute (APP_SECTION_PATHS) */}
 
                 {/* Apprenant full page */}
                 <Route path="/contacts/:id" element={
