@@ -1,73 +1,116 @@
-# Plan — Action groupée "Marquer comme historique SmartOF"
+
+# Harmonisation KPI apprenants actifs — exclusion SmartOF
 
 ## Objectif
-Ajouter une action de masse sécurisée sur `/requalification-contacts` pour marquer N contacts comme historique SmartOF en une opération, avec validation humaine forte, journalisation par contact, et zéro impact sur statut_apprenant / finances / docs / examens / inscriptions.
+Centraliser la règle "apprenant opérationnellement actif" dans un seul helper et refactoriser tous les hooks/composants KPI pour l'utiliser, **sans toucher aux données** ni à `statut_apprenant`. Les SmartOF restent visibles partout (recherche, fiche, requalification, exports historiques).
 
-## Fichiers concernés
+## Nouvelle règle centralisée
 
-### Modifiés
-- `src/components/requalification/RequalificationPage.tsx` — colonne checkbox, sélection globale, barre d'action quand sélection > 0, bouton "Marquer comme historique SmartOF".
-- `src/hooks/useRequalificationActions.ts` — nouvelle fonction `bulkMarkAsSmartOFHistory(contactIds, comment, reason)` réutilisant la logique unitaire existante en boucle séquentielle, avec collecte d'erreurs ligne par ligne.
-- `src/hooks/useRequalificationContacts.ts` — exposer comptages agrégés pour la modale (factures/paiements/docs/examens/email/tel/formation) à partir des contacts sélectionnés (calcul client à partir des données déjà chargées).
+Fichier : `src/lib/apprenant-active.ts`
 
-### Créés
-- `src/components/requalification/BulkSmartOFDialog.tsx` — modale de confirmation :
-  - KPIs de la sélection (8 compteurs demandés)
-  - Liste des 10 premiers (nom + email)
-  - Champ `raison` (Select avec presets + "autre")
-  - Champ `commentaire` (Textarea, min 10 caractères)
-  - Checkbox de confirmation textuelle obligatoire
-  - Bouton désactivé tant que conditions non remplies
-- `src/components/requalification/BulkResultDialog.tsx` — résultat post-exécution : succès / ignorés / erreurs détaillées + bouton "Exporter CSV".
-- `src/lib/requalification/bulkSelection.ts` — helpers purs (filtrage des éligibles, agrégation des compteurs, génération CSV).
+```ts
+estOperationnellementActif(contact, options?: { inclureHistorique?: boolean })
+```
 
-## Migration / RPC
-**Aucune migration nécessaire.** Le schéma actuel suffit :
-- `contacts` a déjà `is_historical_import`, `import_source`, `imported_at`, `requalification_category`, `requalification_reviewed_at`, `requalification_reviewed_by`.
-- `contact_requalification_log` accepte déjà une ligne par contact.
-- RLS existantes (admin/staff/super_admin + `centre_id`) couvrent l'action groupée.
+Un contact est **opérationnellement actif** si TOUTES ces conditions sont réunies :
+- `deleted_at` est `null`
+- `archived === false`
+- `is_historical_import !== true` ET `requalification_category !== 'apprenant_historique_smartof'`  
+  (sauf si `options.inclureHistorique === true`)
+- `statut_apprenant` n'est pas `diplome` / `abandon` / `archive`
+- **ET** au moins une de ces deux conditions :
+  - a une inscription session active (`session_inscriptions.statut = 'inscrit'`, `deleted_at IS NULL`)
+  - OU `statut` ∈ { `En formation théorique`, `En formation pratique`, `Examen pratique programmé` }
 
-**Pas de RPC** : on réutilise la mutation unitaire existante en séquentiel côté client (max 200 contacts par action). Avantage : journalisation et erreurs déjà gérées, pas de transaction partielle silencieuse. Si plus de 200 sélectionnés → bloquer avec message.
+**Important** : `Client` seul n'est PAS considéré comme actif opérationnel.
 
-## Garde-fous
-- Bouton groupé masqué si rôle ≠ admin/staff/super_admin (déjà filtré par RLS, redondance UI).
-- Filtrage côté client avant envoi :
-  - exclure contacts déjà `requalification_category = 'apprenant_historique_smartof'` ou `is_historical_import = true`
-  - exclure contacts `deleted_at IS NOT NULL`
-- Action désactivée si sélection vide après filtrage.
-- Commentaire < 10 caractères → bouton désactivé.
-- Checkbox de confirmation non cochée → bouton désactivé.
-- `statut_apprenant` n'est **jamais** dans le payload UPDATE.
-- Aucune écriture sur `session_inscriptions`, `factures`, `paiements`, `contact_documents`, `examens_t3p`.
+Helpers exportés complémentaires :
+- `estHistoriqueSmartOF(contact)` (déjà existant sous `isHistoricalImport`, on garde alias)
+- `estTermine(contact)` (déjà existant `isTerminated`)
+
+## Fichiers modifiés (frontend uniquement, aucune migration SQL)
+
+### Helper
+1. `src/lib/apprenant-active.ts` — ajout de `estOperationnellementActif` + type `EstActifOptions`. Conserve les helpers existants (rétrocompatibilité).
+
+### Hooks / composants KPI refactorés
+2. `src/components/dashboard/DashboardKPIRow.tsx`  
+   Remplace `c.statut === "En formation théorique" || c.statut === "En formation pratique"` par `estOperationnellementActif(c)`. Ajoute `is_historical_import, requalification_category, deleted_at, statut_apprenant` au SELECT. Joint inscriptions actives.
+
+3. `src/hooks/useDashboardStats.ts` — idem.
+4. `src/hooks/useDashboardDynamicStats.ts` — filtre les listes contacts via helper avant comptage statut.
+5. `src/hooks/useDashboardHealthScore.ts` — exclut SmartOF du score.
+6. `src/hooks/useContacts.ts` (`useContactsStats`) — KPI stats exclut SmartOF par défaut.
+7. `src/hooks/useEnrichedContacts.ts` — ajoute champ `estActifOperationnel` calculé ; ne filtre pas (la liste reste complète, masquage côté UI via toggle).
+8. `src/hooks/usePeriodComparison.ts` — exclut SmartOF des comparaisons.
+9. `src/components/dashboard/StrategicPillars.tsx` — exclut SmartOF.
+10. `src/components/aujourdhui/useAujourdhuiData.ts` — `isContactActive` délègue au helper.
+11. `src/hooks/useDashboardData.ts` — si concerné, idem.
+
+### UI — masquage par défaut + filtre
+12. `src/components/contacts/ContactsTable.tsx` (liste Apprenants) — masque SmartOF par défaut, ajoute toggle "Inclure historiques SmartOF" (badge compteur).
+
+### Tooltips
+13. Ajout d'un `<Tooltip>` sur les cartes "Apprenants actifs" (DashboardKPIRow + StrategicPillars + Aujourd'hui) :  
+    *"Les apprenants historiques importés de SmartOF sont exclus des actifs opérationnels."*
+
+### Tests
+14. `src/lib/__tests__/apprenant-active.test.ts` (nouveau) couvrant les 8 cas listés mission §6.
+
+## Zones NON modifiées (SmartOF reste visible)
+- Recherche globale (`GlobalSearch`, etc.)
+- Fiche contact (`ContactDetailPage`, drawers)
+- Page requalification (`RequalificationPage`)
+- Exports historiques (passeront `inclureHistorique: true`)
+- Aucune modification DB, aucune modification de `statut_apprenant`, aucune écriture
+
+## Anciens calculs remplacés (résumé)
+
+| Fichier | Ancien | Nouveau |
+|---|---|---|
+| DashboardKPIRow | filter sur `statut` 2 valeurs | `estOperationnellementActif` |
+| useDashboardStats | filter inline `statut` | helper |
+| useDashboardDynamicStats | total = tous non-archivés | total opérationnel via helper |
+| useDashboardHealthScore | comptage brut | exclut SmartOF |
+| useContactsStats | comptage brut | exclut SmartOF |
+| useAujourdhuiData.isContactActive | heuristique `updated_at ≤ 30j` | helper strict |
+| StrategicPillars | filter `statut` | helper |
+| usePeriodComparison | comptage brut | exclut SmartOF |
 
 ## Risques
-| Risque | Mitigation |
-|---|---|
-| Marquage en masse d'apprenants réellement actifs | Modale affiche compteurs business (factures/paiements/docs/examens) avant validation ; commentaire + checkbox textuelle obligatoires |
-| Échec partiel (N succès, M erreurs) | Exécution séquentielle, collecte ligne par ligne, modale résultat détaillée, journal écrit avant UPDATE pour chaque contact |
-| Surcharge réseau si grosse sélection | Limite dure 200 contacts/action, avec progression visible |
-| Régression KPIs dashboard | `is_historical_import` exclut déjà via `apprenant-active.ts`, invalidation des queries `enriched-contacts` après action |
+- **Chute visuelle des KPI** : "Apprenants actifs" passera de N à N - (~365 SmartOF + clients sans inscription). C'est volontaire mais à communiquer. Tooltip ajouté.
+- **Régression liste Apprenants** : masquage par défaut peut surprendre. Toggle visible + compteur "X historiques masqués".
+- **Performances** : besoin de joindre `session_inscriptions` dans les hooks dashboard. Mitigation : 1 seule requête `select id, session_id` filtrée `statut='inscrit'`, Set côté JS.
+- **Aujourd'hui** : `isContactActive` actuel est plus laxiste (`updated_at`). Certains contacts récemment touchés mais sans inscription disparaîtront → conforme à la spec.
 
 ## Plan de rollback
-1. **Logique** (par contact) : ré-ouvrir la fiche dans `/requalification-contacts`, choisir "Réintégrer dans actifs" (action existante qui repasse `is_historical_import=false` et `requalification_category=NULL`), avec nouvelle ligne de journal `action_type='rollback'`.
-2. **Bulk** (futur, pas dans ce ticket) : un rollback groupé pourrait être ajouté ultérieurement, basé sur le `contact_requalification_log` (filtrer par `user_id` + plage horaire + `action_type='mark_smartof'`).
-3. **Code** : revert des 3 nouveaux fichiers + diff des 3 fichiers modifiés — aucune migration à défaire.
+- Pas de migration → rollback = revert des fichiers TS listés ci-dessus.
+- Helper conserve les anciennes fonctions (`isActiveApprenant`, `getActiveReasons`) → aucun appelant cassé pendant la transition.
+- Toggle "Inclure historiques" permet un rollback visuel immédiat pour les utilisateurs.
 
-## Tests manuels
-1. Sélection 1 contact → modale affiche "1 contact", compteurs corrects, action ok.
-2. Sélection 20 contacts mixtes → compteurs business exacts, liste 10 premiers affichée, action ok, 20 lignes dans `contact_requalification_log`.
-3. Sélection incluant 5 contacts déjà SmartOF → ignorés silencieusement, modale dit "15 traités / 5 ignorés".
-4. Utilisateur formateur (rôle non autorisé) → page inaccessible (déjà géré par route).
-5. Commentaire vide ou < 10 chars → bouton "Confirmer" disabled.
-6. Checkbox non cochée → bouton disabled.
-7. Vérifier en base : `statut_apprenant` inchangé sur tous les contacts traités.
-8. Recharger `/apprenants` → contacts traités ne sont plus dans la liste "actifs".
-9. Export CSV → contient id, nom, email, statut traité/ignoré/erreur, message.
+## Tests à exécuter (mission §6)
+Unitaires (`apprenant-active.test.ts`) :
+1. Actif + inscription active → `true`
+2. SmartOF historique → `false`
+3. Archived → `false`
+4. deleted_at non null → `false`
+5. statut_apprenant=diplome → `false`
+6. statut_apprenant=abandon → `false`
+7. Client sans inscription → `false`
+8. "En formation théorique" sans inscription → `true` (statut métier de parcours)
+9. SmartOF + `{ inclureHistorique: true }` → `true` si reste actif
 
-## Ordre d'implémentation
-1. `bulkSelection.ts` (logique pure, testable)
-2. `useRequalificationActions.ts` — ajouter `bulkMarkAsSmartOFHistory`
-3. `BulkSmartOFDialog.tsx` + `BulkResultDialog.tsx`
-4. `RequalificationPage.tsx` — intégration sélection + barre d'action
+Manuels :
+- Recherche globale retourne SmartOF ✓
+- Fiche contact SmartOF accessible ✓
+- Page requalification liste SmartOF ✓
+- `statut_apprenant` en DB inchangé (vérif SQL `select count` avant/après) ✓
+- KPI Dashboard "Apprenants actifs" diminue du nombre attendu ✓
+- Toggle liste Apprenants ré-affiche SmartOF ✓
 
-Aucune base de données modifiée. Aucun comportement existant cassé.
+## Migration nécessaire ?
+**Non.** Aucune SQL, aucune RPC. 100% frontend.
+
+---
+
+Validez ce plan pour que j'applique les modifications.
