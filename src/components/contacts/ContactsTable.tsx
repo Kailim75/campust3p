@@ -75,12 +75,13 @@ export function ContactsTable() {
   const [formationFilter, setFormationFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const [inclureHistorique, setInclureHistorique] = useState(false);
 
   // Debounce search for server queries
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Reset page when filters change
-  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter, formationFilter]);
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter, formationFilter, inclureHistorique]);
   
   // Server-side paginated query
   const { data: paginatedResult, isLoading, error } = useContactsPaginated({
@@ -89,6 +90,7 @@ export function ContactsTable() {
     search: debouncedSearch,
     statusFilter,
     formationFilter,
+    inclureHistorique,
   });
 
   // Keep full contacts list for formation filter options & exports
