@@ -1,103 +1,165 @@
-# Refonte fiche session — vue opérationnelle de pilotage
+# Audit & Simplification du module Finances
 
-## État actuel
-`SessionDetailSheet.tsx` (742 l.) affiche 7 onglets : **Infos · Inscrits · Docs · Parcours · Finances · Qualiopi · Émargement**. Composants en place :
-- `SessionDetailHeader` (titre, badges, formateur, bouton Modifier).
-- `SessionKPICockpit` (40 l. — sous-utilisé).
-- `SessionQualiopiTab` (640 l. — concentre alertes Qualiopi, formateur, docs, émargement, satisfaction).
-- `SessionFinancesTabContent`, `SessionInscritsTable`, `SessionParcoursTab`, `EmargementSheet`, `SessionDocumentMatrixView`, `DocumentEnvoiHistoryPanel`.
-- `SessionClosureWizard` (3 étapes : Attestations · Satisfaction · Export Pack Audit) déclenché depuis l'onglet Infos (`setCloseDialogOpen`).
-- `CloseSessionDialog` (existant, simple confirmation legacy).
-- `SessionQuickActions` (142 l.) déjà disponible mais non monté dans le sheet.
+## 1. État actuel
 
-## Problèmes UX identifiés
-1. **Pas de Résumé opérationnel** : l'onglet "Infos" est purement descriptif (dates, lieu, prix, objectifs) — aucun indicateur "ce qu'il reste à faire".
-2. **Doublons fonctionnels** : actions de Qualiopi (envoyer docs, ouvrir émargement, enquête) recoupent Documents / Émargement / Finances ; la matrice docs apparaît dans deux onglets implicitement.
-3. **Planning/Formateurs dispersé** : horaires dans Infos, formateur dans le header, émargement à part, parcours pédagogique séparé.
-4. **Clôture peu sécurisée** : bouton "Clôturer" dans Infos n'est désactivé que si `inscriptionCount === 0` — pas de vérification émargements/paiements/attestations avant ouverture du wizard.
-5. **Aucune timeline** : difficile de répondre à "où en est la session ?" sans naviguer dans 4 onglets.
-6. **Manque action ciblées** : "Générer attestations en masse", "Relancer paiements en retard", "Compléter émargements manquants" demandent plusieurs clics et changement d'onglet.
+**Route unique** : `/finances` → `FinancesPage` (4 onglets de 1er niveau).
 
-## Structure cible — 7 onglets max
-| # | Onglet | Contenu |
-|---|--------|---------|
-| 1 | **Résumé** | KPIs opérationnels + alertes Qualiopi + timeline + raccourcis actions |
-| 2 | **Inscrits** | `SessionInscritsTable` (inchangé) — actions par apprenant |
-| 3 | **Planning / Formateurs** | Dates, horaires, lieu, formateur(s) assigné(s), parcours pédagogique (fusion `Infos` descriptif + `Parcours`) |
-| 4 | **Documents** | `SessionDocumentMatrixView` + `DocumentEnvoiHistoryPanel` (inchangé) |
-| 5 | **Émargement** | `EmargementSheet` (inchangé) |
-| 6 | **Examens / Évaluations** | Examens pratiques + théoriques liés à la session + envoi enquête satisfaction |
-| 7 | **Finances / Clôture** | `SessionFinancesTabContent` + bouton Clôture (wizard sécurisé) + Pack Audit + Archive |
+```
+Finances (/finances)
+├── Facturation (FacturationUnifiedPage)
+│   ├── 4 KPI (Devis, À encaisser, Encaissé, Recouvrement)
+│   ├── FacturationIntelligence (prédictif)
+│   ├── FacturationAuditPanel
+│   └── Sous-onglets : Factures (PaiementsPage) | Devis (DevisPage) | Par session (AnalyseParSession)
+├── Trésorerie (TresoreriePage)
+│   └── Dashboard | Import relevés | Rapprochement | Prévisions
+├── Analyse (CockpitFinancierPage)
+│   └── Vue d'ensemble | Revenus | Charges | Prévisionnel
+└── Réconciliation Alma (AlmaReconciliationPage)
+```
 
-L'onglet "Qualiopi" actuel est **absorbé** : alertes → Résumé ; envois docs/satisfaction → Documents / Examens ; assignation formateur → Planning.
+**Légendes legacy** : `legacyPaths: ["facturation","paiements"]` redirigés vers `/finances` (préservés).
 
-### Détail Onglet 1 — Résumé
-Bloc unique `SessionResumeTab` composé de :
-- **Cartes KPI** (grille 4×2 desktop, 2×4 mobile) :
-  - Inscrits / Places (`inscriptionCount / places_totales`)
-  - Places restantes
-  - Taux de remplissage (% + barre Progress)
-  - Documents manquants (depuis `SessionDocumentMatrixView` agrégat)
-  - Paiements en retard (depuis `SessionFinancesTabContent` agrégat)
-  - Émargements manquants (calcul jours × inscrits − feuilles signées)
-  - Évaluations à envoyer (apprenants sans `enquete_envoyee_at`)
-  - Attestations à générer (apprenants sans `attestation_generated_at`)
-- **Bloc alertes Qualiopi** : extrait de `useSessionQualiopi` — liste compacte des critères en `warning`/`error`.
-- **Timeline session** (nouveau composant `SessionTimeline` + hook `useSessionTimeline`, agrégation lecture seule depuis : `sessions.created_at`, `session_inscriptions.created_at`, `contact_documents` (scope session), `paiements` (via inscriptions), `emargement_*`, `examens_*`, `contact_historique` filtré, `session.archived_at` / clôture).
-- **Raccourcis actions** (réutilisent dialogs/onglets existants, aucune écriture directe) : Inscrire un apprenant · Envoyer documents en masse · Relancer paiements · Compléter émargement · Envoyer satisfaction · Ouvrir clôture.
+**Hooks de calcul actifs** :
+- `useDashboardData` → `caFacture`, `encaissements`, `resteAEncaisser`, `panierMoyen` (source de vérité Dashboard).
+- `useFinancialData` / `useFinancialCockpit` → utilisés par le Cockpit (Vue, Revenus, Charges, Prévisionnel).
+- `useTreasuryKPIs` → encaissements mois actuel / précédent.
+- `useFactures` / `useFacturesPaginated` → totaux client-side dans `PaiementsPage` + `FacturationUnifiedPage`.
+- `useSessionFinancials` → CA par session.
+- `useRappelsFinancials`, `useFacturationAudit`.
 
-### Détail Onglet 7 — Clôture sécurisée
-- Refactor de `SessionClosureWizard` pour ajouter une **étape 0 "Préchecks"** :
-  - Émargements obligatoires manquants → **bloquant** (impossible d'avancer).
-  - Paiements non soldés → alerte non bloquante, justification à saisir.
-  - Attestations non générées → alerte non bloquante, propose génération guidée.
-  - Satisfaction non envoyée → alerte non bloquante.
-  - Case "Je confirme la clôture en tant qu'admin" (rôle vérifié via `useCurrentUserRole`) obligatoire avant écriture.
-- Aucune clôture automatique. Aucune génération en masse sans confirmation explicite. Journalisation : insertion `contact_historique` par apprenant + entrée `audit_log` (table existante si présente, sinon `apprenant_status_log`) pour l'action `session_cloturee`.
+## 2. Problèmes détectés (UX + cohérence)
 
-## Composants à modifier ou créer
-**Créés**
-- `src/components/sessions/tabs/SessionResumeTab.tsx`
-- `src/components/sessions/tabs/SessionPlanningTab.tsx` (fusion descriptif + parcours)
-- `src/components/sessions/tabs/SessionExamensTab.tsx` (extrait de Parcours + bouton satisfaction)
-- `src/components/sessions/tabs/SessionClotureTab.tsx` (wrapper Finances + bouton clôture)
-- `src/components/sessions/SessionTimeline.tsx`
-- `src/hooks/useSessionTimeline.ts` (lecture seule, agrège 6 sources)
-- `src/hooks/useSessionOperationalKpis.ts` (calcule les 8 KPI résumé)
+### Doublons d'écrans
+- **3 dashboards financiers concurrents** affichant des KPI similaires :
+  - `FacturationUnifiedPage` (CA facturé, Encaissé, À encaisser, Recouvrement)
+  - `PaiementsPage` (CA facturé, Encaissé, Reste à encaisser, Taux recouvrement)
+  - `CockpitFinancierPage › VueEnsembleTab` (CA Encaissé, Charges, Résultat)
+- **2 vues "Prévisionnel"** : `CockpitFinancier › Prévisionnel` et `Trésorerie › Prévisions` (objet différent mais nom confondant).
+- **Encaissements** calculés à 3 endroits : `useDashboardData`, `useTreasuryKPIs`, `PaiementsPage` (client-side).
 
-**Modifiés**
-- `src/components/sessions/SessionDetailSheet.tsx` : nouvelle liste d'onglets, mapping vers nouveaux tabs ; conserve les onglets `inscriptions`, `documents`, `emargement` à l'identique.
-- `src/components/sessions/SessionClosureWizard.tsx` : ajout étape Préchecks + confirmation rôle admin.
-- `src/components/sessions/SessionDetailHeader.tsx` : aucun changement structurel, conservé.
+### Doublons de calcul (mêmes notions, formules divergentes)
+| KPI | Lieux de calcul | Divergence |
+|---|---|---|
+| CA facturé | `useDashboardData` (exclut `brouillon`) ; `FacturationUnifiedPage` (inclut TOUTES factures, sans filtre statut) ; `PaiementsPage › stats.total` (exclut `brouillon`) | `FacturationUnifiedPage` peut compter `annulee` et `brouillon` dans le total |
+| Encaissé | `useDashboardData` (somme `paiements`) ; `FacturationUnifiedPage` (somme `montant_total` des factures `payee`) ; `PaiementsPage › stats.paye` | `FacturationUnifiedPage` ignore les paiements partiels et compte `montant_total` au lieu de `total_paye` |
+| Reste à encaisser / À encaisser | `useDashboardData.resteAEncaisser` ; `FacturationUnifiedPage.totalImpaye = totalFactures - totalPaye` ; `PaiementsPage.stats.impaye` | Idem : la formule de `FacturationUnifiedPage` est fausse en présence de partiels et d'annulées |
+| Taux recouvrement | `FacturationUnifiedPage` (totalPaye / totalFactures) ; `PaiementsPage` (variante) | Bases différentes |
 
-**Non modifiés / inchangés**
-- `SessionInscritsTable`, `EmargementSheet`, `SessionDocumentMatrixView`, `DocumentEnvoiHistoryPanel`, `SessionFinancesTabContent`, `SessionQualiopiTab` (gardé en fichier pour rétro-compat, plus monté).
-- Toutes les tables DB, RLS, GRANT, triggers. Aucune migration.
-- Routes : aucune supprimée. Les anciens `defaultTab="qualiopi"` ou `parcours` sont remappés en code vers `resume` / `planning` / `examens`.
+### UX
+- 3 niveaux d'onglets imbriqués (Finances → Facturation → Factures/Devis/Sessions) → friction.
+- Pas d'onglet "Pilotage" dédié : les KPI consolidés sont dispersés.
+- "Devis" enterré au 3e niveau alors que c'est une entité de 1er rang.
+- Charges et Prévisionnel cachés dans "Analyse".
+- `FacturationAuditPanel` toujours visible (bruit hors-contexte).
+- Pas de distinction visuelle claire entre statuts `brouillon` / `emise` / `partiel` / `payee` / `impayee` / `annulee` dans les KPI cards.
 
-## Risques
-- **R1** Régression sur des deep-links `?tab=qualiopi` ou `?tab=parcours` → mitigé par remap d'alias dans `SessionDetailSheet`.
-- **R2** KPI résumé incohérents avec ceux de Finances/Docs → mitigé en branchant sur les mêmes hooks que les onglets sources, pas de recalcul parallèle.
-- **R3** Timeline coûteuse en requêtes → mitigé par 1 hook unique, `staleTime` 60 s, pagination 100 entrées.
-- **R4** Wizard de clôture bloquant trop strict → préchecks bloquants limités aux émargements obligatoires ; le reste est alerte avec justification.
-- **R5** Action "Relancer paiements" perçue comme automatique → toujours via modal de confirmation, jamais d'envoi sans clic explicite.
-- **R6** Rôle admin mal détecté côté UI → la confirmation UI ne remplace pas la RLS ; toute écriture passe par les policies existantes.
+## 3. Règles de calcul actuelles (à figer comme contrat)
 
-## Plan de rollback
-Purement frontend, aucune migration. Revert = restaurer `SessionDetailSheet.tsx` et `SessionClosureWizard.tsx`, supprimer les 4 nouveaux fichiers de `tabs/` + `SessionTimeline.tsx` + 2 hooks. Les composants enfants (`SessionInscritsTable`, etc.) ne sont pas touchés. Feature flag possible : `VITE_SESSION_V2_RESUME=true` pour bascule progressive.
+```text
+Référentiel statuts factures : brouillon | emise | partiel | payee | impayee | annulee
+Référentiel statuts devis    : brouillon | envoye | accepte | refuse | expire | converti
+Soft delete                  : deleted_at IS NULL partout
+```
 
-## Tests à effectuer
-1. **Affichage onglets** : ouvrir une session active → 7 onglets visibles, Résumé sélectionné par défaut.
-2. **Deep-link rétro-compat** : `?tab=qualiopi` ouvre Résumé sans erreur ; `?tab=parcours` ouvre Planning.
-3. **KPI cohérents** : valeurs Résumé = valeurs onglets sources (test sur 1 session pleine, 1 session vide, 1 session terminée).
-4. **Timeline ordre** : événements triés desc, badges types corrects, pas d'écriture DB observable au chargement.
-5. **Raccourcis Résumé** : chaque bouton ouvre le bon onglet/dialog, aucun appel mutate spontané.
-6. **Clôture bloquée** : session avec émargements manquants → bouton Clôturer désactivé + message explicatif.
-7. **Clôture avec alertes non bloquantes** : paiements non soldés → modal demande justification + checkbox admin avant de continuer.
-8. **Clôture nominale** : tous critères verts → wizard complet → entrée écrite dans `contact_historique` et statut session passé à `terminee`.
-9. **Aucune action automatique** : ouvrir/fermer Résumé 10×, vérifier 0 mutation réseau.
-10. **Mobile 375 px** : KPI en grille 2 col, onglets scrollables, timeline lisible.
-11. **Rôle non-admin** : checkbox de confirmation admin grisée → wizard non finalisable.
-12. **KPI dashboard global et apprenants actifs** : valeurs inchangées avant/après.
+**Source de vérité (useDashboardData) — à promouvoir partout** :
+- `caFacture` = Σ `factures.montant_total` WHERE `statut <> 'brouillon'` AND `statut <> 'annulee'` AND `date_emission ∈ période` AND `deleted_at IS NULL`.
+- `encaissements` = Σ `paiements.montant` WHERE `date_paiement ∈ période` AND `deleted_at IS NULL` (paiements liés à factures non annulées).
+- `resteAEncaisser` = Σ (`montant_total - total_paye`) WHERE `statut ∈ ('emise','partiel','impayee')` AND `deleted_at IS NULL` (instantané, hors période).
+- `panierMoyen` = `caFacture / inscriptionsCount` sur la période.
+- `paiementsRetard` = factures `statut ∈ ('emise','partiel')` AND `date_echeance < today` AND `total_paye < montant_total`.
 
-Pas d'écriture, pas de migration, pas de suppression de routes — j'attends ta validation avant d'implémenter.
+**Incohérences à corriger** (sans toucher la DB) :
+- `FacturationUnifiedPage` : remplacer les agrégats client-side par les valeurs de `useDashboardData` (ou un sélecteur dérivé).
+- `PaiementsPage.stats` : aligner la sémantique de `paye` (somme des `paiements` et non `montant_total` des factures `payee`) pour gérer les partiels correctement.
+
+## 4. Structure cible (7 onglets, sans suppression de route)
+
+```
+/finances  (FinancesPage — refonte de la TabsList)
+├── 1. Pilotage          → nouveau FinancesPilotageTab (KPI consolidés + alertes)
+├── 2. Factures          → PaiementsPage (existant, KPI internes masqués au profit du Pilotage)
+├── 3. Paiements         → nouvelle vue PaiementsListTab (liste des paiements purs, dérivée de useTreasuryKPIs/usePaiements)
+├── 4. Devis             → DevisPage (promu au 1er niveau)
+├── 5. Trésorerie        → TresoreriePage (inchangé : Dashboard / Import / Rapprochement / Prévisions)
+├── 6. Charges           → CockpitFinancierPage › ChargesTab (extrait au 1er niveau)
+└── 7. Prévisionnel      → CockpitFinancierPage › PrevisionnelTab (extrait au 1er niveau)
+```
+
+Sous-onglet supplémentaire conservé dans Pilotage : "Analyse par session" (`AnalyseParSession`) + "Réconciliation Alma" (`AlmaReconciliationPage`) accessibles via cartes secondaires (pas de perte de route).
+
+**Mapping des deep-links existants (rétro-compat 100%)** :
+- `?tab=factures` → onglet Factures
+- `?tab=tresorerie` → onglet Trésorerie
+- `?tab=analyse` → onglet Pilotage (remap)
+- `?tab=alma` → onglet Pilotage > carte Alma (ou conserver tab Alma caché)
+- `?tab=devis` → onglet Devis
+- `?tab=charges` / `?tab=previsionnel` → nouveaux onglets dédiés
+- `/facturation` et `/paiements` (legacyPaths) → inchangés.
+
+## 5. Fichiers concernés
+
+**Nouveaux (frontend uniquement)** :
+- `src/components/finances/FinancesPilotageTab.tsx` — KPI consolidés (CA facturé, Encaissé, Reste à encaisser, Panier moyen, Recouvrement, Retards) basés sur `useDashboardData`.
+- `src/components/finances/PaiementsListTab.tsx` — liste pure des paiements (filtrable, exportable), basée sur les hooks existants.
+- `src/hooks/useFinancesKpis.ts` — wrapper *read-only* qui ré-expose `useDashboardData` + `useTreasuryKPIs` sous un contrat unique, pour éliminer les recalculs locaux.
+
+**Modifiés (refonte de la TabsList + délégation des KPI)** :
+- `src/components/finances/FinancesPage.tsx` — passe de 4 à 7 onglets, ajoute mapping legacy.
+- `src/components/facturation/FacturationUnifiedPage.tsx` — supprime ses propres agrégats, consomme `useFinancesKpis`. (Conservé pour rétro-compat si utilisé ailleurs.)
+- `src/components/paiements/PaiementsPage.tsx` — corrige `stats.paye` (somme des paiements), masque ses KPI quand monté depuis `FinancesPilotageTab` (prop `embedded`).
+- `src/components/cockpit-financier/CockpitFinancierPage.tsx` — devient un conteneur léger pour Vue/Revenus, conserve les sous-onglets mais Charges & Prévisionnel sont aussi exposés au 1er niveau.
+
+**Inchangés** :
+- Toutes les routes (`/finances`, legacyPaths).
+- `useDashboardData`, `useFinancialData`, `useTreasuryKPIs`, `useFactures`, `useSessionFinancials`.
+- DB, RLS, edge functions, exports (FEC, CSV, PDF, Factur-X, PDP).
+- Composants de génération de factures et signatures.
+
+## 6. Garde-fous (contrat de non-régression)
+
+- Aucune écriture DB ; aucune migration.
+- Aucune route supprimée ; tous les deep-links répondent.
+- `statut = 'annulee'` jamais compté dans `caFacture` ou `encaissements`.
+- `statut = 'brouillon'` jamais compté dans le CA actif (déjà géré dans `useDashboardData`, à propager).
+- Distinction stricte facturé vs encaissé conservée dans toutes les cards.
+- Partiels = `total_paye > 0 AND total_paye < montant_total`, jamais agrégés comme `payee`.
+- Exports (FEC, CSV, PDP, Factur-X) inchangés.
+
+## 7. Risques
+
+| Risque | Probabilité | Mitigation |
+|---|---|---|
+| Régression deep-link sur ancien onglet | Moyenne | Table de mapping explicite + tests manuels |
+| Cards Pilotage = chiffres ≠ Dashboard | Moyenne | Source unique `useFinancesKpis` |
+| `PaiementsPage` cassé par prop `embedded` | Faible | Prop optionnelle, défaut = comportement actuel |
+| Charges/Prévisionnel cassés par double-montage | Faible | Composants déjà autonomes, contexte de date partagé via prop `range` |
+| Confusion utilisateur durant la transition | Moyenne | Conserver intitulés FR familiers, sous-titres descriptifs |
+
+## 8. Plan de rollback
+
+- Refonte 100% frontend, isolée dans `FinancesPage.tsx` + 2 nouveaux fichiers.
+- 1 commit unique → rollback = revert.
+- Aucune migration DB → aucune action côté backend.
+- Drapeau optionnel `VITE_FINANCES_V2=true` pour déploiement progressif (fallback = ancien 4-onglets).
+
+## 9. Tests à effectuer
+
+1. `/finances` ouvre l'onglet **Pilotage** par défaut.
+2. Les 6 KPI du Pilotage = valeurs du Dashboard pour la même période.
+3. `/finances?tab=factures` ouvre Factures, `?tab=tresorerie` Trésorerie, `?tab=analyse` Pilotage (remap), `?tab=alma` accessible.
+4. `/facturation` et `/paiements` (legacyPaths) redirigent vers `/finances` sans 404.
+5. Onglet Factures : créer / éditer / annuler une facture fonctionne (aucune régression sur `PaiementsPage`).
+6. Onglet Devis : créer / convertir un devis fonctionne (aucune régression sur `DevisPage`).
+7. Trésorerie : Import, Rapprochement, Prévisions chargent et affichent les mêmes données qu'avant.
+8. Charges : ajout / édition / suppression de charge fonctionne.
+9. Prévisionnel : projections affichées identiques à l'ancien onglet Analyse > Prévisionnel.
+10. Une facture `annulee` n'apparaît dans aucun KPI (CA, encaissé, reste à encaisser).
+11. Une facture `partiel` (ex: 1000€ total, 400€ payés) apparaît : CA facturé +1000€, Encaissé +400€, Reste à encaisser +600€.
+12. Exports FEC, CSV factures, PDF facture, Factur-X, PDP : tous fonctionnels et identiques.
+13. Mobile 375px : les 7 onglets scrollent horizontalement, aucun overflow.
+14. Bandeau Alma sandbox toujours visible en mode test.
+
+---
+
+**N'applique rien tant que ce plan n'est pas validé.**
