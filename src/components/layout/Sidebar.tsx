@@ -25,7 +25,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, type NavSubgroup } from "@/config/navigationRegistry";
+import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, filterEntriesByRole, type NavSubgroup, type SidebarRole } from "@/config/navigationRegistry";
+import { useCurrentUserRole } from "@/hooks/useUsers";
 
 interface SidebarProps {
   activeSection: string;
