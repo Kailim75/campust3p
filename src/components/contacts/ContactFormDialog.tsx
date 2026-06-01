@@ -181,6 +181,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
       setShowCompleteForm(false);
       setSelectedSessionId("");
       clearDuplicates();
+      activeDup.clear();
       form.reset({
         civilite: null,
         nom: "",
