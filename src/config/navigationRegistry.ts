@@ -90,7 +90,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   // Administration
   { id: "automations",              label: "Automations",     icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin"] },
   { id: "security",                 label: "Sécurité",        icon: Shield, group: "more", subgroup: "admin", path: "/security",                 pageName: "SecurityStatusPage",   allowedRoles: ["super_admin", "admin"] },
-  { id: "documents-systeme",        label: "État documents",  icon: Shield, group: "more", subgroup: "admin", path: "/admin/documents-systeme",  pageName: "DocumentSystemStatePage", allowedRoles: ["super_admin", "admin"] },
+  { id: "documents-systeme",        label: "État du système documentaire", icon: Shield, group: "more", subgroup: "admin", path: "/admin/documents-systeme",  pageName: "DocumentSystemStatePage", allowedRoles: ["super_admin", "admin"] },
   { id: "corbeille",                label: "Corbeille",       icon: Trash2, group: "more", subgroup: "admin", path: "/corbeille",                pageName: "CorbeillePage",        allowedRoles: ["admin"] },
   { id: "doublons-contacts",        label: "Doublons",        icon: Users,  group: "more", subgroup: "admin", path: "/doublons-contacts",        pageName: "DoublonsContactsPage", allowedRoles: ["admin"] },
   { id: "requalification-contacts", label: "Requalification", icon: Users,  group: "more", subgroup: "admin", path: "/requalification-contacts", pageName: "RequalificationPage",  allowedRoles: ["admin"] },
