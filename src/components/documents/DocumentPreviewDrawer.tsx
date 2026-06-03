@@ -23,7 +23,7 @@ import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 import { DocumentHistoryTimeline } from "./DocumentHistoryTimeline";
 import { DocumentVersionBadge } from "./DocumentVersionBadge";
-import { downloadPdf } from "@/lib/documents/pdfResolver";
+import { downloadPdf, detectBucket } from "@/lib/documents/pdfResolver";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface DocumentPreviewDrawerProps {
@@ -114,6 +114,11 @@ export function DocumentPreviewDrawer({
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <DocumentStatusBadge status={item.businessStatus} />
                   <DocumentVersionBadge item={item} />
+                  {item.storagePath && (
+                    <Badge variant="outline" className="text-[10px] h-5 font-mono">
+                      {detectBucket(item.storagePath) === "generated-docs" ? "V2" : "Legacy"}
+                    </Badge>
+                  )}
                   {item.isRequired && (
                     <Badge variant="outline" className="text-[10px] h-5">Requis</Badge>
                   )}
