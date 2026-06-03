@@ -40,10 +40,14 @@ export interface PdfDownloadResult {
 
 /**
  * Determines which bucket a file_path belongs to.
- * V2 paths can follow:
- * - centre/{centreId}/contacts/{contactId}/{docId}.pdf (legacy V2 path)
- * - {centreId}/contacts/{contactId}/{docId}.pdf (RLS-compliant V2 path)
- * Legacy paths follow: {centreId}/{contactId}/{file}.pdf or signatures/... or envois/...
+ *
+ * Resolution order (Phase 1 sécurisation documentaire) :
+ *   1. V2 path historique  : `centre/{centreId}/contacts/{contactId}/{docId}.pdf` → `generated-docs`
+ *   2. V2 path RLS-compliant : `{centreId}/contacts/{contactId}/{docId}.pdf`       → `generated-docs`
+ *   3. Sinon (signatures/, envois/, anciens chemins V1)                            → `generated-documents` (legacy)
+ *
+ * Cette fonction est la SEULE source de vérité pour le routage bucket V2 ↔ Legacy.
+ * Ne pas dupliquer cette logique ailleurs.
  */
 export function detectBucket(filePath: string | null | undefined): string {
   if (!filePath) return BUCKET_V2;
