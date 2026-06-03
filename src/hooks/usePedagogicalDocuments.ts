@@ -1,3 +1,9 @@
+/**
+ * @deprecated Table `pedagogical_documents` est candidate à l'archivage (volume = 0).
+ * Les nouveaux documents pédagogiques passent par `generated_documents_v2` + `contact_documents`.
+ * Ne pas réutiliser ce hook pour de nouvelles fonctionnalités.
+ * Voir : src/lib/document-workflow/v1MigrationRegistry.ts
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

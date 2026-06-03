@@ -40,6 +40,7 @@ const PartnersPage        = lazy(() => import("@/components/partners/PartnersPag
 const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
 const PlanningConduitePage= lazy(() => import("@/components/planning-conduite/PlanningConduitePage").then(m => ({ default: m.PlanningConduitePage })));
 const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
+const DocumentSystemStatePage = lazy(() => import("@/components/admin/DocumentSystemStatePage").then(m => ({ default: m.DocumentSystemStatePage })));
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
@@ -326,6 +327,10 @@ const Index = () => {
       case "security":
         pageName = "SecurityStatusPage";
         node = <SecurityStatusPage />;
+        break;
+      case "documents-systeme":
+        pageName = "DocumentSystemStatePage";
+        node = <DocumentSystemStatePage />;
         break;
       case "inbox":
         pageName = "InboxCrmPage";
