@@ -137,39 +137,81 @@ export function InscritTableRow({
       {/* Facture */}
       <TableCell className="hidden md:table-cell">
         {facture ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => onViewFacture(facture.id)}
-                className="flex flex-col gap-1 text-left hover:opacity-80 transition-opacity"
-              >
-                <span className="font-mono text-xs">{facture.numero_facture}</span>
-                <div className="flex items-center gap-1">
-                  <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        paidPercent >= 100 ? "bg-success" : paidPercent > 0 ? "bg-warning" : "bg-destructive"
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onViewFacture(facture.id)}
+                  className="flex flex-col gap-1 text-left hover:opacity-80 transition-opacity"
+                >
+                  <span className="font-mono text-xs">{facture.numero_facture}</span>
+                  <div className="flex items-center gap-1">
+                    <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          paidPercent >= 100 ? "bg-success" : paidPercent > 0 ? "bg-warning" : "bg-destructive"
+                        }`}
+                        style={{ width: `${Math.min(paidPercent, 100)}%` }}
+                      />
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1 py-0 ${
+                        facture.statut === "payee" ? "border-success text-success" :
+                        facture.statut === "partiel" ? "border-warning text-warning" :
+                        facture.statut === "impayee" ? "border-destructive text-destructive" : ""
                       }`}
-                      style={{ width: `${Math.min(paidPercent, 100)}%` }}
-                    />
+                    >
+                      {facture.statut}
+                    </Badge>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] px-1 py-0 ${
-                      facture.statut === "payee" ? "border-success text-success" :
-                      facture.statut === "partiel" ? "border-warning text-warning" :
-                      facture.statut === "impayee" ? "border-destructive text-destructive" : ""
-                    }`}
-                  >
-                    {facture.statut}
-                  </Badge>
-                </div>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{facture.total_paye.toFixed(2)}€ / {Number(facture.montant_total).toFixed(2)}€</p>
-            </TooltipContent>
-          </Tooltip>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{facture.total_paye.toFixed(2)}€ / {Number(facture.montant_total).toFixed(2)}€</p>
+              </TooltipContent>
+            </Tooltip>
+            {factures && factures.length > 1 && (
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-6 px-1.5 text-[10px]" aria-label="Voir toutes les factures">
+                        +{factures.length - 1}
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>{factures.length} factures liées</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" className="w-72">
+                  {factures.map((f) => (
+                    <div key={f.id} className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted/50">
+                      <button
+                        onClick={() => onViewFacture(f.id)}
+                        className="flex-1 text-left flex flex-col gap-0.5"
+                      >
+                        <span className="font-mono">{f.numero_facture}</span>
+                        <span className="text-muted-foreground">
+                          {Number(f.montant_total).toFixed(2)}€ — {f.statut}
+                        </span>
+                      </button>
+                      {onDeleteFacture && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => onDeleteFacture(f.id)}
+                          aria-label="Supprimer cette facture"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         )}
