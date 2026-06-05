@@ -50,6 +50,8 @@ export function InscritTableRow({
   selected,
   onToggleSelect,
   facture,
+  factures,
+  onDeleteFacture,
   examResult,
   sessionDateFin,
   latestEnvoi,
