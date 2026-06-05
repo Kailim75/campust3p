@@ -27,6 +27,8 @@ interface InscritTableRowProps {
   selected: boolean;
   onToggleSelect: (contactId: string) => void;
   facture: FactureWithDetails | undefined;
+  factures?: FactureWithDetails[];
+  onDeleteFacture?: (factureId: string) => void;
   examResult: ExamResult | undefined;
   sessionDateFin: string | null | undefined;
   latestEnvoi: { statut: string; date_envoi: string; document_name: string } | null;
