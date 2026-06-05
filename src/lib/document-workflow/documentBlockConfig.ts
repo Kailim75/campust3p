@@ -59,6 +59,7 @@ export const DOCUMENT_TYPE_REGISTRY: readonly DocumentTypeConfig[] = [
   { type: "procedure_reclamation",label: "Procédure de réclamation",     block: "specifiques", requiredByDefault: false, visibility: "both",    sortOrder: 1,  supportsBulk: false, requiresSignature: false },
   { type: "email",                label: "Email",                        block: "specifiques", requiredByDefault: false, visibility: "both",    sortOrder: 2,  supportsBulk: false, requiresSignature: false },
   { type: "autre",                label: "Autre",                        block: "specifiques", requiredByDefault: false, visibility: "both",    sortOrder: 3,  supportsBulk: false, requiresSignature: false },
+  { type: "contrat_conduite",     label: "Contrat d'accompagnement conduite", block: "specifiques", requiredByDefault: false, visibility: "apprenant", sortOrder: 4, supportsBulk: false, requiresSignature: true },
 ] as const;
 
 /** Block metadata for UI rendering */
