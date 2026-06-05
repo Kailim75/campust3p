@@ -7,6 +7,7 @@ export type DocumentType =
   | "attestation_presence"
   | "convention"
   | "contrat"
+  | "contrat_conduite"
   | "convocation"
   | "programme";
 
@@ -16,6 +17,7 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
   attestation_presence: "Attestation de présence",
   convention: "Convention de formation",
   contrat: "Contrat de formation",
+  contrat_conduite: "Contrat d'accompagnement conduite",
   convocation: "Convocation",
   programme: "Programme de formation",
 };
