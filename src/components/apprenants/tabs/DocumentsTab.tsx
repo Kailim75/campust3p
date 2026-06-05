@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { ContactDocumentsTab } from "@/components/contacts/detail/ContactDocumentsTab";
 import { LearnerDocumentBlockList } from "@/components/documents/LearnerDocumentBlockList";
+import { ContratConduiteButton } from "@/components/conduite/ContratConduiteButton";
+import { useCentreContext } from "@/contexts/CentreContext";
 
 const DOCUMENT_TYPES = [
   { value: "cni", label: "CNI" },
@@ -112,8 +114,15 @@ export function DocumentsTab({
     }
   };
 
+  const { centreId } = useCentreContext();
+
   return (
     <div className="space-y-4">
+      {centreId && (
+        <div className="flex justify-end">
+          <ContratConduiteButton contactId={contactId} centreId={centreId} />
+        </div>
+      )}
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="generated" className="gap-1.5 text-xs">
