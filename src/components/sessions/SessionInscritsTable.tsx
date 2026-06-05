@@ -423,7 +423,9 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, contact: inscrit.contact as InscritRow["contact"] }}
                     selected={selectedIds.includes(inscrit.contact_id)}
                     onToggleSelect={toggleSelect}
-                    facture={getFactureForContact(inscrit.contact_id)}
+                    facture={getFacturesForInscription(inscrit.id, inscrit.contact_id)[0]}
+                    factures={getFacturesForInscription(inscrit.id, inscrit.contact_id)}
+                    onDeleteFacture={handleDeleteFacture}
                     examResult={examResults[inscrit.contact_id]}
                     sessionDateFin={session?.date_fin}
                     latestEnvoi={getLatestEnvoiForContact(envoiEvents, inscrit.contact_id)}
