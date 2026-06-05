@@ -124,8 +124,19 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
 
   const emailsCount = inscrits?.filter(i => i.contact?.email).length || 0;
 
-  const getFactureForContact = (contactId: string): FactureWithDetails | undefined =>
-    allFactures.find(f => f.contact_id === contactId);
+  const softDelete = useSoftDelete();
+
+  const getFacturesForInscription = (inscriptionId: string, contactId: string): FactureWithDetails[] => {
+    const linked = allFactures.filter(f => f.session_inscription_id === inscriptionId);
+    if (linked.length > 0) return linked;
+    // Legacy fallback: factures sans session_inscription_id liées au contact
+    return allFactures.filter(f => f.contact_id === contactId && !f.session_inscription_id);
+  };
+
+  const handleDeleteFacture = (factureId: string) => {
+    if (!window.confirm("Envoyer cette facture à la corbeille ? Cette action peut être annulée depuis la corbeille.")) return;
+    softDelete.mutate({ table: 'factures', id: factureId, reason: 'Suppression depuis la fiche session' });
+  };
 
   // ── Session / Company info ──
   const sessionInfo = session ? {
