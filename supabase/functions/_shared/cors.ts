@@ -36,9 +36,9 @@ const ALWAYS_ALLOWED = [
   "https://campust3p.lovable.app",
 ];
 
-// Previews Lovable: id-preview--*.lovable.app, *.lovable.app
+// Previews Lovable: *.lovable.app, *.lovableproject.com (iframe sandbox), *.lovable.dev
 function isLovablePreviewOrigin(origin: string): boolean {
-  return /^https:\/\/[a-z0-9-]+\.lovable\.app$/i.test(origin);
+  return /^https:\/\/[a-z0-9-]+\.(lovable\.app|lovableproject\.com|lovable\.dev)$/i.test(origin);
 }
 
 function getAllowedOrigins(): string[] {
