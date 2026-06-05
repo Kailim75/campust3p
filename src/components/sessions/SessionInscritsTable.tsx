@@ -19,6 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { useAddInscription, useRemoveInscription } from '@/hooks/useSessions';
+import { useSoftDelete } from '@/hooks/useSoftDelete';
 import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
 import { useBulkCreateDocumentEnvois } from '@/hooks/useDocumentEnvois';
 import { useFactures, type FactureWithDetails } from '@/hooks/useFactures';
