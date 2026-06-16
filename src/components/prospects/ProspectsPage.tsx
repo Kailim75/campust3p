@@ -417,7 +417,7 @@ export function ProspectsPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -425,6 +425,28 @@ export function ProspectsPage() {
                 {Object.entries(STATUS_LABELS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={ageBucket} onValueChange={(v) => setAgeBucket(v as typeof ageBucket)}>
+              <SelectTrigger className="w-full sm:w-[170px]">
+                <SelectValue placeholder="Ancienneté" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toute ancienneté</SelectItem>
+                <SelectItem value="lt7">Moins de 7 jours</SelectItem>
+                <SelectItem value="7-30">7 à 30 jours</SelectItem>
+                <SelectItem value="30-90">30 à 90 jours</SelectItem>
+                <SelectItem value="gt90">Plus de 90 jours</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Trier par" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="priority">Priorité (défaut)</SelectItem>
+                <SelectItem value="newest">Plus récents d'abord</SelectItem>
+                <SelectItem value="oldest">Plus anciens d'abord</SelectItem>
               </SelectContent>
             </Select>
           </div>
