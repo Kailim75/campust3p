@@ -188,6 +188,8 @@ export function ProspectsPage() {
   }, [prospects, quickFilter, currentUserId]);
 
   const filteredProspects = useMemo(() => {
+    const now = Date.now();
+    const dayMs = 86_400_000;
     return quickFiltered.filter((prospect) => {
       const matchesSearch =
         prospect.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -195,13 +197,27 @@ export function ProspectsPage() {
         prospect.email?.toLowerCase().includes(search.toLowerCase()) ||
         prospect.telephone?.includes(search);
       const matchesStatus = statusFilter === "all" || prospect.statut === statusFilter;
-      return matchesSearch && matchesStatus;
+      let matchesAge = true;
+      if (ageBucket !== "all") {
+        const ageDays = (now - new Date(prospect.created_at).getTime()) / dayMs;
+        if (ageBucket === "lt7") matchesAge = ageDays < 7;
+        else if (ageBucket === "7-30") matchesAge = ageDays >= 7 && ageDays < 30;
+        else if (ageBucket === "30-90") matchesAge = ageDays >= 30 && ageDays < 90;
+        else if (ageBucket === "gt90") matchesAge = ageDays >= 90;
+      }
+      return matchesSearch && matchesStatus && matchesAge;
     }).sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
       const priorityDiff = getProspectPrioritySortValue(a) - getProspectPrioritySortValue(b);
       if (priorityDiff !== 0) return priorityDiff;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [quickFiltered, search, statusFilter]);
+  }, [quickFiltered, search, statusFilter, sortBy, ageBucket]);
 
   const handleEdit = (prospect: Prospect) => {
     setEditingProspect(prospect);
