@@ -111,6 +111,8 @@ export function ProspectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("actifs");
+  const [sortBy, setSortBy] = useState<"priority" | "newest" | "oldest">("priority");
+  const [ageBucket, setAgeBucket] = useState<"all" | "lt7" | "7-30" | "30-90" | "gt90">("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
