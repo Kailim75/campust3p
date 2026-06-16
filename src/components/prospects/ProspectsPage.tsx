@@ -111,6 +111,8 @@ export function ProspectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("actifs");
+  const [sortBy, setSortBy] = useState<"priority" | "newest" | "oldest">("priority");
+  const [ageBucket, setAgeBucket] = useState<"all" | "lt7" | "7-30" | "30-90" | "gt90">("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -186,6 +188,8 @@ export function ProspectsPage() {
   }, [prospects, quickFilter, currentUserId]);
 
   const filteredProspects = useMemo(() => {
+    const now = Date.now();
+    const dayMs = 86_400_000;
     return quickFiltered.filter((prospect) => {
       const matchesSearch =
         prospect.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -193,13 +197,27 @@ export function ProspectsPage() {
         prospect.email?.toLowerCase().includes(search.toLowerCase()) ||
         prospect.telephone?.includes(search);
       const matchesStatus = statusFilter === "all" || prospect.statut === statusFilter;
-      return matchesSearch && matchesStatus;
+      let matchesAge = true;
+      if (ageBucket !== "all") {
+        const ageDays = (now - new Date(prospect.created_at).getTime()) / dayMs;
+        if (ageBucket === "lt7") matchesAge = ageDays < 7;
+        else if (ageBucket === "7-30") matchesAge = ageDays >= 7 && ageDays < 30;
+        else if (ageBucket === "30-90") matchesAge = ageDays >= 30 && ageDays < 90;
+        else if (ageBucket === "gt90") matchesAge = ageDays >= 90;
+      }
+      return matchesSearch && matchesStatus && matchesAge;
     }).sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
       const priorityDiff = getProspectPrioritySortValue(a) - getProspectPrioritySortValue(b);
       if (priorityDiff !== 0) return priorityDiff;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [quickFiltered, search, statusFilter]);
+  }, [quickFiltered, search, statusFilter, sortBy, ageBucket]);
 
   const handleEdit = (prospect: Prospect) => {
     setEditingProspect(prospect);
@@ -399,7 +417,7 @@ export function ProspectsPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -407,6 +425,28 @@ export function ProspectsPage() {
                 {Object.entries(STATUS_LABELS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={ageBucket} onValueChange={(v) => setAgeBucket(v as typeof ageBucket)}>
+              <SelectTrigger className="w-full sm:w-[170px]">
+                <SelectValue placeholder="Ancienneté" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toute ancienneté</SelectItem>
+                <SelectItem value="lt7">Moins de 7 jours</SelectItem>
+                <SelectItem value="7-30">7 à 30 jours</SelectItem>
+                <SelectItem value="30-90">30 à 90 jours</SelectItem>
+                <SelectItem value="gt90">Plus de 90 jours</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Trier par" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="priority">Priorité (défaut)</SelectItem>
+                <SelectItem value="newest">Plus récents d'abord</SelectItem>
+                <SelectItem value="oldest">Plus anciens d'abord</SelectItem>
               </SelectContent>
             </Select>
           </div>
