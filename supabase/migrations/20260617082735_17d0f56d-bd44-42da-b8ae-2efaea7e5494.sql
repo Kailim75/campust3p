@@ -1,0 +1,1 @@
+UPDATE public.centre_formation SET id = '97e69258-f616-4424-9aca-78080cb6437e' WHERE id = 'b138840f-991c-4892-9327-386f955aa254';
