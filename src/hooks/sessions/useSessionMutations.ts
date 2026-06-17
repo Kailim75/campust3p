@@ -14,9 +14,13 @@ export function useCreateSession() {
   return useMutation({
     mutationFn: async (session: SessionInsert) => {
       const track = getTrackFromFormationType(session.formation_type);
+      const centreId = session.centre_id ?? (await getUserCentreId());
+      if (!centreId) {
+        throw new Error("Aucun centre actif trouvé pour votre compte. Veuillez en sélectionner un avant de créer une session.");
+      }
       const { data, error } = await supabase
         .from("sessions")
-        .insert({ ...session, track } as any)
+        .insert({ ...session, centre_id: centreId, track } as any)
         .select()
         .single();
 
