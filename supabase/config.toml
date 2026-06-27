@@ -24,7 +24,10 @@ verify_jwt = false                     # Alma server → us (signature check ins
 verify_jwt = false                     # Generic external webhook endpoint
 
 [functions.public-sign-document]
-verify_jwt = false                     # Public signing link (token in URL)
+verify_jwt = false                     # Public signing link (access_token in URL, signing_token in body)
+
+[functions.resolve-signing-token]
+verify_jwt = false                     # Exchanges access_token → signing_token (kept off URLs/emails)
 
 [functions.sync-gmail-inbox]
 verify_jwt = false                     # Google OAuth callback

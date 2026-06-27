@@ -122,17 +122,15 @@ export function SignaturesPage() {
   };
 
   const copySigningLink = (sig: SignatureRequest) => {
-    // Include the signing_token if the row has been sent at least once;
-    // otherwise the recipient will hit a TOKEN_REQUIRED error from
-    // public-sign-document. Use "Envoyer" first (which generates the token)
-    // before copying the link.
-    if (!sig.signing_token) {
-      toast.error(
-        "Aucun token actif. Envoyez d'abord la demande par email pour générer un lien valide.",
-      );
+    // Public link embeds only the access_token (read-scope).
+    // The signing_token is fetched on demand by SignaturePage via
+    // the resolve-signing-token edge function and never leaves the server in any URL.
+    const accessToken = (sig as unknown as { access_token: string | null }).access_token;
+    if (!accessToken) {
+      toast.error("Lien invalide. Régénérez la demande de signature.");
       return;
     }
-    const link = `${window.location.origin}/signature/${sig.id}/${sig.signing_token}?token=${sig.signing_token}`;
+    const link = `${window.location.origin}/signature/${sig.id}/${accessToken}`;
     navigator.clipboard.writeText(link);
     toast.success("Lien copié dans le presse-papier");
   };
