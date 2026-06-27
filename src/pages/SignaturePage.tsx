@@ -350,7 +350,7 @@ export default function SignaturePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => sigRequest && resolveDocumentUrl(sigRequest.id)}
+            onClick={() => sigRequest && resolveDocumentUrl(sigRequest.id, signingToken)}
             className="text-xs"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
