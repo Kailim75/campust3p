@@ -50,6 +50,7 @@ interface RelatedDocument {
   date_envoi: string | null;
   date_signature: string | null;
   access_token: string | null;
+  date_expiration: string | null;
 }
 
 type DocumentStatus = "loading" | "ready" | "legacy" | "unavailable" | "error";
@@ -63,6 +64,21 @@ const TYPE_LABELS: Record<string, string> = {
   convocation: "Convocation",
   attestation: "Attestation",
 };
+
+const todayDateKey = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
+const isExpiredSignatureDate = (dateExpiration?: string | null) => {
+  if (!dateExpiration) return false;
+  return dateExpiration.slice(0, 10) < todayDateKey();
+};
+
+const isPendingAndSignable = (doc: RelatedDocument) =>
+  doc.statut === "envoye" && !isExpiredSignatureDate(doc.date_expiration);
 
 export default function SignaturePage() {
   const { id, tokenParam } = useParams<{ id: string; tokenParam?: string }>();
@@ -207,7 +223,7 @@ export default function SignaturePage() {
         setCompleted("signed");
       } else if (row.statut === "refuse") {
         setCompleted("refused");
-      } else if (row.date_expiration && new Date(row.date_expiration as string) < new Date()) {
+      } else if (isExpiredSignatureDate(row.date_expiration as string | null)) {
         setError("Ce lien de signature a expiré.");
         return;
       }
@@ -252,7 +268,11 @@ export default function SignaturePage() {
           // puis le plus récent. Sinon, le RPC (qui place les envoye en tête)
           // ferait disparaître un document fraîchement signé au profit d'un
           // doublon "envoye" plus ancien — d'où le flicker "se signe puis revient en attente".
-          const rank = (s: string) => (s === "signe" ? 0 : s === "envoye" ? 1 : 2);
+          const rank = (d: RelatedDocument) => {
+            if (d.statut === "signe") return 0;
+            if (isPendingAndSignable(d)) return 1;
+            return 2;
+          };
           const ts = (d: RelatedDocument) =>
             new Date(d.date_signature || d.date_envoi || 0).getTime();
           const byType = new Map<string, RelatedDocument>();
@@ -260,8 +280,8 @@ export default function SignaturePage() {
             const existing = byType.get(d.type_document);
             if (
               !existing ||
-              rank(d.statut) < rank(existing.statut) ||
-              (rank(d.statut) === rank(existing.statut) && ts(d) > ts(existing))
+              rank(d) < rank(existing) ||
+              (rank(d) === rank(existing) && ts(d) > ts(existing))
             ) {
               byType.set(d.type_document, d);
             }
@@ -349,8 +369,16 @@ export default function SignaturePage() {
     }
   };
 
-  const getStatusBadge = (statut: string) => {
-    switch (statut) {
+  const getStatusBadge = (doc: RelatedDocument) => {
+    if (doc.statut === "envoye" && isExpiredSignatureDate(doc.date_expiration)) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+          <AlertTriangle className="h-3 w-3" /> Expiré
+        </span>
+      );
+    }
+
+    switch (doc.statut) {
       case "signe":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -488,7 +516,7 @@ export default function SignaturePage() {
                 </p>
                 {(() => {
                   const nextPending = relatedDocs.find(
-                    (d) => d.statut === "envoye" && d.id !== id
+                    (d) => isPendingAndSignable(d) && d.id !== id
                   );
                   if (!nextPending) return null;
                   const href = nextPending.access_token
@@ -680,7 +708,7 @@ function DocumentsSection({
   docs: RelatedDocument[];
   currentId: string;
   onDownload: (doc: RelatedDocument) => void;
-  getStatusBadge: (statut: string) => React.ReactNode;
+  getStatusBadge: (doc: RelatedDocument) => React.ReactNode;
   title: string;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -721,8 +749,8 @@ function DocumentsSection({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {getStatusBadge(doc.statut)}
-              {doc.statut === "envoye" && doc.id !== currentId && (
+              {getStatusBadge(doc)}
+              {isPendingAndSignable(doc) && doc.id !== currentId && (
                 <a
                   href={doc.access_token ? `/signature/${doc.id}/${doc.access_token}` : `/signature/${doc.id}`}
                   className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"

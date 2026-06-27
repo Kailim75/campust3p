@@ -9051,6 +9051,7 @@ export type Database = {
         Returns: {
           access_token: string
           date_envoi: string
+          date_expiration: string
           date_signature: string
           document_url: string
           id: string
