@@ -48,7 +48,7 @@ type Row = {
   date_envoi: string | null;
   date_signature: string | null;
   date_expiration: string | null;
-  signing_token: string | null;
+  access_token: string | null;
   signature_url: string | null;
   created_at: string;
   contact: { id: string; nom: string; prenom: string; email: string | null } | null;
@@ -95,7 +95,7 @@ export function SignaturesTrackingPanel() {
         .from("signature_requests")
         .select(`
           id, contact_id, session_inscription_id, type_document, titre, statut,
-          date_envoi, date_signature, date_expiration, signing_token, signature_url, created_at,
+          date_envoi, date_signature, date_expiration, access_token, signature_url, created_at,
           contact:contacts(id, nom, prenom, email),
           session_inscription:session_inscriptions(id, session:sessions(id, nom, date_debut, formation_type))
         `)
@@ -175,11 +175,11 @@ export function SignaturesTrackingPanel() {
   }, [rows]);
 
   const copyLink = (r: Row) => {
-    if (!r.signing_token) {
-      toast.error("Aucun token actif. Envoyez la demande pour générer un lien.");
+    if (!r.access_token) {
+      toast.error("Lien invalide. Régénérez la demande de signature.");
       return;
     }
-    const link = `${window.location.origin}/signature/${r.id}/${r.signing_token}?token=${r.signing_token}`;
+    const link = `${window.location.origin}/signature/${r.id}/${r.access_token}`;
     navigator.clipboard.writeText(link);
     toast.success("Lien copié");
   };

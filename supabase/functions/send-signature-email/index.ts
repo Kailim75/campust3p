@@ -64,7 +64,7 @@ serve(async (req) => {
       const { data: signatureRequest, error: fetchError } = await supabase
         .from("signature_requests")
         .select(`
-          id, titre, description, type_document, date_expiration, signing_token,
+          id, titre, description, type_document, date_expiration, signing_token, access_token,
           contact:contacts(id, nom, prenom, email)
         `)
         .eq("id", signatureRequestId)
@@ -79,8 +79,8 @@ serve(async (req) => {
         throw new Error("Contact email not found");
       }
 
-      // Reuse existing signing_token if present so previously sent links keep working.
-      // Only generate a new token when none exists yet (first send, or after a signature reset).
+      // Ensure signing_token exists (used server-side at sign time, NEVER in URLs).
+      // Created on first send and rotated only after a signature reset.
       let signingToken = signatureRequest.signing_token as string | null;
       if (!signingToken) {
         const tokenBytes = new Uint8Array(32);
@@ -99,11 +99,30 @@ serve(async (req) => {
         }
       }
 
+      // Ensure access_token exists. Public URL embeds ONLY this token (read-scope).
+      // signing_token is fetched on-demand by the SignaturePage via resolve-signing-token.
+      let accessToken = (signatureRequest as { access_token: string | null }).access_token;
+      if (!accessToken) {
+        const accessBytes = new Uint8Array(32);
+        crypto.getRandomValues(accessBytes);
+        accessToken = Array.from(accessBytes)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
+        const { error: accessTokenError } = await supabase
+          .from("signature_requests")
+          .update({ access_token: accessToken })
+          .eq("id", signatureRequestId);
+        if (accessTokenError) {
+          console.error("Failed to persist access_token:", accessTokenError);
+          throw new Error("Could not persist access token");
+        }
+      }
+
       const publishedBaseUrl = "https://campust3p.lovable.app";
-      // Embed the token in the URL PATH (not just query) so email clients or
-      // tracking redirectors that strip query strings don't break the link.
-      // The query variant is kept as a fallback for any legacy link in flight.
-      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}/${signingToken}?token=${signingToken}`;
+      // Public link transports ONLY the access_token. The signing_token never
+      // appears in any URL, query string, email, or analytics payload.
+      const signingLink = `${publishedBaseUrl}/signature/${signatureRequest.id}/${accessToken}`;
       const expirationText = signatureRequest.date_expiration 
         ? `Ce lien expire le <strong>${formatDateFr(signatureRequest.date_expiration)}</strong>.`
         : "";
