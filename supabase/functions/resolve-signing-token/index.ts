@@ -36,6 +36,15 @@ function constantTimeEq(a: string, b: string): boolean {
   return diff === 0;
 }
 
+function todayDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isExpiredDateOnly(dateExpiration: string | null): boolean {
+  if (!dateExpiration) return false;
+  return dateExpiration.slice(0, 10) < todayDateKey();
+}
+
 serve(async (req) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
@@ -81,7 +90,7 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Document déjà traité" }, 410);
     }
 
-    if (row.date_expiration && new Date(row.date_expiration) < new Date()) {
+    if (isExpiredDateOnly(row.date_expiration)) {
       return jsonResponse({ success: false, error: "Lien expiré" }, 410);
     }
 

@@ -39,6 +39,15 @@ function verifySigningToken(
   return diff === 0 ? "ok" : "invalid";
 }
 
+function todayDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isExpiredDateOnly(dateExpiration: string | null): boolean {
+  if (!dateExpiration) return false;
+  return dateExpiration.slice(0, 10) < todayDateKey();
+}
+
 serve(async (req) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
@@ -151,7 +160,7 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Ce document ne peut plus être signé" }, 400);
     }
 
-    if (sigRequest.date_expiration && new Date(sigRequest.date_expiration) < new Date()) {
+    if (isExpiredDateOnly(sigRequest.date_expiration)) {
       return jsonResponse({ success: false, error: "Ce lien de signature a expiré" }, 400);
     }
 
