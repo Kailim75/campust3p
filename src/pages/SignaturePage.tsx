@@ -248,13 +248,25 @@ export default function SignaturePage() {
           .rpc("get_related_signature_docs", { p_contact_id: row.contact_id });
 
         if (related && Array.isArray(related)) {
-          const seen = new Set<string>();
-          const unique = related.filter((d) => {
-            if (seen.has(d.type_document)) return false;
-            seen.add(d.type_document);
-            return true;
-          });
-          setRelatedDocs(unique);
+          // Dedup par type_document en privilégiant : signé > envoyé > autre,
+          // puis le plus récent. Sinon, le RPC (qui place les envoye en tête)
+          // ferait disparaître un document fraîchement signé au profit d'un
+          // doublon "envoye" plus ancien — d'où le flicker "se signe puis revient en attente".
+          const rank = (s: string) => (s === "signe" ? 0 : s === "envoye" ? 1 : 2);
+          const ts = (d: RelatedDocument) =>
+            new Date(d.date_signature || d.date_envoi || 0).getTime();
+          const byType = new Map<string, RelatedDocument>();
+          for (const d of related) {
+            const existing = byType.get(d.type_document);
+            if (
+              !existing ||
+              rank(d.statut) < rank(existing.statut) ||
+              (rank(d.statut) === rank(existing.statut) && ts(d) > ts(existing))
+            ) {
+              byType.set(d.type_document, d);
+            }
+          }
+          setRelatedDocs(Array.from(byType.values()));
         }
       }
     } catch {
