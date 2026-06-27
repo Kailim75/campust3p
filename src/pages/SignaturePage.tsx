@@ -67,13 +67,19 @@ const TYPE_LABELS: Record<string, string> = {
 export default function SignaturePage() {
   const { id, tokenParam } = useParams<{ id: string; tokenParam?: string }>();
   const [searchParams] = useSearchParams();
-  // Token can come from the URL path (/signature/:id/:tokenParam) — preferred,
-  // survives query-stripping mail redirectors — or from the query (?token=...) as fallback.
-  const signingToken = tokenParam || searchParams.get("token") || undefined;
+  // URL transports ONLY the access_token (read-scope).
+  // Path-segment preferred (survives query-stripping redirectors).
+  // Legacy ?token= fallback retained for very old links — also interpreted as access_token.
+  const accessToken = tokenParam || searchParams.get("token") || undefined;
+
   const [loading, setLoading] = useState(true);
   const [sigRequest, setSigRequest] = useState<SignatureData | null>(null);
   const [relatedDocs, setRelatedDocs] = useState<RelatedDocument[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // signing_token lives ONLY in memory after being exchanged for access_token
+  // through the resolve-signing-token edge function. Never persisted, never in URL.
+  const [signingToken, setSigningToken] = useState<string | null>(null);
 
   // Document resolution state
   const [resolvedDocumentUrl, setResolvedDocumentUrl] = useState<string | null>(null);
@@ -94,17 +100,39 @@ export default function SignaturePage() {
   }, [id]);
 
   /**
+   * Exchanges the public access_token (URL) for the internal signing_token
+   * (memory only). Required before calling public-sign-document.
+   * Returns the resolved token or null on failure.
+   */
+  const resolveSigningToken = async (signatureId: string): Promise<string | null> => {
+    if (!accessToken) return null;
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("resolve-signing-token", {
+        body: { signatureId, accessToken },
+      });
+      if (fnError || !data?.success || !data?.signingToken) {
+        console.warn("resolve-signing-token failed", fnError ?? data);
+        return null;
+      }
+      return data.signingToken as string;
+    } catch (err) {
+      console.error("resolve-signing-token error:", err);
+      return null;
+    }
+  };
+
+  /**
    * Resolves the document URL via the edge function (service role generates signed URL).
    * Source of truth: document_storage_path + document_storage_bucket
    * Fallback: legacy document_url
    */
-  const resolveDocumentUrl = async (signatureId: string) => {
+  const resolveDocumentUrl = async (signatureId: string, tokenForFn: string | null) => {
     setDocumentStatus("loading");
     setDocumentWarning(null);
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("public-sign-document", {
-        body: { action: "get_document_url", signatureId, signingToken },
+        body: { action: "get_document_url", signatureId, signingToken: tokenForFn },
       });
 
       if (fnError) {
