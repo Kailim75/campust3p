@@ -201,8 +201,13 @@ export default function SignaturePage() {
 
       setSigRequest(sigData);
 
+      // Exchange access_token (URL) for signing_token (memory only).
+      // Must run BEFORE resolveDocumentUrl, since the doc URL endpoint also checks the token.
+      const resolved = await resolveSigningToken(sigData.id);
+      setSigningToken(resolved);
+
       // Resolve the actual document URL via edge function
-      await resolveDocumentUrl(sigData.id);
+      await resolveDocumentUrl(sigData.id, resolved);
 
       // Load related documents via RPC
       if (row.contact_id) {
