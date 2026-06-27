@@ -284,6 +284,17 @@ export default function SignaturePage() {
       if (result && !result.success) throw new Error(result.error);
 
       setCompleted("signed");
+      // Optimistically reflect the new status in the related-docs list
+      // so the just-signed document doesn't keep showing "En attente"
+      // while the RPC re-fetch is in flight.
+      setRelatedDocs((prev) =>
+        prev.map((d) =>
+          d.id === sigRequest.id
+            ? { ...d, statut: "signe", date_signature: new Date().toISOString() }
+            : d
+        )
+      );
+      setSigRequest((prev) => (prev ? { ...prev, statut: "signe" } : prev));
       loadSignatureRequest();
       toast.success("Document signé avec succès !");
     } catch (err: unknown) {
