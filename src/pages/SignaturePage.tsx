@@ -95,6 +95,39 @@ export default function SignaturePage() {
   const [completed, setCompleted] = useState<"signed" | "refused" | null>(null);
 
   useEffect(() => {
+    // Public signature links must never be served by a stale PWA cache: an old
+    // cached bundle sends access_token as signingToken and triggers 401.
+    if (typeof window === "undefined") return;
+
+    const clearSignatureCaches = async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(
+            keys
+              .filter((key) =>
+                key.includes("workbox") ||
+                key.includes("precache") ||
+                key.includes("signature") ||
+                key.includes("supabase-cache"),
+              )
+              .map((key) => caches.delete(key)),
+          );
+        }
+      } catch (cacheError) {
+        console.warn("Signature cache cleanup skipped", cacheError);
+      }
+    };
+
+    void clearSignatureCaches();
+  }, []);
+
+  useEffect(() => {
     if (!id) return;
     loadSignatureRequest();
   }, [id]);

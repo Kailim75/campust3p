@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       selfDestroying: false,
       manifest: {
@@ -52,8 +52,22 @@ export default defineConfig(({ mode }) => ({
         clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MiB
-        navigateFallbackDenylist: [/^\/api/, /^\/supabase/],
+        navigateFallbackDenylist: [/^\/api/, /^\/supabase/, /^\/signature/],
         runtimeCaching: [
+          {
+            urlPattern: ({ url, request }) => request.mode === "navigate" && url.pathname.startsWith("/signature"),
+            handler: "NetworkOnly",
+            options: {
+              cacheName: "signature-network-only",
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes("SignaturePage-") && url.pathname.endsWith(".js"),
+            handler: "NetworkOnly",
+            options: {
+              cacheName: "signature-chunk-network-only",
+            },
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
