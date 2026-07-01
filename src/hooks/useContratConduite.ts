@@ -144,7 +144,10 @@ export function useCreateContratConduite() {
         accompagnateur_id: params.accompagnateur_id ?? null,
         accompagnateur_name: params.accompagnateur ?? null,
         source: "contrat_conduite",
+        used_default_template: params.templateId.startsWith("__default_contrat_conduite_"),
       };
+
+      const isDefaultTpl = params.templateId.startsWith("__default_contrat_conduite_");
 
       const { data, error } = await (supabase as any)
         .from("generated_documents_v2")
@@ -152,7 +155,7 @@ export function useCreateContratConduite() {
           contact_id: params.contactId,
           centre_id: params.centreId,
           session_id: null, // volontaire : produit autonome
-          template_id: params.templateId,
+          template_id: isDefaultTpl ? null : params.templateId,
           document_type: CONTRAT_CONDUITE_TYPE,
           status: "generated",
           rendered_html: params.renderedHtml ?? null,
