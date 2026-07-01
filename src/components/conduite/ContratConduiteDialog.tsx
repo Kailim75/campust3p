@@ -99,6 +99,8 @@ export function ContratConduiteDialog({
     centreId,
     filiere,
     prix_ttc: prixTtc,
+    montant_paye: montantPaye,
+    reste_a_payer: resteAPayer,
     facture_id: factureId ?? null,
     facture_ligne_id: factureLigneId ?? null,
     date_conduite: dateConduite || null,
@@ -133,7 +135,7 @@ export function ContratConduiteDialog({
     if (!template?.body_html) return null;
     return renderContratConduiteHtml(template.body_html, params);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template?.body_html, filiere, prixTtc, dateConduite, dateExamen, lieuRdv, accompagnateur, contact]);
+  }, [template?.body_html, filiere, prixTtc, montantPaye, resteAPayer, dateConduite, dateExamen, lieuRdv, accompagnateur, contact]);
 
   const handleGenerate = async () => {
     if (!template?.id) return;
