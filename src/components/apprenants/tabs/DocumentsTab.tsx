@@ -13,6 +13,9 @@ import { ContactDocumentsTab } from "@/components/contacts/detail/ContactDocumen
 import { LearnerDocumentBlockList } from "@/components/documents/LearnerDocumentBlockList";
 import { ContratConduiteButton } from "@/components/conduite/ContratConduiteButton";
 import { useCentreContext } from "@/contexts/CentreContext";
+import { useContactConduiteProduct } from "@/hooks/useContactConduiteProduct";
+import { Badge } from "@/components/ui/badge";
+import { Car } from "lucide-react";
 
 const DOCUMENT_TYPES = [
   { value: "cni", label: "CNI" },
