@@ -10,6 +10,10 @@ interface Props extends Omit<ButtonProps, "onClick"> {
   initialFiliere?: FiliereConduite;
   factureId?: string | null;
   factureLigneId?: string | null;
+  initialPrixTtc?: number;
+  initialMontantPaye?: number;
+  initialResteAPayer?: number;
+  lockFiliere?: boolean;
   label?: string;
 }
 
@@ -19,6 +23,10 @@ export function ContratConduiteButton({
   initialFiliere,
   factureId,
   factureLigneId,
+  initialPrixTtc,
+  initialMontantPaye,
+  initialResteAPayer,
+  lockFiliere,
   label = "Générer contrat accompagnement conduite",
   ...btnProps
 }: Props) {
@@ -38,6 +46,10 @@ export function ContratConduiteButton({
           initialFiliere={initialFiliere}
           factureId={factureId}
           factureLigneId={factureLigneId}
+          initialPrixTtc={initialPrixTtc}
+          initialMontantPaye={initialMontantPaye}
+          initialResteAPayer={initialResteAPayer}
+          lockFiliere={lockFiliere}
         />
       )}
     </>
