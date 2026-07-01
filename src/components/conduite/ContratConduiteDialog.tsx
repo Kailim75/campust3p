@@ -42,6 +42,10 @@ interface Props {
   initialFiliere?: FiliereConduite;
   factureId?: string | null;
   factureLigneId?: string | null;
+  initialPrixTtc?: number;
+  initialMontantPaye?: number;
+  initialResteAPayer?: number;
+  lockFiliere?: boolean;
 }
 
 export function ContratConduiteDialog({
@@ -52,9 +56,14 @@ export function ContratConduiteDialog({
   initialFiliere,
   factureId,
   factureLigneId,
+  initialPrixTtc,
+  initialMontantPaye,
+  initialResteAPayer,
+  lockFiliere,
 }: Props) {
   const [filiere, setFiliere] = useState<FiliereConduite>(initialFiliere ?? "taxi");
-  const [prixTtc, setPrixTtc] = useState<number>(0);
+  const [prixTtc, setPrixTtc] = useState<number>(initialPrixTtc ?? 0);
+  const [montantPaye, setMontantPaye] = useState<number>(initialMontantPaye ?? 0);
   const [justification, setJustification] = useState("");
   const [dateConduite, setDateConduite] = useState("");
   const [dateExamen, setDateExamen] = useState("");
@@ -66,11 +75,19 @@ export function ContratConduiteDialog({
   const { data: template, isLoading: tplLoading } = useContratConduiteTemplate(filiere);
   const createMut = useCreateContratConduite();
 
-  // Reset prix on filière change
+  // Reset prix on filière change (only when not driven by an invoice)
   useEffect(() => {
+    if (initialPrixTtc != null) return;
     setPrixTtc(getProduitConduiteByFiliere(filiere).prix_ttc);
     setJustification("");
-  }, [filiere]);
+  }, [filiere, initialPrixTtc]);
+
+  const resteAPayer = useMemo(() => {
+    if (initialResteAPayer != null && initialMontantPaye === montantPaye && initialPrixTtc === prixTtc) {
+      return initialResteAPayer;
+    }
+    return Math.max(0, Math.round((prixTtc - montantPaye) * 100) / 100);
+  }, [prixTtc, montantPaye, initialResteAPayer, initialMontantPaye, initialPrixTtc]);
 
   const validation = useMemo(
     () => validateContratConduite({ filiere, prix_ttc: prixTtc, justification_prix: justification }),
@@ -82,6 +99,8 @@ export function ContratConduiteDialog({
     centreId,
     filiere,
     prix_ttc: prixTtc,
+    montant_paye: montantPaye,
+    reste_a_payer: resteAPayer,
     facture_id: factureId ?? null,
     facture_ligne_id: factureLigneId ?? null,
     date_conduite: dateConduite || null,
@@ -116,7 +135,7 @@ export function ContratConduiteDialog({
     if (!template?.body_html) return null;
     return renderContratConduiteHtml(template.body_html, params);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template?.body_html, filiere, prixTtc, dateConduite, dateExamen, lieuRdv, accompagnateur, contact]);
+  }, [template?.body_html, filiere, prixTtc, montantPaye, resteAPayer, dateConduite, dateExamen, lieuRdv, accompagnateur, contact]);
 
   const handleGenerate = async () => {
     if (!template?.id) return;
@@ -143,29 +162,55 @@ export function ContratConduiteDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
+            {lockFiliere && factureId && (
+              <Alert>
+                <Car className="h-4 w-4" />
+                <AlertTitle>Produit détecté depuis la facture</AlertTitle>
+                <AlertDescription>
+                  La filière et le tarif sont pré-remplis à partir de la ligne de facture rattachée à cet apprenant. Modifiez uniquement en cas d'erreur.
+                </AlertDescription>
+              </Alert>
+            )}
             <div>
               <Label className="mb-2 block">Filière</Label>
               <ToggleGroup
                 type="single"
                 value={filiere}
-                onValueChange={(v) => v && setFiliere(v as FiliereConduite)}
+                onValueChange={(v) => v && !lockFiliere && setFiliere(v as FiliereConduite)}
                 className="justify-start"
+                disabled={lockFiliere}
               >
-                <ToggleGroupItem value="taxi">Taxi — 249 €</ToggleGroupItem>
-                <ToggleGroupItem value="vtc">VTC — 190 €</ToggleGroupItem>
+                <ToggleGroupItem value="taxi" disabled={lockFiliere && filiere !== "taxi"}>Taxi — 249 €</ToggleGroupItem>
+                <ToggleGroupItem value="vtc" disabled={lockFiliere && filiere !== "vtc"}>VTC — 190 €</ToggleGroupItem>
               </ToggleGroup>
             </div>
 
-            <div>
-              <Label htmlFor="prix">Prix TTC (€)</Label>
-              <Input
-                id="prix"
-                type="number"
-                min={0}
-                step="0.01"
-                value={prixTtc}
-                onChange={(e) => setPrixTtc(Number(e.target.value))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="prix">Prix TTC (€)</Label>
+                <Input
+                  id="prix"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={prixTtc}
+                  onChange={(e) => setPrixTtc(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="paye">Montant payé (€)</Label>
+                <Input
+                  id="paye"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={montantPaye}
+                  onChange={(e) => setMontantPaye(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reste à régler : <strong>{resteAPayer.toFixed(2).replace(".", ",")} €</strong>
+                </p>
+              </div>
             </div>
 
             {validation.priceAlert && (
