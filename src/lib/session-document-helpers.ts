@@ -89,7 +89,7 @@ export async function generateAttachmentsForContact(
   }
 
   if (type === "attestation") {
-    const doc = generateAttestationPDF(contact, session, company);
+    const doc = await generateAttestationPDF(contact, session, company);
     attachments.push({
       filename: `Attestation_${namePart}_${sessionPart}.pdf`,
       content: jspdfToBase64(doc),
