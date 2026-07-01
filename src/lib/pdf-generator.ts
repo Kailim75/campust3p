@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
@@ -1108,122 +1109,235 @@ export function generateFacturePDF(
   return doc;
 }
 
-// ==================== ATTESTATION PDF ====================
-export function generateAttestationPDF(
+// ==================== ATTESTATION PDF (Landscape · Institutionnel moderne) ====================
+export async function generateAttestationPDF(
   contact: ContactInfo,
   session: SessionInfo,
   company: CompanyInfo = DEFAULT_COMPANY,
   numeroCertificat?: string
-): jsPDF {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  
-  const headerEndY = addHeader(doc, company);
-  
-  // Title avec style et numéro de certificat
-  let yPos = addDocumentTitle(doc, "ATTESTATION DE FORMATION", headerEndY, numeroCertificat);
-  
-  // Corps
-  yPos += 10;
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  
-  const text1 = `Je soussigné, représentant de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}, atteste que :`;
-  const splitText1 = doc.splitTextToSize(text1, pageWidth - 40);
-  doc.text(splitText1, 20, yPos);
-  yPos += splitText1.length * 7 + 15;
-  
-  // Participant avec box gold
-  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
-  const nameWidth = doc.getTextWidth(fullName) + 40;
-  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
-  doc.roundedRect((pageWidth - nameWidth) / 2, yPos - 6, nameWidth, 16, 3, 3, "F");
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
-  doc.text(fullName, pageWidth / 2, yPos + 4, { align: "center" });
-  
-  yPos += 15;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-  if (contact.date_naissance) {
-    doc.text(`Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`, pageWidth / 2, yPos, { align: "center" });
-    yPos += 8;
-  }
-  
-  yPos += 8;
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text("a suivi avec succès la formation suivante :", pageWidth / 2, yPos, { align: "center" });
-  
-  // Formation details box avec style - hauteur dynamique
-  yPos += 12;
-  let attestBoxContentH = 15; // padding top
-  attestBoxContentH += 14; // nom formation
-  attestBoxContentH += 12; // dates
-  if (session.duree_heures) attestBoxContentH += 10;
-  if (session.lieu) attestBoxContentH += 10;
-  attestBoxContentH += 8; // padding bottom
-  const boxHeight = attestBoxContentH;
-  
-  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
-  doc.roundedRect(30, yPos, pageWidth - 60, boxHeight, 4, 4, "F");
-  
-  // Bordure accent Forest Green
+): Promise<jsPDF> {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();   // 297
+  const pageHeight = doc.internal.pageSize.getHeight(); // 210
+
+  // ─── Cadre décoratif fin (double filet) ───
+  doc.setDrawColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.setLineWidth(0.6);
+  doc.rect(6, 6, pageWidth - 12, pageHeight - 12);
+  doc.setLineWidth(0.2);
+  doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+
+  // ─── Bandeau header Forest Green (compact, landscape) ───
+  const headerH = 26;
   doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.roundedRect(30, yPos, 4, boxHeight, 2, 2, "F");
-  
-  yPos += 15;
+  doc.rect(8, 8, pageWidth - 16, headerH, "F");
+
+  // Logo à droite
+  addLogoImage(doc, company, pageWidth - 8 - 32 - 4, 10, 32, 18);
+
+  // Nom organisme
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.setTextColor(COLORS.white.r, COLORS.white.g, COLORS.white.b);
+  doc.text(company.name, 16, 18);
+
+  // Coordonnées
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.text(`${company.address} · Tél ${company.phone} · ${company.email}`, 16, 24);
+  doc.text(`SIRET ${company.siret} · NDA ${company.nda}${company.qualiopi_numero ? ` · Qualiopi ${company.qualiopi_numero}` : ""}`, 16, 28.5);
+
+  // Filet accent Gold
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(8, 8 + headerH, pageWidth - 16, 1.2, "F");
+
+  // ─── Eyebrow + Titre centré ───
+  let y = 8 + headerH + 12;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.text("ORGANISME DE FORMATION PROFESSIONNELLE", pageWidth / 2, y, { align: "center" });
+
+  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  doc.text("ATTESTATION DE FIN DE FORMATION", pageWidth / 2, y, { align: "center" });
+
+  // Petit filet doré sous le titre
+  y += 4;
+  doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.rect(pageWidth / 2 - 22, y, 44, 0.8, "F");
+
+  // Numéro de certificat
+  if (numeroCertificat) {
+    y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    doc.text(`Certificat n° ${numeroCertificat}`, pageWidth / 2, y, { align: "center" });
+  }
+
+  // ─── Phrase d'introduction ───
+  y += 12;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10.5);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  const intro = `Je soussigné, représentant de ${company.name}, organisme déclaré sous le numéro ${company.nda}, atteste que :`;
+  doc.text(intro, pageWidth / 2, y, { align: "center" });
+
+  // ─── Nom du bénéficiaire ───
+  y += 12;
+  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim().toUpperCase();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.text(fullName, pageWidth / 2, y, { align: "center" });
+
+  if (contact.date_naissance) {
+    y += 6;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    const birth = `Né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}`;
+    doc.text(birth, pageWidth / 2, y, { align: "center" });
+  }
+
+  // ─── Phrase de suivi ───
+  y += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10.5);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  doc.text("a suivi avec succès la formation :", pageWidth / 2, y, { align: "center" });
+
+  // ─── Bloc formation (bandeau cream structuré) ───
+  y += 6;
+  const boxX = 30;
+  const boxW = pageWidth - 60;
+  const boxH = 34;
+  doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
+  doc.roundedRect(boxX, y, boxW, boxH, 2, 2, "F");
+  doc.setFillColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  doc.rect(boxX, y, 2.5, boxH, "F");
+
+  // Titre formation
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  // Wrap session name if too long
-  const sessionNameLines = doc.splitTextToSize(session.nom, pageWidth - 80);
-  doc.text(sessionNameLines, pageWidth / 2, yPos, { align: "center" });
-  
-  yPos += sessionNameLines.length * 6 + 6;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`Du ${format(new Date(session.date_debut), "dd MMMM yyyy", { locale: fr })} au ${format(new Date(session.date_fin), "dd MMMM yyyy", { locale: fr })}`, pageWidth / 2, yPos, { align: "center" });
-  
-  if (session.duree_heures) {
-    yPos += 10;
-    doc.text(`Durée : ${session.duree_heures} heures`, pageWidth / 2, yPos, { align: "center" });
-  }
-  
-  if (session.lieu) {
-    yPos += 10;
-    doc.text(`Lieu : ${session.lieu}`, pageWidth / 2, yPos, { align: "center" });
-  }
-  
-  // Date and signature
-  yPos += 45;
-  doc.setFontSize(11);
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  doc.text(`Fait à Paris, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, pageWidth - 30, yPos, { align: "right" });
-  
-  yPos += 15;
+  doc.setTextColor(COLORS.forestGreenDark.r, COLORS.forestGreenDark.g, COLORS.forestGreenDark.b);
+  const sessionNameLines = doc.splitTextToSize(session.nom, boxW - 16) as string[];
+  doc.text(sessionNameLines, pageWidth / 2, y + 9, { align: "center" });
+
+  // Ligne meta (3 colonnes)
+  const metaY = y + 9 + sessionNameLines.length * 5 + 6;
+  doc.setDrawColor(COLORS.goldLight.r, COLORS.goldLight.g, COLORS.goldLight.b);
+  doc.setLineWidth(0.3);
+  doc.line(boxX + 10, metaY - 3, boxX + boxW - 10, metaY - 3);
+
+  const col1X = boxX + boxW * 0.20;
+  const col2X = boxX + boxW * 0.50;
+  const col3X = boxX + boxW * 0.80;
+
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-  doc.text("Le Directeur de l'organisme", pageWidth - 30, yPos, { align: "right" });
-  
-  // Add stamp image below text with proper spacing to avoid overlap
-  yPos += 8;
-  const stampAdded = addStampImage(doc, company, pageWidth - 65, yPos, 35, 22);
-  
-  yPos += stampAdded ? 26 : 12;
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  if (!stampAdded) {
-    doc.text("Signature et cachet", pageWidth - 30, yPos, { align: "right" });
+  doc.setFontSize(7.5);
+  doc.setTextColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.text("PÉRIODE", col1X, metaY, { align: "center" });
+  doc.text("DURÉE", col2X, metaY, { align: "center" });
+  doc.text("LIEU", col3X, metaY, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
+  const periode = `${format(new Date(session.date_debut), "dd/MM/yyyy", { locale: fr })} → ${format(new Date(session.date_fin), "dd/MM/yyyy", { locale: fr })}`;
+  doc.text(periode, col1X, metaY + 6, { align: "center" });
+  doc.text(session.duree_heures ? `${session.duree_heures} h` : "—", col2X, metaY + 6, { align: "center" });
+  const lieuText = doc.splitTextToSize(session.lieu || "—", boxW * 0.28) as string[];
+  doc.text(lieuText.slice(0, 2), col3X, metaY + 6, { align: "center" });
+
+  // ─── Zone basse : QR code (gauche) + Signature (droite) ───
+  const bottomY = pageHeight - 55;
+
+  // QR code
+  try {
+    const qrPayload = numeroCertificat
+      ? `Certificat T3P n°${numeroCertificat}\n${fullName}\n${session.nom}\n${company.name}`
+      : `${fullName} - ${session.nom} - ${company.name}`;
+    const qrDataUrl = await QRCode.toDataURL(qrPayload, {
+      margin: 0,
+      width: 200,
+      color: {
+        dark: `#${COLORS.forestGreenDark.r.toString(16).padStart(2, "0")}${COLORS.forestGreenDark.g.toString(16).padStart(2, "0")}${COLORS.forestGreenDark.b.toString(16).padStart(2, "0")}`,
+        light: "#ffffff",
+      },
+    });
+    doc.addImage(qrDataUrl, "PNG", 20, bottomY, 26, 26);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    doc.text("Vérification", 33, bottomY + 30, { align: "center" });
+    if (numeroCertificat) {
+      doc.setFont("helvetica", "bold");
+      doc.text(numeroCertificat, 33, bottomY + 34, { align: "center" });
+    }
+  } catch (e) {
+    console.warn("[Attestation] QR code generation failed:", e);
   }
-  
-  addFooter(doc);
-  
+
+  // Date / signature à droite
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
+  const villeSignature = (company.address?.split(",").pop() || "Paris").trim().replace(/^\d{4,5}\s*/, "") || "Paris";
+  doc.text(
+    `Fait à ${villeSignature}, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`,
+    pageWidth - 20,
+    bottomY,
+    { align: "right" }
+  );
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
+  const responsable = company.responsable_legal_nom || "Le Directeur";
+  doc.text(responsable, pageWidth - 20, bottomY + 7, { align: "right" });
+  if (company.responsable_legal_fonction) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+    doc.text(company.responsable_legal_fonction, pageWidth - 20, bottomY + 12, { align: "right" });
+  }
+
+  const stampAdded = addStampImage(doc, company, pageWidth - 62, bottomY + 15, 40, 24);
+  if (!stampAdded) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    doc.text("Signature et cachet", pageWidth - 20, bottomY + 20, { align: "right" });
+  }
+
+  // ─── Pied de page réglementaire ───
+  doc.setDrawColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
+  doc.setLineWidth(0.3);
+  doc.line(20, pageHeight - 18, pageWidth - 20, pageHeight - 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
+  const legalParts = [
+    `SIRET ${company.siret}`,
+    `NDA ${company.nda}`,
+    company.qualiopi_numero ? `Qualiopi ${company.qualiopi_numero}` : null,
+  ].filter(Boolean).join("  ·  ");
+  doc.text(legalParts, pageWidth / 2, pageHeight - 14, { align: "center" });
+  doc.setFontSize(6.5);
+  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+  doc.text(
+    `Document généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")} · La présente attestation est délivrée conformément à l'article L.6353-1 du Code du travail.`,
+    pageWidth / 2,
+    pageHeight - 10,
+    { align: "center" }
+  );
+
   return doc;
 }
 

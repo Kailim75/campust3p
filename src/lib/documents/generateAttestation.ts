@@ -192,7 +192,7 @@ export async function generateSingleAttestation(
   }
 
   // Fallback PDF
-  const pdf = generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
+  const pdf = await generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
   downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
   toast.success(`Attestation téléchargée${certificateInfo ? ` (${certificateInfo.numero_certificat})` : ""}`);
 }
@@ -261,7 +261,7 @@ export async function generateBulkAttestations(
         certificateInfo = await getOrCreateCertificateNumber(contactId, sessionId, typeAttestation);
       }
 
-      const pdf = generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
+      const pdf = await generateAttestationPDF(contact, session, company, certificateInfo?.numero_certificat);
       downloadPDF(pdf, `attestation-${contact.nom}-${contact.prenom}.pdf`);
       successCount++;
     } catch (err) {

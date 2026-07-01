@@ -374,7 +374,7 @@ export function BulkDocumentPreviewDialog({
           let doc;
           switch (documentType) {
             case 'attestation':
-              doc = generateAttestationPDF(contactInfo, sessionInfo, companyInfo);
+              doc = await generateAttestationPDF(contactInfo, sessionInfo, companyInfo);
               break;
             case 'convention':
               doc = generateConventionPDF(contactInfo, sessionInfo, companyInfo);
