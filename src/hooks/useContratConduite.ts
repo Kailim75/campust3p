@@ -15,6 +15,7 @@ import {
   validateContratConduite,
 } from "@/lib/documents/conduite/contratConduiteValidator";
 import { getProduitConduiteByFiliere, type FiliereConduite } from "@/lib/documents/conduite/produitsCatalogue";
+import { buildDefaultContratConduiteHtml } from "@/lib/documents/conduite/defaultContratConduiteTemplate";
 
 export const CONTRAT_CONDUITE_TYPE = "contrat_conduite";
 
@@ -45,6 +46,18 @@ export function useContratConduiteTemplate(filiere: FiliereConduite | null) {
         list.find(t => (t.metadata?.filiere ?? "").toString().toLowerCase() === filiereLabel) ??
         list.find(t => t.name.toLowerCase().includes(filiereLabel)) ??
         null;
+
+      // Fallback : aucun template publié → on renvoie un template par défaut riche
+      // (formation pratique 2 h + véhicule examen) pour que la génération reste possible.
+      if (!matched) {
+        return {
+          id: `__default_contrat_conduite_${filiere}`,
+          name: `Contrat formation pratique — ${filiereLabel.toUpperCase()} (par défaut)`,
+          type: CONTRAT_CONDUITE_TYPE,
+          body_html: buildDefaultContratConduiteHtml(filiere),
+          metadata: { filiere, is_default_fallback: true },
+        };
+      }
       return matched;
     },
     staleTime: 60_000,
