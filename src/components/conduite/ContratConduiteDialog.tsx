@@ -42,6 +42,10 @@ interface Props {
   initialFiliere?: FiliereConduite;
   factureId?: string | null;
   factureLigneId?: string | null;
+  initialPrixTtc?: number;
+  initialMontantPaye?: number;
+  initialResteAPayer?: number;
+  lockFiliere?: boolean;
 }
 
 export function ContratConduiteDialog({
@@ -52,9 +56,14 @@ export function ContratConduiteDialog({
   initialFiliere,
   factureId,
   factureLigneId,
+  initialPrixTtc,
+  initialMontantPaye,
+  initialResteAPayer,
+  lockFiliere,
 }: Props) {
   const [filiere, setFiliere] = useState<FiliereConduite>(initialFiliere ?? "taxi");
-  const [prixTtc, setPrixTtc] = useState<number>(0);
+  const [prixTtc, setPrixTtc] = useState<number>(initialPrixTtc ?? 0);
+  const [montantPaye, setMontantPaye] = useState<number>(initialMontantPaye ?? 0);
   const [justification, setJustification] = useState("");
   const [dateConduite, setDateConduite] = useState("");
   const [dateExamen, setDateExamen] = useState("");
@@ -66,11 +75,19 @@ export function ContratConduiteDialog({
   const { data: template, isLoading: tplLoading } = useContratConduiteTemplate(filiere);
   const createMut = useCreateContratConduite();
 
-  // Reset prix on filière change
+  // Reset prix on filière change (only when not driven by an invoice)
   useEffect(() => {
+    if (initialPrixTtc != null) return;
     setPrixTtc(getProduitConduiteByFiliere(filiere).prix_ttc);
     setJustification("");
-  }, [filiere]);
+  }, [filiere, initialPrixTtc]);
+
+  const resteAPayer = useMemo(() => {
+    if (initialResteAPayer != null && initialMontantPaye === montantPaye && initialPrixTtc === prixTtc) {
+      return initialResteAPayer;
+    }
+    return Math.max(0, Math.round((prixTtc - montantPaye) * 100) / 100);
+  }, [prixTtc, montantPaye, initialResteAPayer, initialMontantPaye, initialPrixTtc]);
 
   const validation = useMemo(
     () => validateContratConduite({ filiere, prix_ttc: prixTtc, justification_prix: justification }),
