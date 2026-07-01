@@ -162,29 +162,55 @@ export function ContratConduiteDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
+            {lockFiliere && factureId && (
+              <Alert>
+                <Car className="h-4 w-4" />
+                <AlertTitle>Produit détecté depuis la facture</AlertTitle>
+                <AlertDescription>
+                  La filière et le tarif sont pré-remplis à partir de la ligne de facture rattachée à cet apprenant. Modifiez uniquement en cas d'erreur.
+                </AlertDescription>
+              </Alert>
+            )}
             <div>
               <Label className="mb-2 block">Filière</Label>
               <ToggleGroup
                 type="single"
                 value={filiere}
-                onValueChange={(v) => v && setFiliere(v as FiliereConduite)}
+                onValueChange={(v) => v && !lockFiliere && setFiliere(v as FiliereConduite)}
                 className="justify-start"
+                disabled={lockFiliere}
               >
-                <ToggleGroupItem value="taxi">Taxi — 249 €</ToggleGroupItem>
-                <ToggleGroupItem value="vtc">VTC — 190 €</ToggleGroupItem>
+                <ToggleGroupItem value="taxi" disabled={lockFiliere && filiere !== "taxi"}>Taxi — 249 €</ToggleGroupItem>
+                <ToggleGroupItem value="vtc" disabled={lockFiliere && filiere !== "vtc"}>VTC — 190 €</ToggleGroupItem>
               </ToggleGroup>
             </div>
 
-            <div>
-              <Label htmlFor="prix">Prix TTC (€)</Label>
-              <Input
-                id="prix"
-                type="number"
-                min={0}
-                step="0.01"
-                value={prixTtc}
-                onChange={(e) => setPrixTtc(Number(e.target.value))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="prix">Prix TTC (€)</Label>
+                <Input
+                  id="prix"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={prixTtc}
+                  onChange={(e) => setPrixTtc(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="paye">Montant payé (€)</Label>
+                <Input
+                  id="paye"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={montantPaye}
+                  onChange={(e) => setMontantPaye(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reste à régler : <strong>{resteAPayer.toFixed(2).replace(".", ",")} €</strong>
+                </p>
+              </div>
             </div>
 
             {validation.priceAlert && (
