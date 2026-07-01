@@ -118,12 +118,31 @@ export function DocumentsTab({
   };
 
   const { centreId } = useCentreContext();
+  const { data: detectedConduite } = useContactConduiteProduct(contactId);
 
   return (
     <div className="space-y-4">
       {centreId && (
-        <div className="flex justify-end">
-          <ContratConduiteButton contactId={contactId} centreId={centreId} />
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          {detectedConduite && (
+            <Badge variant="secondary" className="gap-1.5">
+              <Car className="h-3 w-3" />
+              Produit facturé : {detectedConduite.produit.intitule}
+              {detectedConduite.facture_numero && ` · ${detectedConduite.facture_numero}`}
+            </Badge>
+          )}
+          <ContratConduiteButton
+            contactId={contactId}
+            centreId={centreId}
+            initialFiliere={detectedConduite?.filiere}
+            factureId={detectedConduite?.facture_id}
+            factureLigneId={detectedConduite?.facture_ligne_id}
+            initialPrixTtc={detectedConduite?.prix_ttc}
+            initialMontantPaye={detectedConduite?.montant_paye}
+            initialResteAPayer={detectedConduite?.reste_a_payer}
+            lockFiliere={!!detectedConduite}
+            label={detectedConduite ? "Générer le contrat de formation pratique" : "Générer contrat accompagnement conduite"}
+          />
         </div>
       )}
       <Tabs value={subTab} onValueChange={setSubTab}>
