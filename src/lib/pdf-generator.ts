@@ -1135,110 +1135,110 @@ export async function generateAttestationPDF(
   doc.rect(10, 0, 1.2, pageH, "F");
 
   // ─── En-tête : monogramme + identité organisme ───
-  const headerY = 24;
+  const headerY = 22;
   // Monogramme carré doré
   setColor("fill", COLORS.forestGreen);
-  doc.roundedRect(marginX, headerY - 9, 16, 16, 1.5, 1.5, "F");
+  doc.roundedRect(marginX, headerY - 8, 14, 14, 1.5, 1.5, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setColor("text", COLORS.white);
   const initials = (company.name || "T3P").split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 3).join("").toUpperCase();
-  doc.text(initials, marginX + 8, headerY - 0.5, { align: "center", charSpace: 0.6 });
+  doc.text(initials, marginX + 7, headerY, { align: "center" });
 
   // Nom & coordonnées
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11.5);
+  doc.setFontSize(11);
   setColor("text", COLORS.forestGreenDark);
-  doc.text(company.name.toUpperCase(), marginX + 22, headerY - 2.5, { charSpace: 1.2 });
+  doc.text(company.name.toUpperCase(), marginX + 20, headerY - 2);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   setColor("text", COLORS.warmGray600);
-  doc.text(`${company.address}`, marginX + 22, headerY + 3, { charSpace: 0.2 });
-  doc.text(`Tél ${company.phone}   ·   ${company.email}`, marginX + 22, headerY + 7.5, { charSpace: 0.2 });
+  doc.text(`${company.address}`, marginX + 20, headerY + 2);
+  doc.text(`Tél ${company.phone}  ·  ${company.email}`, marginX + 20, headerY + 5.5);
 
   // Bloc SIRET/NDA à droite
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
+  doc.setFontSize(7);
   setColor("text", COLORS.warmGray600);
   const rightLines = [
     `SIRET ${company.siret}`,
     `NDA ${company.nda}`,
     company.qualiopi_numero ? `Qualiopi ${company.qualiopi_numero}` : null,
   ].filter(Boolean) as string[];
-  rightLines.forEach((l, i) => doc.text(l, pageW - marginX, headerY - 2.5 + i * 4.2, { align: "right", charSpace: 0.3 }));
+  rightLines.forEach((l, i) => doc.text(l, pageW - marginX, headerY - 2 + i * 3.5, { align: "right" }));
 
   // Filet gold sous l'en-tête
   setColor("draw", COLORS.gold);
   doc.setLineWidth(0.4);
-  doc.line(marginX, headerY + 14, pageW - marginX, headerY + 14);
+  doc.line(marginX, headerY + 12, pageW - marginX, headerY + 12);
 
   // ─── Titre éditorial ───
-  let y = headerY + 36;
+  let y = headerY + 32;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   setColor("text", COLORS.gold);
-  doc.text("ORGANISME DE FORMATION PROFESSIONNELLE", pageW / 2, y, { align: "center", charSpace: 2.4 });
+  doc.text("ORGANISME DE FORMATION PROFESSIONNELLE", pageW / 2, y, { align: "center", charSpace: 1.4 });
 
-  y += 16;
+  y += 14;
   doc.setFont("times", "bold");
-  doc.setFontSize(32);
+  doc.setFontSize(30);
   setColor("text", COLORS.forestGreenDark);
-  doc.text("Attestation", pageW / 2, y, { align: "center", charSpace: 2 });
+  doc.text("Attestation", pageW / 2, y, { align: "center" });
 
-  y += 9;
+  y += 8;
   doc.setFont("times", "italic");
   doc.setFontSize(14);
   setColor("text", COLORS.warmGray700);
-  doc.text("de fin de formation", pageW / 2, y, { align: "center", charSpace: 0.8 });
+  doc.text("de fin de formation", pageW / 2, y, { align: "center" });
 
   // Petit filet doré centré
-  y += 5;
+  y += 4;
   setColor("fill", COLORS.gold);
-  doc.rect(pageW / 2 - 14, y, 28, 0.6, "F");
+  doc.rect(pageW / 2 - 12, y, 24, 0.6, "F");
 
   // Référence certificat
   if (numeroCertificat) {
-    y += 8;
+    y += 7;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     setColor("text", COLORS.warmGray600);
-    doc.text(`RÉFÉRENCE  ·  ${numeroCertificat}`, pageW / 2, y, { align: "center", charSpace: 1.2 });
+    doc.text(`Référence  ·  ${numeroCertificat}`, pageW / 2, y, { align: "center", charSpace: 0.5 });
   }
 
   // ─── Introduction ───
-  y += 16;
+  y += 14;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setColor("text", COLORS.warmGray700);
   const intro = `Je soussigné(e), représentant légal de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}${company.region_declaration ? ` auprès du préfet de région ${company.region_declaration}` : ""}, atteste que :`;
-  const introLines = doc.splitTextToSize(intro, contentW - 20) as string[];
-  introLines.forEach(line => { doc.text(line, pageW / 2, y, { align: "center", charSpace: 0.2 }); y += 6; });
+  const introLines = doc.splitTextToSize(intro, contentW - 10) as string[];
+  introLines.forEach(line => { doc.text(line, pageW / 2, y, { align: "center" }); y += 5; });
 
   // ─── Nom du bénéficiaire ───
-  y += 8;
+  y += 6;
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.setFont("times", "bold");
   doc.setFontSize(22);
   setColor("text", COLORS.forestGreen);
-  doc.text(fullName, pageW / 2, y, { align: "center", charSpace: 1.5 });
+  doc.text(fullName, pageW / 2, y, { align: "center" });
 
   if (contact.date_naissance) {
-    y += 7;
+    y += 6;
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
     setColor("text", COLORS.warmGray600);
     const paysNaissance = (contact as any).pays_naissance as string | undefined;
     const birth = `né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}${paysNaissance && paysNaissance !== "France" ? ` (${paysNaissance})` : ""}`;
-    doc.text(birth, pageW / 2, y, { align: "center", charSpace: 0.3 });
+    doc.text(birth, pageW / 2, y, { align: "center" });
   }
 
   // ─── Phrase de suivi ───
-  y += 12;
+  y += 10;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setColor("text", COLORS.warmGray700);
-  doc.text("a suivi et achevé la formation suivante :", pageW / 2, y, { align: "center", charSpace: 0.3 });
+  doc.text("a suivi et achevé la formation suivante :", pageW / 2, y, { align: "center" });
 
   // ─── Bloc formation ───
   y += 8;
