@@ -1228,7 +1228,8 @@ export async function generateAttestationPDF(
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
     setColor("text", COLORS.warmGray600);
-    const birth = `né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}${contact.pays_naissance && contact.pays_naissance !== "France" ? ` (${contact.pays_naissance})` : ""}`;
+    const paysNaissance = (contact as any).pays_naissance as string | undefined;
+    const birth = `né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}${paysNaissance && paysNaissance !== "France" ? ` (${paysNaissance})` : ""}`;
     doc.text(birth, pageW / 2, y, { align: "center" });
   }
 
