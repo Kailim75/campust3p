@@ -1154,8 +1154,15 @@ export async function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   setColor("text", COLORS.warmGray600);
-  doc.text(`${company.address}`, marginX + 20, headerY + 2);
-  doc.text(`Tél ${company.phone}  ·  ${company.email}`, marginX + 20, headerY + 5.5);
+  const addrParts = (company.address || "")
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  const addrLine1 = addrParts[0] || "";
+  const addrLine2 = addrParts.slice(1).join(", ");
+  doc.text(addrLine1, marginX + 20, headerY + 2);
+  if (addrLine2) doc.text(addrLine2, marginX + 20, headerY + 5.5);
+  doc.text(`Tél ${company.phone}  ·  ${company.email}`, marginX + 20, headerY + (addrLine2 ? 9 : 5.5));
 
   // Bloc SIRET/NDA à droite
   doc.setFont("helvetica", "normal");
