@@ -1331,7 +1331,12 @@ export async function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   setColor("text", COLORS.warmGray700);
-  const villeSignature = (company.address?.split(",").pop() || "Paris").trim().replace(/^\d{4,5}\s*/, "") || "Paris";
+  const cityRaw = (company.address || "")
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .pop() || "Paris";
+  const villeSignature = cityRaw.replace(/\b\d{4,5}\b/g, "").replace(/\s+/g, " ").trim() || "Paris";
   doc.text(`Fait à ${villeSignature}, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, sigX, sigTopY, { align: "right" });
 
   doc.setFont("helvetica", "bold");
