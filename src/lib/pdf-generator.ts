@@ -1154,8 +1154,15 @@ export async function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   setColor("text", COLORS.warmGray600);
-  doc.text(`${company.address}`, marginX + 20, headerY + 2);
-  doc.text(`Tél ${company.phone}  ·  ${company.email}`, marginX + 20, headerY + 5.5);
+  const addrParts = (company.address || "")
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  const addrLine1 = addrParts[0] || "";
+  const addrLine2 = addrParts.slice(1).join(", ");
+  doc.text(addrLine1, marginX + 20, headerY + 2);
+  if (addrLine2) doc.text(addrLine2, marginX + 20, headerY + 5.5);
+  doc.text(`Tél ${company.phone}  ·  ${company.email}`, marginX + 20, headerY + (addrLine2 ? 9 : 5.5));
 
   // Bloc SIRET/NDA à droite
   doc.setFont("helvetica", "normal");
@@ -1324,7 +1331,12 @@ export async function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   setColor("text", COLORS.warmGray700);
-  const villeSignature = (company.address?.split(",").pop() || "Paris").trim().replace(/^\d{4,5}\s*/, "") || "Paris";
+  const cityRaw = (company.address || "")
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .pop() || "Paris";
+  const villeSignature = cityRaw.replace(/\b\d{4,5}\b/g, "").replace(/\s+/g, " ").trim() || "Paris";
   doc.text(`Fait à ${villeSignature}, le ${format(new Date(), "dd MMMM yyyy", { locale: fr })}`, sigX, sigTopY, { align: "right" });
 
   doc.setFont("helvetica", "bold");
