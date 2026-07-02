@@ -1207,38 +1207,38 @@ export async function generateAttestationPDF(
   }
 
   // ─── Introduction ───
-  y += 14;
+  y += 16;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setColor("text", COLORS.warmGray700);
   const intro = `Je soussigné(e), représentant légal de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}${company.region_declaration ? ` auprès du préfet de région ${company.region_declaration}` : ""}, atteste que :`;
-  const introLines = doc.splitTextToSize(intro, contentW - 10) as string[];
-  introLines.forEach(line => { doc.text(line, pageW / 2, y, { align: "center" }); y += 5; });
+  const introLines = doc.splitTextToSize(intro, contentW - 20) as string[];
+  introLines.forEach(line => { doc.text(line, pageW / 2, y, { align: "center", charSpace: 0.2 }); y += 6; });
 
   // ─── Nom du bénéficiaire ───
-  y += 6;
+  y += 8;
   const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
   doc.setFont("times", "bold");
   doc.setFontSize(22);
   setColor("text", COLORS.forestGreen);
-  doc.text(fullName, pageW / 2, y, { align: "center" });
+  doc.text(fullName, pageW / 2, y, { align: "center", charSpace: 1.5 });
 
   if (contact.date_naissance) {
-    y += 6;
+    y += 7;
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
     setColor("text", COLORS.warmGray600);
     const paysNaissance = (contact as any).pays_naissance as string | undefined;
     const birth = `né(e) le ${format(new Date(contact.date_naissance), "dd MMMM yyyy", { locale: fr })}${contact.ville_naissance ? ` à ${contact.ville_naissance}` : ""}${paysNaissance && paysNaissance !== "France" ? ` (${paysNaissance})` : ""}`;
-    doc.text(birth, pageW / 2, y, { align: "center" });
+    doc.text(birth, pageW / 2, y, { align: "center", charSpace: 0.3 });
   }
 
   // ─── Phrase de suivi ───
-  y += 10;
+  y += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setColor("text", COLORS.warmGray700);
-  doc.text("a suivi et achevé la formation suivante :", pageW / 2, y, { align: "center" });
+  doc.text("a suivi et achevé la formation suivante :", pageW / 2, y, { align: "center", charSpace: 0.3 });
 
   // ─── Bloc formation ───
   y += 8;
