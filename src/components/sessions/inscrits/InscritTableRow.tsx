@@ -18,6 +18,7 @@ import { EnvoiStatusBadge } from "@/components/documents/EnvoiStatusBadge";
 import {
   Eye, Send, Trash2, FileDown, FileText, Edit, Receipt,
   CheckCircle2, XCircle, Clock, Award, ArrowRightLeft,
+  Check, X, Pencil, Copy,
 } from "lucide-react";
 import type { FactureWithDetails } from "@/hooks/useFactures";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
