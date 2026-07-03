@@ -304,6 +304,15 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     } catch { toast.error("Erreur lors de la mise à jour du statut"); }
   };
 
+  const handleDossierChange = async (inscriptionId: string, value: string | null) => {
+    try {
+      const { error } = await supabase.from('session_inscriptions').update({ numero_dossier: value }).eq('id', inscriptionId);
+      if (error) throw error;
+      toast.success("N° dossier mis à jour");
+      queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
+    } catch { toast.error("Erreur lors de la mise à jour du N° dossier"); }
+  };
+
   const handleCreateFacture = (contactId: string) => {
     setSelectedContactIdForFacture(contactId);
     setEditingFacture(null);
