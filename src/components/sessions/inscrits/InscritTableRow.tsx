@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -17,6 +20,7 @@ import { EnvoiStatusBadge } from "@/components/documents/EnvoiStatusBadge";
 import {
   Eye, Send, Trash2, FileDown, FileText, Edit, Receipt,
   CheckCircle2, XCircle, Clock, Award, ArrowRightLeft,
+  Check, X, Pencil, Copy,
 } from "lucide-react";
 import type { FactureWithDetails } from "@/hooks/useFactures";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
@@ -42,6 +46,7 @@ interface InscritTableRowProps {
   onTransfer: (contactId: string, name: string) => void;
   onViewContact: (contactId: string) => void;
   onRemove: (contactId: string) => void;
+  onDossierChange?: (inscriptionId: string, value: string | null) => void;
   sessionFormationType?: string;
 }
 
@@ -65,6 +70,7 @@ export function InscritTableRow({
   onTransfer,
   onViewContact,
   onRemove,
+  onDossierChange,
   sessionFormationType,
 }: InscritTableRowProps) {
   const urgency = getUrgency(inscrit, facture, examResult, sessionDateFin);
@@ -216,6 +222,14 @@ export function InscritTableRow({
           <span className="text-xs text-muted-foreground">—</span>
         )}
       </TableCell>
+      {/* N° dossier */}
+      <TableCell className="hidden sm:table-cell">
+        <DossierCell
+          inscriptionId={inscrit.id}
+          numeroDossier={inscrit.numero_dossier || null}
+          onDossierChange={onDossierChange}
+        />
+      </TableCell>
       {/* Dernière comm */}
       <TableCell className="hidden lg:table-cell">
         {latestEnvoi ? (
@@ -339,6 +353,81 @@ export function InscritTableRow({
         </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+/* ── Dossier cell (inline editable) ── */
+function DossierCell({
+  inscriptionId,
+  numeroDossier,
+  onDossierChange,
+}: {
+  inscriptionId: string;
+  numeroDossier: string | null;
+  onDossierChange?: (inscriptionId: string, value: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(numeroDossier || "");
+
+  const handleSave = () => {
+    onDossierChange?.(inscriptionId, value.trim() || null);
+    setEditing(false);
+  };
+
+  const handleCopy = (v: string) => {
+    navigator.clipboard.writeText(v);
+    toast.success("N° dossier copié");
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          className="h-7 text-xs w-32"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") { setEditing(false); setValue(numeroDossier || ""); }
+          }}
+          autoFocus
+        />
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSave}>
+          <Check className="h-3 w-3 text-success" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(false); setValue(numeroDossier || ""); }}>
+          <X className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 group">
+      {numeroDossier ? (
+        <>
+          <span className="font-mono text-xs text-foreground">{numeroDossier}</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => handleCopy(numeroDossier)}
+          >
+            <Copy className="h-3 w-3 text-muted-foreground" />
+          </Button>
+        </>
+      ) : (
+        <span className="text-xs text-muted-foreground italic">—</span>
+      )}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={() => setEditing(true)}
+      >
+        <Pencil className="h-3 w-3 text-muted-foreground" />
+      </Button>
+    </div>
   );
 }
 

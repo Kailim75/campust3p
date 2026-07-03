@@ -304,6 +304,15 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     } catch { toast.error("Erreur lors de la mise à jour du statut"); }
   };
 
+  const handleDossierChange = async (inscriptionId: string, value: string | null) => {
+    try {
+      const { error } = await supabase.from('session_inscriptions').update({ numero_dossier: value }).eq('id', inscriptionId);
+      if (error) throw error;
+      toast.success("N° dossier mis à jour");
+      queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
+    } catch { toast.error("Erreur lors de la mise à jour du N° dossier"); }
+  };
+
   const handleCreateFacture = (contactId: string) => {
     setSelectedContactIdForFacture(contactId);
     setEditingFacture(null);
@@ -410,6 +419,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden lg:table-cell w-16 text-center">Dept.</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
+                <TableHead className="hidden sm:table-cell w-36">N° dossier</TableHead>
                 <TableHead className="hidden lg:table-cell w-24">Dern. comm.</TableHead>
                 <TableHead className="hidden lg:table-cell w-10 text-center">⚡</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
@@ -420,7 +430,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 filteredInscrits.map(inscrit => (
                   <InscritTableRow
                     key={inscrit.id}
-                    inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, contact: inscrit.contact as InscritRow["contact"] }}
+                    inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, numero_dossier: (inscrit as any).numero_dossier, contact: inscrit.contact as InscritRow["contact"] }}
                     selected={selectedIds.includes(inscrit.contact_id)}
                     onToggleSelect={toggleSelect}
                     facture={getFacturesForInscription(inscrit.id, inscrit.contact_id)[0]}
@@ -437,6 +447,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     onEditFacture={handleEditFacture}
                     onViewFacture={handleViewFacture}
                     onTransfer={(id, name) => { setTransferContact({ id, name }); setTransferDialogOpen(true); }}
+                    onDossierChange={handleDossierChange}
                     onViewContact={setSelectedContactId}
                     onRemove={handleRemoveInscription}
                     sessionFormationType={session?.formation_type}
@@ -444,7 +455,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">Aucun stagiaire inscrit</TableCell>
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucun stagiaire inscrit</TableCell>
                 </TableRow>
               )}
             </TableBody>
