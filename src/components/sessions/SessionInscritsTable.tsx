@@ -421,7 +421,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 filteredInscrits.map(inscrit => (
                   <InscritTableRow
                     key={inscrit.id}
-                    inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, contact: inscrit.contact as InscritRow["contact"] }}
+                    inscrit={{ id: inscrit.id, contact_id: inscrit.contact_id, statut: inscrit.statut, numero_dossier: (inscrit as any).numero_dossier, contact: inscrit.contact as InscritRow["contact"] }}
                     selected={selectedIds.includes(inscrit.contact_id)}
                     onToggleSelect={toggleSelect}
                     facture={getFacturesForInscription(inscrit.id, inscrit.contact_id)[0]}
