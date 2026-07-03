@@ -44,6 +44,7 @@ interface InscritTableRowProps {
   onTransfer: (contactId: string, name: string) => void;
   onViewContact: (contactId: string) => void;
   onRemove: (contactId: string) => void;
+  onDossierChange?: (inscriptionId: string, value: string | null) => void;
   sessionFormationType?: string;
 }
 
