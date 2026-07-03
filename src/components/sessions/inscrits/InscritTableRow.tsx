@@ -69,6 +69,7 @@ export function InscritTableRow({
   onTransfer,
   onViewContact,
   onRemove,
+  onDossierChange,
   sessionFormationType,
 }: InscritTableRowProps) {
   const urgency = getUrgency(inscrit, facture, examResult, sessionDateFin);
