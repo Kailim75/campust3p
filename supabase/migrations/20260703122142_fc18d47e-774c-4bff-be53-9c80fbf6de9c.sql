@@ -1,0 +1,1 @@
+ALTER TABLE public.session_inscriptions ADD COLUMN IF NOT EXISTS numero_dossier TEXT;

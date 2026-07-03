@@ -7397,6 +7397,7 @@ export type Database = {
           id: string
           montant_formation: number | null
           montant_pris_en_charge: number | null
+          numero_dossier: string | null
           payeur_partner_id: string | null
           qualification_source: string | null
           qualified_at: string | null
@@ -7423,6 +7424,7 @@ export type Database = {
           id?: string
           montant_formation?: number | null
           montant_pris_en_charge?: number | null
+          numero_dossier?: string | null
           payeur_partner_id?: string | null
           qualification_source?: string | null
           qualified_at?: string | null
@@ -7449,6 +7451,7 @@ export type Database = {
           id?: string
           montant_formation?: number | null
           montant_pris_en_charge?: number | null
+          numero_dossier?: string | null
           payeur_partner_id?: string | null
           qualification_source?: string | null
           qualified_at?: string | null
