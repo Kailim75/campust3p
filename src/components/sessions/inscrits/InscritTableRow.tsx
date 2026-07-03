@@ -221,6 +221,14 @@ export function InscritTableRow({
           <span className="text-xs text-muted-foreground">—</span>
         )}
       </TableCell>
+      {/* N° dossier */}
+      <TableCell className="hidden sm:table-cell">
+        <DossierCell
+          inscriptionId={inscrit.id}
+          numeroDossier={inscrit.numero_dossier || null}
+          onDossierChange={onDossierChange}
+        />
+      </TableCell>
       {/* Dernière comm */}
       <TableCell className="hidden lg:table-cell">
         {latestEnvoi ? (
