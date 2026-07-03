@@ -410,6 +410,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 <TableHead className="hidden lg:table-cell w-20 text-center">P</TableHead>
                 <TableHead className="hidden lg:table-cell w-16 text-center">Dept.</TableHead>
                 <TableHead className="hidden md:table-cell">Facture</TableHead>
+                <TableHead className="hidden sm:table-cell w-36">N° dossier</TableHead>
                 <TableHead className="hidden lg:table-cell w-24">Dern. comm.</TableHead>
                 <TableHead className="hidden lg:table-cell w-10 text-center">⚡</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
