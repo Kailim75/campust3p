@@ -29,6 +29,7 @@ export interface InscritRow {
   id: string;
   contact_id: string;
   statut: string;
+  numero_dossier?: string | null;
   contact?: InscritContact | null;
 }
 
