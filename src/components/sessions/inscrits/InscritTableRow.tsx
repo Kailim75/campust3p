@@ -355,6 +355,81 @@ export function InscritTableRow({
   );
 }
 
+/* ── Dossier cell (inline editable) ── */
+function DossierCell({
+  inscriptionId,
+  numeroDossier,
+  onDossierChange,
+}: {
+  inscriptionId: string;
+  numeroDossier: string | null;
+  onDossierChange?: (inscriptionId: string, value: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(numeroDossier || "");
+
+  const handleSave = () => {
+    onDossierChange?.(inscriptionId, value.trim() || null);
+    setEditing(false);
+  };
+
+  const handleCopy = (v: string) => {
+    navigator.clipboard.writeText(v);
+    toast.success("N° dossier copié");
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          className="h-7 text-xs w-32"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") { setEditing(false); setValue(numeroDossier || ""); }
+          }}
+          autoFocus
+        />
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSave}>
+          <Check className="h-3 w-3 text-success" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(false); setValue(numeroDossier || ""); }}>
+          <X className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 group">
+      {numeroDossier ? (
+        <>
+          <span className="font-mono text-xs text-foreground">{numeroDossier}</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => handleCopy(numeroDossier)}
+          >
+            <Copy className="h-3 w-3 text-muted-foreground" />
+          </Button>
+        </>
+      ) : (
+        <span className="text-xs text-muted-foreground italic">—</span>
+      )}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={() => setEditing(true)}
+      >
+        <Pencil className="h-3 w-3 text-muted-foreground" />
+      </Button>
+    </div>
+  );
+}
+
 /* ── Exam cycle button ── */
 function ExamCycleButton({ value, label, onClick }: { value: string | null; label: string; onClick: () => void }) {
   const icon = value === "admis"
