@@ -447,6 +447,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     onEditFacture={handleEditFacture}
                     onViewFacture={handleViewFacture}
                     onTransfer={(id, name) => { setTransferContact({ id, name }); setTransferDialogOpen(true); }}
+                    onDossierChange={handleDossierChange}
                     onViewContact={setSelectedContactId}
                     onRemove={handleRemoveInscription}
                     sessionFormationType={session?.formation_type}
