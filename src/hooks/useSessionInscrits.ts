@@ -25,6 +25,12 @@ export function useSessionInscrits(sessionId: string) {
         .eq('session_id', sessionId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true });
+      // Cast numero_dossier since it's a fresh column not yet in generated types
+      if (data) {
+        (data as any[]).forEach((row: any) => {
+          row.numero_dossier = row.numero_dossier ?? null;
+        });
+      }
       
       if (error) throw error;
       return data || [];
