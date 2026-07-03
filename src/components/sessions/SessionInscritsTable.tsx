@@ -445,7 +445,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">Aucun stagiaire inscrit</TableCell>
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucun stagiaire inscrit</TableCell>
                 </TableRow>
               )}
             </TableBody>
