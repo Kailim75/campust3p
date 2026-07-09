@@ -254,7 +254,7 @@ export function useExportData() {
 }
 
 // Helper function to export data to Excel
-async function exportToExcel(data: any[], config: ExportConfig) {
+export async function exportToExcel(data: any[], config: ExportConfig) {
   if (data.length === 0) {
     toast.error("Aucune donnée à exporter");
     return;

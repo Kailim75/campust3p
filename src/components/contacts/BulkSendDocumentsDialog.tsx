@@ -87,33 +87,47 @@ export function BulkSendDocumentsDialog({
 
       await bulkCreateEnvois.mutateAsync(envois);
 
-      // Send emails if enabled
+      // Send emails if enabled — un seul appel bulk (la fonction accepte recipients[])
       if (sendEmail) {
         const contactsWithEmail = selectedContacts.filter((c) => c.email);
-        
-        for (const contact of contactsWithEmail) {
+        const docLabels = selectedDocTypes.map(
+          (dt) => documentTypes.find((d) => d.id === dt)?.label || dt
+        );
+
+        if (contactsWithEmail.length > 0) {
           try {
-            const { error } = await supabase.functions.invoke("send-automated-emails", {
+            // generateAttachments: false — ce dialog est hors session, la
+            // fonction générerait sinon des PDF avec des données fallback.
+            const { data, error } = await supabase.functions.invoke("send-automated-emails", {
               body: {
                 type: "document_envoi",
-                recipientEmail: contact.email,
-                recipientName: `${contact.prenom} ${contact.nom}`,
-                documentTypes: selectedDocTypes.map(
-                  (dt) => documentTypes.find((d) => d.id === dt)?.label || dt
-                ),
+                documentType: docLabels.join(" + "),
+                generateAttachments: false,
                 customMessage,
+                recipients: contactsWithEmail.map((c) => ({
+                  email: c.email,
+                  name: `${c.prenom} ${c.nom}`,
+                  contactId: c.id,
+                })),
               },
             });
 
             if (error) {
               console.error("Erreur envoi email:", error);
-              errorCount++;
+              errorCount = contactsWithEmail.length;
             } else {
-              successCount++;
+              successCount = data?.sent ?? 0;
+              errorCount = (data?.total ?? contactsWithEmail.length) - successCount;
+              const failedNames = (data?.results ?? [])
+                .filter((r: { success: boolean }) => !r.success)
+                .map((r: { recipientName?: string; recipient: string }) => r.recipientName || r.recipient);
+              if (failedNames.length > 0) {
+                toast.warning(`Échec d'envoi pour : ${failedNames.join(", ")}`, { duration: 10000 });
+              }
             }
           } catch (err) {
             console.error("Erreur envoi email:", err);
-            errorCount++;
+            errorCount = contactsWithEmail.length;
           }
         }
       } else {
