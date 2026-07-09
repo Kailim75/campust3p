@@ -168,13 +168,16 @@ export function SessionDocumentsSendModal({
         );
 
         if (isAttachmentTooLarge(sharedAttachments)) {
-          toast.warning("Document trop volumineux (>5Mo). Envoi sans pièce jointe.");
-          sharedAttachments = undefined;
+          toast.error(
+            "Document trop volumineux (>5 Mo). Envoi annulé : l'email serait parti sans pièce jointe."
+          );
+          return;
         }
       }
 
       // Build recipients
       const recipients: EmailRecipient[] = [];
+      const skipped: string[] = [];
 
       for (let i = 0; i < toSend.length; i++) {
         const inscrit = toSend[i];
@@ -205,14 +208,19 @@ export function SessionDocumentsSendModal({
             );
 
             if (isAttachmentTooLarge(perRecipientAttachments)) {
-              toast.warning(
-                `Document trop volumineux pour ${c.prenom} ${c.nom}. Envoi sans PJ.`
-              );
               perRecipientAttachments = undefined;
             }
           } catch (err) {
             console.error(`PDF generation failed for ${c.nom}:`, err);
-            toast.error(`Erreur génération PDF pour ${c.prenom} ${c.nom}`);
+            perRecipientAttachments = undefined;
+          }
+
+          // Exclu plutôt qu'envoyé sans sa pièce jointe : l'email dit
+          // « veuillez trouver ci-joint », il ne doit pas partir à vide.
+          if (!perRecipientAttachments) {
+            skipped.push(`${c.prenom} ${c.nom}`.trim());
+            setProgress(Math.round(((i + 1) / toSend.length) * 100));
+            continue;
           }
         }
 
@@ -225,6 +233,20 @@ export function SessionDocumentsSendModal({
         });
 
         setProgress(Math.round(((i + 1) / toSend.length) * 100));
+      }
+
+      if (recipients.length === 0) {
+        toast.error(
+          "Aucun document n'a pu être généré (PDF en erreur ou >5 Mo). Envoi annulé."
+        );
+        return;
+      }
+
+      if (skipped.length > 0) {
+        toast.warning(
+          `${skipped.length} destinataire(s) exclu(s) de l'envoi (document manquant ou >5 Mo) : ${skipped.join(", ")}`,
+          { duration: 10000 }
+        );
       }
 
       // Build default subject/body
