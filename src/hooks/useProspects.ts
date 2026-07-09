@@ -212,7 +212,7 @@ export function useBulkDeleteProspects() {
     mutationFn: async (ids: string[]) => {
       const { error } = await supabase
         .from("prospects")
-        .update({ is_active: false, deleted_at: new Date().toISOString() } as any)
+        .update({ is_active: false, deleted_at: new Date().toISOString() })
         .in("id", ids);
 
       if (error) throw error;
