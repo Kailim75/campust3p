@@ -127,19 +127,16 @@ function QuickActions({ item, onMarkDone }: { item: ActionItem; onMarkDone: (ite
           setRescheduleNote("Relance replanifiée depuis dashboard");
         }
       }}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="p-1 rounded hover:bg-primary/10 transition-colors"
-              >
-                <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">Replanifier</TooltipContent>
-        </Tooltip>
+        <PopoverTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded hover:bg-primary/10 transition-colors"
+            aria-label="Replanifier"
+            title="Replanifier"
+          >
+            <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
         <PopoverContent className="w-64 p-3" align="end" onClick={e => e.stopPropagation()}>
           <p className="text-xs font-medium mb-2">Replanifier</p>
           {/* Presets */}
