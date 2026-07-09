@@ -205,6 +205,31 @@ export function useDeleteProspect() {
   });
 }
 
+export function useBulkDeleteProspects() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("prospects")
+        .update({ is_active: false, deleted_at: new Date().toISOString() } as any)
+        .in("id", ids);
+
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast.success(`${count} prospect(s) envoyé(s) à la corbeille`);
+    },
+    onError: (error) => {
+      toast.error("Erreur lors de la suppression groupée — aucun prospect supprimé");
+      console.error(error);
+    },
+  });
+}
+
 export function useConvertProspect() {
   const queryClient = useQueryClient();
 

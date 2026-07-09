@@ -20,7 +20,7 @@ import {
   BarChart3, GitBranch, X, Eye, MessageCircle, CalendarClock,
   CheckSquare, AlertTriangle,
 } from "lucide-react";
-import { useProspects, useDeleteProspect, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
+import { useProspects, useDeleteProspect, useBulkDeleteProspects, useProspectsStats, type ProspectStatus, type Prospect } from "@/hooks/useProspects";
 import { useLogProspectAction, useMarkProspectDone } from "@/hooks/useProspectActions";
 import { SmartConversionDialog } from "@/components/workflow/SmartConversionDialog";
 import { ProspectFormDialog } from "./ProspectFormDialog";
@@ -106,6 +106,7 @@ export function ProspectsPage() {
   const { data: prospects = [], isLoading } = useProspects();
   const { data: stats } = useProspectsStats();
   const deleteProspect = useDeleteProspect();
+  const bulkDeleteProspects = useBulkDeleteProspects();
   const logAction = useLogProspectAction();
   const markDone = useMarkProspectDone();
   const [search, setSearch] = useState("");
@@ -290,12 +291,12 @@ export function ProspectsPage() {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
-    let successCount = 0;
-    for (const id of ids) {
-      try { await deleteProspect.mutateAsync(id); successCount++; } catch {}
+    try {
+      await bulkDeleteProspects.mutateAsync(ids);
+      setSelectedIds(new Set());
+    } catch {
+      // Erreur signalée par le hook ; la sélection est conservée pour réessayer
     }
-    toast.success(`${successCount} prospect(s) supprimé(s)`);
-    setSelectedIds(new Set());
     setBulkDeleteDialogOpen(false);
   };
 

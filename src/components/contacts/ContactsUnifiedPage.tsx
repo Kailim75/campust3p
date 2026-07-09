@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
-import { useProspects, useDeleteProspect, useConvertProspect, useProspectsStats, type Prospect } from "@/hooks/useProspects";
+import { useProspects, useBulkDeleteProspects, useConvertProspect, useProspectsStats, type Prospect } from "@/hooks/useProspects";
 import { ContactsTable } from "./ContactsTable";
 import { ContactFormDialog } from "./ContactFormDialog";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
@@ -476,7 +476,7 @@ export function ContactsUnifiedPage({ selectedContactId: propContactId, onContac
 // Embedded prospects list (simplified from ProspectsPage)
 function ProspectsEmbedded() {
   const { data: prospects = [], isLoading } = useProspects();
-  const deleteProspect = useDeleteProspect();
+  const bulkDeleteProspects = useBulkDeleteProspects();
   const convertProspect = useConvertProspect();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -540,13 +540,10 @@ function ProspectsEmbedded() {
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     try {
-      for (const id of ids) {
-        await deleteProspect.mutateAsync(id);
-      }
-      toast.success(`${ids.length} prospect(s) supprimé(s)`);
+      await bulkDeleteProspects.mutateAsync(ids);
       setSelectedIds(new Set());
-    } catch (error) {
-      toast.error("Erreur lors de la suppression");
+    } catch {
+      // Erreur signalée par le hook ; la sélection est conservée pour réessayer
     }
     setShowDeleteDialog(false);
   };
