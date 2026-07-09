@@ -58,17 +58,9 @@ export function InboxToolbar({
   const { data: centreUsers = [] } = useQuery({
     queryKey: ["centre-users", centreId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_centres")
-        .select("user_id, profiles(id, display_name, email)")
-        .eq("centre_id", centreId);
+      const { data, error } = await supabase.rpc("get_centre_users", { _centre_id: centreId });
       if (error) throw error;
-      return (data || [])
-        .filter((uc: any) => uc.profiles)
-        .map((uc: any) => ({
-          id: uc.user_id,
-          label: uc.profiles.display_name || uc.profiles.email || uc.user_id.slice(0, 8),
-        }));
+      return (data || []).map((u: any) => ({ id: u.user_id, label: u.label }));
     },
     enabled: !!centreId,
   });
