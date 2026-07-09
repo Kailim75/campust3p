@@ -9009,6 +9009,13 @@ export type Database = {
           type_carte: string
         }[]
       }
+      get_centre_users: {
+        Args: { _centre_id: string }
+        Returns: {
+          label: string
+          user_id: string
+        }[]
+      }
       get_delete_impact: {
         Args: { p_record_id: string; p_table_name: string }
         Returns: Json
