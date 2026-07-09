@@ -3,12 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileCheck, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot, CheckSquare } from "lucide-react";
+import { FileCheck, FileDown, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 import { CMA_DOC_LABELS } from "@/lib/cma-constants";
+import { exportToExcel } from "@/hooks/useExportData";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
 import { UrgencyDot, LastActionLine, MarkDoneBtn, PostponeBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps, CmaFilter } from "./aujourdhui-types";
@@ -55,6 +57,32 @@ export function BlocCma({
   ];
   const allVisibleSelected = cmaItems.length > 0 && cmaItems.every((item) => bulkCmaSelected.has(item.id));
 
+  const URGENCY_EXPORT_LABELS: Record<string, string> = {
+    elevee: "Élevée",
+    moyenne: "Moyenne",
+    faible: "Faible",
+  };
+
+  const handleExportCma = async () => {
+    const rows = allCmaFiltered.map((item) => ({
+      "Prénom": item.prenom,
+      "Nom": item.nom,
+      "Formation": item.formation || "",
+      "Dossier": item.dossierShortLabel || "CMA",
+      "Pièces reçues": `${item.docCount}/${item.requiredDocCount || 5}`,
+      "Pièces manquantes": (item.missingDocs || [])
+        .map((d: string) => CMA_DOC_LABELS[d] || d)
+        .join(", "),
+      "Urgence": URGENCY_EXPORT_LABELS[item.urgency?.level] || "",
+      "Email": item.email || "",
+      "Téléphone": item.telephone || "",
+    }));
+    await exportToExcel(rows, { filename: "dossiers_cma_incomplets", sheetName: "Dossiers CMA" });
+    if (rows.length > 0) {
+      toast.success(`${rows.length} dossier(s) exporté(s)`);
+    }
+  };
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between">
@@ -68,6 +96,17 @@ export function BlocCma({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 flex-wrap">
+          {allCmaFiltered.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-[10px] gap-1"
+              onClick={handleExportCma}
+            >
+              <FileDown className="h-3 w-3" />
+              Exporter
+            </Button>
+          )}
           {cmaItems.length > 0 && (
             <Button
               size="sm"
