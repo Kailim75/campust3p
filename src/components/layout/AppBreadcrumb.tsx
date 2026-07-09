@@ -125,83 +125,84 @@ export function AppBreadcrumb({ activeSection, activeTab, onNavigate }: AppBread
           const Icon = crumb.icon;
 
           return (
-            <BreadcrumbItem key={`${crumb.label}-${index}`}>
+            <React.Fragment key={`${crumb.label}-${index}`}>
               {index > 0 && (
                 <BreadcrumbSeparator>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </BreadcrumbSeparator>
               )}
-
-              {isLast ? (
-                <BreadcrumbPage className="flex items-center gap-1.5 font-medium">
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {crumb.label}
-                </BreadcrumbPage>
-              ) : crumb.disabled ? (
-                <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
-                  <DropdownMenuTrigger
-                    className={cn(
-                      "flex items-center gap-1 text-sm rounded-md px-1.5 -mx-1 py-0.5 transition-colors",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      moreOpen
-                        ? "text-foreground bg-accent"
-                        : "text-muted-foreground/80 hover:text-foreground hover:bg-accent/40"
-                    )}
-                    aria-label="Afficher les autres modules"
-                  >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                    <span>{crumb.label}</span>
-                    <ChevronDown
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage className="flex items-center gap-1.5 font-medium">
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {crumb.label}
+                  </BreadcrumbPage>
+                ) : crumb.disabled ? (
+                  <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
+                    <DropdownMenuTrigger
                       className={cn(
-                        "h-3 w-3 opacity-60 transition-transform",
-                        moreOpen && "rotate-180"
+                        "flex items-center gap-1 text-sm rounded-md px-1.5 -mx-1 py-0.5 transition-colors",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        moreOpen
+                          ? "text-foreground bg-accent"
+                          : "text-muted-foreground/80 hover:text-foreground hover:bg-accent/40"
                       )}
-                    />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-60 max-h-[60vh] overflow-y-auto">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                      Autres modules
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {MORE_ENTRIES.map((item) => {
-                      const ItemIcon = item.icon;
-                      const isCurrent = item.id === resolvedSection;
-                      return (
-                        <DropdownMenuItem
-                          key={item.id}
-                          onSelect={() => handleMoreNavigate(item.id)}
-                          aria-current={isCurrent ? "page" : undefined}
-                          className={cn(
-                            "cursor-pointer gap-2",
-                            isCurrent &&
-                              "bg-accent text-accent-foreground font-medium data-[highlighted]:bg-accent"
-                          )}
-                        >
-                          <ItemIcon
+                      aria-label="Afficher les autres modules"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                      <span>{crumb.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-3 w-3 opacity-60 transition-transform",
+                          moreOpen && "rotate-180"
+                        )}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-60 max-h-[60vh] overflow-y-auto">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                        Autres modules
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {MORE_ENTRIES.map((item) => {
+                        const ItemIcon = item.icon;
+                        const isCurrent = item.id === resolvedSection;
+                        return (
+                          <DropdownMenuItem
+                            key={item.id}
+                            onSelect={() => handleMoreNavigate(item.id)}
+                            aria-current={isCurrent ? "page" : undefined}
                             className={cn(
-                              "h-4 w-4",
-                              isCurrent ? "text-primary" : "text-muted-foreground"
+                              "cursor-pointer gap-2",
+                              isCurrent &&
+                                "bg-accent text-accent-foreground font-medium data-[highlighted]:bg-accent"
                             )}
-                          />
-                          <span className="flex-1 truncate">{item.label}</span>
-                          {isCurrent && (
-                            <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                          )}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <BreadcrumbLink
-                  onClick={() => crumb.section && onNavigate(crumb.section)}
-                  className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
-                >
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {crumb.label}
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
+                          >
+                            <ItemIcon
+                              className={cn(
+                                "h-4 w-4",
+                                isCurrent ? "text-primary" : "text-muted-foreground"
+                              )}
+                            />
+                            <span className="flex-1 truncate">{item.label}</span>
+                            {isCurrent && (
+                              <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <BreadcrumbLink
+                    onClick={() => crumb.section && onNavigate(crumb.section)}
+                    className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {crumb.label}
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
           );
         })}
       </BreadcrumbList>
