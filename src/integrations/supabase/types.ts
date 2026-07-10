@@ -7652,7 +7652,7 @@ export type Database = {
       }
       signature_requests: {
         Row: {
-          access_token: string | null
+          access_token: string
           commentaires: string | null
           contact_id: string
           created_at: string
@@ -7676,7 +7676,7 @@ export type Database = {
           user_agent_signature: string | null
         }
         Insert: {
-          access_token?: string | null
+          access_token?: string
           commentaires?: string | null
           contact_id: string
           created_at?: string
@@ -7700,7 +7700,7 @@ export type Database = {
           user_agent_signature?: string | null
         }
         Update: {
-          access_token?: string | null
+          access_token?: string
           commentaires?: string | null
           contact_id?: string
           created_at?: string
