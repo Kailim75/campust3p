@@ -35,6 +35,7 @@ const FinancesPage        = lazy(() => import("@/components/finances/FinancesPag
 const AutomationsPage     = lazy(() => import("@/components/automations/AutomationsPage").then(m => ({ default: m.AutomationsPage })));
 const SettingsPage        = lazy(() => import("@/components/settings/SettingsPage").then(m => ({ default: m.SettingsPage })));
 const AlertesPage         = lazy(() => import("@/components/alertes/AlertesPage").then(m => ({ default: m.AlertesPage })));
+const SignaturesPage      = lazy(() => import("@/components/signatures/SignaturesPage").then(m => ({ default: m.SignaturesPage })));
 const QualiteUnifiedPage  = lazy(() => import("@/components/qualite/QualiteUnifiedPage").then(m => ({ default: m.QualiteUnifiedPage })));
 const PartnersPage        = lazy(() => import("@/components/partners/PartnersPage").then(m => ({ default: m.PartnersPage })));
 const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
@@ -311,6 +312,10 @@ const Index = () => {
       case "alertes":
         pageName = "AlertesPage";
         node = <AlertesPage />;
+        break;
+      case "signatures":
+        pageName = "SignaturesPage";
+        node = <SignaturesPage />;
         break;
       case "qualite":
         pageName = "QualiteUnifiedPage";

@@ -2,6 +2,15 @@
 
 **Date :** 9 juillet 2026 · **Périmètre :** analyse du code et des migrations uniquement (pas d'accès à la base Supabase en ligne — les points dépendant de l'état runtime sont marqués **« à vérifier »** avec la requête de contrôle).
 
+> **Mise à jour du 10 juillet 2026 — vérifications runtime effectuées** (via le panneau Cloud de Lovable, en lecture seule) :
+>
+> - **Crons (§3.1) : 7 jobs actifs** côté serveur, créés via le dashboard (invisibles dans les migrations) : `send-convocation-cron-daily` (8h ✅ les convocations J-7 partent), `exam-reminders-daily` (9h), `daily-automated-emails` (8h), `daily-crm-report-7h30` (5h30), `process-payment-reminders-hourly`, `alma-reconcile-daily` (3h15), `sync-gmail-inbox-every-5min`. **Seul manquant : `generate-notifications`** — jamais planifié, la cloche de notifications internes ne se remplit donc jamais automatiquement.
+> - **Index (§3.7) : confirmé.** `signature_requests` n'a que la pkey + l'index du signing_token (rien sur `contact_id`/`statut`) ; `factures` n'a aucun index sur `statut`/`date_echeance`. Aux volumes actuels, priorité basse.
+> - **Volumes (§5.4) : base légère** — audit_logs 14 800, emargements 2 062, email_logs 1 927, document_envois 1 449, contact_documents 1 019, contact_historique 1 010, **signature_requests 740**, contacts 698, factures 452, session_inscriptions 411, paiements 215, sessions 77, prospects 68. → le chantier d'agrégation serveur (§5.4) **peut attendre** ; les 740 demandes de signature sans écran de suivi font des §4.1-§4.3 la priorité n°1.
+> - **`statut_cma` (§4.5) : renseigné partout** (valide 534, docs_manquants 113, en_cours 1, aucun NULL) → l'unification de la source de vérité est directement faisable.
+>
+> **Réalisé depuis le rapport :** lot 1 (PR #3, mergée) = §3.2, §3.3, §3.4, §3.6. Lot 2 = §4.1 (relance manuelle), §4.2 (page signatures rebranchée, route `/signatures`).
+
 **Zones exclues conformément au cadrage :** flux de signature électronique (bug 401 sur les lots en cours de correction côté Lovable — aucune refonte proposée ici, seules des actions *autour* du flux existant sont suggérées), trigger `trg_lock_signed_signature_request`, policies RLS durcies (`crm-email-attachments`, `template_audit_log`), absence de `centre_id` sur `leads` (décision produit en attente), warnings SECURITY DEFINER différés, mises à jour `jspdf`/`vitest`.
 
 ---

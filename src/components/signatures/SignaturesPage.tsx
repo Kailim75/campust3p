@@ -354,6 +354,15 @@ export function SignaturesPage() {
                                 Envoyer
                               </DropdownMenuItem>
                             )}
+                            {sig.statut === "envoye" && !isExpired && (
+                              <DropdownMenuItem
+                                onClick={() => handleSend(sig.id)}
+                                disabled={sendEmail.isPending}
+                              >
+                                <Send className="h-4 w-4 mr-2" />
+                                Relancer par email
+                              </DropdownMenuItem>
+                            )}
                             {(sig.statut === "envoye" || sig.statut === "en_attente") && (
                               <>
                                 <DropdownMenuItem onClick={() => setSigningRequest(sig)}>
