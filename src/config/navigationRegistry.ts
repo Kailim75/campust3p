@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Bell, Award,
   Handshake, Car, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
-  CalendarDays,
+  CalendarDays, FileSignature,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +75,7 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "prospects",   label: "Prospects",       icon: UserPlus,        group: "more", subgroup: "pilotage",   path: "/prospects",   pageName: "ProspectsPage" },
   { id: "ma-journee",  label: "Ma journée",      icon: CalendarDays,    group: "more", subgroup: "pilotage",   path: "/ma-journee",  pageName: "MaJourneePage" },
   { id: "alertes",     label: "Alertes",         icon: Bell,            group: "more", subgroup: "pilotage",   path: "/alertes",     pageName: "AlertesPage" },
+  { id: "signatures",  label: "Signatures",      icon: FileSignature,   group: "more", subgroup: "pilotage",   path: "/signatures",  pageName: "SignaturesPage" },
 
   // Production & catalogue
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", subgroup: "production", path: "/formations",        pageName: "FormationsPage" },

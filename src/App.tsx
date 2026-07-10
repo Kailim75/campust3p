@@ -104,6 +104,7 @@ const APP_SECTION_PATHS = [
   "/automations",
   "/settings",
   "/alertes",
+  "/signatures",
   "/qualite",
   "/partenaires",
   "/formateurs",
