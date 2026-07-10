@@ -103,7 +103,7 @@ const Index = () => {
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
   const [routeCheckOpen, setRouteCheckOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { showTour, completeTour } = useOnboarding();
+  const { showTour, completeTour } = { showTour: false, completeTour: () => {} };
   const undoAction = useUndoStore((state) => state.undoLast);
 
   /** Core navigation: updates state + URL pathname */
@@ -408,7 +408,7 @@ const Index = () => {
         open={shortcutsDialogOpen}
         onOpenChange={setShortcutsDialogOpen}
       />
-      <OnboardingTour isOpen={showTour} onComplete={completeTour} />
+      
       <OnboardingChecklist />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
