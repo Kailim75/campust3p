@@ -408,7 +408,7 @@ const Index = () => {
         open={shortcutsDialogOpen}
         onOpenChange={setShortcutsDialogOpen}
       />
-      <OnboardingTour isOpen={showTour} onComplete={completeTour} />
+      
       <OnboardingChecklist />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
