@@ -9,7 +9,7 @@
 > - **Volumes (§5.4) : base légère** — audit_logs 14 800, emargements 2 062, email_logs 1 927, document_envois 1 449, contact_documents 1 019, contact_historique 1 010, **signature_requests 740**, contacts 698, factures 452, session_inscriptions 411, paiements 215, sessions 77, prospects 68. → le chantier d'agrégation serveur (§5.4) **peut attendre** ; les 740 demandes de signature sans écran de suivi font des §4.1-§4.3 la priorité n°1.
 > - **`statut_cma` (§4.5) : renseigné partout** (valide 534, docs_manquants 113, en_cours 1, aucun NULL) → l'unification de la source de vérité est directement faisable.
 >
-> **Réalisé depuis le rapport :** lot 1 (PR #3, mergée) = §3.2, §3.3, §3.4, §3.6. Lot 2 = §4.1 (relance manuelle), §4.2 (page signatures rebranchée, route `/signatures`).
+> **Réalisé depuis le rapport :** lot 1 (PR #3, mergée) = §3.2, §3.3, §3.4, §3.6. Lot 2 (PR #4, mergée) = §4.1 (relance manuelle), §4.2 (page signatures rebranchée, route `/signatures`) + cron `generate-notifications-daily` créé en base. Lot 3 = §4.3 (fonction `signature-reminders` : relance auto J-3 + expiration, cron à créer après déploiement — voir `supabase/CRON_JOBS.md`), §4.5 (statut_cma source de vérité du bloc CMA), §3.5 (badge signatures dans la sidebar).
 
 **Zones exclues conformément au cadrage :** flux de signature électronique (bug 401 sur les lots en cours de correction côté Lovable — aucune refonte proposée ici, seules des actions *autour* du flux existant sont suggérées), trigger `trg_lock_signed_signature_request`, policies RLS durcies (`crm-email-attachments`, `template_audit_log`), absence de `centre_id` sur `leads` (décision produit en attente), warnings SECURITY DEFINER différés, mises à jour `jspdf`/`vitest`.
 
