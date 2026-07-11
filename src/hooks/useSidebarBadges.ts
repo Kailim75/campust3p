@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
  * - aujourdhui : prospects avec next_action_at échue (à traiter)
  * - inbox      : threads email non lus
  * - finances   : factures non payées avec échéance dépassée
+ * - signatures : demandes envoyées, non signées, non expirées
  */
 export function useSidebarBadges() {
   return useQuery({
@@ -27,7 +28,7 @@ export function useSidebarBadges() {
         }
       };
 
-      const [aujourdhui, inbox, finances] = await Promise.all([
+      const [aujourdhui, inbox, finances, signatures] = await Promise.all([
         safe(
           supabase
             .from("prospects")
@@ -49,9 +50,16 @@ export function useSidebarBadges() {
             .lt("date_echeance", todayIso)
             .is("deleted_at", null) as any
         ),
+        safe(
+          supabase
+            .from("signature_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("statut", "envoye")
+            .or(`date_expiration.is.null,date_expiration.gte.${todayIso}`) as unknown as PromiseLike<{ count: number | null }>
+        ),
       ]);
 
-      return { aujourdhui, inbox, finances };
+      return { aujourdhui, inbox, finances, signatures };
     },
   });
 }

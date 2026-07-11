@@ -165,11 +165,13 @@ export function useAujourdhuiData() {
           const missingDocs = getMissingCmaDocs(contactDocs, track);
           const docCount = countReceivedCmaDocs(contactDocs, track);
           const dossierShortLabel = getCmaDossierShortLabelForTrack(track);
-          const statStr = String(c.statut || "").toLowerCase();
+          // statut_cma (enum, renseigné partout — vérifié en base le 10/07/2026)
+          // est la source de vérité. Un contact 'valide' qui apparaît ici a des
+          // pièces manquantes : il retombe dans docs_manquants.
           const cmaCategory: CmaFilter =
-            statStr.includes("rejet") || statStr.includes("complex") ? "rejete" :
-            statStr.includes("en cours") || statStr.includes("document") || statStr.includes("en formation") ? "en_cours" :
-            "docs_manquants";
+            c.statut_cma === "rejete" || c.statut_cma === "en_cours" || c.statut_cma === "docs_manquants"
+              ? c.statut_cma
+              : "docs_manquants";
           const lastCmaNote = todayNotes
             .filter(n => n.contact_id === c.id && (n.titre.includes("CMA") || n.titre.includes("Carte Pro")))
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] || null;

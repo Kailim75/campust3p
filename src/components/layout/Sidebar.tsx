@@ -47,6 +47,11 @@ const HUB_BADGE_KEY: Record<string, "aujourdhui" | "inbox" | "finances"> = {
   finances: "finances",
 };
 
+/** Map id d'entrée du menu « Plus » → clé du compteur sidebar. */
+const MORE_BADGE_KEY: Record<string, "signatures"> = {
+  signatures: "signatures",
+};
+
 /** Pastille compteur affichée sur un item de menu. */
 function SidebarBadge({ count, tone = "default" }: { count: number; tone?: "default" | "danger" }) {
   if (!count) return null;
@@ -161,6 +166,8 @@ function SidebarNav({
                     {items.map((item) => {
                       const Icon = item.icon;
                       const isActive = activeSection === item.id;
+                      const moreKey = MORE_BADGE_KEY[item.id];
+                      const moreCount = moreKey && badges ? badges[moreKey] ?? 0 : 0;
                       return (
                         <button
                           key={item.id}
@@ -169,6 +176,7 @@ function SidebarNav({
                         >
                           <Icon className="h-[15px] w-[15px] flex-shrink-0" />
                           <span className="truncate text-[12px]">{item.label}</span>
+                          <SidebarBadge count={moreCount} />
                         </button>
                       );
                     })}

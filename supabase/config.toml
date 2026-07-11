@@ -58,6 +58,9 @@ verify_jwt = false
 [functions.alma-reconcile-cron]
 verify_jwt = false                     # Cron, invoked by service_role
 
+[functions.signature-reminders]
+verify_jwt = false                     # Cron : relance J-3 + passage à expire des signatures
+
 # ----------------------------------------------------------------------------
 # PROTECTED — called by authenticated frontend. JWT now required.
 # ----------------------------------------------------------------------------
