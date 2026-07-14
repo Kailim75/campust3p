@@ -123,11 +123,14 @@ serve(async (req) => {
 
   const outcomes: SendOutcome[] = [];
 
-  // Cache identité centre (formation) - on prend la 1ère ligne globale (legacy)
+  // Ligne unique centre_formation = repli legacy mono-centre : source des
+  // champs absents de `centres` (qualiopi_numero notamment). Un 2e centre
+  // doit surcharger via centres.settings : email_from_address,
+  // email_reply_to, qualiopi_numero.
   const { data: centreFormation } = await supabase
     .from("centre_formation").select("*").limit(1).single();
 
-  const company: CompanyInfo = {
+  const legacyCompany: CompanyInfo = {
     name: centreFormation?.nom_commercial || centreFormation?.nom_legal || "Ecole T3P Montrouge",
     address: centreFormation?.adresse_complete || "3 rue Corneille, 92120 Montrouge",
     phone: centreFormation?.telephone || "",
@@ -137,21 +140,59 @@ serve(async (req) => {
     qualiopi_numero: (centreFormation as any)?.qualiopi_numero || undefined,
   };
 
-  for (const session of sessions) {
-    // Identité email du centre (settings)
-    let fromAddress = DEFAULT_FROM;
-    let replyTo = DEFAULT_REPLY_TO;
-    if (session.centre_id) {
+  interface CentreIdentity {
+    company: CompanyInfo;
+    fromAddress: string;
+    replyTo: string;
+  }
+  const centreCache = new Map<string, CentreIdentity>();
+
+  // Identité du centre émetteur (PDF + email) résolue par session.centre_id.
+  async function resolveCentre(centreId: string | null): Promise<CentreIdentity> {
+    const key = centreId ?? "__legacy__";
+    const cached = centreCache.get(key);
+    if (cached) return cached;
+
+    let identity: CentreIdentity = {
+      company: legacyCompany,
+      fromAddress: DEFAULT_FROM,
+      replyTo: DEFAULT_REPLY_TO,
+    };
+
+    if (centreId) {
       const { data: centre } = await supabase
-        .from("centres").select("settings").eq("id", session.centre_id).maybeSingle();
-      const s = (centre?.settings ?? {}) as Record<string, unknown>;
-      if (typeof s.email_from_address === "string" && s.email_from_address.trim()) {
-        fromAddress = s.email_from_address.trim();
-      }
-      if (typeof s.email_reply_to === "string" && s.email_reply_to.trim()) {
-        replyTo = s.email_reply_to.trim();
+        .from("centres")
+        .select("nom, nom_commercial, adresse_complete, telephone, email, siret, nda, settings")
+        .eq("id", centreId)
+        .maybeSingle();
+
+      if (centre) {
+        const s = (centre.settings ?? {}) as Record<string, unknown>;
+        const settingStr = (k: string) =>
+          typeof s[k] === "string" && (s[k] as string).trim() ? (s[k] as string).trim() : undefined;
+
+        identity = {
+          company: {
+            name: centre.nom_commercial || centre.nom || legacyCompany.name,
+            address: centre.adresse_complete || legacyCompany.address,
+            phone: centre.telephone || legacyCompany.phone,
+            email: centre.email || legacyCompany.email,
+            siret: centre.siret || legacyCompany.siret,
+            nda: centre.nda || legacyCompany.nda,
+            qualiopi_numero: settingStr("qualiopi_numero") || legacyCompany.qualiopi_numero,
+          },
+          fromAddress: settingStr("email_from_address") || DEFAULT_FROM,
+          replyTo: settingStr("email_reply_to") || DEFAULT_REPLY_TO,
+        };
       }
     }
+
+    centreCache.set(key, identity);
+    return identity;
+  }
+
+  for (const session of sessions) {
+    const { company, fromAddress, replyTo } = await resolveCentre(session.centre_id);
 
     // 2) Inscriptions valides (CMA OK)
     const { data: inscriptions, error: iErr } = await supabase
