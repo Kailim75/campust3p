@@ -9116,6 +9116,31 @@ export type Database = {
         Returns: boolean
       }
       has_centre_access: { Args: { p_centre_id: string }; Returns: boolean }
+      has_contact_centre_access: {
+        Args: { _contact_id: string }
+        Returns: boolean
+      }
+      has_devis_centre_access: { Args: { _devis_id: string }; Returns: boolean }
+      has_examen_pratique_centre_access: {
+        Args: { _examen_id: string }
+        Returns: boolean
+      }
+      has_facture_centre_access: {
+        Args: { _facture_id: string }
+        Returns: boolean
+      }
+      has_formateur_centre_access: {
+        Args: { _formateur_id: string }
+        Returns: boolean
+      }
+      has_indicateur_centre_access: {
+        Args: { _indicateur_id: string }
+        Returns: boolean
+      }
+      has_prospect_centre_access: {
+        Args: { _prospect_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -9123,6 +9148,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_session_centre_access: {
+        Args: { _session_id: string }
+        Returns: boolean
+      }
+      is_admin_or_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       pay_partner_commission: {
         Args: { p_amount: number; p_partner_id: string }
