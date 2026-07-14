@@ -273,6 +273,78 @@ serve(async (req) => {
       }
     }
 
+    // 6. Signatures : refus récents et expirations imminentes.
+    // Dédup sans borne de date (contrairement aux blocs quotidiens) :
+    // une seule notification par demande, sinon J-3/J-2/J-1 spammeraient.
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const threeDaysFromNow = new Date(today);
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+    const { data: refusedSignatures } = await supabase
+      .from("signature_requests")
+      .select("id, titre, updated_at, contact:contacts (nom, prenom)")
+      .eq("statut", "refuse")
+      .gte("updated_at", twoDaysAgo.toISOString());
+
+    for (const sr of refusedSignatures || []) {
+      const contact = sr.contact as any;
+      for (const userId of userIds) {
+        const { data: existing } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("type", "signature")
+          .like("link", `%${sr.id}%`)
+          .like("message", "%refus%");
+
+        if (!existing || existing.length === 0) {
+          notifications.push({
+            user_id: userId,
+            type: "signature",
+            title: "Signature refusée",
+            message: `${contact?.prenom} ${contact?.nom} a refusé : ${sr.titre}`,
+            link: `/signatures?id=${sr.id}`,
+            metadata: { signature_request_id: sr.id, reason: "refuse" },
+          });
+        }
+      }
+    }
+
+    const { data: expiringSignatures } = await supabase
+      .from("signature_requests")
+      .select("id, titre, date_expiration, contact:contacts (nom, prenom)")
+      .eq("statut", "envoye")
+      .gte("date_expiration", today.toISOString().split("T")[0])
+      .lte("date_expiration", threeDaysFromNow.toISOString().split("T")[0]);
+
+    for (const sr of expiringSignatures || []) {
+      const contact = sr.contact as any;
+      const daysUntil = Math.ceil(
+        (new Date(sr.date_expiration!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      for (const userId of userIds) {
+        const { data: existing } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("type", "signature")
+          .like("link", `%${sr.id}%`)
+          .like("message", "%expire%");
+
+        if (!existing || existing.length === 0) {
+          notifications.push({
+            user_id: userId,
+            type: "signature",
+            title: `Signature expire dans ${daysUntil}j`,
+            message: `${sr.titre} — ${contact?.prenom} ${contact?.nom} n'a pas signé, le lien expire bientôt`,
+            link: `/signatures?id=${sr.id}`,
+            metadata: { signature_request_id: sr.id, reason: "expire", days_until: daysUntil },
+          });
+        }
+      }
+    }
+
     // Insert all notifications
     if (notifications.length > 0) {
       const { error: insertError } = await supabase
@@ -297,6 +369,7 @@ serve(async (req) => {
           payments: notifications.filter(n => n.type === "payment").length,
           alerts: notifications.filter(n => n.type === "alert").length,
           sessions: notifications.filter(n => n.type === "session").length,
+          signatures: notifications.filter(n => n.type === "signature").length,
         }
       }),
       { 
