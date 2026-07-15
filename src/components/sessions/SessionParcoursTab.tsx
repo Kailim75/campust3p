@@ -50,11 +50,13 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReactivationDialog } from "@/components/apprenants/ReactivationDialog";
 
-const CARTE_PRO_KEYWORDS = ["Carte Pro"];
-const THEORIE_REUSSI_KEYWORDS = ["théorie réussie"];
-const THEORIE_ECHOUE_KEYWORDS = ["théorie échouée"];
-const PRATIQUE_REUSSI_KEYWORDS = ["pratique réussie"];
-const PRATIQUE_ECHOUE_KEYWORDS = ["pratique échouée"];
+// Catégories exactes en tête (auto_category), mots-clés de titre en repli
+// pour les notes antérieures au chantier §5.1.
+const CARTE_PRO_KEYWORDS = ["carte_pro_envoyee", "carte_pro_relance", "carte_pro_demarches_envoyees", "Carte Pro"];
+const THEORIE_REUSSI_KEYWORDS = ["examen_theorie_reussi", "théorie réussie"];
+const THEORIE_ECHOUE_KEYWORDS = ["examen_theorie_echoue", "théorie échouée"];
+const PRATIQUE_REUSSI_KEYWORDS = ["examen_pratique_reussi", "pratique réussie"];
+const PRATIQUE_ECHOUE_KEYWORDS = ["examen_pratique_echoue", "pratique échouée"];
 
 interface SessionParcoursTabProps {
   sessionId: string;

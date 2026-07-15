@@ -22,7 +22,7 @@ export function BlocRdv({
   todayNotes, recentNotes, openProspect, markDone, onNavigate,
 }: BlocRdvProps) {
   const isRdvHandledToday = (contactId: string) =>
-    isHandledToday(contactId, todayNotes, ["RDV", "Confirmation"]);
+    isHandledToday(contactId, todayNotes, ["prospect_confirmation_rdv", "prospect_relance_j1", "prospect_rdv_manque", "RDV", "Confirmation"]);
 
   return (
     <Card className="p-0 overflow-hidden">
