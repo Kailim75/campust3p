@@ -117,22 +117,22 @@ const SANCTION: Record<string, string[]> = {
   VTC: [
     "Attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation",
     "Certificat de réalisation",
-    "Le stagiaire peut ensuite se présenter à l'examen VTC organisé par la Chambre des Métiers et de l'Artisanat",
+    "Présentation à l'examen théorique d'admissibilité organisé par la Chambre des Métiers et de l'Artisanat, puis à l'épreuve pratique d'admission organisée par la préfecture",
   ],
   TAXI: [
     "Attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation",
     "Certificat de réalisation",
-    "Le stagiaire peut ensuite se présenter à l'examen taxi organisé par la Chambre des Métiers et de l'Artisanat",
+    "Présentation à l'examen théorique d'admissibilité organisé par la Chambre des Métiers et de l'Artisanat, puis à l'épreuve pratique d'admission organisée par la préfecture",
   ],
   "TAXI-75": [
     "Attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation",
     "Certificat de réalisation",
-    "Le stagiaire peut ensuite se présenter à l'examen taxi organisé par la CMA de Paris",
+    "Présentation à l'examen théorique d'admissibilité organisé par la CMA de Paris, puis à l'épreuve pratique d'admission organisée par la préfecture de Police",
   ],
   VMDTR: [
     "Attestation de fin de formation mentionnant les objectifs, la nature, la durée et les résultats de l'évaluation",
     "Certificat de réalisation",
-    "Le stagiaire peut ensuite se présenter à l'examen VMDTR organisé par la Chambre des Métiers et de l'Artisanat",
+    "Présentation à l'examen théorique d'admissibilité organisé par la Chambre des Métiers et de l'Artisanat, puis à l'épreuve pratique d'admission organisée par la préfecture",
   ],
 };
 

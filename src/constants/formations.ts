@@ -75,6 +75,47 @@ export interface ModuleFormation {
   evaluation?: string[];
 }
 
+// ─── Modules communs de fin de formation initiale ──────────────────
+// Ajoutés à chaque filière : examen blanc (3h, dernier samedi 14h-17h) et
+// formation pratique à la conduite (2 séances de 1h + présentation à
+// l'épreuve pratique). Homogènes Taxi / VTC / VMDTR.
+
+export const MODULE_EXAMEN_BLANC: ModuleFormation = {
+  numero: 90,
+  titre: "Examen blanc",
+  dureeHeures: 3,
+  contenu: [
+    "Examen blanc complet dans les conditions réelles de l'épreuve théorique CMA",
+    "Épreuves d'admissibilité (QCM) sur l'ensemble des thèmes du programme",
+    "Correction commentée et identification des points à consolider",
+    "Organisé le dernier samedi de la formation (14h - 17h)",
+  ],
+  objectifs: [
+    "Se placer dans les conditions réelles de l'examen d'accès à la profession",
+    "Mesurer son niveau et cibler ses révisions avant l'épreuve officielle",
+  ],
+  methodologie: ["Mise en situation d'examen", "Correction collective"],
+  evaluation: ["Score à l'examen blanc"],
+};
+
+export const MODULE_PRATIQUE_CONDUITE: ModuleFormation = {
+  numero: 91,
+  titre: "Formation pratique à la conduite et présentation à l'épreuve pratique",
+  dureeHeures: 2,
+  contenu: [
+    "2 séances de 1 heure de conduite accompagnée sur véhicule-école",
+    "Conduite en sécurité, souplesse et confort du passager",
+    "Prise en charge et dépose du client, gestion du parcours",
+    "Préparation et présentation à l'épreuve pratique organisée par la préfecture",
+  ],
+  objectifs: [
+    "Adopter une conduite professionnelle sûre et confortable",
+    "Se préparer aux exigences de l'épreuve pratique d'admission",
+  ],
+  methodologie: ["Mise en pratique sur véhicule-école", "Débriefing individualisé"],
+  evaluation: ["Grille d'observation de conduite"],
+};
+
 // Programme VTC conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
 // Nomenclature officielle des épreuves : A, B, C, D, E + F(V), G(V)
 export const PROGRAMME_VTC: ModuleFormation[] = [
@@ -217,7 +258,9 @@ export const PROGRAMME_VTC: ModuleFormation[] = [
       "Connaître les obligations propres au conducteur VTC",
       "Distinguer les droits et limites de l'activité VTC"
     ]
-  }
+  },
+  MODULE_EXAMEN_BLANC,
+  MODULE_PRATIQUE_CONDUITE
 ];
 // Programme TAXI National conforme à l'arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
 // Nomenclature officielle des épreuves : A, B, C, D, E + F(T), G(T) + Pratique
@@ -386,7 +429,8 @@ export const PROGRAMME_TAXI: ModuleFormation[] = [
       "Assurer un service client de qualité",
       "Utiliser correctement les équipements taxi"
     ]
-  }
+  },
+  MODULE_EXAMEN_BLANC
 ];
 // Programme TAXI PARIS (75) - Arrêté du 6 avril 2017 modifié (2024) - Durée totale : 34 heures
 // Nomenclature officielle : A, B, C, D, E + F(T) spécifique Paris, G(T) + Pratique
@@ -570,22 +614,7 @@ export const PROGRAMME_TAXI_75: ModuleFormation[] = [
       "Savoir réagir face à ces situations"
     ]
   },
-  {
-    numero: 10,
-    titre: "Évaluation et examen blanc",
-    dureeHeures: 2,
-    contenu: [
-      "Examen blanc complet dans les conditions de l'épreuve CMA",
-      "QCM sur l'ensemble des matières A, B, C, D, E, F(T), G(T)",
-      "Correction commentée et analyse des résultats",
-      "Préparation mentale et méthodologie d'examen"
-    ],
-    objectifs: [
-      "Se préparer dans les conditions réelles de l'examen",
-      "Identifier ses points forts et axes d'amélioration",
-      "Consolider les acquis de la formation"
-    ]
-  }
+  MODULE_EXAMEN_BLANC
 ];
 // Programme VMDTR conforme 2024 - Durée totale : 34 heures
 // Nomenclature alignée sur l'arrêté du 6 avril 2017 (adaptation VMDTR)
@@ -716,7 +745,9 @@ export const PROGRAMME_VMDTR: ModuleFormation[] = [
       "Garantir la sécurité et le confort du passager",
       "Maîtriser le protocole de prise en charge"
     ]
-  }
+  },
+  MODULE_EXAMEN_BLANC,
+  MODULE_PRATIQUE_CONDUITE
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1038,9 +1069,9 @@ export const FORMULES = {
   },
   examen_blanc: {
     label: "Examen blanc final",
-    dureeHeures: 4,
+    dureeHeures: 3,
     conduiteIncluse: 0,
-    description: "4 heures d'examen blanc en conditions réelles",
+    description: "3 heures d'examen blanc en conditions réelles (dernier samedi, 14h-17h)",
   },
 } as const;
 
@@ -1049,13 +1080,15 @@ export const FORMULES = {
 // ═══════════════════════════════════════════════════════════════════
 
 export const HORAIRES = {
+  // Formule journée : 1 semaine, 9h30-12h30 et 13h30-16h30 (30h)
   journee: {
-    matin: "9h00 - 12h30",
-    apresMidi: "13h30 - 17h00"
+    matin: "9h30 - 12h30",
+    apresMidi: "13h30 - 16h30"
   },
+  // Formule soir : 2 semaines, bloc unique 18h-21h30 (35h)
   soiree: {
-    matin: "18h00 - 20h00",
-    apresMidi: "20h00 - 22h00"
+    matin: "18h00 - 21h30",
+    apresMidi: ""
   },
 } as const;
 
