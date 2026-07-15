@@ -1,3 +1,11 @@
+// ⚠️ DOUBLE IMPLÉMENTATION (chantier §5.2, AMELIORATIONS.md)
+// Ce fichier et supabase/functions/_shared/pdf-generator.ts génèrent les
+// MÊMES documents pour deux canaux différents (manuel ici, automatique côté
+// edge — convocations J-7 notamment). Toute évolution de contenu (mentions,
+// identité centre, champs) doit être reportée DANS LES DEUX fichiers.
+// Le test golden src/lib/__tests__/pdf-golden.test.ts vérifie la cohérence
+// des champs critiques de la convocation : s'il casse, corriger l'autre
+// générateur, pas le test.
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { format } from "date-fns";
