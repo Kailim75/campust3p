@@ -10,8 +10,12 @@ import {
   getProgramme,
   getPrerequis,
   getObjectifs,
+  getProgrammeMobilite,
+  PREREQUIS_MOBILITE,
+  OBJECTIFS_MOBILITE,
   type TypeFormation,
   type FormationMode,
+  type MobiliteDept,
   type ModuleFormation,
 } from "@/constants/formations";
 import {
@@ -25,6 +29,11 @@ import {
   getSanction,
   getReferencesReglementaires,
   getIntituleComplet,
+  getPublicViseMobilite,
+  getCompetencesMobilite,
+  getSanctionMobilite,
+  getReferencesMobilite,
+  getIntituleMobilite,
 } from "@/constants/programmesPedagogiques";
 import { DOCUMENT_COLORS, DOCUMENT_FONTS } from "@/lib/document-styles";
 import type { CompanyInfo, SessionInfo } from "@/lib/pdf-generator";
@@ -54,6 +63,18 @@ function resolveFormationMode(session: SessionInfo): FormationMode {
   if (/(continue|recyclage|renouvel|_fc|-fc)/.test(raw)) return "continue";
   if (session.duree_heures && session.duree_heures <= 16) return "continue";
   return "initiale";
+}
+
+/**
+ * Détecte un stage de mobilité taxi et son département (75 / 92) à partir
+ * de la session. Renvoie null si ce n'est pas une mobilité.
+ */
+function resolveMobilite(session: SessionInfo): MobiliteDept | null {
+  const raw = `${session.formation_type || ""} ${session.nom || ""}`.toLowerCase();
+  if (!raw.includes("mobilit")) return null;
+  if (raw.includes("92") || raw.includes("hauts-de-seine") || raw.includes("hauts de seine")) return "92";
+  if (raw.includes("75") || raw.includes("paris")) return "75";
+  return null;
 }
 
 function formatFullAddress(session: SessionInfo): string {
@@ -255,19 +276,23 @@ export function generateProgrammeFormationPDF(
 
   const formationType = resolveFormationType(session.nom, session.formation_type);
   const mode = resolveFormationMode(session);
-  const programme = getProgramme(formationType, mode);
-  const objectifs = getObjectifs(formationType, mode);
-  const prerequis = getPrerequis(formationType, mode);
-  const publicVise = getPublicVise(formationType, mode);
-  const competences = getCompetencesVisees(formationType, mode);
+  const mobiliteDept = resolveMobilite(session);
+
+  // La mobilité taxi (75/92) est un cas dédié : programme et métadonnées
+  // propres, indépendants du couple (type, mode) initiale/continue.
+  const programme = mobiliteDept ? getProgrammeMobilite(mobiliteDept) : getProgramme(formationType, mode);
+  const objectifs = mobiliteDept ? OBJECTIFS_MOBILITE : getObjectifs(formationType, mode);
+  const prerequis = mobiliteDept ? PREREQUIS_MOBILITE : getPrerequis(formationType, mode);
+  const publicVise = mobiliteDept ? getPublicViseMobilite(mobiliteDept) : getPublicVise(formationType, mode);
+  const competences = mobiliteDept ? getCompetencesMobilite(mobiliteDept) : getCompetencesVisees(formationType, mode);
   const modalites = getModalitesPedagogiques();
   const moyens = getMoyensPedagogiques();
   const suivi = getSuiviEvaluation();
   const encadrement = getEncadrement();
   const accessibilite = getAccessibilite();
-  const sanction = getSanction(formationType, mode);
-  const references = getReferencesReglementaires(formationType, mode);
-  const intituleComplet = getIntituleComplet(formationType, mode);
+  const sanction = mobiliteDept ? getSanctionMobilite(mobiliteDept) : getSanction(formationType, mode);
+  const references = mobiliteDept ? getReferencesMobilite(mobiliteDept) : getReferencesReglementaires(formationType, mode);
+  const intituleComplet = mobiliteDept ? getIntituleMobilite(mobiliteDept) : getIntituleComplet(formationType, mode);
 
   const totalHeures = programme.reduce((sum, m) => sum + m.dureeHeures, 0);
 
@@ -502,6 +527,30 @@ export function generateProgrammeStandalonePDFv2(
     date_debut: now.toISOString(),
     date_fin: end.toISOString(),
     duree_heures: mode === "continue" ? 14 : undefined,
+    lieu: "En présentiel",
+  };
+
+  return generateProgrammeFormationPDF(mockSession, company);
+}
+
+/**
+ * Programme de mobilité taxi (75 / 92) — standalone, depuis le catalogue.
+ */
+export function generateProgrammeMobilitePDF(
+  dept: MobiliteDept,
+  company: CompanyInfo,
+): jsPDF {
+  const now = new Date();
+  const end = new Date(now);
+  end.setDate(end.getDate() + 7);
+
+  const mockSession: SessionInfo = {
+    // Le libellé contient « mobilité » + le département pour la détection interne.
+    nom: getIntituleMobilite(dept),
+    formation_type: `mobilite-${dept}`,
+    date_debut: now.toISOString(),
+    date_fin: end.toISOString(),
+    duree_heures: dept === "75" ? 35 : 14,
     lieu: "En présentiel",
   };
 

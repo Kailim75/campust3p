@@ -3,7 +3,7 @@
 // Blocs documentaires obligatoires pour le programme de formation
 // ═══════════════════════════════════════════════════════════════
 
-import type { TypeFormation, FormationMode } from "@/constants/formations";
+import type { TypeFormation, FormationMode, MobiliteDept } from "@/constants/formations";
 
 // ─── Public visé ────────────────────────────────────────────────
 const PUBLIC_VISE: Record<string, string[]> = {
@@ -213,6 +213,49 @@ const INTITULE_CONTINUE: Record<string, string> = {
   "TAXI-75": "Formation continue — Conducteur de taxi (14h)",
   VMDTR: "Formation continue — Conducteur de VMDTR / moto-taxi (14h)",
 };
+
+// ─── Mobilité taxi (75 / 92) — métadonnées ──────────────────────
+
+const DEPT_LABEL: Record<MobiliteDept, string> = {
+  "75": "Paris (75)",
+  "92": "Hauts-de-Seine (92)",
+};
+
+const DEPT_PREFECTURE: Record<MobiliteDept, string> = {
+  "75": "Préfecture de Police de Paris",
+  "92": "Préfecture des Hauts-de-Seine",
+};
+
+export function getPublicViseMobilite(dept: MobiliteDept): string[] {
+  return [
+    `Conducteurs de taxi titulaires de la carte professionnelle souhaitant exercer dans le département : ${DEPT_LABEL[dept]}`,
+  ];
+}
+
+export function getCompetencesMobilite(dept: MobiliteDept): string[] {
+  return [
+    `Se repérer et optimiser ses trajets sur le territoire : ${DEPT_LABEL[dept]}`,
+    `Appliquer la réglementation locale des taxis de ${DEPT_LABEL[dept]}`,
+  ];
+}
+
+export function getSanctionMobilite(dept: MobiliteDept): string[] {
+  return [
+    "Attestation de suivi du stage de mobilité, permettant l'exercice de l'activité de taxi dans le département visé",
+    `Émargement par demi-journée ; évaluation des acquis (territoire et réglementation locale de ${DEPT_LABEL[dept]})`,
+  ];
+}
+
+export function getReferencesMobilite(dept: MobiliteDept): string[] {
+  return [
+    "Arrêté du 11 août 2017 relatif à la formation continue des conducteurs de taxi et de VTC et à la mobilité des conducteurs de taxi (art. 2)",
+    `Réglementation locale des taxis fixée par la ${DEPT_PREFECTURE[dept]}`,
+  ];
+}
+
+export function getIntituleMobilite(dept: MobiliteDept): string {
+  return `Mobilité taxi — ${DEPT_LABEL[dept]}`;
+}
 
 // ─── Accesseurs publics ─────────────────────────────────────────
 

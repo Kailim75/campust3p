@@ -3,6 +3,7 @@ import {
   getProgramme,
   getObjectifs,
   getPrerequis,
+  getProgrammeMobilite,
   PROGRAMME_CONTINUE_TAXI,
   PROGRAMME_CONTINUE_VTC,
   PROGRAMME_CONTINUE_VMDTR,
@@ -13,7 +14,10 @@ import {
   getReferencesReglementaires,
 } from "@/constants/programmesPedagogiques";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { generateProgrammeStandalonePDFv2 } from "@/lib/documents/generateProgrammeFormation";
+import {
+  generateProgrammeStandalonePDFv2,
+  generateProgrammeMobilitePDF,
+} from "@/lib/documents/generateProgrammeFormation";
 
 const COMPANY = {
   name: "École T3P Montrouge",
@@ -121,5 +125,29 @@ describe("Initiale — examen blanc et module pratique (tous métiers)", () => {
     expect(text.toLowerCase()).toContain("examen blanc");
     expect(text.toLowerCase()).toContain("épreuve pratique");
     expect(text.toLowerCase()).toContain("préfecture");
+  });
+});
+
+describe("Mobilité taxi 75 / 92", () => {
+  it("le programme 75 fait 35h, le 92 fait 14h, chacun 2 modules", () => {
+    expect(getProgrammeMobilite("75").reduce((s, m) => s + m.dureeHeures, 0)).toBe(35);
+    expect(getProgrammeMobilite("92").reduce((s, m) => s + m.dureeHeures, 0)).toBe(14);
+    expect(getProgrammeMobilite("75")).toHaveLength(2);
+    expect(getProgrammeMobilite("92")).toHaveLength(2);
+  });
+
+  it("le PDF mobilité 75 porte Paris et la Préfecture de Police", async () => {
+    const text = await pdfText(generateProgrammeMobilitePDF("75", COMPANY));
+    expect(text).toContain("Mobilité");
+    expect(text).toContain("Paris");
+    expect(text).toContain("Préfecture de Police");
+    expect(text).not.toContain("Hauts-de-Seine");
+  });
+
+  it("le PDF mobilité 92 porte les Hauts-de-Seine et sa préfecture", async () => {
+    const text = await pdfText(generateProgrammeMobilitePDF("92", COMPANY));
+    expect(text).toContain("Mobilité");
+    expect(text).toContain("Hauts-de-Seine");
+    expect(text).toContain("Préfecture des Hauts-de-Seine");
   });
 });
