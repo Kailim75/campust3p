@@ -181,7 +181,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
       return next;
     });
 
-    const result = await createAutoNote(contactId, "marquer_fait", `Bloc: ${blocLabel}`);
+    const result = await createAutoNote(contactId, "marquer_fait", `Bloc: ${blocLabel}`, { bloc: blocLabel });
     if (!result) {
       setLocallyHandledKeys(prev => {
         const next = new Set(prev);
@@ -263,7 +263,12 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
         if (error) throw error;
       }
 
-      const note = await createAutoNote(contactId, "reporter_action", `Bloc: ${blocLabel} · Jusqu'au: ${targetDate}`);
+      const note = await createAutoNote(
+        contactId,
+        "reporter_action",
+        `Bloc: ${blocLabel} · Jusqu'au: ${targetDate}`,
+        { bloc: blocLabel, postponed_until: targetDate },
+      );
       if (!note) throw new Error("Auto note creation failed");
 
       const label = blocLabel === "CMA" ? "Dossier reporté" : "Prospect reporté";
@@ -330,7 +335,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
 
     try {
       const results = await Promise.all(
-        selected.map(item => createAutoNote(item.id, "marquer_fait", `Bloc: ${blocLabel} · Traitement en lot`))
+        selected.map(item => createAutoNote(item.id, "marquer_fait", `Bloc: ${blocLabel} · Traitement en lot`, { bloc: blocLabel, bulk: true }))
       );
       const successfulNotes = results.filter((result): result is NonNullable<typeof result> => Boolean(result));
       const successfulIds = new Set(successfulNotes.map(note => note.contact_id));

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 // ─── Auto-note format (compact) ───
 // Titre:   [AUTO] CMA: relance docs
@@ -99,10 +100,20 @@ export interface AutoNoteResult {
   contact_id: string;
 }
 
+/** Note [AUTO] enrichie des colonnes structurées (chantier §5.1). */
+export interface AutoNote {
+  id: string;
+  contact_id: string;
+  titre: string;
+  created_at: string;
+  auto_category: string | null;
+}
+
 export async function createAutoNote(
   contactId: string,
   category: ActionCategory,
-  extra?: string
+  extra?: string,
+  metadata?: Json
 ): Promise<AutoNoteResult | null> {
   const titre = buildAutoNoteTitle(category);
   const contenu = buildAutoNoteContenu(category, extra) || null;
@@ -115,6 +126,10 @@ export async function createAutoNote(
       titre,
       contenu,
       date_echange: new Date().toISOString(),
+      // Colonnes structurées : la note reste la trace humaine, la machine
+      // lit auto_category/auto_metadata (plus de parsing de titre).
+      auto_category: category,
+      auto_metadata: metadata ?? null,
     })
     .select("id, contact_id")
     .single();
@@ -140,15 +155,13 @@ export async function deleteAutoNote(noteId: string): Promise<boolean> {
   return true;
 }
 
-export async function fetchTodayAutoNotes(): Promise<
-  Array<{ id: string; contact_id: string; titre: string; created_at: string }>
-> {
+export async function fetchTodayAutoNotes(): Promise<AutoNote[]> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
   const { data, error } = await supabase
     .from("contact_historique")
-    .select("id, contact_id, titre, created_at")
+    .select("id, contact_id, titre, created_at, auto_category")
     .gte("date_echange", todayStart.toISOString())
     .like("titre", "[AUTO]%")
     .order("date_echange", { ascending: false });
@@ -157,21 +170,19 @@ export async function fetchTodayAutoNotes(): Promise<
     console.error("Failed to fetch today's auto notes:", error);
     return [];
   }
-  return (data || []) as Array<{ id: string; contact_id: string; titre: string; created_at: string }>;
+  return (data || []) as AutoNote[];
 }
 
 /**
  * Fetch the most recent [AUTO] note for a set of contact IDs (any date).
  * Used when no action was taken today to show the last known action.
  */
-export async function fetchRecentAutoNotes(contactIds: string[]): Promise<
-  Array<{ id: string; contact_id: string; titre: string; created_at: string }>
-> {
+export async function fetchRecentAutoNotes(contactIds: string[]): Promise<AutoNote[]> {
   if (contactIds.length === 0) return [];
   // Fetch latest note per contact — we get a reasonable batch and deduplicate client-side
   const { data, error } = await supabase
     .from("contact_historique")
-    .select("id, contact_id, titre, created_at")
+    .select("id, contact_id, titre, created_at, auto_category")
     .in("contact_id", contactIds)
     .like("titre", "[AUTO]%")
     .order("date_echange", { ascending: false })
@@ -183,27 +194,67 @@ export async function fetchRecentAutoNotes(contactIds: string[]): Promise<
   }
   // Deduplicate: keep only the most recent per contact_id
   const seen = new Set<string>();
-  const deduped: Array<{ id: string; contact_id: string; titre: string; created_at: string }> = [];
+  const deduped: AutoNote[] = [];
   for (const note of (data || [])) {
     if (!seen.has(note.contact_id)) {
       seen.add(note.contact_id);
-      deduped.push(note as any);
+      deduped.push(note as AutoNote);
     }
   }
   return deduped;
 }
 
+/**
+ * Une action de la liste a-t-elle été faite aujourd'hui pour ce contact ?
+ * Source de vérité : auto_category (exact). Les mots-clés sur le titre ne
+ * servent plus que de repli pour les notes antérieures au chantier §5.1
+ * (auto_category NULL).
+ */
 export function isHandledToday(
   contactId: string,
-  todayNotes: Array<{ contact_id: string; titre: string }>,
+  todayNotes: Array<{ contact_id: string; titre: string; auto_category?: string | null }>,
   categoryKeywords: string[]
 ): boolean {
-  return todayNotes.some(
-    (n) =>
-      n.contact_id === contactId &&
-      categoryKeywords.some((kw) => n.titre.includes(kw))
-  );
+  return todayNotes.some((n) => {
+    if (n.contact_id !== contactId) return false;
+    if (n.auto_category) return categoryKeywords.includes(n.auto_category);
+    return categoryKeywords.some((kw) => n.titre.includes(kw));
+  });
 }
+
+/**
+ * Lecture structurée d'une note de report (§5.1).
+ * Préfère auto_metadata { bloc, postponed_until } ; replie sur le parsing
+ * du contenu pour les notes historiques.
+ */
+export function parsePostponedNote(note: {
+  contenu?: string | null;
+  auto_metadata?: unknown;
+}): { bloc: string; postponedUntil: string } | null {
+  const meta = note.auto_metadata as { bloc?: unknown; postponed_until?: unknown } | null;
+  if (meta && typeof meta.bloc === "string" && typeof meta.postponed_until === "string") {
+    return { bloc: meta.bloc, postponedUntil: meta.postponed_until };
+  }
+  const content = String(note.contenu || "");
+  const bloc = content.match(/Bloc:\s*([^·]+)/)?.[1]?.trim();
+  const postponedUntil = content.match(/Jusqu'au:\s*(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (!bloc || !postponedUntil) return null;
+  return { bloc, postponedUntil };
+}
+
+/** Catégories dont l'existence vaut « démarches Carte Pro faites ». */
+export const CARTE_PRO_CATEGORIES: ActionCategory[] = [
+  "carte_pro_envoyee",
+  "carte_pro_relance",
+  "carte_pro_demarches_envoyees",
+];
+
+/** Catégories dont l'existence vaut « examen reprogrammé/programmé ». */
+export const REPROGRAM_CATEGORIES: ActionCategory[] = [
+  "theorie_reprogrammee",
+  "pratique_programmee",
+  "pratique_reprogrammee",
+];
 
 /**
  * Classify a prospect as RDV or Relance based on notes/description content.

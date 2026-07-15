@@ -56,8 +56,8 @@ const GROUP_CONFIG: Record<AgendaGroup, { label: string; icon: typeof Calendar; 
   unscheduled: { label: "Non planifié",  icon: Calendar,      color: "text-muted-foreground/50", emptyLabel: "" },
 };
 
-const RELANCE_KEYWORDS = ["Relance prospect", "Relance", "Marqué comme traité"];
-const RDV_KEYWORDS = ["RDV", "Confirmation"];
+const RELANCE_KEYWORDS = ["prospect_relance", "prospect_relance_whatsapp", "marquer_fait", "Relance prospect", "Relance", "Marqué comme traité"];
+const RDV_KEYWORDS = ["prospect_confirmation_rdv", "prospect_relance_j1", "prospect_rdv_manque", "RDV", "Confirmation"];
 
 type TypeFilter = "all" | "rdv" | "relance";
 

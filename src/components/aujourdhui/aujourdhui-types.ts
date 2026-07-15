@@ -6,11 +6,26 @@ import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
 export type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
 // Keywords used to detect if an action category was already done today
-export const CMA_KEYWORDS = ["CMA:", "Carte Pro", "relance docs", "Marqué comme traité"];
-export const RDV_KEYWORDS = ["RDV", "Confirmation", "Marqué comme traité"];
-export const RELANCE_KEYWORDS = ["Relance prospect", "Marqué comme traité"];
+// Chaque liste mêle catégories exactes (auto_category, prioritaire) et
+// mots-clés de titre (repli pour les notes antérieures au chantier §5.1).
+export const CMA_KEYWORDS = [
+  "cma_relance_docs", "cma_relance", "cma_rejete_email",
+  "carte_pro_envoyee", "carte_pro_relance", "carte_pro_demarches_envoyees", "marquer_fait",
+  "CMA:", "Carte Pro", "relance docs", "Marqué comme traité",
+];
+export const RDV_KEYWORDS = [
+  "prospect_confirmation_rdv", "prospect_relance_j1", "prospect_rdv_manque", "marquer_fait",
+  "RDV", "Confirmation", "Marqué comme traité",
+];
+export const RELANCE_KEYWORDS = [
+  "prospect_relance", "prospect_relance_whatsapp", "marquer_fait",
+  "Relance prospect", "Marqué comme traité",
+];
 export const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
-export const CARTE_PRO_KEYWORDS = ["Carte Pro"];
+export const CARTE_PRO_KEYWORDS = [
+  "carte_pro_envoyee", "carte_pro_relance", "carte_pro_demarches_envoyees",
+  "Carte Pro",
+];
 export const CRM_QUALITY_KEYWORDS = ["Qualité CRM", "Marqué comme traité"];
 
 export type AutoNote = { contact_id: string; titre: string; created_at: string; id?: string };

@@ -1,7 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, differenceInCalendarDays, isToday, isPast, parseISO } from "date-fns";
-import { fetchTodayAutoNotes, fetchRecentAutoNotes, isProspectRdv } from "@/lib/aujourdhui-actions";
+import {
+  fetchTodayAutoNotes,
+  fetchRecentAutoNotes,
+  isProspectRdv,
+  parsePostponedNote,
+  CARTE_PRO_CATEGORIES,
+  REPROGRAM_CATEGORIES,
+} from "@/lib/aujourdhui-actions";
 import {
   countReceivedCmaDocs,
   getCmaDossierShortLabelForTrack,
@@ -48,7 +55,7 @@ export function useAujourdhuiData() {
         fetchTodayAutoNotes(),
         supabase
           .from("contact_historique")
-          .select("contact_id, titre, contenu, date_echange, created_at")
+          .select("contact_id, titre, contenu, date_echange, created_at, auto_category, auto_metadata")
           .like("titre", "[AUTO] Reporté%")
           .gte("date_echange", postponeSince)
           .order("date_echange", { ascending: false }),
@@ -76,14 +83,12 @@ export function useAujourdhuiData() {
 
       const latestPostponedUntilByKey = new Map<string, string>();
       (postponedNotesRes.data || []).forEach((note: any) => {
-        const content = String(note.contenu || "");
-        const blocLabel = content.match(/Bloc:\s*([^·]+)/)?.[1]?.trim();
-        const postponedUntil = content.match(/Jusqu'au:\s*(\d{4}-\d{2}-\d{2})/)?.[1];
-        if (!blocLabel || !postponedUntil) return;
+        const parsed = parsePostponedNote(note);
+        if (!parsed) return;
 
-        const key = `${blocLabel}:${note.contact_id}`;
+        const key = `${parsed.bloc}:${note.contact_id}`;
         if (!latestPostponedUntilByKey.has(key)) {
-          latestPostponedUntilByKey.set(key, postponedUntil);
+          latestPostponedUntilByKey.set(key, parsed.postponedUntil);
         }
       });
       const postponedKeys = Array.from(latestPostponedUntilByKey.entries())
@@ -278,12 +283,20 @@ export function useAujourdhuiData() {
       const carteProNotesRes = pratiqueAdmisIds.size > 0
         ? await supabase
             .from("contact_historique")
-            .select("contact_id")
+            .select("contact_id, titre, auto_category")
             .in("contact_id", Array.from(pratiqueAdmisIds))
-            .like("titre", "%Carte Pro%")
+            .or(`auto_category.in.(${CARTE_PRO_CATEGORIES.join(",")}),titre.like.*Carte Pro*`)
         : { data: [] };
+      // Catégorie structurée en priorité ; motif de titre en repli pour les
+      // notes antérieures au chantier §5.1 (auto_category NULL).
       const carteProSentIds = new Set(
-        (carteProNotesRes.data || []).map((n: any) => n.contact_id)
+        (carteProNotesRes.data || [])
+          .filter((n: { titre: string | null; auto_category: string | null }) =>
+            n.auto_category
+              ? (CARTE_PRO_CATEGORIES as string[]).includes(n.auto_category)
+              : String(n.titre || "").includes("Carte Pro"),
+          )
+          .map((n: { contact_id: string }) => n.contact_id)
       );
       const carteProItems = contacts
         .filter((c: any) => pratiqueAdmisIds.has(c.id) && !carteProSentIds.has(c.id) && !terminatedStatuses.includes(c.statut_apprenant || ''))
@@ -300,12 +313,18 @@ export function useAujourdhuiData() {
       const reprogNotesRes = echoueContactIds.length > 0
         ? await supabase
             .from("contact_historique")
-            .select("contact_id, titre")
+            .select("contact_id, titre, auto_category")
             .in("contact_id", echoueContactIds)
-            .like("titre", "%[AUTO]%rogramm%")
+            .or(`auto_category.in.(${REPROGRAM_CATEGORIES.join(",")}),titre.like.*[AUTO]*rogramm*`)
         : { data: [] };
       const reprogrammedIds = new Set(
-        (reprogNotesRes.data || []).map((n: any) => n.contact_id)
+        (reprogNotesRes.data || [])
+          .filter((n: { titre: string | null; auto_category: string | null }) =>
+            n.auto_category
+              ? (REPROGRAM_CATEGORIES as string[]).includes(n.auto_category)
+              : /\[AUTO\].*rogramm/.test(String(n.titre || "")),
+          )
+          .map((n: { contact_id: string }) => n.contact_id)
       );
       const reprogramItems = contacts
         .filter((c: any) => !terminatedStatuses.includes(c.statut_apprenant || '') && !reprogrammedIds.has(c.id))
