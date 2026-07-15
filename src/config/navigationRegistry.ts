@@ -12,7 +12,7 @@
 import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Bell, Award,
-  Handshake, Car, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
+  Handshake, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
   CalendarDays, FileSignature,
   type LucideIcon,
 } from "lucide-react";
@@ -81,7 +81,6 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "formations",        label: "Catalogue",         icon: GraduationCap,   group: "more", subgroup: "production", path: "/formations",        pageName: "FormationsPage" },
   { id: "produits",          label: "Forfaits & extras", icon: Package,         group: "more", subgroup: "production", path: "/produits",          pageName: "ProduitsServicesPage", allowedRoles: ["super_admin", "admin"] },
   { id: "formateurs",        label: "Formateurs",        icon: UserCog,         group: "more", subgroup: "production", path: "/formateurs",        pageName: "FormateursPage",       allowedRoles: ["super_admin", "admin"] },
-  { id: "planning-conduite", label: "Planning conduite", icon: Car,             group: "more", subgroup: "production", path: "/planning-conduite", pageName: "PlanningConduitePage" },
   { id: "partenaires",       label: "Partenaires",       icon: Handshake,       group: "more", subgroup: "production", path: "/partenaires",       pageName: "PartnersPage",         allowedRoles: ["super_admin", "admin"] },
 
   // Qualité & conformité

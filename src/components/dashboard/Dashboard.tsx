@@ -18,7 +18,6 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { useNoShowDetection } from "@/hooks/useNoShowDetection";
 import { GraduationCap, CalendarCheck } from "lucide-react";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
@@ -48,7 +47,6 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithParams }: DashboardProps) {
-  useNoShowDetection();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [expressOpen, setExpressOpen] = useState(false);

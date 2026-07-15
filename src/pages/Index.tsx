@@ -39,7 +39,6 @@ const SignaturesPage      = lazy(() => import("@/components/signatures/Signature
 const QualiteUnifiedPage  = lazy(() => import("@/components/qualite/QualiteUnifiedPage").then(m => ({ default: m.QualiteUnifiedPage })));
 const PartnersPage        = lazy(() => import("@/components/partners/PartnersPage").then(m => ({ default: m.PartnersPage })));
 const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
-const PlanningConduitePage= lazy(() => import("@/components/planning-conduite/PlanningConduitePage").then(m => ({ default: m.PlanningConduitePage })));
 const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
 const DocumentSystemStatePage = lazy(() => import("@/components/admin/DocumentSystemStatePage").then(m => ({ default: m.DocumentSystemStatePage })));
 const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
@@ -324,10 +323,6 @@ const Index = () => {
       case "partenaires":
         pageName = "PartnersPage";
         node = <PartnersPage />;
-        break;
-      case "planning-conduite":
-        pageName = "PlanningConduitePage";
-        node = <PlanningConduitePage />;
         break;
       case "security":
         pageName = "SecurityStatusPage";

@@ -13,7 +13,6 @@ import {
   XCircle,
   BookOpen,
   Award,
-  Target,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -73,41 +72,6 @@ export function LearnerProgressionTab({
     enabled: !!contactId,
   });
 
-  // Fetch quiz attempts
-  const { data: quizStats, isLoading: loadingQuiz } = useQuery({
-    queryKey: ["learner-quiz-stats", contactId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lms_quiz_attempts")
-        .select("id, quiz_id, score_pct, reussi")
-        .eq("contact_id", contactId);
-
-      if (error) throw error;
-
-      const attempts = data || [];
-      const quizIds = [...new Set(attempts.map((a) => a.quiz_id))];
-      const passed = quizIds.filter((qid) =>
-        attempts.some((a) => a.quiz_id === qid && a.reussi)
-      ).length;
-
-      const avgScore =
-        attempts.length > 0
-          ? Math.round(
-              attempts.reduce((sum, a) => sum + (a.score_pct || 0), 0) /
-                attempts.length
-            )
-          : 0;
-
-      return {
-        totalAttempts: attempts.length,
-        uniqueQuizzes: quizIds.length,
-        passed,
-        avgScore,
-      };
-    },
-    enabled: !!contactId,
-  });
-
   // Fetch certificates
   const { data: certificates = [], isLoading: loadingCerts } = useQuery({
     queryKey: ["learner-certs-count", contactId],
@@ -124,7 +88,7 @@ export function LearnerProgressionTab({
     enabled: !!contactId,
   });
 
-  const isLoading = loadingInsc || loadingEmarg || loadingQuiz || loadingCerts;
+  const isLoading = loadingInsc || loadingEmarg || loadingCerts;
 
   if (isLoading) {
     return (
@@ -155,7 +119,7 @@ export function LearnerProgressionTab({
       </h2>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -179,22 +143,6 @@ export function LearnerProgressionTab({
               <div>
                 <p className="text-2xl font-bold">{emargementStats?.percentage || 0}%</p>
                 <p className="text-sm text-muted-foreground">Présence signée</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <Target className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {quizStats?.passed || 0}/{quizStats?.uniqueQuizzes || 0}
-                </p>
-                <p className="text-sm text-muted-foreground">Quiz réussis</p>
               </div>
             </div>
           </CardContent>
