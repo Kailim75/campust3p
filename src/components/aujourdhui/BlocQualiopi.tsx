@@ -30,13 +30,13 @@ export function BlocQualiopi({ qualiopiSessions, onNavigate }: BlocQualiopiProps
           <div key={s.id} className="px-5 py-3 hover:bg-muted/20 transition-colors">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-sm font-medium">{s.nom}</span>
-              <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning">
+              <Badge variant="outline" className="text-[11px] bg-warning/10 text-warning">
                 {s.issues.length} critère{s.issues.length > 1 ? "s" : ""}
               </Badge>
             </div>
             <div className="flex flex-wrap gap-1 mb-1.5">
               {s.issues.map((issue: string, i: number) => (
-                <Badge key={i} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                <Badge key={i} variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/20">
                   {issue}
                 </Badge>
               ))}
@@ -44,7 +44,7 @@ export function BlocQualiopi({ qualiopiSessions, onNavigate }: BlocQualiopiProps
             {onNavigate && (
               <Button
                 size="sm" variant="outline"
-                className="h-6 text-[10px] gap-1"
+                className="h-6 text-[11px] gap-1"
                 onClick={() => onNavigate(`session-qualiopi-${s.id}`)}
               >
                 <Shield className="h-3 w-3" /> Ouvrir Qualiopi

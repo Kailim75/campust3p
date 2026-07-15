@@ -3,7 +3,7 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Users, GraduationCap, Calendar, Receipt, Settings,
-  BarChart3, AlertTriangle, Briefcase, UserCheck, Car, Shield,
+  BarChart3, Briefcase, UserCheck, Shield,
   Trash2, FileText, TrendingUp, BookOpen, Plus, Mail, Clock, Inbox,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -37,9 +37,7 @@ const NAV_SECTIONS = [
   { id: "inbox", label: "Inbox", icon: Inbox },
   { id: "formateurs", label: "Formateurs", icon: UserCheck },
   { id: "partenaires", label: "Partenaires", icon: Briefcase },
-  { id: "planning-conduite", label: "Planning conduite", icon: Car },
   { id: "qualite", label: "Qualité & Conformité", icon: Shield },
-  { id: "alertes", label: "Alertes", icon: AlertTriangle },
   { id: "automations", label: "Automatisations", icon: FileText },
   { id: "settings", label: "Réglages", icon: Settings },
   { id: "corbeille", label: "Corbeille", icon: Trash2 },

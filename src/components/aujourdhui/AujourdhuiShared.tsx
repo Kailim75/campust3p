@@ -20,7 +20,7 @@ export function UrgencyDot({ urgency }: { urgency: UrgencyInfo }) {
         <TooltipContent side="top" className="max-w-[220px]">
           <p className="font-semibold text-xs">Urgence : {urgency.label}</p>
           {urgency.reasons.length > 0 && (
-            <ul className="text-[10px] mt-0.5 space-y-0.5 text-muted-foreground">
+            <ul className="text-[11px] mt-0.5 space-y-0.5 text-muted-foreground">
               {urgency.reasons.map((r, i) => <li key={i}>• {r}</li>)}
             </ul>
           )}
@@ -42,7 +42,7 @@ export function LastActionLine({
     return (
       <div className="flex items-center gap-1.5 mt-1">
         <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
-        <span className="text-[10px] text-muted-foreground truncate">
+        <span className="text-[11px] text-muted-foreground truncate">
           {todayNote.titre.replace("[AUTO] ", "")} — {format(parseISO(todayNote.created_at), "HH:mm")}
         </span>
       </div>
@@ -56,7 +56,7 @@ export function LastActionLine({
     return (
       <div className="flex items-center gap-1.5 mt-1">
         <Bot className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-        <span className="text-[10px] text-muted-foreground/70 truncate">
+        <span className="text-[11px] text-muted-foreground/70 truncate">
           {recentNote.titre.replace("[AUTO] ", "")} — {dateLabel}
         </span>
       </div>
@@ -80,7 +80,7 @@ export function MarkDoneBtn({
     <Button
       size="sm"
       variant="outline"
-      className="h-7 text-[10px] text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
+      className="h-7 text-[11px] text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
       onClick={(e) => { e.stopPropagation(); markDone(contactId, bloc); }}
     >
       <Check className="h-3 w-3 mr-1" /> {label}
@@ -119,7 +119,7 @@ export function PostponeBtn({
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 text-[10px] text-muted-foreground hover:text-primary"
+          className="h-7 text-[11px] text-muted-foreground hover:text-primary"
           onClick={(event) => event.stopPropagation()}
         >
           <CalendarClock className="h-3 w-3 mr-1" /> Reporter

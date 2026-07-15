@@ -49,7 +49,7 @@ export function BlocRelances({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-[10px] gap-1"
+              className="h-7 text-[11px] gap-1"
               disabled={bulkProcessing}
               onClick={() => toggleBulkRelanceVisible(relances)}
             >
@@ -60,7 +60,7 @@ export function BlocRelances({
           {bulkRelanceSelected.size > 0 && (
             <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
-                size="sm" variant="default" className="h-7 text-[10px] gap-1"
+                size="sm" variant="default" className="h-7 text-[11px] gap-1"
                 disabled={bulkProcessing}
                 onClick={() => handleBulkRelance(relances)}
               >
@@ -70,7 +70,7 @@ export function BlocRelances({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-[10px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
+                className="h-7 text-[11px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
                 disabled={bulkProcessing}
                 onClick={() => handleBulkRelanceDone(relances)}
               >
@@ -78,7 +78,7 @@ export function BlocRelances({
                 Traiter {bulkRelanceSelected.size}
               </Button>
               {bulkRelanceSelected.size > 10 && (
-                <span className="text-[9px] text-warning font-medium">⚠️ {bulkRelanceSelected.size} dest.</span>
+                <span className="text-[11px] text-warning font-medium">⚠️ {bulkRelanceSelected.size} dest.</span>
               )}
             </div>
           )}
@@ -114,7 +114,7 @@ export function BlocRelances({
                 </div>
                 {actionDate && (
                   <Badge variant="outline" className={cn(
-                    "text-[10px]",
+                    "text-[11px]",
                     isPast(parseISO(actionDate)) ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
                   )}>
                     {isPast(parseISO(actionDate))
@@ -130,12 +130,12 @@ export function BlocRelances({
               </div>
               <div className="flex gap-1.5 mt-1 pl-8">
                 {p.email && (
-                  <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleRelanceEmail(p)}>
+                  <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => handleRelanceEmail(p)}>
                     <Mail className="h-3 w-3 mr-1" /> Relancer
                   </Button>
                 )}
                 {p.telephone && (
-                  <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
                     <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}

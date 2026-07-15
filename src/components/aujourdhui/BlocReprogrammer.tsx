@@ -39,11 +39,11 @@ export function BlocReprogrammer({
                   <ExternalLink className="h-3 w-3 opacity-40" />
                 </button>
               </div>
-              <Badge variant="outline" className={cn("text-[9px]", item.type === "pratique" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
+              <Badge variant="outline" className={cn("text-[11px]", item.type === "pratique" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>
                 {item.label}
               </Badge>
             </div>
-            {item.formation && <p className="text-[10px] text-muted-foreground mb-1">{item.formation}</p>}
+            {item.formation && <p className="text-[11px] text-muted-foreground mb-1">{item.formation}</p>}
             <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.contactId} />
             <div className="flex gap-1.5 mt-1">
               <MarkDoneBtn contactId={item.contactId} bloc="Reprogrammation" markDone={markDone} />

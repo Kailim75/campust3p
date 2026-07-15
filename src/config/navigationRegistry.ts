@@ -11,9 +11,9 @@
  */
 import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
-  ClipboardList, UserPlus, Zap, GraduationCap, Bell, Award,
+  ClipboardList, UserPlus, Zap, GraduationCap, Award,
   Handshake, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
-  CalendarDays, FileSignature,
+  FileSignature,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,7 +63,7 @@ export interface NavEntry {
  */
 export const NAV_REGISTRY: NavEntry[] = [
   // ── Hubs principaux (5 max) ────────────────────────────────────────────────
-  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList,   group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage" },
+  { id: "aujourdhui", label: "Aujourd'hui", icon: ClipboardList,   group: "hub", path: "/aujourdhui", pageName: "AujourdhuiPage", legacyPaths: ["ma-journee", "alertes"] },
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
   { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
@@ -73,8 +73,8 @@ export const NAV_REGISTRY: NavEntry[] = [
   // Pilotage commercial
   { id: "dashboard",   label: "Tableau de bord", icon: LayoutDashboard, group: "more", subgroup: "pilotage",   path: "/",            pageName: "Dashboard", legacyPaths: ["", "dashboard"], allowedRoles: ["super_admin", "admin"] },
   { id: "prospects",   label: "Prospects",       icon: UserPlus,        group: "more", subgroup: "pilotage",   path: "/prospects",   pageName: "ProspectsPage" },
-  { id: "ma-journee",  label: "Ma journée",      icon: CalendarDays,    group: "more", subgroup: "pilotage",   path: "/ma-journee",  pageName: "MaJourneePage" },
-  { id: "alertes",     label: "Alertes",         icon: Bell,            group: "more", subgroup: "pilotage",   path: "/alertes",     pageName: "AlertesPage" },
+  // « Ma journée » et « Alertes » retirés le 15/07/2026 (≈0 visiteur sur
+  // 30 jours) : leurs chemins et ids legacy redirigent vers « Aujourd'hui ».
   { id: "signatures",  label: "Signatures",      icon: FileSignature,   group: "more", subgroup: "pilotage",   path: "/signatures",  pageName: "SignaturesPage" },
 
   // Production & catalogue
@@ -179,7 +179,7 @@ const FUZZY_KEYWORDS: Array<{ keywords: string[]; section: string }> = [
   { keywords: ["session", "stage", "promotion"],                                     section: "sessions" },
   { keywords: ["catalogue", "programme", "module"],                                  section: "formations" },
   { keywords: ["mail", "email", "message", "courriel"],                              section: "inbox" },
-  { keywords: ["alerte", "notification"],                                            section: "alertes" },
+  { keywords: ["alerte", "notification"],                                            section: "aujourdhui" },
   { keywords: ["qualiopi", "audit"],                                                 section: "qualite" },
   { keywords: ["partenaire", "apporteur"],                                           section: "partenaires" },
   { keywords: ["conduite", "vehicule", "creneau"],                                   section: "planning-conduite" },

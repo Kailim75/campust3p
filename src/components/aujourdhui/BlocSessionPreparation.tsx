@@ -118,10 +118,10 @@ export function BlocSessionPreparation({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
                     <span className="text-sm font-semibold text-foreground">{session.nom}</span>
-                    <Badge variant="outline" className={cn("text-[10px]", severityStyles[session.severity])}>
+                    <Badge variant="outline" className={cn("text-[11px]", severityStyles[session.severity])}>
                       {session.severity === "ready" ? "Prête" : session.severity === "critical" ? "Critique" : "À vérifier"}
                     </Badge>
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-[11px]">
                       {session.timingLabel}
                     </Badge>
                   </div>
@@ -146,7 +146,7 @@ export function BlocSessionPreparation({
                 </div>
 
                 <div className="sm:w-32">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
                     <span>Préparation</span>
                     <span className="font-medium text-foreground">{session.readinessScore}%</span>
                   </div>
@@ -189,12 +189,12 @@ export function BlocSessionPreparation({
               ) : (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {session.setupIssues.map((issue) => (
-                    <Badge key={issue} variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20">
+                    <Badge key={issue} variant="outline" className="text-[11px] bg-warning/10 text-warning border-warning/20">
                       {issue}
                     </Badge>
                   ))}
                   {session.daysUntil <= 0 && issueCount > 0 && (
-                    <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                    <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/20">
                       <AlertTriangle className="h-3 w-3 mr-1" />
                       À traiter avant démarrage
                     </Badge>
@@ -206,7 +206,7 @@ export function BlocSessionPreparation({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 text-[10px]"
+                  className="h-7 text-[11px]"
                   disabled={docsWithEmail === 0}
                   onClick={() => onRelanceDocs(session)}
                 >
@@ -216,7 +216,7 @@ export function BlocSessionPreparation({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 text-[10px]"
+                  className="h-7 text-[11px]"
                   disabled={paymentsWithEmail === 0}
                   onClick={() => onRelancePaiement(session)}
                 >
@@ -226,7 +226,7 @@ export function BlocSessionPreparation({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-[10px]"
+                  className="h-7 text-[11px]"
                   onClick={() => copyChecklist(session)}
                 >
                   <Copy className="h-3 w-3 mr-1" />
@@ -236,7 +236,7 @@ export function BlocSessionPreparation({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-[10px]"
+                    className="h-7 text-[11px]"
                     onClick={() => onOpenSession(session)}
                   >
                     Ouvrir session
@@ -273,7 +273,7 @@ function StatusPill({
     <div className={cn("rounded-md border px-2.5 py-2 flex items-center gap-2", toneClass)}>
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <div className="min-w-0">
-        <div className="text-[10px] leading-none opacity-80">{label}</div>
+        <div className="text-[11px] leading-none opacity-80">{label}</div>
         <div className="text-sm font-semibold leading-tight">{value}</div>
       </div>
     </div>

@@ -58,7 +58,7 @@ function SidebarBadge({ count, tone = "default" }: { count: number; tone?: "defa
   return (
     <span
       className={cn(
-        "ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none",
+        "ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[11px] font-semibold leading-none",
         tone === "danger"
           ? "bg-destructive/90 text-destructive-foreground"
           : "bg-cta/90 text-cta-foreground"
@@ -159,7 +159,7 @@ function SidebarNav({
               if (!items.length) return null;
               return (
                 <div key={sub.id} className="mt-2 first:mt-1">
-                  <div className="px-3 pb-1 text-[10px] uppercase tracking-wider font-semibold text-white/30">
+                  <div className="px-3 pb-1 text-[11px] uppercase tracking-wider font-semibold text-white/30">
                     {sub.label}
                   </div>
                   <div className="space-y-px">
@@ -289,7 +289,7 @@ function SidebarContent({
         {!collapsed && (
           <div className="animate-fade-in min-w-0">
             <h1 className="text-white font-semibold text-[13px] leading-none tracking-tight">CRM Formation</h1>
-            <p className="text-white/30 text-[10px] mt-0.5 font-medium">CampusT3P</p>
+            <p className="text-white/30 text-[11px] mt-0.5 font-medium">CampusT3P</p>
           </div>
         )}
       </div>
@@ -376,7 +376,7 @@ function SidebarContent({
                     <p className="text-white/85 text-[11.5px] font-medium truncate leading-tight">
                       {user?.email || "Utilisateur"}
                     </p>
-                    <p className="text-white/30 text-[10px] leading-tight mt-px">{userRole}</p>
+                    <p className="text-white/30 text-[11px] leading-tight mt-px">{userRole}</p>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-white/40 flex-shrink-0" />
                 </>
@@ -477,7 +477,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
           </Sheet>
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center rounded-xl bg-cta" style={{ width: 28, height: 28 }}>
-              <span className="text-cta-foreground font-semibold text-[9px]">CF</span>
+              <span className="text-cta-foreground font-semibold text-[11px]">CF</span>
             </div>
             <span className="text-foreground font-semibold text-sm">CRM Formation</span>
           </div>

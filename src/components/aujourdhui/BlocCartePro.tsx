@@ -46,7 +46,7 @@ export function BlocCartePro({
                     <ExternalLink className="h-3 w-3 opacity-40" />
                   </button>
                 </div>
-                {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+                {item.formation && <Badge variant="outline" className="text-[11px]">{item.formation}</Badge>}
               </div>
               <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.id} />
               <div className="flex gap-1.5 mt-1">
@@ -56,7 +56,7 @@ export function BlocCartePro({
                       <TooltipTrigger asChild>
                         <span>
                           <Button
-                            size="sm" variant="outline" className="h-7 text-[10px] border-warning text-warning hover:bg-warning/10"
+                            size="sm" variant="outline" className="h-7 text-[11px] border-warning text-warning hover:bg-warning/10"
                             disabled={carteProDoneToday}
                             onClick={() => handleCarteProEmail(item)}
                           >
@@ -73,7 +73,7 @@ export function BlocCartePro({
                     <TooltipTrigger asChild>
                       <span>
                         <Button
-                          size="sm" variant="ghost" className="h-7 text-[10px] text-muted-foreground"
+                          size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground"
                           disabled={carteProDoneToday}
                           onClick={() => handleCarteProMarkDone(item)}
                         >

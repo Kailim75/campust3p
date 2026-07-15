@@ -45,7 +45,7 @@ export function BlocRdv({
             <p className="text-xs text-muted-foreground">Aucun RDV prévu aujourd'hui</p>
             {onNavigate && (
               <div className="flex justify-center gap-2">
-                <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => { onNavigate("prospects-agenda"); }}>
+                <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => { onNavigate("prospects-agenda"); }}>
                   <CalendarCheck className="h-3 w-3 mr-1" /> Planifier
                 </Button>
               </div>
@@ -61,11 +61,11 @@ export function BlocRdv({
                     {p.prenom} {p.nom}
                     <ExternalLink className="h-3 w-3 opacity-40" />
                   </button>
-                  <Badge variant="outline" className="text-[9px] bg-warning/15 text-warning border-warning/30">
+                  <Badge variant="outline" className="text-[11px] bg-warning/15 text-warning border-warning/30">
                     <CalendarCheck className="h-2.5 w-2.5 mr-0.5" /> RDV
                   </Badge>
                 </div>
-                {p.formation_souhaitee && <Badge variant="outline" className="text-[10px]">{p.formation_souhaitee}</Badge>}
+                {p.formation_souhaitee && <Badge variant="outline" className="text-[11px]">{p.formation_souhaitee}</Badge>}
               </div>
               <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={p.id} />
               <div className="flex gap-1.5 mt-1">
@@ -74,7 +74,7 @@ export function BlocRdv({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span>
-                          <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={handledToday} onClick={() => handleRdvConfirm(p)}>
+                          <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={handledToday} onClick={() => handleRdvConfirm(p)}>
                             <Mail className="h-3 w-3 mr-1" /> Confirmer RDV
                           </Button>
                         </span>
@@ -85,10 +85,10 @@ export function BlocRdv({
                 )}
                 {p.telephone && (
                   <>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px]" asChild>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px]" asChild>
                       <a href={`tel:${p.telephone}`} onClick={() => handleRdvAppel(p)}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleRdvWhatsApp(p)}>
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleRdvWhatsApp(p)}>
                       <SiWhatsapp className="h-3 w-3" />
                     </Button>
                   </>
