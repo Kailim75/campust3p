@@ -103,3 +103,23 @@ describe("Programmes de formation continue (14h)", () => {
     expect(text).toContain("23/005");
   });
 });
+
+describe("Initiale — examen blanc et module pratique (tous métiers)", () => {
+  it("chaque programme initial contient un examen blanc (3h) et un module pratique", () => {
+    for (const type of ["VTC", "TAXI", "TAXI-75", "VMDTR"] as const) {
+      const prog = getProgramme(type); // mode initiale par défaut
+      const blanc = prog.find((m) => /examen blanc/i.test(m.titre));
+      const pratique = prog.find((m) => /pratique/i.test(m.titre));
+      expect(blanc, `${type} : examen blanc manquant`).toBeTruthy();
+      expect(blanc!.dureeHeures, `${type} : examen blanc doit faire 3h`).toBe(3);
+      expect(pratique, `${type} : module pratique manquant`).toBeTruthy();
+    }
+  });
+
+  it("le PDF initiale rendu affiche l'examen blanc et la présentation aux deux examens", async () => {
+    const text = await pdfText(generateProgrammeStandalonePDFv2("VTC", COMPANY, "initiale"));
+    expect(text.toLowerCase()).toContain("examen blanc");
+    expect(text.toLowerCase()).toContain("épreuve pratique");
+    expect(text.toLowerCase()).toContain("préfecture");
+  });
+});
