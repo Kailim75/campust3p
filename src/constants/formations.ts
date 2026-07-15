@@ -861,6 +861,101 @@ export const PROGRAMME_CONTINUE_VMDTR: ModuleFormation[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════
+// PROGRAMMES DE MOBILITÉ TAXI (arrêté du 11 août 2017, art. 2)
+// Permet à un conducteur de taxi d'exercer dans un autre département.
+// 2 modules : connaissance du territoire + réglementation locale.
+// Paris (75) : 35h (zone taxi parisienne, plus dense). Autres dép. : 14h.
+// ═══════════════════════════════════════════════════════════════════
+
+export type MobiliteDept = "75" | "92";
+
+export const PROGRAMME_MOBILITE_75: ModuleFormation[] = [
+  {
+    numero: 1,
+    titre: "A — Connaissance du territoire parisien",
+    dureeHeures: 21,
+    contenu: [
+      "Topographie de Paris : arrondissements, quartiers, axes principaux",
+      "Gares, aéroports, monuments et pôles touristiques majeurs",
+      "Points d'intérêt, hôpitaux, palais des congrès et sites d'affaires",
+      "Recherche et optimisation d'itinéraires en zone dense",
+    ],
+    objectifs: [
+      "Se repérer et optimiser ses trajets dans Paris intra-muros",
+      "Orienter et informer une clientèle française et internationale",
+    ],
+    methodologie: ["Étude de plans", "Cas d'itinéraires", "Mises en situation"],
+    evaluation: ["Test de connaissance du territoire"],
+  },
+  {
+    numero: 2,
+    titre: "B — Réglementation locale parisienne",
+    dureeHeures: 14,
+    contenu: [
+      "Règlement des taxis parisiens et zone des taxis parisiens",
+      "Autorisations de stationnement (ADS) et stations de la zone parisienne",
+      "Tarifs et modalités fixés par la Préfecture de Police de Paris",
+      "Obligations spécifiques de contrôle et de comportement à Paris",
+    ],
+    objectifs: [
+      "Appliquer la réglementation propre à la zone des taxis parisiens",
+      "Respecter les règles de stationnement et de tarification de Paris",
+    ],
+    methodologie: ["Apport réglementaire", "Étude de cas"],
+    evaluation: ["QCM réglementation locale"],
+  },
+];
+
+export const PROGRAMME_MOBILITE_92: ModuleFormation[] = [
+  {
+    numero: 1,
+    titre: "A — Connaissance du territoire des Hauts-de-Seine (92)",
+    dureeHeures: 7,
+    contenu: [
+      "Géographie des Hauts-de-Seine : communes, pôles (La Défense, Boulogne, Nanterre…)",
+      "Axes routiers, gares et liaisons avec Paris et les aéroports",
+      "Points d'intérêt économiques, hospitaliers et administratifs du département",
+    ],
+    objectifs: [
+      "Se repérer et optimiser ses trajets dans les Hauts-de-Seine",
+      "Informer la clientèle sur les liaisons du département",
+    ],
+    methodologie: ["Étude de plans", "Cas d'itinéraires"],
+    evaluation: ["Test de connaissance du territoire"],
+  },
+  {
+    numero: 2,
+    titre: "B — Réglementation locale des Hauts-de-Seine",
+    dureeHeures: 7,
+    contenu: [
+      "Règlement départemental des taxis des Hauts-de-Seine",
+      "Autorisations de stationnement (ADS) et communes de rattachement",
+      "Tarifs et modalités fixés par la Préfecture des Hauts-de-Seine",
+      "Obligations spécifiques de contrôle dans le département",
+    ],
+    objectifs: [
+      "Appliquer la réglementation propre aux Hauts-de-Seine",
+      "Respecter le stationnement et la tarification départementale",
+    ],
+    methodologie: ["Apport réglementaire", "Étude de cas"],
+    evaluation: ["QCM réglementation locale"],
+  },
+];
+
+export const getProgrammeMobilite = (dept: MobiliteDept): ModuleFormation[] =>
+  dept === "75" ? PROGRAMME_MOBILITE_75 : PROGRAMME_MOBILITE_92;
+
+export const PREREQUIS_MOBILITE = [
+  "Être titulaire de la carte professionnelle de conducteur de taxi en cours de validité",
+  "Souhaiter exercer l'activité de taxi dans un nouveau département",
+];
+
+export const OBJECTIFS_MOBILITE = [
+  "Maîtriser la connaissance du territoire du département d'exercice visé",
+  "Appliquer la réglementation locale des taxis propre à ce département",
+];
+
+// ═══════════════════════════════════════════════════════════════════
 // PRÉREQUIS RÉGLEMENTAIRES
 // ═══════════════════════════════════════════════════════════════════
 
