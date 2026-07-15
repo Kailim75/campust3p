@@ -42,7 +42,6 @@ const FlyerVMDTRPage = lazy(() => import("./pages/FlyerVMDTRPage"));
 const FlyersPDFPage = lazy(() => import("./pages/FlyersPDFPage"));
 const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
 // MaJourneePage is now mounted via Index.tsx (AppShellRoute) — see APP_SECTION_PATHS
-const ReserverConduite = lazy(() => import("./pages/ReserverConduite"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -108,7 +107,6 @@ const APP_SECTION_PATHS = [
   "/qualite",
   "/partenaires",
   "/formateurs",
-  "/planning-conduite",
   "/parametres", // alias for /settings
   
   "/security",
@@ -159,7 +157,6 @@ const App = () => (
                 <Route path="/flyer-taxi" element={<FlyerTaxiPage />} />
                 <Route path="/flyer-vmdtr" element={<FlyerVMDTRPage />} />
                 <Route path="/flyers-pdf" element={<FlyersPDFPage />} />
-                <Route path="/reserver/:token" element={<ReserverConduite />} />
                 <Route
                   path="/actions"
                   element={
