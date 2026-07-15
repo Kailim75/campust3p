@@ -7,7 +7,8 @@ import { Paintbrush, RotateCcw, Type, CircleDot, Maximize2 } from "lucide-react"
 import { toast } from "sonner";
 
 const COLOR_PRESETS: { label: string; primary: string; cta: string }[] = [
-  { label: "Anthracite & Teal (défaut)", primary: "222 47% 11%", cta: "173 58% 39%" },
+  { label: "École T3P — Vert forêt & Orange (défaut)", primary: "142 40% 20%", cta: "26 83% 52%" },
+  { label: "Anthracite & Teal", primary: "222 47% 11%", cta: "173 58% 39%" },
   { label: "Marine & Or", primary: "220 54% 18%", cta: "43 96% 56%" },
   { label: "Ardoise & Corail", primary: "215 28% 17%", cta: "12 76% 61%" },
   { label: "Charbon & Émeraude", primary: "210 11% 15%", cta: "152 69% 41%" },
