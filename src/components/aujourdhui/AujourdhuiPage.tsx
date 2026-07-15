@@ -695,7 +695,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           title="Astuce — Recherche universelle"
           variant="tip"
         >
-          Tapez <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-background/60 border">⌘ K</kbd> ou cliquez sur la barre de recherche en haut pour atteindre n'importe quel apprenant, session ou facture en 2 secondes.
+          Tapez <kbd className="px-1.5 py-0.5 text-[11px] font-mono rounded bg-background/60 border">⌘ K</kbd> ou cliquez sur la barre de recherche en haut pour atteindre n'importe quel apprenant, session ou facture en 2 secondes.
         </HintBubble>
       </div>
 

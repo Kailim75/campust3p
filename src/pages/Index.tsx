@@ -25,7 +25,6 @@ import { HelpFloatingButton } from "@/components/help/HelpFloatingButton";
 // avec navigationRegistry.pageName et le test de cohérence Index ↔ registre.
 const Dashboard           = lazy(() => import("@/components/dashboard/Dashboard").then(m => ({ default: m.Dashboard })));
 const AujourdhuiPage      = lazy(() => import("@/components/aujourdhui/AujourdhuiPage").then(m => ({ default: m.AujourdhuiPage })));
-const MaJourneePage       = lazy(() => import("@/pages/MaJourneePage"));
 const ApprenantsPage      = lazy(() => import("@/components/apprenants/ApprenantsPage").then(m => ({ default: m.ApprenantsPage })));
 const FormationsPage      = lazy(() => import("@/components/formations/FormationsPage").then(m => ({ default: m.FormationsPage })));
 const ProduitsServicesPage = lazy(() => import("@/components/produits/ProduitsServicesPage").then(m => ({ default: m.ProduitsServicesPage })));
@@ -34,7 +33,6 @@ const SessionsPage        = lazy(() => import("@/components/sessions/SessionsPag
 const FinancesPage        = lazy(() => import("@/components/finances/FinancesPage").then(m => ({ default: m.FinancesPage })));
 const AutomationsPage     = lazy(() => import("@/components/automations/AutomationsPage").then(m => ({ default: m.AutomationsPage })));
 const SettingsPage        = lazy(() => import("@/components/settings/SettingsPage").then(m => ({ default: m.SettingsPage })));
-const AlertesPage         = lazy(() => import("@/components/alertes/AlertesPage").then(m => ({ default: m.AlertesPage })));
 const SignaturesPage      = lazy(() => import("@/components/signatures/SignaturesPage").then(m => ({ default: m.SignaturesPage })));
 const QualiteUnifiedPage  = lazy(() => import("@/components/qualite/QualiteUnifiedPage").then(m => ({ default: m.QualiteUnifiedPage })));
 const PartnersPage        = lazy(() => import("@/components/partners/PartnersPage").then(m => ({ default: m.PartnersPage })));
@@ -69,6 +67,9 @@ const SectionFallback = () => (
 const LEGACY_REDIRECTS: Record<string, { section: string; tab?: string }> = {
   pipeline: { section: "prospects", tab: "pipeline" },
   "prospects-agenda": { section: "prospects", tab: "agenda" },
+  // Écrans retirés le 15/07/2026 (≈0 usage) — tout renvoie vers Aujourd'hui
+  "ma-journee": { section: "aujourdhui" },
+  alertes: { section: "aujourdhui" },
 };
 
 /** Derive section from current pathname */
@@ -184,7 +185,7 @@ const Index = () => {
 
   // ── DOM custom events (alerts, blockage panel, route check) ───────────────
   useEffect(() => {
-    const handleNavigateToAlerts = () => setActiveSection("alertes");
+    const handleNavigateToAlerts = () => setActiveSection("aujourdhui");
     const handleOpenBlockagePanel = () => setBlockagePanelOpen(true);
     const handleOpenRouteCheck = () => setRouteCheckOpen(true);
     const handleNavigateToContact = (e: Event) => {
@@ -268,10 +269,6 @@ const Index = () => {
         pageName = "AujourdhuiPage";
         node = <AujourdhuiPage onNavigate={setActiveSection} onNavigateWithParams={handleNavigateWithParams} />;
         break;
-      case "ma-journee":
-        pageName = "MaJourneePage";
-        node = <MaJourneePage />;
-        break;
       case "contacts":
         pageName = "ApprenantsPage";
         node = <ApprenantsPage initialContactId={selectedContactId} onContactOpened={handleContactOpened} />;
@@ -307,10 +304,6 @@ const Index = () => {
       case "formateurs":
         pageName = "FormateursPage";
         node = <FormateursPage />;
-        break;
-      case "alertes":
-        pageName = "AlertesPage";
-        node = <AlertesPage />;
         break;
       case "signatures":
         pageName = "SignaturesPage";

@@ -44,7 +44,7 @@ export function ActionJournal({ entries, onOpenContact }: ActionJournalProps) {
           return (
             <div key={entry.id} className="px-5 py-2.5 flex items-center gap-3 text-xs hover:bg-muted/20 transition-colors">
               <span className="text-muted-foreground font-mono w-10 shrink-0">{time}</span>
-              <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary border-primary/15 shrink-0">AUTO</Badge>
+              <Badge variant="outline" className="text-[11px] bg-primary/5 text-primary border-primary/15 shrink-0">AUTO</Badge>
               {entry.contactName && (
                 <span className="font-medium text-foreground shrink-0">{entry.contactName}</span>
               )}
@@ -52,7 +52,7 @@ export function ActionJournal({ entries, onOpenContact }: ActionJournalProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-[10px] shrink-0"
+                className="h-6 text-[11px] shrink-0"
                 onClick={() => onOpenContact(entry.contact_id)}
               >
                 <ExternalLink className="h-3 w-3 mr-1" /> Fiche

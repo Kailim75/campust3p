@@ -100,7 +100,7 @@ export function BlocCma({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-[10px] gap-1"
+              className="h-7 text-[11px] gap-1"
               onClick={handleExportCma}
             >
               <FileDown className="h-3 w-3" />
@@ -111,7 +111,7 @@ export function BlocCma({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-[10px] gap-1"
+              className="h-7 text-[11px] gap-1"
               disabled={bulkProcessing}
               onClick={() => toggleBulkCmaVisible(cmaItems)}
             >
@@ -122,7 +122,7 @@ export function BlocCma({
           {bulkCmaSelected.size > 0 && (
             <div className="flex items-center justify-end gap-1.5 flex-wrap">
               <Button
-                size="sm" variant="default" className="h-7 text-[10px] gap-1"
+                size="sm" variant="default" className="h-7 text-[11px] gap-1"
                 disabled={bulkProcessing}
                 onClick={() => handleBulkCmaRelance(cmaItems)}
               >
@@ -132,7 +132,7 @@ export function BlocCma({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-[10px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
+                className="h-7 text-[11px] gap-1 text-success border-success/25 bg-success/5 hover:bg-success/10 hover:text-success"
                 disabled={bulkProcessing}
                 onClick={() => handleBulkCmaDone(allCmaFiltered)}
               >
@@ -140,7 +140,7 @@ export function BlocCma({
                 Traiter {bulkCmaSelected.size}
               </Button>
               {bulkCmaSelected.size > 10 && (
-                <span className="text-[9px] text-warning font-medium">⚠️ {bulkCmaSelected.size} dest.</span>
+                <span className="text-[11px] text-warning font-medium">⚠️ {bulkCmaSelected.size} dest.</span>
               )}
             </div>
           )}
@@ -156,7 +156,7 @@ export function BlocCma({
             key={opt.value}
             variant={cmaFilter === opt.value ? "default" : "ghost"}
             size="sm"
-            className="h-6 text-[10px] px-2 gap-1 shrink-0"
+            className="h-6 text-[11px] px-2 gap-1 shrink-0"
             onClick={() => setCmaFilter(opt.value)}
           >
             {opt.label}
@@ -189,16 +189,16 @@ export function BlocCma({
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
-                  {item.dossierShortLabel && <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary">{item.dossierShortLabel}</Badge>}
-                  <Badge variant="outline" className="text-[9px] bg-muted text-muted-foreground">
+                  {item.formation && <Badge variant="outline" className="text-[11px]">{item.formation}</Badge>}
+                  {item.dossierShortLabel && <Badge variant="outline" className="text-[11px] bg-primary/5 text-primary">{item.dossierShortLabel}</Badge>}
+                  <Badge variant="outline" className="text-[11px] bg-muted text-muted-foreground">
                     {item.docCount}/{item.requiredDocCount || 5}
                   </Badge>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1 mb-2 pl-8">
                 {item.missingDocs.map((d: string) => (
-                  <Badge key={d} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                  <Badge key={d} variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/20">
                     ✗ {CMA_DOC_LABELS[d] || d}
                   </Badge>
                 ))}
@@ -207,7 +207,7 @@ export function BlocCma({
                 {item.lastCmaNote ? (
                   <div className="flex items-center gap-1.5 mb-2">
                     <Bot className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground">
                       Dernière relance : {format(parseISO(item.lastCmaNote.created_at), "HH:mm", { locale: fr })}
                     </span>
                   </div>
@@ -222,7 +222,7 @@ export function BlocCma({
                       <TooltipTrigger asChild>
                         <span>
                           <Button
-                            size="sm" variant="outline" className="h-7 text-[10px]"
+                            size="sm" variant="outline" className="h-7 text-[11px]"
                             disabled={relancedToday}
                             onClick={() => handleCmaRelanceDocs(item)}
                           >
@@ -237,7 +237,7 @@ export function BlocCma({
                   </TooltipProvider>
                 )}
                 {item.telephone && (
-                  <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => handleCmaWhatsApp(item)}>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleCmaWhatsApp(item)}>
                     <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}

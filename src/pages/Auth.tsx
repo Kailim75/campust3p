@@ -40,7 +40,8 @@ export default function Auth() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate("/", { replace: true });
+      // Atterrissage sur l'écran d'action du jour (décision UX du 15/07/2026)
+      navigate("/aujourdhui", { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
 

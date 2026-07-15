@@ -71,7 +71,7 @@ export function BlocQualiteCrm({
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-28 space-y-1 hidden sm:block">
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Score CRM</span>
               <span className="font-semibold text-foreground">{summary.score}%</span>
             </div>
@@ -90,17 +90,17 @@ export function BlocQualiteCrm({
 
       <div className="px-5 py-3 border-b bg-background/60 flex flex-wrap gap-1.5">
         {summary.duplicateGroups > 0 && (
-          <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
+          <Badge variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/20">
             {summary.duplicateGroups} doublon{summary.duplicateGroups > 1 ? "s" : ""}
           </Badge>
         )}
         {summary.warningCount > 0 && (
-          <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">
+          <Badge variant="outline" className="text-[11px] bg-warning/10 text-warning border-warning/20">
             {summary.warningCount} à vérifier
           </Badge>
         )}
         {summary.infoCount > 0 && (
-          <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+          <Badge variant="outline" className="text-[11px] bg-muted text-muted-foreground">
             {summary.infoCount} info{summary.infoCount > 1 ? "s" : ""}
           </Badge>
         )}
@@ -134,7 +134,7 @@ export function BlocQualiteCrm({
                   </div>
                 </div>
                 <Badge variant="outline" className={cn(
-                  "text-[9px] shrink-0",
+                  "text-[11px] shrink-0",
                   item.severity === "critical"
                     ? "bg-destructive/10 text-destructive border-destructive/20"
                     : item.severity === "warning"
@@ -148,7 +148,7 @@ export function BlocQualiteCrm({
               {item.type === "duplicate" && (
                 <div className="flex flex-wrap gap-1 mb-1 pl-5">
                   {item.records.slice(0, 4).map((record) => (
-                    <Badge key={`${record.source}-${record.id}`} variant="outline" className="text-[9px] bg-background">
+                    <Badge key={`${record.source}-${record.id}`} variant="outline" className="text-[11px] bg-background">
                       {record.source === "prospect" ? "Prospect" : "Contact"} · {record.prenom} {record.nom}
                     </Badge>
                   ))}
@@ -159,7 +159,7 @@ export function BlocQualiteCrm({
                 <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.ownerId} />
               </div>
               <div className="flex gap-1.5 mt-1 pl-5">
-                <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => openItem(item)}>
+                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openItem(item)}>
                   {item.actionLabel}
                 </Button>
                 <MarkDoneBtn contactId={item.ownerId} bloc="Qualité CRM" markDone={markDone} />

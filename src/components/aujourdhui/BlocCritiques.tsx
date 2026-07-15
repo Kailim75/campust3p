@@ -45,11 +45,11 @@ export function BlocCritiques({
                   <ExternalLink className="h-3 w-3 opacity-40" />
                 </button>
               </div>
-              {item.formation && <Badge variant="outline" className="text-[10px]">{item.formation}</Badge>}
+              {item.formation && <Badge variant="outline" className="text-[11px]">{item.formation}</Badge>}
             </div>
             <div className="flex flex-wrap gap-1 mb-2">
               {item.reasons.map((r: string, i: number) => (
-                <Badge key={i} variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                <Badge key={i} variant="outline" className="text-[11px] bg-destructive/10 text-destructive border-destructive/20">
                   {r}
                 </Badge>
               ))}
@@ -57,12 +57,12 @@ export function BlocCritiques({
             <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.id} />
             <div className="flex gap-1.5 mt-1">
               {item.missingCMA.length > 0 && item.email && (
-                <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => handleCritiqueDemanderDocs(item)}>
+                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => handleCritiqueDemanderDocs(item)}>
                   <FolderOpen className="h-3 w-3 mr-1" /> Demander docs
                 </Button>
               )}
               {item.hasLatePayment && item.email && (
-                <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive border-destructive/20" onClick={() => handleCritiqueRelancePaiement(item)}>
+                <Button size="sm" variant="outline" className="h-7 text-[11px] text-destructive border-destructive/20" onClick={() => handleCritiqueRelancePaiement(item)}>
                   <CreditCard className="h-3 w-3 mr-1" /> Relance paiement
                 </Button>
               )}
