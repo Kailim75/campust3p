@@ -30,11 +30,11 @@ serve(async (req) => {
     const today = new Date();
     const notifications: NotificationToCreate[] = [];
 
-    // Get all admin/staff users to notify
+    // Get all admin/staff/super_admin users to notify
     const { data: userRoles, error: rolesError } = await supabase
       .from("user_roles")
       .select("user_id, role")
-      .in("role", ["admin", "staff"]);
+      .in("role", ["admin", "staff", "super_admin"]);
 
     if (rolesError) {
       console.error("Error fetching user roles:", rolesError);

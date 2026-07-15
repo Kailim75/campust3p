@@ -217,6 +217,37 @@ serve(async (req) => {
     const totalResteAPayer = facturesAvecSolde.reduce((sum, f) => sum + f.reste_a_payer, 0);
 
     // ==========================================
+    // 8. SANTÉ DES AUTOMATISATIONS (24 dernières heures)
+    // ==========================================
+    const yesterdayIso = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+
+    const { data: emailsRecents } = await supabase
+      .from("email_logs")
+      .select("type, status")
+      .gte("created_at", yesterdayIso);
+
+    const santeParType: Record<string, { sent: number; failed: number }> = {};
+    (emailsRecents || []).forEach((e) => {
+      const t = e.type || "autre";
+      if (!santeParType[t]) santeParType[t] = { sent: 0, failed: 0 };
+      if (e.status === "sent") santeParType[t].sent++;
+      else santeParType[t].failed++;
+    });
+    const totalEmailsEnvoyes24h = Object.values(santeParType).reduce((s, v) => s + v.sent, 0);
+    const totalEmailsEchecs24h = Object.values(santeParType).reduce((s, v) => s + v.failed, 0);
+
+    const { count: signaturesExpirees24h } = await supabase
+      .from("signature_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("statut", "expire")
+      .gte("updated_at", yesterdayIso);
+
+    const { count: notificationsCreees24h } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", yesterdayIso);
+
+    // ==========================================
     // BUILD HTML REPORT
     // ==========================================
     const dateFr = now.toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -234,6 +265,11 @@ serve(async (req) => {
       encaissements: encaissements || [],
       totalEncaisse,
       totalResteAPayer,
+      santeParType,
+      totalEmailsEnvoyes24h,
+      totalEmailsEchecs24h,
+      signaturesExpirees24h: signaturesExpirees24h ?? 0,
+      notificationsCreees24h: notificationsCreees24h ?? 0,
     });
 
     // ==========================================
@@ -273,6 +309,10 @@ serve(async (req) => {
         examens_t3p: (examensT3P || []).length,
         examens_pratique: (examensPratique || []).length,
         encaissements_7j: totalEncaisse,
+        emails_auto_24h: totalEmailsEnvoyes24h,
+        emails_echecs_24h: totalEmailsEchecs24h,
+        signatures_expirees_24h: signaturesExpirees24h ?? 0,
+        notifications_creees_24h: notificationsCreees24h ?? 0,
         generation_ms: Date.now() - startTime,
       },
     });
@@ -332,6 +372,8 @@ function buildReportHtml(data: any): string {
     dateFr, prospectsRelance, prospectsDormants, sessionsWithFill,
     sessionsFaibleRemplissage, facturesAvecSolde, dossiersIncomplets,
     examensT3P, examensPratique, encaissements, totalEncaisse, totalResteAPayer,
+    santeParType, totalEmailsEnvoyes24h, totalEmailsEchecs24h,
+    signaturesExpirees24h, notificationsCreees24h,
   } = data;
 
   const kpiCards = [
@@ -523,6 +565,32 @@ function buildReportHtml(data: any): string {
   ` : `<p style="color:#999;font-size:13px;font-style:italic;">Aucun encaissement sur les 7 derniers jours</p>`}
 </td></tr>
 
+<!-- SECTION: SANTÉ DES AUTOMATISATIONS -->
+<tr><td style="padding:28px 28px 24px;">
+  ${sectionHeader("🤖 Santé des automatisations (24 h)", totalEmailsEchecs24h > 0
+    ? `⚠️ ${totalEmailsEchecs24h} échec(s) d'envoi à vérifier`
+    : `${totalEmailsEnvoyes24h} email(s) automatique(s), aucun échec`)}
+  ${Object.keys(santeParType).length > 0 ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;margin-bottom:12px;">
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;">Automatisation</td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;text-align:right;">Envoyés</td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;text-align:right;">Échecs</td>
+      </tr>
+      ${Object.entries(santeParType as Record<string, { sent: number; failed: number }>).map(([type, s], i) => `
+        <tr style="background:${i % 2 === 0 ? '#fff' : '#fafafa'};">
+          <td style="padding:8px 12px;font-size:13px;color:#333;">${emailTypeLabel(type)}</td>
+          <td style="padding:8px 12px;font-size:13px;color:#27ae60;font-weight:700;text-align:right;">${s.sent}</td>
+          <td style="padding:8px 12px;font-size:13px;font-weight:700;text-align:right;color:${s.failed > 0 ? '#e74c3c' : '#bbb'};">${s.failed}</td>
+        </tr>
+      `).join("")}
+    </table>
+  ` : `<p style="color:#e67e22;font-size:13px;"><strong>Aucun email automatique sur les dernières 24 h</strong> — si des envois étaient attendus (convocations, relances), vérifier les jobs planifiés.</p>`}
+  <p style="font-size:12px;color:#666;margin:4px 0 0;">
+    ✍️ ${signaturesExpirees24h} signature(s) passée(s) à « Expiré » · 🔔 ${notificationsCreees24h} notification(s) interne(s) créée(s)
+  </p>
+</td></tr>
+
 <!-- FOOTER -->
 <tr><td style="padding:28px 28px;background:#f8f9fa;border-top:1px solid #eee;text-align:center;">
   <p style="margin:0 0 4px;font-size:12px;color:#999;"><strong>Ecole T3P Montrouge</strong> — Centre de formation Taxi, VTC et VMDTR</p>
@@ -578,6 +646,21 @@ function fillBadge(pct: number | null): string {
   if (pct === null) return "—";
   const c = pct >= 75 ? "#27ae60" : pct >= 50 ? "#f39c12" : "#e74c3c";
   return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${c}18;color:${c};border:1px solid ${c}30;">${pct}%</span>`;
+}
+
+function emailTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    convocation_auto: "Convocations automatiques",
+    signature_request: "Envois de signature",
+    signature_reminder: "Relances de signature",
+    document_envoi: "Envois de documents",
+    prospect_email: "Emails prospects",
+    direct_email: "Emails directs",
+    daily_report: "Rapport quotidien",
+    exam_reminder: "Rappels d'examens",
+    enquete: "Enquêtes de satisfaction",
+  };
+  return labels[type] || type;
 }
 
 function docLabel(type: string): string {
