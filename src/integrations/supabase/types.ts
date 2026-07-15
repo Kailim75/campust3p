@@ -1162,6 +1162,8 @@ export type Database = {
       contact_historique: {
         Row: {
           alerte_active: boolean | null
+          auto_category: string | null
+          auto_metadata: Json | null
           contact_id: string
           contenu: string | null
           created_at: string
@@ -1176,6 +1178,8 @@ export type Database = {
         }
         Insert: {
           alerte_active?: boolean | null
+          auto_category?: string | null
+          auto_metadata?: Json | null
           contact_id: string
           contenu?: string | null
           created_at?: string
@@ -1190,6 +1194,8 @@ export type Database = {
         }
         Update: {
           alerte_active?: boolean | null
+          auto_category?: string | null
+          auto_metadata?: Json | null
           contact_id?: string
           contenu?: string | null
           created_at?: string
