@@ -26,18 +26,18 @@
     --surface-hover: 220 18% 96%;
     --surface-warm: 220 14% 95%;
 
-    /* ── PRIMAIRE : Bleu action ── */
-    --primary: 205 72% 38%;
-    --primary-hover: 205 73% 33%;
-    --primary-active: 205 75% 28%;
+    /* ── PRIMAIRE : Vert forêt École T3P (#1E462D — charte ecolet3p.fr) ── */
+    --primary: 142 40% 20%;
+    --primary-hover: 142 42% 16%;
+    --primary-active: 142 45% 13%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 205 50% 94%;
-    --primary-border: 205 40% 78%;
-    --primary-mid: 205 40% 50%;
+    --primary-subtle: 142 30% 94%;
+    --primary-border: 142 22% 76%;
+    --primary-mid: 142 25% 42%;
 
-    /* ── CTA : Identique au primary pour cohérence ── */
-    --cta: 205 72% 38%;
-    --cta-hover: 205 73% 33%;
+    /* ── CTA : Orange École T3P (#EA761E — accent de la charte) ── */
+    --cta: 26 83% 52%;
+    --cta-hover: 26 80% 46%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
@@ -91,7 +91,7 @@
     --info-border: 189 50% 78%;
 
     /* ── Ring & Radius ── */
-    --ring: 205 72% 38%;
+    --ring: 142 40% 20%;
     --radius: 0.75rem;
 
     /* ── OMBRES ── */
@@ -100,7 +100,7 @@
     --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
     --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
     --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
-    --shadow-focus: 0 0 0 3px hsl(205 72% 38% / 0.2);
+    --shadow-focus: 0 0 0 3px hsl(142 40% 20% / 0.2);
 
     /* ── Sidebar : Dark premium ── */
     --sidebar-background: 222 47% 11%;
@@ -136,14 +136,14 @@
     --popover-foreground: 220 15% 90%;
 
     /* ── PRIMAIRE ── */
-    --primary: 205 60% 50%;
-    --primary-hover: 205 55% 45%;
+    --primary: 142 32% 44%;
+    --primary-hover: 142 32% 39%;
     --primary-foreground: 0 0% 100%;
-    --primary-subtle: 205 30% 18%;
+    --primary-subtle: 142 25% 16%;
 
     /* ── CTA ── */
-    --cta: 205 60% 50%;
-    --cta-hover: 205 55% 45%;
+    --cta: 26 83% 55%;
+    --cta-hover: 26 80% 49%;
     --cta-foreground: 0 0% 100%;
 
     /* ── SECONDAIRE ── */
@@ -171,21 +171,21 @@
     --input: 0 0% 100% / 0.08;
 
     /* ── Ring ── */
-    --ring: 205 60% 50%;
+    --ring: 142 32% 44%;
 
     /* ── Sidebar ── */
     --sidebar-background: 220 22% 9%;
     --sidebar-foreground: 220 12% 65%;
-    --sidebar-primary: 205 60% 50%;
+    --sidebar-primary: 142 32% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 100% / 0.06;
     --sidebar-accent-foreground: 220 15% 90%;
     --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 205 60% 50%;
+    --sidebar-ring: 142 32% 44%;
     --sidebar-active: 0 0% 100% / 0.1;
 
     /* ── Shadows ── */
-    --shadow-focus: 0 0 0 3px hsl(205 60% 50% / 0.25);
+    --shadow-focus: 0 0 0 3px hsl(142 32% 44% / 0.25);
   }
 }
 
@@ -274,7 +274,7 @@
   }
 
   .sidebar-item.active {
-    background: hsl(205 72% 38% / 0.12);
+    background: hsl(142 40% 20% / 0.12);
     color: hsl(0 0% 100%);
     border-left: 2.5px solid hsl(var(--cta));
     padding-left: 9.5px;
@@ -397,12 +397,12 @@
     font-size: 13px;
     border-radius: 10px;
     padding: 8px 16px;
-    box-shadow: 0 4px 6px -1px hsl(205 72% 38% / 0.3), 0 2px 4px -2px hsl(205 72% 38% / 0.15);
+    box-shadow: 0 4px 6px -1px hsl(142 40% 20% / 0.3), 0 2px 4px -2px hsl(142 40% 20% / 0.15);
   }
 
   .btn-cta:hover {
     background: hsl(var(--cta-hover));
-    box-shadow: 0 10px 25px -3px hsl(205 72% 38% / 0.35), 0 4px 6px -4px hsl(205 72% 38% / 0.2);
+    box-shadow: 0 10px 25px -3px hsl(142 40% 20% / 0.35), 0 4px 6px -4px hsl(142 40% 20% / 0.2);
     transform: translateY(-1px);
   }
 

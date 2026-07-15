@@ -11,9 +11,10 @@ export interface CrmCustomization {
 
 const STORAGE_KEY = "crm-customization";
 
+// Charte École T3P (ecolet3p.fr) : vert forêt #1E462D + orange #EA761E
 const defaults: CrmCustomization = {
-  primaryColor: "205 72% 38%",
-  ctaColor: "205 72% 38%",
+  primaryColor: "142 40% 20%",
+  ctaColor: "26 83% 52%",
   sidebarStyle: "dark",
   fontFamily: "inter",
   borderRadius: "default",
