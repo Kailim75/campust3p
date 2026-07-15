@@ -3,7 +3,7 @@
 // Blocs documentaires obligatoires pour le programme de formation
 // ═══════════════════════════════════════════════════════════════
 
-import type { TypeFormation } from "@/constants/formations";
+import type { TypeFormation, FormationMode } from "@/constants/formations";
 
 // ─── Public visé ────────────────────────────────────────────────
 const PUBLIC_VISE: Record<string, string[]> = {
@@ -169,13 +169,60 @@ const INTITULES_COMPLETS: Record<string, string> = {
   VMDTR: "Formation initiale — Conducteur de véhicule motorisé à deux ou trois roues (VMDTR)",
 };
 
+// ─── Formation continue (14h) — métadonnées communes ────────────
+// La structure est fixée par l'arrêté du 11 août 2017 ; seul le libellé
+// du métier change. On génère donc les variantes continue à la volée.
+
+const METIER_LABEL: Record<string, string> = {
+  VTC: "VTC",
+  TAXI: "taxi",
+  "TAXI-75": "taxi",
+  VMDTR: "VMDTR (moto-taxi)",
+};
+
+function metierLabel(type: TypeFormation): string {
+  return METIER_LABEL[type] || String(type);
+}
+
+const PUBLIC_VISE_CONTINUE = (type: TypeFormation): string[] => [
+  `Conducteurs de ${metierLabel(type)} titulaires de la carte professionnelle en cours de validité`,
+  "Professionnels soumis à l'obligation de formation continue quinquennale",
+];
+
+const COMPETENCES_CONTINUE = (type: TypeFormation): string[] => [
+  "Actualiser sa connaissance de la réglementation T3P",
+  `Appliquer la réglementation spécifique à l'activité ${metierLabel(type)}`,
+  "Adopter les comportements de sécurité routière propres au transport de personnes",
+  "Développer et gérer son activité",
+];
+
+const SANCTION_CONTINUE: string[] = [
+  "Attestation de suivi de la formation continue, valable 5 ans, remise sans délai au conducteur",
+  "Émargement par demi-journée ; pas d'examen (formation non sanctionnée par une épreuve)",
+];
+
+const REFERENCES_CONTINUE: string[] = [
+  "Arrêté du 11 août 2017 relatif à la formation continue des conducteurs de taxi et de VTC et à la mobilité des conducteurs de taxi",
+  "Arrêté du 6 avril 2017 relatif aux programmes et à l'évaluation des épreuves des examens (référentiel de connaissances, annexe I)",
+  "Décret n°2017-483 du 6 avril 2017 relatif aux activités de transport public particulier de personnes",
+];
+
+const INTITULE_CONTINUE: Record<string, string> = {
+  VTC: "Formation continue — Conducteur de VTC (14h)",
+  TAXI: "Formation continue — Conducteur de taxi (14h)",
+  "TAXI-75": "Formation continue — Conducteur de taxi (14h)",
+  VMDTR: "Formation continue — Conducteur de VMDTR / moto-taxi (14h)",
+};
+
 // ─── Accesseurs publics ─────────────────────────────────────────
 
-export function getPublicVise(type: TypeFormation): string[] {
+export function getPublicVise(type: TypeFormation, mode: FormationMode = "initiale"): string[] {
+  if (mode === "continue") return PUBLIC_VISE_CONTINUE(type);
   return PUBLIC_VISE[type] || [];
 }
 
-export function getCompetencesVisees(type: TypeFormation): string[] {
+export function getCompetencesVisees(type: TypeFormation, mode: FormationMode = "initiale"): string[] {
+  if (mode === "continue") return COMPETENCES_CONTINUE(type);
   return COMPETENCES_VISEES[type] || [];
 }
 
@@ -199,14 +246,17 @@ export function getAccessibilite(): string[] {
   return ACCESSIBILITE;
 }
 
-export function getSanction(type: TypeFormation): string[] {
+export function getSanction(type: TypeFormation, mode: FormationMode = "initiale"): string[] {
+  if (mode === "continue") return SANCTION_CONTINUE;
   return SANCTION[type] || SANCTION.VTC;
 }
 
-export function getReferencesReglementaires(type: TypeFormation): string[] {
+export function getReferencesReglementaires(type: TypeFormation, mode: FormationMode = "initiale"): string[] {
+  if (mode === "continue") return REFERENCES_CONTINUE;
   return REFERENCES_REGLEMENTAIRES[type] || [];
 }
 
-export function getIntituleComplet(type: TypeFormation): string {
+export function getIntituleComplet(type: TypeFormation, mode: FormationMode = "initiale"): string {
+  if (mode === "continue") return INTITULE_CONTINUE[type] || `Formation continue — ${type} (14h)`;
   return INTITULES_COMPLETS[type] || type;
 }

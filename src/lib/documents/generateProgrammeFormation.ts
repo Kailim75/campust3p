@@ -11,6 +11,7 @@ import {
   getPrerequis,
   getObjectifs,
   type TypeFormation,
+  type FormationMode,
   type ModuleFormation,
 } from "@/constants/formations";
 import {
@@ -41,6 +42,18 @@ function resolveFormationType(sessionName: string, formationType?: string): Type
   if (raw.includes("TAXI") && (raw.includes("75") || raw.includes("PARIS"))) return "TAXI-75";
   if (raw.includes("TAXI")) return "TAXI";
   return "VTC";
+}
+
+/**
+ * Détecte le mode (initiale / continue) à partir de la session.
+ * Continue si le libellé le signale, ou si la durée ≤ 16h (la continue
+ * réglementaire fait 14h ; l'initiale 30h+).
+ */
+function resolveFormationMode(session: SessionInfo): FormationMode {
+  const raw = `${session.formation_type || ""} ${session.nom || ""}`.toLowerCase();
+  if (/(continue|recyclage|renouvel|_fc|-fc)/.test(raw)) return "continue";
+  if (session.duree_heures && session.duree_heures <= 16) return "continue";
+  return "initiale";
 }
 
 function formatFullAddress(session: SessionInfo): string {
@@ -95,8 +108,11 @@ function drawHeader(ctx: PdfContext): number {
 
   // Build accreditations
   const accredParts: string[] = [];
-  accredParts.push(`SIRET: ${company.siret}`);
-  accredParts.push(`NDA: ${company.nda}`);
+  if (company.siret) accredParts.push(`SIRET: ${company.siret}`);
+  // NDA : masqué s'il n'est pas encore attribué (organisme non déclaré) —
+  // pour un centre T3P, c'est l'agrément préfectoral (ligne suivante) qui
+  // fait foi tant que la déclaration d'activité DREETS n'est pas faite.
+  if (company.nda) accredParts.push(`NDA: ${company.nda}`);
   if (company.qualiopi_numero) accredParts.push(`Qualiopi: ${company.qualiopi_numero}`);
   const accredLine = accredParts.join(" | ");
 
@@ -238,19 +254,20 @@ export function generateProgrammeFormationPDF(
   const ctx = createContext(doc, company);
 
   const formationType = resolveFormationType(session.nom, session.formation_type);
-  const programme = getProgramme(formationType);
-  const objectifs = getObjectifs(formationType);
-  const prerequis = getPrerequis(formationType);
-  const publicVise = getPublicVise(formationType);
-  const competences = getCompetencesVisees(formationType);
+  const mode = resolveFormationMode(session);
+  const programme = getProgramme(formationType, mode);
+  const objectifs = getObjectifs(formationType, mode);
+  const prerequis = getPrerequis(formationType, mode);
+  const publicVise = getPublicVise(formationType, mode);
+  const competences = getCompetencesVisees(formationType, mode);
   const modalites = getModalitesPedagogiques();
   const moyens = getMoyensPedagogiques();
   const suivi = getSuiviEvaluation();
   const encadrement = getEncadrement();
   const accessibilite = getAccessibilite();
-  const sanction = getSanction(formationType);
-  const references = getReferencesReglementaires(formationType);
-  const intituleComplet = getIntituleComplet(formationType);
+  const sanction = getSanction(formationType, mode);
+  const references = getReferencesReglementaires(formationType, mode);
+  const intituleComplet = getIntituleComplet(formationType, mode);
 
   const totalHeures = programme.reduce((sum, m) => sum + m.dureeHeures, 0);
 
@@ -470,17 +487,21 @@ export function generateProgrammeFormationPDF(
 export function generateProgrammeStandalonePDFv2(
   formationType: TypeFormation,
   company: CompanyInfo,
+  mode: FormationMode = "initiale",
 ): jsPDF {
-  // Build a minimal session to reuse the main generator
+  // Build a minimal session to reuse the main generator. On encode le mode
+  // dans la session (durée 14h pour la continue) pour que la détection
+  // interne le retrouve.
   const now = new Date();
   const end = new Date(now);
   end.setDate(end.getDate() + 7);
 
   const mockSession: SessionInfo = {
-    nom: getIntituleComplet(formationType),
+    nom: getIntituleComplet(formationType, mode),
     formation_type: formationType,
     date_debut: now.toISOString(),
     date_fin: end.toISOString(),
+    duree_heures: mode === "continue" ? 14 : undefined,
     lieu: "En présentiel",
   };
 
