@@ -1,10 +1,23 @@
 // PDF Generator for Supabase Edge Functions
 // Simplified port of src/lib/pdf-generator.ts for server-side generation
+//
+// ⚠️ DOUBLE IMPLÉMENTATION (chantier §5.2, AMELIORATIONS.md)
+// Ce fichier et src/lib/pdf-generator.ts génèrent les MÊMES documents pour
+// deux canaux différents (automatique ici, manuel côté front). Toute
+// évolution de contenu (mentions, identité centre, champs) doit être
+// reportée DANS LES DEUX fichiers. Le test golden
+// src/lib/__tests__/pdf-golden.test.ts vérifie la cohérence des champs
+// critiques de la convocation : s'il casse, corriger l'autre générateur,
+// pas le test.
 // @ts-ignore - jsPDF for Deno
 import jsPDFModule from "npm:jspdf@2.5.2";
 
 // Handle both ESM default export and CJS module.exports
 const jsPDF = (jsPDFModule as any).jsPDF || (jsPDFModule as any).default?.jsPDF || (jsPDFModule as any).default || jsPDFModule;
+// Permet d'utiliser jsPDF comme type (annotations de retour) alors que la
+// constante ci-dessus n'est qu'une valeur — requis par le typecheck du repo
+// depuis que le test golden importe ce fichier. Aucun impact runtime.
+type jsPDF = InstanceType<typeof jsPDF>;
 
 // ==================== TYPES ====================
 export interface ContactInfo {
