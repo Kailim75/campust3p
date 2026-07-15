@@ -23,8 +23,8 @@ export const ORGANISME = {
   siret: "94856480200023",
   nda: "", // Pas de NDA actuellement — ne pas afficher
   numeroRS: "",
-  agreementVTCTAXI: "",
-  agreementVMDTR: "",
+  agreementVTCTAXI: "23/005",
+  agreementVMDTR: "23/006",
   referentHandicap: {
     nom: "ECOLE T3P",
     telephone: "01 88 75 05 55",
@@ -718,6 +718,117 @@ export const PROGRAMME_VMDTR: ModuleFormation[] = [
     ]
   }
 ];
+
+// ═══════════════════════════════════════════════════════════════════
+// PROGRAMMES DE FORMATION CONTINUE (14h — arrêté du 11 août 2017)
+// 4 blocs de 3h30 : modules A, B, C obligatoires + 1 module au choix.
+// Seul le module B (réglementation spécifique) change selon le métier.
+// ═══════════════════════════════════════════════════════════════════
+
+// Module A — commun Taxi / VTC / VMDTR
+const MODULE_CONTINUE_A: ModuleFormation = {
+  numero: 1,
+  titre: "A — Droit du transport public particulier de personnes",
+  dureeHeures: 3.5,
+  contenu: [
+    "Évolutions récentes du cadre légal du T3P (Code des transports, décret n°2017-483)",
+    "Acteurs et organismes : préfecture, Chambre de Métiers et de l'Artisanat, organisations professionnelles",
+    "Conditions d'accès et d'exercice, obligations du conducteur",
+    "Agents habilités au contrôle et prérogatives ; sanctions administratives et pénales",
+    "Prévention des discriminations (art. 225-1 du Code pénal) et des violences sexuelles et sexistes",
+  ],
+  objectifs: [
+    "Situer son activité dans le cadre réglementaire actualisé",
+    "Identifier ses obligations et les sanctions encourues",
+  ],
+  methodologie: ["Apport théorique", "Étude de cas à partir de situations réelles"],
+  evaluation: ["QCM de fin de module"],
+};
+
+// Module C — commun Taxi / VTC / VMDTR
+const MODULE_CONTINUE_C: ModuleFormation = {
+  numero: 3,
+  titre: "C — Sécurité routière",
+  dureeHeures: 3.5,
+  contenu: [
+    "Facteurs de risque du transport de personnes : fatigue, vigilance, distracteurs",
+    "Éco-conduite et entretien préventif du véhicule",
+    "Gestion des conflits et des situations difficiles avec la clientèle",
+    "Conduite à tenir et premiers réflexes en cas d'accident",
+  ],
+  objectifs: [
+    "Adopter les comportements de sécurité adaptés à une activité professionnelle",
+    "Réagir de manière adaptée en situation d'urgence",
+  ],
+  methodologie: ["Ateliers", "Supports vidéo", "Échanges de pratiques"],
+  evaluation: ["Grille d'observation en atelier"],
+};
+
+// Module au choix (E par défaut — configurable : D anglais / F secourisme PSC1)
+const MODULE_CONTINUE_CHOIX: ModuleFormation = {
+  numero: 4,
+  titre: "Module au choix — E : Gestion et développement commercial (dont nouvelles technologies)",
+  dureeHeures: 3.5,
+  contenu: [
+    "Relation client, fidélisation et gestion des avis en ligne",
+    "Applications, plateformes de réservation et outils numériques",
+    "Bases de gestion : facturation, suivi du chiffre d'affaires, coût de revient",
+    "Développement de son activité et de sa clientèle",
+  ],
+  objectifs: [
+    "Mobiliser des outils numériques pour développer son activité",
+    "Piloter les bases de gestion de son entreprise",
+  ],
+  methodologie: ["Atelier numérique", "Élaboration d'un plan d'action individuel"],
+  evaluation: ["Plan d'action individuel"],
+};
+
+const makeModuleContinueB = (metier: string, contenu: string[]): ModuleFormation => ({
+  numero: 2,
+  titre: `B — Réglementation spécifique à l'activité ${metier}`,
+  dureeHeures: 3.5,
+  contenu,
+  objectifs: [`Appliquer les règles propres à l'activité ${metier}`],
+  methodologie: ["Cas pratiques", "Mises en situation"],
+  evaluation: ["Mise en situation notée"],
+});
+
+export const PROGRAMME_CONTINUE_TAXI: ModuleFormation[] = [
+  MODULE_CONTINUE_A,
+  makeModuleContinueB("taxi", [
+    "Tarification et fonctionnement du taximètre ; contrôle des équipements",
+    "Stationnement, maraude, autorisation de stationnement (ADS)",
+    "Course, prise en charge et obligations envers le client",
+    "Taxi conventionné (transport de malades assis, CPAM)",
+  ]),
+  MODULE_CONTINUE_C,
+  MODULE_CONTINUE_CHOIX,
+];
+
+export const PROGRAMME_CONTINUE_VTC: ModuleFormation[] = [
+  MODULE_CONTINUE_A,
+  makeModuleContinueB("VTC", [
+    "Obligations spécifiques VTC : réservation préalable, interdiction de la maraude",
+    "Signalétique, carte professionnelle et registre VTC",
+    "Retour au lieu de stationnement ou d'établissement",
+    "Relations avec les plateformes de mise en relation",
+  ]),
+  MODULE_CONTINUE_C,
+  MODULE_CONTINUE_CHOIX,
+];
+
+export const PROGRAMME_CONTINUE_VMDTR: ModuleFormation[] = [
+  MODULE_CONTINUE_A,
+  makeModuleContinueB("VMDTR (moto-taxi)", [
+    "Obligations spécifiques au véhicule motorisé à deux ou trois roues",
+    "Équipements de sécurité obligatoires (conducteur et passager)",
+    "Réservation préalable et conditions de prise en charge",
+    "Signalétique et carte professionnelle VMDTR",
+  ]),
+  MODULE_CONTINUE_C,
+  MODULE_CONTINUE_CHOIX,
+];
+
 // ═══════════════════════════════════════════════════════════════════
 // PRÉREQUIS RÉGLEMENTAIRES
 // ═══════════════════════════════════════════════════════════════════
@@ -953,6 +1064,23 @@ export const HORAIRES = {
 // ═══════════════════════════════════════════════════════════════════
 
 export type TypeFormation = "VTC" | "TAXI" | "TAXI-75" | "VMDTR" | "RECUPERATION_POINTS";
+
+/** Initiale (préparation examen carte pro) ou continue (renouvellement 14h). */
+export type FormationMode = "initiale" | "continue";
+
+/** Prérequis communs à toutes les formations continues T3P. */
+export const PREREQUIS_CONTINUE = [
+  "Être titulaire de la carte professionnelle T3P correspondante en cours de validité",
+  "Exercer ou avoir exercé l'activité de conducteur de transport public particulier de personnes",
+];
+
+/** Objectifs de la formation continue (renouvellement quinquennal). */
+export const OBJECTIFS_CONTINUE = [
+  "Actualiser ses connaissances de la réglementation du transport public particulier de personnes",
+  "Appliquer la réglementation spécifique à son métier dans sa pratique quotidienne",
+  "Adopter les comportements de sécurité routière adaptés à l'activité",
+  "Mobiliser des outils de gestion et de développement de son activité",
+];
 export type Modalite = "journée" | "soirée";
 export type Civilite = "M." | "Mme";
 
@@ -990,7 +1118,20 @@ export interface Formation {
 // FONCTIONS UTILITAIRES
 // ═══════════════════════════════════════════════════════════════════
 
-export const getProgramme = (type: TypeFormation): ModuleFormation[] => {
+export const getProgramme = (type: TypeFormation, mode: FormationMode = "initiale"): ModuleFormation[] => {
+  if (mode === "continue") {
+    switch (type) {
+      case "VTC":
+        return PROGRAMME_CONTINUE_VTC;
+      case "VMDTR":
+        return PROGRAMME_CONTINUE_VMDTR;
+      case "TAXI":
+      case "TAXI-75":
+        return PROGRAMME_CONTINUE_TAXI;
+      default:
+        return [];
+    }
+  }
   switch (type) {
     case "VTC":
       return PROGRAMME_VTC;
@@ -1005,7 +1146,8 @@ export const getProgramme = (type: TypeFormation): ModuleFormation[] => {
   }
 };
 
-export const getPrerequis = (type: TypeFormation): string[] => {
+export const getPrerequis = (type: TypeFormation, mode: FormationMode = "initiale"): string[] => {
+  if (mode === "continue") return PREREQUIS_CONTINUE;
   switch (type) {
     case "VTC":
       return PREREQUIS_VTC;
@@ -1019,7 +1161,8 @@ export const getPrerequis = (type: TypeFormation): string[] => {
   }
 };
 
-export const getObjectifs = (type: TypeFormation): string[] => {
+export const getObjectifs = (type: TypeFormation, mode: FormationMode = "initiale"): string[] => {
+  if (mode === "continue") return OBJECTIFS_CONTINUE;
   switch (type) {
     case "VTC":
       return OBJECTIFS_VTC;
