@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { useAllAlerts } from "@/hooks/useAlerts";
@@ -9,8 +9,23 @@ const SESSION_KEY = "proactive-alerts-shown";
  * Component that shows proactive toast notifications on first load
  * when there are urgent alerts. Auto-dismisses after 8s.
  * Only shows once per browser session unless new alerts appear.
+ *
+ * Monté en différé : useAllAlerts déclenche 5 groupes de requêtes sur
+ * chaque page — ils n'ont rien à faire dans le chemin critique du premier
+ * chargement (audit perf du 18/07/2026). Le toast arrivait déjà avec 1,5 s
+ * de délai volontaire ; il arrive désormais ~5,5 s après l'ouverture.
  */
 export function ProactiveAlertsToast() {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 4_000);
+    return () => clearTimeout(t);
+  }, []);
+  if (!armed) return null;
+  return <ProactiveAlertsToastInner />;
+}
+
+function ProactiveAlertsToastInner() {
   const { data: alerts, isLoading, counts } = useAllAlerts();
   const hasShownRef = useRef(false);
 

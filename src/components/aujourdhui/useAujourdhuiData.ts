@@ -1,5 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchSharedContactDocs,
+  fetchSharedInscriptions,
+  fetchSharedRappelsActifs,
+} from "@/lib/shared-queries";
 import { addDays, differenceInCalendarDays, isToday, isPast, parseISO } from "date-fns";
 import {
   fetchTodayAutoNotes,
@@ -39,6 +44,7 @@ import type {
 } from "./aujourdhui-types";
 
 export function useAujourdhuiData() {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["aujourdhui-inbox"],
     queryFn: async () => {
@@ -46,13 +52,16 @@ export function useAujourdhuiData() {
       const in14Days = addDays(new Date(), 14).toISOString().split("T")[0];
 
       const postponeSince = addDays(new Date(), -90).toISOString();
+      // docs / inscriptions / rappels passent par les requêtes partagées
+      // (également consommées par le badge du header) : une seule requête
+      // réseau même quand plusieurs hooks montent en même temps.
       const [
-        contactsRes, docsRes, facturesRes, paiementsRes,
-        prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
+        contactsRes, docs, facturesRes, paiementsRes,
+        prospectsRes, sessionsRes, inscriptions, rappels, todayNotes,
         postponedNotesRes, examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
         supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, email_interne, email_interne_consulte_le, updated_at, is_historical_import, requalification_category, archived, deleted_at").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
-        supabase.from("contact_documents").select("contact_id, type_document").is("deleted_at", null),
+        fetchSharedContactDocs(queryClient),
         supabase.from("factures").select("id, contact_id, session_inscription_id, montant_total, statut, date_echeance").is("deleted_at", null),
         supabase.from("paiements").select("facture_id, montant"),
         supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
@@ -62,8 +71,8 @@ export function useAujourdhuiData() {
           .eq("archived", false)
           .neq("statut", "annulee")
           .is("deleted_at", null),
-        supabase.from("session_inscriptions").select("id, contact_id, session_id, statut, statut_paiement, track").is("deleted_at", null),
-        supabase.from("contact_historique").select("contact_id, date_rappel, alerte_active, rappel_description").eq("alerte_active", true).not("date_rappel", "is", null),
+        fetchSharedInscriptions(queryClient),
+        fetchSharedRappelsActifs(queryClient),
         fetchTodayAutoNotes(),
         supabase
           .from("contact_historique")
@@ -76,12 +85,9 @@ export function useAujourdhuiData() {
       ]);
 
       const contacts = contactsRes.data || [];
-      const docs = docsRes.data || [];
       const factures = facturesRes.data || [];
       const paiements = paiementsRes.data || [];
       const prospects = (prospectsRes.data || []) as Prospect[];
-      const inscriptions = inscriptionsRes.data || [];
-      const rappels = rappelsRes.data || [];
       const sessions = sessionsRes.data || [];
 
       // Contact name map for journal
