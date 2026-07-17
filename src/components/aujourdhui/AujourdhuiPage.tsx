@@ -139,6 +139,9 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
     queryClient.invalidateQueries({ queryKey: ["contact-historique"] });
+    // Les données partagées (docs, inscriptions, rappels — cf. shared-queries)
+    // doivent refléter immédiatement les actions faites depuis le hub.
+    queryClient.invalidateQueries({ queryKey: ["shared"] });
   }, [queryClient]);
 
   // Horodate la consultation d'une boîte mail interne (réarme le compteur 7 j).

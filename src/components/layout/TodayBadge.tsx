@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useTodayCounts } from "@/hooks/useTodayCounts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,9 +11,18 @@ interface TodayBadgeProps {
  * Discrete badge always visible in the header.
  * Shows the total of "things to handle today": rappels dûs + dossiers CMA incomplets.
  * Click → navigate to "Aujourd'hui" hub.
+ *
+ * Le comptage est différé de quelques secondes après le montage : le badge
+ * n'a pas à concourir avec les données de la page pendant le premier
+ * chargement (audit perf du 18/07/2026).
  */
 export function TodayBadge({ onClick }: TodayBadgeProps) {
-  const { data, isLoading } = useTodayCounts();
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 2_500);
+    return () => clearTimeout(t);
+  }, []);
+  const { data, isLoading } = useTodayCounts({ enabled: ready });
   const total = data?.total ?? 0;
   const rappels = data?.rappels ?? 0;
   const cma = data?.cma ?? 0;
