@@ -15,7 +15,7 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 | `daily-automated-emails` | `0 8 * * *` | `send-automated-emails` | Emails automatiques quotidiens |
 | `daily-crm-report-7h30` | `30 5 * * *` | `send-daily-report` | Rapport CRM quotidien |
 | `exam-reminders-daily` | `0 9 * * *` | `send-exam-reminders` | Rappels d'examens |
-| `generate-notifications-daily` | `0 5 * * *` | `generate-notifications` | Notifications internes (cloche) — créé le 11/07/2026 |
+| `generate-notifications-daily` | `0 5 * * *` | `generate-notifications` | Notifications internes (cloche) — créé le 11/07/2026 ; depuis le 17/07/2026 inclut les alertes de parcours d'examen (type `parcours` : résultat non reçu ≥ 35 j, convocation CMA non reçue ≥ 28 j, seuils de `src/lib/parcours-examen.ts`) |
 | `process-payment-reminders-hourly` | `0 * * * *` | `process-payment-reminders` | File de relances de paiement (aussi dans la migration `20260114004035`) |
 | `send-convocation-cron-daily` | `0 8 * * *` | `send-convocation-cron` | Convocations automatiques J-7 |
 | `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — **à créer après déploiement de la fonction** (voir ci-dessous) |

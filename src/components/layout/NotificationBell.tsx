@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 const notificationIcons: Record<string, string> = {
   alert: "🔔",
   payment: "💰",
+  parcours: "🎓",
   session: "📅",
   document: "📄",
   inscription: "✍️",
