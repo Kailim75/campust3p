@@ -317,6 +317,64 @@ describe("computeParcours — boîte mail interne (Outlook)", () => {
   });
 });
 
+describe("computeParcours — résultat « en_attente » (valeur posée par la fiche)", () => {
+  it("théorie en_attente passée → attente de résultat (pas « inscrit »)", () => {
+    const r = computeParcours(
+      facts({ theorie: theorie({ date_examen: ilYaJours(10), resultat: "en_attente" }) }),
+      NOW,
+    );
+    expect(r.stage).toBe("theorie_attente_resultat");
+    expect(r.attente?.joursEcoules).toBe(10);
+  });
+
+  it("théorie en_attente à venir → planifiée", () => {
+    const r = computeParcours(
+      facts({ theorie: theorie({ date_examen: dansJours(5), resultat: "en_attente" }) }),
+      NOW,
+    );
+    expect(r.stage).toBe("theorie_planifiee");
+  });
+
+  it("pratique en_attente passée → attente de résultat", () => {
+    const r = computeParcours(
+      facts({
+        theorie: theorie({ date_examen: ilYaJours(60), resultat: "admis" }),
+        pratique: pratique({ date_examen: ilYaJours(8), resultat: "en_attente" }),
+      }),
+      NOW,
+    );
+    expect(r.stage).toBe("pratique_attente_resultat");
+    expect(r.attente?.joursEcoules).toBe(8);
+  });
+
+  it("valeur de résultat inconnue → traitée comme une attente (donnée à corriger)", () => {
+    const r = computeParcours(
+      facts({ theorie: theorie({ date_examen: ilYaJours(4), resultat: "typo_inconnue" }) }),
+      NOW,
+    );
+    expect(r.stage).toBe("theorie_attente_resultat");
+  });
+});
+
+describe("computeParcours — référence du compteur de convocation CMA", () => {
+  it("préfère date_resultat_recu (jour où le résultat a été connu)", () => {
+    const r = computeParcours(
+      facts({
+        theorie: theorie({
+          date_examen: ilYaJours(40),
+          resultat: "admis",
+          date_reussite: ilYaJours(40),
+          date_resultat_recu: ilYaJours(10),
+        }),
+      }),
+      NOW,
+    );
+    expect(r.stage).toBe("attente_convocation_cma");
+    expect(r.attente?.joursEcoules).toBe(10);
+    expect(r.attente?.niveau).toBe("ok");
+  });
+});
+
 describe("computeParcours — priorité pratique sur théorie", () => {
   it("un examen pratique existant prime sur l'attente de convocation", () => {
     // Théorie admise sans convocation ENREGISTRÉE, mais un pratique est déjà
