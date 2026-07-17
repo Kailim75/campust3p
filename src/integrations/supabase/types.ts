@@ -1337,6 +1337,8 @@ export type Database = {
           deleted_by: string | null
           email: string | null
           email_facturation: string | null
+          email_interne: string | null
+          email_interne_consulte_le: string | null
           filleul: string | null
           fonction: string | null
           formation: Database["public"]["Enums"]["formation_type"] | null
@@ -1390,6 +1392,8 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           email_facturation?: string | null
+          email_interne?: string | null
+          email_interne_consulte_le?: string | null
           filleul?: string | null
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
@@ -1443,6 +1447,8 @@ export type Database = {
           deleted_by?: string | null
           email?: string | null
           email_facturation?: string | null
+          email_interne?: string | null
+          email_interne_consulte_le?: string | null
           filleul?: string | null
           fonction?: string | null
           formation?: Database["public"]["Enums"]["formation_type"] | null
@@ -3314,6 +3320,7 @@ export type Database = {
           contact_id: string
           created_at: string
           date_examen: string
+          date_resultat_recu: string | null
           document_resultat_path: string | null
           evaluateur_id: string | null
           fiche_pratique_id: string
@@ -3334,6 +3341,7 @@ export type Database = {
           contact_id: string
           created_at?: string
           date_examen: string
+          date_resultat_recu?: string | null
           document_resultat_path?: string | null
           evaluateur_id?: string | null
           fiche_pratique_id: string
@@ -3354,6 +3362,7 @@ export type Database = {
           contact_id?: string
           created_at?: string
           date_examen?: string
+          date_resultat_recu?: string | null
           document_resultat_path?: string | null
           evaluateur_id?: string | null
           fiche_pratique_id?: string
@@ -3404,8 +3413,10 @@ export type Database = {
           centre_examen: string | null
           contact_id: string
           created_at: string
+          date_convocation_pratique_recue: string | null
           date_examen: string
           date_expiration: string | null
+          date_resultat_recu: string | null
           date_reussite: string | null
           departement: string | null
           document_resultat_path: string | null
@@ -3425,8 +3436,10 @@ export type Database = {
           centre_examen?: string | null
           contact_id: string
           created_at?: string
+          date_convocation_pratique_recue?: string | null
           date_examen: string
           date_expiration?: string | null
+          date_resultat_recu?: string | null
           date_reussite?: string | null
           departement?: string | null
           document_resultat_path?: string | null
@@ -3446,8 +3459,10 @@ export type Database = {
           centre_examen?: string | null
           contact_id?: string
           created_at?: string
+          date_convocation_pratique_recue?: string | null
           date_examen?: string
           date_expiration?: string | null
+          date_resultat_recu?: string | null
           date_reussite?: string | null
           departement?: string | null
           document_resultat_path?: string | null
