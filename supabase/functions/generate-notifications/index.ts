@@ -345,6 +345,106 @@ serve(async (req) => {
       }
     }
 
+    // 7. Parcours d'examen — dépassements de délais (cf. src/lib/parcours-examen.ts,
+    // seuils validés le 17/07/2026) : résultat non enregistré 35 j après
+    // l'examen, convocation CMA absente 28 j après un résultat admis.
+    // L'id d'examen est inclus dans le link pour que la déduplication LIKE
+    // fonctionne réellement (le front ignore ce paramètre superflu).
+    const SEUIL_ALERTE_RESULTAT = 35;
+    const SEUIL_ALERTE_CONVOCATION = 28;
+    const RESULTATS_CONNUS = ["admis", "favorable", "ajourne", "absent", "refuse", "defavorable"];
+    const todayStr = today.toISOString().split("T")[0];
+    const joursDepuis = (iso: string) =>
+      Math.floor((today.getTime() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
+    const contactSuivi = (c: any) =>
+      c && !c.archived && !c.is_historical_import &&
+      !["diplome", "abandon", "archive"].includes(c.statut_apprenant || "");
+
+    const pushParcoursNotif = async (
+      dedupKey: string,
+      titre: string,
+      message: string,
+      link: string,
+      metadata: Record<string, any>,
+    ) => {
+      for (const userId of userIds) {
+        const { data: existing } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("type", "parcours")
+          .like("link", `%${dedupKey}%`)
+          .like("title", `%${titre.split(" ")[0]}%`)
+          .gte("created_at", todayStr);
+        if (!existing || existing.length === 0) {
+          notifications.push({ user_id: userId, type: "parcours", title: titre, message, link, metadata });
+        }
+      }
+    };
+
+    const { data: parcoursT3p } = await supabase
+      .from("examens_t3p")
+      .select("id, contact_id, type_formation, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation, contacts (nom, prenom, archived, is_historical_import, statut_apprenant)")
+      .lte("date_examen", todayStr);
+
+    for (const exam of parcoursT3p || []) {
+      const contact = exam.contacts as any;
+      if (!contactSuivi(contact)) continue;
+      const estPratique = String(exam.type_formation || "").toLowerCase() === "pratique";
+      const link = `/?section=contacts&id=${exam.contact_id}&tab=examens&exam=${exam.id}`;
+
+      // Résultat toujours pas enregistré bien après l'examen.
+      if (!RESULTATS_CONNUS.includes(exam.resultat || "")) {
+        const jours = joursDepuis(exam.date_examen);
+        if (jours >= SEUIL_ALERTE_RESULTAT) {
+          await pushParcoursNotif(
+            exam.id,
+            `Résultat non reçu (${jours}j)`,
+            `${contact?.prenom} ${contact?.nom} — examen ${estPratique ? "pratique" : "théorique"} du ${exam.date_examen}, résultat à vérifier`,
+            link,
+            { exam_id: exam.id, contact_id: exam.contact_id, jours, seuil: SEUIL_ALERTE_RESULTAT },
+          );
+        }
+      }
+
+      // Théorie admise mais convocation CMA jamais enregistrée.
+      if (!estPratique && exam.resultat === "admis" &&
+          !exam.date_convocation_pratique_recue && !exam.numero_convocation) {
+        const ref = exam.date_resultat_recu || exam.date_reussite || exam.date_examen;
+        const jours = joursDepuis(ref);
+        if (jours >= SEUIL_ALERTE_CONVOCATION) {
+          await pushParcoursNotif(
+            exam.id,
+            `Convocation CMA non reçue (${jours}j)`,
+            `${contact?.prenom} ${contact?.nom} — admis à la théorie, convocation pratique toujours attendue, relancer la CMA`,
+            link,
+            { exam_id: exam.id, contact_id: exam.contact_id, jours, seuil: SEUIL_ALERTE_CONVOCATION },
+          );
+        }
+      }
+    }
+
+    const { data: parcoursPratique } = await supabase
+      .from("examens_pratique")
+      .select("id, contact_id, date_examen, resultat, date_resultat_recu, contacts (nom, prenom, archived, is_historical_import, statut_apprenant)")
+      .lte("date_examen", todayStr);
+
+    for (const exam of parcoursPratique || []) {
+      const contact = exam.contacts as any;
+      if (!contactSuivi(contact)) continue;
+      if (RESULTATS_CONNUS.includes(exam.resultat || "")) continue;
+      const jours = joursDepuis(exam.date_examen);
+      if (jours >= SEUIL_ALERTE_RESULTAT) {
+        await pushParcoursNotif(
+          exam.id,
+          `Résultat non reçu (${jours}j)`,
+          `${contact?.prenom} ${contact?.nom} — épreuve pratique du ${exam.date_examen}, résultat à vérifier`,
+          `/?section=contacts&id=${exam.contact_id}&tab=examens&exam=${exam.id}`,
+          { exam_id: exam.id, contact_id: exam.contact_id, jours, seuil: SEUIL_ALERTE_RESULTAT },
+        );
+      }
+    }
+
     // Insert all notifications
     if (notifications.length > 0) {
       const { error: insertError } = await supabase
@@ -370,6 +470,7 @@ serve(async (req) => {
           alerts: notifications.filter(n => n.type === "alert").length,
           sessions: notifications.filter(n => n.type === "session").length,
           signatures: notifications.filter(n => n.type === "signature").length,
+          parcours: notifications.filter(n => n.type === "parcours").length,
         }
       }),
       { 
