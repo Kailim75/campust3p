@@ -281,3 +281,36 @@ paiements Alma. **Repo synchronisé avec Lovable** — voir « Règles Lovable �
 - États métier en notes `[AUTO]` dans `contact_historique` (chantier de
   normalisation planifié — voir AMELIORATIONS.md §5.1).
 ```
+
+---
+
+## Annexe — Audit de performance du 18/07/2026 (mesures réelles en production)
+
+Constat : coquille JS instantanée (~140 ms, service worker) et navigation
+interne instantanée (cache react-query). Tout le coût est au **premier
+chargement de chaque page** : 39-55 requêtes Supabase, données complètes à
+3,8 s (Aujourd'hui), 5,0 s (Apprenants), ~1,5 s (Sessions/Finances), 1,1 s
+(Inbox).
+
+Causes confirmées dans le code :
+1. **Requêtes dupliquées** — `contact_documents` (table entière) tirée 3×
+   au chargement d'Aujourd'hui (`useAujourdhuiData` + `useTodayCounts` +
+   `useDocumentAlerts`), `session_inscriptions` et rappels actifs 2×.
+2. **Hooks de layout sur toutes les pages** — `TodayBadge` (5 tables pour
+   un chiffre) et `ProactiveAlertsToast` → `useAllAlerts` (5 groupes de
+   requêtes), rendus depuis le Header/Index.
+3. **Multiplicateur RLS** (hypothèse forte, non corrigée) : requêtes
+   triviales à ~3 s sous rafale de 55 — signature de policies évaluant une
+   fonction par ligne (cf. les ~150 warnings SECURITY DEFINER différés).
+
+Traité (PR #22, lots A+B) : requêtes mutualisées via
+`src/lib/shared-queries.ts` (fetchQuery, clés communes, staleTime 60 s) ;
+badge différé à +2,5 s, toast à +4 s. Résultat mesuré après publication :
+Aujourd'hui 3,8 s → **2,9 s** (vague critique 55 → 35 requêtes),
+Apprenants 5,0 s → **3,3 s**.
+
+Reste (lot C, **accord explicite requis — zone sensible sécurité**) :
+initplan RLS — réécrire les policies `fn()` en `(SELECT fn())` pour une
+évaluation unique par requête. C'est le plus gros gain restant ; à faire
+policy par policy via l'agent Lovable, avec vérification fonctionnelle
+après chaque table.
