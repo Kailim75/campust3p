@@ -336,7 +336,10 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    // Flux naturel : le défilement est géré par le conteneur parent (Sheet ou
+    // pleine page). Pas de hauteur figée ici — un en-tête plus haut que la
+    // fenêtre écraserait la zone des onglets (bug corrigé le 18/07/2026).
+    <div className="flex flex-col min-h-full">
       {/* ─── COCKPIT HEADER ─── */}
       <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
         {/* Identity row */}
@@ -614,7 +617,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       })()}
 
       {/* ─── TABS ─── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
         <div className="mx-3 sm:mx-5 mt-2 sm:mt-3 mb-0 overflow-x-auto scrollbar-hide">
           <TabsList className="justify-start bg-transparent gap-0.5 sm:gap-1 p-0 h-auto flex-nowrap w-max">
             {tabs.map((tab) => (
@@ -631,7 +634,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto p-3 sm:p-5">
+        <div className="p-3 sm:p-5">
           <TabsContent value="resume" className="mt-0">
             <ResumeTab contactId={contact.id} formation={contact.formation} onNavigateTab={setActiveTab} />
           </TabsContent>
