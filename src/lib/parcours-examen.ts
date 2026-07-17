@@ -194,6 +194,14 @@ function estAdmis(resultat: string | null): boolean {
 function estEchec(resultat: string | null): boolean {
   return resultat != null && RESULTATS_ECHEC.has(resultat);
 }
+// Un résultat « pas encore connu » peut être NULL ou une valeur d'attente
+// explicite ("en_attente", posée par la fiche apprenant à la création).
+// Toute valeur inconnue est traitée comme une attente plutôt que d'inventer
+// un état : le candidat apparaît alors dans « Résultats à vérifier », ce qui
+// pousse à corriger la donnée au lieu de la faire disparaître.
+function sansResultat(resultat: string | null): boolean {
+  return !estAdmis(resultat) && !estEchec(resultat);
+}
 
 function convocationRecue(t: ExamenTheorieFacts): boolean {
   return Boolean(t.date_convocation_pratique_recue || t.numero_convocation);
@@ -218,14 +226,14 @@ function computeStage(facts: ParcoursFacts, today: Date): {
     if (estEchec(pratique.resultat)) {
       return { stage: "pratique_a_reprogrammer" };
     }
-    if (pratique.resultat == null && estPasse(pratique.date_examen, today)) {
+    if (sansResultat(pratique.resultat) && estPasse(pratique.date_examen, today)) {
       return {
         stage: "pratique_attente_resultat",
         attente: buildAttente("resultat_pratique", pratique.date_examen, today),
       };
     }
     // Examen à venir, pas encore de résultat.
-    if (pratique.resultat == null) {
+    if (sansResultat(pratique.resultat)) {
       return { stage: "pratique_planifiee" };
     }
   }
@@ -239,8 +247,11 @@ function computeStage(facts: ParcoursFacts, today: Date): {
           stage: facts.conduiteProgrammee ? "conduite_programmee" : "convocation_recue",
         };
       }
+      // Le compteur d'attente de convocation démarre au jour où le résultat
+      // a été connu (date_resultat_recu), pas au jour de l'examen : la CMA
+      // n'envoie la convocation qu'après la publication des résultats.
       const ref =
-        theorie.date_reussite || theorie.date_resultat_recu || theorie.date_examen;
+        theorie.date_resultat_recu || theorie.date_reussite || theorie.date_examen;
       return {
         stage: "attente_convocation_cma",
         attente: buildAttente("convocation_cma", ref, today),
@@ -249,13 +260,13 @@ function computeStage(facts: ParcoursFacts, today: Date): {
     if (estEchec(theorie.resultat)) {
       return { stage: "theorie_a_reprogrammer" };
     }
-    if (theorie.resultat == null && estPasse(theorie.date_examen, today)) {
+    if (sansResultat(theorie.resultat) && estPasse(theorie.date_examen, today)) {
       return {
         stage: "theorie_attente_resultat",
         attente: buildAttente("resultat_theorie", theorie.date_examen, today),
       };
     }
-    if (theorie.resultat == null) {
+    if (sansResultat(theorie.resultat)) {
       return { stage: "theorie_planifiee" };
     }
   }

@@ -72,7 +72,7 @@ export function useAujourdhuiData() {
           .gte("date_echange", postponeSince)
           .order("date_echange", { ascending: false }),
         supabase.from("examens_pratique").select("contact_id, date_examen, resultat, date_resultat_recu"),
-        supabase.from("examens_t3p").select("contact_id, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
+        supabase.from("examens_t3p").select("contact_id, type_formation, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -369,12 +369,25 @@ export function useAujourdhuiData() {
         }
         return byContact;
       };
-      const latestTheorie = pickLatestExam(
-        (examensTheorieRes.data || []) as Array<{ contact_id: string } & ExamenTheorieFacts>,
-      );
-      const latestPratique = pickLatestExam(
-        (examensPratiqueRes.data || []) as Array<{ contact_id: string } & ExamenPratiqueFacts>,
-      );
+      // La fiche apprenant enregistre le type d'examen (theorique/pratique)
+      // dans examens_t3p.type_formation : les lignes « pratique » de cette
+      // table sont donc des épreuves pratiques, à fusionner avec la table
+      // examens_pratique, pas des examens théoriques.
+      const t3pRows = (examensTheorieRes.data || []) as Array<
+        { contact_id: string; type_formation: string | null } & ExamenTheorieFacts
+      >;
+      const isPratiqueRow = (r: { type_formation: string | null }) =>
+        String(r.type_formation || "").toLowerCase() === "pratique";
+      const latestTheorie = pickLatestExam(t3pRows.filter((r) => !isPratiqueRow(r)));
+      const latestPratique = pickLatestExam([
+        ...((examensPratiqueRes.data || []) as Array<{ contact_id: string } & ExamenPratiqueFacts>),
+        ...t3pRows.filter(isPratiqueRow).map((r) => ({
+          contact_id: r.contact_id,
+          date_examen: r.date_examen,
+          resultat: r.resultat,
+          date_resultat_recu: r.date_resultat_recu,
+        })),
+      ]);
 
       const resultatsAVerifier: ResultatAVerifierItem[] = [];
       const convocationsAttendues: ConvocationAttendueItem[] = [];

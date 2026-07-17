@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Award, Pencil, Check, X, Copy, FileText } from "lucide-react";
+import { Plus, Award, Pencil, Check, X, Copy, FileText, MailCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { ParcoursExamenCard } from "../ParcoursExamenCard";
 
 const RESULTAT_BADGES: Record<string, { label: string; emoji: string; className: string }> = {
   admis: { label: "Admis", emoji: "🟢", className: "bg-success/15 text-success" },
@@ -92,6 +93,55 @@ export function ExamensTab({ contactId, formation }: ExamensTabProps) {
     onError: () => toast.error("Erreur lors de la mise à jour"),
   });
 
+  // Rafraîchit tout ce qui dépend du parcours (fiche + hub Aujourd'hui).
+  const invalidateParcours = () => {
+    queryClient.invalidateQueries({ queryKey: ["apprenant-examens", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["apprenant-parcours", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["apprenant-theorie-result", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["apprenant-pratique-result", contactId] });
+    queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
+  };
+
+  // Saisie du résultat : horodate date_resultat_recu (le jour où le résultat
+  // a été vérifié) — c'est ce qui fait sortir le candidat du bloc
+  // « Résultats à vérifier » du hub.
+  const updateResultat = useMutation({
+    mutationFn: async ({ id, resultat, dejaRecu }: { id: string; resultat: string; dejaRecu: string | null }) => {
+      const pending = resultat === "en_attente";
+      const { error } = await supabase
+        .from("examens_t3p")
+        .update({
+          resultat,
+          statut: pending ? "passe" : resultat === "admis" ? "reussi" : resultat === "absent" ? "absent" : "echoue",
+          date_resultat_recu: pending ? null : dejaRecu || new Date().toISOString().slice(0, 10),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateParcours();
+      toast.success("Résultat enregistré");
+    },
+    onError: () => toast.error("Erreur lors de l'enregistrement du résultat"),
+  });
+
+  // Convocation CMA à l'épreuve pratique reçue : fait sortir le candidat du
+  // bloc « Convocations CMA attendues ».
+  const marquerConvocation = useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const { error } = await supabase
+        .from("examens_t3p")
+        .update({ date_convocation_pratique_recue: new Date().toISOString().slice(0, 10) } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateParcours();
+      toast.success("Convocation pratique enregistrée");
+    },
+    onError: () => toast.error("Erreur lors de l'enregistrement"),
+  });
+
   const handleStartEdit = (examId: string, currentValue: string | null) => {
     setEditingDossier(examId);
     setEditDossierValue(currentValue || "");
@@ -110,6 +160,8 @@ export function ExamensTab({ contactId, formation }: ExamensTabProps) {
 
   return (
     <div className="space-y-4">
+      <ParcoursExamenCard contactId={contactId} />
+
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Award className="h-4 w-4 text-primary" />
@@ -184,12 +236,13 @@ export function ExamensTab({ contactId, formation }: ExamensTabProps) {
               </TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Résultat</TableHead>
+              <TableHead>Suivi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(!examens || examens.length === 0) ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   Aucun examen enregistré
                 </TableCell>
               </TableRow>
@@ -256,9 +309,51 @@ export function ExamensTab({ contactId, formation }: ExamensTabProps) {
                       {exam.score != null ? `${exam.score}%` : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={cn("text-xs", resultat.className)}>
-                        {resultat.emoji} {resultat.label}
-                      </Badge>
+                      <Select
+                        value={exam.resultat || "en_attente"}
+                        onValueChange={(v) =>
+                          updateResultat.mutate({ id: exam.id, resultat: v, dejaRecu: exam.date_resultat_recu })
+                        }
+                        disabled={updateResultat.isPending}
+                      >
+                        <SelectTrigger className={cn("h-7 w-[130px] text-xs border", resultat.className)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en_attente">🔵 En attente</SelectItem>
+                          <SelectItem value="admis">🟢 Admis</SelectItem>
+                          <SelectItem value="ajourne">🔴 Ajourné</SelectItem>
+                          <SelectItem value="absent">🟡 Absent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {exam.date_resultat_recu && (
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            Résultat reçu le {format(parseISO(exam.date_resultat_recu), "dd/MM/yy", { locale: fr })}
+                          </span>
+                        )}
+                        {exam.resultat === "admis" &&
+                          String(exam.type_formation || "").toLowerCase() !== "pratique" && (
+                            exam.date_convocation_pratique_recue ? (
+                              <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                Convoc. reçue le {format(parseISO(exam.date_convocation_pratique_recue), "dd/MM/yy", { locale: fr })}
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[11px] gap-1 whitespace-nowrap"
+                                disabled={marquerConvocation.isPending}
+                                onClick={() => marquerConvocation.mutate({ id: exam.id })}
+                              >
+                                <MailCheck className="h-3 w-3" />
+                                Convocation reçue
+                              </Button>
+                            )
+                          )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
