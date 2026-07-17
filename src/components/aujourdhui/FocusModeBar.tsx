@@ -10,6 +10,7 @@ export type FocusBlocKey =
   | "rdv"
   | "relances"
   | "critiques"
+  | "parcours"
   | "reprogrammer"
   | "carte_pro"
   | "qualiopi";
@@ -21,6 +22,7 @@ export const FOCUS_BLOC_LABELS: Record<FocusBlocKey, string> = {
   rdv: "Rendez-vous du jour",
   relances: "Relances à faire",
   critiques: "Sessions critiques",
+  parcours: "Parcours d'examen",
   reprogrammer: "À reprogrammer",
   carte_pro: "Carte Pro",
   qualiopi: "Conformité Qualiopi",

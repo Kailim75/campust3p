@@ -37,6 +37,9 @@ import { BlocRelances } from "./BlocRelances";
 import { BlocCritiques } from "./BlocCritiques";
 import { BlocCartePro } from "./BlocCartePro";
 import { BlocReprogrammer } from "./BlocReprogrammer";
+import { BlocResultatsAVerifier } from "./BlocResultatsAVerifier";
+import { BlocConvocationsCma } from "./BlocConvocationsCma";
+import { BlocBoitesMail } from "./BlocBoitesMail";
 import { BlocQualiopi } from "./BlocQualiopi";
 import { BlocSessionPreparation } from "./BlocSessionPreparation";
 import { BlocQualiteCrm } from "./BlocQualiteCrm";
@@ -85,6 +88,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const [bulkCmaSelected, setBulkCmaSelected] = useState<Set<string>>(new Set());
   const [bulkRelanceSelected, setBulkRelanceSelected] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [consulteBoitePending, setConsulteBoitePending] = useState<Set<string>>(new Set());
 
   const toggleBulkCma = (id: string) => {
     setBulkCmaSelected(prev => {
@@ -136,6 +140,26 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
     queryClient.invalidateQueries({ queryKey: ["contact-historique"] });
   }, [queryClient]);
+
+  // Horodate la consultation d'une boîte mail interne (réarme le compteur 7 j).
+  const handleConsulteBoite = useCallback(async (contactId: string) => {
+    setConsulteBoitePending(prev => new Set(prev).add(contactId));
+    const { error } = await supabase
+      .from("contacts")
+      .update({ email_interne_consulte_le: new Date().toISOString() })
+      .eq("id", contactId);
+    if (error) {
+      toast.error("Impossible d'enregistrer la consultation");
+    } else {
+      toast.success("Boîte marquée comme consultée");
+      invalidate();
+    }
+    setConsulteBoitePending(prev => {
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+  }, [invalidate]);
 
   const logAction = useCallback(async (contactId: string, category: ActionCategory, extra?: string) => {
     const result = await createAutoNote(contactId, category, extra);
@@ -625,6 +649,9 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     cmaItems: rawCma = [], rdvToday: rawRdv = [], relances: rawRelances = [],
     critiques: rawCritiques = [], carteProItems: rawCartePro = [],
     reprogramItems: rawReprogram = [],
+    resultatsAVerifier = [],
+    convocationsAttendues = [],
+    boitesMailAConsulter = [],
     sessionPrepItems = [],
     qualiopiSessions = [],
     crmQualityItems: rawCrmQualityItems = [],
@@ -681,8 +708,9 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount + handledCrmQualityCount;
 
   const reprogramItems = rawReprogram;
-  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
-  const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
+  const parcoursCount = resultatsAVerifier.length + convocationsAttendues.length + boitesMailAConsulter.length;
+  const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
+  const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   return (
@@ -720,6 +748,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
               rdv: rdvToday.length,
               relances: relances.length,
               critiques: critiques.length,
+              parcours: parcoursCount,
               reprogrammer: reprogramItems.length,
               carte_pro: cartePro.length,
               qualiopi: qualiopiSessions.length,
@@ -824,6 +853,22 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             />
           )}
         </div>
+
+        {(!focusBloc || focusBloc === "parcours") && parcoursCount > 0 && (
+          <div className={cn(
+            "grid gap-5",
+            focusBloc ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
+          )}>
+            <BlocResultatsAVerifier items={resultatsAVerifier} openContact={openContact} />
+            <BlocConvocationsCma items={convocationsAttendues} openContact={openContact} />
+            <BlocBoitesMail
+              items={boitesMailAConsulter}
+              openContact={openContact}
+              onConsulte={handleConsulteBoite}
+              pendingIds={consulteBoitePending}
+            />
+          </div>
+        )}
 
         {(!focusBloc || focusBloc === "reprogrammer") && (
           <BlocReprogrammer
