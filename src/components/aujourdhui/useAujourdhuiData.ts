@@ -23,8 +23,20 @@ import {
   isSettledPaymentStatus,
 } from "@/lib/session-readiness";
 import { computeCrmQuality } from "@/lib/crm-quality";
+import {
+  computeParcours,
+  type ExamenTheorieFacts,
+  type ExamenPratiqueFacts,
+} from "@/lib/parcours-examen";
 import type { Prospect } from "@/hooks/useProspects";
-import type { CmaFilter, SessionPrepContact, SessionPrepItem } from "./aujourdhui-types";
+import type {
+  CmaFilter,
+  SessionPrepContact,
+  SessionPrepItem,
+  ResultatAVerifierItem,
+  ConvocationAttendueItem,
+  BoiteMailAConsulterItem,
+} from "./aujourdhui-types";
 
 export function useAujourdhuiData() {
   return useQuery({
@@ -39,7 +51,7 @@ export function useAujourdhuiData() {
         prospectsRes, sessionsRes, inscriptionsRes, rappelsRes, todayNotes,
         postponedNotesRes, examensPratiqueRes, examensTheorieRes,
       ] = await Promise.all([
-        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, updated_at, is_historical_import, requalification_category, archived, deleted_at").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
+        supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, email_interne, email_interne_consulte_le, updated_at, is_historical_import, requalification_category, archived, deleted_at").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
         supabase.from("contact_documents").select("contact_id, type_document").is("deleted_at", null),
         supabase.from("factures").select("id, contact_id, session_inscription_id, montant_total, statut, date_echeance").is("deleted_at", null),
         supabase.from("paiements").select("facture_id, montant"),
@@ -59,8 +71,8 @@ export function useAujourdhuiData() {
           .like("titre", "[AUTO] Reporté%")
           .gte("date_echange", postponeSince)
           .order("date_echange", { ascending: false }),
-        supabase.from("examens_pratique").select("contact_id, resultat"),
-        supabase.from("examens_t3p").select("contact_id, resultat"),
+        supabase.from("examens_pratique").select("contact_id, date_examen, resultat, date_resultat_recu"),
+        supabase.from("examens_t3p").select("contact_id, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -339,6 +351,113 @@ export function useAujourdhuiData() {
           return items;
         });
 
+      // ─── Blocs J/K/L: Suivi du parcours d'examen ───
+      // Étape calculée par candidat (cf. src/lib/parcours-examen.ts) : on
+      // dérive des faits (dates + résultats) les résultats en attente, les
+      // convocations CMA attendues et les boîtes mail internes à consulter.
+      // Rien n'est saisi à la main, donc rien ne peut être oublié.
+      const nowDate = new Date();
+      const pickLatestExam = <T extends { contact_id: string; date_examen: string | null }>(
+        rows: T[],
+      ): Map<string, T> => {
+        const byContact = new Map<string, T>();
+        for (const r of rows) {
+          const cur = byContact.get(r.contact_id);
+          if (!cur || (r.date_examen || "") > (cur.date_examen || "")) {
+            byContact.set(r.contact_id, r);
+          }
+        }
+        return byContact;
+      };
+      const latestTheorie = pickLatestExam(
+        (examensTheorieRes.data || []) as Array<{ contact_id: string } & ExamenTheorieFacts>,
+      );
+      const latestPratique = pickLatestExam(
+        (examensPratiqueRes.data || []) as Array<{ contact_id: string } & ExamenPratiqueFacts>,
+      );
+
+      const resultatsAVerifier: ResultatAVerifierItem[] = [];
+      const convocationsAttendues: ConvocationAttendueItem[] = [];
+      const boitesMailAConsulter: BoiteMailAConsulterItem[] = [];
+
+      for (const c of contacts as any[]) {
+        if (terminatedStatuses.includes(c.statut_apprenant || "")) continue;
+        const t = latestTheorie.get(c.id) || null;
+        const p = latestPratique.get(c.id) || null;
+        const parcours = computeParcours(
+          {
+            theorie: t
+              ? {
+                  date_examen: t.date_examen ?? null,
+                  resultat: t.resultat ?? null,
+                  date_resultat_recu: t.date_resultat_recu ?? null,
+                  date_reussite: t.date_reussite ?? null,
+                  date_convocation_pratique_recue: t.date_convocation_pratique_recue ?? null,
+                  numero_convocation: t.numero_convocation ?? null,
+                }
+              : null,
+            pratique: p
+              ? {
+                  date_examen: p.date_examen ?? null,
+                  resultat: p.resultat ?? null,
+                  date_resultat_recu: p.date_resultat_recu ?? null,
+                }
+              : null,
+            emailInterne: c.email_interne,
+            emailInterneConsulteLe: c.email_interne_consulte_le,
+          },
+          nowDate,
+        );
+
+        const base = {
+          contactId: c.id,
+          prenom: c.prenom,
+          nom: c.nom,
+          email: c.email,
+          formation: c.formation,
+        };
+        const att = parcours.attente;
+        if (att && att.niveau !== "ok") {
+          if (att.type === "resultat_theorie" || att.type === "resultat_pratique") {
+            resultatsAVerifier.push({
+              id: `res-${c.id}`,
+              ...base,
+              type: att.type === "resultat_theorie" ? "theorie" : "pratique",
+              joursEcoules: att.joursEcoules,
+              niveau: att.niveau,
+              dateExamen: att.referenceDate,
+            });
+          } else if (att.type === "convocation_cma") {
+            convocationsAttendues.push({
+              id: `conv-${c.id}`,
+              ...base,
+              joursEcoules: att.joursEcoules,
+              niveau: att.niveau,
+              depuis: att.referenceDate,
+            });
+          }
+        }
+        // Boîte mail : candidat encore dans le parcours (pas encore admis).
+        if (parcours.boiteMail?.aConsulter && parcours.stage !== "admis") {
+          boitesMailAConsulter.push({
+            id: `mail-${c.id}`,
+            ...base,
+            emailInterne: parcours.boiteMail.email,
+            joursDepuisConsultation: parcours.boiteMail.joursDepuisConsultation,
+          });
+        }
+      }
+      const niveauOrder = { alerte: 0, rappel: 1, ok: 2 } as const;
+      resultatsAVerifier.sort(
+        (a, b) => niveauOrder[a.niveau] - niveauOrder[b.niveau] || b.joursEcoules - a.joursEcoules,
+      );
+      convocationsAttendues.sort(
+        (a, b) => niveauOrder[a.niveau] - niveauOrder[b.niveau] || b.joursEcoules - a.joursEcoules,
+      );
+      boitesMailAConsulter.sort(
+        (a, b) => (b.joursDepuisConsultation ?? Number.MAX_SAFE_INTEGER) - (a.joursDepuisConsultation ?? Number.MAX_SAFE_INTEGER),
+      );
+
       // ─── Bloc F: Qualiopi ───
       // ─── Bloc H: Préparation sessions J-1 / Jour J ───
       const today = new Date();
@@ -494,6 +613,9 @@ export function useAujourdhuiData() {
         critiques,
         carteProItems,
         reprogramItems,
+        resultatsAVerifier,
+        convocationsAttendues,
+        boitesMailAConsulter,
         sessionPrepItems,
         qualiopiSessions,
         crmQualityItems,
@@ -502,7 +624,7 @@ export function useAujourdhuiData() {
         recentNotes,
         journalEntries,
         postponedKeys,
-        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length,
+        totalActions: cmaItems.length + rdvToday.length + relances.length + critiques.length + carteProItems.length + reprogramItems.length + resultatsAVerifier.length + convocationsAttendues.length + boitesMailAConsulter.length + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length,
       };
     },
     staleTime: 30_000,

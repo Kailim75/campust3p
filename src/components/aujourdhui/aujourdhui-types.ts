@@ -2,6 +2,7 @@ import type { ActionCategory } from "@/lib/aujourdhui-actions";
 import type { UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
 import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
+import type { UrgenceNiveau } from "@/lib/parcours-examen";
 
 export type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
@@ -65,6 +66,50 @@ export interface SessionPrepItem {
 }
 
 export type { CrmQualityItem, CrmQualitySummary };
+
+// ─── Suivi du parcours d'examen (blocs J/K/L) ───
+
+/** Résultat d'examen (théorique ou pratique) passé mais non encore saisi. */
+export interface ResultatAVerifierItem {
+  id: string;
+  contactId: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  formation: string | null;
+  type: "theorie" | "pratique";
+  /** Jours depuis la date d'examen. */
+  joursEcoules: number;
+  niveau: UrgenceNiveau;
+  dateExamen: string;
+}
+
+/** Candidat admis en théorie qui attend sa convocation CMA à la pratique. */
+export interface ConvocationAttendueItem {
+  id: string;
+  contactId: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  formation: string | null;
+  /** Jours depuis la réussite théorique. */
+  joursEcoules: number;
+  niveau: UrgenceNiveau;
+  depuis: string;
+}
+
+/** Boîte mail interne (Outlook) d'un candidat actif à consulter. */
+export interface BoiteMailAConsulterItem {
+  id: string;
+  contactId: string;
+  prenom: string;
+  nom: string;
+  email: string | null;
+  formation: string | null;
+  emailInterne: string;
+  /** Jours depuis la dernière consultation, null si jamais consultée. */
+  joursDepuisConsultation: number | null;
+}
 
 export interface BlocSharedProps {
   todayNotes: AutoNote[];
