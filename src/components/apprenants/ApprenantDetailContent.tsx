@@ -368,11 +368,24 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
                 contactName={contactName}
                 currentStatus={contact.statut_apprenant as StatutApprenant ?? "actif"}
               />
-              {/* Badge 1: Statut pipeline */}
+              {/* Badge 1: Statut pipeline — infobulle pour le distinguer du
+                  statut administratif (dropdown à gauche) : deux taxonomies
+                  différentes affichées côte à côte, source de confusion. */}
               {statutBadge && (
-                <Badge variant="outline" className={cn("text-xs", statutBadge.className)}>
-                  {statutBadge.label}
-                </Badge>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className={cn("text-xs cursor-help", statutBadge.className)}>
+                        {statutBadge.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[240px] text-xs">
+                      Étape du parcours commercial (prospect → diplômé) —
+                      distincte du statut administratif « {contact.statut_apprenant ?? "actif"} »
+                      affiché à gauche, qui pilote l'activité de la fiche.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               {/* Badge 2: Track */}
               <Badge variant="outline" className={cn("text-xs", trackBadge.className)}>

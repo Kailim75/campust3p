@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionTimeline } from "../SessionTimeline";
+import { SessionParcoursSummary } from "./SessionParcoursSummary";
 import type { Session } from "@/hooks/useSessions";
 
 interface SessionResumeTabProps {
@@ -167,6 +168,9 @@ export function SessionResumeTab({
           onClick={() => onNavigateTab("documents")}
         />
       </div>
+
+      {/* Parcours d'examen des inscrits (étape calculée, moteur partagé) */}
+      <SessionParcoursSummary sessionId={session.id} onOpenExamens={() => onNavigateTab("parcours")} />
 
       {/* Qualiopi alerts */}
       {alertes.length > 0 && (

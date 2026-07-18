@@ -30,8 +30,9 @@ import {
 import { computeCrmQuality } from "@/lib/crm-quality";
 import {
   computeParcours,
-  type ExamenTheorieFacts,
-  type ExamenPratiqueFacts,
+  classerExamensParContact,
+  type ExamenT3pRow,
+  type ExamenPratiqueRow,
 } from "@/lib/parcours-examen";
 import type { Prospect } from "@/hooks/useProspects";
 import type {
@@ -363,37 +364,11 @@ export function useAujourdhuiData() {
       // convocations CMA attendues et les boîtes mail internes à consulter.
       // Rien n'est saisi à la main, donc rien ne peut être oublié.
       const nowDate = new Date();
-      const pickLatestExam = <T extends { contact_id: string; date_examen: string | null }>(
-        rows: T[],
-      ): Map<string, T> => {
-        const byContact = new Map<string, T>();
-        for (const r of rows) {
-          const cur = byContact.get(r.contact_id);
-          if (!cur || (r.date_examen || "") > (cur.date_examen || "")) {
-            byContact.set(r.contact_id, r);
-          }
-        }
-        return byContact;
-      };
-      // La fiche apprenant enregistre le type d'examen (theorique/pratique)
-      // dans examens_t3p.type_formation : les lignes « pratique » de cette
-      // table sont donc des épreuves pratiques, à fusionner avec la table
-      // examens_pratique, pas des examens théoriques.
-      const t3pRows = (examensTheorieRes.data || []) as Array<
-        { contact_id: string; type_formation: string | null } & ExamenTheorieFacts
-      >;
-      const isPratiqueRow = (r: { type_formation: string | null }) =>
-        String(r.type_formation || "").toLowerCase() === "pratique";
-      const latestTheorie = pickLatestExam(t3pRows.filter((r) => !isPratiqueRow(r)));
-      const latestPratique = pickLatestExam([
-        ...((examensPratiqueRes.data || []) as Array<{ contact_id: string } & ExamenPratiqueFacts>),
-        ...t3pRows.filter(isPratiqueRow).map((r) => ({
-          contact_id: r.contact_id,
-          date_examen: r.date_examen,
-          resultat: r.resultat,
-          date_resultat_recu: r.date_resultat_recu,
-        })),
-      ]);
+      // Classification partagée avec la fiche session (cf. parcours-examen).
+      const examensParContact = classerExamensParContact(
+        (examensTheorieRes.data || []) as ExamenT3pRow[],
+        (examensPratiqueRes.data || []) as ExamenPratiqueRow[],
+      );
 
       const resultatsAVerifier: ResultatAVerifierItem[] = [];
       const convocationsAttendues: ConvocationAttendueItem[] = [];
@@ -401,27 +376,11 @@ export function useAujourdhuiData() {
 
       for (const c of contacts as any[]) {
         if (terminatedStatuses.includes(c.statut_apprenant || "")) continue;
-        const t = latestTheorie.get(c.id) || null;
-        const p = latestPratique.get(c.id) || null;
+        const exams = examensParContact.get(c.id);
         const parcours = computeParcours(
           {
-            theorie: t
-              ? {
-                  date_examen: t.date_examen ?? null,
-                  resultat: t.resultat ?? null,
-                  date_resultat_recu: t.date_resultat_recu ?? null,
-                  date_reussite: t.date_reussite ?? null,
-                  date_convocation_pratique_recue: t.date_convocation_pratique_recue ?? null,
-                  numero_convocation: t.numero_convocation ?? null,
-                }
-              : null,
-            pratique: p
-              ? {
-                  date_examen: p.date_examen ?? null,
-                  resultat: p.resultat ?? null,
-                  date_resultat_recu: p.date_resultat_recu ?? null,
-                }
-              : null,
+            theorie: exams?.theorie ?? null,
+            pratique: exams?.pratique ?? null,
             emailInterne: c.email_interne,
             emailInterneConsulteLe: c.email_interne_consulte_le,
           },

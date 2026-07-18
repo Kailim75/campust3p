@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   computeParcours,
+  classerExamensParContact,
   SEUILS_PARCOURS,
   type ExamenTheorieFacts,
   type ExamenPratiqueFacts,
+  type ExamenT3pRow,
   type ParcoursFacts,
 } from "@/lib/parcours-examen";
 
@@ -387,5 +389,60 @@ describe("computeParcours — priorité pratique sur théorie", () => {
       NOW,
     );
     expect(r.stage).toBe("pratique_planifiee");
+  });
+});
+
+describe("classerExamensParContact — classification partagée hub/session", () => {
+  const row = (p: Partial<ExamenT3pRow>): ExamenT3pRow => ({
+    contact_id: "c1",
+    type_formation: "VTC",
+    date_examen: null,
+    resultat: null,
+    date_resultat_recu: null,
+    date_reussite: null,
+    date_convocation_pratique_recue: null,
+    numero_convocation: null,
+    ...p,
+  });
+
+  it("garde le dernier examen théorique par candidat", () => {
+    const m = classerExamensParContact(
+      [
+        row({ date_examen: "2026-01-10", resultat: "ajourne" }),
+        row({ date_examen: "2026-03-10", resultat: "admis" }),
+      ],
+      [],
+    );
+    expect(m.get("c1")?.theorie?.resultat).toBe("admis");
+    expect(m.get("c1")?.pratique).toBeNull();
+  });
+
+  it("classe les lignes t3p type 'pratique' comme épreuves pratiques", () => {
+    const m = classerExamensParContact(
+      [
+        row({ date_examen: "2026-02-01", resultat: "admis" }),
+        row({ type_formation: "pratique", date_examen: "2026-04-01", resultat: "en_attente" }),
+      ],
+      [],
+    );
+    expect(m.get("c1")?.theorie?.date_examen).toBe("2026-02-01");
+    expect(m.get("c1")?.pratique?.date_examen).toBe("2026-04-01");
+  });
+
+  it("fusionne examens_pratique et lignes t3p pratique en gardant la plus récente", () => {
+    const m = classerExamensParContact(
+      [row({ type_formation: "pratique", date_examen: "2026-03-01", resultat: "ajourne" })],
+      [{ contact_id: "c1", date_examen: "2026-05-01", resultat: "admis", date_resultat_recu: null }],
+    );
+    expect(m.get("c1")?.pratique?.resultat).toBe("admis");
+  });
+
+  it("sépare bien les candidats", () => {
+    const m = classerExamensParContact(
+      [row({ contact_id: "a", date_examen: "2026-01-01" }), row({ contact_id: "b", date_examen: "2026-02-01" })],
+      [],
+    );
+    expect(m.get("a")?.theorie?.date_examen).toBe("2026-01-01");
+    expect(m.get("b")?.theorie?.date_examen).toBe("2026-02-01");
   });
 });
