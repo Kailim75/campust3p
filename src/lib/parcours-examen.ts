@@ -11,8 +11,7 @@
  * étape + une éventuelle échéance. L'intégration au hub « Aujourd'hui » et
  * les alertes de dépassement sont branchées ailleurs (lots suivants).
  *
- * Valeurs métier réutilisées (cf. useExamensT3P / useExamensPratique /
- * useAdvancedStats) :
+ * Valeurs métier réutilisées (cf. useInscritsExamResults / useAdvancedStats) :
  *   - examens_t3p.resultat      : "admis" | "ajourne" | "absent" | null
  *   - examens_pratique.resultat : "admis" | "ajourne" | "absent"
  *                                 | "favorable" | "defavorable" | "refuse" | null
