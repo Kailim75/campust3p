@@ -314,3 +314,54 @@ export function computeParcours(facts: ParcoursFacts, now: Date = new Date()): P
     ...(boiteMail ? { boiteMail } : {}),
   };
 }
+
+// ─── Classification des lignes d'examen par candidat ───
+
+export interface ExamenT3pRow extends ExamenTheorieFacts {
+  contact_id: string;
+  /** La fiche apprenant enregistre le type d'examen (theorique/pratique)
+   *  dans ce champ : les lignes « pratique » sont des épreuves pratiques. */
+  type_formation: string | null;
+}
+export interface ExamenPratiqueRow extends ExamenPratiqueFacts {
+  contact_id: string;
+}
+
+/**
+ * Classe les lignes brutes des deux tables d'examens en faits par candidat :
+ * dernière théorie et dernière pratique (les lignes examens_t3p de type
+ * « pratique » sont fusionnées avec la table examens_pratique). Logique
+ * partagée entre le hub « Aujourd'hui » et la fiche session.
+ */
+export function classerExamensParContact(
+  t3pRows: ExamenT3pRow[],
+  pratiqueRows: ExamenPratiqueRow[],
+): Map<string, { theorie: ExamenTheorieFacts | null; pratique: ExamenPratiqueFacts | null }> {
+  const isPratique = (r: ExamenT3pRow) =>
+    String(r.type_formation || "").toLowerCase() === "pratique";
+
+  const latest = new Map<string, { theorie: (ExamenTheorieFacts & { date_examen: string | null }) | null; pratique: ExamenPratiqueFacts | null }>();
+  const entry = (id: string) => {
+    let e = latest.get(id);
+    if (!e) { e = { theorie: null, pratique: null }; latest.set(id, e); }
+    return e;
+  };
+
+  for (const r of t3pRows) {
+    const e = entry(r.contact_id);
+    if (isPratique(r)) {
+      if (!e.pratique || (r.date_examen || "") > (e.pratique.date_examen || "")) {
+        e.pratique = { date_examen: r.date_examen, resultat: r.resultat, date_resultat_recu: r.date_resultat_recu };
+      }
+    } else if (!e.theorie || (r.date_examen || "") > (e.theorie.date_examen || "")) {
+      e.theorie = r;
+    }
+  }
+  for (const r of pratiqueRows) {
+    const e = entry(r.contact_id);
+    if (!e.pratique || (r.date_examen || "") > (e.pratique.date_examen || "")) {
+      e.pratique = { date_examen: r.date_examen, resultat: r.resultat, date_resultat_recu: r.date_resultat_recu };
+    }
+  }
+  return latest;
+}
