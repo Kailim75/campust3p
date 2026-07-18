@@ -77,12 +77,15 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - Enums existants à réutiliser : `session_status`, `statut_cma`,
   `prospect_status`, `statut_apprenant`… — pas de nouveaux statuts en texte
   libre.
-- **Motif initplan RLS (18/07/2026)** : sur les 10 tables chaudes, les
-  policies enveloppent les appels indépendants de la ligne en
-  `(SELECT fn())` (has_role, is_admin_or_staff, is_super_admin…) — gain
-  mesuré ×2 sur les requêtes. Toute NOUVELLE policy doit suivre ce motif ;
-  les fonctions à argument de ligne (`has_centre_access(centre_id)`…)
-  restent sans enveloppe.
+- **Motif initplan RLS (18/07/2026)** : TOUTES les policies du schéma
+  public (sauf `template_audit_log`, durcie et exclue volontairement)
+  enveloppent les appels indépendants de la ligne en `(SELECT fn())`
+  (has_role, is_admin_or_staff, is_super_admin…) — requête max mesurée
+  3,8 s → 0,8 s. Toute NOUVELLE policy doit suivre ce motif ; les
+  fonctions à argument de ligne (`has_centre_access(centre_id)`…) restent
+  sans enveloppe. Migrations : `20260717224714…` (10 tables chaudes,
+  explicite) puis `20260718120550…` (reste du schéma, programmatique et
+  idempotente, avec assertion sur le total de policies).
 - Dette connue : plusieurs états métier vivent encore dans des notes
   `[AUTO]` de `contact_historique` parsées par regex (chantier §5.1 du
   rapport `AMELIORATIONS.md`).

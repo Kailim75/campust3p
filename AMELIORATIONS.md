@@ -322,3 +322,13 @@ inchangés, lecture sur toutes les pages, insertion et suppression de notes.
 Résultat : requête la plus lente 3,8 s → 1,9 s ; Apprenants complet à
 **2,0 s** (5,0 s au départ). Les ~124 autres tables restent à convertir au
 même motif (non critiques pour le chargement des pages).
+
+Lot D — fait le 18/07/2026 (« tu peux enchaîner ») : initplan étendu aux
+**361 policies restantes** du schéma public via une migration
+programmatique (`20260718120550…`, boucle sur pg_policies + réécriture
+regex idempotente, assertion d'invariance du total à 400). Résidu : 1
+policy (`template_audit_log`, exclue volontairement). Vérifié : total
+inchangé, lecture sur toutes les pages (dont Inbox — tables email),
+Apprenants complet à **1,1 s** (5,0 s au départ), requête max 0,8 s.
+Corrigé au passage (PR #27) : déduplication inopérante des rappels
+d'examens J-7 dans generate-notifications (redéploiement à faire).
