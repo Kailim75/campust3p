@@ -40,6 +40,9 @@ export interface ApprenantHeaderActionsProps {
   onChevalet: () => void;
   onAttestationPresence: () => void;
   onEnquete: () => void;
+  /** Actions contextuelles (Relance CMA, Fait…) rendues dans la même barre
+   *  pour éviter une strate supplémentaire dans l'en-tête. */
+  extraActions?: React.ReactNode;
 }
 
 /**
@@ -66,6 +69,7 @@ export function ApprenantHeaderActions({
   onChevalet,
   onAttestationPresence,
   onEnquete,
+  extraActions,
 }: ApprenantHeaderActionsProps) {
   const [smartofConfirmOpen, setSmartofConfirmOpen] = useState(false);
 
@@ -152,9 +156,6 @@ export function ApprenantHeaderActions({
               <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
             </Button>
           )}
-          <Button size="sm" variant="outline" className="text-xs" onClick={onNote}>
-            <StickyNote className="h-3 w-3 mr-1" /> Note
-          </Button>
           <Button size="sm" variant="outline" className="text-xs" onClick={handleAssign}>
             <CalendarPlus className="h-3 w-3 mr-1" /> Inscrire
           </Button>
@@ -224,6 +225,8 @@ export function ApprenantHeaderActions({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {extraActions}
       </div>
 
       {/* Garde-fou SmartOF — confirmation avant nouvelle inscription */}

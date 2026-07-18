@@ -340,18 +340,21 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
     // pleine page). Pas de hauteur figée ici — un en-tête plus haut que la
     // fenêtre écraserait la zone des onglets (bug corrigé le 18/07/2026).
     <div className="flex flex-col min-h-full">
-      {/* ─── COCKPIT HEADER ─── */}
-      <div className="p-3 sm:p-5 border-b bg-muted/30 space-y-2 sm:space-y-3">
+      {/* ─── COCKPIT HEADER ───
+          Compacté le 18/07/2026 : l'en-tête doit laisser les onglets
+          visibles sans défilement — toute nouvelle strate est à proscrire
+          (préférer extraActions de la barre unifiée ou un onglet). */}
+      <div className="p-3 sm:p-4 border-b bg-muted/30 space-y-2">
         {/* Identity row */}
-        <div className="flex items-start gap-3 sm:gap-4">
-          <Avatar className="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
-            <AvatarFallback className={cn("text-sm sm:text-lg font-bold text-primary-foreground", avatarColor)}>
+        <div className="flex items-start gap-3">
+          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
+            <AvatarFallback className={cn("text-sm sm:text-base font-bold text-primary-foreground", avatarColor)}>
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-start justify-between">
-              <h2 className="text-base sm:text-xl font-display font-bold text-foreground truncate">
+              <h2 className="text-base sm:text-lg font-display font-bold text-foreground truncate">
                 {contact.prenom} {contact.nom}
               </h2>
               {sheetSize && onSheetSizeChange && (
@@ -413,9 +416,9 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         </div>
 
         {/* Cockpit indicators row */}
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
           {/* Dossier progress */}
-          <div className="bg-card border rounded-lg p-2.5 space-y-1">
+          <div className="bg-card border rounded-lg p-2 space-y-0.5">
             <p className="text-[10px] font-medium text-muted-foreground">Progression</p>
             <div className="flex items-center gap-2">
               <Progress value={dossierProgress} className="h-1.5 flex-1" />
@@ -425,7 +428,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
           {/* CMA / Carte Pro indicator */}
           {isInitial ? (
-            <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+            <button onClick={() => setActiveTab("cma")} className="bg-card border rounded-lg p-2 text-left hover:bg-muted/30 transition-colors">
               <p className="text-[10px] font-medium text-muted-foreground">CMA</p>
               <div className="flex items-center gap-1.5">
                 <span className={cn("text-sm font-bold", cmaMissing > 0 ? "text-warning" : "text-success")}>
@@ -440,7 +443,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
               </div>
             </button>
           ) : (
-            <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2.5 text-left hover:bg-muted/30 transition-colors">
+            <button onClick={() => setActiveTab("carte-pro")} className="bg-card border rounded-lg p-2 text-left hover:bg-muted/30 transition-colors">
               <p className="text-[10px] font-medium text-muted-foreground">Carte Pro</p>
               <div className="flex items-center gap-1.5">
                 <IdCard className="h-3.5 w-3.5 text-accent" />
@@ -450,7 +453,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           )}
 
           {/* Next deadline */}
-          <div className="bg-card border rounded-lg p-2.5">
+          <div className="bg-card border rounded-lg p-2">
             <p className="text-[10px] font-medium text-muted-foreground">Prochaine échéance</p>
             <p className="text-xs font-medium text-foreground truncate mt-0.5">
               {nextSession?.date_debut
@@ -463,7 +466,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
           </div>
 
           {/* Last action */}
-          <div className="bg-card border rounded-lg p-2.5">
+          <div className="bg-card border rounded-lg p-2">
             <p className="text-[10px] font-medium text-muted-foreground">Dernière action</p>
             {lastAutoNote ? (
               <p className="text-xs text-foreground truncate mt-0.5">
@@ -478,9 +481,9 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
         {/* Workflow Stepper */}
         {cockpitData && (
-          <div className="bg-card rounded-xl border p-3 space-y-3">
-            <WorkflowStepper steps={steps} />
-            <WorkflowDynamicCTA currentStep={currentCTAStep} onAction={handleCTAAction} />
+          <div className="bg-card rounded-xl border p-2.5 flex flex-col gap-2 xl:flex-row xl:items-center">
+            <div className="flex-1 min-w-0"><WorkflowStepper steps={steps} /></div>
+            <div className="xl:w-[250px] xl:shrink-0"><WorkflowDynamicCTA currentStep={currentCTAStep} onAction={handleCTAAction} /></div>
           </div>
         )}
 
@@ -540,51 +543,51 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             });
           }}
           onEnquete={() => setEnqueteDialogOpen(true)}
-        />
-
-        {/* Actions opérationnelles anti-double (préservées) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          {isInitial && cmaMissing > 0 && contact.email && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button
-                      size="sm" variant="outline"
-                      className="text-xs text-warning border-warning/20 hover:bg-warning/5"
-                      disabled={!!cockpitData?.alreadyRelancedCMA}
-                      onClick={() => handleHeaderAction("cma_relance", `${cmaMissing} pièce(s) manquante(s)`)}
-                    >
-                      <Send className="h-3 w-3 mr-1" /> Relance CMA
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {cockpitData?.alreadyRelancedCMA && (
-                  <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    size="sm" variant="outline"
-                    className="text-xs"
-                    disabled={!!cockpitData?.alreadyMarkedDone}
-                    onClick={() => handleHeaderAction("marquer_fait")}
-                  >
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Fait
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {cockpitData?.alreadyMarkedDone && (
-                <TooltipContent><p>Déjà marqué aujourd'hui</p></TooltipContent>
+          extraActions={
+            <>
+              {isInitial && cmaMissing > 0 && contact.email && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          size="sm" variant="outline"
+                          className="text-xs text-warning border-warning/20 hover:bg-warning/5"
+                          disabled={!!cockpitData?.alreadyRelancedCMA}
+                          onClick={() => handleHeaderAction("cma_relance", `${cmaMissing} pièce(s) manquante(s)`)}
+                        >
+                          <Send className="h-3 w-3 mr-1" /> Relance CMA
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {cockpitData?.alreadyRelancedCMA && (
+                      <TooltipContent><p>Déjà relancé aujourd'hui</p></TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        size="sm" variant="outline"
+                        className="text-xs"
+                        disabled={!!cockpitData?.alreadyMarkedDone}
+                        onClick={() => handleHeaderAction("marquer_fait")}
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Fait
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {cockpitData?.alreadyMarkedDone && (
+                    <TooltipContent><p>Déjà marqué aujourd'hui</p></TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          }
+        />
       </div>
 
       {/* ─── BANDEAU IMPORT HISTORIQUE SMARTOF ─── */}
