@@ -87,7 +87,9 @@ serve(async (req) => {
               type: "exam_t3p",
               title: `Examen T3P dans ${daysUntil}j`,
               message: `${contact?.prenom} ${contact?.nom} - ${exam.type_formation.toUpperCase()}`,
-              link: `/?section=contacts&id=${exam.contact_id}&tab=examens`,
+              // L'id d'examen dans le link rend la déduplication LIKE opérante
+              // (le front ignore ce paramètre superflu).
+              link: `/?section=contacts&id=${exam.contact_id}&tab=examens&exam=${exam.id}`,
               metadata: { exam_id: exam.id, days_until: daysUntil },
             });
           }
@@ -129,7 +131,7 @@ serve(async (req) => {
               type: "exam_pratique",
               title: `Examen pratique dans ${daysUntil}j`,
               message: `${contact?.prenom} ${contact?.nom} - ${exam.type_examen}`,
-              link: `/?section=contacts&id=${exam.contact_id}&tab=examens`,
+              link: `/?section=contacts&id=${exam.contact_id}&tab=examens&exam=${exam.id}`,
               metadata: { exam_id: exam.id, days_until: daysUntil },
             });
           }
