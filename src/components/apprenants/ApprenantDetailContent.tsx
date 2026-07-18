@@ -671,7 +671,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <PaiementsTab contactId={contact.id} />
           </TabsContent>
           <TabsContent value="examens" className="mt-0">
-            <ExamensTab contactId={contact.id} formation={contact.formation} />
+            <ExamensTab contactId={contact.id} formation={contact.formation} track={contactTrack} />
           </TabsContent>
           <TabsContent value="suivi" className="mt-0">
             <SuiviTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
