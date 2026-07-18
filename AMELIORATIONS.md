@@ -309,8 +309,16 @@ badge différé à +2,5 s, toast à +4 s. Résultat mesuré après publication :
 Aujourd'hui 3,8 s → **2,9 s** (vague critique 55 → 35 requêtes),
 Apprenants 5,0 s → **3,3 s**.
 
-Reste (lot C, **accord explicite requis — zone sensible sécurité**) :
-initplan RLS — réécrire les policies `fn()` en `(SELECT fn())` pour une
-évaluation unique par requête. C'est le plus gros gain restant ; à faire
-policy par policy via l'agent Lovable, avec vérification fonctionnelle
-après chaque table.
+Lot C — fait le 18/07/2026 avec accord explicite du directeur (migration
+`20260717224714…`, agent Lovable) : initplan RLS sur les 10 tables chaudes
+(contacts, contact_documents, contact_historique, session_inscriptions,
+factures, paiements, sessions, prospects, examens_t3p, examens_pratique) —
+39/39 policies réécrites `fn()` → `(SELECT fn())` pour les appels
+indépendants de la ligne (has_role, is_admin_or_staff, is_super_admin,
+get_user_formateur_id) ; les fonctions à argument de ligne
+(has_centre_access(centre_id)…) restent telles quelles, par construction.
+Vérifié : diff nul avec les définitions historiques hors enveloppe, comptes
+inchangés, lecture sur toutes les pages, insertion et suppression de notes.
+Résultat : requête la plus lente 3,8 s → 1,9 s ; Apprenants complet à
+**2,0 s** (5,0 s au départ). Les ~124 autres tables restent à convertir au
+même motif (non critiques pour le chargement des pages).
