@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { ParcoursExamenCard } from "../ParcoursExamenCard";
+import type { FormationTrack } from "@/lib/formation-track";
 
 const RESULTAT_BADGES: Record<string, { label: string; emoji: string; className: string }> = {
   admis: { label: "Admis", emoji: "🟢", className: "bg-success/15 text-success" },
@@ -35,9 +36,11 @@ const STATUT_BADGES: Record<string, { label: string; className: string }> = {
 interface ExamensTabProps {
   contactId: string;
   formation: string | null;
+  /** Parcours de l'apprenant : la formation continue n'a pas d'examen. */
+  track?: FormationTrack;
 }
 
-export function ExamensTab({ contactId, formation }: ExamensTabProps) {
+export function ExamensTab({ contactId, formation, track }: ExamensTabProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ type_examen: "", date_examen: "", numero_dossier: "" });
@@ -160,7 +163,15 @@ export function ExamensTab({ contactId, formation }: ExamensTabProps) {
 
   return (
     <div className="space-y-4">
-      <ParcoursExamenCard contactId={contactId} />
+      {track === "continuing" ? (
+        <Card className="p-3 text-xs text-muted-foreground bg-muted/30">
+          Formation continue — pas de parcours d'examen : le stagiaire est un
+          professionnel en activité, la formation est sanctionnée par une
+          attestation et le renouvellement de sa carte professionnelle (5 ans).
+        </Card>
+      ) : (
+        <ParcoursExamenCard contactId={contactId} />
+      )}
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">

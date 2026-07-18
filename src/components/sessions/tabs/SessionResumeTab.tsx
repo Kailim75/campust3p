@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionTimeline } from "../SessionTimeline";
 import { SessionParcoursSummary } from "./SessionParcoursSummary";
+import { resolveFormationTrack } from "@/lib/formation-track";
 import type { Session } from "@/hooks/useSessions";
 
 interface SessionResumeTabProps {
@@ -169,8 +170,12 @@ export function SessionResumeTab({
         />
       </div>
 
-      {/* Parcours d'examen des inscrits (étape calculée, moteur partagé) */}
-      <SessionParcoursSummary sessionId={session.id} onOpenExamens={() => onNavigateTab("parcours")} />
+      {/* Parcours d'examen des inscrits (étape calculée, moteur partagé) —
+          uniquement pour les sessions initiales : la formation continue
+          s'adresse à des professionnels en activité, sans examen. */}
+      {resolveFormationTrack(session.track, session.formation_type) === "initial" && (
+        <SessionParcoursSummary sessionId={session.id} onOpenExamens={() => onNavigateTab("parcours")} />
+      )}
 
       {/* Qualiopi alerts */}
       {alertes.length > 0 && (

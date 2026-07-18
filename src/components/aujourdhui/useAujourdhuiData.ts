@@ -376,6 +376,9 @@ export function useAujourdhuiData() {
 
       for (const c of contacts as any[]) {
         if (terminatedStatuses.includes(c.statut_apprenant || "")) continue;
+        // Un professionnel en formation continue est déjà en activité : pas
+        // d'examen, pas de convocation CMA, pas de boîte mail candidat.
+        if (getContactTrack(c) === "continuing") continue;
         const exams = examensParContact.get(c.id);
         const parcours = computeParcours(
           {
