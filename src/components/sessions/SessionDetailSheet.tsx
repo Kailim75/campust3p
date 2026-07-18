@@ -406,7 +406,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
                     </TabsTrigger>
                     <TabsTrigger value="documents" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <FileText className="h-3.5 w-3.5" />
-                      <span>Docs</span>
+                      <span>Documents</span>
                     </TabsTrigger>
                     <TabsTrigger value="emargement" className="gap-1 text-xs px-2 sm:px-1 whitespace-nowrap">
                       <ClipboardList className="h-3.5 w-3.5" />
