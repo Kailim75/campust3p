@@ -12,7 +12,7 @@
 import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Award,
-  Handshake, UserCog, Trash2, Inbox, Shield, Package, HelpCircle,
+  Handshake, UserCog, Trash2, Shield, Package, HelpCircle,
   FileSignature,
   type LucideIcon,
 } from "lucide-react";
@@ -53,12 +53,14 @@ export interface NavEntry {
  * ⚠️ ORDRE IMPORTANT : reflète l'ordre d'affichage dans la Sidebar.
  *
  * Sprint 4 — Simplification UX :
- *  - 5 hubs opérationnels (Aujourd'hui, Apprenants, Sessions, Finances, Inbox).
+ *  - 4 hubs opérationnels (Aujourd'hui, Apprenants, Sessions, Finances).
+ *    L'Inbox CRM a été retirée le 21/07/2026 (équipe travaillant hors CRM) :
+ *    code et données conservés, surface débranchée — voir AMELIORATIONS.md.
  *  - Pilotage (Dashboard) renvoyé en "Plus / Pilotage" pour clarifier la
  *    hiérarchie ; route "/" conservée pour ne pas casser les bookmarks.
  *  - Ma Journée découvrable depuis "Plus / Pilotage" (route /ma-journee
  *    déjà existante, ajoutée au shell applicatif).
- *  - Libellés raccourcis ("Inbox", "Tableau de bord", "Forfaits & extras"...).
+ *  - Libellés raccourcis ("Tableau de bord", "Forfaits & extras"...).
  *  - allowedRoles ajouté pour masquer les outils admin aux profils staff.
  */
 export const NAV_REGISTRY: NavEntry[] = [
@@ -67,7 +69,6 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
   { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
-  { id: "inbox",      label: "Inbox",       icon: Inbox,           group: "hub", path: "/inbox",      pageName: "InboxCrmPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
   // Pilotage commercial
@@ -178,7 +179,6 @@ const FUZZY_KEYWORDS: Array<{ keywords: string[]; section: string }> = [
   { keywords: ["lead", "opportunit"],                                                section: "prospects" },
   { keywords: ["session", "stage", "promotion"],                                     section: "sessions" },
   { keywords: ["catalogue", "programme", "module"],                                  section: "formations" },
-  { keywords: ["mail", "email", "message", "courriel"],                              section: "inbox" },
   { keywords: ["alerte", "notification"],                                            section: "aujourdhui" },
   { keywords: ["qualiopi", "audit"],                                                 section: "qualite" },
   { keywords: ["partenaire", "apporteur"],                                           section: "partenaires" },

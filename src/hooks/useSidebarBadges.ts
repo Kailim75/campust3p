@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Refresh toutes les 60s. Erreurs silencieuses (retournent 0).
  *
  * - aujourdhui : prospects avec next_action_at échue (à traiter)
- * - inbox      : threads email non lus
+ * (le compteur inbox a été retiré le 21/07/2026 avec la surface Inbox)
  * - finances   : factures non payées avec échéance dépassée
  * - signatures : demandes envoyées, non signées, non expirées
  */
@@ -28,19 +28,13 @@ export function useSidebarBadges() {
         }
       };
 
-      const [aujourdhui, inbox, finances, signatures] = await Promise.all([
+      const [aujourdhui, finances, signatures] = await Promise.all([
         safe(
           supabase
             .from("prospects")
             .select("id", { count: "exact", head: true })
             .lte("next_action_at", nowIso)
             .is("deleted_at", null) as any
-        ),
-        safe(
-          supabase
-            .from("crm_email_threads")
-            .select("id", { count: "exact", head: true })
-            .eq("is_unread", true) as any
         ),
         safe(
           supabase
@@ -59,7 +53,7 @@ export function useSidebarBadges() {
         ),
       ]);
 
-      return { aujourdhui, inbox, finances, signatures };
+      return { aujourdhui, finances, signatures };
     },
   });
 }
