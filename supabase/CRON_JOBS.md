@@ -7,6 +7,20 @@ modification d'un job, mettre ce fichier à jour.
 
 Vérifier l'état réel : `SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;`
 
+**État au 21/07/2026 : 9 jobs, dont 8 actifs et 1 en pause** (`sync-gmail-inbox-every-5min`).
+
+## Mettre un job en pause (plutôt que le supprimer)
+
+`cron.alter_job` suspend l'exécution **sans perdre la définition** — la
+commande, la planification et le jobid sont conservés, la réactivation tient
+en une ligne. À préférer systématiquement à `cron.unschedule`, qui détruit la
+définition et oblige à la recréer de mémoire.
+
+```sql
+SELECT cron.alter_job(<jobid>, active := false);  -- pause
+SELECT cron.alter_job(<jobid>, active := true);   -- reprise
+```
+
 Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 
 | Job | Planification | Fonction appelée | Rôle |
@@ -19,7 +33,7 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 | `process-payment-reminders-hourly` | `0 * * * *` | `process-payment-reminders` | File de relances de paiement (aussi dans la migration `20260114004035`) |
 | `send-convocation-cron-daily` | `0 8 * * *` | `send-convocation-cron` | Convocations automatiques J-7 |
 | `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — **à créer après déploiement de la fonction** (voir ci-dessous) |
-| `sync-gmail-inbox-every-5min` | `*/5 * * * *` | `sync-gmail-inbox` | Synchronisation Gmail |
+| `sync-gmail-inbox-every-5min` | `*/5 * * * *` | `sync-gmail-inbox` | Synchronisation Gmail — **EN PAUSE depuis le 21/07/2026** (`active = false`), l'Inbox CRM ayant été retirée : l'équipe travaille hors CRM. Le job existe toujours, seule son exécution est suspendue (~288 invocations/jour économisées). Réactiver : `SELECT cron.alter_job(3, active := true);` |
 
 ## Modèle de création d'un job
 
