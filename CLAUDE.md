@@ -92,6 +92,18 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 
 ## Vérifications avant de conclure « ça marche »
 
+- **`./node_modules/.bin/eslint <fichiers modifiés>` — NON NÉGOCIABLE sur
+  tout composant React.** `tsc`, `vitest` et `vite build` ne détectent PAS
+  les violations de l'ordre des hooks : un `useMemo` placé après un retour
+  anticipé a cassé la page « Aujourd'hui » en production le 21/07/2026
+  (React #310), alors que les trois passaient au vert. La règle
+  `react-hooks/rules-of-hooks` l'attrape, elle, immédiatement.
+- Corollaire : un composant qui a un `if (isLoading) return …` ne doit
+  contenir AUCUN hook après ce retour — préférer une fonction pure hors
+  du composant (cf. `buildPriorites` dans `AujourdhuiPage.tsx`).
+- **Vérifier le rendu de la page réellement modifiée**, connecté : un
+  contrôle « aucune erreur console » sur l'écran de connexion ne prouve
+  rien pour un composant qui n'y est jamais monté.
 - `./node_modules/.bin/tsc -p tsconfig.app.json --noEmit`
 - `./node_modules/.bin/vitest run` (59+ tests, dont cohérence navigation)
 - `node node_modules/vite/bin/vite.js build`

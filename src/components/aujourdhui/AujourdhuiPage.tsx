@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,7 +30,7 @@ import type { Prospect } from "@/hooks/useProspects";
 
 import { useAujourdhuiData } from "./useAujourdhuiData";
 import { CMA_KEYWORDS, RDV_KEYWORDS, RELANCE_KEYWORDS, CRITIQUE_KEYWORDS, CARTE_PRO_KEYWORDS, CRM_QUALITY_KEYWORDS } from "./aujourdhui-types";
-import type { CmaFilter, SessionPrepItem } from "./aujourdhui-types";
+import type { CmaFilter, SessionPrepItem, ResultatAVerifierItem, ConvocationAttendueItem } from "./aujourdhui-types";
 import { BlocCma } from "./BlocCma";
 import { BlocRdv } from "./BlocRdv";
 import { BlocRelances } from "./BlocRelances";
@@ -66,6 +66,91 @@ function makeHandledKey(contactId: string, blocLabel: string) {
 interface BulkDoneLabel {
   singular: string;
   plural: string;
+}
+
+/**
+ * Priorités du jour — fonction PURE, volontairement hors du composant.
+ *
+ * Le hub détecte des centaines de signaux, majoritairement de l'hygiène de
+ * données. Ne remontent ici QUE les échéances dépassées et les blocages,
+ * pour répondre à « par quoi je commence ? » (rang = gravité).
+ *
+ * Pas de hook ici : la page comporte un retour anticipé pendant le
+ * chargement, et un useMemo placé après celui-ci violait l'ordre des hooks
+ * (React #310 en production, 21/07/2026). Le calcul est trivial — quelques
+ * parcours de tableaux courts — donc la mémoïsation n'apportait rien.
+ */
+export function buildPriorites(sources: {
+  resultatsAVerifier: ResultatAVerifierItem[];
+  convocationsAttendues: ConvocationAttendueItem[];
+  sessionPrepItems: SessionPrepItem[];
+  critiques: Array<{ id: string; prenom: string; nom: string; reasons?: string[] }>;
+  reprogramItems: Array<{ id: string; contactId: string; prenom: string; nom: string; label: string }>;
+}): PrioriteItem[] {
+  const { resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems } = sources;
+    const items: PrioriteItem[] = [];
+
+    resultatsAVerifier
+      .filter((i) => i.niveau === "alerte")
+      .forEach((i) =>
+        items.push({
+          id: `prio-res-${i.id}`,
+          contactId: i.contactId,
+          titre: `${i.prenom} ${i.nom}`,
+          detail: `Résultat ${i.type === "pratique" ? "pratique" : "théorique"} jamais reçu — ${i.joursEcoules} jours`,
+          ton: "danger",
+          rang: 1,
+        }),
+      );
+
+    convocationsAttendues
+      .filter((i) => i.niveau === "alerte")
+      .forEach((i) =>
+        items.push({
+          id: `prio-conv-${i.id}`,
+          contactId: i.contactId,
+          titre: `${i.prenom} ${i.nom}`,
+          detail: `Convocation CMA jamais reçue — ${i.joursEcoules} jours`,
+          ton: "danger",
+          rang: 2,
+        }),
+      );
+
+    sessionPrepItems
+      .filter((sess) => sess.severity === "critical")
+      .forEach((sess) =>
+        items.push({
+          id: `prio-sess-${sess.id}`,
+          titre: sess.nom,
+          detail: `Session ${sess.timingLabel.toLowerCase()} — ${sess.setupIssues[0] || "préparation incomplète"}`,
+          ton: "danger",
+          rang: 3,
+        }),
+      );
+
+    critiques.forEach((c: any) =>
+      items.push({
+        id: `prio-crit-${c.id}`,
+        contactId: c.id,
+        titre: `${c.prenom} ${c.nom}`,
+        detail: c.reasons?.[0] || "Situation critique",
+        ton: "warning",
+        rang: 4,
+      }),
+    );
+
+    reprogramItems.forEach((r: any) =>
+      items.push({
+        id: `prio-reprog-${r.id}`,
+        contactId: r.contactId,
+        titre: `${r.prenom} ${r.nom}`,
+        detail: `${r.label} — à réinscrire`,
+        ton: "warning",
+        rang: 5,
+      }),
+    );
+
+    return items;
 }
 
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
@@ -717,75 +802,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
-  // ─── Priorités du jour ───
-  // Le hub détecte des centaines de signaux, majoritairement de l'hygiène de
-  // données. Ne remontent ici QUE les échéances dépassées et les blocages,
-  // pour répondre à « par quoi je commence ? » (rang = gravité).
-  const priorites = useMemo<PrioriteItem[]>(() => {
-    const items: PrioriteItem[] = [];
-
-    resultatsAVerifier
-      .filter((i) => i.niveau === "alerte")
-      .forEach((i) =>
-        items.push({
-          id: `prio-res-${i.id}`,
-          contactId: i.contactId,
-          titre: `${i.prenom} ${i.nom}`,
-          detail: `Résultat ${i.type === "pratique" ? "pratique" : "théorique"} jamais reçu — ${i.joursEcoules} jours`,
-          ton: "danger",
-          rang: 1,
-        }),
-      );
-
-    convocationsAttendues
-      .filter((i) => i.niveau === "alerte")
-      .forEach((i) =>
-        items.push({
-          id: `prio-conv-${i.id}`,
-          contactId: i.contactId,
-          titre: `${i.prenom} ${i.nom}`,
-          detail: `Convocation CMA jamais reçue — ${i.joursEcoules} jours`,
-          ton: "danger",
-          rang: 2,
-        }),
-      );
-
-    sessionPrepItems
-      .filter((sess) => sess.severity === "critical")
-      .forEach((sess) =>
-        items.push({
-          id: `prio-sess-${sess.id}`,
-          titre: sess.nom,
-          detail: `Session ${sess.timingLabel.toLowerCase()} — ${sess.setupIssues[0] || "préparation incomplète"}`,
-          ton: "danger",
-          rang: 3,
-        }),
-      );
-
-    critiques.forEach((c: any) =>
-      items.push({
-        id: `prio-crit-${c.id}`,
-        contactId: c.id,
-        titre: `${c.prenom} ${c.nom}`,
-        detail: c.reasons?.[0] || "Situation critique",
-        ton: "warning",
-        rang: 4,
-      }),
-    );
-
-    reprogramItems.forEach((r: any) =>
-      items.push({
-        id: `prio-reprog-${r.id}`,
-        contactId: r.contactId,
-        titre: `${r.prenom} ${r.nom}`,
-        detail: `${r.label} — à réinscrire`,
-        ton: "warning",
-        rang: 5,
-      }),
-    );
-
-    return items;
-  }, [resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems]);
+  const priorites = buildPriorites({ resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems });
 
   return (
     <div className="space-y-6">
