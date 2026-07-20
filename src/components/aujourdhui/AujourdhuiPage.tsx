@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -38,6 +38,7 @@ import { BlocCritiques } from "./BlocCritiques";
 import { BlocCartePro } from "./BlocCartePro";
 import { BlocReprogrammer } from "./BlocReprogrammer";
 import { BlocResultatsAVerifier } from "./BlocResultatsAVerifier";
+import { PrioritesDuJour, type PrioriteItem } from "./PrioritesDuJour";
 import { BlocConvocationsCma } from "./BlocConvocationsCma";
 import { BlocBoitesMail } from "./BlocBoitesMail";
 import { BlocQualiopi } from "./BlocQualiopi";
@@ -716,9 +717,86 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
+  // ─── Priorités du jour ───
+  // Le hub détecte des centaines de signaux, majoritairement de l'hygiène de
+  // données. Ne remontent ici QUE les échéances dépassées et les blocages,
+  // pour répondre à « par quoi je commence ? » (rang = gravité).
+  const priorites = useMemo<PrioriteItem[]>(() => {
+    const items: PrioriteItem[] = [];
+
+    resultatsAVerifier
+      .filter((i) => i.niveau === "alerte")
+      .forEach((i) =>
+        items.push({
+          id: `prio-res-${i.id}`,
+          contactId: i.contactId,
+          titre: `${i.prenom} ${i.nom}`,
+          detail: `Résultat ${i.type === "pratique" ? "pratique" : "théorique"} jamais reçu — ${i.joursEcoules} jours`,
+          ton: "danger",
+          rang: 1,
+        }),
+      );
+
+    convocationsAttendues
+      .filter((i) => i.niveau === "alerte")
+      .forEach((i) =>
+        items.push({
+          id: `prio-conv-${i.id}`,
+          contactId: i.contactId,
+          titre: `${i.prenom} ${i.nom}`,
+          detail: `Convocation CMA jamais reçue — ${i.joursEcoules} jours`,
+          ton: "danger",
+          rang: 2,
+        }),
+      );
+
+    sessionPrepItems
+      .filter((sess) => sess.severity === "critical")
+      .forEach((sess) =>
+        items.push({
+          id: `prio-sess-${sess.id}`,
+          titre: sess.nom,
+          detail: `Session ${sess.timingLabel.toLowerCase()} — ${sess.setupIssues[0] || "préparation incomplète"}`,
+          ton: "danger",
+          rang: 3,
+        }),
+      );
+
+    critiques.forEach((c: any) =>
+      items.push({
+        id: `prio-crit-${c.id}`,
+        contactId: c.id,
+        titre: `${c.prenom} ${c.nom}`,
+        detail: c.reasons?.[0] || "Situation critique",
+        ton: "warning",
+        rang: 4,
+      }),
+    );
+
+    reprogramItems.forEach((r: any) =>
+      items.push({
+        id: `prio-reprog-${r.id}`,
+        contactId: r.contactId,
+        titre: `${r.prenom} ${r.nom}`,
+        detail: `${r.label} — à réinscrire`,
+        ton: "warning",
+        rang: 5,
+      }),
+    );
+
+    return items;
+  }, [resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems]);
+
   return (
     <div className="space-y-6">
-      <Header title="Aujourd'hui" subtitle={`${totalActions} action${totalActions > 1 ? "s" : ""} à traiter`} />
+      <Header
+        title="Aujourd'hui"
+        subtitle={
+          priorites.length > 0
+            ? `${priorites.length} urgence${priorites.length > 1 ? "s" : ""} · ${totalActions} action${totalActions > 1 ? "s" : ""} de suivi`
+            : `Aucune urgence · ${totalActions} action${totalActions > 1 ? "s" : ""} de suivi`
+        }
+      />
 
       <div className="px-8">
         <HintBubble
@@ -782,6 +860,10 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
 
 
       <div className="px-8 pb-8 space-y-5">
+        {!focusBloc && (
+          <PrioritesDuJour items={priorites} totalActions={totalActions} openContact={openContact} />
+        )}
+
         {(!focusBloc || focusBloc === "session_prep") && (
           <BlocSessionPreparation
             sessions={sessionPrepItems}
