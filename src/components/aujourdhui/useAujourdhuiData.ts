@@ -81,8 +81,8 @@ export function useAujourdhuiData() {
           .like("titre", "[AUTO] Reporté%")
           .gte("date_echange", postponeSince)
           .order("date_echange", { ascending: false }),
-        supabase.from("examens_pratique").select("contact_id, date_examen, resultat, date_resultat_recu"),
-        supabase.from("examens_t3p").select("contact_id, type_formation, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
+        supabase.from("examens_pratique").select("id, contact_id, date_examen, resultat, date_resultat_recu"),
+        supabase.from("examens_t3p").select("id, contact_id, type_formation, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
       ]);
 
       const contacts = contactsRes.data || [];
@@ -400,13 +400,16 @@ export function useAujourdhuiData() {
         const att = parcours.attente;
         if (att && att.niveau !== "ok") {
           if (att.type === "resultat_theorie" || att.type === "resultat_pratique") {
+            const estTheorie = att.type === "resultat_theorie";
             resultatsAVerifier.push({
               id: `res-${c.id}`,
               ...base,
-              type: att.type === "resultat_theorie" ? "theorie" : "pratique",
+              type: estTheorie ? "theorie" : "pratique",
               joursEcoules: att.joursEcoules,
               niveau: att.niveau,
               dateExamen: att.referenceDate,
+              examenId: (estTheorie ? exams?.theorie?.id : exams?.pratique?.id) ?? null,
+              examenSource: estTheorie ? "t3p" : (exams?.pratique?.source ?? "pratique"),
             });
           } else if (att.type === "convocation_cma") {
             convocationsAttendues.push({
@@ -415,6 +418,7 @@ export function useAujourdhuiData() {
               joursEcoules: att.joursEcoules,
               niveau: att.niveau,
               depuis: att.referenceDate,
+              examenId: exams?.theorie?.id ?? null,
             });
           }
         }

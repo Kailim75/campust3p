@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, FileClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, FileClock, Check, X, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { enregistrerResultat, invalidateParcours, type ResultatSaisi } from "@/lib/parcours-actions";
 import type { ResultatAVerifierItem } from "./aujourdhui-types";
 
 interface BlocResultatsAVerifierProps {
@@ -9,12 +14,40 @@ interface BlocResultatsAVerifierProps {
   openContact: (id: string) => void;
 }
 
+const CHOIX: Array<{ valeur: ResultatSaisi; label: string; icon: typeof Check; className: string }> = [
+  { valeur: "admis", label: "Admis", icon: Check, className: "text-success border-success/30 hover:bg-success/10" },
+  { valeur: "ajourne", label: "Ajourné", icon: X, className: "text-destructive border-destructive/30 hover:bg-destructive/10" },
+  { valeur: "absent", label: "Absent", icon: Minus, className: "text-warning border-warning/30 hover:bg-warning/10" },
+];
+
 /**
  * Candidats ayant passé un examen (théorique ou pratique) dont le résultat
  * n'est pas encore enregistré. Rappel dès J+21, alerte à J+35. Le bloc se
  * vide de lui-même dès que le résultat est saisi sur la fiche (état calculé).
  */
 export function BlocResultatsAVerifier({ items, openContact }: BlocResultatsAVerifierProps) {
+  const queryClient = useQueryClient();
+  const [enCours, setEnCours] = useState<string | null>(null);
+
+  // Saisie du résultat directement depuis le bloc : évite d'ouvrir chaque
+  // fiche pour un rattrapage. Horodate la réception → le candidat sort du bloc.
+  const saisir = async (item: ResultatAVerifierItem, resultat: ResultatSaisi) => {
+    if (!item.examenId) {
+      toast.error("Examen introuvable — ouvrir la fiche pour saisir le résultat");
+      return;
+    }
+    setEnCours(item.id);
+    try {
+      await enregistrerResultat({ examenId: item.examenId, source: item.examenSource, resultat });
+      invalidateParcours(queryClient, item.contactId);
+      toast.success(`${item.prenom} ${item.nom} — résultat enregistré`);
+    } catch {
+      toast.error("Erreur lors de l'enregistrement du résultat");
+    } finally {
+      setEnCours(null);
+    }
+  };
+
   if (items.length === 0) return null;
   const alertes = items.filter((i) => i.niveau === "alerte").length;
 
@@ -63,6 +96,22 @@ export function BlocResultatsAVerifier({ items, openContact }: BlocResultatsAVer
               )}>{item.joursEcoules} jour{item.joursEcoules > 1 ? "s" : ""}</span>
               {item.niveau === "alerte" ? " — résultat en retard, à relancer auprès de la CMA" : " — résultat toujours attendu"}
             </p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[11px] text-muted-foreground mr-0.5">Résultat reçu :</span>
+              {CHOIX.map(({ valeur, label, icon: Icon, className }) => (
+                <Button
+                  key={valeur}
+                  size="sm"
+                  variant="outline"
+                  className={cn("h-6 text-[11px] gap-1", className)}
+                  disabled={enCours === item.id}
+                  onClick={() => saisir(item, valeur)}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
         ))}
       </div>

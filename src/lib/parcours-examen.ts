@@ -316,14 +316,24 @@ export function computeParcours(facts: ParcoursFacts, now: Date = new Date()): P
 
 // ─── Classification des lignes d'examen par candidat ───
 
+/** Table d'origine d'une ligne d'examen — nécessaire pour cibler l'UPDATE. */
+export type ExamenSource = "t3p" | "pratique";
+
 export interface ExamenT3pRow extends ExamenTheorieFacts {
+  id?: string;
   contact_id: string;
   /** La fiche apprenant enregistre le type d'examen (theorique/pratique)
    *  dans ce champ : les lignes « pratique » sont des épreuves pratiques. */
   type_formation: string | null;
 }
 export interface ExamenPratiqueRow extends ExamenPratiqueFacts {
+  id?: string;
   contact_id: string;
+}
+
+export interface ExamensDuContact {
+  theorie: (ExamenTheorieFacts & { id?: string }) | null;
+  pratique: (ExamenPratiqueFacts & { id?: string; source: ExamenSource }) | null;
 }
 
 /**
@@ -335,11 +345,11 @@ export interface ExamenPratiqueRow extends ExamenPratiqueFacts {
 export function classerExamensParContact(
   t3pRows: ExamenT3pRow[],
   pratiqueRows: ExamenPratiqueRow[],
-): Map<string, { theorie: ExamenTheorieFacts | null; pratique: ExamenPratiqueFacts | null }> {
+): Map<string, ExamensDuContact> {
   const isPratique = (r: ExamenT3pRow) =>
     String(r.type_formation || "").toLowerCase() === "pratique";
 
-  const latest = new Map<string, { theorie: (ExamenTheorieFacts & { date_examen: string | null }) | null; pratique: ExamenPratiqueFacts | null }>();
+  const latest = new Map<string, ExamensDuContact>();
   const entry = (id: string) => {
     let e = latest.get(id);
     if (!e) { e = { theorie: null, pratique: null }; latest.set(id, e); }
@@ -350,7 +360,13 @@ export function classerExamensParContact(
     const e = entry(r.contact_id);
     if (isPratique(r)) {
       if (!e.pratique || (r.date_examen || "") > (e.pratique.date_examen || "")) {
-        e.pratique = { date_examen: r.date_examen, resultat: r.resultat, date_resultat_recu: r.date_resultat_recu };
+        e.pratique = {
+          id: r.id,
+          source: "t3p",
+          date_examen: r.date_examen,
+          resultat: r.resultat,
+          date_resultat_recu: r.date_resultat_recu,
+        };
       }
     } else if (!e.theorie || (r.date_examen || "") > (e.theorie.date_examen || "")) {
       e.theorie = r;
@@ -359,7 +375,13 @@ export function classerExamensParContact(
   for (const r of pratiqueRows) {
     const e = entry(r.contact_id);
     if (!e.pratique || (r.date_examen || "") > (e.pratique.date_examen || "")) {
-      e.pratique = { date_examen: r.date_examen, resultat: r.resultat, date_resultat_recu: r.date_resultat_recu };
+      e.pratique = {
+        id: r.id,
+        source: "pratique",
+        date_examen: r.date_examen,
+        resultat: r.resultat,
+        date_resultat_recu: r.date_resultat_recu,
+      };
     }
   }
   return latest;
