@@ -39,7 +39,6 @@ const PartnersPage        = lazy(() => import("@/components/partners/PartnersPag
 const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
 const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
 const DocumentSystemStatePage = lazy(() => import("@/components/admin/DocumentSystemStatePage").then(m => ({ default: m.DocumentSystemStatePage })));
-const InboxCrmPage        = lazy(() => import("@/components/inbox/InboxCrmPage").then(m => ({ default: m.InboxCrmPage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
 const RequalificationPage = lazy(() => import("@/components/requalification/RequalificationPage").then(m => ({ default: m.RequalificationPage })));
@@ -227,7 +226,6 @@ const Index = () => {
     onGoSessions:   () => setActiveSection("sessions"),
     onGoFinances:   () => setActiveSection("finances"),
     onGoFormations: () => setActiveSection("formations"),
-    onGoInbox:      () => setActiveSection("inbox"),
     onGoSettings:   () => setActiveSection("settings"),
     // Creation
     onNewApprenant: () => setNewContactOpen(true),
@@ -324,10 +322,6 @@ const Index = () => {
       case "documents-systeme":
         pageName = "DocumentSystemStatePage";
         node = <DocumentSystemStatePage />;
-        break;
-      case "inbox":
-        pageName = "InboxCrmPage";
-        node = <InboxCrmPage />;
         break;
       case "corbeille":
         pageName = "CorbeillePage";

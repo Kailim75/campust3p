@@ -41,9 +41,8 @@ const menuItems = HUB_ENTRIES;
 const moreMenuItems = MORE_ENTRIES;
 
 /** Map id de hub → clé du compteur sidebar (useSidebarBadges). */
-const HUB_BADGE_KEY: Record<string, "aujourdhui" | "inbox" | "finances"> = {
+const HUB_BADGE_KEY: Record<string, "aujourdhui" | "finances"> = {
   aujourdhui: "aujourdhui",
-  inbox: "inbox",
   finances: "finances",
 };
 
