@@ -446,3 +446,39 @@ describe("classerExamensParContact — classification partagée hub/session", ()
     expect(m.get("b")?.theorie?.date_examen).toBe("2026-02-01");
   });
 });
+
+describe("classerExamensParContact — id et table d'origine (actions du hub)", () => {
+  it("conserve l'id et marque la source t3p pour une ligne t3p type pratique", () => {
+    const m = classerExamensParContact(
+      [{
+        id: "ex-1", contact_id: "c1", type_formation: "pratique",
+        date_examen: "2026-05-01", resultat: null, date_resultat_recu: null,
+        date_reussite: null, date_convocation_pratique_recue: null, numero_convocation: null,
+      }],
+      [],
+    );
+    expect(m.get("c1")?.pratique?.id).toBe("ex-1");
+    expect(m.get("c1")?.pratique?.source).toBe("t3p");
+  });
+
+  it("marque la source pratique pour une ligne de la table examens_pratique", () => {
+    const m = classerExamensParContact(
+      [],
+      [{ id: "ep-9", contact_id: "c1", date_examen: "2026-06-01", resultat: null, date_resultat_recu: null }],
+    );
+    expect(m.get("c1")?.pratique?.id).toBe("ep-9");
+    expect(m.get("c1")?.pratique?.source).toBe("pratique");
+  });
+
+  it("conserve l'id de la théorie (cible du marquage de convocation)", () => {
+    const m = classerExamensParContact(
+      [{
+        id: "th-7", contact_id: "c1", type_formation: "VTC",
+        date_examen: "2026-04-01", resultat: "admis", date_resultat_recu: "2026-04-20",
+        date_reussite: "2026-04-01", date_convocation_pratique_recue: null, numero_convocation: null,
+      }],
+      [],
+    );
+    expect(m.get("c1")?.theorie?.id).toBe("th-7");
+  });
+});

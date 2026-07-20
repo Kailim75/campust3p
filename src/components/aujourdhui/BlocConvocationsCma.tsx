@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, MailQuestion } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, MailQuestion, MailCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { marquerConvocationRecue, invalidateParcours } from "@/lib/parcours-actions";
 import type { ConvocationAttendueItem } from "./aujourdhui-types";
 
 interface BlocConvocationsCmaProps {
@@ -15,6 +20,29 @@ interface BlocConvocationsCmaProps {
  * convocation est enregistrée (n° de convocation ou date reçue) sur la fiche.
  */
 export function BlocConvocationsCma({ items, openContact }: BlocConvocationsCmaProps) {
+  const queryClient = useQueryClient();
+  const [enCours, setEnCours] = useState<string | null>(null);
+
+  // Marquage direct depuis le bloc : la colonne date_convocation_pratique_recue
+  // étant récente, beaucoup de candidats ont en réalité déjà leur convocation.
+  // Ce bouton permet le rattrapage sans ouvrir chaque fiche.
+  const marquer = async (item: ConvocationAttendueItem) => {
+    if (!item.examenId) {
+      toast.error("Examen introuvable — ouvrir la fiche pour enregistrer la convocation");
+      return;
+    }
+    setEnCours(item.id);
+    try {
+      await marquerConvocationRecue(item.examenId);
+      invalidateParcours(queryClient, item.contactId);
+      toast.success(`${item.prenom} ${item.nom} — convocation enregistrée`);
+    } catch {
+      toast.error("Erreur lors de l'enregistrement de la convocation");
+    } finally {
+      setEnCours(null);
+    }
+  };
+
   if (items.length === 0) return null;
   const alertes = items.filter((i) => i.niveau === "alerte").length;
 
@@ -58,6 +86,16 @@ export function BlocConvocationsCma({ items, openContact }: BlocConvocationsCmaP
               )}>{item.joursEcoules} jour{item.joursEcoules > 1 ? "s" : ""}</span>
               {item.niveau === "alerte" ? " — convocation en retard, à relancer auprès de la CMA" : " — convocation toujours attendue"}
             </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] gap-1 mt-2"
+              disabled={enCours === item.id}
+              onClick={() => marquer(item)}
+            >
+              <MailCheck className="h-3 w-3" />
+              {enCours === item.id ? "Enregistrement…" : "Convocation reçue"}
+            </Button>
           </div>
         ))}
       </div>

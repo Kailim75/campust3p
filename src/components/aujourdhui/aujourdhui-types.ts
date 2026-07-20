@@ -2,7 +2,7 @@ import type { ActionCategory } from "@/lib/aujourdhui-actions";
 import type { UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
 import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
-import type { UrgenceNiveau } from "@/lib/parcours-examen";
+import type { UrgenceNiveau, ExamenSource } from "@/lib/parcours-examen";
 
 export type CmaFilter = "all" | "docs_manquants" | "rejete" | "en_cours";
 
@@ -82,6 +82,9 @@ export interface ResultatAVerifierItem {
   joursEcoules: number;
   niveau: UrgenceNiveau;
   dateExamen: string;
+  /** Cible de l'action « résultat reçu » (null si la ligne n'a pas d'id). */
+  examenId: string | null;
+  examenSource: ExamenSource;
 }
 
 /** Candidat admis en théorie qui attend sa convocation CMA à la pratique. */
@@ -96,6 +99,8 @@ export interface ConvocationAttendueItem {
   joursEcoules: number;
   niveau: UrgenceNiveau;
   depuis: string;
+  /** Cible de l'action « convocation reçue » (ligne examens_t3p). */
+  examenId: string | null;
 }
 
 /** Boîte mail interne (Outlook) d'un candidat actif à consulter. */
