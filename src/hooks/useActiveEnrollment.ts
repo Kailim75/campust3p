@@ -12,6 +12,7 @@ export interface ActiveEnrollment {
     formation_type: string;
     date_debut: string;
     date_fin: string;
+    prix: number | null;
   } | null;
 }
 
@@ -30,7 +31,7 @@ export function useActiveEnrollment(contactId: string | undefined) {
       const today = new Date().toISOString().split("T")[0];
       const { data: futureInsc } = await supabase
         .from("session_inscriptions")
-        .select("id, session_id, track, session:sessions(id, nom, formation_type, date_debut, date_fin)")
+        .select("id, session_id, track, session:sessions(id, nom, formation_type, date_debut, date_fin, prix)")
         .eq("contact_id", contactId)
         .gte("session.date_fin", today)
         .order("created_at", { ascending: false })
@@ -49,7 +50,7 @@ export function useActiveEnrollment(contactId: string | undefined) {
       // Fallback: most recent inscription
       const { data: recentInsc } = await supabase
         .from("session_inscriptions")
-        .select("id, session_id, track, session:sessions(id, nom, formation_type, date_debut, date_fin)")
+        .select("id, session_id, track, session:sessions(id, nom, formation_type, date_debut, date_fin, prix)")
         .eq("contact_id", contactId)
         .order("created_at", { ascending: false })
         .limit(1);

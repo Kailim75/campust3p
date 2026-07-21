@@ -1,5 +1,14 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { creerFactureExpress, listerInscritsSansFacture } from "@/lib/facture-express";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +23,7 @@ import {
   CreditCard,
   ClipboardList,
   Send,
+  Zap,
 } from "lucide-react";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
@@ -35,9 +45,91 @@ export function SessionFinancesTabContent({
   isBatchCheveletsPending,
   isBatchPedagogicalPending,
 }: SessionFinancesTabContentProps) {
+  const queryClient = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [facturationPending, setFacturationPending] = useState(false);
+
+  // Facturation groupée (règles du 21/07) : facture chaque inscrit sans
+  // facture au prix de la session, échéance = date de début. Sans envoi
+  // d'email en lot — les envois se font depuis chaque fiche.
+  const { data: aFacturer = [] } = useQuery({
+    queryKey: ["session-inscrits-sans-facture", sessionId],
+    queryFn: () => listerInscritsSansFacture(sessionId),
+  });
+  const { data: sessionInfo } = useQuery({
+    queryKey: ["session-facturation-info", sessionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("nom, prix, date_debut")
+        .eq("id", sessionId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const facturerTous = async () => {
+    if (!sessionInfo?.prix) { toast.error("La session n'a pas de prix renseigné"); return; }
+    setFacturationPending(true);
+    let ok = 0;
+    const echecs: string[] = [];
+    for (const inscrit of aFacturer) {
+      try {
+        await creerFactureExpress({
+          contactId: inscrit.contactId,
+          sessionInscriptionId: inscrit.sessionInscriptionId,
+          montant: Number(sessionInfo.prix),
+          description: sessionInfo.nom,
+          dateEcheance: sessionInfo.date_debut || null,
+        });
+        ok++;
+      } catch {
+        echecs.push(`${inscrit.prenom} ${inscrit.nom}`);
+      }
+    }
+    setFacturationPending(false);
+    setConfirmOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["factures"] });
+    queryClient.invalidateQueries({ queryKey: ["session-inscrits-sans-facture", sessionId] });
+    queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
+    if (echecs.length === 0) {
+      toast.success(`${ok} facture${ok > 1 ? "s" : ""} créée${ok > 1 ? "s" : ""}`);
+    } else {
+      toast.warning(`${ok} créée${ok > 1 ? "s" : ""}, ${echecs.length} en échec`, { description: echecs.join(", ") });
+    }
+  };
+
   return (
     <div className="space-y-4 pt-4">
       <SessionFinancialSummary sessionId={sessionId} />
+
+      {aFacturer.length > 0 && (
+        <Button className="w-full justify-start" onClick={() => setConfirmOpen(true)} disabled={facturationPending}>
+          <Zap className="h-4 w-4 mr-2" />
+          Facturer les non-facturés ({aFacturer.length})
+        </Button>
+      )}
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Facturer {aFacturer.length} inscrit{aFacturer.length > 1 ? "s" : ""} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Une facture de {sessionInfo?.prix != null ? Number(sessionInfo.prix).toLocaleString("fr-FR") : "—"} € sera créée pour chacun
+              ({aFacturer.map((i) => `${i.prenom} ${i.nom}`).join(", ")}),
+              échéance au début de la session. Aucun email n'est envoyé — les
+              envois se font ensuite depuis chaque fiche.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={facturationPending}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); facturerTous(); }} disabled={facturationPending}>
+              {facturationPending ? "Facturation…" : "Créer les factures"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Separator />
       <div className="space-y-2">
