@@ -79,11 +79,17 @@ const statusConfig: Record<FactureStatut, { label: string; class: string }> = {
   annulee: { label: "Annulée", class: "bg-muted text-muted-foreground" },
 };
 
-/** Facture officiellement en retard : émise/partielle/impayée avec échéance dépassée. */
-function estEnRetard(f: { statut: string; date_echeance?: string | null }): boolean {
+/**
+ * Facture officiellement en retard : émise/partielle/impayée, échéance
+ * dépassée ET restant dû > 0 — même définition que « Paiements en retard »
+ * du Pilotage (useDashboardData), pour que les deux surfaces affichent
+ * le même compte.
+ */
+function estEnRetard(f: { statut: string; date_echeance?: string | null; montant_total: number; total_paye: number }): boolean {
   return ["emise", "partiel", "impayee"].includes(f.statut)
     && !!f.date_echeance
-    && f.date_echeance < new Date().toISOString().slice(0, 10);
+    && f.date_echeance < new Date().toISOString().slice(0, 10)
+    && Number(f.montant_total) - f.total_paye > 0;
 }
 
 export function PaiementsPage() {
