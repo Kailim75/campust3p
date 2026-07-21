@@ -40,6 +40,7 @@ import { InscritTableRow } from './inscrits/InscritTableRow';
 import { InscritsGlobalActions, InscritsSelectionActions } from './inscrits/InscritsGlobalActions';
 import { InscritsDialogs } from './inscrits/InscritsDialogs';
 import { mapContactInfo, type InscritRow, type ExamResultValue } from './inscrits/inscrits-types';
+import { FactureExpressDialog } from '@/components/facturation/FactureExpressDialog';
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -313,7 +314,28 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     } catch { toast.error("Erreur lors de la mise à jour du N° dossier"); }
   };
 
+  // Parcours par défaut : facturation express pré-remplie (prix session,
+  // échéance = début). Le grand formulaire reste accessible via le lien
+  // « Facture détaillée… » du dialogue (partenaire, lignes, remise).
+  const [expressInscrit, setExpressInscrit] = useState<{
+    contactId: string;
+    inscriptionId: string;
+    prenom: string;
+    nom: string;
+  } | null>(null);
+
   const handleCreateFacture = (contactId: string) => {
+    const inscription = inscrits?.find((i) => i.contact_id === contactId);
+    if (!inscription) return;
+    setExpressInscrit({
+      contactId,
+      inscriptionId: inscription.id,
+      prenom: inscription.contact?.prenom || '',
+      nom: inscription.contact?.nom || '',
+    });
+  };
+
+  const handleCreateFactureDetaillee = (contactId: string) => {
     setSelectedContactIdForFacture(contactId);
     setEditingFacture(null);
     setFactureFormOpen(true);
@@ -512,6 +534,19 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         transferContact={transferContact} setTransferContact={setTransferContact}
         sessionFormationType={session?.formation_type}
       />
+
+      {expressInscrit && (
+        <FactureExpressDialog
+          open={!!expressInscrit}
+          onOpenChange={(open) => !open && setExpressInscrit(null)}
+          contact={expressInscrit}
+          sessionInscriptionId={expressInscrit.inscriptionId}
+          sessionNom={session?.nom || ''}
+          prixDefaut={session?.prix != null ? Number(session.prix) : null}
+          dateEcheanceDefaut={session?.date_debut || null}
+          onFactureDetaillee={() => handleCreateFactureDetaillee(expressInscrit.contactId)}
+        />
+      )}
     </div>
   );
 }

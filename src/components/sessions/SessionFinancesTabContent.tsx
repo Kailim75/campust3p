@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useSessionFactures";
 import { useSessionInscriptions } from "@/hooks/useSessions";
 import { PaiementFormDialog } from "@/components/paiements/PaiementFormDialog";
+import { FactureExpressDialog } from "@/components/facturation/FactureExpressDialog";
 import { Euro, Send, Zap } from "lucide-react";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
 
@@ -58,6 +59,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [paiementCible, setPaiementCible] = useState<{ factureId: string; restant: number } | null>(null);
   const [relanceCible, setRelanceCible] = useState<LigneInscrit | null>(null);
+  const [expressLigne, setExpressLigne] = useState<LigneInscrit | null>(null);
   const [relancePendingId, setRelancePendingId] = useState<string | null>(null);
 
   const { data: inscriptions } = useSessionInscriptions(sessionId);
@@ -122,11 +124,6 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
 
   const ouvrirFacturationGroupee = () => {
     setSelection(new Set(aFacturer.map((i) => i.sessionInscriptionId)));
-    setConfirmOpen(true);
-  };
-
-  const facturerInscrit = (inscriptionId: string) => {
-    setSelection(new Set([inscriptionId]));
     setConfirmOpen(true);
   };
 
@@ -256,7 +253,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
                           size="sm"
                           className="h-7 px-2 text-xs"
                           disabled={facturationPending}
-                          onClick={() => facturerInscrit(ligne.inscriptionId)}
+                          onClick={() => setExpressLigne(ligne)}
                         >
                           <Zap className="h-3.5 w-3.5 mr-1" />
                           Facturer
@@ -378,6 +375,18 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {expressLigne && (
+        <FactureExpressDialog
+          open={!!expressLigne}
+          onOpenChange={(open) => !open && setExpressLigne(null)}
+          contact={{ contactId: expressLigne.contactId, prenom: expressLigne.prenom, nom: expressLigne.nom }}
+          sessionInscriptionId={expressLigne.inscriptionId}
+          sessionNom={sessionInfo?.nom || ""}
+          prixDefaut={sessionInfo?.prix != null ? Number(sessionInfo.prix) : null}
+          dateEcheanceDefaut={sessionInfo?.date_debut || null}
+        />
+      )}
 
       {paiementCible && (
         <PaiementFormDialog
