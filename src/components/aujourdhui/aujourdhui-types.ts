@@ -22,12 +22,16 @@ export const RELANCE_KEYWORDS = [
   "prospect_relance", "prospect_relance_whatsapp", "marquer_fait",
   "Relance prospect", "Marqué comme traité",
 ];
-export const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "Marqué comme traité"];
+export const CRITIQUE_KEYWORDS = ["demande docs", "relance paiement", "marquer_fait", "Marqué comme traité"];
 export const CARTE_PRO_KEYWORDS = [
-  "carte_pro_envoyee", "carte_pro_relance", "carte_pro_demarches_envoyees",
+  "carte_pro_envoyee", "carte_pro_relance", "carte_pro_demarches_envoyees", "marquer_fait",
   "Carte Pro",
 ];
-export const CRM_QUALITY_KEYWORDS = ["Qualité CRM", "Marqué comme traité"];
+// Règle transverse (audit 21/07 §E) : le bouton générique « Fait » écrit la
+// catégorie marquer_fait — elle vaut « traité » dans TOUS les blocs (l'élément
+// se masque, réapparition via « Afficher traités »). Pour un doublon, la seule
+// vraie sortie reste la fusion.
+export const CRM_QUALITY_KEYWORDS = ["crm_quality_traite", "marquer_fait", "Qualité CRM", "Marqué comme traité"];
 
 export type AutoNote = { contact_id: string; titre: string; created_at: string; id?: string };
 

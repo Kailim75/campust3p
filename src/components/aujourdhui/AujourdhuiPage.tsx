@@ -799,7 +799,11 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const reprogramItems = rawReprogram;
   const parcoursCount = resultatsAVerifier.length + convocationsAttendues.length + boitesMailAConsulter.length;
   const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
-  const totalRaw = allCmaFiltered.length + availableRdv.length + availableRelances.length + availableCritiques.length + availableCartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + availableCrmQualityItems.length;
+  // Assiette de la progression : traités du jour + restant à traiter. Les deux
+  // termes sont disjoints par construction, le ratio est donc toujours ≤ 1
+  // (l'ancienne formule mélangeait listes filtrées et non filtrées : la barre
+  // affichait « 129/67 traités » — audit du 21/07, point D).
+  const totalRaw = totalHandled + totalActions;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   const priorites = buildPriorites({ resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems });
