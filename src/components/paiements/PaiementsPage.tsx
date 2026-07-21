@@ -69,6 +69,13 @@ const statusConfig: Record<FactureStatut, { label: string; class: string }> = {
   annulee: { label: "Annulée", class: "bg-muted text-muted-foreground" },
 };
 
+/** Facture officiellement en retard : émise/partielle/impayée avec échéance dépassée. */
+function estEnRetard(f: { statut: string; date_echeance?: string | null }): boolean {
+  return ["emise", "partiel", "impayee"].includes(f.statut)
+    && !!f.date_echeance
+    && f.date_echeance < new Date().toISOString().slice(0, 10);
+}
+
 export function PaiementsPage() {
   const [showFactureForm, setShowFactureForm] = useState(false);
   const [selectedFactureId, setSelectedFactureId] = useState<string | null>(null);
@@ -79,7 +86,7 @@ export function PaiementsPage() {
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [showBulkEmitDialog, setShowBulkEmitDialog] = useState(false);
   // Tab filter
-  const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "soldes">("tous");
+  const [activeTab, setActiveTab] = useState<"tous" | "en_attente" | "en_retard" | "soldes">("tous");
   const [complianceOpen, setComplianceOpen] = useState(false);
   const [complianceFactureId, setComplianceFactureId] = useState<string | null>(null);
   const [complianceNumero, setComplianceNumero] = useState<string | undefined>(undefined);
@@ -116,6 +123,7 @@ export function PaiementsPage() {
     const filtered = factures.filter((facture) => {
       // Tab filter
       if (activeTab === "en_attente" && !["emise", "partiel", "impayee"].includes(facture.statut)) return false;
+      if (activeTab === "en_retard" && !estEnRetard(facture)) return false;
       if (activeTab === "soldes" && facture.statut !== "payee") return false;
       
       // Filter by status
@@ -368,6 +376,7 @@ export function PaiementsPage() {
           {([
             { key: "tous", label: "Tous", count: factures.length },
             { key: "en_attente", label: "En attente", count: factures.filter(f => ["emise", "partiel", "impayee"].includes(f.statut)).length },
+            { key: "en_retard", label: "En retard", count: factures.filter(estEnRetard).length },
             { key: "soldes", label: "Soldés", count: factures.filter(f => f.statut === "payee").length },
           ] as const).map(tab => (
             <button
@@ -685,7 +694,14 @@ export function PaiementsPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {facture.date_echeance ? (
-                          format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
+                          <span className="inline-flex items-center gap-1.5">
+                            {format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })}
+                            {estEnRetard(facture) && (
+                              <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">
+                                Retard {Math.floor((Date.now() - new Date(facture.date_echeance).getTime()) / 86400000)} j
+                              </Badge>
+                            )}
+                          </span>
                         ) : facture.statut === "emise" || facture.statut === "partiel" ? (
                           <Badge
                             variant="outline"
