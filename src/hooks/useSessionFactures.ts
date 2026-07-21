@@ -100,7 +100,8 @@ export function useSessionFactures(sessionId: string) {
         const { data: paiements, error: pError } = await supabase
           .from("paiements")
           .select("facture_id, montant")
-          .in("facture_id", factureIds);
+          .in("facture_id", factureIds)
+          .is("deleted_at", null);
         if (pError) throw pError;
         payeParFacture = (paiements || []).reduce((m, p) => {
           m.set(p.facture_id, (m.get(p.facture_id) || 0) + Number(p.montant || 0));

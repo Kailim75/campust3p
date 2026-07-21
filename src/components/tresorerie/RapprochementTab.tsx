@@ -46,6 +46,7 @@ export function RapprochementTab() {
     const { data: paiements } = await supabase
       .from("paiements")
       .select("id, montant, date_paiement, facture_id")
+      .is("deleted_at", null)
       .order("date_paiement", { ascending: false });
 
     if (!paiements?.length) {
