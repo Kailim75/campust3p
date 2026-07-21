@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText, Pencil, Printer, Mail, MessageCircle } from "lucide-react";
+import { Plus, FileText, Pencil, Printer, Mail, MessageCircle, Zap, Euro } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,9 +25,24 @@ import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { formatPhoneForWhatsApp } from "@/lib/phone-utils";
 import { FinancementSection } from "./FinancementSection";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { creerFactureExpress } from "@/lib/facture-express";
+
+/** Pré-remplissage de la facturation express (depuis l'inscription). */
+export interface FactureExpressRequest {
+  sessionInscriptionId: string | null;
+  sessionNom: string;
+  prix: number | null;
+  dateDebut: string | null;
+}
 
 interface PaiementsTabProps {
   contactId: string;
+  /** Ouvre le dialogue de facturation express pré-rempli (règles du 21/07 :
+   *  prix = session, échéance = début de session, envoi email pré-coché). */
+  expressRequest?: FactureExpressRequest | null;
+  onExpressHandled?: () => void;
 }
 
 const statutColors: Record<string, string> = {
@@ -39,11 +54,13 @@ const statutColors: Record<string, string> = {
   annulee: "bg-muted text-muted-foreground",
 };
 
-export function PaiementsTab({ contactId }: PaiementsTabProps) {
+export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: PaiementsTabProps) {
   const queryClient = useQueryClient();
   const { centreFormation } = useCentreFormation();
   const { composerProps, openComposer } = useEmailComposer();
   const [showForm, setShowForm] = useState(false);
+  const [express, setExpress] = useState<{ montant: string; echeance: string; financement: string; envoyerEmail: boolean } | null>(null);
+  const [expressPending, setExpressPending] = useState(false);
   const [showFactureLibre, setShowFactureLibre] = useState(false);
   const [editingFacture, setEditingFacture] = useState<any>(null);
   const [formData, setFormData] = useState({ montant: "", mode: "cb", reference: "", factureId: "" });
@@ -104,6 +121,17 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     },
   });
 
+  // Demande de facturation express (bouton « Générer la facture » du
+  // parcours d'inscription) : pré-remplit et ouvre le dialogue.
+  if (expressRequest && !express) {
+    setExpress({
+      montant: expressRequest.prix != null ? String(expressRequest.prix) : "",
+      echeance: expressRequest.dateDebut || new Date().toISOString().slice(0, 10),
+      financement: "personnel",
+      envoyerEmail: true,
+    });
+  }
+
   const montantTotal = (factures || []).reduce((s, f) => s + Number(f.montant_total || 0), 0);
   const montantPaye = (paiements || []).reduce((s, p) => s + Number(p.montant || 0), 0);
   const restant = montantTotal - montantPaye;
@@ -158,6 +186,52 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
     },
     onError: (error: Error) => toast.error("Erreur : " + error.message),
   });
+
+  const creerExpress = async () => {
+    if (!express || !expressRequest) return;
+    const montant = parseFloat(express.montant);
+    if (!montant || montant <= 0) { toast.error("Montant invalide"); return; }
+    setExpressPending(true);
+    try {
+      const creee = await creerFactureExpress({
+        contactId,
+        sessionInscriptionId: expressRequest.sessionInscriptionId,
+        montant,
+        description: expressRequest.sessionNom,
+        dateEcheance: express.echeance || null,
+        financement: express.financement as "personnel" | "entreprise" | "cpf" | "opco",
+      });
+      queryClient.invalidateQueries({ queryKey: ["apprenant-factures", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries({ queryKey: ["aujourdhui-inbox"] });
+      toast.success(`Facture ${creee.numero_facture} créée`, {
+        description: `${montant.toLocaleString("fr-FR")} € — échéance ${format(parseISO(creee.date_echeance), "dd/MM/yyyy", { locale: fr })}`,
+      });
+      if (express.envoyerEmail) {
+        // Recharge la facture avec ses jointures pour un PDF complet, puis
+        // ouvre le compositeur pré-rempli (un clic « Envoyer » pour partir).
+        const { data: complete } = await supabase
+          .from("factures")
+          .select(`
+            id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
+            session_inscription:session_inscriptions(
+              id, type_payeur, montant_pris_en_charge, reste_a_charge,
+              payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+              session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
+            )
+          `)
+          .eq("id", creee.id)
+          .single();
+        if (complete) handleEmailFacture(complete);
+      }
+      setExpress(null);
+      onExpressHandled?.();
+    } catch (e) {
+      toast.error("Erreur lors de la création de la facture", { description: e instanceof Error ? e.message : undefined });
+    } finally {
+      setExpressPending(false);
+    }
+  };
 
   const enrichFactureWithPayer = (f: any): FactureInfo => {
     const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
@@ -375,6 +449,25 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-0.5">
+                      {(() => {
+                        const restantF = Number(f.montant_total || 0) - (paiements || [])
+                          .filter((pmt: any) => pmt.facture_id === f.id)
+                          .reduce((sm: number, pmt: any) => sm + Number(pmt.montant || 0), 0);
+                        return restantF > 0 && f.statut !== "annulee" ? (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-[11px] gap-1 text-success border-success/30 hover:bg-success/10"
+                            title={`Encaisser le solde (${restantF.toLocaleString("fr-FR")} €)`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFormData({ montant: String(restantF), mode: "cb", reference: "", factureId: f.id });
+                              setShowForm(true);
+                            }}
+                          >
+                            <Euro className="h-3 w-3" /> Encaisser
+                          </Button>
+                        ) : null;
+                      })()}
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); handlePrintFacture(f); }} title="Télécharger PDF">
                         <Printer className="h-3.5 w-3.5" />
                       </Button>
@@ -440,6 +533,59 @@ export function PaiementsTab({ contactId }: PaiementsTabProps) {
         facture={editingFacture}
         contactId={contactId}
       />
+      {express && expressRequest && (
+        <Dialog open onOpenChange={(o) => { if (!o) { setExpress(null); onExpressHandled?.(); } }}>
+          <DialogContent className="sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" /> Facture express
+              </DialogTitle>
+              <DialogDescription>
+                {expressRequest.sessionNom} — tout est pré-rempli, vérifiez et validez.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Montant (€, exonéré de TVA)</Label>
+                <Input type="number" className="h-9" value={express.montant}
+                  onChange={(e) => setExpress({ ...express, montant: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Échéance</Label>
+                <Input type="date" className="h-9" value={express.echeance}
+                  onChange={(e) => setExpress({ ...express, echeance: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Financement</Label>
+                <Select value={express.financement} onValueChange={(v) => setExpress({ ...express, financement: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personnel">Personnel</SelectItem>
+                    <SelectItem value="entreprise">Entreprise</SelectItem>
+                    <SelectItem value="cpf">CPF</SelectItem>
+                    <SelectItem value="opco">OPCO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="col-span-2 flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={express.envoyerEmail}
+                  onCheckedChange={(c) => setExpress({ ...express, envoyerEmail: c === true })} />
+                Préparer l'email avec la facture en PDF (un clic pour envoyer)
+              </label>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setExpress(null); onExpressHandled?.(); }} disabled={expressPending}>
+                Annuler
+              </Button>
+              <Button onClick={creerExpress} disabled={expressPending}>
+                <Zap className="h-3.5 w-3.5 mr-1.5" />
+                {expressPending ? "Création…" : "Créer la facture"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <EmailComposerModal {...composerProps} />
     </div>
   );

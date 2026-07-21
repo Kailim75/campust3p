@@ -19,7 +19,7 @@ import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
 import { CMATab } from "./tabs/CMATab";
 import { CarteProTab } from "./tabs/CarteProTab";
-import { PaiementsTab } from "./tabs/PaiementsTab";
+import { PaiementsTab, type FactureExpressRequest } from "./tabs/PaiementsTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { SuiviTab } from "./tabs/SuiviTab";
 import { FormationTab } from "./tabs/FormationTab";
@@ -106,6 +106,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const [enqueteDialogOpen, setEnqueteDialogOpen] = useState(false);
   const [callLogOpen, setCallLogOpen] = useState(false);
   const [chevaletOpen, setChevaletOpen] = useState(false);
+  const [expressRequest, setExpressRequest] = useState<FactureExpressRequest | null>(null);
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
@@ -280,13 +281,28 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
   const currentCTAStep = getCurrentWorkflowStep();
 
+  // Facturation express (règles du 21/07) : pré-remplie depuis l'inscription
+  // active — prix de la session, échéance = début de session.
+  const demanderFactureExpress = () => {
+    setActiveTab("paiements");
+    if (activeEnrollment?.session) {
+      setExpressRequest({
+        sessionInscriptionId: activeEnrollment.id ?? null,
+        sessionNom: activeEnrollment.session.nom,
+        prix: activeEnrollment.session.prix ?? null,
+        dateDebut: activeEnrollment.session.date_debut ?? null,
+      });
+    } else {
+      toast.info("Aucune inscription active — utilisez « Facture forfait »");
+    }
+  };
+
   const handleCTAAction = () => {
     switch (currentCTAStep) {
       case "complete-profile": setActiveTab("dossier"); break;
       case "assign-session": setShowAssignDialog(true); break;
       case "generate-invoice":
-        setActiveTab("paiements");
-        toast.info("💡 Prochaine étape : Générer la facture", { duration: 3000 });
+        demanderFactureExpress();
         break;
       case "record-payment":
         setActiveTab("paiements");
@@ -668,7 +684,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
             <DocumentsTab contactId={contact.id} contactPrenom={contact.prenom} contactNom={contact.nom} contactEmail={contact.email} contactFormation={contact.formation} />
           </TabsContent>
           <TabsContent value="paiements" className="mt-0">
-            <PaiementsTab contactId={contact.id} />
+            <PaiementsTab contactId={contact.id} expressRequest={expressRequest} onExpressHandled={() => setExpressRequest(null)} />
           </TabsContent>
           <TabsContent value="examens" className="mt-0">
             <ExamensTab contactId={contact.id} formation={contact.formation} track={contactTrack} />
@@ -693,7 +709,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         onOpenChange={(open) => !open && setPostAssignment(null)}
         contactName={contactName}
         sessionName={postAssignment?.sessionName || ""}
-        onGenerateFacture={() => { setPostAssignment(null); setActiveTab("paiements"); }}
+        onGenerateFacture={() => { setPostAssignment(null); demanderFactureExpress(); }}
         onAddDocuments={() => { setPostAssignment(null); setActiveTab("dossier"); }}
         onReturnDashboard={() => setPostAssignment(null)}
       />
