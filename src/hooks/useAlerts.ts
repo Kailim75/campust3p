@@ -336,7 +336,8 @@ export function usePaymentAlerts() {
       // Fetch payments to calculate remaining amounts
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
-        .select("facture_id, montant");
+        .select("facture_id, montant")
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 

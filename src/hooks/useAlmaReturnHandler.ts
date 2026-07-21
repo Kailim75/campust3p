@@ -27,6 +27,7 @@ export function useAlmaReturnHandler() {
             .from("paiements")
             .select("id, montant, reference")
             .eq("facture_id", factureId)
+            .is("deleted_at", null)
             .ilike("reference", "ALMA-%")
             .order("created_at", { ascending: false })
             .limit(1)

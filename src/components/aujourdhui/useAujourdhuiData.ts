@@ -64,7 +64,7 @@ export function useAujourdhuiData() {
         supabase.from("contacts").select("id, nom, prenom, formation, statut, statut_apprenant, statut_cma, email, telephone, email_interne, email_interne_consulte_le, updated_at, is_historical_import, requalification_category, archived, deleted_at").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
         fetchSharedContactDocs(queryClient),
         supabase.from("factures").select("id, contact_id, session_inscription_id, montant_total, statut, date_echeance").is("deleted_at", null),
-        supabase.from("paiements").select("facture_id, montant"),
+        supabase.from("paiements").select("facture_id, montant").is("deleted_at", null),
         supabase.from("prospects").select("*").eq("is_active", true).not("statut", "in", '("converti","perdu")'),
         supabase
           .from("sessions")

@@ -21,7 +21,7 @@ function useStrategicData() {
 
       const [facturesRes, paiementsRes, sessionsRes, inscriptionsRes, contactsRes, chargesRes] = await Promise.all([
         supabase.from("factures").select("montant_total, statut, date_emission").not("statut", "eq", "annulee"),
-        supabase.from("paiements").select("montant, date_paiement"),
+        supabase.from("paiements").select("montant, date_paiement").is("deleted_at", null),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut, formation_type").eq("archived", false).gte("date_fin", todayStr),
         supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         supabase.from("contacts").select("id, statut, source").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
