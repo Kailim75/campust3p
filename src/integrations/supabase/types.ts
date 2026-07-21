@@ -7415,6 +7415,8 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           documents_envoyes: string[] | null
+          facturation_exoneree: boolean
+          facturation_exoneree_motif: string | null
           id: string
           montant_formation: number | null
           montant_pris_en_charge: number | null
@@ -7442,6 +7444,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           documents_envoyes?: string[] | null
+          facturation_exoneree?: boolean
+          facturation_exoneree_motif?: string | null
           id?: string
           montant_formation?: number | null
           montant_pris_en_charge?: number | null
@@ -7469,6 +7473,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           documents_envoyes?: string[] | null
+          facturation_exoneree?: boolean
+          facturation_exoneree_motif?: string | null
           id?: string
           montant_formation?: number | null
           montant_pris_en_charge?: number | null
