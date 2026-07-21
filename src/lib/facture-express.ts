@@ -99,10 +99,13 @@ export interface InscritSansFacture {
  * facture est annulée est bien à re-facturer.
  */
 export async function listerInscritsSansFacture(sessionId: string): Promise<InscritSansFacture[]> {
+  // facturation_exoneree = repassage déjà payé (règle du 22/07/2026) : ne
+  // JAMAIS proposer ces inscrits à la facturation.
   const { data: inscriptions, error } = await supabase
     .from("session_inscriptions")
     .select("id, contact_id, contact:contacts(prenom, nom, archived, deleted_at)")
     .eq("session_id", sessionId)
+    .eq("facturation_exoneree", false)
     .is("deleted_at", null);
   if (error) throw error;
 

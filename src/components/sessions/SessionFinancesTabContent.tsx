@@ -41,6 +41,9 @@ interface LigneInscrit {
   nbAutresFactures: number;
   restant: number;
   enRetard: boolean;
+  /** Repassage déjà payé (ou geste commercial) : jamais proposé à la facturation. */
+  exoneree: boolean;
+  exonereeMotif: string | null;
 }
 
 const statutFactureLabels: Record<string, { label: string; class: string }> = {
@@ -60,6 +63,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
   const [paiementCible, setPaiementCible] = useState<{ factureId: string; restant: number } | null>(null);
   const [relanceCible, setRelanceCible] = useState<LigneInscrit | null>(null);
   const [expressLigne, setExpressLigne] = useState<LigneInscrit | null>(null);
+  const [exonererCible, setExonererCible] = useState<LigneInscrit | null>(null);
   const [relancePendingId, setRelancePendingId] = useState<string | null>(null);
 
   const { data: inscriptions } = useSessionInscriptions(sessionId);
@@ -90,6 +94,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
     return inscriptions
       .map((i) => {
         const contact = (i as { contacts?: { prenom?: string; nom?: string; email?: string | null } }).contacts;
+        const exo = i as { facturation_exoneree?: boolean | null; facturation_exoneree_motif?: string | null };
         const toutes = (facturesData.parInscription[i.id] || []).filter(estFactureActive);
         // La facture « principale » affichée : la plus récente non soldée,
         // sinon la plus récente tout court.
@@ -106,15 +111,41 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
           nbAutresFactures: Math.max(0, toutes.length - 1),
           restant,
           enRetard: toutes.some(estFactureEnRetard),
+          exoneree: !!exo.facturation_exoneree,
+          exonereeMotif: exo.facturation_exoneree_motif || null,
         };
       })
       .sort((a, b) => {
-        // Non facturés d'abord, puis en retard, puis restant décroissant.
-        if (!a.facture !== !b.facture) return a.facture ? 1 : -1;
+        // À facturer d'abord (non facturés non exonérés), puis en retard,
+        // puis restant décroissant ; repassages et soldées en bas.
+        const aAFacturer = !a.facture && !a.exoneree;
+        const bAFacturer = !b.facture && !b.exoneree;
+        if (aAFacturer !== bAFacturer) return aAFacturer ? -1 : 1;
         if (a.enRetard !== b.enRetard) return a.enRetard ? -1 : 1;
         return b.restant - a.restant || a.nom.localeCompare(b.nom);
       });
   }, [inscriptions, facturesData]);
+
+  const setExoneration = async (ligne: LigneInscrit, exoneree: boolean) => {
+    const { error } = await supabase
+      .from("session_inscriptions")
+      .update({
+        facturation_exoneree: exoneree,
+        facturation_exoneree_motif: exoneree ? "Repassage — formation déjà payée" : null,
+      })
+      .eq("id", ligne.inscriptionId);
+    if (error) {
+      toast.error("Erreur : " + error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });
+    queryClient.invalidateQueries({ queryKey: ["session-inscrits-sans-facture"] });
+    toast.success(
+      exoneree
+        ? `${ligne.prenom} ${ligne.nom} marqué « repassage — déjà payé » : plus jamais proposé à la facturation`
+        : `Facturation rétablie pour ${ligne.prenom} ${ligne.nom}`,
+    );
+  };
 
   const invalidations = () => {
     queryClient.invalidateQueries({ queryKey: ["factures"] });
@@ -232,6 +263,14 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
                           <span className="text-[10px] text-muted-foreground">+{ligne.nbAutresFactures}</span>
                         )}
                       </span>
+                    ) : ligne.exoneree ? (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] border-info/40 text-info"
+                        title={ligne.exonereeMotif || undefined}
+                      >
+                        Repassage — déjà payé
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                         Non facturé
@@ -247,16 +286,36 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {!ligne.facture && (
+                      {!ligne.facture && !ligne.exoneree && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            disabled={facturationPending}
+                            onClick={() => setExpressLigne(ligne)}
+                          >
+                            <Zap className="h-3.5 w-3.5 mr-1" />
+                            Facturer
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground"
+                            onClick={() => setExonererCible(ligne)}
+                          >
+                            Déjà payé
+                          </Button>
+                        </>
+                      )}
+                      {!ligne.facture && ligne.exoneree && (
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-xs"
-                          disabled={facturationPending}
-                          onClick={() => setExpressLigne(ligne)}
+                          className="h-7 px-2 text-xs text-muted-foreground"
+                          onClick={() => setExoneration(ligne, false)}
                         >
-                          <Zap className="h-3.5 w-3.5 mr-1" />
-                          Facturer
+                          Rétablir la facturation
                         </Button>
                       )}
                       {ligne.facture && ligne.restant > 0 && (
@@ -372,6 +431,35 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
                 Envoyer la relance
               </AlertDialogAction>
             )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!exonererCible} onOpenChange={(open) => !open && setExonererCible(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marquer « repassage — déjà payé » ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {exonererCible && (
+                <>
+                  <span className="font-medium text-foreground">{exonererCible.prenom} {exonererCible.nom}</span>
+                  {" "}a déjà réglé cette formation (échec puis réinscription). Cette inscription ne sera
+                  plus jamais proposée à la facturation — ni ici, ni dans « Facturer les non-facturés » —
+                  et ne comptera plus dans le potentiel de la session. Réversible à tout moment.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (exonererCible) setExoneration(exonererCible, true);
+                setExonererCible(null);
+              }}
+            >
+              Marquer déjà payé
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

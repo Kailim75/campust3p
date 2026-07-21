@@ -32,7 +32,8 @@ interface SessionInfoRow {
  */
 function calculerSynthese(
   data: SessionFacturesData,
-  nbInscrits: number,
+  nbInscritsFacturables: number,
+  exonereeIds: Set<string>,
   prixSession: number,
 ) {
   const actives = data.factures.filter(estFactureActive);
@@ -43,10 +44,12 @@ function calculerSynthese(
   const retardMontant = enRetard.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
   const tauxRecouvrement = totalFacture > 0 ? (totalEncaisse / totalFacture) * 100 : 0;
 
-  const nonFactures = Object.values(data.parInscription).filter(
-    (fs) => fs.filter(estFactureActive).length === 0,
+  const nonFactures = Object.entries(data.parInscription).filter(
+    ([id, fs]) => !exonereeIds.has(id) && fs.filter(estFactureActive).length === 0,
   ).length;
-  const potentiel = nbInscrits * prixSession;
+  // Les repassages déjà payés ne comptent ni dans le potentiel ni dans le
+  // manque à facturer : leur formation a été réglée sur une session passée.
+  const potentiel = nbInscritsFacturables * prixSession;
   const manqueAFacturer = Math.max(0, potentiel - totalFacture);
 
   return {
@@ -63,6 +66,7 @@ function calculerSynthese(
     nonFactures,
     potentiel,
     manqueAFacturer,
+    repassages: exonereeIds.size,
   };
 }
 
@@ -93,9 +97,15 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
   }
   if (!facturesData) return null;
 
+  const exonereeIds = new Set(
+    (inscriptions || [])
+      .filter((i) => (i as { facturation_exoneree?: boolean | null }).facturation_exoneree)
+      .map((i) => i.id),
+  );
   const synthese = calculerSynthese(
     facturesData,
-    inscriptions?.length || 0,
+    (inscriptions?.length || 0) - exonereeIds.size,
+    exonereeIds,
     Number(sessionInfo?.prix || 0),
   );
 
@@ -194,6 +204,12 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
           <div className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-full bg-destructive" />
             <span>{synthese.enRetardCount} en retard</span>
+          </div>
+        )}
+        {synthese.repassages > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-info" />
+            <span>{synthese.repassages} repassage{synthese.repassages > 1 ? "s" : ""} sans frais</span>
           </div>
         )}
       </div>
