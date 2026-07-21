@@ -382,17 +382,25 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const facturesEnAttentePrev = facturesEnAttenteList.length; // same snapshot, delta shown as "—"
 
   // ── Paiements en retard ──
-  // Only "emise" invoices past their due date, with non-zero amount
+  // Définition canonique (alignée sur l'onglet « En retard » de la page
+  // Factures) : émise/partielle/impayée, échéance dépassée, restant dû > 0.
+  // Montant = restant dû, pas le total facturé.
+  const totalPaiementsParFacture = new Map<string, number>();
+  paiements.forEach((p) => {
+    totalPaiementsParFacture.set(p.facture_id, (totalPaiementsParFacture.get(p.facture_id) || 0) + Number(p.montant || 0));
+  });
+  const restantDu = (f: { id: string; montant_total: number | null }) =>
+    Math.max(0, Number(f.montant_total || 0) - (totalPaiementsParFacture.get(f.id) || 0));
   const paiementsRetardList = factures.filter(
     (f) =>
-      f.statut === "emise" &&
+      (f.statut === "emise" || f.statut === "partiel" || f.statut === "impayee") &&
       f.date_echeance != null &&
       f.date_echeance < todayStr &&
-      Number(f.montant_total || 0) > 0
+      restantDu(f) > 0
   );
   const paiementsRetard = paiementsRetardList.length;
   const paiementsRetardMontant = paiementsRetardList.reduce(
-    (s, f) => s + Number(f.montant_total || 0),
+    (s, f) => s + restantDu(f),
     0
   );
   let paiementsRetardAgeDays = 0;
@@ -495,16 +503,10 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const panierMoyenPrev = inscriptionsCountPrev > 0 ? Math.round(caFacturePrev / inscriptionsCountPrev) : 0;
 
   // ── Reste à encaisser = factures émises non soldées ──
-  const totalPaiementsParFacture = new Map<string, number>();
-  paiements.forEach((p) => {
-    totalPaiementsParFacture.set(p.facture_id, (totalPaiementsParFacture.get(p.facture_id) || 0) + Number(p.montant || 0));
-  });
+  // (totalPaiementsParFacture et restantDu définis avec les paiements en retard)
   const resteAEncaisser = factures
     .filter((f) => (f.statut === "emise" || f.statut === "partiel" || f.statut === "impayee") && Number(f.montant_total || 0) > 0)
-    .reduce((s, f) => {
-      const paye = totalPaiementsParFacture.get(f.id) || 0;
-      return s + Math.max(0, Number(f.montant_total) - paye);
-    }, 0);
+    .reduce((s, f) => s + restantDu(f), 0);
 
   // ── Taux de remplissage global (sessions actives) ──
   const sessionsAvecCapacite = activeSessions.filter((s) => (s.places_totales || 0) > 0);
