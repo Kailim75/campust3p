@@ -22,6 +22,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -260,6 +270,52 @@ export function PaiementsPage() {
     setPaiementFactureId(factureId);
     setPaiementMontantRestant(montantRestant);
   };
+
+  // Relance par email : toujours derrière une confirmation (le bouton est
+  // désormais visible sur chaque ligne en retard — un envoi direct au clic
+  // serait un piège à mauvais clic).
+  const [relanceFacture, setRelanceFacture] = useState<FactureWithDetails | null>(null);
+
+  const sendRelance = useCallback(async (facture: FactureWithDetails) => {
+    if (!facture.contact?.email) {
+      toast.error("Aucun email pour ce contact");
+      return;
+    }
+    const montantRestant = Number(facture.montant_total) - facture.total_paye;
+    toast.loading("Envoi de la relance...", { id: "relance-" + facture.id });
+    try {
+      const contactName = `${facture.contact.prenom} ${facture.contact.nom}`;
+      const montantDu = montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+      const dateEcheance = facture.date_echeance
+        ? format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
+        : "non définie";
+      const subject = `Relance paiement - Facture ${facture.numero_facture}`;
+      const html = `
+        <p>Bonjour ${facture.contact.prenom},</p>
+        <p>Nous nous permettons de vous rappeler que la facture <strong>${facture.numero_facture}</strong> d'un montant restant dû de <strong>${montantDu}€</strong> (échéance : ${dateEcheance}) est en attente de règlement.</p>
+        <p>Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les meilleurs délais.</p>
+        <p>Si le règlement a déjà été effectué, veuillez ne pas tenir compte de ce message.</p>
+        <p>Cordialement,<br/>L'équipe Ecole T3P</p>
+      `;
+      const { data, error } = await supabase.functions.invoke("send-automated-emails", {
+        body: {
+          type: "direct_email",
+          to: facture.contact.email,
+          recipientName: contactName,
+          subject,
+          html,
+          contactId: facture.contact_id,
+          factureId: facture.id,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Relance envoyée à " + facture.contact.email, { id: "relance-" + facture.id });
+    } catch (err: any) {
+      console.error("Erreur envoi relance:", err);
+      toast.error("Erreur lors de l'envoi de la relance: " + (err.message || "Erreur inconnue"), { id: "relance-" + facture.id });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -719,74 +775,68 @@ export function PaiementsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDetail(facture.id);
-                            }}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Voir facture
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={async (e) => {
-                              e.stopPropagation();
-                              if (!facture.contact?.email) {
-                                toast.error("Aucun email pour ce contact");
-                                return;
-                              }
-                              toast.loading("Envoi de la relance...", { id: "relance-" + facture.id });
-                              try {
-                                const contactName = `${facture.contact.prenom} ${facture.contact.nom}`;
-                                const montantDu = montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
-                                const dateEcheance = facture.date_echeance
-                                  ? format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
-                                  : "non définie";
-                                const subject = `Relance paiement - Facture ${facture.numero_facture}`;
-                                const html = `
-                                  <p>Bonjour ${facture.contact.prenom},</p>
-                                  <p>Nous nous permettons de vous rappeler que la facture <strong>${facture.numero_facture}</strong> d'un montant restant dû de <strong>${montantDu}€</strong> (échéance : ${dateEcheance}) est en attente de règlement.</p>
-                                  <p>Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les meilleurs délais.</p>
-                                  <p>Si le règlement a déjà été effectué, veuillez ne pas tenir compte de ce message.</p>
-                                  <p>Cordialement,<br/>L'équipe Ecole T3P</p>
-                                `;
-                                const { data, error } = await supabase.functions.invoke("send-automated-emails", {
-                                  body: {
-                                    type: "direct_email",
-                                    to: facture.contact.email,
-                                    recipientName: contactName,
-                                    subject,
-                                    html,
-                                    contactId: facture.contact_id,
-                                    factureId: facture.id,
-                                  },
-                                });
-                                if (error) throw error;
-                                if (data?.error) throw new Error(data.error);
-                                toast.success("Relance envoyée à " + facture.contact.email, { id: "relance-" + facture.id });
-                              } catch (err: any) {
-                                console.error("Erreur envoi relance:", err);
-                                toast.error("Erreur lors de l'envoi de la relance: " + (err.message || "Erreur inconnue"), { id: "relance-" + facture.id });
-                              }
-                            }}>
-                              <Send className="h-4 w-4 mr-2" />
-                              Envoyer relance
-                            </DropdownMenuItem>
-                            {montantRestant > 0 && (
-                              <DropdownMenuItem onClick={(e) => {
+                        <div className="flex items-center justify-end gap-1">
+                          {montantRestant > 0 && facture.statut !== "brouillon" && facture.statut !== "annulee" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 handleAddPaiement(facture.id, montantRestant);
+                              }}
+                            >
+                              <Euro className="h-3.5 w-3.5 mr-1" />
+                              Encaisser
+                            </Button>
+                          )}
+                          {estEnRetard(facture) && montantRestant > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRelanceFacture(facture);
+                              }}
+                            >
+                              <Send className="h-3.5 w-3.5 mr-1" />
+                              Relancer
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDetail(facture.id);
                               }}>
-                                <Euro className="h-4 w-4 mr-2" />
-                                Enregistrer paiement
+                                <FileText className="h-4 w-4 mr-2" />
+                                Voir facture
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                setRelanceFacture(facture);
+                              }}>
+                                <Send className="h-4 w-4 mr-2" />
+                                Envoyer relance
+                              </DropdownMenuItem>
+                              {montantRestant > 0 && (
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddPaiement(facture.id, montantRestant);
+                                }}>
+                                  <Euro className="h-4 w-4 mr-2" />
+                                  Enregistrer paiement
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -860,6 +910,42 @@ export function PaiementsPage() {
         onOpenChange={setComplianceOpen}
         numeroFacture={complianceNumero}
       />
+
+      <AlertDialog open={!!relanceFacture} onOpenChange={(open) => !open && setRelanceFacture(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Envoyer une relance de paiement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {relanceFacture && (
+                relanceFacture.contact?.email ? (
+                  <>
+                    Un email de relance pour la facture{" "}
+                    <span className="font-medium text-foreground">{relanceFacture.numero_facture}</span>
+                    {" "}({Math.max(0, Number(relanceFacture.montant_total) - relanceFacture.total_paye).toLocaleString("fr-FR")} € restant dû)
+                    sera envoyé immédiatement à{" "}
+                    <span className="font-medium text-foreground">{relanceFacture.contact.email}</span>.
+                  </>
+                ) : (
+                  <>Ce contact n'a pas d'adresse email : la relance ne peut pas être envoyée. Renseignez l'email sur sa fiche.</>
+                )
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            {relanceFacture?.contact?.email && (
+              <AlertDialogAction
+                onClick={() => {
+                  if (relanceFacture) sendRelance(relanceFacture);
+                  setRelanceFacture(null);
+                }}
+              >
+                Envoyer la relance
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
