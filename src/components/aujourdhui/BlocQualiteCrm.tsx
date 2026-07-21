@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, CheckCircle2, Database, ExternalLink, ShieldCheck, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Database, ExternalLink, GitMerge, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { FusionContactsDialog } from "./FusionContactsDialog";
 import type { AutoNote, CrmQualityItem, CrmQualitySummary } from "./aujourdhui-types";
+import type { CrmQualityRecord } from "@/lib/crm-quality";
 import type { Prospect } from "@/hooks/useProspects";
 
 interface BlocQualiteCrmProps {
@@ -42,6 +45,11 @@ export function BlocQualiteCrm({
   openProspect,
   markDone,
 }: BlocQualiteCrmProps) {
+  // Fusion : uniquement les doublons composés d'exactement deux fiches
+  // CONTACT (un doublon contact/prospect se règle par la conversion ou la
+  // perte du prospect, pas par une fusion).
+  const [fusionRecords, setFusionRecords] = useState<[CrmQualityRecord, CrmQualityRecord] | null>(null);
+
   if (!summary || summary.totalIssues === 0) return null;
 
   const visibleItems = items.slice(0, 8);
@@ -52,6 +60,12 @@ export function BlocQualiteCrm({
       return;
     }
     openContact(item.ownerId);
+  };
+
+  const paireFusionnable = (item: CrmQualityItem): [CrmQualityRecord, CrmQualityRecord] | null => {
+    if (item.type !== "duplicate") return null;
+    const contacts = item.records.filter((r) => r.source === "contact");
+    return contacts.length === 2 ? [contacts[0], contacts[1]] : null;
   };
 
   return (
@@ -159,6 +173,19 @@ export function BlocQualiteCrm({
                 <LastActionLine todayNotes={todayNotes} recentNotes={recentNotes} contactId={item.ownerId} />
               </div>
               <div className="flex gap-1.5 mt-1 pl-5">
+                {(() => {
+                  const paire = paireFusionnable(item);
+                  return paire ? (
+                    <Button
+                      size="sm"
+                      className="h-7 text-[11px] gap-1"
+                      onClick={() => setFusionRecords(paire)}
+                    >
+                      <GitMerge className="h-3 w-3" />
+                      Fusionner
+                    </Button>
+                  ) : null;
+                })()}
                 <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openItem(item)}>
                   {item.actionLabel}
                 </Button>
@@ -168,6 +195,17 @@ export function BlocQualiteCrm({
           );
         })}
       </div>
+
+      {fusionRecords && (
+        <FusionContactsDialog
+          // Remontage forcé à chaque paire : l'état interne (fiche à garder)
+          // ne doit jamais survivre d'un doublon au suivant.
+          key={`${fusionRecords[0].id}-${fusionRecords[1].id}`}
+          open={!!fusionRecords}
+          onOpenChange={(open) => { if (!open) setFusionRecords(null); }}
+          records={fusionRecords}
+        />
+      )}
     </Card>
   );
 }
