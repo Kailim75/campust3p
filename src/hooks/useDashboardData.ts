@@ -424,9 +424,17 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   const sessionsRisquePrev = sessionsRisque; // snapshot
 
   // ── Apprenants critiques (missing CMA docs or carte pro) ──
+  // Même assiette que le hub « Aujourd'hui » : uniquement les contacts
+  // actifs non historiques (la liste `contacts` est déjà filtrée). Avant,
+  // les ids venaient des inscriptions SANS ce filtre : les imports SmartOF
+  // et les archivés gonflaient « Dossiers incomplets » (181 affichés au
+  // tableau de bord contre 0 réellement actionnables au hub — audit du
+  // 21/07, point D).
+  const contactsSuivis = new Set(contacts.map((c) => c.id));
   const initialContactIds = new Set<string>();
   const continuingContactIds = new Set<string>();
   inscriptions.forEach((i) => {
+    if (!contactsSuivis.has(i.contact_id)) return;
     if (i.track === "initial") initialContactIds.add(i.contact_id);
     else if (i.track === "continuing") continuingContactIds.add(i.contact_id);
   });
