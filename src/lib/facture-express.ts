@@ -89,7 +89,15 @@ export interface InscritSansFacture {
   nom: string;
 }
 
-/** Les inscrits d'une session sans aucune facture rattachée à leur inscription. */
+/**
+ * Les inscrits d'une session sans aucune facture — ni rattachée à leur
+ * inscription, ni historique du contact jamais rattachée (même repli que
+ * l'onglet Inscrits). Audit du 21/07/2026 : sans ce repli, le bouton
+ * « Facturer les non-facturés » proposait de re-facturer des inscrits dont
+ * la facture (payée) était simplement antérieure au rattachement par
+ * inscription. Les annulées ne comptent pas : un inscrit dont la seule
+ * facture est annulée est bien à re-facturer.
+ */
 export async function listerInscritsSansFacture(sessionId: string): Promise<InscritSansFacture[]> {
   const { data: inscriptions, error } = await supabase
     .from("session_inscriptions")
@@ -100,17 +108,30 @@ export async function listerInscritsSansFacture(sessionId: string): Promise<Insc
 
   const ids = (inscriptions || []).map((i) => i.id);
   if (ids.length === 0) return [];
+  const contactIds = [...new Set((inscriptions || []).map((i) => i.contact_id))];
 
-  const { data: factures, error: factureError } = await supabase
-    .from("factures")
-    .select("session_inscription_id")
-    .in("session_inscription_id", ids)
-    .is("deleted_at", null);
-  if (factureError) throw factureError;
+  const [liees, legacy] = await Promise.all([
+    supabase
+      .from("factures")
+      .select("session_inscription_id")
+      .in("session_inscription_id", ids)
+      .is("deleted_at", null)
+      .neq("statut", "annulee"),
+    supabase
+      .from("factures")
+      .select("contact_id")
+      .in("contact_id", contactIds)
+      .is("session_inscription_id", null)
+      .is("deleted_at", null)
+      .neq("statut", "annulee"),
+  ]);
+  if (liees.error) throw liees.error;
+  if (legacy.error) throw legacy.error;
 
-  const deja = new Set((factures || []).map((f) => f.session_inscription_id));
+  const deja = new Set((liees.data || []).map((f) => f.session_inscription_id));
+  const contactsAvecLegacy = new Set((legacy.data || []).map((f) => f.contact_id));
   return (inscriptions || [])
-    .filter((i) => !deja.has(i.id))
+    .filter((i) => !deja.has(i.id) && !contactsAvecLegacy.has(i.contact_id))
     .filter((i) => {
       const c = i.contact as { archived?: boolean; deleted_at?: string | null } | null;
       return c && !c.archived && !c.deleted_at;

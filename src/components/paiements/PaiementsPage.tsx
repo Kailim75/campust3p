@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
 import { Header } from "@/components/layout/Header";
-import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +46,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useFactures, useFacturesStats, FinancementType, FactureStatut, FactureWithDetails, useBulkEmitFactures } from "@/hooks/useFactures";
+import { envoyerRelancePaiement } from "@/lib/relance-paiement";
 import { isHighRiskFacture, sortByRiskPriority } from "@/components/facturation/FacturationIntelligence";
 import { FactureFormDialog } from "./FactureFormDialog";
 import { FactureDetailSheet } from "./FactureDetailSheet";
@@ -287,39 +287,22 @@ export function PaiementsPage() {
       toast.error("Aucun email pour ce contact");
       return;
     }
-    const montantRestant = Number(facture.montant_total) - facture.total_paye;
     toast.loading("Envoi de la relance...", { id: "relance-" + facture.id });
     try {
-      const contactName = `${facture.contact.prenom} ${facture.contact.nom}`;
-      const montantDu = montantRestant.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
-      const dateEcheance = facture.date_echeance
-        ? format(new Date(facture.date_echeance), "dd/MM/yyyy", { locale: fr })
-        : "non définie";
-      const subject = `Relance paiement - Facture ${facture.numero_facture}`;
-      const html = `
-        <p>Bonjour ${facture.contact.prenom},</p>
-        <p>Nous nous permettons de vous rappeler que la facture <strong>${facture.numero_facture}</strong> d'un montant restant dû de <strong>${montantDu}€</strong> (échéance : ${dateEcheance}) est en attente de règlement.</p>
-        <p>Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les meilleurs délais.</p>
-        <p>Si le règlement a déjà été effectué, veuillez ne pas tenir compte de ce message.</p>
-        <p>Cordialement,<br/>L'équipe Ecole T3P</p>
-      `;
-      const { data, error } = await supabase.functions.invoke("send-automated-emails", {
-        body: {
-          type: "direct_email",
-          to: facture.contact.email,
-          recipientName: contactName,
-          subject,
-          html,
-          contactId: facture.contact_id,
-          factureId: facture.id,
-        },
+      await envoyerRelancePaiement({
+        factureId: facture.id,
+        numeroFacture: facture.numero_facture,
+        contactId: facture.contact_id!,
+        email: facture.contact.email,
+        prenom: facture.contact.prenom,
+        nom: facture.contact.nom,
+        montantRestant: Number(facture.montant_total) - facture.total_paye,
+        dateEcheance: facture.date_echeance,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       toast.success("Relance envoyée à " + facture.contact.email, { id: "relance-" + facture.id });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erreur envoi relance:", err);
-      toast.error("Erreur lors de l'envoi de la relance: " + (err.message || "Erreur inconnue"), { id: "relance-" + facture.id });
+      toast.error("Erreur lors de l'envoi de la relance: " + ((err as Error).message || "Erreur inconnue"), { id: "relance-" + facture.id });
     }
   }, []);
 

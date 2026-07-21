@@ -1,8 +1,14 @@
-import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Euro, Receipt, CheckCircle, AlertCircle } from "lucide-react";
-import { useFactures } from "@/hooks/useFactures";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  useSessionFactures,
+  estFactureActive,
+  estFactureEnRetard,
+  type SessionFacturesData,
+} from "@/hooks/useSessionFactures";
 import { useSessionInscriptions } from "@/hooks/useSessions";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -10,41 +16,73 @@ interface SessionFinancialSummaryProps {
   sessionId: string;
 }
 
+interface SessionInfoRow {
+  nom: string;
+  prix: number | null;
+  date_debut: string | null;
+}
+
+/**
+ * Synthèse calculée hors composant (pas de hook après retour anticipé).
+ * Règles canoniques de l'audit Finances : brouillons et annulées exclus des
+ * totaux, restant dû clampé par facture, « en attente » = émise + impayée.
+ * Le potentiel (inscrits × prix session) rend visible le manque à facturer
+ * — l'ancienne synthèse affichait « recouvrement 100 % » sur une session
+ * dont la moitié des inscrits n'avait jamais été facturée.
+ */
+function calculerSynthese(
+  data: SessionFacturesData,
+  nbInscrits: number,
+  prixSession: number,
+) {
+  const actives = data.factures.filter(estFactureActive);
+  const totalFacture = actives.reduce((s, f) => s + f.montant_total, 0);
+  const totalEncaisse = actives.reduce((s, f) => s + f.total_paye, 0);
+  const restantDu = actives.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
+  const enRetard = actives.filter(estFactureEnRetard);
+  const retardMontant = enRetard.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
+  const tauxRecouvrement = totalFacture > 0 ? (totalEncaisse / totalFacture) * 100 : 0;
+
+  const nonFactures = Object.values(data.parInscription).filter(
+    (fs) => fs.filter(estFactureActive).length === 0,
+  ).length;
+  const potentiel = nbInscrits * prixSession;
+  const manqueAFacturer = Math.max(0, potentiel - totalFacture);
+
+  return {
+    totalFacture,
+    totalEncaisse,
+    restantDu,
+    tauxRecouvrement,
+    nbFactures: actives.length,
+    facturesPayees: actives.filter((f) => f.statut === "payee").length,
+    facturesEnAttente: actives.filter((f) => f.statut === "emise" || f.statut === "impayee").length,
+    facturesPartielles: actives.filter((f) => f.statut === "partiel").length,
+    enRetardCount: enRetard.length,
+    retardMontant,
+    nonFactures,
+    potentiel,
+    manqueAFacturer,
+  };
+}
+
 export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryProps) {
   const { data: inscriptions, isLoading: inscriptionsLoading } = useSessionInscriptions(sessionId);
-  const { data: allFactures, isLoading: facturesLoading } = useFactures();
-
-  const financialData = useMemo(() => {
-    if (!inscriptions || !allFactures) return null;
-
-    const inscriptionIds = inscriptions.map((i) => i.id);
-    const sessionFactures = allFactures.filter(
-      (f) => f.session_inscription_id && inscriptionIds.includes(f.session_inscription_id)
-    );
-
-    const totalFacture = sessionFactures.reduce((sum, f) => sum + Number(f.montant_total || 0), 0);
-    const totalEncaisse = sessionFactures.reduce((sum, f) => sum + Number(f.total_paye || 0), 0);
-    const restantDu = totalFacture - totalEncaisse;
-    const tauxRecouvrement = totalFacture > 0 ? (totalEncaisse / totalFacture) * 100 : 0;
-    
-    const facturesPayees = sessionFactures.filter((f) => f.statut === "payee").length;
-    const facturesEnAttente = sessionFactures.filter((f) => f.statut === "emise" || f.statut === "annulee").length;
-    const facturesPartielles = sessionFactures.filter((f) => f.statut === "partiel").length;
-
-    return {
-      totalFacture,
-      totalEncaisse,
-      restantDu,
-      tauxRecouvrement,
-      nbFactures: sessionFactures.length,
-      facturesPayees,
-      facturesEnAttente,
-      facturesPartielles,
-    };
-  }, [inscriptions, allFactures]);
+  const { data: facturesData, isLoading: facturesLoading } = useSessionFactures(sessionId);
+  const { data: sessionInfo } = useQuery({
+    queryKey: ["session-facturation-info", sessionId],
+    queryFn: async (): Promise<SessionInfoRow> => {
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("nom, prix, date_debut")
+        .eq("id", sessionId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const isLoading = inscriptionsLoading || facturesLoading;
-
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -53,8 +91,15 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
       </div>
     );
   }
+  if (!facturesData) return null;
 
-  if (!financialData || financialData.nbFactures === 0) {
+  const synthese = calculerSynthese(
+    facturesData,
+    inscriptions?.length || 0,
+    Number(sessionInfo?.prix || 0),
+  );
+
+  if (synthese.nbFactures === 0 && synthese.potentiel === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-4">
         Aucune facture liée à cette session
@@ -64,14 +109,23 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
 
   return (
     <div className="space-y-4">
-      {/* Main financial metrics */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="bg-muted/40">
+          <CardContent className="p-3 text-center">
+            <Euro className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Potentiel</p>
+            <p className="text-lg font-bold text-foreground">
+              {synthese.potentiel.toLocaleString("fr-FR")} €
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-3 text-center">
             <Receipt className="h-4 w-4 mx-auto mb-1 text-primary" />
-            <p className="text-xs text-muted-foreground">Total facturé</p>
+            <p className="text-xs text-muted-foreground">Facturé</p>
             <p className="text-lg font-bold text-primary">
-              {financialData.totalFacture.toLocaleString("fr-FR")} €
+              {synthese.totalFacture.toLocaleString("fr-FR")} €
             </p>
           </CardContent>
         </Card>
@@ -81,7 +135,7 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
             <CheckCircle className="h-4 w-4 mx-auto mb-1 text-success" />
             <p className="text-xs text-muted-foreground">Encaissé</p>
             <p className="text-lg font-bold text-success">
-              {financialData.totalEncaisse.toLocaleString("fr-FR")} €
+              {synthese.totalEncaisse.toLocaleString("fr-FR")} €
             </p>
           </CardContent>
         </Card>
@@ -91,40 +145,55 @@ export function SessionFinancialSummary({ sessionId }: SessionFinancialSummaryPr
             <AlertCircle className="h-4 w-4 mx-auto mb-1 text-warning" />
             <p className="text-xs text-muted-foreground">Restant dû</p>
             <p className="text-lg font-bold text-warning">
-              {financialData.restantDu.toLocaleString("fr-FR")} €
+              {synthese.restantDu.toLocaleString("fr-FR")} €
             </p>
+            {synthese.enRetardCount > 0 && (
+              <p className="text-[10px] text-destructive">
+                dont {synthese.retardMontant.toLocaleString("fr-FR")} € en retard
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Progress bar */}
+      {synthese.manqueAFacturer > 0 && synthese.nonFactures > 0 && (
+        <p className="text-xs text-warning flex items-center gap-1.5">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          {synthese.nonFactures} inscrit{synthese.nonFactures > 1 ? "s" : ""} non facturé
+          {synthese.nonFactures > 1 ? "s" : ""} — {synthese.manqueAFacturer.toLocaleString("fr-FR")} €
+          de manque à facturer sur le potentiel.
+        </p>
+      )}
+
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Taux de recouvrement</span>
-          <span className="font-medium">{financialData.tauxRecouvrement.toFixed(0)}%</span>
+          <span className="text-muted-foreground">Taux de recouvrement (sur facturé)</span>
+          <span className="font-medium">{synthese.tauxRecouvrement.toFixed(0)}%</span>
         </div>
-        <Progress 
-          value={financialData.tauxRecouvrement} 
-          className="h-2"
-        />
+        <Progress value={synthese.tauxRecouvrement} className="h-2" />
       </div>
 
-      {/* Invoice status breakdown */}
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <div className="h-2 w-2 rounded-full bg-success" />
-          <span>{financialData.facturesPayees} payée{financialData.facturesPayees > 1 ? "s" : ""}</span>
+          <span>{synthese.facturesPayees} payée{synthese.facturesPayees > 1 ? "s" : ""}</span>
         </div>
-        {financialData.facturesPartielles > 0 && (
+        {synthese.facturesPartielles > 0 && (
           <div className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-full bg-warning" />
-            <span>{financialData.facturesPartielles} partielle{financialData.facturesPartielles > 1 ? "s" : ""}</span>
+            <span>{synthese.facturesPartielles} partielle{synthese.facturesPartielles > 1 ? "s" : ""}</span>
           </div>
         )}
-        {financialData.facturesEnAttente > 0 && (
+        {synthese.facturesEnAttente > 0 && (
           <div className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-            <span>{financialData.facturesEnAttente} en attente</span>
+            <span>{synthese.facturesEnAttente} en attente</span>
+          </div>
+        )}
+        {synthese.enRetardCount > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="h-2 w-2 rounded-full bg-destructive" />
+            <span>{synthese.enRetardCount} en retard</span>
           </div>
         )}
       </div>

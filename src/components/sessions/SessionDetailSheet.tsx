@@ -80,6 +80,7 @@ import { SessionEnvoiAggregates } from "./SessionEnvoiAggregates";
 import { SessionDetailHeader } from "./SessionDetailHeader";
 import { SessionKPICockpit } from "./SessionKPICockpit";
 import { SessionFinancesTabContent } from "./SessionFinancesTabContent";
+import { SessionDocumentsGenerateMenu } from "./SessionDocumentsGenerateMenu";
 
 // Typed inscription helpers
 import type { InscriptionWithContact, InscriptionContact } from "@/types/session-inscription";
@@ -567,14 +568,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Finances */}
                 <TabsContent value="finances">
-                  <SessionFinancesTabContent
-                    sessionId={session.id}
-                    onGenerateBulkDocuments={handleGenerateBulkDocuments}
-                    onGenerateBatchChevalets={handleGenerateBatchChevalets}
-                    onGenerateBatchPedagogicalDocs={handleGenerateBatchPedagogicalDocs}
-                    isBatchCheveletsPending={generateBatchChevalets.isPending}
-                    isBatchPedagogicalPending={batchPedagogicalDocs.isPending}
-                  />
+                  <SessionFinancesTabContent sessionId={session.id} />
                 </TabsContent>
 
                 {/* Tab: Inscriptions */}
@@ -584,6 +578,13 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
                 {/* Tab: Documents — Pilotage transverse */}
                 <TabsContent value="documents" className="pt-4 space-y-6">
+                  <SessionDocumentsGenerateMenu
+                    onGenerateBulkDocuments={handleGenerateBulkDocuments}
+                    onGenerateBatchChevalets={handleGenerateBatchChevalets}
+                    onGenerateBatchPedagogicalDocs={handleGenerateBatchPedagogicalDocs}
+                    isBatchCheveletsPending={generateBatchChevalets.isPending}
+                    isBatchPedagogicalPending={batchPedagogicalDocs.isPending}
+                  />
                   <SessionDocumentMatrixView
                     sessionId={session.id}
                     sessionName={session.nom}

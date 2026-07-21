@@ -63,6 +63,7 @@ export function useCreatePaiement() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["paiements", variables.facture_id] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries({ queryKey: ["session-factures"] });
     },
     onError: (error: Error) => {
       toast.error("Erreur lors de l'enregistrement du paiement : " + error.message);
@@ -87,6 +88,7 @@ export function useDeletePaiement() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["paiements", result.factureId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries({ queryKey: ["session-factures"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
     onError: (error: Error) => {
