@@ -344,16 +344,22 @@ export function useFacturesStats() {
       // Run both queries in parallel
       const [facturesRes, paiementsRes] = await Promise.all([
         supabase.from("factures").select("id, montant_total, statut").is("deleted_at", null),
-        supabase.from("paiements").select("montant").is("deleted_at", null),
+        supabase.from("paiements").select("montant, facture_id").is("deleted_at", null),
       ]);
 
       if (facturesRes.error) throw facturesRes.error;
       if (paiementsRes.error) throw paiementsRes.error;
 
-      // Exclude brouillons from totals — they are not yet committed revenue
+      // Définition canonique (cf. useFinancesKpis) — alignée avec le
+      // Pilotage pour que les deux écrans affichent LE MÊME reste à
+      // encaisser (audit Finances du 21/07 : 33 524 € vs 28 253 €, l'ancien
+      // calcul incluait les annulées dans le total, contrairement à son
+      // infobulle, et soustrayait les paiements globalement) :
+      //   impaye = Σ max(0, montant_total − paiements de LA facture)
+      //            WHERE statut ∈ {emise, partiel, impayee}
       const allFactures = facturesRes.data || [];
-      const activeFactures = allFactures.filter(f => f.statut !== "brouillon");
-      const brouillonCount = allFactures.length - activeFactures.length;
+      const activeFactures = allFactures.filter(f => f.statut !== "brouillon" && f.statut !== "annulee");
+      const brouillonCount = allFactures.filter(f => f.statut === "brouillon").length;
       const brouillonMontant = allFactures
         .filter(f => f.statut === "brouillon")
         .reduce((s, f) => s + Number(f.montant_total), 0);
@@ -361,9 +367,18 @@ export function useFacturesStats() {
       let total = 0;
       for (const f of activeFactures) total += Number(f.montant_total);
       let paye = 0;
-      for (const p of paiementsRes.data || []) paye += Number(p.montant);
+      const payeParFacture = new Map<string, number>();
+      for (const p of paiementsRes.data || []) {
+        paye += Number(p.montant);
+        if (p.facture_id) {
+          payeParFacture.set(p.facture_id, (payeParFacture.get(p.facture_id) || 0) + Number(p.montant));
+        }
+      }
+      const impaye = activeFactures
+        .filter(f => ["emise", "partiel", "impayee"].includes(f.statut))
+        .reduce((s, f) => s + Math.max(0, Number(f.montant_total) - (payeParFacture.get(f.id) || 0)), 0);
 
-      return { total, paye, impaye: total - paye, brouillonCount, brouillonMontant };
+      return { total, paye, impaye, brouillonCount, brouillonMontant };
     },
   });
 }

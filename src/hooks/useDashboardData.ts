@@ -500,7 +500,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     totalPaiementsParFacture.set(p.facture_id, (totalPaiementsParFacture.get(p.facture_id) || 0) + Number(p.montant || 0));
   });
   const resteAEncaisser = factures
-    .filter((f) => (f.statut === "emise" || f.statut === "partiel") && Number(f.montant_total || 0) > 0)
+    .filter((f) => (f.statut === "emise" || f.statut === "partiel" || f.statut === "impayee") && Number(f.montant_total || 0) > 0)
     .reduce((s, f) => {
       const paye = totalPaiementsParFacture.get(f.id) || 0;
       return s + Math.max(0, Number(f.montant_total) - paye);
