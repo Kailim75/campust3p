@@ -9175,6 +9175,10 @@ export type Database = {
       }
       is_admin_or_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      merge_contacts: {
+        Args: { p_fusionner: string; p_garder: string }
+        Returns: boolean
+      }
       pay_partner_commission: {
         Args: { p_amount: number; p_partner_id: string }
         Returns: boolean
