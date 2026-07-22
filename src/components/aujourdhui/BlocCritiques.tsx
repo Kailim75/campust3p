@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, FolderOpen, CreditCard, ExternalLink, CheckCircle2 } from "lucide-react";
-import { LastActionLine, UrgencyDot, MarkDoneBtn } from "./AujourdhuiShared";
+import { LastActionLine, UrgencyDot, MarkDoneBtn, MarkAllDoneBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps } from "./aujourdhui-types";
 
 interface BlocCritiquesProps extends BlocSharedProps {
@@ -13,7 +13,7 @@ interface BlocCritiquesProps extends BlocSharedProps {
 
 export function BlocCritiques({
   critiques, handleCritiqueDemanderDocs, handleCritiqueRelancePaiement,
-  todayNotes, recentNotes, openContact, markDone,
+  todayNotes, recentNotes, openContact, markDone, markAllDone,
 }: BlocCritiquesProps) {
   return (
     <Card className="p-0 overflow-hidden">
@@ -27,7 +27,12 @@ export function BlocCritiques({
             <p className="text-[11px] text-muted-foreground">{critiques.length} action{critiques.length > 1 ? "s" : ""} requise{critiques.length > 1 ? "s" : ""}</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{critiques.length}</Badge>
+        <div className="flex items-center gap-1.5">
+          {markAllDone && (
+            <MarkAllDoneBtn count={critiques.length} onConfirm={() => markAllDone(critiques.map(item => ({ id: item.id })), "Critique")} />
+          )}
+          <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{critiques.length}</Badge>
+        </div>
       </div>
       <div className="divide-y max-h-80 overflow-y-auto">
         {critiques.length === 0 ? (
