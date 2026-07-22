@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CalendarCheck, Calendar, Mail, Phone, ExternalLink } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
-import { LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { LastActionLine, MarkDoneBtn, MarkAllDoneBtn } from "./AujourdhuiShared";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
 import type { BlocProspectSharedProps } from "./aujourdhui-types";
 import type { Prospect } from "@/hooks/useProspects";
@@ -19,7 +19,7 @@ interface BlocRdvProps extends BlocProspectSharedProps {
 
 export function BlocRdv({
   rdvToday, handleRdvConfirm, handleRdvAppel, handleRdvWhatsApp,
-  todayNotes, recentNotes, openProspect, markDone, onNavigate,
+  todayNotes, recentNotes, openProspect, markDone, markAllDone, onNavigate,
 }: BlocRdvProps) {
   const isRdvHandledToday = (contactId: string) =>
     isHandledToday(contactId, todayNotes, ["prospect_confirmation_rdv", "prospect_relance_j1", "prospect_rdv_manque", "RDV", "Confirmation"]);
@@ -36,7 +36,12 @@ export function BlocRdv({
             <p className="text-[11px] text-muted-foreground">{rdvToday.length} rendez-vous prévus</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{rdvToday.length}</Badge>
+        <div className="flex items-center gap-1.5">
+          {markAllDone && (
+            <MarkAllDoneBtn count={rdvToday.length} onConfirm={() => markAllDone(rdvToday.map(p => ({ id: p.id })), "RDV")} />
+          )}
+          <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{rdvToday.length}</Badge>
+        </div>
       </div>
       <div className="divide-y max-h-80 overflow-y-auto">
         {rdvToday.length === 0 ? (

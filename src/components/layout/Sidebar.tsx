@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   Settings, ChevronLeft, ChevronRight, Menu, HelpCircle, Shield,
-  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal, ChevronDown,
-} from "lucide-react";
+  ClipboardList, Plus, UserPlus, LogOut, MoreHorizontal, ChevronDown, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,7 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
   onNewContact?: () => void;
   onNewProspect?: () => void;
+  onExpressEnrollment?: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
@@ -220,7 +220,7 @@ function SidebarNav({
 }
 
 function SidebarContent({ 
-  activeSection, onSectionChange, onNewContact, onNewProspect, collapsed, setCollapsed, onItemClick 
+  activeSection, onSectionChange, onNewContact, onNewProspect, onExpressEnrollment, collapsed, setCollapsed, onItemClick 
 }: SidebarProps & { 
   collapsed: boolean; 
   setCollapsed: (v: boolean) => void;
@@ -298,8 +298,15 @@ function SidebarContent({
         {!collapsed ? (
           <div className="space-y-1.5">
             <button 
-              onClick={() => { onNewContact?.(); onItemClick?.(); }}
+              onClick={() => { onExpressEnrollment?.(); onItemClick?.(); }}
               className="btn-cta w-full flex items-center justify-center gap-2 h-9 text-[12.5px]"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Inscription express
+            </button>
+            <button 
+              onClick={() => { onNewContact?.(); onItemClick?.(); }}
+              className="w-full flex items-center justify-center gap-2 h-8 text-[12px] rounded-lg border border-white/[0.12] text-white/60 hover:text-white/90 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-150"
             >
               <Plus className="h-3.5 w-3.5" />
               Nouvel apprenant
@@ -314,6 +321,14 @@ function SidebarContent({
           </div>
         ) : (
           <div className="space-y-1.5">
+            <SidebarTooltipItem collapsed={collapsed} label="Inscription express">
+              <button
+                onClick={() => { onExpressEnrollment?.(); onItemClick?.(); }}
+                className="btn-cta w-full flex items-center justify-center h-8 rounded-lg"
+              >
+                <Zap className="h-3.5 w-3.5" />
+              </button>
+            </SidebarTooltipItem>
             <SidebarTooltipItem collapsed={collapsed} label="Nouvel apprenant">
               <button
                 onClick={() => { onNewContact?.(); onItemClick?.(); }}
@@ -448,7 +463,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewProspect, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewProspect, onExpressEnrollment, onCollapsedChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -470,7 +485,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
             </SheetTrigger>
             <SheetContent side="left" className="w-[260px] p-0 sidebar-dark border-r-0">
               <div className="flex flex-col h-full">
-                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
+                <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} onExpressEnrollment={onExpressEnrollment} collapsed={false} setCollapsed={() => {}} onItemClick={() => setMobileOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
@@ -494,7 +509,7 @@ export function Sidebar({ activeSection, onSectionChange, onNewContact, onNewPro
       )}
       style={{ borderRadius: '0 16px 16px 0', boxShadow: '4px 0 32px rgba(0,0,0,0.2)' }}
     >
-      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
+      <SidebarContent activeSection={activeSection} onSectionChange={onSectionChange} onNewContact={onNewContact} onNewProspect={onNewProspect} onExpressEnrollment={onExpressEnrollment} collapsed={collapsed} setCollapsed={handleCollapsedChange} />
     </aside>
   );
 }

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, CalendarClock, Check, ExternalLink } from "lucide-react";
+import { Bot, CalendarClock, Check, ExternalLink, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addDays, format, parseISO, differenceInDays } from "date-fns";
 import type { UrgencyInfo } from "@/lib/urgency-utils";
@@ -63,6 +67,51 @@ export function LastActionLine({
     );
   }
   return null;
+}
+
+/**
+ * « Tout traiter » d'un bloc : 464 pointages unitaires relevés en 14 jours
+ * (audit d'efficience du 22/07) — le traitement en lot avec confirmation
+ * remplace N clics par un seul.
+ */
+export function MarkAllDoneBtn({
+  count,
+  onConfirm,
+}: {
+  count: number;
+  onConfirm: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (count < 2) return null;
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 text-[11px] text-muted-foreground hover:text-success"
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+      >
+        <CheckCheck className="h-3 w-3 mr-1" /> Tout traiter
+      </Button>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tout marquer traité ({count}) ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Les {count} éléments de ce bloc seront masqués de la liste du jour.
+              Chaque traitement reste annulable individuellement depuis la fiche.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setOpen(false); onConfirm(); }}>
+              Tout traiter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
 
 export function MarkDoneBtn({

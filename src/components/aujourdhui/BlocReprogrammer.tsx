@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { LastActionLine, MarkDoneBtn, MarkAllDoneBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps } from "./aujourdhui-types";
 
 interface BlocReprogrammerProps extends BlocSharedProps {
@@ -10,7 +10,7 @@ interface BlocReprogrammerProps extends BlocSharedProps {
 }
 
 export function BlocReprogrammer({
-  reprogramItems, todayNotes, recentNotes, openContact, markDone,
+  reprogramItems, todayNotes, recentNotes, openContact, markDone, markAllDone,
 }: BlocReprogrammerProps) {
   if (reprogramItems.length === 0) return null;
 
@@ -26,7 +26,12 @@ export function BlocReprogrammer({
             <p className="text-[11px] text-muted-foreground">{reprogramItems.length} examen{reprogramItems.length > 1 ? "s" : ""} échoué{reprogramItems.length > 1 ? "s" : ""}</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{reprogramItems.length}</Badge>
+        <div className="flex items-center gap-1.5">
+          {markAllDone && (
+            <MarkAllDoneBtn count={reprogramItems.length} onConfirm={() => markAllDone(reprogramItems.map(item => ({ id: item.contactId })), "Reprogrammation")} />
+          )}
+          <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive">{reprogramItems.length}</Badge>
+        </div>
       </div>
       <div className="divide-y max-h-60 overflow-y-auto">
         {reprogramItems.map((item: any) => (

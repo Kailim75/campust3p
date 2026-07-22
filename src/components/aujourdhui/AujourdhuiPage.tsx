@@ -502,6 +502,20 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
     }
   }, [invalidate]);
 
+  // « Tout traiter » d'un bloc entier (audit d'efficience 22/07 : 464
+  // pointages unitaires en 14 jours) — réutilise le traitement en lot.
+  const markAllDone = useCallback(
+    (items: Array<{ id: string }>, blocLabel: string) =>
+      markSelectedDone(
+        items,
+        new Set(items.map((i) => i.id)),
+        blocLabel,
+        { singular: "élément traité", plural: "éléments traités" },
+        () => {},
+      ),
+    [markSelectedDone],
+  );
+
   const handleBulkCmaRelance = useCallback((items: any[]) => {
     const selected = items.filter(i => bulkCmaSelected.has(i.id) && i.email);
     if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return; }
@@ -932,7 +946,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           )}
 
           {(!focusBloc || focusBloc === "rdv") && (
-            <BlocRdv
+            <BlocRdv markAllDone={markAllDone}
               rdvToday={rdvToday}
               handleRdvConfirm={handleRdvConfirm} handleRdvAppel={handleRdvAppel} handleRdvWhatsApp={handleRdvWhatsApp}
               todayNotes={todayNotes} recentNotes={recentNotes} openProspect={openProspect} markDone={markDone}
@@ -952,7 +966,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           )}
 
           {(!focusBloc || focusBloc === "critiques") && (
-            <BlocCritiques
+            <BlocCritiques markAllDone={markAllDone}
               critiques={critiques}
               handleCritiqueDemanderDocs={handleCritiqueDemanderDocs} handleCritiqueRelancePaiement={handleCritiqueRelancePaiement}
               todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
@@ -977,14 +991,14 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
         )}
 
         {(!focusBloc || focusBloc === "reprogrammer") && (
-          <BlocReprogrammer
+          <BlocReprogrammer markAllDone={markAllDone}
             reprogramItems={reprogramItems}
             todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
           />
         )}
 
         {(!focusBloc || focusBloc === "carte_pro") && (
-          <BlocCartePro
+          <BlocCartePro markAllDone={markAllDone}
             cartePro={cartePro}
             handleCarteProEmail={handleCarteProEmail} handleCarteProMarkDone={handleCarteProMarkDone}
             todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}

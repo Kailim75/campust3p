@@ -125,6 +125,7 @@ export interface BlocSharedProps {
   recentNotes: AutoNote[];
   openContact: (id: string) => void;
   markDone: (contactId: string, blocLabel: string) => void;
+  markAllDone?: (items: Array<{ id: string }>, blocLabel: string) => void;
 }
 
 export interface BlocProspectSharedProps {
@@ -132,4 +133,5 @@ export interface BlocProspectSharedProps {
   recentNotes: AutoNote[];
   openProspect: (p: Prospect) => void;
   markDone: (contactId: string, blocLabel: string) => void;
+  markAllDone?: (items: Array<{ id: string }>, blocLabel: string) => void;
 }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CreditCard, Mail, Check, ExternalLink } from "lucide-react";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
-import { LastActionLine, MarkDoneBtn } from "./AujourdhuiShared";
+import { LastActionLine, MarkDoneBtn, MarkAllDoneBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps } from "./aujourdhui-types";
 import { CARTE_PRO_KEYWORDS } from "./aujourdhui-types";
 
@@ -16,7 +16,7 @@ interface BlocCarteProProps extends BlocSharedProps {
 
 export function BlocCartePro({
   cartePro, handleCarteProEmail, handleCarteProMarkDone,
-  todayNotes, recentNotes, openContact, markDone,
+  todayNotes, recentNotes, openContact, markDone, markAllDone,
 }: BlocCarteProProps) {
   if (cartePro.length === 0) return null;
 
@@ -32,7 +32,12 @@ export function BlocCartePro({
             <p className="text-[11px] text-muted-foreground">{cartePro.length} apprenant{cartePro.length > 1 ? "s" : ""} — pratique réussie</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{cartePro.length}</Badge>
+        <div className="flex items-center gap-1.5">
+          {markAllDone && (
+            <MarkAllDoneBtn count={cartePro.length} onConfirm={() => markAllDone(cartePro.map(item => ({ id: item.id })), "Carte Pro")} />
+          )}
+          <Badge variant="outline" className="text-xs bg-warning/10 text-warning">{cartePro.length}</Badge>
+        </div>
       </div>
       <div className="divide-y max-h-80 overflow-y-auto">
         {cartePro.map((item: any) => {

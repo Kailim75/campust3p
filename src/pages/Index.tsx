@@ -46,6 +46,7 @@ const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/Atte
 const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
+import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
 import { RouteCheckPanel } from "@/components/admin/RouteCheckPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -99,6 +100,7 @@ const Index = () => {
   const setCommandPaletteOpen = useCommandPalette((s) => s.setOpen);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [newContactOpen, setNewContactOpen] = useState(false);
+  const [expressEnrollmentOpen, setExpressEnrollmentOpen] = useState(false);
   const [newProspectOpen, setNewProspectOpen] = useState(false);
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
   const [routeCheckOpen, setRouteCheckOpen] = useState(false);
@@ -359,6 +361,7 @@ const Index = () => {
         onSectionChange={setActiveSection}
         onNewContact={() => setNewContactOpen(true)}
         onNewProspect={() => setNewProspectOpen(true)}
+        onExpressEnrollment={() => setExpressEnrollmentOpen(true)}
         onCollapsedChange={setSidebarCollapsed}
       />
 
@@ -398,6 +401,11 @@ const Index = () => {
       
       <OnboardingChecklist />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
+      <ExpressEnrollmentDialog
+        open={expressEnrollmentOpen}
+        onOpenChange={setExpressEnrollmentOpen}
+        onSuccess={(contactId) => { setActiveSection("contacts"); setSelectedContactId(contactId); }}
+      />
       <ProspectFormDialog open={newProspectOpen} onOpenChange={setNewProspectOpen} />
       <CommandPalette
         open={commandPaletteOpen}
