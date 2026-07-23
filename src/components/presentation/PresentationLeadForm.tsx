@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function PresentationLeadForm() {
+const OFFRES = ["Starter", "Pro", "Multi-centre"] as const;
+
+export function PresentationLeadForm({ offre }: { offre?: string | null }) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Présélectionnée par le clic sur un plan de la grille, modifiable ici.
+  const [offreChoisie, setOffreChoisie] = useState<string>(offre || "");
+  useEffect(() => {
+    if (offre) setOffreChoisie(offre);
+  }, [offre]);
   const [form, setForm] = useState({
     centre_name: "",
     contact_name: "",
@@ -35,7 +43,10 @@ export function PresentationLeadForm() {
       email: form.email.trim(),
       phone: form.phone.trim() || null,
       volume: form.volume.trim() || null,
-      message: form.message.trim() || null,
+      message:
+        [offreChoisie ? `Offre souhaitée : ${offreChoisie}` : null, form.message.trim() || null]
+          .filter(Boolean)
+          .join("\n") || null,
       source: "presentation",
     });
 
@@ -115,6 +126,38 @@ export function PresentationLeadForm() {
             onChange={update("volume")}
             className="h-11"
           />
+          <div>
+            <p className="text-sm text-gray-600 mb-2">Offre souhaitée</p>
+            <div className="flex flex-wrap gap-2">
+              {OFFRES.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOffreChoisie(o)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+                    offreChoisie === o
+                      ? "bg-[hsl(173,58%,39%)] border-[hsl(173,58%,39%)] text-white"
+                      : "border-gray-200 text-gray-600 hover:border-[hsl(173,58%,39%,0.5)]"
+                  )}
+                >
+                  {o}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setOffreChoisie("")}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+                  offreChoisie === ""
+                    ? "bg-[hsl(222,47%,11%)] border-[hsl(222,47%,11%)] text-white"
+                    : "border-gray-200 text-gray-600 hover:border-gray-400"
+                )}
+              >
+                À définir ensemble
+              </button>
+            </div>
+          </div>
           <Textarea
             placeholder="Décrivez vos besoins ou questions..."
             value={form.message}
