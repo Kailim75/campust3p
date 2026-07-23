@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { LogIn } from "lucide-react";
 
 interface Props {
   onDemo: () => void;
@@ -28,12 +30,24 @@ export function PresentationNav({ onDemo, onContact }: Props) {
             Tarifs
           </a>
         </div>
-        <Button
-          onClick={onContact}
-          className="bg-[hsl(173,58%,39%)] hover:bg-[hsl(173,62%,32%)] text-white text-sm h-9 px-4"
-        >
-          Demander une démo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-sm h-9 px-3 text-gray-600 hover:text-gray-900"
+          >
+            <Link to="/auth">
+              <LogIn className="w-4 h-4 mr-1.5" />
+              Se connecter
+            </Link>
+          </Button>
+          <Button
+            onClick={onContact}
+            className="bg-[hsl(173,58%,39%)] hover:bg-[hsl(173,62%,32%)] text-white text-sm h-9 px-4"
+          >
+            Demander une démo
+          </Button>
+        </div>
       </div>
     </nav>
   );

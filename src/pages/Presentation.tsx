@@ -9,6 +9,7 @@ import { PresentationFAQ } from "@/components/presentation/PresentationFAQ";
 import { PresentationSecurity } from "@/components/presentation/PresentationSecurity";
 import { PresentationLeadForm } from "@/components/presentation/PresentationLeadForm";
 import { PresentationNav } from "@/components/presentation/PresentationNav";
+import { Reveal } from "@/components/presentation/presentation-motion";
 import { PresentationFooter } from "@/components/presentation/PresentationFooter";
 
 export default function Presentation() {
@@ -33,13 +34,13 @@ export default function Presentation() {
       <PresentationGains />
       <PresentationFeatures />
       <div ref={demoRef}>
-        <PresentationDemoTimeline />
+        <Reveal><PresentationDemoTimeline/></Reveal>
       </div>
-      <PresentationPricing onContact={() => scrollTo(contactRef)} />
-      <PresentationSecurity />
-      <PresentationFAQ />
+      <Reveal><PresentationPricing onContact={() => scrollTo(contactRef)} /></Reveal>
+      <Reveal><PresentationSecurity/></Reveal>
+      <Reveal><PresentationFAQ/></Reveal>
       <div ref={contactRef}>
-        <PresentationLeadForm />
+        <Reveal><PresentationLeadForm/></Reveal>
       </div>
       <PresentationFooter />
     </div>

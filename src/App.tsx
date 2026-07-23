@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { Loader2 } from "lucide-react";
 import Auth from "./pages/Auth";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { useAuth } from "./hooks/useAuth";
 import { InstallPWA } from "./components/pwa/InstallPWA";
 import { OfflineIndicator } from "./components/pwa/OfflineIndicator";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -127,6 +128,15 @@ const AppShellRoute = () => (
   </ProtectedRoute>
 );
 
+// « / » : l'équipe connectée retrouve le CRM comme avant (bookmarks
+// intacts) ; un visiteur non connecté découvre la page de présentation
+// (demande du directeur du 23/07/2026) avec « Se connecter » dans la nav.
+const RootGate = () => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LazyFallback />;
+  return isAuthenticated ? <AppShellRoute /> : <Presentation />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
@@ -185,8 +195,11 @@ const App = () => (
                   </ProtectedRoute>
                 } />
 
+                {/* Racine : présentation publique ou CRM selon la session */}
+                <Route path="/" element={<RootGate />} />
+
                 {/* Main app explicit routes */}
-                {APP_SECTION_PATHS.map((path) => (
+                {APP_SECTION_PATHS.filter((path) => path !== "/").map((path) => (
                   <Route key={path} path={path} element={<AppShellRoute />} />
                 ))}
 

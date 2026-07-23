@@ -8,6 +8,7 @@ import {
   Building2,
   GraduationCap,
 } from "lucide-react";
+import { Reveal, StaggerGrid, StaggerItem } from "./presentation-motion";
 
 const features = [
   {
@@ -56,29 +57,29 @@ export function PresentationFeatures() {
   return (
     <section id="features" className="py-16 sm:py-24 bg-[hsl(210,40%,98%)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
+        <Reveal className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-[hsl(222,47%,11%)] mb-3">
             Fonctionnalités clés
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto">
             Tout ce dont un centre de formation Transport a besoin, dans un seul outil.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StaggerGrid className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((f) => (
-            <div
+            <StaggerItem
               key={f.title}
-              className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-shadow group"
+              className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group"
             >
               <div className="w-10 h-10 rounded-lg bg-[hsl(222,47%,11%,0.05)] group-hover:bg-[hsl(173,58%,39%,0.1)] flex items-center justify-center mb-3 transition-colors">
                 <f.icon className="w-5 h-5 text-[hsl(222,47%,11%)] group-hover:text-[hsl(173,58%,39%)] transition-colors" />
               </div>
               <h3 className="font-semibold text-sm text-[hsl(222,47%,11%)] mb-1.5">{f.title}</h3>
               <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGrid>
       </div>
     </section>
   );
