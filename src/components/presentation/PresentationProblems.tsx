@@ -1,4 +1,5 @@
 import { AlertTriangle, FileX, CreditCard, CalendarX } from "lucide-react";
+import { Reveal, StaggerGrid, StaggerItem } from "./presentation-motion";
 
 const problems = [
   {
@@ -31,20 +32,20 @@ export function PresentationProblems() {
   return (
     <section className="py-16 sm:py-24 bg-[hsl(210,40%,98%)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
+        <Reveal className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-[hsl(222,47%,11%)] mb-3">
             Vous reconnaissez ces problèmes ?
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto">
             Chaque centre de formation les vit au quotidien. T3P Campus les résout.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="grid sm:grid-cols-2 gap-6">
+        <StaggerGrid className="grid sm:grid-cols-2 gap-6">
           {problems.map((p) => (
-            <div
+            <StaggerItem
               key={p.title}
-              className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
@@ -64,9 +65,9 @@ export function PresentationProblems() {
                   </div>
                 </div>
               </div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGrid>
       </div>
     </section>
   );
