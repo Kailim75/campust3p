@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { PresentationHero } from "@/components/presentation/PresentationHero";
 import { PresentationProblems } from "@/components/presentation/PresentationProblems";
 import { PresentationGains } from "@/components/presentation/PresentationGains";
@@ -15,6 +15,9 @@ import { PresentationFooter } from "@/components/presentation/PresentationFooter
 export default function Presentation() {
   const demoRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
+  // Offre cliquée dans la grille tarifaire, présélectionnée dans le
+  // formulaire de contact (retour directeur du 23/07).
+  const [offre, setOffre] = useState<string | null>(null);
 
   const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
     ref.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,11 +39,11 @@ export default function Presentation() {
       <div ref={demoRef}>
         <Reveal><PresentationDemoTimeline/></Reveal>
       </div>
-      <Reveal><PresentationPricing onContact={() => scrollTo(contactRef)} /></Reveal>
+      <Reveal><PresentationPricing onSelectPlan={(plan) => { setOffre(plan); scrollTo(contactRef); }} /></Reveal>
       <Reveal><PresentationSecurity/></Reveal>
       <Reveal><PresentationFAQ/></Reveal>
       <div ref={contactRef}>
-        <Reveal><PresentationLeadForm/></Reveal>
+        <Reveal><PresentationLeadForm offre={offre} /></Reveal>
       </div>
       <PresentationFooter />
     </div>

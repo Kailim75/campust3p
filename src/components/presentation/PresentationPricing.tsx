@@ -4,7 +4,8 @@ import { Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  onContact: () => void;
+  /** Appelé avec le nom du plan cliqué (ou null pour un simple contact). */
+  onSelectPlan: (plan: string | null) => void;
 }
 
 /**
@@ -60,7 +61,7 @@ const plans = [
   },
 ];
 
-export function PresentationPricing({ onContact }: Props) {
+export function PresentationPricing({ onSelectPlan }: Props) {
   const [annuel, setAnnuel] = useState(true);
 
   return (
@@ -159,7 +160,7 @@ export function PresentationPricing({ onContact }: Props) {
                 ))}
               </ul>
               <Button
-                onClick={onContact}
+                onClick={() => onSelectPlan(plan.name)}
                 className={
                   plan.highlight
                     ? "bg-[hsl(173,58%,39%)] hover:bg-[hsl(173,62%,32%)] text-white w-full"
