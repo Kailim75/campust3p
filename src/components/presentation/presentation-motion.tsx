@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 
 /**
@@ -92,26 +92,32 @@ export function AnimatedValue({ value, className }: { value: string; className?:
   const reduce = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  const match = value.match(/^([^0-9]*)(\d+)(.*)$/);
-  const target = match ? parseInt(match[2], 10) : 0;
+  // Parse UNE fois par valeur : un match recréé à chaque rendu dans les deps
+  // de l'effet relançait l'animation en boucle (chiffres coincés à ~0).
+  const parsed = useMemo(() => {
+    const m = value.match(/^([^0-9]*)(\d+)(.*)$/);
+    return m ? { prefix: m[1], target: parseInt(m[2], 10), suffix: m[3] } : null;
+  }, [value]);
+  const target = parsed?.target ?? 0;
   const [display, setDisplay] = useState(reduce ? target : 0);
 
   useEffect(() => {
-    if (!inView || reduce || !match) return;
+    if (!inView || reduce || !parsed) return;
     const controls = animate(0, target, {
       duration: 1.4,
       ease: "easeOut",
       onUpdate: (v) => setDisplay(Math.round(v)),
     });
     return () => controls.stop();
-  }, [inView, reduce, target, match]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, reduce, target]);
 
-  if (!match) return <span className={className}>{value}</span>;
+  if (!parsed) return <span className={className}>{value}</span>;
   return (
     <span ref={ref} className={className}>
-      {match[1]}
-      {display}
-      {match[3]}
+      {parsed.prefix}
+      {display.toLocaleString("fr-FR")}
+      {parsed.suffix}
     </span>
   );
 }
