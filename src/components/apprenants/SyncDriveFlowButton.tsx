@@ -33,9 +33,15 @@ export function SyncDriveFlowButton({ contactId, contactName }: SyncDriveFlowBut
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erreur inconnue");
 
-      toast.success(`${contactName} envoyé vers Drive Flow`, {
-        description: "L'apprenant a été synchronisé avec succès.",
-      });
+      if (data.already_exists) {
+        toast.info(`${contactName} est déjà chez Drive Flow`, {
+          description: "Un élève au même nom existe déjà — aucun doublon créé.",
+        });
+      } else {
+        toast.success(`${contactName} envoyé vers Drive Flow`, {
+          description: "L'apprenant a été créé chez Drive Flow.",
+        });
+      }
     } catch (err: any) {
       console.error("Sync error:", err);
       toast.error("Erreur de synchronisation", {

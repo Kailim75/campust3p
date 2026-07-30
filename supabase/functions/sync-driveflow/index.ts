@@ -7,7 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/incoming-webhook';
+// Cible : la fonction receive-student-webhook du projet Drivflow (Drive Flow),
+// authentifiée par la clé API webhook de l'organisation destinataire (compte Lynda).
+// L'ancienne valeur par défaut pointait par erreur vers le projet du CRM lui-même.
+const DRIVEFLOW_WEBHOOK_URL = Deno.env.get('DRIVEFLOW_WEBHOOK_URL') ?? 'https://pbhnncudvvnkruruayaz.supabase.co/functions/v1/receive-student-webhook';
 const DRIVEFLOW_API_KEY = Deno.env.get('DRIVEFLOW_API_KEY');
 
 serve(async (req) => {
@@ -108,12 +111,23 @@ serve(async (req) => {
       throw new Error(driveFlowResult?.error || `Drive Flow a répondu avec le statut ${driveFlowResponse.status}`);
     }
 
+    // Contrat receive-student-webhook : { imported, skipped, failed, details }.
+    // failed > 0 sur un envoi unitaire = échec réel (ex. nom manquant) ;
+    // skipped > 0 = l'élève existe déjà chez Drive Flow (déduplication).
+    if ((driveFlowResult?.failed ?? 0) > 0) {
+      const detail = driveFlowResult?.details?.find((d: any) => !d.success);
+      throw new Error(detail?.error || "Drive Flow a refusé l'apprenant");
+    }
+    const alreadyExists = (driveFlowResult?.skipped ?? 0) > 0;
+
     // Log the sync in contact history
     await supabase.from('contact_historique').insert({
       contact_id: contact.id,
       type: 'note',
-      titre: '[AUTO] Envoyé vers Drive Flow',
-      contenu: `Apprenant synchronisé vers la plateforme Drive Flow (formation: ${contact.formation || 'non précisée'})`,
+      titre: alreadyExists ? '[AUTO] Déjà présent chez Drive Flow' : '[AUTO] Envoyé vers Drive Flow',
+      contenu: alreadyExists
+        ? `Envoi vers Drive Flow : un élève au même nom existe déjà chez le destinataire — aucun doublon créé.`
+        : `Apprenant synchronisé vers la plateforme Drive Flow (formation: ${contact.formation || 'non précisée'})`,
       date_echange: new Date().toISOString(),
     });
 
@@ -128,8 +142,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
+      already_exists: alreadyExists,
       contact_id: contact.id,
-      driveflow_contact_id: driveFlowResult.contact_id,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
