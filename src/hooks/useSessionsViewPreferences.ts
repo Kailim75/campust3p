@@ -8,7 +8,9 @@ interface SessionsViewPreferences {
   groupBy: GroupByMode;
 }
 
-const STORAGE_KEY = "sessions-view-preferences";
+// v2 (23/07/2026) : bump de clé pour que le nouveau défaut « par échéance »
+// s'applique aux utilisateurs existants, dont la v1 mémorisait « formation ».
+const STORAGE_KEY = "sessions-view-preferences-v2";
 
 const defaultPreferences: SessionsViewPreferences = {
   viewMode: "list",
