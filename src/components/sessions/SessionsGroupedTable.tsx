@@ -46,12 +46,54 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 };
 
 const groupByOptions = [
+  { value: "echeance", label: "Par échéance" },
   { value: "none", label: "Aucun regroupement" },
   { value: "formation", label: "Par type de formation" },
   { value: "status", label: "Par statut" },
   { value: "month", label: "Par mois" },
   { value: "lieu", label: "Par lieu" },
 ];
+
+/**
+ * Classement temporel d'une session (refonte du 23/07/2026) : le directeur
+ * veut voir « ce qui arrive » d'abord, pas 45 sessions terminées.
+ * La clé est préfixée d'un chiffre pour que le tri alphabétique des groupes
+ * suive l'ordre chronologique.
+ */
+function classerParEcheance(session: Session): { key: string; label: string } {
+  if (session.statut === "en_cours") return { key: "1-en-cours", label: "En cours" };
+  if (session.statut === "terminee") return { key: "8-terminees", label: "Terminées" };
+  if (session.statut === "annulee") return { key: "9-annulees", label: "Annulées" };
+
+  const debut = parseISO(session.date_debut);
+  const jours = Math.ceil((debut.getTime() - Date.now()) / 86400000);
+  if (jours < 0) return { key: "2-a-cloturer", label: "À clôturer (date passée)" };
+  if (jours <= 7) return { key: "3-semaine", label: "Cette semaine" };
+  if (jours <= 30) return { key: "4-mois", label: "Dans le mois" };
+  return { key: "5-plus-tard", label: "Plus tard" };
+}
+
+/**
+ * Ce qui bloque une session, en une ligne (refonte du 23/07/2026) : la liste
+ * montrait remplissage / CA / statut, mais jamais « qu'est-ce que je dois
+ * faire ». Les alertes ne concernent que les sessions encore ouvertes.
+ */
+function construireAlertes(
+  session: Session,
+  fin: SessionFinancialData | undefined,
+): string[] {
+  if (session.statut === "terminee" || session.statut === "annulee") return [];
+  const alertes: string[] = [];
+  if (!session.formateur_id) alertes.push("Pas de formateur");
+  if (!session.adresse_ville && !session.lieu) alertes.push("Pas de lieu");
+  if (fin?.nb_non_factures) {
+    alertes.push(`${fin.nb_non_factures} non facturé${fin.nb_non_factures > 1 ? "s" : ""}`);
+  }
+  if (fin?.nb_en_retard) {
+    alertes.push(`${fin.nb_en_retard} paiement${fin.nb_en_retard > 1 ? "s" : ""} en retard`);
+  }
+  return alertes;
+}
 
 const sortOptions = [
   { value: "date_debut", label: "Date" },
@@ -167,6 +209,7 @@ export function SessionsGroupedTable({
     sortedSessions.forEach((session) => {
       let key: string;
       switch (groupBy) {
+        case "echeance": key = classerParEcheance(session).key; break;
         case "formation": key = session.formation_type; break;
         case "status": key = session.statut; break;
         case "month": key = format(parseISO(session.date_debut), "yyyy-MM"); break;
@@ -180,13 +223,27 @@ export function SessionsGroupedTable({
       let label: string;
       let badgeClass: string | undefined;
       switch (groupBy) {
+        case "echeance": {
+          label = classerParEcheance(sessions[0]).label;
+          badgeClass =
+            key === "1-en-cours" ? "bg-warning/10 text-warning border-warning/20"
+            : key === "2-a-cloturer" ? "bg-destructive/10 text-destructive border-destructive/20"
+            : key === "3-semaine" ? "bg-primary/10 text-primary border-primary/20"
+            : key.startsWith("8") || key.startsWith("9") ? "bg-muted text-muted-foreground border-muted"
+            : "bg-info/10 text-info border-info/20";
+          break;
+        }
         case "formation": label = getFormationLabel(key); badgeClass = getFormationColor(key).badge; break;
         case "status": label = statusConfig[key]?.label || key; badgeClass = statusConfig[key]?.class; break;
         case "month": label = format(parseISO(`${key}-01`), "MMMM yyyy", { locale: fr }); label = label.charAt(0).toUpperCase() + label.slice(1); break;
         default: label = key;
       }
       return { key, label, sessions, badgeClass };
-    }).sort((a, b) => groupBy === "month" ? a.key.localeCompare(b.key) : a.label.localeCompare(b.label));
+    }).sort((a, b) =>
+      groupBy === "month" || groupBy === "echeance"
+        ? a.key.localeCompare(b.key)
+        : a.label.localeCompare(b.label)
+    );
   }, [sortedSessions, groupBy]);
 
   useMemo(() => {
@@ -233,8 +290,8 @@ export function SessionsGroupedTable({
           <div className="flex items-center gap-1">Remplissage<SortIcon field="inscrits" /></div>
         </TableHead>
         <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
-        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[100px]" onClick={() => handleSort('statut')}>
-          <div className="flex items-center gap-1">Statut<SortIcon field="statut" /></div>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[180px]" onClick={() => handleSort('statut')}>
+          <div className="flex items-center gap-1">À faire<SortIcon field="statut" /></div>
         </TableHead>
         <TableHead className="text-right font-medium text-xs py-2 w-[80px] pr-3">Actions</TableHead>
       </TableRow>
@@ -600,6 +657,7 @@ function SessionRow({
   const lieu = session.adresse_ville || session.lieu;
 
   const dateRange = `${format(new Date(session.date_debut), 'dd/MM', { locale: fr })}–${format(new Date(session.date_fin), 'dd/MM/yy', { locale: fr })}`;
+  const alertes = construireAlertes(session, fin);
 
   return (
     <TableRow
@@ -676,11 +734,27 @@ function SessionRow({
         )}
       </TableCell>
 
-      {/* COL 4 — STATUT */}
+      {/* COL 4 — À FAIRE (alertes) ou statut si rien à signaler */}
       <TableCell className="py-2 px-2">
-        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
-          {statusConfig[session.statut]?.label || session.statut}
-        </Badge>
+        {alertes.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {alertes.map((a) => (
+              <Badge
+                key={a}
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/30"
+              >
+                {a}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
+            {session.statut === "a_venir" || session.statut === "en_cours"
+              ? "✓ Prête"
+              : statusConfig[session.statut]?.label || session.statut}
+          </Badge>
+        )}
       </TableCell>
 
       {/* COL 5 — ACTIONS */}

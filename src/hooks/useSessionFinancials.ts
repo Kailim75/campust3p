@@ -10,6 +10,8 @@ export interface SessionFinancialData {
   nb_en_retard: number;      // invoices past due with amount remaining
   total_facture: number;     // total invoiced
   total_paye: number;        // total paid
+  nb_inscriptions: number;   // inscriptions de la session
+  nb_non_factures: number;   // inscriptions sans aucune facture active
 }
 
 export function useSessionFinancials() {
@@ -49,11 +51,21 @@ export function useSessionFinancials() {
             nb_en_retard: 0,
             total_facture: 0,
             total_paye: 0,
+            nb_inscriptions: 0,
+            nb_non_factures: 0,
           };
         }
 
         const entry = map[sid];
         const factures = (inscription as any).factures || [];
+
+        // Alertes de la liste (refonte du 23/07/2026) : un inscrit sans
+        // facture active doit se voir depuis la page Sessions.
+        entry.nb_inscriptions += 1;
+        const facturesActives = (factures as { statut?: string }[]).filter(
+          (f) => f.statut !== "annulee" && f.statut !== "brouillon",
+        );
+        if (facturesActives.length === 0) entry.nb_non_factures += 1;
 
         for (const f of factures) {
           const montant = Number(f.montant_total) || 0;

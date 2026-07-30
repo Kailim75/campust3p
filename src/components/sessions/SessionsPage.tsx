@@ -9,7 +9,7 @@ import { useAutoUpdateSessionStatus } from "@/hooks/useAutoUpdateSessionStatus";
 import { useSessionsViewPreferences } from "@/hooks/useSessionsViewPreferences";
 import { useSessionsExport } from "@/hooks/useSessionsExport";
 import { useSessionFinancials } from "@/hooks/useSessionFinancials";
-import { useSessionsFilters, defaultFilters, type SessionFilters } from "@/hooks/useSessionsFilters";
+import { useSessionsFilters, compterParPeriode, defaultFilters, type SessionFilters } from "@/hooks/useSessionsFilters";
 import { SessionFormDialog } from "./SessionFormDialog";
 import { SessionDetailSheet } from "./SessionDetailSheet";
 import { SessionCalendar } from "./SessionCalendar";
@@ -17,6 +17,7 @@ import { SessionsKPICards } from "./SessionsKPICards";
 import { SessionsGroupedTable } from "./SessionsGroupedTable";
 import { SessionsKanban } from "./SessionsKanban";
 import { SessionsToolbar } from "./SessionsToolbar";
+import { SessionsPeriodTabs } from "./SessionsPeriodTabs";
 import { ArchivedSessionsSheet } from "./ArchivedSessionsSheet";
 import { RecurringSessionsDialog } from "./RecurringSessionsDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
@@ -47,6 +48,7 @@ export function SessionsPage() {
   const [recurringTemplate, setRecurringTemplate] = useState<Session | null>(null);
 
   const { filteredSessions, hasActiveFilters } = useSessionsFilters(sessions, filters, inscriptionsCounts);
+  const periodeCounts = useMemo(() => compterParPeriode(sessions), [sessions]);
 
   useEffect(() => {
     if (sessions && sessions.length > 0) {
@@ -130,6 +132,12 @@ export function SessionsPage() {
             onToggleCritical={handleToggleCriticalFilter}
           />
         )}
+
+        <SessionsPeriodTabs
+          value={filters.periode}
+          onChange={(periode) => setFilters((prev) => ({ ...prev, periode }))}
+          counts={periodeCounts}
+        />
 
         <SessionsToolbar
           viewMode={viewMode}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 export type ViewMode = "list" | "calendar" | "kanban";
-export type GroupByMode = "none" | "formation" | "status" | "month" | "lieu";
+export type GroupByMode = "none" | "echeance" | "formation" | "status" | "month" | "lieu";
 
 interface SessionsViewPreferences {
   viewMode: ViewMode;
@@ -12,7 +12,7 @@ const STORAGE_KEY = "sessions-view-preferences";
 
 const defaultPreferences: SessionsViewPreferences = {
   viewMode: "list",
-  groupBy: "formation",
+  groupBy: "echeance",
 };
 
 export function useSessionsViewPreferences() {

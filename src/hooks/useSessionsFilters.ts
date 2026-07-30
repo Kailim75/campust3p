@@ -2,7 +2,11 @@ import { useMemo } from "react";
 import { parseISO, isAfter, isBefore } from "date-fns";
 import type { Session } from "@/hooks/useSessions";
 
+/** Fenêtre temporelle affichée. « actives » = en cours + à venir. */
+export type SessionPeriode = "actives" | "terminees" | "toutes";
+
 export interface SessionFilters {
+  periode: SessionPeriode;
   search: string;
   status: string;
   formationType: string;
@@ -14,6 +18,9 @@ export interface SessionFilters {
 }
 
 export const defaultFilters: SessionFilters = {
+  // Refonte du 23/07/2026 : la page ouvrait sur 45 sessions terminées
+  // pour 11 actives — on montre par défaut ce qui reste à faire.
+  periode: "actives",
   search: "",
   status: "all",
   formationType: "all",
@@ -38,6 +45,17 @@ export function isSessionCritical(
   return fillRate < 0.5;
 }
 
+export function estSessionActive(session: Session): boolean {
+  return session.statut === "a_venir" || session.statut === "en_cours";
+}
+
+/** Compteurs des onglets de période (sur le jeu complet, hors autres filtres). */
+export function compterParPeriode(sessions: Session[] | undefined) {
+  const all = sessions || [];
+  const actives = all.filter(estSessionActive).length;
+  return { actives, terminees: all.length - actives, toutes: all.length };
+}
+
 export function useSessionsFilters(
   sessions: Session[] | undefined,
   filters: SessionFilters,
@@ -47,6 +65,10 @@ export function useSessionsFilters(
     if (!sessions) return [];
 
     return sessions.filter((session) => {
+      // Fenêtre temporelle
+      if (filters.periode === "actives" && !estSessionActive(session)) return false;
+      if (filters.periode === "terminees" && estSessionActive(session)) return false;
+
       // Critical filter
       if (filters.criticalOnly && !isSessionCritical(session, inscriptionsCounts)) return false;
 
@@ -86,6 +108,7 @@ export function useSessionsFilters(
   }, [sessions, filters, inscriptionsCounts]);
 
   const hasActiveFilters =
+    filters.periode !== defaultFilters.periode ||
     filters.search !== "" ||
     filters.status !== "all" ||
     filters.formationType !== "all" ||
