@@ -42,10 +42,10 @@ export function SyncDriveFlowButton({ contactId, contactName }: SyncDriveFlowBut
           description: "L'apprenant a été créé chez Drive Flow.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sync error:", err);
       toast.error("Erreur de synchronisation", {
-        description: err.message || "Impossible d'envoyer vers Drive Flow.",
+        description: err instanceof Error ? err.message : "Impossible d'envoyer vers Drive Flow.",
       });
     } finally {
       setIsSyncing(false);
