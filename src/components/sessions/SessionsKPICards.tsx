@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Target, ShieldCheck } from "lucide-react";
+import { Users, AlertTriangle, DollarSign, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseISO } from "date-fns";
 import { Session } from "@/hooks/useSessions";
@@ -43,6 +43,14 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
   // CA sécurisé total
   const caSecuriseTotal = Object.values(financials).reduce((acc, f) => acc + f.ca_securise, 0);
 
+  // Reste à encaisser sur les sessions ouvertes (remplace la « projection
+  // J/J » que personne ne savait lire — refonte du 23/07/2026).
+  const resteAEncaisser = upcomingSessions.reduce((acc, s) => {
+    const f = financials[s.id];
+    if (!f) return acc;
+    return acc + Math.max(0, f.total_facture - f.total_paye);
+  }, 0);
+
   // Sessions critiques (< 50% remplissage à < 14 jours)
   const sessionsCritiques = upcomingSessions.filter(s => {
     const startDate = parseISO(s.date_debut);
@@ -52,25 +60,13 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
     return daysUntilStart <= 14 && daysUntilStart > 0 && fillRate < 50;
   });
 
-  // Projection mensuelle
-  const dayOfMonth = today.getDate();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const caSecuriseMois = upcomingSessions.reduce((acc, s) => {
-    const sd = parseISO(s.date_debut);
-    if (sd.getMonth() === today.getMonth() && sd.getFullYear() === today.getFullYear()) {
-      return acc + (financials[s.id]?.ca_securise || 0);
-    }
-    return acc;
-  }, 0);
-  const projectionMois = daysInMonth > 0 ? Math.round((caSecuriseMois / dayOfMonth) * daysInMonth) : 0;
-
   const fillColor = avgFillRate >= 70 ? "text-success" : avgFillRate >= 40 ? "text-warning" : "text-destructive";
   const fillBg = avgFillRate >= 70 ? "bg-success/10" : avgFillRate >= 40 ? "bg-warning/10" : "bg-destructive/10";
 
   return (
     <TooltipProvider>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Taux de remplissage */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -105,7 +101,9 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
                   <p className="text-xl font-bold tracking-tight text-success leading-none">
                     {caSecuriseTotal.toLocaleString('fr-FR')} €
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">CA sécurisé</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                    Encaissé{resteAEncaisser > 0 ? ` · ${resteAEncaisser.toLocaleString('fr-FR')} € à encaisser` : ""}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -122,28 +120,12 @@ export function SessionsKPICards({ sessions, inscriptionsCounts, financials = {}
                   <p className="text-xl font-bold tracking-tight leading-none">
                     {caPrevisionnel.toLocaleString('fr-FR')} €
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Prévisionnel · {caSecuriseTotal.toLocaleString('fr-FR')} € sécurisés</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">CA prévisionnel (sessions ouvertes)</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Projection mensuelle */}
-          <Card className="card-elevated group hover:shadow-md transition-shadow">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-info/10 shrink-0">
-                  <Target className="h-4 w-4 text-info" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl font-bold tracking-tight leading-none">
-                    {projectionMois.toLocaleString('fr-FR')} €
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Projection · J{dayOfMonth}/{daysInMonth}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Alert banner — compact */}
