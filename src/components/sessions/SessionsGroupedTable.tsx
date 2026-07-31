@@ -78,19 +78,31 @@ function classerParEcheance(session: Session): { key: string; label: string } {
  * montrait remplissage / CA / statut, mais jamais « qu'est-ce que je dois
  * faire ». Les alertes ne concernent que les sessions encore ouvertes.
  */
+interface AlerteSession {
+  label: string;
+  /** bloquant = la session ne peut pas se tenir / Qualiopi non conforme. */
+  niveau: "bloquant" | "surveiller";
+}
+
 function construireAlertes(
   session: Session,
   fin: SessionFinancialData | undefined,
-): string[] {
+): AlerteSession[] {
   if (session.statut === "terminee" || session.statut === "annulee") return [];
-  const alertes: string[] = [];
-  if (!session.formateur_id) alertes.push("Pas de formateur");
-  if (!session.adresse_ville && !session.lieu) alertes.push("Pas de lieu");
+  const alertes: AlerteSession[] = [];
+  if (!session.formateur_id) alertes.push({ label: "Pas de formateur", niveau: "bloquant" });
+  if (!session.adresse_ville && !session.lieu) alertes.push({ label: "Pas de lieu", niveau: "bloquant" });
   if (fin?.nb_non_factures) {
-    alertes.push(`${fin.nb_non_factures} non facturé${fin.nb_non_factures > 1 ? "s" : ""}`);
+    alertes.push({
+      label: `${fin.nb_non_factures} à facturer`,
+      niveau: "surveiller",
+    });
   }
   if (fin?.nb_en_retard) {
-    alertes.push(`${fin.nb_en_retard} paiement${fin.nb_en_retard > 1 ? "s" : ""} en retard`);
+    alertes.push({
+      label: `${fin.nb_en_retard} impayé${fin.nb_en_retard > 1 ? "s" : ""}`,
+      niveau: "surveiller",
+    });
   }
   return alertes;
 }
@@ -517,13 +529,25 @@ export function SessionsGroupedTable({
                 <Collapsible key={group.key} open={expandedGroups.has(group.key)} onOpenChange={() => toggleGroup(group.key)}>
                   <CollapsibleTrigger asChild>
                     <div className={cn(
-                      "flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors",
-                      isMonthGroup && "border-l-4 border-l-primary/30 bg-muted/20"
+                      "flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/60",
+                      isMonthGroup && "border-l-4 border-l-primary/30 bg-muted/20",
+                      // En-tête d'échéance affirmé : le bloc doit se voir de
+                      // loin (retour directeur du 31/07 : « visuel trop soft »).
+                      groupBy === "echeance" && "bg-muted/40",
                     )}>
                       {expandedGroups.has(group.key) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       <div className="flex items-center gap-2">
                         {group.badgeClass ? (
-                          <Badge variant="outline" className={cn("text-sm", group.badgeClass)}>{group.label}</Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-sm",
+                              groupBy === "echeance" && "text-[13px] font-bold uppercase tracking-wide px-2.5 py-0.5",
+                              group.badgeClass,
+                            )}
+                          >
+                            {group.label}
+                          </Badge>
                         ) : (
                           <span className={cn(
                             "font-semibold text-foreground",
@@ -534,6 +558,19 @@ export function SessionsGroupedTable({
                       <Badge variant="secondary" className="ml-2">
                         {group.sessions.length} session{group.sessions.length > 1 ? 's' : ''}
                       </Badge>
+                      {(() => {
+                        const bloquantes = group.sessions.filter(
+                          (s) => construireAlertes(s, financials[s.id]).some((a) => a.niveau === "bloquant"),
+                        ).length;
+                        return bloquantes > 0 ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-destructive/12 text-destructive border-destructive/40 font-medium"
+                          >
+                            ⛔ {bloquantes} à débloquer
+                          </Badge>
+                        ) : null;
+                      })()}
                       <span className="text-xs text-muted-foreground/70 ml-auto mr-4 flex items-center gap-3">
                         <span>
                           {group.sessions.reduce((a, s) => a + (inscriptionsCounts[s.id] || 0), 0)} inscrits
@@ -672,13 +709,21 @@ function SessionRow({
     >
       {/* COL 1 — SESSION */}
       <TableCell className="py-2 pl-4 pr-2">
-        <div className={cn("absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full", formationColor.dot)} />
-        <div className="pl-2 min-w-0">
+        {/* Bande de type épaisse : l'œil trie les formations sans lire
+            (retour directeur du 31/07 — « le mélange de sessions est pas ouf »). */}
+        <div className={cn("absolute left-0 top-0 bottom-0 w-[5px]", formationColor.dot)} />
+        <div className="pl-2.5 min-w-0">
           <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className={cn("text-[9px] px-1 py-0 shrink-0 leading-tight", formationColor.badge)}>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] px-1.5 py-0 shrink-0 leading-tight font-semibold uppercase tracking-wide",
+                formationColor.badge,
+              )}
+            >
               {getFormationLabel(session.formation_type)}
             </Badge>
-            <span className="font-medium text-[13px] text-foreground truncate leading-tight group-hover/row:text-primary transition-colors">
+            <span className="font-semibold text-[13.5px] text-foreground truncate leading-tight group-hover/row:text-primary transition-colors">
               {session.nom}
             </span>
             {isCritical && (
@@ -704,9 +749,15 @@ function SessionRow({
       {/* COL 2 — REMPLISSAGE */}
       <TableCell className="py-2 px-2">
         <div className="flex items-center gap-2">
-          <div className={cn("h-2 w-2 rounded-full shrink-0", 
-            fillRate >= 100 ? "bg-emerald-500" : fillRate >= 70 ? "bg-success" : fillRate >= 50 ? "bg-warning" : "bg-destructive"
-          )} />
+          <div className="w-9 h-1.5 rounded-full bg-muted overflow-hidden shrink-0">
+            <div
+              className={cn(
+                "h-full rounded-full",
+                fillRate >= 100 ? "bg-emerald-500" : fillRate >= 70 ? "bg-success" : fillRate >= 50 ? "bg-warning" : "bg-destructive",
+              )}
+              style={{ width: `${Math.min(100, fillRate)}%` }}
+            />
+          </div>
           <span className={cn("text-[13px] font-semibold tabular-nums", fillColor.text)}>
             {inscrits}/{session.places_totales}
           </span>
@@ -740,16 +791,29 @@ function SessionRow({
           <div className="flex flex-wrap gap-1">
             {alertes.map((a) => (
               <Badge
-                key={a}
+                key={a.label}
                 variant="outline"
-                className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/30"
+                className={cn(
+                  "text-[10px] px-1.5 py-0 font-medium",
+                  a.niveau === "bloquant"
+                    ? "bg-destructive/12 text-destructive border-destructive/40"
+                    : "bg-warning/15 text-warning-foreground/90 border-warning/40 dark:text-warning",
+                )}
               >
-                {a}
+                {a.niveau === "bloquant" ? "⛔ " : ""}{a.label}
               </Badge>
             ))}
           </div>
         ) : (
-          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusConfig[session.statut]?.class)}>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] px-1.5 py-0 font-medium",
+              session.statut === "a_venir" || session.statut === "en_cours"
+                ? "bg-success/12 text-success border-success/40"
+                : statusConfig[session.statut]?.class,
+            )}
+          >
             {session.statut === "a_venir" || session.statut === "en_cours"
               ? "✓ Prête"
               : statusConfig[session.statut]?.label || session.statut}
