@@ -302,7 +302,7 @@ export function SessionsGroupedTable({
           <div className="flex items-center gap-1">Remplissage<SortIcon field="inscrits" /></div>
         </TableHead>
         <TableHead className="font-medium text-xs py-2 w-[120px]">CA sécurisé</TableHead>
-        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[180px]" onClick={() => handleSort('statut')}>
+        <TableHead className="font-medium text-xs cursor-pointer hover:bg-muted/60 py-2 w-[215px]" onClick={() => handleSort('statut')}>
           <div className="flex items-center gap-1">À faire<SortIcon field="statut" /></div>
         </TableHead>
         <TableHead className="text-right font-medium text-xs py-2 w-[80px] pr-3">Actions</TableHead>
@@ -708,7 +708,10 @@ function SessionRow({
       onClick={() => onViewDetail(session)}
     >
       {/* COL 1 — SESSION */}
-      <TableCell className="py-2 pl-4 pr-2">
+      {/* `relative` indispensable : sans contexte de positionnement, la bande
+          de type se calait sur le tableau entier et donnait une colonne de
+          couleur continue au lieu d'une couleur par ligne (bug du 31/07). */}
+      <TableCell className="relative py-2 pl-4 pr-2">
         {/* Bande de type épaisse : l'œil trie les formations sans lire
             (retour directeur du 31/07 — « le mélange de sessions est pas ouf »). */}
         <div className={cn("absolute left-0 top-0 bottom-0 w-[5px]", formationColor.dot)} />
@@ -786,18 +789,20 @@ function SessionRow({
       </TableCell>
 
       {/* COL 4 — À FAIRE (alertes) ou statut si rien à signaler */}
-      <TableCell className="py-2 px-2">
+      <TableCell className="py-2 px-2 align-middle">
         {alertes.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
+          // Empilées (et non en wrap) : avec 2-3 alertes, le wrap horizontal
+          // débordait de la ligne et rognait le dernier badge (bug du 31/07).
+          <div className="flex flex-col items-start gap-1">
             {alertes.map((a) => (
               <Badge
                 key={a.label}
                 variant="outline"
                 className={cn(
-                  "text-[10px] px-1.5 py-0 font-medium",
+                  "text-[10px] px-1.5 py-0 font-medium whitespace-nowrap leading-[18px]",
                   a.niveau === "bloquant"
                     ? "bg-destructive/12 text-destructive border-destructive/40"
-                    : "bg-warning/15 text-warning-foreground/90 border-warning/40 dark:text-warning",
+                    : "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700",
                 )}
               >
                 {a.niveau === "bloquant" ? "⛔ " : ""}{a.label}
