@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, XCircle, Clock, Save, ExternalLink } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -33,6 +33,7 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
   const [, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Get inscriptions with session details
   const { data: inscriptions, isLoading } = useQuery({
@@ -126,8 +127,12 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
                       <button
                         className="inline-flex items-center gap-1 text-primary hover:underline underline-offset-2 cursor-pointer"
                         onClick={() => {
+                          // SessionsPage lit `?id=` et ouvre la fiche ; l'ancien
+                          // `setSearchParams({ section, sessionId })` écrivait le
+                          // mauvais paramètre ET ne quittait pas la fiche
+                          // apprenant — le lien ne menait donc nulle part.
                           if (session?.id) {
-                            setSearchParams({ section: "sessions", sessionId: session.id });
+                            navigate(`/sessions?id=${session.id}`);
                           }
                         }}
                       >
