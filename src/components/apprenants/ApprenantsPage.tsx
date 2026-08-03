@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +60,18 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
       onContactOpened?.();
     }
   }, [initialContactId, onContactOpened]);
+
+  // ── Fermeture sur navigation sortante ──────────────────────────────────
+  // Un lien de la fiche (nom de session…) change de page, mais le Sheet
+  // restait affiché par-dessus la page d'arrivée : on le ferme dès que le
+  // chemin quitte les apprenants. La page reste montée le temps de
+  // l'animation de sortie, la fermeture est donc bien jouée.
+  const location = useLocation();
+  useEffect(() => {
+    const surLesApprenants =
+      location.pathname.startsWith("/apprenants") || location.pathname.startsWith("/contacts");
+    if (!surLesApprenants) setDetailOpen(false);
+  }, [location.pathname]);
 
   // ── URL sync (?contact=<id>) — open the Sheet on first load / share ──
   const [searchParams] = useSearchParams();
