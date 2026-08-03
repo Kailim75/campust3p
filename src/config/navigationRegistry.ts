@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Award,
   Handshake, UserCog, Trash2, Shield, Package, HelpCircle,
-  FileSignature,
+  FileSignature, BellRing,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,6 +69,9 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "contacts",   label: "Apprenants",  icon: Users,           group: "hub", path: "/contacts",   pageName: "ApprenantsPage", legacyPaths: ["apprenants"] },
   { id: "sessions",   label: "Sessions",    icon: Calendar,        group: "hub", path: "/sessions",   pageName: "SessionsPage" },
   { id: "finances",   label: "Finances",    icon: CreditCard,      group: "hub", path: "/finances",   pageName: "FinancesPage", legacyPaths: ["facturation", "paiements"] },
+  // 5ᵉ hub ajouté le 03/08/2026 : la liste datée des relances à faire
+  // (paiements en direct, dossiers, sessions, signatures, rappels perso).
+  { id: "rappels",    label: "Rappels",     icon: BellRing,        group: "hub", path: "/rappels",    pageName: "RappelsPage" },
 
   // ── Menu « Plus » ──────────────────────────────────────────────────────────
   // Pilotage commercial

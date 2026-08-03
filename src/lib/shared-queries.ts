@@ -60,7 +60,10 @@ export function fetchSharedInscriptions(queryClient: QueryClient): Promise<Sessi
 }
 
 export interface RappelActif {
+  /** Requis par la page Rappels pour clôturer la note (`alerte_active` à false). */
+  id: string;
   contact_id: string;
+  titre: string | null;
   date_rappel: string;
   alerte_active: boolean;
   rappel_description: string | null;
@@ -74,7 +77,7 @@ export function fetchSharedRappelsActifs(queryClient: QueryClient): Promise<Rapp
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contact_historique")
-        .select("contact_id, date_rappel, alerte_active, rappel_description")
+        .select("id, contact_id, titre, date_rappel, alerte_active, rappel_description")
         .eq("alerte_active", true)
         .not("date_rappel", "is", null);
       if (error) throw error;

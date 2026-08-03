@@ -30,6 +30,7 @@ const FormationsPage      = lazy(() => import("@/components/formations/Formation
 const ProduitsServicesPage = lazy(() => import("@/components/produits/ProduitsServicesPage").then(m => ({ default: m.ProduitsServicesPage })));
 const ProspectsPage       = lazy(() => import("@/components/prospects/ProspectsPage").then(m => ({ default: m.ProspectsPage })));
 const SessionsPage        = lazy(() => import("@/components/sessions/SessionsPage").then(m => ({ default: m.SessionsPage })));
+const RappelsPage         = lazy(() => import("@/components/rappels/RappelsPage").then(m => ({ default: m.RappelsPage })));
 const FinancesPage        = lazy(() => import("@/components/finances/FinancesPage").then(m => ({ default: m.FinancesPage })));
 const AutomationsPage     = lazy(() => import("@/components/automations/AutomationsPage").then(m => ({ default: m.AutomationsPage })));
 const SettingsPage        = lazy(() => import("@/components/settings/SettingsPage").then(m => ({ default: m.SettingsPage })));
@@ -284,6 +285,10 @@ const Index = () => {
       case "sessions":
         pageName = "SessionsPage";
         node = <SessionsPage />;
+        break;
+      case "rappels":
+        pageName = "RappelsPage";
+        node = <RappelsPage />;
         break;
       case "prospects":
         pageName = "ProspectsPage";

@@ -1,383 +1,286 @@
 import { useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
-import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import {
-  Bell,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Calendar,
-  Search,
-  User,
-  ExternalLink,
-  MessageSquare,
-  Sparkles,
-} from "lucide-react";
-import { RelancesDrawer } from "@/components/rappels/RelancesDrawer";
-import { useUpdateHistoriqueAlert } from "@/hooks/useContactHistorique";
-import { useRappelsFinancials } from "@/hooks/useRappelsFinancials";
-import { useTreasuryKPIs } from "@/hooks/useTreasuryKPIs";
-import { RappelsActionKPIs } from "@/components/rappels/RappelsActionKPIs";
-import { RappelsPerformanceBlock } from "@/components/rappels/RappelsPerformanceBlock";
-import { RappelPriorityBadge } from "@/components/rappels/RappelPriorityBadge";
-import { format, parseISO, isPast, isToday, isTomorrow, differenceInDays, startOfDay } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
+import { PaiementFormDialog } from "@/components/paiements/PaiementFormDialog";
+import { NouveauRappelDialog } from "./NouveauRappelDialog";
+import { RappelLigne } from "./RappelLigne";
+import { useRappels, useReporterRappel, useCloturerRappelLibre } from "@/hooks/useRappels";
+import { envoyerRelancePaiement } from "@/lib/relance-paiement";
+import { classerUrgence, compterParUrgence, type Rappel, type RappelUrgence } from "@/lib/rappels";
+import { BellRing, Plus, Search, CheckCircle2, AlertTriangle, Euro } from "lucide-react";
+import { addDays, format } from "date-fns";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type RappelStatus = "overdue" | "today" | "tomorrow" | "upcoming";
+/**
+ * « Rappels » — la liste datée de ce que le directeur doit relancer
+ * (chantier du 03/08/2026).
+ *
+ * Différence avec « Aujourd'hui », qui traite les mêmes sujets par blocs :
+ * ici tout porte une échéance et tout se reporte. Rien ne part
+ * automatiquement — chaque relance est déclenchée par un clic (décision du
+ * 23/07/2026).
+ */
 
-function getRappelStatus(dateRappel: string): RappelStatus {
-  const date = startOfDay(parseISO(dateRappel));
-  if (isToday(date)) return "today";
-  if (isTomorrow(date)) return "tomorrow";
-  if (isPast(date)) return "overdue";
-  return "upcoming";
-}
+type Filtre = RappelUrgence | "tous";
 
-const STATUS_CONFIG: Record<RappelStatus, { label: string; icon: typeof Bell; className: string; cardClass: string; dotColor: string }> = {
-  overdue: {
-    label: "En retard",
-    icon: AlertTriangle,
-    className: "bg-destructive/10 text-destructive border-destructive/20",
-    cardClass: "border-l-4 border-l-destructive",
-    dotColor: "bg-destructive",
-  },
-  today: {
-    label: "Aujourd'hui",
-    icon: Bell,
-    className: "bg-warning/10 text-warning border-warning/20",
-    cardClass: "border-l-4 border-l-warning",
-    dotColor: "bg-warning",
-  },
-  tomorrow: {
-    label: "Demain",
-    icon: Clock,
-    className: "bg-info/10 text-info border-info/20",
-    cardClass: "border-l-4 border-l-info",
-    dotColor: "bg-info",
-  },
-  upcoming: {
-    label: "À venir",
-    icon: Calendar,
-    className: "bg-primary/10 text-primary border-primary/20",
-    cardClass: "border-l-4 border-l-primary",
-    dotColor: "bg-primary",
-  },
-};
+const FILTRES: { value: Filtre; label: string }[] = [
+  { value: "retard", label: "En retard" },
+  { value: "aujourdhui", label: "Aujourd'hui" },
+  { value: "semaine", label: "Cette semaine" },
+  { value: "tous", label: "Tout" },
+];
 
-type FilterType = "all" | "overdue" | "today" | "tomorrow" | "upcoming";
+/** Après une relance envoyée, on laisse ce délai avant de la reproposer. */
+const DELAI_APRES_RELANCE_JOURS = 7;
 
-// Compute unified score with encaissement data
-function computeUnifiedScore(
-  discipline: number,
-  rapiditeTraitement: number,
-  rapiditeEncaissement: number | null
-): { score: number; level: "healthy" | "warning" | "danger" } {
-  let score: number;
-  if (rapiditeEncaissement !== null) {
-    score = Math.round(0.4 * discipline + 0.3 * rapiditeTraitement + 0.3 * rapiditeEncaissement);
-  } else {
-    // Neutralize encaissement: redistribute proportionally
-    score = Math.round((40 / 70) * discipline + (30 / 70) * rapiditeTraitement);
-  }
-  score = Math.max(0, Math.min(100, score));
-  const level: "healthy" | "warning" | "danger" = score >= 85 ? "healthy" : score >= 70 ? "warning" : "danger";
-  return { score, level };
-}
+export function RappelsPage() {
+  const navigate = useNavigate();
+  const { rappels, isLoading } = useRappels();
+  const reporter = useReporterRappel();
+  const cloturer = useCloturerRappelLibre();
 
-function computeRapiditeEncaissement(delaiMoyen: number): number {
-  if (delaiMoyen <= 5) return 100;
-  if (delaiMoyen <= 10) return 80;
-  if (delaiMoyen <= 20) return 60;
-  return 40;
-}
+  const [filtre, setFiltre] = useState<Filtre>("retard");
+  const [recherche, setRecherche] = useState("");
+  const [contactOuvert, setContactOuvert] = useState<string | null>(null);
+  const [ficheOuverte, setFicheOuverte] = useState(false);
+  const [nouveauOuvert, setNouveauOuvert] = useState(false);
+  const [encaissement, setEncaissement] = useState<Rappel | null>(null);
+  const [enCours, setEnCours] = useState<string | null>(null);
 
-export default function RappelsPage() {
-  const { rappels: enrichedRappels, kpis, scoreComponents, rawFinancials, isLoading } = useRappelsFinancials();
-  const treasuryKPIs = useTreasuryKPIs();
-  const updateAlert = useUpdateHistoriqueAlert();
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [relancesOpen, setRelancesOpen] = useState(false);
+  const compteurs = useMemo(() => compterParUrgence(rappels), [rappels]);
 
-  const handleGoToContact = (contactId: string) => {
-    setSelectedContactId(contactId);
-    setDetailOpen(true);
-  };
+  const montantEnRetard = useMemo(
+    () =>
+      rappels
+        .filter((r) => r.source === "paiement" && r.joursDeRetard > 0)
+        .reduce((total, r) => total + (r.montant ?? 0), 0),
+    [rappels]
+  );
 
-  const rappels = useMemo(() => {
-    if (!enrichedRappels) return [];
-    return enrichedRappels
-      .filter((a: any) => a.date_rappel && a.alerte_active)
-      .map((a: any) => ({
-        ...a,
-        status: getRappelStatus(a.date_rappel),
-        contactNom: a.contacts ? `${a.contacts.prenom} ${a.contacts.nom}` : "Contact",
-      }))
-      .sort((a: any, b: any) => {
-        const prioOrder: Record<string, number> = { critical: 0, important: 1, standard: 2 };
-        if (prioOrder[a.priority] !== prioOrder[b.priority]) return prioOrder[a.priority] - prioOrder[b.priority];
-        const order: Record<RappelStatus, number> = { overdue: 0, today: 1, tomorrow: 2, upcoming: 3 };
-        if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
-        return new Date(a.date_rappel).getTime() - new Date(b.date_rappel).getTime();
-      });
-  }, [enrichedRappels]);
+  const visibles = useMemo(() => {
+    const terme = recherche.trim().toLowerCase();
+    return rappels.filter((r) => {
+      if (filtre !== "tous" && classerUrgence(r.joursDeRetard) !== filtre) return false;
+      if (!terme) return true;
+      return `${r.titre} ${r.detail}`.toLowerCase().includes(terme);
+    });
+  }, [rappels, filtre, recherche]);
 
-  const filtered = useMemo(() => {
-    let result = rappels;
-    if (filter !== "all") result = result.filter((r: any) => r.status === filter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((r: any) =>
-        r.contactNom.toLowerCase().includes(q) ||
-        (r.titre || "").toLowerCase().includes(q) ||
-        (r.rappel_description || "").toLowerCase().includes(q)
-      );
+  const ouvrir = (rappel: Rappel) => {
+    if (rappel.source === "session" && rappel.sessionId) {
+      navigate(`/sessions?id=${rappel.sessionId}`);
+      return;
     }
-    return result;
-  }, [rappels, filter, search]);
-
-  const stats = useMemo(() => {
-    const counts = { overdue: 0, today: 0, tomorrow: 0, upcoming: 0 };
-    rappels.forEach((r: any) => {
-      counts[r.status as RappelStatus]++;
-    });
-    return counts;
-  }, [rappels]);
-
-  // Compute unified score with treasury data when available
-  const encaissementScore = !treasuryKPIs.isLoading && treasuryKPIs.delaiEncaissementMoyen > 0
-    ? computeRapiditeEncaissement(treasuryKPIs.delaiEncaissementMoyen)
-    : null;
-
-  const { score: unifiedScore, level: unifiedScoreLevel } = rappels.length === 0
-    ? { score: 100, level: "healthy" as const }
-    : computeUnifiedScore(scoreComponents.discipline, scoreComponents.rapiditeTraitement, encaissementScore);
-
-  const hasFinancialRappels = kpis.montantARelancer > 0;
-
-  const handleMarkDone = (rappel: any) => {
-    updateAlert.mutate({
-      id: rappel.id,
-      contactId: rappel.contact_id,
-      alerte_active: false,
-      date_rappel: rappel.date_rappel,
-      rappel_description: rappel.rappel_description,
-    });
+    if (rappel.source === "signature") {
+      navigate("/signatures");
+      return;
+    }
+    if (rappel.contactId) {
+      setContactOuvert(rappel.contactId);
+      setFicheOuverte(true);
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
-        </div>
-        <Skeleton className="h-[400px] rounded-xl" />
-      </div>
-    );
-  }
+  const relancer = async (rappel: Rappel) => {
+    if (!rappel.contactEmail || !rappel.factureId || !rappel.contactId) {
+      toast.error("Pas d'email sur cette fiche", {
+        description: "Ouvrez la fiche pour renseigner une adresse.",
+        action: { label: "Ouvrir", onClick: () => ouvrir(rappel) },
+      });
+      return;
+    }
 
-  const filterButtons: { key: FilterType; label: string; count: number }[] = [
-    { key: "all", label: "Tous", count: rappels.length },
-    { key: "overdue", label: "En retard", count: stats.overdue },
-    { key: "today", label: "Aujourd'hui", count: stats.today },
-    { key: "tomorrow", label: "Demain", count: stats.tomorrow },
-    { key: "upcoming", label: "À venir", count: stats.upcoming },
-  ];
+    setEnCours(rappel.id);
+    try {
+      const [prenom, ...reste] = (rappel.contactNom || "").split(" ");
+      await envoyerRelancePaiement({
+        factureId: rappel.factureId,
+        numeroFacture: rappel.numeroFacture || "—",
+        contactId: rappel.contactId,
+        email: rappel.contactEmail,
+        prenom: prenom || "",
+        nom: reste.join(" "),
+        montantRestant: rappel.montant ?? 0,
+        dateEcheance: rappel.dateEcheance,
+      });
 
-  // Empty state
-  if (rappels.length === 0) {
-    return (
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Station Rappels</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
-          </p>
-        </div>
-        <Card className="p-12 text-center">
-          <Sparkles className="h-10 w-10 text-emerald-500/40 mx-auto mb-3" />
-          <p className="text-base font-medium text-foreground">Station vide — suivi optimal</p>
-          <p className="text-sm text-muted-foreground mt-1">Score : 100 / 100</p>
-        </Card>
-      </div>
-    );
-  }
+      // La facture reste due : sans report, la ligne resterait affichée le
+      // lendemain alors que la relance vient de partir.
+      await reporter.mutateAsync({
+        rappelId: rappel.id,
+        jusquA: format(addDays(new Date(), DELAI_APRES_RELANCE_JOURS), "yyyy-MM-dd"),
+      });
+      toast.success(`Relance envoyée à ${rappel.titre}`, {
+        description: `Réapparaîtra dans ${DELAI_APRES_RELANCE_JOURS} jours si la facture n'est pas soldée.`,
+      });
+    } catch {
+      toast.error("L'email n'est pas parti", { description: "Réessayez ou relancez par téléphone." });
+    } finally {
+      setEnCours(null);
+    }
+  };
+
+  const afficherVide = !isLoading && visibles.length === 0;
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Station Rappels</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })} — {rappels.length} rappel{rappels.length > 1 ? "s" : ""} actif{rappels.length > 1 ? "s" : ""}
-          </p>
-        </div>
-        <Button onClick={() => setRelancesOpen(true)} className="gap-2" size="sm">
-          <MessageSquare className="h-4 w-4" />
-          Préparer mes relances
-        </Button>
-      </div>
+    <div className="min-h-screen">
+      <Header title="Rappels" subtitle="Qui relancer, et quand" />
 
-      {/* BLOC A — ACTION IMMÉDIATE (5 cartes max) */}
-      <RappelsActionKPIs
-        overdueCount={stats.overdue}
-        todayCount={stats.today}
-        tomorrowCount={stats.tomorrow}
-        montantARelancer={kpis.montantARelancer}
-        hasFinancialRappels={hasFinancialRappels}
-        unifiedScore={unifiedScore}
-        unifiedScoreLevel={unifiedScoreLevel}
-      />
-
-      {/* BLOC B — PERFORMANCE (repliable) */}
-      {!treasuryKPIs.isLoading && (
-        <RappelsPerformanceBlock
-          delaiEncaissementMoyen={treasuryKPIs.delaiEncaissementMoyen}
-          delaiEncaissementMoisPrecedent={treasuryKPIs.delaiEncaissementMoisPrecedent}
-          tauxRelancesEfficaces={treasuryKPIs.tauxRelancesEfficaces}
-          tauxRelancesEfficacesMoisPrecedent={treasuryKPIs.tauxRelancesEfficacesMoisPrecedent}
-          encaissementsMoisActuel={treasuryKPIs.encaissementsMoisActuel}
-          encaissementsMoisPrecedent={treasuryKPIs.encaissementsMoisPrecedent}
-          montantCritique={kpis.montantCritique}
-        />
-      )}
-
-      {/* Filters + Search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un rappel ou un contact..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+      <main className="animate-fade-in space-y-4 p-3 sm:space-y-6 sm:p-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Carte
+            icone={AlertTriangle}
+            valeur={String(compteurs.retard)}
+            libelle="en retard"
+            teinte="text-destructive"
+            fond="bg-destructive/10"
+          />
+          <Carte
+            icone={BellRing}
+            valeur={String(compteurs.aujourdhui)}
+            libelle="à faire aujourd'hui"
+            teinte="text-warning"
+            fond="bg-warning/10"
+          />
+          <Carte
+            icone={Euro}
+            valeur={`${montantEnRetard.toLocaleString("fr-FR")} €`}
+            libelle="impayés en retard"
+            teinte="text-primary"
+            fond="bg-primary/10"
           />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          {filterButtons.map((fb) => (
-            <Button
-              key={fb.key}
-              size="sm"
-              variant={filter === fb.key ? "default" : "outline"}
-              className={cn("text-xs whitespace-nowrap", filter === fb.key && "bg-primary text-primary-foreground")}
-              onClick={() => setFilter(fb.key)}
-            >
-              {fb.label}
-              <Badge variant="outline" className="ml-1.5 text-[10px] px-1.5 py-0 h-4">
-                {fb.count}
-              </Badge>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-fit gap-1 rounded-xl bg-muted p-1">
+            {FILTRES.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFiltre(f.value)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:px-4",
+                  filtre === f.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+                <span className="ml-1.5 text-xs opacity-60">
+                  ({f.value === "tous" ? compteurs.tous : compteurs[f.value]})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un nom…"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => setNouveauOuvert(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              Nouveau rappel
             </Button>
-          ))}
+          </div>
         </div>
-      </div>
 
-      {/* Rappels List */}
-      <ScrollArea className="h-[calc(100vh-380px)]">
-        <div className="space-y-2">
-          {filtered.length === 0 ? (
-            <Card className="p-12 text-center">
-              <CheckCircle2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground">
-                {filter === "all" && !search ? "Aucun rappel actif" : "Aucun résultat"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {filter === "all" && !search
-                  ? "Créez des rappels depuis les fiches apprenants"
-                  : "Essayez de modifier vos filtres"}
-              </p>
-            </Card>
-          ) : (
-            filtered.map((rappel: any) => {
-              const config = STATUS_CONFIG[rappel.status as RappelStatus];
-              const StatusIcon = config.icon;
-              const daysUntil = differenceInDays(startOfDay(parseISO(rappel.date_rappel)), startOfDay(new Date()));
+        {isLoading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-lg" />
+            ))}
+          </div>
+        )}
 
-              return (
-                <Card
-                  key={rappel.id}
-                  className={cn("p-4 transition-all hover:shadow-md group cursor-pointer", config.cardClass)}
-                  onClick={() => handleGoToContact(rappel.contact_id)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn("mt-1.5 h-2.5 w-2.5 rounded-full shrink-0", config.dotColor)} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.className)}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
-                        <RappelPriorityBadge priority={rappel.priority} />
-                        <span className="text-[10px] text-muted-foreground">
-                          {rappel.status === "overdue"
-                            ? `${Math.abs(daysUntil)}j de retard`
-                            : rappel.status === "today"
-                            ? "Aujourd'hui"
-                            : rappel.status === "tomorrow"
-                            ? "Demain"
-                            : `Dans ${daysUntil}j`}
-                        </span>
-                        {rappel.montantEnAttente > 0 && (
-                          <span className="text-[10px] font-medium text-amber-600">
-                            {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(rappel.montantEnAttente)} dû
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium text-foreground mb-0.5 truncate">
-                        {rappel.rappel_description || rappel.titre || "Rappel"}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                        <User className="h-3 w-3" />
-                        <span className="font-medium text-primary underline-offset-2 group-hover:underline">{rappel.contactNom}</span>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {format(parseISO(rappel.date_rappel), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })}
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 h-8 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkDone(rappel);
-                      }}
-                      disabled={updateAlert.isPending}
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                      Traité
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      </ScrollArea>
+        {afficherVide && (
+          <EmptyState
+            icon={CheckCircle2}
+            title={filtre === "retard" ? "Aucun retard" : "Rien à relancer"}
+            description={
+              recherche
+                ? "Aucun rappel ne correspond à cette recherche."
+                : "Tout est à jour sur cette période. Les nouveaux rappels apparaîtront ici automatiquement."
+            }
+          />
+        )}
+
+        {!isLoading && visibles.length > 0 && (
+          <div className="space-y-2">
+            {visibles.map((rappel) => (
+              <RappelLigne
+                key={rappel.id}
+                rappel={rappel}
+                enCours={enCours === rappel.id}
+                onRelancer={relancer}
+                onEncaisser={setEncaissement}
+                onOuvrir={ouvrir}
+                onReporter={(r, jusquA) => reporter.mutate({ rappelId: r.id, jusquA })}
+                onTerminer={(r) => r.historiqueId && cloturer.mutate(r.historiqueId)}
+              />
+            ))}
+          </div>
+        )}
+      </main>
 
       <ApprenantDetailSheet
-        contactId={selectedContactId}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
+        contactId={contactOuvert}
+        open={ficheOuverte}
+        onOpenChange={setFicheOuverte}
+        syncUrl={false}
       />
 
-      <RelancesDrawer
-        open={relancesOpen}
-        onOpenChange={setRelancesOpen}
-        rappels={rappels}
-        financials={rawFinancials}
-      />
+      <NouveauRappelDialog open={nouveauOuvert} onOpenChange={setNouveauOuvert} />
+
+      {encaissement?.factureId && (
+        <PaiementFormDialog
+          open
+          onOpenChange={(o) => !o && setEncaissement(null)}
+          factureId={encaissement.factureId}
+          montantRestant={encaissement.montant ?? 0}
+        />
+      )}
     </div>
   );
 }
+
+function Carte({
+  icone: Icone,
+  valeur,
+  libelle,
+  teinte,
+  fond,
+}: {
+  icone: typeof BellRing;
+  valeur: string;
+  libelle: string;
+  teinte: string;
+  fond: string;
+}) {
+  return (
+    <Card className="card-elevated p-3">
+      <div className="flex items-center gap-3">
+        <div className={cn("shrink-0 rounded-lg p-2", fond)}>
+          <Icone className={cn("h-4 w-4", teinte)} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={cn("text-xl font-bold leading-none tracking-tight", teinte)}>{valeur}</p>
+          <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{libelle}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export default RappelsPage;
