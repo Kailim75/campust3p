@@ -69,7 +69,13 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Ne jamais intercepter l'authentification ni les écritures :
+            // seuls les GET de données passent par le cache (NetworkFirst).
+            urlPattern: ({ url, request }) =>
+              /\.supabase\.co$/i.test(url.hostname) &&
+              request.method === "GET" &&
+              !url.pathname.startsWith("/auth/"),
+
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-cache",
