@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { getMissingCmaDocs } from "@/lib/cma-constants";
+import { totalCommissionsAlma } from "@/lib/alma-commission";
 import { PeriodValue, getPreviousPeriod } from "./useDashboardPeriodV2";
 import {
   isToday,
@@ -54,6 +55,8 @@ interface RawPaiement {
   montant: number;
   date_paiement: string;
   facture_id: string;
+  mode_paiement: string;
+  commentaires: string | null;
 }
 
 interface RawSession {
@@ -96,6 +99,12 @@ export interface DashboardMetrics {
   // Pilotage
   encaissements: number;
   encaissementsPrev: number;
+  /** Commissions Alma retenues sur les encaissements de la période (TTC). */
+  commissionsAlma: number;
+  /** Paiements Alma sans nombre de fois connu, estimés au taux 4x. */
+  commissionsAlmaEstimees: number;
+  /** encaissements − commissionsAlma : ce qui arrive vraiment en banque. */
+  netEncaisse: number;
   facturesEnAttente: number;
   facturesEnAttentePrev: number;
   facturesEnAttenteMontant: number;
@@ -238,10 +247,11 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
       .is("deleted_at", null)
       .not("statut", "eq", "annulee"),
 
-    // 3. Paiements (active, not deleted)
+    // 3. Paiements (active, not deleted) — mode_paiement + commentaires
+    // servent au calcul des commissions Alma (alma-commission.ts)
     supabase
       .from("paiements")
-      .select("montant, date_paiement, facture_id")
+      .select("montant, date_paiement, facture_id, mode_paiement, commentaires")
       .is("deleted_at", null),
 
     // 4. Sessions (active, not archived, not deleted)
@@ -347,9 +357,18 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
   // ═══════════════════════════════════════════
 
   // ── Encaissements (current period) ──
-  const encaissements = paiements
-    .filter((p) => p.date_paiement >= fromStr && p.date_paiement <= toStr)
-    .reduce((s, p) => s + Number(p.montant || 0), 0);
+  const paiementsPeriode = paiements.filter(
+    (p) => p.date_paiement >= fromStr && p.date_paiement <= toStr
+  );
+  const encaissements = paiementsPeriode.reduce((s, p) => s + Number(p.montant || 0), 0);
+
+  // ── Commissions Alma retenues sur ces encaissements ──
+  // Taux du contrat mesurés dans alma-commission.ts ; le net est la seule
+  // vue fidèle au compte en banque (demande du 12/08/2026). Les paiements
+  // Alma sans nombre de fois connu sont estimés au taux 4x et comptés.
+  const { total: commissionsAlma, nbEstimes: commissionsAlmaEstimees } =
+    totalCommissionsAlma(paiementsPeriode);
+  const netEncaisse = Math.round((encaissements - commissionsAlma) * 100) / 100;
 
   const encaissementsPrev = (prevPaiementsRes.data || [])
     .reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
@@ -745,6 +764,9 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     metrics: {
       encaissements,
       encaissementsPrev,
+      commissionsAlma,
+      commissionsAlmaEstimees,
+      netEncaisse,
       facturesEnAttente,
       facturesEnAttentePrev,
       facturesEnAttenteMontant,

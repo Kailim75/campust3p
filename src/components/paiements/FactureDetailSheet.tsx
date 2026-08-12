@@ -34,6 +34,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useFacture, FactureStatut, FinancementType, useDeleteFacture } from "@/hooks/useFactures";
 import { useFacturePaiements, useDeletePaiement, ModePaiement } from "@/hooks/usePaiements";
+import { commissionPourPaiement } from "@/lib/alma-commission";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
@@ -593,6 +594,19 @@ export function FactureDetailSheet({
                                   {modeLabels[paiement.mode_paiement]}
                                   {paiement.reference && ` • ${paiement.reference}`}
                                 </p>
+                                {(() => {
+                                  // Coût Alma du versement (alma-commission.ts)
+                                  const c = commissionPourPaiement(paiement);
+                                  if (!c) return null;
+                                  return (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      commission Alma −
+                                      {c.commission.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ (
+                                      {c.nbFois}x{c.estime ? " estimé" : ""}) → net{" "}
+                                      {c.net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                                    </p>
+                                  );
+                                })()}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

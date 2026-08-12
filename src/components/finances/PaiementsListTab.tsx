@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { commissionPourPaiement, totalCommissionsAlma } from "@/lib/alma-commission";
 import { Download, Euro, Search } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -37,6 +38,7 @@ interface PaiementRow {
   date_paiement: string;
   mode_paiement: string;
   reference: string | null;
+  commentaires: string | null;
   facture: {
     id: string;
     numero_facture: string | null;
@@ -55,7 +57,7 @@ export function PaiementsListTab() {
       const { data, error } = await supabase
         .from("paiements")
         .select(
-          `id, montant, date_paiement, mode_paiement, reference,
+          `id, montant, date_paiement, mode_paiement, reference, commentaires,
            facture:factures!paiements_facture_id_fkey (
              id, numero_facture, statut,
              contact:contacts!factures_contact_id_fkey (nom, prenom)
@@ -83,21 +85,29 @@ export function PaiementsListTab() {
   }, [paiements, search, modeFilter]);
 
   const totalAffiche = filtered.reduce((s, p) => s + Number(p.montant || 0), 0);
+  // Commissions Alma des lignes affichées (taux du contrat, alma-commission.ts)
+  const commissionsAlma = totalCommissionsAlma(filtered);
+  const netAffiche = totalAffiche - commissionsAlma.total;
 
   const handleExport = () => {
     if (filtered.length === 0) {
       toast.error("Aucun paiement à exporter");
       return;
     }
-    const headers = ["Date", "Facture", "Client", "Mode", "Référence", "Montant"];
-    const rows = filtered.map((p) => [
-      p.date_paiement ? format(new Date(p.date_paiement), "dd/MM/yyyy") : "",
-      p.facture?.numero_facture || "",
-      `${p.facture?.contact?.prenom || ""} ${p.facture?.contact?.nom || ""}`.trim(),
-      modeLabels[p.mode_paiement] || p.mode_paiement,
-      p.reference || "",
-      Number(p.montant).toFixed(2),
-    ]);
+    const headers = ["Date", "Facture", "Client", "Mode", "Référence", "Montant", "Commission Alma", "Net perçu"];
+    const rows = filtered.map((p) => {
+      const commission = commissionPourPaiement(p);
+      return [
+        p.date_paiement ? format(new Date(p.date_paiement), "dd/MM/yyyy") : "",
+        p.facture?.numero_facture || "",
+        `${p.facture?.contact?.prenom || ""} ${p.facture?.contact?.nom || ""}`.trim(),
+        modeLabels[p.mode_paiement] || p.mode_paiement,
+        p.reference || "",
+        Number(p.montant).toFixed(2),
+        commission ? commission.commission.toFixed(2) : "",
+        commission ? commission.net.toFixed(2) : Number(p.montant).toFixed(2),
+      ];
+    });
     const csv =
       "\uFEFF" +
       [headers.join(";"), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))].join("\n");
@@ -161,6 +171,16 @@ export function PaiementsListTab() {
           <p className="text-lg font-display font-semibold text-success">
             {totalAffiche.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
           </p>
+          {commissionsAlma.total > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              − {commissionsAlma.total.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ de commissions
+              Alma ({commissionsAlma.nbPaiementsAlma} paiement{commissionsAlma.nbPaiementsAlma > 1 ? "s" : ""}
+              {commissionsAlma.nbEstimes > 0 ? `, dont ${commissionsAlma.nbEstimes} estimé(s) 4x` : ""}) →{" "}
+              <span className="font-medium text-foreground">
+                net {netAffiche.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -207,6 +227,16 @@ export function PaiementsListTab() {
                   </TableCell>
                   <TableCell className="text-right font-semibold text-success">
                     {Number(p.montant).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€
+                    {(() => {
+                      const c = commissionPourPaiement(p);
+                      if (!c) return null;
+                      return (
+                        <p className="text-[11px] font-normal text-muted-foreground">
+                          net {c.net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ ({c.nbFois}x
+                          {c.estime ? " estimé" : ""})
+                        </p>
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}

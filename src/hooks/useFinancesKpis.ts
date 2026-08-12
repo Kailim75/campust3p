@@ -23,6 +23,11 @@ export interface FinancesKpis {
   caFacturePrev: number;
   encaissements: number;
   encaissementsPrev: number;
+  /** Commissions Alma (TTC) retenues sur les encaissements de la période. */
+  commissionsAlma: number;
+  commissionsAlmaEstimees: number;
+  /** encaissements − commissionsAlma : le net réellement encaissé. */
+  netEncaisse: number;
   resteAEncaisser: number;
   panierMoyen: number;
   panierMoyenPrev: number;
@@ -52,6 +57,9 @@ export function useFinancesKpis(): FinancesKpis {
     caFacturePrev: m?.caFacturePrev ?? 0,
     encaissements,
     encaissementsPrev: m?.encaissementsPrev ?? 0,
+    commissionsAlma: m?.commissionsAlma ?? 0,
+    commissionsAlmaEstimees: m?.commissionsAlmaEstimees ?? 0,
+    netEncaisse: m?.netEncaisse ?? encaissements,
     resteAEncaisser: m?.resteAEncaisser ?? 0,
     panierMoyen: m?.panierMoyen ?? 0,
     panierMoyenPrev: m?.panierMoyenPrev ?? 0,

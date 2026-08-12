@@ -19,6 +19,7 @@ import {
   Receipt,
   Clock,
   HelpCircle,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -130,10 +131,26 @@ export function FinancesPilotageTab() {
           icon={Euro}
           label="Encaissé"
           value={formatEur(kpis.encaissements)}
-          sublabel="Paiements reçus sur la période"
+          sublabel={
+            kpis.commissionsAlma > 0
+              ? `Net après commissions Alma : ${formatEur(kpis.netEncaisse)}`
+              : "Paiements reçus sur la période"
+          }
           delta={formatDelta(kpis.encaissements, kpis.encaissementsPrev)}
           tone="success"
-          tooltip="Somme des paiements enregistrés (tous modes) sur la période sélectionnée."
+          tooltip="Somme des paiements enregistrés (tous modes) sur la période sélectionnée. Le net déduit les commissions Alma réellement retenues."
+        />
+        <KpiCard
+          icon={CreditCard}
+          label="Commissions Alma"
+          value={kpis.commissionsAlma > 0 ? `− ${formatEur(kpis.commissionsAlma)}` : "0 €"}
+          sublabel={
+            kpis.commissionsAlmaEstimees > 0
+              ? `${kpis.commissionsAlmaEstimees} paiement(s) estimé(s) au taux 4x`
+              : "Frais retenus par Alma sur la période"
+          }
+          tone={kpis.commissionsAlma > 0 ? "warning" : "default"}
+          tooltip="Commission marchand TTC par nombre de fois (1x 1,08 %, 2x 4,32 %, 3x 4,56 %, 4x 5,76 % — taux du contrat relevés le 12/08/2026). Les paiements Alma saisis sans nombre de fois sont estimés au taux 4x."
         />
         <KpiCard
           icon={AlertCircle}
@@ -186,6 +203,7 @@ export function FinancesPilotageTab() {
         <ul className="list-disc ml-4 space-y-0.5">
           <li>Les factures <span className="font-medium">brouillon</span> et <span className="font-medium">annulées</span> ne sont jamais comptées dans le CA actif.</li>
           <li>Les paiements <span className="font-medium">partiels</span> sont comptés dans l'encaissé pour le montant effectivement reçu, jamais comme soldés.</li>
+          <li>Les <span className="font-medium">commissions Alma</span> sont calculées en TTC (TVA non récupérable, formation exonérée) au taux du contrat selon le nombre de fois ; le net encaissé = encaissé − commissions.</li>
           <li>Le reste à encaisser est un <span className="font-medium">instantané</span> (toutes périodes confondues), pas un cumul par mois.</li>
         </ul>
       </div>

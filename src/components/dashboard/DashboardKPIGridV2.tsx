@@ -75,9 +75,16 @@ export function DashboardKPIGridV2({ metrics, isLoading, onNavigate }: Props) {
       delta: formatDelta(m?.encaissements ?? 0, m?.encaissementsPrev ?? 0, { isPartialPeriod }),
       variant: "success",
       value: m?.encaissements ?? 0,
-      ariaLabel: `CA encaissé : ${formatEur(m?.encaissements ?? 0)}`,
+      ariaLabel: `CA encaissé : ${formatEur(m?.encaissements ?? 0)}, net après commissions Alma : ${formatEur(m?.netEncaisse ?? 0)}`,
       onClick: () => onNavigate("finances", { tab: "paiements" }),
-      extra: null,
+      // Net réellement encaissé une fois les commissions Alma déduites
+      // (alma-commission.ts) — n'apparaît que si Alma a été utilisé.
+      extra:
+        (m?.commissionsAlma ?? 0) > 0 ? (
+          <span className="text-[11px] text-muted-foreground">
+            net Alma : {formatEur(m?.netEncaisse ?? 0)}
+          </span>
+        ) : null,
     },
     {
       key: "caFacture",

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
+import { commissionPourPaiement } from "@/lib/alma-commission";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -516,7 +517,20 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
                   <TableCell className="text-sm">
                     {p.date_paiement ? format(parseISO(p.date_paiement), "dd/MM/yyyy", { locale: fr }) : "—"}
                   </TableCell>
-                  <TableCell className="text-sm font-medium">{Number(p.montant).toLocaleString("fr-FR")}€</TableCell>
+                  <TableCell className="text-sm font-medium">
+                    {Number(p.montant).toLocaleString("fr-FR")}€
+                    {(() => {
+                      // Coût Alma du versement (alma-commission.ts)
+                      const c = commissionPourPaiement(p);
+                      if (!c) return null;
+                      return (
+                        <p className="text-[11px] font-normal text-muted-foreground">
+                          net {c.net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}€ ({c.nbFois}x
+                          {c.estime ? " estimé" : ""})
+                        </p>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-sm capitalize">{p.mode_paiement}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{p.reference || "—"}</TableCell>
                 </TableRow>

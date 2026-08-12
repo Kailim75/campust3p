@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useCreatePaiement, ModePaiement } from "@/hooks/usePaiements";
+import { commissionAlma, libelleTaux } from "@/lib/alma-commission";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -35,6 +36,8 @@ const formSchema = z.object({
   montant: z.coerce.number().min(0.01, "Le montant doit être supérieur à 0"),
   date_paiement: z.string().min(1, "La date est requise"),
   mode_paiement: z.enum(["cb", "virement", "cheque", "especes", "cpf", "alma"]),
+  // Nombre d'échéances Alma : détermine la commission (voir alma-commission.ts).
+  alma_nb_fois: z.enum(["1", "2", "3", "4"]).optional(),
   reference: z.string().optional(),
   commentaires: z.string().optional(),
 });
@@ -72,21 +75,41 @@ export function PaiementFormDialog({
       montant: montantRestant,
       date_paiement: format(new Date(), "yyyy-MM-dd"),
       mode_paiement: "cb",
+      alma_nb_fois: "3",
       reference: "",
       commentaires: "",
     },
   });
 
+  const modeChoisi = form.watch("mode_paiement");
+  const nbFoisChoisi = form.watch("alma_nb_fois");
+  const montantSaisi = Number(form.watch("montant")) || 0;
+  const coutAlma =
+    modeChoisi === "alma" && nbFoisChoisi
+      ? commissionAlma(montantSaisi, Number(nbFoisChoisi))
+      : null;
+
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
+      // Le nombre de fois Alma est tracé dans le commentaire, au même
+      // format « Nx » que le webhook : c'est là que le calcul de
+      // commission (alma-commission.ts) va le relire. Sans lui, le
+      // paiement serait estimé au taux 4x.
+      const commentaires =
+        values.mode_paiement === "alma" && values.alma_nb_fois
+          ? [`Alma ${values.alma_nb_fois}x (saisie manuelle)`, values.commentaires?.trim()]
+              .filter(Boolean)
+              .join(" — ")
+          : values.commentaires || null;
+
       await createPaiement.mutateAsync({
         facture_id: factureId,
         montant: values.montant,
         date_paiement: values.date_paiement,
         mode_paiement: values.mode_paiement,
         reference: values.reference || null,
-        commentaires: values.commentaires || null,
+        commentaires,
       });
       toast.success("Paiement enregistré");
       onOpenChange(false);
@@ -169,6 +192,42 @@ export function PaiementFormDialog({
                 )}
               />
             </div>
+
+            {modeChoisi === "alma" && (
+              <FormField
+                control={form.control}
+                name="alma_nb_fois"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre de fois (Alma) *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["1", "2", "3", "4"].map((n) => (
+                          <SelectItem key={n} value={n}>
+                            {n}x — commission {libelleTaux(Number(n))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {coutAlma && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Commission Alma :{" "}
+                        <span className="font-medium text-foreground">
+                          {coutAlma.commission.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                        </span>{" "}
+                        → net perçu {coutAlma.net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

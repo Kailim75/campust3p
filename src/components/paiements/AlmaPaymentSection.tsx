@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppUrl } from "@/lib/phone-utils";
+import { commissionAlma, libelleTaux } from "@/lib/alma-commission";
 
 interface AlmaPaymentSectionProps {
   factureId: string;
@@ -72,9 +73,9 @@ export function AlmaPaymentSection({
 
       setAlmaUrl(result.url);
       toast.success(`Lien de paiement Alma ${installments}x créé`);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Alma create payment error:", error);
-      toast.error(error.message || "Erreur lors de la création du paiement Alma");
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la création du paiement Alma");
     }
   };
 
@@ -111,9 +112,9 @@ export function AlmaPaymentSection({
 
       if (error) throw error;
       toast.success(`Lien de paiement envoyé à ${customerEmail}`);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erreur envoi lien Alma:", err);
-      toast.error(err.message || "Erreur lors de l'envoi du lien");
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi du lien");
     } finally {
       setIsSendingLink(false);
     }
@@ -275,15 +276,24 @@ export function AlmaPaymentSection({
 
       {eligiblePlans.length > 0 && !almaUrl && (
         <div className="text-[11px] text-muted-foreground space-y-0.5">
-          {eligiblePlans.map((plan) => (
-            <p key={plan.installments_count}>
-              {plan.installments_count}x : {plan.payment_plan?.length || plan.installments_count} échéances de{" "}
-              {plan.payment_plan?.[0]
-                ? (plan.payment_plan[0].total_amount / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })
-                : (montantRestant / plan.installments_count).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}
-              €
-            </p>
-          ))}
+          {eligiblePlans.map((plan) => {
+            // Coût marchand du plan (taux du contrat, src/lib/alma-commission.ts) :
+            // affiché AVANT le choix pour arbitrer en connaissance de cause.
+            const cout = commissionAlma(montantRestant, plan.installments_count);
+            return (
+              <p key={plan.installments_count}>
+                {plan.installments_count}x : {plan.payment_plan?.length || plan.installments_count} échéances de{" "}
+                {plan.payment_plan?.[0]
+                  ? (plan.payment_plan[0].total_amount / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })
+                  : (montantRestant / plan.installments_count).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}
+                €
+                <span className="text-[#FA5022]/80">
+                  {" "}· commission {cout.commission.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € ({libelleTaux(plan.installments_count)}) → net{" "}
+                  {cout.net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                </span>
+              </p>
+            );
+          })}
         </div>
       )}
     </div>
