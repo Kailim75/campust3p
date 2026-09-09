@@ -35,6 +35,28 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 | `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — **à créer après déploiement de la fonction** (voir ci-dessous) |
 | `sync-gmail-inbox-every-5min` | `*/5 * * * *` | `sync-gmail-inbox` | Synchronisation Gmail — **EN PAUSE depuis le 21/07/2026** (`active = false`), l'Inbox CRM ayant été retirée : l'équipe travaille hors CRM. Le job existe toujours, seule son exécution est suspendue (~288 invocations/jour économisées). Réactiver : `SELECT cron.alter_job(3, active := true);` |
 
+## Secret des crons (`CRON_SECRET`) — activation
+
+Depuis le 09/09/2026 (audit du 13/08, P1 : crons déclenchables par quiconque
+avec l'URL + la clé anon publique), chaque fonction cron passe par la garde
+`_shared/cron-auth.ts` : si le secret `CRON_SECRET` est configuré dans les
+secrets des edge functions, l'en-tête `x-cron-secret` est exigé (401 sinon).
+Tant qu'il n'est pas configuré, les appels sont acceptés avec un avertissement
+dans les logs (mode transition — aucune automatisation coupée).
+
+Activation, dans cet ordre :
+1. Générer un secret fort (ex. `openssl rand -hex 32`) et le déclarer dans les
+   secrets des edge functions sous le nom `CRON_SECRET` (agent Lovable).
+2. Mettre à jour chaque job pour envoyer l'en-tête : `cron.schedule` étant
+   idempotent sur le nom, reprendre la commande de chaque job en ajoutant
+   `"x-cron-secret":"<CRON_SECRET>"` aux headers (cf. modèle ci-dessous).
+3. Vérifier le lendemain dans les logs des fonctions qu'aucun 401 n'apparaît.
+
+Fonctions concernées : `alma-reconcile-cron`, `send-daily-report`,
+`send-convocation-cron`, `signature-reminders`, `send-exam-reminders`,
+`generate-notifications`, `process-payment-reminders`. Le test manuel
+`?dryRun=true` reste possible en envoyant l'en-tête.
+
 ## Modèle de création d'un job
 
 `cron.schedule` est idempotent sur le nom : relancer la commande met à jour
@@ -48,7 +70,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url := 'https://zhgbbujqapcigmduuqiy.supabase.co/functions/v1/signature-reminders',
-    headers := '{"Content-Type":"application/json","apikey":"<ANON_KEY>"}'::jsonb,
+    headers := '{"Content-Type":"application/json","apikey":"<ANON_KEY>","x-cron-secret":"<CRON_SECRET>"}'::jsonb,
     body := jsonb_build_object('triggered_at', now())
   );
   $$

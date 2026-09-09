@@ -23,6 +23,7 @@ import {
   type CompanyInfo,
 } from "../_shared/pdf-generator.ts";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
+import { checkCronSecret } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  const cronDenied = checkCronSecret(req);
+  if (cronDenied) return cronDenied;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

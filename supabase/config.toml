@@ -125,5 +125,8 @@ verify_jwt = true
 [functions.promote-attachment]
 verify_jwt = true
 
+[functions.download-email-attachment]
+verify_jwt = true                      # + identité, rôle et centre (user_centres) revérifiés dans le code
+
 [functions.manage-centre-api-key]
 verify_jwt = false

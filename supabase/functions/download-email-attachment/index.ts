@@ -15,11 +15,42 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const gmailClientId = Deno.env.get("GMAIL_CLIENT_ID")!;
     const gmailClientSecret = Deno.env.get("GMAIL_CLIENT_SECRET")!;
 
+    // ── Auth (audit 13/08/2026) : identité vérifiée côté serveur et centre
+    // contrôlé via user_centres — le centreId du body n'est plus une preuve d'accès. ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: userRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    const roles = (userRoles || []).map((r: { role: string }) => r.role);
+    if (!roles.some((r: string) => ["admin", "staff", "super_admin"].includes(r))) {
+      return new Response(JSON.stringify({ error: "Accès refusé" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
 
     const { attachmentId: dbAttachmentId, centreId } = body;
@@ -27,6 +58,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "attachmentId and centreId required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!roles.includes("super_admin")) {
+      const { data: centreAccess } = await supabase
+        .from("user_centres")
+        .select("centre_id")
+        .eq("user_id", user.id)
+        .eq("centre_id", centreId)
+        .maybeSingle();
+      if (!centreAccess) {
+        return new Response(JSON.stringify({ error: "Accès refusé: centre non autorisé" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Get attachment record

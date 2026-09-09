@@ -83,6 +83,22 @@ serve(async (req) => {
     );
   }
 
+  // Centres de l'appelant — résolus côté serveur, jamais depuis le client
+  // (audit 13/08/2026 : export ZIP cross-tenant sans aucun contrôle de centre).
+  const { data: userCentres } = await supabase
+    .from("user_centres")
+    .select("centre_id")
+    .eq("user_id", user.id);
+  const centreIds = (userCentres || [])
+    .map((r: { centre_id: string | null }) => r.centre_id)
+    .filter((c: string | null): c is string => !!c);
+  if (centreIds.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
   try {
     const body: ExportRequest = await req.json();
     const { type, sessionId, contactId, includeBlocks } = body;
@@ -92,6 +108,33 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+
+    // La session / le contact demandé doit appartenir à un centre de l'appelant
+    if (type === "session") {
+      const { data: sessionRow } = await supabase
+        .from("sessions")
+        .select("centre_id")
+        .eq("id", sessionId!)
+        .maybeSingle();
+      if (!sessionRow?.centre_id || !centreIds.includes(sessionRow.centre_id)) {
+        return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+      }
+    } else {
+      const { data: contactRow } = await supabase
+        .from("contacts")
+        .select("centre_id")
+        .eq("id", contactId!)
+        .maybeSingle();
+      if (!contactRow?.centre_id || !centreIds.includes(contactRow.centre_id)) {
+        return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+      }
     }
 
     // Build query for documents

@@ -29,6 +29,11 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - **Flux de signature électronique** (`SignaturePage`,
   `public-sign-document`, `resolve-signing-token`, `send-signature-email`) :
   correctif 401 sur les lots de documents suivi côté Lovable.
+  Depuis le 09/09/2026, `public-sign-document` est le point d'entrée UNIQUE
+  du flux public (actions get_info / list_related / get_document_url / sign /
+  refuse, gardées par access_token ou signing_token) ; les RPC `*_public` de
+  signature sont révoquées pour anon et authenticated (migration
+  `20260909230000`) — ne pas les réintroduire.
 - **Trigger `trg_lock_signed_signature_request`** sur `signature_requests` :
   gèle les demandes signées. Aucune migration ne doit le désactiver.
   Corollaire : tout batch qui modifie `signature_requests` ne doit cibler
@@ -115,6 +120,9 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 
 ## Dettes connues (ne pas redécouvrir)
 
+- Crons : `CRON_SECRET` à configurer puis en-tête `x-cron-secret` à ajouter aux
+  jobs pg_cron (mode transition tant qu'il est absent) — procédure dans
+  `supabase/CRON_JOBS.md`.
 - `jspdf` et `vitest` à mettre à jour.
 - Chemins encore mono-centre (à corriger avant l'ouverture du 2ᵉ centre) :
   `send-automated-emails` (bulk, `centre_formation` limit(1)),
