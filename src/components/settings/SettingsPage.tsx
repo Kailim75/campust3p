@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
-import { SnippetsSettings } from "./SnippetsSettings";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { EInvoicingSettings } from "./EInvoicingSettings";
 import { TemplateFilesSection } from "./TemplateFilesSection";
@@ -461,10 +460,6 @@ export function SettingsPage() {
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="snippets" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Snippets</span>
-            </TabsTrigger>
             <TabsTrigger value="financier" className="gap-2">
               <CreditCardIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Financier</span>
@@ -620,10 +615,6 @@ export function SettingsPage() {
             <TemplateFilesSection />
           </TabsContent>
 
-          {/* Tab: Snippets */}
-          <TabsContent value="snippets" className="space-y-6">
-            <SnippetsSettings />
-          </TabsContent>
 
 
           {/* Tab: Financier */}

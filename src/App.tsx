@@ -110,10 +110,8 @@ const APP_SECTION_PATHS = [
   "/formateurs",
   "/parametres", // alias for /settings
   
-  "/security",
   "/corbeille",
   "/doublons-contacts",
-  "/requalification-contacts",
   "/attestations-retard",
   "/aide",
   "/ma-journee",

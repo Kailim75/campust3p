@@ -48,6 +48,14 @@ import { HintBubble } from "@/components/shared/HintBubble";
 import { FocusModeBar, type FocusBlocKey } from "./FocusModeBar";
 import { ErrorState } from "@/components/ui/error-state";
 
+// Blocs mis en sommeil le 10/09/2026 (outil interne : ces signaux relevaient
+// surtout de l'hygiène de données et noyaient les vraies échéances). Retirer
+// une clé de cet ensemble suffit à réafficher le bloc, son compteur et son
+// entrée dans le mode focus.
+const BLOCS_EN_SOMMEIL: ReadonlySet<FocusBlocKey> = new Set<FocusBlocKey>(["qualite_crm", "critiques", "carte_pro"]);
+// Bloc « Boîtes mail à consulter » (groupe Parcours d'examen) : même principe.
+const BLOC_BOITES_MAIL_EN_SOMMEIL = true;
+
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
   onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
@@ -741,7 +749,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Header title="Aujourd'hui" subtitle="Votre inbox d'actions du jour" />
+        <Header title="Aujourd'hui" subtitle="Vos actions du jour" />
         <div className="px-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
         </div>
@@ -753,7 +761,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   if (isError) {
     return (
       <div className="space-y-6">
-        <Header title="Aujourd'hui" subtitle="Votre inbox d'actions du jour" />
+        <Header title="Aujourd'hui" subtitle="Vos actions du jour" />
         <div className="px-8">
           <ErrorState
             title="Impossible de charger votre journée"
@@ -782,7 +790,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   // Active filter
   const activeCma = includeInactive ? rawCma : rawCma.filter(c => c._isActive);
   const activeCritiques = includeInactive ? rawCritiques : rawCritiques.filter(c => c._isActive);
-  const hiddenCount = (rawCma.length - rawCma.filter(c => c._isActive).length) + (rawCritiques.length - rawCritiques.filter(c => c._isActive).length);
+  const hiddenCount = (rawCma.length - rawCma.filter(c => c._isActive).length) + (BLOCS_EN_SOMMEIL.has("critiques") ? 0 : rawCritiques.length - rawCritiques.filter(c => c._isActive).length);
   const isHandledForBloc = (
     contactId: string,
     categoryKeywords: string[],
@@ -797,9 +805,9 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const availableCma = activeCma.filter(c => !isPostponedForBloc(c.id, "CMA"));
   const availableRdv = rawRdv.filter(p => !isPostponedForBloc(p.id, "RDV"));
   const availableRelances = rawRelances.filter(p => !isPostponedForBloc(p.id, "Relance"));
-  const availableCritiques = activeCritiques.filter(c => !isPostponedForBloc(c.id, "Critique"));
-  const availableCartePro = rawCartePro.filter((c: any) => !isPostponedForBloc(c.id, "Carte Pro"));
-  const availableCrmQualityItems = rawCrmQualityItems.filter((item: any) => !isPostponedForBloc(item.ownerId, "Qualité CRM"));
+  const availableCritiques = BLOCS_EN_SOMMEIL.has("critiques") ? [] : activeCritiques.filter(c => !isPostponedForBloc(c.id, "Critique"));
+  const availableCartePro = BLOCS_EN_SOMMEIL.has("carte_pro") ? [] : rawCartePro.filter((c: any) => !isPostponedForBloc(c.id, "Carte Pro"));
+  const availableCrmQualityItems = BLOCS_EN_SOMMEIL.has("qualite_crm") ? [] : rawCrmQualityItems.filter((item: any) => !isPostponedForBloc(item.ownerId, "Qualité CRM"));
 
   const filteredCma = (showHandled ? availableCma : availableCma.filter(c => !isHandledForBloc(c.id, CMA_KEYWORDS, "CMA")));
   const allCmaFiltered = cmaFilter === "all" ? filteredCma : filteredCma.filter(c => c.cmaCategory === cmaFilter);
@@ -828,7 +836,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const totalHandled = handledCmaCount + handledRdvCount + handledRelanceCount + handledCritiqueCount + handledCrmQualityCount;
 
   const reprogramItems = rawReprogram;
-  const parcoursCount = resultatsAVerifier.length + convocationsAttendues.length + boitesMailAConsulter.length;
+  const parcoursCount = resultatsAVerifier.length + convocationsAttendues.length + (BLOC_BOITES_MAIL_EN_SOMMEIL ? 0 : boitesMailAConsulter.length);
   const totalActions = allCmaFiltered.length + rdvToday.length + relances.length + critiques.length + cartePro.length + reprogramItems.length + parcoursCount + sessionPrepItems.length + qualiopiSessions.length + crmQualityItems.length;
   // Assiette de la progression : traités du jour + restant à traiter. Les deux
   // termes sont disjoints par construction, le ratio est donc toujours ≤ 1
@@ -838,6 +846,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
   const priorites = buildPriorites({ resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems });
+  const afficher = (bloc: FocusBlocKey) => !BLOCS_EN_SOMMEIL.has(bloc) && (!focusBloc || focusBloc === bloc);
 
   return (
     <div className="space-y-6">
@@ -874,6 +883,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           <FocusModeBar
             focus={focusBloc}
             onChange={setFocusBloc}
+            masques={BLOCS_EN_SOMMEIL}
             counts={{
               session_prep: sessionPrepItems.length,
               qualite_crm: crmQualityItems.length,
@@ -916,7 +926,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           <PrioritesDuJour items={priorites} totalActions={totalActions} openContact={openContact} />
         )}
 
-        {(!focusBloc || focusBloc === "session_prep") && (
+        {afficher("session_prep") && (
           <BlocSessionPreparation
             sessions={sessionPrepItems}
             onRelanceDocs={handleSessionRelanceDocs}
@@ -931,7 +941,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           />
         )}
 
-        {(!focusBloc || focusBloc === "qualite_crm") && (
+        {afficher("qualite_crm") && (
           <BlocQualiteCrm
             items={crmQualityItems}
             summary={crmQualitySummary}
@@ -947,7 +957,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           "grid gap-5",
           focusBloc ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
         )}>
-          {(!focusBloc || focusBloc === "cma") && (
+          {afficher("cma") && (
             <BlocCma
               allCmaFiltered={allCmaFiltered} cmaItems={cmaItems} cmaHiddenCount={cmaHiddenCount}
               cmaExpanded={cmaExpanded} setCmaExpanded={setCmaExpanded}
@@ -962,7 +972,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             />
           )}
 
-          {(!focusBloc || focusBloc === "rdv") && (
+          {afficher("rdv") && (
             <BlocRdv markAllDone={markAllDone}
               rdvToday={rdvToday}
               handleRdvConfirm={handleRdvConfirm} handleRdvAppel={handleRdvAppel} handleRdvWhatsApp={handleRdvWhatsApp}
@@ -971,7 +981,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             />
           )}
 
-          {(!focusBloc || focusBloc === "relances") && (
+          {afficher("relances") && (
             <BlocRelances
               relances={relances}
               bulkRelanceSelected={bulkRelanceSelected} toggleBulkRelance={toggleBulkRelance} toggleBulkRelanceVisible={toggleBulkRelanceVisible}
@@ -982,7 +992,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             />
           )}
 
-          {(!focusBloc || focusBloc === "critiques") && (
+          {afficher("critiques") && (
             <BlocCritiques markAllDone={markAllDone}
               critiques={critiques}
               handleCritiqueDemanderDocs={handleCritiqueDemanderDocs} handleCritiqueRelancePaiement={handleCritiqueRelancePaiement}
@@ -991,30 +1001,32 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           )}
         </div>
 
-        {(!focusBloc || focusBloc === "parcours") && parcoursCount > 0 && (
+        {afficher("parcours") && parcoursCount > 0 && (
           <div className={cn(
             "grid gap-5",
             focusBloc ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
           )}>
             <BlocResultatsAVerifier items={resultatsAVerifier} openContact={openContact} />
             <BlocConvocationsCma items={convocationsAttendues} openContact={openContact} />
-            <BlocBoitesMail
-              items={boitesMailAConsulter}
-              openContact={openContact}
-              onConsulte={handleConsulteBoite}
-              pendingIds={consulteBoitePending}
-            />
+            {!BLOC_BOITES_MAIL_EN_SOMMEIL && (
+              <BlocBoitesMail
+                items={boitesMailAConsulter}
+                openContact={openContact}
+                onConsulte={handleConsulteBoite}
+                pendingIds={consulteBoitePending}
+              />
+            )}
           </div>
         )}
 
-        {(!focusBloc || focusBloc === "reprogrammer") && (
+        {afficher("reprogrammer") && (
           <BlocReprogrammer markAllDone={markAllDone}
             reprogramItems={reprogramItems}
             todayNotes={todayNotes} recentNotes={recentNotes} openContact={openContact} markDone={markDone}
           />
         )}
 
-        {(!focusBloc || focusBloc === "carte_pro") && (
+        {afficher("carte_pro") && (
           <BlocCartePro markAllDone={markAllDone}
             cartePro={cartePro}
             handleCarteProEmail={handleCarteProEmail} handleCarteProMarkDone={handleCarteProMarkDone}
@@ -1022,7 +1034,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
           />
         )}
 
-        {(!focusBloc || focusBloc === "qualiopi") && (
+        {afficher("qualiopi") && (
           <BlocQualiopi qualiopiSessions={qualiopiSessions} onNavigate={onNavigate} />
         )}
 
