@@ -453,7 +453,7 @@ function SessionDetail({ session: s }: { session: SessionAnalysis }) {
 
   const handleRelancerTous = () => {
     toast.success(
-      `Relance initiée pour ${unpaidStagiaires.length} stagiaire${unpaidStagiaires.length > 1 ? "s" : ""} impayé${unpaidStagiaires.length > 1 ? "s" : ""}`
+      `Relance initiée pour ${unpaidStagiaires.length} apprenant${unpaidStagiaires.length > 1 ? "s" : ""} impayé${unpaidStagiaires.length > 1 ? "s" : ""}`
     );
   };
 
@@ -462,7 +462,7 @@ function SessionDetail({ session: s }: { session: SessionAnalysis }) {
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold flex items-center gap-2">
           <Users className="h-4 w-4" />
-          Détail stagiaires — {s.nom}
+          Détail apprenants — {s.nom}
         </h4>
         {unpaidStagiaires.length > 0 && (
           <Button size="sm" variant="outline" onClick={handleRelancerTous}>
@@ -478,7 +478,7 @@ function SessionDetail({ session: s }: { session: SessionAnalysis }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Stagiaire</TableHead>
+              <TableHead>Apprenant</TableHead>
               <TableHead className="text-right">Montant dû</TableHead>
               <TableHead className="text-right">Payé</TableHead>
               <TableHead className="text-right">Reste</TableHead>

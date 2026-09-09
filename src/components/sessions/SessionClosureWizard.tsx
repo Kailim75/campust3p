@@ -248,7 +248,7 @@ export function SessionClosureWizard({
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                {attestation?.detail || "Émettre et envoyer les attestations de fin de formation à tous les stagiaires."}
+                {attestation?.detail || "Émettre et envoyer les attestations de fin de formation à tous les apprenants."}
               </p>
               {!attestationDone && (
                 <Button size="sm" className="w-full" onClick={handleAction}>

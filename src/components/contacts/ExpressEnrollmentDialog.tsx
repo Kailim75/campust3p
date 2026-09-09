@@ -393,7 +393,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
                   <User className="h-4 w-4" />
-                  Identité du stagiaire
+                  Identité de l'apprenant
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -594,7 +594,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
                   Pièces remises aujourd'hui
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Cochez ce que le stagiaire vous remet : le {dossierLabel.toLowerCase()} se met
+                  Cochez ce que l'apprenant vous remet : le {dossierLabel.toLowerCase()} se met
                   à jour automatiquement. Le reste pourra être ajouté plus tard depuis sa fiche.
                 </p>
 
@@ -692,7 +692,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Stagiaire</span>
+                      <span className="text-muted-foreground">Apprenant</span>
                       <span className="font-medium">{formData.prenom} {formData.nom}</span>
                     </div>
 

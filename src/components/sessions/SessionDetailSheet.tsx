@@ -200,7 +200,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
   const handleGenerateBulkDocuments = (type: DocumentType) => {
     if (!sessionInfo || !inscriptions?.length) {
-      toast.error("Aucun stagiaire inscrit");
+      toast.error("Aucun apprenant inscrit");
       return;
     }
     
@@ -225,7 +225,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
   const handleGenerateBatchChevalets = () => {
     if (!inscriptions?.length || !session) {
-      toast.error("Aucun stagiaire inscrit");
+      toast.error("Aucun apprenant inscrit");
       return;
     }
 
@@ -243,7 +243,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
 
   const handleGenerateBatchPedagogicalDocs = (docType: "entree_sortie" | "test_positionnement") => {
     if (!inscriptions?.length || !session) {
-      toast.error("Aucun stagiaire inscrit");
+      toast.error("Aucun apprenant inscrit");
       return;
     }
 
@@ -634,7 +634,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Inscrire un stagiaire</DialogTitle>
+            <DialogTitle>Inscrire un apprenant</DialogTitle>
           </DialogHeader>
           <Command className="rounded-lg border">
             <CommandInput placeholder="Rechercher un contact..." />

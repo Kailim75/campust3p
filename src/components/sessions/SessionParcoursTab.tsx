@@ -370,7 +370,7 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   if (!inscrits?.length) {
     return (
       <div className="text-center text-muted-foreground py-12 text-sm">
-        Aucun stagiaire inscrit
+        Aucun apprenant inscrit
       </div>
     );
   }

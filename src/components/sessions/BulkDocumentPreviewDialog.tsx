@@ -466,7 +466,7 @@ export function BulkDocumentPreviewDialog({
             Prévisualisation - {documentTypeLabels[documentType] || documentType}
           </DialogTitle>
           <DialogDescription>
-            Choisissez un modèle et vérifiez l'aperçu avant de générer pour tous les stagiaires
+            Choisissez un modèle et vérifiez l'aperçu avant de générer pour tous les apprenants
           </DialogDescription>
         </DialogHeader>
 
