@@ -26,6 +26,7 @@ import {
   addDays,
   format,
 } from "date-fns";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 // ─── Raw data types ───
 
@@ -409,7 +410,7 @@ async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData
     totalPaiementsParFacture.set(p.facture_id, (totalPaiementsParFacture.get(p.facture_id) || 0) + Number(p.montant || 0));
   });
   const restantDu = (f: { id: string; montant_total: number | null }) =>
-    Math.max(0, Number(f.montant_total || 0) - (totalPaiementsParFacture.get(f.id) || 0));
+    calculerResteAEncaisser(f.montant_total, totalPaiementsParFacture.get(f.id) || 0);
   const paiementsRetardList = factures.filter(
     (f) =>
       (f.statut === "emise" || f.statut === "partiel" || f.statut === "impayee") &&

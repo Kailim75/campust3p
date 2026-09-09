@@ -13,6 +13,7 @@ import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getActiveReasons, getActiveReasonLabel, isActiveApprenant, getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 const FORMATION_BADGE: Record<string, string> = {
   TAXI: "badge-soft badge-soft-blue",
@@ -44,7 +45,7 @@ function getPedagogicalStatus(statut: string | null): { label: string; className
 function getPaymentDisplay(status: string, totalFacture: number, totalPaye: number): { label: string; sublabel?: string; className: string } {
   if (totalFacture <= 0) return { label: "Non facturé", className: "text-muted-foreground" };
   if (totalPaye >= totalFacture) return { label: "Soldé", className: "text-success font-medium" };
-  const restant = totalFacture - totalPaye;
+  const restant = calculerResteAEncaisser(totalFacture, totalPaye);
   if (totalPaye > 0) return { label: "Partiel", sublabel: `${restant}€ restant`, className: "text-warning font-medium" };
   if (status === "retard") return { label: "Impayé", sublabel: `${totalFacture}€`, className: "text-destructive font-semibold" };
   return { label: "En attente", sublabel: `${totalFacture}€`, className: "text-muted-foreground" };

@@ -26,6 +26,7 @@ import { PaiementFormDialog } from "@/components/paiements/PaiementFormDialog";
 import { FactureExpressDialog } from "@/components/facturation/FactureExpressDialog";
 import { Euro, Send, Zap } from "lucide-react";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 interface SessionFinancesTabContentProps {
   sessionId: string;
@@ -100,7 +101,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
         // sinon la plus récente tout court.
         const nonSoldees = toutes.filter((f) => f.montant_total - f.total_paye > 0);
         const facture = nonSoldees[0] || toutes[0] || null;
-        const restant = toutes.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
+        const restant = toutes.reduce((s, f) => s + calculerResteAEncaisser(f.montant_total, f.total_paye), 0);
         return {
           inscriptionId: i.id,
           contactId: i.contact_id,

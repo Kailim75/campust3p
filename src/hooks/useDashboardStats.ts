@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, subMonths, format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 export interface MonthlyCA {
   mois: string;
@@ -197,7 +198,7 @@ export function useFinancialSummary() {
 
       const totalFacture = (factures || []).reduce((acc, f) => acc + Number(f.montant_total), 0);
       const totalPaye = (paiements || []).reduce((acc, p) => acc + Number(p.montant), 0);
-      const totalImpaye = totalFacture - totalPaye;
+      const totalImpaye = calculerResteAEncaisser(totalFacture, totalPaye);
 
       const enAttente = (factures || [])
         .filter((f) => f.statut === "emise" || f.statut === "partiel")

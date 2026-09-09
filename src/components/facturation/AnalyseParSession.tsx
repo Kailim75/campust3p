@@ -19,6 +19,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 // ─── Types ───────────────────────────────────────────────────
 interface SessionAnalysis {
@@ -139,7 +140,7 @@ function useSessionAnalysis() {
           }
         }
 
-        const resteAEncaisser = totalFacture - totalEncaisse;
+        const resteAEncaisser = calculerResteAEncaisser(totalFacture, totalEncaisse);
         const tauxRemplissage = placesTotales > 0 ? (placesVendues / placesTotales) * 100 : 0;
         const tauxRecouvrement = totalFacture > 0 ? (totalEncaisse / totalFacture) * 100 : 0;
 

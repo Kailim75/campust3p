@@ -29,6 +29,7 @@ import { FinancementSection } from "./FinancementSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { creerFactureExpress } from "@/lib/facture-express";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 /** Pré-remplissage de la facturation express (depuis l'inscription). */
 export interface FactureExpressRequest {
@@ -135,7 +136,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
 
   const montantTotal = (factures || []).reduce((s, f) => s + Number(f.montant_total || 0), 0);
   const montantPaye = (paiements || []).reduce((s, p) => s + Number(p.montant || 0), 0);
-  const restant = montantTotal - montantPaye;
+  const restant = calculerResteAEncaisser(montantTotal, montantPaye);
 
   const addPaiement = useMutation({
     mutationFn: async () => {

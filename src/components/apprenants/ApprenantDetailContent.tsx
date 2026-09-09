@@ -65,6 +65,7 @@ import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
 import type { SheetSize } from "@/hooks/useSheetSize";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 // ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
@@ -181,7 +182,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
       const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
       const totalPaye = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
-      const restantDu = totalFacture - totalPaye;
+      const restantDu = calculerResteAEncaisser(totalFacture, totalPaye);
 
       const nextRappel = rappRes.data?.[0] || null;
       const nextSession = inscriptions[0] ? (inscriptions[0] as Record<string, unknown>).sessions as { nom?: string; date_debut?: string } | null : null;

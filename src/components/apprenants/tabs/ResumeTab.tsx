@@ -25,6 +25,7 @@ import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requir
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
 import { ApprenantTimeline } from "@/components/apprenants/ApprenantTimeline";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 interface ResumeTabProps {
   contactId: string;
@@ -91,7 +92,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
       const paiementsList = paiementsRes.data || [];
       const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
       const totalPaye = paiementsList.reduce((s, p) => s + Number((p as any).montant || 0), 0);
-      const restant = totalFacture - totalPaye;
+      const restant = calculerResteAEncaisser(totalFacture, totalPaye);
 
       const nextRappel = rappelsRes.data?.[0] || null;
 
