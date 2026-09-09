@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { messageErreur } from "@/lib/erreurs";
 // XLSX loaded dynamically for performance
 type XLSXModule = typeof import("xlsx");
 
@@ -388,7 +389,7 @@ export function SettingsPage() {
       setImportErrors([]);
     } catch (error: any) {
       console.error("Import error:", error);
-      toast.error("Erreur lors de l'import: " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de l'import"));
     } finally {
       setIsImporting(false);
     }

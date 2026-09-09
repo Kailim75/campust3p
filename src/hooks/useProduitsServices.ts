@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { messageErreur } from "@/lib/erreurs";
 
 export type ProduitType =
   | "unitaire"
@@ -125,7 +126,7 @@ export function useUpsertProduitService() {
       qc.invalidateQueries({ queryKey: ["produits-services"] });
       toast.success("Produit enregistré");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erreur d'enregistrement"),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur d'enregistrement")),
   });
 }
 
@@ -143,7 +144,7 @@ export function useDeleteProduitService() {
       qc.invalidateQueries({ queryKey: ["produits-services"] });
       toast.success("Produit supprimé");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erreur de suppression"),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur de suppression")),
   });
 }
 
@@ -171,7 +172,7 @@ export function useDuplicateProduitService() {
       qc.invalidateQueries({ queryKey: ["produits-services"] });
       toast.success("Produit dupliqué");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erreur de duplication"),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur de duplication")),
   });
 }
 
@@ -203,7 +204,7 @@ export function useUpsertProduitCategorie() {
       qc.invalidateQueries({ queryKey: ["produit-categories"] });
       toast.success("Catégorie enregistrée");
     },
-    onError: (e: any) => toast.error(e.message ?? "Erreur"),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur")),
   });
 }
 

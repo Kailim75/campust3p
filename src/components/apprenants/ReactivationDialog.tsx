@@ -14,6 +14,7 @@ import { createAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
+import { messageErreur } from "@/lib/erreurs";
 
 interface ReactivationDialogProps {
   open: boolean;
@@ -59,7 +60,7 @@ export function ReactivationDialog({
       onOpenChange(false);
       onReactivated();
     } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la réactivation");
+      toast.error(messageErreur(err, "Erreur lors de la réactivation"));
     } finally {
       setLoading(false);
     }

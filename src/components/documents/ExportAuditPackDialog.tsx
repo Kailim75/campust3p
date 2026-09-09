@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DOCUMENT_BLOCKS } from "@/lib/document-workflow/documentBlockConfig";
 import type { DocumentBlock } from "@/lib/document-workflow/types";
+import { messageErreur } from "@/lib/erreurs";
 
 interface ExportAuditPackDialogProps {
   open: boolean;
@@ -115,7 +116,7 @@ export function ExportAuditPackDialog({
       console.error("Export audit pack error:", err);
       setResult({ success: false, error: err.message });
       setPhase("error");
-      toast.error(err.message || "Erreur d'export");
+      toast.error(messageErreur(err, "Erreur d'export"));
     }
   }, [type, sessionId, contactId, selectedBlocks]);
 

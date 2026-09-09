@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
+import { messageErreur } from "@/lib/erreurs";
 
 // Types for factures (manually defined since types.ts hasn't updated yet)
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -261,7 +262,7 @@ export function useCreateFacture() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la création de la facture : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la création de la facture"));
     },
   });
 }
@@ -286,7 +287,7 @@ export function useUpdateFacture() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la mise à jour de la facture : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour de la facture"));
     },
   });
 }

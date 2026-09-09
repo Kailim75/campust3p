@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 const authSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -53,7 +54,7 @@ export default function Auth() {
         if (error.message.includes("Invalid login credentials")) {
           toast.error("Email ou mot de passe incorrect");
         } else {
-          toast.error(error.message);
+          toast.error(messageErreur(error));
         }
         return;
       }
@@ -150,7 +151,7 @@ export default function Auth() {
                   redirectTo: `${window.location.origin}/reset-password`,
                 });
                 if (error) {
-                  toast.error(error.message);
+                  toast.error(messageErreur(error));
                 } else {
                   toast.success("Email de réinitialisation envoyé. Vérifiez votre boîte mail.");
                 }

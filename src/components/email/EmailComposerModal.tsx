@@ -50,6 +50,7 @@ export interface EmailComposerProps {
   attachments?: EmailAttachment[];
 }
 import { useCentreEmailConfig } from "@/hooks/useCentreEmailConfig";
+import { messageErreur } from "@/lib/erreurs";
 
 const BULK_WARN_THRESHOLD = 10;
 
@@ -263,7 +264,7 @@ export function EmailComposerModal({
       onOpenChange(false);
     } catch (err: any) {
       console.error("Email send error:", err);
-      toast.error("Erreur lors de l'envoi", { description: err.message || "Veuillez réessayer" });
+      toast.error("Erreur lors de l'envoi", { description: messageErreur(err, "Veuillez réessayer") });
     } finally {
       setSending(false);
     }

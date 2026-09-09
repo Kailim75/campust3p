@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface CentreUser {
   id: string;
@@ -59,7 +60,7 @@ export function useAssignUserToCentre() {
       if (error.message.includes("duplicate")) {
         toast.error("Cet utilisateur est déjà associé à ce centre");
       } else {
-        toast.error("Erreur: " + error.message);
+        toast.error(messageErreur(error, "Erreur"));
       }
     },
   });
@@ -85,7 +86,7 @@ export function useRemoveUserFromCentre() {
       toast.success("Utilisateur retiré du centre");
     },
     onError: (error: Error) => {
-      toast.error("Erreur: " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }

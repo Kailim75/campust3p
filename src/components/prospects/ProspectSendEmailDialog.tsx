@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { useEmailTemplates, replaceTemplateVariables } from "@/hooks/useEmailTemplates";
 import { useCreateProspectHistorique } from "@/hooks/useProspectHistorique";
 import { supabase } from "@/integrations/supabase/client";
+import { messageErreur } from "@/lib/erreurs";
 
 const formSchema = z.object({
   templateId: z.string().optional(),
@@ -145,7 +146,7 @@ export function ProspectSendEmailDialog({
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error("Erreur lors de l'envoi", {
-        description: error.message || "Veuillez réessayer",
+        description: messageErreur(error, "Veuillez réessayer"),
       });
     } finally {
       setIsSending(false);

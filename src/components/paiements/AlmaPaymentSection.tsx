@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { buildWhatsAppUrl } from "@/lib/phone-utils";
 import { commissionAlma, libelleTaux } from "@/lib/alma-commission";
 import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
+import { messageErreur } from "@/lib/erreurs";
 
 interface AlmaPaymentSectionProps {
   factureId: string;
@@ -77,7 +78,7 @@ export function AlmaPaymentSection({
       toast.success(`Lien de paiement Alma ${installments}x créé`);
     } catch (error) {
       console.error("Alma create payment error:", error);
-      toast.error(error instanceof Error ? error.message : "Erreur lors de la création du paiement Alma");
+      toast.error(messageErreur(error, "Erreur lors de la création du paiement Alma"));
     }
   };
 
@@ -116,7 +117,7 @@ export function AlmaPaymentSection({
       toast.success(`Lien de paiement envoyé à ${customerEmail}`);
     } catch (err) {
       console.error("Erreur envoi lien Alma:", err);
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi du lien");
+      toast.error(messageErreur(err, "Erreur lors de l'envoi du lien"));
     } finally {
       setIsSendingLink(false);
     }

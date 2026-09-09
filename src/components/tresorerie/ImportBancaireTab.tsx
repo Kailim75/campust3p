@@ -10,6 +10,7 @@ import { useImportTransactions, parseBnpCsv, type TransactionBancaire } from "@/
 import { parseBankPdf, type SignSource } from "@/lib/parseBankPdf";
 import { formatEuro } from "@/lib/formatFinancial";
 import { cn } from "@/lib/utils";
+import { messageErreur } from "@/lib/erreurs";
 
 type DraftTx = Omit<TransactionBancaire, "id" | "created_at" | "rapproche"> & {
   _key: string;
@@ -171,7 +172,7 @@ export function ImportBancaireTab() {
             }
             finalize(toDrafts(txs), "PDF");
           } catch (err: any) {
-            toast.error("Erreur de lecture PDF", { description: err.message });
+            toast.error("Erreur de lecture PDF", { description: messageErreur(err) });
           }
         })();
         return;
@@ -190,7 +191,7 @@ export function ImportBancaireTab() {
           }
           finalize(toDrafts(txs), "CSV");
         } catch (err: any) {
-          toast.error("Erreur de parsing", { description: err.message });
+          toast.error("Erreur de parsing", { description: messageErreur(err) });
         }
       };
       reader.readAsText(file, "utf-8");
@@ -415,7 +416,7 @@ export function ImportBancaireTab() {
       setOriginalDrafts([]);
       setFileName(null);
     } catch (err: any) {
-      toast.error("Erreur d'import", { description: err.message });
+      toast.error("Erreur d'import", { description: messageErreur(err) });
     }
   };
 

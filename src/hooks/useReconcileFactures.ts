@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export function useReconcileFactures() {
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export function useReconcileFactures() {
     },
     onError: (error: any) => {
       toast.error("Erreur lors de la réconciliation", {
-        description: error.message,
+        description: messageErreur(error),
       });
     },
   });

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 // XLSX loaded dynamically for performance
 
 /**
@@ -243,7 +244,7 @@ export function useExportFEC() {
       };
     },
     onError: (error: any) => {
-      toast.error(`Erreur lors de la génération du FEC: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur lors de la génération du FEC"));
     },
   });
 }

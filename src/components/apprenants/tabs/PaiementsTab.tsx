@@ -30,6 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { creerFactureExpress } from "@/lib/facture-express";
 import { calculerResteAEncaisser } from "@/lib/montants";
+import { messageErreur } from "@/lib/erreurs";
 
 /** Pré-remplissage de la facturation express (depuis l'inscription). */
 export interface FactureExpressRequest {
@@ -186,7 +187,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
       setShowForm(false);
       setFormData({ montant: "", mode: "cb", reference: "", factureId: "" });
     },
-    onError: (error: Error) => toast.error("Erreur : " + error.message),
+    onError: (error: Error) => toast.error(messageErreur(error, "Erreur")),
   });
 
   const creerExpress = async () => {
@@ -229,7 +230,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
       setExpress(null);
       onExpressHandled?.();
     } catch (e) {
-      toast.error("Erreur lors de la création de la facture", { description: e instanceof Error ? e.message : undefined });
+      toast.error("Erreur lors de la création de la facture", { description: messageErreur(e) });
     } finally {
       setExpressPending(false);
     }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 const resetSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
@@ -59,7 +60,7 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password: values.password });
       if (error) {
-        toast.error(error.message);
+        toast.error(messageErreur(error));
         return;
       }
       setIsDone(true);

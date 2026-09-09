@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useFieldArray } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 const formSchema = z.object({
   nom_legal: z.string().min(1, 'Requis'),
@@ -136,7 +137,7 @@ export function CentreFormationSettings() {
       .upload(filePath, file, { upsert: true });
 
     if (uploadError) {
-      toast.error(`Erreur lors de l'upload : ${uploadError.message}`);
+      toast.error(messageErreur(uploadError, "Erreur lors de l'upload"));
       return null;
     }
 

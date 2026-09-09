@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
+import { messageErreur } from "@/lib/erreurs";
 
 interface BulkEmailDialogProps {
   open: boolean;
@@ -121,7 +122,7 @@ export function BulkEmailDialog({
         noDocument: allResults.filter(r => r.status === "no_document"),
       });
     } catch (err: any) {
-      toast.error(err.message || "Erreur de prévisualisation");
+      toast.error(messageErreur(err, "Erreur de prévisualisation"));
       setPhase("compose");
     }
   }, [sessionId, selectedContactIds, subject, body]);
@@ -156,7 +157,7 @@ export function BulkEmailDialog({
         toast.warning(`${sent} envoyé(s), ${failed} échoué(s)`);
       }
     } catch (err: any) {
-      toast.error(err.message || "Erreur d'envoi");
+      toast.error(messageErreur(err, "Erreur d'envoi"));
       setPhase("compose");
     }
   }, [sessionId, selectedContactIds, subject, body]);

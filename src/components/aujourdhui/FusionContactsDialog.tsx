@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CrmQualityRecord } from "@/lib/crm-quality";
+import { messageErreur } from "@/lib/erreurs";
 
 interface FusionContactsDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ export function FusionContactsDialog({ open, onOpenChange, records }: FusionCont
     });
     setEnCours(false);
     if (error) {
-      toast.error("Fusion impossible", { description: error.message });
+      toast.error("Fusion impossible", { description: messageErreur(error) });
       return;
     }
     toast.success("Fiches fusionnées", {

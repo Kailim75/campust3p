@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Star, CheckCircle, AlertCircle, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 interface TokenData {
   id: string;
@@ -143,7 +144,7 @@ export default function EnquetePage() {
       setSubmitted(true);
       toast.success("Merci pour votre retour !");
     } catch (err: any) {
-      toast.error("Erreur lors de l'envoi: " + err.message);
+      toast.error(messageErreur(err, "Erreur lors de l'envoi"));
     } finally {
       setSubmitting(false);
     }
@@ -193,7 +194,7 @@ export default function EnquetePage() {
       setSubmitted(true);
       toast.success("Réclamation enregistrée avec succès");
     } catch (err: any) {
-      toast.error("Erreur lors de l'envoi: " + err.message);
+      toast.error(messageErreur(err, "Erreur lors de l'envoi"));
     } finally {
       setSubmitting(false);
     }

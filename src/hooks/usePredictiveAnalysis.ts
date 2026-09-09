@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface PredictiveProspect {
   prospect_id: string;
@@ -66,7 +67,7 @@ export function usePredictiveAnalysis() {
       return data;
     } catch (e) {
       console.error("Predictive analysis error:", e);
-      toast.error(e instanceof Error ? e.message : "Erreur inconnue");
+      toast.error(messageErreur(e, "Erreur inconnue"));
       return null;
     } finally {
       setIsAnalyzing(false);

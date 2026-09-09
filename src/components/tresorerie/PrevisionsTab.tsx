@@ -18,6 +18,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { messageErreur } from "@/lib/erreurs";
 
 export function PrevisionsTab() {
   const { data: soldes, isLoading } = useTresorerieSoldes();
@@ -46,7 +47,7 @@ export function PrevisionsTab() {
       setNewSolde("");
       setNewPrev("");
     } catch (err: any) {
-      toast.error("Erreur", { description: err.message });
+      toast.error("Erreur", { description: messageErreur(err) });
     }
   };
 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { toast } from "sonner";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { messageErreur } from "@/lib/erreurs";
 
 export type SessionInsert = TablesInsert<"sessions">;
 export type SessionUpdate = TablesUpdate<"sessions">;
@@ -31,7 +32,7 @@ export function useCreateSession() {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la création de la session : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la création de la session"));
     },
   });
 }
@@ -55,7 +56,7 @@ export function useUpdateSession() {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la mise à jour de la session : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour de la session"));
     },
   });
 }
@@ -77,7 +78,7 @@ export function useDeleteSession() {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la suppression de la session : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la suppression de la session"));
     },
   });
 }
@@ -137,7 +138,7 @@ export function useAddInscription() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de l'inscription : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de l'inscription"));
     },
   });
 }
@@ -171,7 +172,7 @@ export function useRemoveInscription() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la désinscription : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la désinscription"));
     },
   });
 }

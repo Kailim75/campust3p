@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCentreContext } from "@/contexts/CentreContext";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface EmailSnippet {
   id: string;
@@ -62,7 +63,7 @@ export function useCreateSnippet() {
       qc.invalidateQueries({ queryKey: ["email-snippets"] });
       toast.success("Snippet créé");
     },
-    onError: (e: any) => toast.error("Erreur : " + (e?.message ?? "création échouée")),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur")),
   });
 }
 
@@ -80,7 +81,7 @@ export function useUpdateSnippet() {
       qc.invalidateQueries({ queryKey: ["email-snippets"] });
       toast.success("Snippet mis à jour");
     },
-    onError: (e: any) => toast.error("Erreur : " + e.message),
+    onError: (e: any) => toast.error(messageErreur(e, "Erreur")),
   });
 }
 

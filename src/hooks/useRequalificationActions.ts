@@ -11,6 +11,7 @@ import {
   filterEligibleForSmartOF,
   type BulkRowResult,
 } from "@/lib/requalification/bulkSelection";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface RequalificationActionPayload {
   contact: RequalificationContact;
@@ -133,7 +134,7 @@ export function useRequalificationAction() {
       toast.success("Action enregistrée");
     },
     onError: (e: Error) => {
-      toast.error("Action refusée : " + e.message);
+      toast.error(messageErreur(e, "Action refusée"));
     },
   });
 }
@@ -271,7 +272,7 @@ export function useBulkMarkAsSmartOFHistory() {
       }
     },
     onError: (e: Error) => {
-      toast.error("Action groupée refusée : " + e.message);
+      toast.error(messageErreur(e, "Action groupée refusée"));
     },
   });
 }

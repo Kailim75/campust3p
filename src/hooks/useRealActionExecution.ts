@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Anomaly } from "@/components/ia-director/audit/types";
+import { messageErreur } from "@/lib/erreurs";
 
 export type QuickActionType =
   | "create_tasks"
@@ -252,7 +253,7 @@ export function useQuickAction() {
       queryClient.invalidateQueries({ queryKey: ["ia-action-logs"] });
     },
     onError: (error: Error) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }

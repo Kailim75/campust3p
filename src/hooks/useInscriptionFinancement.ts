@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export type TypePayeur = "apprenant" | "entreprise" | "mixte" | "opco" | "autre";
 
@@ -102,7 +103,7 @@ export function useUpdateFinancement() {
       toast.success("Financement mis à jour");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la mise à jour du financement");
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour du financement"));
     },
   });
 }

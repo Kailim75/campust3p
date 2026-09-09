@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface Emargement {
   id: string;
@@ -75,7 +76,7 @@ export function useCreateEmargement() {
       queryClient.invalidateQueries({ queryKey: ["emargements", variables.session_id] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur: " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }
@@ -134,7 +135,7 @@ export function useSignEmargement() {
       toast.success("Émargement signé");
     },
     onError: (error: Error) => {
-      toast.error("Erreur: " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }
@@ -166,7 +167,7 @@ export function useTogglePresence() {
       queryClient.invalidateQueries({ queryKey: ["emargements", result.sessionId] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur: " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }
@@ -336,7 +337,7 @@ export function useGenerateEmargements() {
       toast.success(parts.length > 0 ? parts.join(", ") : "Émargements synchronisés");
     },
     onError: (error: Error) => {
-      toast.error("Erreur: " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }

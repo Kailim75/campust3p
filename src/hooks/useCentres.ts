@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface Centre {
   id: string;
@@ -132,7 +133,7 @@ export function useCreateCentre() {
       toast.success("Centre créé avec succès");
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la création : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la création"));
     },
   });
 }
@@ -165,7 +166,7 @@ export function useUpdateCentre() {
       toast.success("Centre mis à jour avec succès");
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la mise à jour : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour"));
     },
   });
 }

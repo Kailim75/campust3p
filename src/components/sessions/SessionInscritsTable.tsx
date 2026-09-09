@@ -41,6 +41,7 @@ import { InscritsGlobalActions, InscritsSelectionActions } from './inscrits/Insc
 import { InscritsDialogs } from './inscrits/InscritsDialogs';
 import { mapContactInfo, type InscritRow, type ExamResultValue } from './inscrits/inscrits-types';
 import { FactureExpressDialog } from '@/components/facturation/FactureExpressDialog';
+import { messageErreur } from "@/lib/erreurs";
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -277,7 +278,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
 
   const handleRemoveInscription = async (contactId: string) => {
     try { await removeInscription.mutateAsync({ sessionId, contactId }); toast.success("Inscription annulée"); }
-    catch (err: any) { console.error("Erreur suppression inscription:", err); toast.error(err?.message || "Erreur lors de l'annulation"); }
+    catch (err: any) { console.error("Erreur suppression inscription:", err); toast.error(messageErreur(err, "Erreur lors de l'annulation")); }
   };
 
   const toggleSelectAll = () => {

@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { messageErreur } from "@/lib/erreurs";
 
 interface ToolResult {
   tool: string;
@@ -193,7 +194,7 @@ export function AIAssistant() {
       
     } catch (error: any) {
       console.error('AI Assistant error:', error);
-      toast.error(error.message || 'Erreur de communication');
+      toast.error(messageErreur(error, "Erreur de communication"));
       
       const errorMessage: Message = {
         role: 'assistant',

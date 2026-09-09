@@ -53,6 +53,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { messageErreur } from "@/lib/erreurs";
 
 interface FactureDetailSheetProps {
   factureId: string | null;
@@ -231,7 +232,7 @@ export function FactureDetailSheet({
       toast.success("Facture téléchargée");
     })().catch((error) => {
       console.error("Erreur génération facture:", error);
-      toast.error(error?.message || "Erreur lors de la génération du PDF");
+      toast.error(messageErreur(error, "Erreur lors de la génération du PDF"));
     });
   };
 
@@ -354,7 +355,7 @@ export function FactureDetailSheet({
       toast.success(`Facture envoyée par email à ${email}`);
     } catch (err: any) {
       console.error("Erreur envoi facture:", err);
-      toast.error(err.message || "Erreur lors de l'envoi de la facture");
+      toast.error(messageErreur(err, "Erreur lors de l'envoi de la facture"));
     } finally {
       setIsSendingEmail(false);
     }

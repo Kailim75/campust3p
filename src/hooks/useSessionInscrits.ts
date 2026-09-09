@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 interface AjouterMultiplesParams {
   contactIds: string[];
@@ -124,7 +125,7 @@ export function useSessionInscrits(sessionId: string) {
       }
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de l\'ajout');
+      toast.error(messageErreur(error, "Erreur lors de l'ajout"));
     }
   });
 
@@ -260,7 +261,7 @@ export function useSessionInscrits(sessionId: string) {
       }
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de l\'envoi');
+      toast.error(messageErreur(error, "Erreur lors de l'envoi"));
     }
   });
 
