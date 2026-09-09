@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppUrl } from "@/lib/phone-utils";
 import { commissionAlma, libelleTaux } from "@/lib/alma-commission";
+import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
 
 interface AlmaPaymentSectionProps {
   factureId: string;
@@ -32,6 +33,7 @@ export function AlmaPaymentSection({
 }: AlmaPaymentSectionProps) {
   const [almaUrl, setAlmaUrl] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
+  const [confirmLinkOpen, setConfirmLinkOpen] = useState(false);
   const { centreFormation } = useCentreFormation();
   const centreName =
     centreFormation?.nom_commercial || centreFormation?.nom_legal || "Centre de formation";
@@ -232,7 +234,7 @@ export function AlmaPaymentSection({
               <Button
                 size="sm"
                 className="flex-1 bg-[#FA5022] hover:bg-[#FA5022]/90"
-                onClick={handleSendAlmaLink}
+                onClick={() => setConfirmLinkOpen(true)}
                 disabled={isSendingLink}
               >
                 {isSendingLink ? (
@@ -243,6 +245,13 @@ export function AlmaPaymentSection({
                 Envoyer
               </Button>
             )}
+            <ConfirmSendDialog
+              open={confirmLinkOpen}
+              onOpenChange={setConfirmLinkOpen}
+              title="Envoyer le lien de paiement en plusieurs fois ?"
+              recipient={customerEmail}
+              onConfirm={handleSendAlmaLink}
+            />
           </div>
           {customerPhone && (
             <div className="flex gap-2">

@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
 
 interface DevisDetailSheetProps {
   devisId: string | null;
@@ -63,6 +64,7 @@ export function DevisDetailSheet({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [confirmEmailOpen, setConfirmEmailOpen] = useState(false);
 
   const handleUpdateStatut = async (newStatut: DevisStatut) => {
     if (devisId) {
@@ -494,7 +496,7 @@ export function DevisDetailSheet({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleSendEmail} disabled={!devis?.contact?.email}>
+                    <DropdownMenuItem onClick={() => setConfirmEmailOpen(true)} disabled={!devis?.contact?.email}>
                       <Mail className="h-4 w-4 mr-2" />
                       Par email (PDF)
                     </DropdownMenuItem>
@@ -504,6 +506,13 @@ export function DevisDetailSheet({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <ConfirmSendDialog
+                  open={confirmEmailOpen}
+                  onOpenChange={setConfirmEmailOpen}
+                  title="Envoyer le devis par email ?"
+                  recipient={devis?.contact?.email}
+                  onConfirm={handleSendEmail}
+                />
 
                 {!publishedTemplate && (
                   <p className="w-full text-xs text-muted-foreground mt-1">
