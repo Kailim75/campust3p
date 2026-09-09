@@ -32,10 +32,11 @@ interface FocusModeBarProps {
   focus: FocusBlocKey | null;
   onChange: (focus: FocusBlocKey | null) => void;
   counts: Partial<Record<FocusBlocKey, number>>;
+  masques?: ReadonlySet<FocusBlocKey>;
 }
 
-export function FocusModeBar({ focus, onChange, counts }: FocusModeBarProps) {
-  const entries = (Object.keys(FOCUS_BLOC_LABELS) as FocusBlocKey[]);
+export function FocusModeBar({ focus, onChange, counts, masques }: FocusModeBarProps) {
+  const entries = (Object.keys(FOCUS_BLOC_LABELS) as FocusBlocKey[]).filter((key) => !masques?.has(key));
 
   return (
     <div className={cn(
