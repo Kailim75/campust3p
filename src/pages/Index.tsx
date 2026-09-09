@@ -38,11 +38,8 @@ const SignaturesPage      = lazy(() => import("@/components/signatures/Signature
 const QualiteUnifiedPage  = lazy(() => import("@/components/qualite/QualiteUnifiedPage").then(m => ({ default: m.QualiteUnifiedPage })));
 const PartnersPage        = lazy(() => import("@/components/partners/PartnersPage").then(m => ({ default: m.PartnersPage })));
 const FormateursPage      = lazy(() => import("@/components/formateurs/FormateursPage").then(m => ({ default: m.FormateursPage })));
-const SecurityStatusPage  = lazy(() => import("@/components/admin/SecurityStatusPage").then(m => ({ default: m.SecurityStatusPage })));
-const DocumentSystemStatePage = lazy(() => import("@/components/admin/DocumentSystemStatePage").then(m => ({ default: m.DocumentSystemStatePage })));
 const CorbeillePage       = lazy(() => import("@/components/corbeille/CorbeillePage").then(m => ({ default: m.CorbeillePage })));
 const DoublonsContactsPage = lazy(() => import("@/components/contacts/DoublonsContactsPage").then(m => ({ default: m.DoublonsContactsPage })));
-const RequalificationPage = lazy(() => import("@/components/requalification/RequalificationPage").then(m => ({ default: m.RequalificationPage })));
 const AttestationsEnRetardPage = lazy(() => import("@/components/compliance/AttestationsEnRetardPage").then(m => ({ default: m.AttestationsEnRetardPage })));
 const AidePage            = lazy(() => import("@/components/help/AidePage"));
 
@@ -322,14 +319,6 @@ const Index = () => {
         pageName = "PartnersPage";
         node = <PartnersPage />;
         break;
-      case "security":
-        pageName = "SecurityStatusPage";
-        node = <SecurityStatusPage />;
-        break;
-      case "documents-systeme":
-        pageName = "DocumentSystemStatePage";
-        node = <DocumentSystemStatePage />;
-        break;
       case "corbeille":
         pageName = "CorbeillePage";
         node = <CorbeillePage />;
@@ -337,10 +326,6 @@ const Index = () => {
       case "doublons-contacts":
         pageName = "DoublonsContactsPage";
         node = <DoublonsContactsPage />;
-        break;
-      case "requalification-contacts":
-        pageName = "RequalificationPage";
-        node = <RequalificationPage />;
         break;
       case "attestations-retard":
         pageName = "AttestationsEnRetardPage";

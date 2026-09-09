@@ -12,7 +12,7 @@
 import {
   LayoutDashboard, Users, Calendar, CreditCard, Settings,
   ClipboardList, UserPlus, Zap, GraduationCap, Award,
-  Handshake, UserCog, Trash2, Shield, Package, HelpCircle,
+  Handshake, UserCog, Trash2, Package, HelpCircle,
   FileSignature, BellRing,
   type LucideIcon,
 } from "lucide-react";
@@ -92,12 +92,9 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "attestations-retard", label: "Attestations en retard",  icon: Award, group: "more", subgroup: "qualite", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
 
   // Administration
-  { id: "automations",              label: "Automations",     icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin"] },
-  { id: "security",                 label: "Sécurité",        icon: Shield, group: "more", subgroup: "admin", path: "/security",                 pageName: "SecurityStatusPage",   allowedRoles: ["super_admin", "admin"] },
-  { id: "documents-systeme",        label: "État du système documentaire", icon: Shield, group: "more", subgroup: "admin", path: "/admin/documents-systeme",  pageName: "DocumentSystemStatePage", allowedRoles: ["super_admin", "admin"] },
+  { id: "automations",              label: "Modèles & automatisations", icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin"] },
   { id: "corbeille",                label: "Corbeille",       icon: Trash2, group: "more", subgroup: "admin", path: "/corbeille",                pageName: "CorbeillePage",        allowedRoles: ["admin"] },
   { id: "doublons-contacts",        label: "Doublons",        icon: Users,  group: "more", subgroup: "admin", path: "/doublons-contacts",        pageName: "DoublonsContactsPage", allowedRoles: ["admin"] },
-  { id: "requalification-contacts", label: "Requalification", icon: Users,  group: "more", subgroup: "admin", path: "/requalification-contacts", pageName: "RequalificationPage",  allowedRoles: ["admin"] },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   { id: "aide",     label: "Aide",       icon: HelpCircle, group: "footer", path: "/aide",     pageName: "AidePage" },
@@ -189,7 +186,6 @@ const FUZZY_KEYWORDS: Array<{ keywords: string[]; section: string }> = [
   { keywords: ["formateur", "intervenant"],                                          section: "formateurs" },
   { keywords: ["param", "config", "reglage"],                                        section: "settings" },
   { keywords: ["corbeille", "trash", "supprim"],                                     section: "corbeille" },
-  { keywords: ["secur", "rgpd"],                                                     section: "security" },
   { keywords: ["aujourd"],                                                           section: "aujourdhui" },
   { keywords: ["journee", "agenda-perso"],                                           section: "ma-journee" },
 ];
