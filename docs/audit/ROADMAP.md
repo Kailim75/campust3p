@@ -118,5 +118,7 @@ Objectif : réduire la dette qui freine l'évolution et préparer la montée en 
 | 10/09/2026 | Vague 2 n°3 — confirmation avant envoi d’email : devis, lien Alma, renvoi/relance de signature (ConfirmSendDialog) | #70 | ✅ en prod |
 | 10/09/2026 | Perf P2 — onglets Finances en lazy (chunk 648 Ko → 8 Ko) | #71 | ✅ en prod |
 | 10/09/2026 | Archi P1 — reste à encaisser : formule unique jamais négative (lib/montants + 6 tests) | #72 | ✅ en prod |
+| 10/09/2026 | Vague 2 n°5 — messages d’erreur en français clair (lib/erreurs, 123 toasts réécrits, 7 tests) | #74 | ✅ en prod |
+| 10/09/2026 | Vague 2 n°7 — désinscription et suppression de facture avec confirmation nominative (plus de window.confirm sur la fiche session) | #75 | ✅ en prod |
 
-**Reste à faire (vague 2)** : messages d’erreur Supabase en français clair, fil d’Ariane visible, désinscription avec confirmation + brancher SoftDeleteConfirmDialog, garde anti-perte de saisie (brouillon), vue mobile de la session, accessibilité (aria-label, sélecteurs clavier), action groupée de statut. **Perf** : framer-motion hors chemin critique. **Vague 3a (avant le 2ᵉ centre)** : inchangée. **À activer** : `CRON_SECRET` (procédure dans supabase/CRON_JOBS.md).
+**Reste à faire (vague 2)** : fil d’Ariane visible, brancher SoftDeleteConfirmDialog sur les suppressions à impact, garde anti-perte de saisie (brouillon), vue mobile de la session, accessibilité (aria-label, sélecteurs clavier), action groupée de statut, window.confirm restants (SessionParcoursTab, FormationsPage, DuplicatesDialog). **Perf** : framer-motion hors chemin critique. **Vague 3a (avant le 2ᵉ centre)** : inchangée. **À activer** : `CRON_SECRET` (procédure dans supabase/CRON_JOBS.md).
