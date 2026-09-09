@@ -1,18 +1,39 @@
-import { useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, CreditCard, Euro, FileText, Landmark, Receipt, TrendingUp, Link as LinkIcon, CalendarDays } from "lucide-react";
 import { useNavigation } from "@/contexts/NavigationContext";
-import { FinancesPilotageTab } from "./FinancesPilotageTab";
-import { PaiementsListTab } from "./PaiementsListTab";
-import { PaiementsPage } from "@/components/paiements/PaiementsPage";
-import { DevisPage } from "@/components/devis/DevisPage";
-import { TresoreriePage } from "@/components/tresorerie/TresoreriePage";
-import { ChargesTab } from "@/components/cockpit-financier/ChargesTab";
-import { PrevisionnelTab } from "@/components/cockpit-financier/PrevisionnelTab";
-import { AlmaReconciliationPage } from "@/components/finances/AlmaReconciliationPage";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { computePeriodRange, type Periode } from "@/hooks/useFinancialData";
+
+// Chaque onglet n'est chargé qu'à sa première ouverture (Radix ne monte que
+// l'onglet actif) : importés statiquement, les 7 onglets faisaient de
+// FinancesPage le chunk le plus lourd de l'app (648 Ko brut, dont pdfjs et les
+// graphiques) — audit 13/08/2026, perf P2.
+const FinancesPilotageTab = lazy(() => import("./FinancesPilotageTab").then((m) => ({ default: m.FinancesPilotageTab })));
+const PaiementsListTab = lazy(() => import("./PaiementsListTab").then((m) => ({ default: m.PaiementsListTab })));
+const PaiementsPage = lazy(() => import("@/components/paiements/PaiementsPage").then((m) => ({ default: m.PaiementsPage })));
+const DevisPage = lazy(() => import("@/components/devis/DevisPage").then((m) => ({ default: m.DevisPage })));
+const TresoreriePage = lazy(() => import("@/components/tresorerie/TresoreriePage").then((m) => ({ default: m.TresoreriePage })));
+const ChargesTab = lazy(() => import("@/components/cockpit-financier/ChargesTab").then((m) => ({ default: m.ChargesTab })));
+const PrevisionnelTab = lazy(() => import("@/components/cockpit-financier/PrevisionnelTab").then((m) => ({ default: m.PrevisionnelTab })));
+const AlmaReconciliationPage = lazy(() =>
+  import("@/components/finances/AlmaReconciliationPage").then((m) => ({ default: m.AlmaReconciliationPage })),
+);
+
+function TabFallback() {
+  return (
+    <div className="space-y-4" aria-busy="true">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-64 rounded-xl" />
+    </div>
+  );
+}
 
 function ChargesTabContainer() {
   const [periode, setPeriode] = useState<Periode>("mois");
@@ -32,7 +53,9 @@ function ChargesTabContainer() {
           </SelectContent>
         </Select>
       </div>
-      <ChargesTab range={range} />
+      <Suspense fallback={<TabFallback />}>
+        <ChargesTab range={range} />
+      </Suspense>
     </div>
   );
 }
@@ -113,7 +136,9 @@ export function FinancesPage() {
       {almaOpen && (
         <div className="px-6 pb-4">
           <div className="card-elevated p-4">
-            <AlmaReconciliationPage />
+            <Suspense fallback={<TabFallback />}>
+              <AlmaReconciliationPage />
+            </Suspense>
           </div>
         </div>
       )}
@@ -145,25 +170,37 @@ export function FinancesPage() {
           </TabsList>
 
           <TabsContent value="pilotage">
-            <FinancesPilotageTab />
+            <Suspense fallback={<TabFallback />}>
+              <FinancesPilotageTab />
+            </Suspense>
           </TabsContent>
           <TabsContent value="factures">
-            <PaiementsPage />
+            <Suspense fallback={<TabFallback />}>
+              <PaiementsPage />
+            </Suspense>
           </TabsContent>
           <TabsContent value="paiements">
-            <PaiementsListTab />
+            <Suspense fallback={<TabFallback />}>
+              <PaiementsListTab />
+            </Suspense>
           </TabsContent>
           <TabsContent value="devis">
-            <DevisPage />
+            <Suspense fallback={<TabFallback />}>
+              <DevisPage />
+            </Suspense>
           </TabsContent>
           <TabsContent value="tresorerie">
-            <TresoreriePage />
+            <Suspense fallback={<TabFallback />}>
+              <TresoreriePage />
+            </Suspense>
           </TabsContent>
           <TabsContent value="charges">
             <ChargesTabContainer />
           </TabsContent>
           <TabsContent value="previsionnel">
-            <PrevisionnelTab />
+            <Suspense fallback={<TabFallback />}>
+              <PrevisionnelTab />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
