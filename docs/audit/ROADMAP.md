@@ -120,5 +120,7 @@ Objectif : réduire la dette qui freine l'évolution et préparer la montée en 
 | 10/09/2026 | Archi P1 — reste à encaisser : formule unique jamais négative (lib/montants + 6 tests) | #72 | ✅ en prod |
 | 10/09/2026 | Vague 2 n°5 — messages d’erreur en français clair (lib/erreurs, 123 toasts réécrits, 7 tests) | #74 | ✅ en prod |
 | 10/09/2026 | Vague 2 n°7 — désinscription et suppression de facture avec confirmation nominative (plus de window.confirm sur la fiche session) | #75 | ✅ en prod |
+| 10/09/2026 | Élagage 1/3 — code mort (Inbox, template-studio-v2, charter, 11 hooks orphelins ; −6 406 lignes) | #77 | ✅ mergée (aucun effet visible) |
+| 10/09/2026 | Élagage 2/3 et 3/3 — « outil interne » : Plus › Administration 6 → 3 entrées, « Modèles & automatisations » ouvre sur les modèles de documents, 4 blocs d’Aujourd’hui mis en sommeil (`BLOCS_EN_SOMMEIL`), puce Anomalies et onglet Snippets retirés (+ restauration de 3 edge functions supprimées à tort par #77) | #78 | ✅ en prod |
 
 **Reste à faire (vague 2)** : fil d’Ariane visible, brancher SoftDeleteConfirmDialog sur les suppressions à impact, garde anti-perte de saisie (brouillon), vue mobile de la session, accessibilité (aria-label, sélecteurs clavier), action groupée de statut, window.confirm restants (SessionParcoursTab, FormationsPage, DuplicatesDialog). **Perf** : framer-motion hors chemin critique. **Vague 3a (avant le 2ᵉ centre)** : inchangée. **À activer** : `CRON_SECRET` (procédure dans supabase/CRON_JOBS.md).
