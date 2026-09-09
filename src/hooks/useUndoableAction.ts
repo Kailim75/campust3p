@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUndoStore } from "@/hooks/useUndoAction";
 import { UndoToast } from "@/components/ui/undo-toast";
 import React from "react";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface UndoableActionOptions {
   /** Short label shown in the toast (e.g. "Session « X » supprimée") */
@@ -42,7 +43,7 @@ export function useUndoableAction() {
     } catch (err: any) {
       console.error("Undoable action failed:", err);
       opts.rollback?.();
-      toast.error(`Erreur : ${err?.message || "action impossible"}`);
+      toast.error(messageErreur(err, "Action impossible"));
       return;
     }
 
@@ -65,7 +66,7 @@ export function useUndoableAction() {
               toast.success("Action annulée");
             } catch (err: any) {
               console.error("Undo failed:", err);
-              toast.error(`Annulation impossible : ${err?.message || ""}`);
+              toast.error(messageErreur(err, "Annulation impossible"));
             }
           },
           onDismiss: () => {

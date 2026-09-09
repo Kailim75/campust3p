@@ -10,6 +10,7 @@ import type { Anomaly, AnomalyStatus, AuditContext, AuditResult, ActionLog } fro
 import { buildAuditSummary } from "@/components/ia-director/audit/priorityEngine";
 import { computePriorityScore } from "@/components/ia-director/audit/priorityEngine";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 async function fetchAuditContext(): Promise<AuditContext> {
   const q = (table: string, opts?: { filter?: Record<string, any>; order?: string; limit?: number }) => {
@@ -215,7 +216,7 @@ export function useExecuteAction() {
       toast.success("Action exécutée et loggée");
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(messageErreur(error));
     },
   });
 }
@@ -270,7 +271,7 @@ export function useChangeAnomalyStatus() {
       toast.success(labels[newStatus] || "Statut mis à jour");
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(messageErreur(error));
     },
   });
 }

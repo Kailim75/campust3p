@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 export interface WorkflowAction {
   type: 'send_email' | 'create_notification' | 'update_status' | 'create_historique' | 'add_delay' | 'webhook';
@@ -175,7 +176,7 @@ export function useWorkflows() {
       toast.success('Workflow créé avec succès');
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     }
   });
 
@@ -203,7 +204,7 @@ export function useWorkflows() {
       toast.success('Workflow mis à jour');
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     }
   });
 
@@ -221,7 +222,7 @@ export function useWorkflows() {
       toast.success('Workflow supprimé');
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     }
   });
 
@@ -263,7 +264,7 @@ export function useWorkflows() {
       toast.success('Workflow dupliqué');
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     }
   });
 

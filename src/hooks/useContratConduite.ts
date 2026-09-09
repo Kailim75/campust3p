@@ -16,6 +16,7 @@ import {
 } from "@/lib/documents/conduite/contratConduiteValidator";
 import { getProduitConduiteByFiliere, type FiliereConduite } from "@/lib/documents/conduite/produitsCatalogue";
 import { buildDefaultContratConduiteHtml } from "@/lib/documents/conduite/defaultContratConduiteTemplate";
+import { messageErreur } from "@/lib/erreurs";
 
 export const CONTRAT_CONDUITE_TYPE = "contrat_conduite";
 
@@ -174,7 +175,7 @@ export function useCreateContratConduite() {
     },
     onError: (err: any) => {
       console.error("[ContratConduite] create error:", err);
-      toast.error(err?.message ?? "Erreur lors de la génération du contrat");
+      toast.error(messageErreur(err, "Erreur lors de la génération du contrat"));
     },
   });
 }

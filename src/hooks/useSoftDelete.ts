@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export type SoftDeleteTable =
   | "sessions"
@@ -89,7 +90,7 @@ export function useSoftDelete() {
       toast.success(`${tableLabels[table]} envoyé(e) à la corbeille`);
     },
     onError: (error: Error) => {
-      toast.error(`Erreur : ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     },
   });
 }
@@ -150,7 +151,7 @@ export function useRestoreRecord() {
       toast.success(`${tableLabels[table]} restauré(e) avec succès`);
     },
     onError: (error: Error) => {
-      toast.error(`Erreur lors de la restauration : ${error.message}`);
+      toast.error(messageErreur(error, "Erreur lors de la restauration"));
     },
   });
 }

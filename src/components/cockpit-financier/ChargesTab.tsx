@@ -17,6 +17,7 @@ import type { PeriodRange } from "@/hooks/useFinancialData";
 import { useCharges, useRecurringCharges, useCreateCharge, useUpdateCharge, useCancelCharge, useBudgetPrevisionnel } from "@/hooks/useFinancialData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { messageErreur } from "@/lib/erreurs";
 
 interface Props {
   range: PeriodRange;
@@ -224,7 +225,7 @@ export function ChargesTab({ range }: Props) {
       toast.success("Charge ajoutée");
       setForm({ categorie: "", type_charge: "fixe", libelle: "", montant: "", date_charge: format(now, "yyyy-MM-dd"), periodicite: "unique", prestataire: "" });
     } catch (err: any) {
-      toast.error(err.message || "Erreur");
+      toast.error(messageErreur(err, "Erreur"));
     }
   };
 
@@ -233,7 +234,7 @@ export function ChargesTab({ range }: Props) {
       await createCharge.mutateAsync(charge);
       toast.success("Charge formateur ajoutée");
     } catch (err: any) {
-      toast.error(err.message || "Erreur");
+      toast.error(messageErreur(err, "Erreur"));
     }
   };
 
@@ -243,7 +244,7 @@ export function ChargesTab({ range }: Props) {
       await cancelCharge.mutateAsync(cancelId);
       toast.success("Charge annulée");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(messageErreur(err));
     }
     setCancelId(null);
   };
@@ -269,7 +270,7 @@ export function ChargesTab({ range }: Props) {
       toast.success("Charge modifiée");
       setEditCharge(null);
     } catch (err: any) {
-      toast.error(err.message || "Erreur");
+      toast.error(messageErreur(err, "Erreur"));
     }
   };
 

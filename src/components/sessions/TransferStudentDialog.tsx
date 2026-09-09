@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getFormationColor, getFormationLabel } from "@/constants/formationColors";
+import { messageErreur } from "@/lib/erreurs";
 
 interface TransferStudentDialogProps {
   open: boolean;
@@ -145,7 +146,7 @@ export function TransferStudentDialog({
       onOpenChange(false);
     } catch (error: any) {
       console.error("Transfer error:", error);
-      toast.error("Erreur lors du transfert : " + (error.message || "Erreur inconnue"));
+      toast.error(messageErreur(error, "Erreur lors du transfert"));
     } finally {
       setIsTransferring(false);
     }

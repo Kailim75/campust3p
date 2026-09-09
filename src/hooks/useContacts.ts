@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { messageErreur } from "@/lib/erreurs";
 
 export type Contact = Tables<"contacts">;
 export type ContactInsert = TablesInsert<"contacts">;
@@ -215,7 +216,7 @@ export function useCreateContact() {
         });
         return;
       }
-      toast.error("Erreur lors de la création du contact : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la création du contact"));
     },
   });
 }
@@ -249,7 +250,7 @@ export function useUpdateContact() {
         });
         return;
       }
-      toast.error("Erreur lors de la mise à jour du contact : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour du contact"));
     },
   });
 }
@@ -272,7 +273,7 @@ export function useDeleteContact() {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la suppression du contact : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la suppression du contact"));
     },
   });
 }

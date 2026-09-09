@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
 import DOMPurify from "dompurify";
 import type { StudioTemplate } from "@/constants/templateConstants";
+import { messageErreur } from "@/lib/erreurs";
 
 const ENTITY_TYPES = [
   { value: "apprenant", label: "Apprenant", icon: User },
@@ -363,7 +364,7 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
       toast.success("Document généré et enregistré");
     } catch (e: any) {
       console.error("Generation error:", e);
-      toast.error("Erreur lors de la génération : " + (e.message || "erreur inconnue"));
+      toast.error(messageErreur(e, "Erreur lors de la génération"));
     } finally {
       setGenerating(false);
     }

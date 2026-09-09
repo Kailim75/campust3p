@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface ScoreHistory {
   id: string;
@@ -84,7 +85,7 @@ export function useRunCentreScoring() {
       toast.success("Scoring centre calculé avec succès");
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(messageErreur(error));
     },
   });
 }

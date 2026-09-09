@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { runComplianceCheck, COMPLIANCE_GATED_TYPES } from "@/lib/complianceEngine";
+import { messageErreur } from "@/lib/erreurs";
 
 // ── Types ──
 
@@ -211,7 +212,7 @@ export function useCreateTemplateV2() {
       return data as TemplateV2;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["templates-v2"] }); toast.success("Template créé"); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -233,7 +234,7 @@ export function useUpdateTemplateV2() {
       qc.invalidateQueries({ queryKey: ["template-v2", data.id] });
       toast.success("Template mis à jour");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -245,7 +246,7 @@ export function useDeleteTemplateV2() {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["templates-v2"] }); toast.success("Template supprimé"); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -327,7 +328,7 @@ export function usePublishTemplateV2() {
       qc.invalidateQueries({ queryKey: ["template-versions-v2"] });
       toast.success("Template publié");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -343,7 +344,7 @@ export function useArchiveTemplateV2() {
       await (supabase as any).from("template_audit_log").insert({ template_id: id, action: "archived" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["templates-v2"] }); toast.success("Template archivé"); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -378,7 +379,7 @@ export function useRollbackTemplateV2() {
       qc.invalidateQueries({ queryKey: ["template-versions-v2"] });
       toast.success("Rollback effectué");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -419,7 +420,7 @@ export function useCreatePack() {
       return data as DocumentPack;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["document-packs"] }); toast.success("Pack créé"); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -432,7 +433,7 @@ export function useAddPackItem() {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["document-packs"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -444,7 +445,7 @@ export function useRemovePackItem() {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["document-packs"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -619,7 +620,7 @@ export function useGenerateDocument() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["generated-docs-v2"] });
     },
-    onError: (e: Error) => toast.error(`Erreur: ${e.message}`),
+    onError: (e: Error) => toast.error(messageErreur(e, "Erreur")),
   });
 }
 
@@ -727,7 +728,7 @@ export function useRetryFailedDocuments() {
         toast.info("Aucun document en échec à relancer");
       }
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 
@@ -881,7 +882,7 @@ export function useGeneratePackDocuments() {
         });
       }
     },
-    onError: (e: Error) => toast.error(`Erreur batch: ${e.message}`),
+    onError: (e: Error) => toast.error(messageErreur(e, "Erreur batch")),
   });
 }
 
@@ -909,7 +910,7 @@ export function useDownloadGeneratedDoc() {
         action: "downloaded",
       });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(messageErreur(e)),
   });
 }
 

@@ -39,6 +39,7 @@ import TemplatePreview from "./TemplatePreview";
 import GenerateDocumentModal from "./GenerateDocumentModal";
 import { toast } from "sonner";
 import { useCentreContext } from "@/contexts/CentreContext";
+import { messageErreur } from "@/lib/erreurs";
 
 interface Props {
   templateId: string | null;
@@ -133,7 +134,7 @@ export default function TemplateEditorV2({ templateId, isCreating, onBack, onGen
         });
       }
     } catch (err: any) {
-      toast.error("Erreur lors de la sauvegarde : " + (err.message || "erreur inconnue"));
+      toast.error(messageErreur(err, "Erreur lors de la sauvegarde"));
     }
   };
 

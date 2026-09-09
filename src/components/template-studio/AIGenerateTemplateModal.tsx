@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useCentreContext } from "@/contexts/CentreContext";
 import { cn } from "@/lib/utils";
+import { messageErreur } from "@/lib/erreurs";
 
 const AI_DOCUMENT_TYPES = [
   { value: "programme", label: "Programme de formation" },
@@ -73,7 +74,7 @@ export default function AIGenerateTemplateModal({ open, onOpenChange, onUseTempl
       toast.success(`Variation ${variations.length + 1} générée !`);
     } catch (err: any) {
       console.error("[AI Template] Error:", err);
-      toast.error("Erreur de génération : " + (err.message || "inconnue"));
+      toast.error(messageErreur(err, "Erreur de génération"));
     } finally {
       setIsGenerating(false);
     }

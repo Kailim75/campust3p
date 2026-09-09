@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { useExecuteWorkflow } from '@/hooks/useWorkflows';
+import { messageErreur } from "@/lib/erreurs";
 
 const ACTION_ICONS: Record<string, any> = {
   send_email: Mail,
@@ -165,7 +166,7 @@ export function WorkflowsPage() {
       });
       toast.success('Workflow testé avec succès');
     } catch (error: any) {
-      toast.error(`Erreur lors du test : ${error.message}`);
+      toast.error(messageErreur(error, "Erreur lors du test"));
     }
   };
 

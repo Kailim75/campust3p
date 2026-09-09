@@ -17,6 +17,7 @@ import { ShieldAlert, Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sirenError, siretError } from "@/lib/validation/siret";
+import { messageErreur } from "@/lib/erreurs";
 
 interface Props {
   factureId: string | null;
@@ -128,7 +129,7 @@ export function BuyerSnapshotEditDialog({ factureId, open, onOpenChange }: Props
       qc.invalidateQueries({ queryKey: ["factures"] });
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Échec de la mise à jour"),
+    onError: (e: any) => toast.error(messageErreur(e, "Échec de la mise à jour")),
   });
 
   const set = <K extends keyof BuyerForm>(k: K, v: BuyerForm[K]) => setForm((f) => ({ ...f, [k]: v }));

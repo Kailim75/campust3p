@@ -6,6 +6,7 @@ import { Loader2, PlayCircle, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { messageErreur } from "@/lib/erreurs";
 
 type CronResult = {
   ok?: boolean;
@@ -60,7 +61,7 @@ export function AlmaCronMonitorPanel() {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       queryClient.invalidateQueries({ queryKey: ["alma-paiements-stats"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Erreur lors de la réconciliation");
+      toast.error(messageErreur(e, "Erreur lors de la réconciliation"));
       setLastResult({ error: e?.message ?? "Erreur inconnue" });
     } finally {
       setRunning(false);

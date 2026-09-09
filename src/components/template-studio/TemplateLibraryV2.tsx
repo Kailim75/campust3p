@@ -23,6 +23,7 @@ import { TEMPLATE_TYPES, TEMPLATE_STATUSES } from "@/constants/templateConstants
 import { TEMPLATE_GENERATORS } from "@/lib/complianceEngine";
 import { toast } from "sonner";
 import { useCentreContext } from "@/contexts/CentreContext";
+import { messageErreur } from "@/lib/erreurs";
 
 // Pre-built template catalog
 const PREBUILT_TEMPLATES = [
@@ -88,7 +89,7 @@ export default function TemplateLibraryV2({ onEdit, onCreate, onGenerate }: Prop
         onEdit(result.id);
       }
     } catch (e: any) {
-      toast.error("Erreur : " + (e.message || "inconnue"));
+      toast.error(messageErreur(e, "Erreur"));
     }
   };
 

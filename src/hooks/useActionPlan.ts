@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface ActionPlanItem {
   priorite: number;
@@ -54,7 +55,7 @@ export function useActionPlan() {
       return data;
     } catch (e) {
       console.error("Action plan error:", e);
-      toast.error(e instanceof Error ? e.message : "Erreur inconnue");
+      toast.error(messageErreur(e, "Erreur inconnue"));
       return null;
     } finally {
       setIsGenerating(false);

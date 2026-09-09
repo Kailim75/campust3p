@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 export interface CentreFormation {
   id: string;
@@ -80,7 +81,7 @@ export function useCentreFormation() {
       toast.success('Configuration enregistrée avec succès');
     },
     onError: (error: any) => {
-      toast.error(`Erreur : ${error.message}`);
+      toast.error(messageErreur(error, "Erreur"));
     }
   });
 

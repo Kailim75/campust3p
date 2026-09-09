@@ -14,6 +14,7 @@ import { useEmailTemplates } from '@/hooks/useEmailTemplates';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 interface Props {
   open: boolean;
@@ -138,7 +139,7 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
         toast.success('Contenu email généré par l\'IA');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la génération');
+      toast.error(messageErreur(err, "Erreur lors de la génération"));
     } finally {
       setGeneratingEmail(null);
     }

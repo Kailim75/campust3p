@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCentreContext } from "@/contexts/CentreContext";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface EInvoicingSettings {
   einv_blocking_threshold: number;
@@ -54,7 +55,7 @@ export function useEInvoicingSettings() {
       toast.success("Paramètres e-invoicing enregistrés");
       qc.invalidateQueries({ queryKey: ["einv-settings", centreId] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Échec de la mise à jour"),
+    onError: (e: any) => toast.error(messageErreur(e, "Échec de la mise à jour")),
   });
 
   return { ...query, settings: query.data ?? DEFAULTS, save };

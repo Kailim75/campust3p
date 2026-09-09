@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { messageErreur } from "@/lib/erreurs";
 
 export function useQualiteClient() {
   const queryClient = useQueryClient();
@@ -175,7 +176,7 @@ export function useQualiteClient() {
       toast.success('Réclamation mise à jour');
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la mise à jour de la réclamation : " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour de la réclamation"));
     }
   });
 

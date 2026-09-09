@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 
 export interface PdpTransmission {
   id: string;
@@ -50,7 +51,7 @@ export function usePdpTransmissions(factureId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["factures"] });
       qc.invalidateQueries({ queryKey: ["pdp-transmissions", factureId] });
     },
-    onError: (e: any) => toast.error(`Échec génération Factur-X : ${e.message ?? e}`),
+    onError: (e: any) => toast.error(messageErreur(e, "Échec génération Factur-X")),
   });
 
   const submitPdp = useMutation({
@@ -70,7 +71,7 @@ export function usePdpTransmissions(factureId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["pdp-transmissions", factureId] });
       qc.invalidateQueries({ queryKey: ["factures"] });
     },
-    onError: (e: any) => toast.error(`Échec transmission PDP : ${e.message ?? e}`),
+    onError: (e: any) => toast.error(messageErreur(e, "Échec transmission PDP")),
   });
 
   return { ...list, generateFacturX, submitPdp };

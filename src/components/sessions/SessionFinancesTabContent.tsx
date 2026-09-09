@@ -27,6 +27,7 @@ import { FactureExpressDialog } from "@/components/facturation/FactureExpressDia
 import { Euro, Send, Zap } from "lucide-react";
 import { SessionFinancialSummary } from "./SessionFinancialSummary";
 import { calculerResteAEncaisser } from "@/lib/montants";
+import { messageErreur } from "@/lib/erreurs";
 
 interface SessionFinancesTabContentProps {
   sessionId: string;
@@ -136,7 +137,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
       })
       .eq("id", ligne.inscriptionId);
     if (error) {
-      toast.error("Erreur : " + error.message);
+      toast.error(messageErreur(error, "Erreur"));
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["session_inscriptions", sessionId] });

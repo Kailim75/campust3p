@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
+import { messageErreur } from "@/lib/erreurs";
 
 const DEFAULT_FROM = "Ecole T3P Montrouge <montrouge@ecolet3p.fr>";
 const DEFAULT_REPLY_TO = "montrouge@ecolet3p.fr";
@@ -53,7 +54,7 @@ export function EmailSenderSettings() {
       queryClient.invalidateQueries({ queryKey: ["centres"] });
       toast.success("Configuration email sauvegardée");
     } catch (e: any) {
-      toast.error("Erreur : " + (e.message || "Sauvegarde échouée"));
+      toast.error(messageErreur(e, "Erreur"));
     } finally {
       setSaving(false);
     }

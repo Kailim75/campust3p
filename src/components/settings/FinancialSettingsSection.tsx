@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Landmark, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useParametresFinanciers, useUpsertParametres } from "@/hooks/useFinancialData";
+import { messageErreur } from "@/lib/erreurs";
 
 export function FinancialSettingsSection() {
   const { data: params, isLoading } = useParametresFinanciers();
@@ -38,7 +39,7 @@ export function FinancialSettingsSection() {
       });
       toast.success("Paramètres financiers enregistrés");
     } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la sauvegarde");
+      toast.error(messageErreur(err, "Erreur lors de la sauvegarde"));
     }
   };
 

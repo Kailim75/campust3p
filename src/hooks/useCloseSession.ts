@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useDocumentGenerator, type DocumentType } from "./useDocumentGenerator";
 import type { Session } from "./useSessions";
 import type { Contact } from "./useContacts";
+import { messageErreur } from "@/lib/erreurs";
 
 interface CloseSessionResult {
   success: boolean;
@@ -235,7 +236,7 @@ export function useCloseSession() {
       }
     },
     onError: (error: Error) => {
-      toast.error("Erreur lors de la clôture: " + error.message);
+      toast.error(messageErreur(error, "Erreur lors de la clôture"));
     },
   });
 }
