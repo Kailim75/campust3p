@@ -181,7 +181,7 @@ export default function SignaturePage() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("public-sign-document", {
-        body: { action: "get_document_url", signatureId, signingToken: tokenForFn },
+        body: { action: "get_document_url", signatureId, signingToken: tokenForFn, accessToken },
       });
 
       if (fnError) {
@@ -209,15 +209,22 @@ export default function SignaturePage() {
 
   const loadSignatureRequest = async () => {
     try {
-      const { data, error: fetchError } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: Record<string, unknown>[] | Record<string, unknown> | null; error: unknown }> })
-        .rpc("get_signature_request_public", { p_signature_id: id! });
+      if (!accessToken) {
+        setError("Lien de signature invalide : le jeton d'accès est absent.");
+        return;
+      }
 
-      if (fetchError || !data || (Array.isArray(data) && data.length === 0)) {
+      // Lecture gardée par le jeton d'accès (remplace la RPC anon get_signature_request_public).
+      const { data, error: fetchError } = await supabase.functions.invoke("public-sign-document", {
+        body: { action: "get_info", signatureId: id!, accessToken },
+      });
+
+      if (fetchError || !data?.success || !data?.request) {
         setError("Document introuvable ou lien expiré.");
         return;
       }
 
-      const row = Array.isArray(data) ? data[0] : data;
+      const row = data.request as Record<string, unknown>;
 
       if (row.statut === "signe") {
         setCompleted("signed");
@@ -258,10 +265,12 @@ export default function SignaturePage() {
       // Resolve the actual document URL via edge function
       await resolveDocumentUrl(sigData.id, resolved);
 
-      // Load related documents via RPC
+      // Documents liés du même signataire (edge function, jeton de lecture requis)
       if (row.contact_id) {
-        const { data: related } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: RelatedDocument[] | null; error: unknown }> })
-          .rpc("get_related_signature_docs", { p_contact_id: row.contact_id });
+        const { data: relatedData } = await supabase.functions.invoke("public-sign-document", {
+          body: { action: "list_related", signatureId: sigData.id, accessToken },
+        });
+        const related = (relatedData?.documents ?? null) as RelatedDocument[] | null;
 
         if (related && Array.isArray(related)) {
           // Dedup par type_document en privilégiant : signé > envoyé > autre,
@@ -343,11 +352,14 @@ export default function SignaturePage() {
     setRefusing(true);
 
     try {
-      const { data: result, error: rpcError } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: { success: boolean; error?: string } | null; error: unknown }> })
-        .rpc("refuse_document_public", {
-          p_signature_id: sigRequest.id,
-          p_commentaires: refuseReason || "Refusé par le signataire",
-        });
+      const { data: result, error: rpcError } = await supabase.functions.invoke("public-sign-document", {
+        body: {
+          action: "refuse",
+          signatureId: sigRequest.id,
+          signingToken,
+          commentaires: refuseReason || "Refusé par le signataire",
+        },
+      });
 
       if (rpcError) throw rpcError;
       if (result && !result.success) throw new Error(result.error);

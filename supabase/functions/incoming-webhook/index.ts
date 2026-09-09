@@ -6,22 +6,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-api-key',
 };
 
+function constantTimeEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Vérifier l'authentification : X-API-KEY header ou x-webhook-secret (legacy)
+  // Authentification : X-API-KEY (DriveFlow) ou x-webhook-secret, EN-TÊTE uniquement
+  // (plus de secret en query string : il finirait dans les journaux d'accès).
+  // Fail-closed (audit 13/08/2026) : sans secret configuré, l'endpoint est désactivé
+  // au lieu d'être public.
   const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
   const DRIVEFLOW_API_KEY = Deno.env.get('DRIVEFLOW_API_KEY');
-  const providedApiKey = req.headers.get('X-API-KEY') || req.headers.get('x-api-key');
-  const providedSecret = req.headers.get('x-webhook-secret') || new URL(req.url).searchParams.get('secret');
+  if (!WEBHOOK_SECRET && !DRIVEFLOW_API_KEY) {
+    console.error('[incoming-webhook] aucun secret configuré (WEBHOOK_SECRET / DRIVEFLOW_API_KEY) — endpoint désactivé');
+    return new Response(JSON.stringify({ error: 'Webhook not configured' }), {
+      status: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const providedApiKey = req.headers.get('X-API-KEY') || req.headers.get('x-api-key') || '';
+  const providedSecret = req.headers.get('x-webhook-secret') || '';
 
-  const isAuthenticated = 
-    (DRIVEFLOW_API_KEY && providedApiKey === DRIVEFLOW_API_KEY) ||
-    (WEBHOOK_SECRET && providedSecret === WEBHOOK_SECRET);
+  const isAuthenticated =
+    (!!DRIVEFLOW_API_KEY && constantTimeEq(providedApiKey, DRIVEFLOW_API_KEY)) ||
+    (!!WEBHOOK_SECRET && constantTimeEq(providedSecret, WEBHOOK_SECRET));
 
-  if ((DRIVEFLOW_API_KEY || WEBHOOK_SECRET) && !isAuthenticated) {
+  if (!isAuthenticated) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,15 +73,25 @@ serve(async (req) => {
           });
         }
 
-        // Get centre_id from payload or fallback to first centre
-        let centreId = payload_centre_id;
-        if (!centreId) {
-          const { data: firstCentre } = await supabase
+        // centre_id : s'il est fourni, il doit exister ; sinon repli sur LE centre,
+        // uniquement lorsqu'il n'y en a qu'un (jamais « le premier » en multi-centres).
+        let centreId: string | null = null;
+        if (payload_centre_id) {
+          const { data: centreRow } = await supabase
             .from('centres')
             .select('id')
-            .limit(1)
-            .single();
-          centreId = firstCentre?.id;
+            .eq('id', String(payload_centre_id))
+            .maybeSingle();
+          centreId = centreRow?.id ?? null;
+          if (!centreId) {
+            return new Response(JSON.stringify({ success: false, error: 'Unknown centre_id' }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        } else {
+          const { data: centres } = await supabase.from('centres').select('id').limit(2);
+          if (centres && centres.length === 1) centreId = centres[0].id;
         }
 
         if (!centreId) {

@@ -4,11 +4,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
+import { checkCronSecret } from "../_shared/cron-auth.ts";
 
 serve(async (req) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
   const corsHeaders = getCorsHeaders(req);
+  const cronDenied = checkCronSecret(req);
+  if (cronDenied) return cronDenied;
   const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
       status,

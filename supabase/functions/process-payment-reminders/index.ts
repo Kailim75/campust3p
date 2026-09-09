@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { getFromAddress, EMAIL_CONFIG } from "../_shared/email-config.ts";
+import { checkCronSecret } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,8 @@ function replaceVars(content: string, vars: Record<string, string>): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const cronDenied = checkCronSecret(req);
+  if (cronDenied) return cronDenied;
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
   const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
