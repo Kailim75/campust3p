@@ -123,23 +123,32 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split heavy vendor libs into separate chunks to reduce initial bundle
-          "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "radix-vendor": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-select",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-tooltip",
-          ],
-          "charts-vendor": ["recharts"],
-          "pdf-vendor": ["jspdf", "html2canvas", "docxtemplater", "pizzip", "jszip"],
-          "xlsx-vendor": ["xlsx"],
-          "supabase-vendor": ["@supabase/supabase-js"],
-          "form-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
-          "animation-vendor": ["framer-motion"],
+        // Forme fonction (audit 13/08/2026, perf P1) : avec la forme objet,
+        // Rollup logeait le helper de préchargement de Vite dans « pdf-vendor »,
+        // ce qui forçait le chunk d'entrée à importer statiquement jsPDF /
+        // html2canvas / docxtemplater (≈ 1 Mo) et recharts (≈ 400 Ko) au
+        // démarrage, alors qu'aucun n'est utile au premier écran. Le helper vit
+        // désormais dans react-vendor, chargé au boot de toute façon.
+        // Vérification après build : dist/index.html ne doit précharger ni
+        // pdf-vendor ni charts-vendor (voir docs/audit/RAPPORT_AUDIT.md §3.5).
+        manualChunks(id) {
+          if (id.includes("vite/preload-helper")) return "react-vendor";
+          if (!id.includes("node_modules")) return undefined;
+          const is = (re: RegExp) => re.test(id);
+          // Petits helpers partagés par l'entrée ET des vendors lourds (clsx est
+          // utilisé par cn() partout, par recharts et par le drag-and-drop) : les
+          // fixer ici évite que Rollup les range dans un gros chunk et rende
+          // celui-ci eager par ricochet.
+          if (is(/[\\/]node_modules[\\/](clsx|tailwind-merge|class-variance-authority|react-is|tiny-invariant|prop-types|@babel[\\/]runtime)[\\/]/)) return "react-vendor";
+          if (is(/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/)) return "react-vendor";
+          if (is(/[\\/]node_modules[\\/]@radix-ui[\\/]/)) return "radix-vendor";
+          if (is(/[\\/]node_modules[\\/](recharts|recharts-scale|react-smooth|victory-vendor|d3-[a-z-]+)[\\/]/)) return "charts-vendor";
+          if (is(/[\\/]node_modules[\\/](jspdf|html2canvas|docxtemplater|pizzip|jszip)[\\/]/)) return "pdf-vendor";
+          if (is(/[\\/]node_modules[\\/]xlsx[\\/]/)) return "xlsx-vendor";
+          if (is(/[\\/]node_modules[\\/]@supabase[\\/]/)) return "supabase-vendor";
+          if (is(/[\\/]node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/)) return "form-vendor";
+          if (is(/[\\/]node_modules[\\/]framer-motion[\\/]/)) return "animation-vendor";
+          return undefined;
         },
       },
     },
