@@ -67,6 +67,7 @@ import { SignatureSigningDialog } from "./SignatureSigningDialog";
 import { SignaturesTrackingPanel } from "./SignaturesTrackingPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/ui/error-state";
+import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -86,6 +87,10 @@ export function SignaturesPage() {
   const sendRequest = useSendSignatureRequest();
   const deleteRequest = useDeleteSignatureRequest();
   const sendEmail = useSendSignatureEmail();
+  const [pendingSendId, setPendingSendId] = useState<string | null>(null);
+  const pendingSendRecipient =
+    (signatures.find((s) => s.id === pendingSendId) as unknown as { contact?: { email?: string | null } | null } | undefined)
+      ?.contact?.email ?? null;
 
   const filteredSignatures = statutFilter === "all"
     ? signatures
@@ -356,14 +361,14 @@ export function SignaturesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {sig.statut === "en_attente" && (
-                              <DropdownMenuItem onClick={() => handleSend(sig.id)}>
+                              <DropdownMenuItem onClick={() => setPendingSendId(sig.id)}>
                                 <Send className="h-4 w-4 mr-2" />
                                 Envoyer
                               </DropdownMenuItem>
                             )}
                             {sig.statut === "envoye" && !isExpired && (
                               <DropdownMenuItem
-                                onClick={() => handleSend(sig.id)}
+                                onClick={() => setPendingSendId(sig.id)}
                                 disabled={sendEmail.isPending}
                               >
                                 <Send className="h-4 w-4 mr-2" />
@@ -420,6 +425,13 @@ export function SignaturesPage() {
       />
 
       {/* Delete Confirmation */}
+      <ConfirmSendDialog
+        open={pendingSendId !== null}
+        onOpenChange={(open) => { if (!open) setPendingSendId(null); }}
+        title="Envoyer la demande de signature par email ?"
+        recipient={pendingSendRecipient}
+        onConfirm={() => { if (pendingSendId) handleSend(pendingSendId); }}
+      />
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

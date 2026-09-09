@@ -37,6 +37,7 @@ import { format, parseISO, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { useSendSignatureEmail } from "@/hooks/useSignatures";
+import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
 
 type Row = {
   id: string;
@@ -87,6 +88,7 @@ function StatutBadge({ statut }: { statut: string }) {
 export function SignaturesTrackingPanel() {
   const [search, setSearch] = useState("");
   const sendEmail = useSendSignatureEmail();
+  const [pendingResend, setPendingResend] = useState<Row | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["signature_requests", "tracking"],
@@ -194,6 +196,13 @@ export function SignaturesTrackingPanel() {
 
   return (
     <div className="space-y-4">
+      <ConfirmSendDialog
+        open={pendingResend !== null}
+        onOpenChange={(open) => { if (!open) setPendingResend(null); }}
+        title="Renvoyer la demande de signature ?"
+        recipient={pendingResend?.contact?.email}
+        onConfirm={() => { if (pendingResend) resend(pendingResend); }}
+      />
       {/* Global summary */}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
         <Card><CardContent className="pt-4">
@@ -331,7 +340,7 @@ export function SignaturesTrackingPanel() {
                               <div className="flex justify-end gap-1">
                                 {(s === "envoye" || s === "expire" || s === "en_attente") && (
                                   <>
-                                    <Button size="sm" variant="ghost" onClick={() => resend(r)} title="Renvoyer">
+                                    <Button size="sm" variant="ghost" onClick={() => setPendingResend(r)} title="Renvoyer">
                                       <Send className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => copyLink(r)} title="Copier le lien">
