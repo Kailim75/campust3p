@@ -1,12 +1,28 @@
+import { lazy, Suspense } from "react";
 import { useAdminMode } from "@/contexts/AdminModeContext";
-import { SuperAdminApp } from "@/components/superadmin/SuperAdminApp";
 import Index from "@/pages/Index";
 import { Loader2 } from "lucide-react";
 import { LegalDocumentAcceptanceModal } from "@/components/legal/LegalDocumentAcceptanceModal";
 import { useLegalDocuments } from "@/hooks/useLegalDocuments";
 import { useCentres } from "@/hooks/useCentres";
-import { OnboardingWizard } from "@/components/onboarding/wizard/OnboardingWizard";
 import { useAlmaReturnHandler } from "@/hooks/useAlmaReturnHandler";
+
+// Chargés à la demande : réservés au super-admin et à la création du premier
+// centre, ils n'ont rien à faire dans le bundle de démarrage (audit 13/08, perf P2).
+const SuperAdminApp = lazy(() =>
+  import("@/components/superadmin/SuperAdminApp").then((m) => ({ default: m.SuperAdminApp })),
+);
+const OnboardingWizard = lazy(() =>
+  import("@/components/onboarding/wizard/OnboardingWizard").then((m) => ({ default: m.OnboardingWizard })),
+);
+
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 export function MainApp() {
   const { mode, isLoading, isSuperAdmin } = useAdminMode();
@@ -17,11 +33,7 @@ export function MainApp() {
 
   // Loading state
   if (isLoading || docsLoading || centresLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <FullScreenLoader />;
   }
 
   // Super Admin Mode
@@ -29,7 +41,11 @@ export function MainApp() {
     return (
       <>
         <LegalDocumentAcceptanceModal open={showLegalModal} />
-        {!showLegalModal && <SuperAdminApp />}
+        {!showLegalModal && (
+          <Suspense fallback={<FullScreenLoader />}>
+            <SuperAdminApp />
+          </Suspense>
+        )}
         {showLegalModal && (
           <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="text-center text-muted-foreground">
@@ -43,7 +59,11 @@ export function MainApp() {
 
   // Onboarding: si l'utilisateur n'a aucun centre, afficher le wizard
   if (!isSuperAdmin && (!centres || centres.length === 0)) {
-    return <OnboardingWizard />;
+    return (
+      <Suspense fallback={<FullScreenLoader />}>
+        <OnboardingWizard />
+      </Suspense>
+    );
   }
 
   // Centre Mode (default)
