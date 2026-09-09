@@ -8896,6 +8896,10 @@ export type Database = {
       }
       anonymize_contact: { Args: { p_contact_id: string }; Returns: boolean }
       archive_session: { Args: { p_session_id: string }; Returns: boolean }
+      assert_soft_delete_allowed: {
+        Args: { p_record_id: string; p_table_name: string }
+        Returns: undefined
+      }
       cancel_certificate: {
         Args: { p_certificate_id: string; p_reason?: string }
         Returns: boolean
@@ -9238,6 +9242,10 @@ export type Database = {
       soft_delete_session: {
         Args: { p_reason?: string; p_session_id: string }
         Returns: Json
+      }
+      soft_delete_target_accessible: {
+        Args: { p_record_id: string; p_table_name: string }
+        Returns: boolean
       }
       storage_object_centre_id: {
         Args: { object_name: string }
