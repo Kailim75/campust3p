@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Clock, Mail, ExternalLink, CheckCircle2, ListChecks, CheckSquare } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { isPast, parseISO, differenceInDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -136,7 +136,7 @@ export function BlocRelances({
                 )}
                 {p.telephone && (
                   <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleRelanceWhatsApp(p)}>
-                    <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+                    <WhatsappIcon className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}
                 <MarkDoneBtn contactId={p.id} bloc="Relance" markDone={markDone} label="Prospect traité" />

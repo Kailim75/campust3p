@@ -124,6 +124,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
+    mode: "onBlur",
     defaultValues: {
       civilite: null,
       nom: "",

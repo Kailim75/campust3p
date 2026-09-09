@@ -138,8 +138,8 @@ export default function QualiopiCriteres() {
                   <div className="space-y-3">
                     {inds.map(ind => (
                       <Card key={ind.id} className="border-l-4" style={{
-                        borderLeftColor: ind.statut === 'conforme' ? '#22c55e' : 
-                                         ind.statut === 'partiellement_conforme' ? '#f97316' : '#ef4444'
+                        borderLeftColor: ind.statut === 'conforme' ? 'hsl(var(--success))' : 
+                                         ind.statut === 'partiellement_conforme' ? 'hsl(var(--warning))' : 'hsl(var(--destructive))'
                       }}>
                         <CardContent className="p-4">
                           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">

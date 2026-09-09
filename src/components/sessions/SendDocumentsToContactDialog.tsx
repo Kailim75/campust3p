@@ -665,7 +665,7 @@ export function SendDocumentsToContactDialog({
             // Generate signed URL for immediate use + store stable path
             const { data: signedUrlData } = await supabase.storage
               .from('generated-documents')
-              .createSignedUrl(storagePath, 60 * 60 * 24 * 365); // 1 year
+              .createSignedUrl(storagePath, 60 * 60 * 24 * 30); // 30 jours (= date_expiration) ; la page de signature régénère une URL depuis document_storage_path
             const documentUrl = signedUrlData?.signedUrl || null;
 
             const sigRequest = await createSignatureRequest.mutateAsync({

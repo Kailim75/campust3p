@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const SHORTCUTS: { keys: string; label: string }[] = [
   { keys: "Cmd/Ctrl + K", label: "Ouvrir la palette de commandes" },
   { keys: "?", label: "Afficher tous les raccourcis" },
-  { keys: "G puis D", label: "Aller au Dashboard" },
+  { keys: "G puis D", label: "Aller au tableau de bord" },
   { keys: "G puis A", label: "Aller à Aujourd'hui" },
   { keys: "G puis S", label: "Aller aux Sessions" },
   { keys: "G puis P", label: "Aller aux Prospects" },

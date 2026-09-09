@@ -334,8 +334,8 @@ function AcquisitionScoreCard({
           <div className="flex-1 space-y-2">
             {[
               { label: "Taux conversion", value: `${tauxConversion}%`, warn: tauxConversion < 40 },
-              { label: "Leads actifs", value: `${leadsActifs}/${totalLeads}`, warn: false },
-              { label: "Leads stagnants", value: `${leadsStagnants}`, warn: leadsStagnants > 5 },
+              { label: "Prospects actifs", value: `${leadsActifs}/${totalLeads}`, warn: false },
+              { label: "Prospects stagnants", value: `${leadsStagnants}`, warn: leadsStagnants > 5 },
             ].map((row) => (
               <div key={row.label} className="flex justify-between items-center text-xs">
                 <span className="text-muted-foreground">{row.label}</span>

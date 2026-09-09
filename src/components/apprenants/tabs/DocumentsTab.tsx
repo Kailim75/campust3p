@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FileText, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
+import { useSoftDelete } from "@/hooks/useSoftDelete";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { ContactDocumentsTab } from "@/components/contacts/detail/ContactDocumentsTab";
 import { LearnerDocumentBlockList } from "@/components/documents/LearnerDocumentBlockList";
@@ -81,6 +82,7 @@ export function DocumentsTab({
         .from("contact_documents")
         .select("*")
         .eq("contact_id", contactId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -107,13 +109,14 @@ export function DocumentsTab({
     }
   };
 
-  const handleDeleteDoc = async ({ id, filePath }: { id: string; filePath: string }) => {
+  const softDelete = useSoftDelete();
+
+  // Corbeille : le fichier reste en Storage pour permettre la restauration.
+  const handleDeleteDoc = async ({ id }: { id: string; filePath: string }) => {
     try {
-      await supabase.storage.from("contact-documents").remove([filePath]);
-      await supabase.from("contact_documents").delete().eq("id", id);
-      toast.success("Document supprimé");
+      await softDelete.mutateAsync({ table: "contact_documents", id });
     } catch {
-      toast.error("Erreur lors de la suppression");
+      // Toast d'erreur déjà affiché par useSoftDelete.
     }
   };
 

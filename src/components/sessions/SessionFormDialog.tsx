@@ -91,6 +91,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
 
   const form = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
+    mode: "onBlur",
     defaultValues: {
       nom: "",
       formation_type: "TAXI",

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Download, Mail, RefreshCw, X, Calendar, User, FileText, Tag,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
@@ -150,7 +150,7 @@ export function DocumentPreviewDrawer({
                 className="h-8 text-xs gap-1.5 text-green-600 border-green-200 hover:bg-green-50"
                 onClick={onWhatsApp}
               >
-                <SiWhatsapp className="h-3.5 w-3.5" />
+                <WhatsappIcon className="h-3.5 w-3.5" />
                 WhatsApp
               </Button>
             )}

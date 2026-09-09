@@ -7,6 +7,16 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ResultatsFormationCardProps {
   contactId: string;
@@ -25,6 +35,7 @@ const STATUS_CONFIG = {
 export function ResultatsFormationCard({ contactId, contactPrenom, contactEmail }: ResultatsFormationCardProps) {
   const [sendingTheorie, setSendingTheorie] = useState(false);
   const [sendingPratique, setSendingPratique] = useState(false);
+  const [pendingSend, setPendingSend] = useState<{ type: "theorie" | "pratique"; isSuccess: boolean } | null>(null);
 
   // Théorie: from examens_t3p
   const { data: theorieExams } = useQuery({
@@ -136,7 +147,7 @@ export function ResultatsFormationCard({ contactId, contactPrenom, contactEmail 
               variant="ghost"
               className="h-7 w-7 p-0 shrink-0"
               disabled={sendingTheorie}
-              onClick={() => sendResultEmail("theorie", theorieStatus === "admis")}
+              onClick={() => setPendingSend({ type: "theorie", isSuccess: theorieStatus === "admis" })}
               title={theorieStatus === "admis" ? "Envoyer félicitations" : "Envoyer encouragements"}
             >
               <Send className="h-3 w-3" />
@@ -161,7 +172,7 @@ export function ResultatsFormationCard({ contactId, contactPrenom, contactEmail 
               variant="ghost"
               className="h-7 w-7 p-0 shrink-0"
               disabled={sendingPratique}
-              onClick={() => sendResultEmail("pratique", pratiqueStatus === "admis")}
+              onClick={() => setPendingSend({ type: "pratique", isSuccess: pratiqueStatus === "admis" })}
               title={pratiqueStatus === "admis" ? "Envoyer félicitations" : "Envoyer encouragements"}
             >
               <Send className="h-3 w-3" />
@@ -169,6 +180,29 @@ export function ResultatsFormationCard({ contactId, contactPrenom, contactEmail 
           )}
         </div>
       </div>
+      <AlertDialog open={pendingSend !== null} onOpenChange={(open) => { if (!open) setPendingSend(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingSend?.isSuccess ? "Envoyer l'email de félicitations ?" : "Envoyer l'email d'encouragement ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Un email concernant l'examen {pendingSend?.type === "theorie" ? "théorique" : "pratique"} sera envoyé à{" "}
+              <strong>{contactEmail}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingSend) sendResultEmail(pendingSend.type, pendingSend.isSuccess);
+              }}
+            >
+              Envoyer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

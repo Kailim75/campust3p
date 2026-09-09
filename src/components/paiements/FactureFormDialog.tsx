@@ -126,6 +126,7 @@ export function FactureFormDialog({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: "onBlur",
     defaultValues: {
       client_type: "contact",
       contact_id: defaultContactId || "",

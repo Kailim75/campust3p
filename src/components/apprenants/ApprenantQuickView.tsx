@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Phone, Mail, ExternalLink, CheckCircle2, AlertTriangle, Clock,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { useNavigate } from "react-router-dom";
@@ -167,7 +167,7 @@ export function ApprenantQuickView({ contact, isLoading, onClose }: ApprenantQui
           {contact.telephone && (
             <Button size="sm" variant="outline" className="text-xs text-success border-success/20 hover:bg-success/5"
               onClick={() => openWhatsApp(contact.telephone)}>
-              <SiWhatsapp className="h-3.5 w-3.5" />
+              <WhatsappIcon className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>

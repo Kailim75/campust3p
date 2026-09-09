@@ -70,6 +70,9 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
       queryClient.invalidateQueries({ queryKey: ["apprenant-inscriptions", contactId] });
       toast.success("Présence mise à jour");
     },
+    onError: () => {
+      toast.error("La présence n'a pas pu être enregistrée — réessayez");
+    },
   });
 
   if (isLoading) return <Skeleton className="h-[300px] rounded-xl" />;

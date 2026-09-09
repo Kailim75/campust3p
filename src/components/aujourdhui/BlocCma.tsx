@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileCheck, FileDown, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot, CheckSquare } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -238,7 +238,7 @@ export function BlocCma({
                 )}
                 {item.telephone && (
                   <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleCmaWhatsApp(item)}>
-                    <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+                    <WhatsappIcon className="h-3 w-3 mr-1" /> WhatsApp
                   </Button>
                 )}
                 <MarkDoneBtn contactId={item.id} bloc="CMA" markDone={markDone} label="Dossier traité" />

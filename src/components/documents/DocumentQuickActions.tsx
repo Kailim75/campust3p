@@ -20,7 +20,7 @@ import {
   Eye, Download, Mail, RefreshCw, MoreHorizontal,
   MessageCircle, AlertCircle, ExternalLink,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
@@ -127,7 +127,7 @@ export function DocumentQuickActions({
           )}
           {hasFile && onWhatsApp && contactPhone && (
             <DropdownMenuItem onClick={onWhatsApp}>
-              <SiWhatsapp className="h-3.5 w-3.5 mr-2" />
+              <WhatsappIcon className="h-3.5 w-3.5 mr-2" />
               Partager WhatsApp
             </DropdownMenuItem>
           )}
@@ -197,7 +197,7 @@ export function DocumentQuickActions({
                 className="h-7 w-7 text-green-600 hover:text-green-700"
                 onClick={onWhatsApp}
               >
-                <SiWhatsapp className="h-3.5 w-3.5" />
+                <WhatsappIcon className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">WhatsApp</TooltipContent>

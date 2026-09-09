@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Users, GraduationCap, Calendar, Receipt, Settings,
   BarChart3, Briefcase, UserCheck, Shield,
-  Trash2, FileText, TrendingUp, BookOpen, Plus, Mail, Clock, Inbox,
+  Trash2, FileText, TrendingUp, BookOpen, Plus, Clock,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRecentItems } from "@/hooks/useRecentItems";
@@ -34,7 +34,6 @@ const NAV_SECTIONS = [
   { id: "prospects", label: "Prospects", icon: TrendingUp },
   { id: "formations", label: "Formations", icon: BookOpen },
   { id: "finances", label: "Finances", icon: Receipt },
-  { id: "inbox", label: "Inbox", icon: Inbox },
   { id: "formateurs", label: "Formateurs", icon: UserCheck },
   { id: "partenaires", label: "Partenaires", icon: Briefcase },
   { id: "qualite", label: "Qualité & Conformité", icon: Shield },
@@ -227,15 +226,11 @@ export function CommandPalette({
           )}
           <CommandItem value="action-new-session" onSelect={() => handleNavigate("sessions")}>
             <Calendar className="h-4 w-4 text-primary" />
-            <span className="ml-3">Planifier une session</span>
+            <span className="ml-3">Aller aux sessions</span>
           </CommandItem>
           <CommandItem value="action-new-facture" onSelect={() => handleNavigate("finances")}>
             <Receipt className="h-4 w-4 text-primary" />
-            <span className="ml-3">Nouvelle facture</span>
-          </CommandItem>
-          <CommandItem value="action-inbox" onSelect={() => handleNavigate("inbox")}>
-            <Mail className="h-4 w-4 text-primary" />
-            <span className="ml-3">Ouvrir l'inbox</span>
+            <span className="ml-3">Aller aux factures</span>
           </CommandItem>
           <CommandItem value="action-dashboard" onSelect={() => handleNavigate("dashboard")}>
             <BarChart3 className="h-4 w-4 text-primary" />

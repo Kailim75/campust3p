@@ -21,7 +21,7 @@ import {
   Mail, StickyNote, CalendarPlus, CreditCard, FileText, Award,
   Phone, SquareUser, FileCheck, Star, MoreHorizontal, Plus, Sparkles,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { useState } from "react";
 
 export interface ApprenantHeaderActionsProps {
@@ -102,7 +102,7 @@ export function ApprenantHeaderActions({
               <Mail className="h-4 w-4 mr-2" /> Envoyer un email
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onWhatsApp} disabled={!hasPhone}>
-              <SiWhatsapp className="h-4 w-4 mr-2" /> WhatsApp
+              <WhatsappIcon className="h-4 w-4 mr-2" /> WhatsApp
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCall} disabled={!hasPhone}>
               <Phone className="h-4 w-4 mr-2" /> Appeler
@@ -153,7 +153,7 @@ export function ApprenantHeaderActions({
               className="text-xs text-success border-success/20 hover:bg-success/5"
               onClick={onWhatsApp}
             >
-              <SiWhatsapp className="h-3 w-3 mr-1" /> WhatsApp
+              <WhatsappIcon className="h-3 w-3 mr-1" /> WhatsApp
             </Button>
           )}
           <Button size="sm" variant="outline" className="text-xs" onClick={handleAssign}>
@@ -187,7 +187,7 @@ export function ApprenantHeaderActions({
               )}
               {hasPhone && (
                 <DropdownMenuItem onClick={onWhatsApp}>
-                  <SiWhatsapp className="h-4 w-4 mr-2" /> WhatsApp
+                  <WhatsappIcon className="h-4 w-4 mr-2" /> WhatsApp
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={onNote}>
