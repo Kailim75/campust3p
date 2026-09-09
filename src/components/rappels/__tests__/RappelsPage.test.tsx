@@ -73,8 +73,8 @@ const RAPPELS: Rappel[] = [
   },
 ];
 
-function afficher(rappels: Rappel[] = RAPPELS, isLoading = false) {
-  rappelsMock.mockReturnValue({ rappels, isLoading });
+function afficher(rappels: Rappel[] = RAPPELS, isLoading = false, isError = false) {
+  rappelsMock.mockReturnValue({ rappels, isLoading, isError, refetch: vi.fn() });
   return render(
     <MemoryRouter>
       <RappelsPage />
@@ -142,5 +142,12 @@ describe("RappelsPage", () => {
   it("affiche un état vide quand il n'y a aucun retard", () => {
     afficher([]);
     expect(screen.getByText("Aucun retard")).toBeInTheDocument();
+  });
+
+  it("affiche une erreur — et surtout pas « Aucun retard » — quand le chargement échoue", () => {
+    afficher([], false, true);
+    expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger les rappels");
+    expect(screen.queryByText("Aucun retard")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
   });
 });

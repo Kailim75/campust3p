@@ -17,6 +17,7 @@ import { BellRing, Plus, Search, CheckCircle2, AlertTriangle, Euro } from "lucid
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/error-state";
 
 /**
  * « Rappels » — la liste datée de ce que le directeur doit relancer
@@ -42,7 +43,7 @@ const DELAI_APRES_RELANCE_JOURS = 7;
 
 export function RappelsPage() {
   const navigate = useNavigate();
-  const { rappels, isLoading } = useRappels();
+  const { rappels, isLoading, isError, refetch } = useRappels();
   const reporter = useReporterRappel();
   const cloturer = useCloturerRappelLibre();
 
@@ -127,7 +128,7 @@ export function RappelsPage() {
     }
   };
 
-  const afficherVide = !isLoading && visibles.length === 0;
+  const afficherVide = !isLoading && !isError && visibles.length === 0;
 
   return (
     <div className="min-h-screen">
@@ -204,6 +205,14 @@ export function RappelsPage() {
           </div>
         )}
 
+        {isError && !isLoading && (
+          <ErrorState
+            title="Impossible de charger les rappels"
+            description="La liste des relances n'a pas pu être récupérée : ce que vous voyez ne reflète pas la situation réelle. Vérifiez votre connexion puis réessayez."
+            onRetry={() => refetch()}
+          />
+        )}
+
         {afficherVide && (
           <EmptyState
             icon={CheckCircle2}
@@ -216,7 +225,7 @@ export function RappelsPage() {
           />
         )}
 
-        {!isLoading && visibles.length > 0 && (
+        {!isLoading && !isError && visibles.length > 0 && (
           <div className="space-y-2">
             {visibles.map((rappel) => (
               <RappelLigne

@@ -168,7 +168,7 @@ export function useRappels() {
     return query.data.filter((r) => !masques.has(r.id));
   }, [query.data, rejets]);
 
-  return { rappels, isLoading: query.isLoading, error: query.error };
+  return { rappels, isLoading: query.isLoading, isError: query.isError, error: query.error, refetch: query.refetch };
 }
 
 interface RejetRappel {

@@ -35,6 +35,7 @@ import { CatalogueStatsBar } from "./CatalogueStatsBar";
 import { CatalogueArticleCard } from "./CatalogueArticleCard";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ui/error-state";
 
 const typeLabels: Record<string, { label: string; class: string }> = {
   initiale: { label: "Initiale", class: "bg-primary/10 text-primary" },
@@ -55,7 +56,7 @@ export function FormationsPage() {
   const [sortBy, setSortBy] = useState<SortOption>("nom");
   const [showInactive, setShowInactive] = useState(true);
   
-  const { data: formations = [], isLoading } = useCatalogueFormations();
+  const { data: formations = [], isLoading, isError, refetch } = useCatalogueFormations();
   const { centreFormation } = useCentreFormation();
   const deleteFormation = useDeleteCatalogueFormation();
   const recalcTrack = useRecalcTrackForCatalogue();
@@ -262,7 +263,9 @@ export function FormationsPage() {
             </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
-            {isLoading ? (
+            {isError ? (
+              <ErrorState title="Impossible de charger le catalogue" onRetry={() => refetch()} />
+            ) : isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                   <Skeleton key={i} className="h-56 rounded-xl" />

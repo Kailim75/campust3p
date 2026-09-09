@@ -40,6 +40,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/error-state";
 
 const STATUS_LABELS: Record<ProspectStatus, string> = {
   nouveau: "Nouveau",
@@ -103,7 +104,7 @@ function getNextActionLabel(prospect: Prospect): React.ReactNode {
   );
 }
 export function ProspectsPage() {
-  const { data: prospects = [], isLoading } = useProspects();
+  const { data: prospects = [], isLoading, isError, refetch } = useProspects();
   const { data: stats } = useProspectsStats();
   const deleteProspect = useDeleteProspect();
   const bulkDeleteProspects = useBulkDeleteProspects();
@@ -452,7 +453,9 @@ export function ProspectsPage() {
             </Select>
           </div>
 
-          {isLoading ? (
+          {isError ? (
+            <ErrorState title="Impossible de charger les prospects" onRetry={() => refetch()} />
+          ) : isLoading ? (
             <Card>
               <CardContent className="p-6 space-y-4">
                 {[...Array(5)].map((_, i) => (

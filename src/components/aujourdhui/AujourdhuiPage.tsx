@@ -46,6 +46,7 @@ import { BlocSessionPreparation } from "./BlocSessionPreparation";
 import { BlocQualiteCrm } from "./BlocQualiteCrm";
 import { HintBubble } from "@/components/shared/HintBubble";
 import { FocusModeBar, type FocusBlocKey } from "./FocusModeBar";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface AujourdhuiPageProps {
   onNavigate?: (section: string) => void;
@@ -154,7 +155,7 @@ export function buildPriorites(sources: {
 }
 
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
-  const { data, isLoading } = useAujourdhuiData();
+  const { data, isLoading, isError, refetch } = useAujourdhuiData();
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -743,6 +744,22 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
         <Header title="Aujourd'hui" subtitle="Votre inbox d'actions du jour" />
         <div className="px-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  // Même règle que le retour isLoading ci-dessus : aucun hook ne doit suivre.
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <Header title="Aujourd'hui" subtitle="Votre inbox d'actions du jour" />
+        <div className="px-8">
+          <ErrorState
+            title="Impossible de charger votre journée"
+            description="Les actions du jour n'ont pas pu être récupérées : cela ne veut pas dire qu'il n'y a rien à faire. Vérifiez votre connexion puis réessayez."
+            onRetry={() => refetch()}
+          />
         </div>
       </div>
     );

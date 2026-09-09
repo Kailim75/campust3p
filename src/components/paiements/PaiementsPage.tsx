@@ -61,6 +61,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { EmptyState } from "@/components/ui/empty-state";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { ErrorState } from "@/components/ui/error-state";
 // XLSX loaded dynamically for performance
 
 const financementLabels: Record<FinancementType, { label: string; class: string }> = {
@@ -113,7 +114,7 @@ export function PaiementsPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
-  const { data: factures = [], isLoading } = useFactures();
+  const { data: factures = [], isLoading, isError, refetch } = useFactures();
   const { data: stats } = useFacturesStats();
   const bulkEmit = useBulkEmitFactures();
 
@@ -616,7 +617,14 @@ export function PaiementsPage() {
 
         {/* Table */}
         <div className="card-elevated overflow-hidden">
-          {isLoading ? (
+          {isError ? (
+            <ErrorState
+              className="m-4"
+              title="Impossible de charger les factures"
+              description="Les factures et leurs paiements n'ont pas pu être récupérés : les montants et retards affichés sur cette page ne sont pas fiables. Vérifiez votre connexion puis réessayez."
+              onRetry={() => refetch()}
+            />
+          ) : isLoading ? (
             <div className="space-y-4 p-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">

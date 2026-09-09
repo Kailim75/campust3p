@@ -25,6 +25,7 @@ import { openWhatsApp } from "@/lib/phone-utils";
 import { toast } from "sonner";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { BulkActionBar, BulkActionButton } from "@/components/shared/BulkActionBar";
+import { ErrorState } from "@/components/ui/error-state";
 
 // Local storage key for expert mode
 const EXPERT_MODE_KEY = "apprenants_expert_mode";
@@ -43,7 +44,7 @@ interface ApprenantsPageProps {
 }
 
 export function ApprenantsPage({ initialContactId, onContactOpened }: ApprenantsPageProps = {}) {
-  const { data: contacts, isLoading } = useEnrichedContacts();
+  const { data: contacts, isLoading, isError, refetch } = useEnrichedContacts();
   const updateContact = useUpdateContact();
   const [search, setSearch] = useState("");
   const [formationFilter, setFormationFilter] = useState("all");
@@ -259,6 +260,15 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           </BulkActionBar>
         )}
 
+        {isError && (
+          <ErrorState
+            className="mb-4"
+            title="Impossible de charger les apprenants"
+            description="La liste des apprenants n'a pas pu être récupérée : elle n'est pas vide, elle est indisponible. Vérifiez votre connexion puis réessayez."
+            onRetry={() => refetch()}
+          />
+        )}
+
         {/* Critical filter: no results = green badge */}
         {quickFilter === "critical" && filtered.length === 0 && contacts && contacts.length > 0 && (
           <div className="flex items-center justify-center py-6">
@@ -337,7 +347,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
                   }}
                 />
               ))}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && !isError && (
                 <TableRow>
                   <TableCell colSpan={expertMode ? 13 : 7} className="p-0">
                     {quickFilter === "critical" && contacts && contacts.length > 0 ? null : search ? (
@@ -394,7 +404,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
 
         {/* Cards — Mobile */}
         <div className="md:hidden space-y-3">
-          {paginatedFiltered.length === 0 && (
+          {paginatedFiltered.length === 0 && !isError && (
             search ? (
               <EmptyState
                 variant="search"
