@@ -42,6 +42,16 @@ import { InscritsDialogs } from './inscrits/InscritsDialogs';
 import { mapContactInfo, type InscritRow, type ExamResultValue } from './inscrits/inscrits-types';
 import { FactureExpressDialog } from '@/components/facturation/FactureExpressDialog';
 import { messageErreur } from "@/lib/erreurs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SessionInscritsTableProps {
   sessionId: string;
@@ -74,6 +84,8 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [contactsToAdd, setContactsToAdd] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingRemove, setPendingRemove] = useState<{ contactId: string; nom: string } | null>(null);
+  const [pendingFactureDelete, setPendingFactureDelete] = useState<string | null>(null);
   const [inscritSearchQuery, setInscritSearchQuery] = useState('');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferContact, setTransferContact] = useState<{ id: string; name: string } | null>(null);
@@ -135,9 +147,11 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     return allFactures.filter(f => f.contact_id === contactId && !f.session_inscription_id);
   };
 
-  const handleDeleteFacture = (factureId: string) => {
-    if (!window.confirm("Envoyer cette facture à la corbeille ? Cette action peut être annulée depuis la corbeille.")) return;
-    softDelete.mutate({ table: 'factures', id: factureId, reason: 'Suppression depuis la fiche session' });
+  const handleDeleteFacture = (factureId: string) => setPendingFactureDelete(factureId);
+  const confirmDeleteFacture = () => {
+    if (!pendingFactureDelete) return;
+    softDelete.mutate({ table: 'factures', id: pendingFactureDelete, reason: 'Suppression depuis la fiche session' });
+    setPendingFactureDelete(null);
   };
 
   // ── Session / Company info ──
@@ -276,8 +290,16 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     setContactsToAdd([]); setSearchQuery(''); setAddDialogOpen(false);
   };
 
+  // Un clic sur la corbeille d'une ligne ouvre une confirmation nominative :
+  // la désinscription partait au premier clic (audit 13/08, UX P2).
+  const requestRemoveInscription = (contactId: string) => {
+    const inscrit = (inscrits || []).find((i) => i.contact_id === contactId);
+    const nom = inscrit?.contact ? `${inscrit.contact.prenom ?? ""} ${inscrit.contact.nom ?? ""}`.trim() : "";
+    setPendingRemove({ contactId, nom: nom || "cet apprenant" });
+  };
+
   const handleRemoveInscription = async (contactId: string) => {
-    try { await removeInscription.mutateAsync({ sessionId, contactId }); toast.success("Inscription annulée"); }
+    try { await removeInscription.mutateAsync({ sessionId, contactId }); toast.success("Inscription annulée — récupérable dans la Corbeille"); }
     catch (err: any) { console.error("Erreur suppression inscription:", err); toast.error(messageErreur(err, "Erreur lors de l'annulation")); }
   };
 
@@ -472,7 +494,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                     onTransfer={(id, name) => { setTransferContact({ id, name }); setTransferDialogOpen(true); }}
                     onDossierChange={handleDossierChange}
                     onViewContact={setSelectedContactId}
-                    onRemove={handleRemoveInscription}
+                    onRemove={requestRemoveInscription}
                     sessionFormationType={session?.formation_type}
                   />
                 ))
@@ -535,6 +557,36 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         transferContact={transferContact} setTransferContact={setTransferContact}
         sessionFormationType={session?.formation_type}
       />
+
+      <AlertDialog open={pendingRemove !== null} onOpenChange={(open) => { if (!open) setPendingRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer {pendingRemove?.nom} de la session ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'inscription part à la corbeille et reste récupérable depuis Administration › Corbeille.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (pendingRemove) void handleRemoveInscription(pendingRemove.contactId); }}>
+              Retirer de la session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={pendingFactureDelete !== null} onOpenChange={(open) => { if (!open) setPendingFactureDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Envoyer cette facture à la corbeille ?</AlertDialogTitle>
+            <AlertDialogDescription>Cette action peut être annulée depuis Administration › Corbeille.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFacture}>Envoyer à la corbeille</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {expressInscrit && (
         <FactureExpressDialog
