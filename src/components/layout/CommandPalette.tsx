@@ -37,7 +37,7 @@ const NAV_SECTIONS = [
   { id: "formateurs", label: "Formateurs", icon: UserCheck },
   { id: "partenaires", label: "Partenaires", icon: Briefcase },
   { id: "qualite", label: "Qualité & Conformité", icon: Shield },
-  { id: "automations", label: "Automatisations", icon: FileText },
+  { id: "automations", label: "Modèles & automatisations", icon: FileText },
   { id: "settings", label: "Réglages", icon: Settings },
   { id: "corbeille", label: "Corbeille", icon: Trash2 },
 ];

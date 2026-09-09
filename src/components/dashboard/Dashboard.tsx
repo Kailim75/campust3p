@@ -11,7 +11,6 @@
  * 
  * PRESERVED:
  * - DashboardPeriodPicker and useDashboardPeriodV2 (untouched)
- * - useBlockageDiagnostic (shared with Alertes page — untouched)
  * - Navigation signatures (onNavigate, onNavigateWithContact, onNavigateWithParams)
  * - ExpressEnrollmentDialog and ApprenantDetailSheet
  * - Sticky header with mini summary
@@ -32,11 +31,6 @@ import { DashboardFinancePanel } from "./DashboardFinancePanel";
 import { DashboardExecutivePanel } from "./DashboardExecutivePanel";
 import { useDashboardPeriodV2 } from "@/hooks/useDashboardPeriodV2";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { useCurrentUserRole } from "@/hooks/useUsers";
-import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
-import { ShieldAlert } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatEur } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
@@ -52,8 +46,6 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
   const [expressOpen, setExpressOpen] = useState(false);
   const { period } = useDashboardPeriodV2();
   const { data: dashboardData, isLoading } = useDashboardData(period);
-  const { data: userRole } = useCurrentUserRole();
-  const { data: diagnostic } = useBlockageDiagnostic();
 
   const metrics = dashboardData?.metrics;
   const todayActionCount = dashboardData?.todayActionCount ?? 0;
@@ -71,7 +63,6 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
     return () => observer.disconnect();
   }, []);
 
-  const isAdminOrStaff = userRole === "admin" || userRole === "staff" || userRole === "super_admin";
 
   const handleNavigate = (section: string, params?: Record<string, string>) => {
     if (params && onNavigateWithParams) {
@@ -126,33 +117,6 @@ export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithPar
             </div>
           </div>
 
-          {/* Admin diagnostic chip */}
-          {isAdminOrStaff && diagnostic && diagnostic.counts.total > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => onNavigate?.("alertes")}
-                    className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors text-xs font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                    aria-label={`Anomalies détectées : ${diagnostic.counts.total}. Cliquer pour résoudre.`}
-                  >
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    Anomalies à traiter
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                      {diagnostic.counts.total}
-                    </Badge>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs max-w-[220px]">
-                  <p className="font-medium mb-1">Points de vigilance détectés</p>
-                  {diagnostic.counts.blockers > 0 && <p>🔴 {diagnostic.counts.blockers} bloquant{diagnostic.counts.blockers > 1 ? 's' : ''} (action requise)</p>}
-                  {diagnostic.counts.warnings > 0 && <p>⚠️ {diagnostic.counts.warnings} à corriger</p>}
-                  {diagnostic.counts.infos > 0 && <p>ℹ️ {diagnostic.counts.infos} informatif{diagnostic.counts.infos > 1 ? 's' : ''}</p>}
-                  <p className="text-muted-foreground mt-1">Cliquer pour voir et résoudre →</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
 
         {/* Mini KPI Summary (appears when KPI rows scroll out) */}
