@@ -91,6 +91,10 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   sans enveloppe. Migrations : `20260717224714…` (10 tables chaudes,
   explicite) puis `20260718120550…` (reste du schéma, programmatique et
   idempotente, avec assertion sur le total de policies).
+- **Storage : cloisonnement par centre = premier segment du chemin**
+  (`<centre_id>/<fichier>`, lu par `storage_object_centre_id`). Vrai pour tous
+  les buckets, y compris `produits-photos` depuis le 10/09/2026 (migration
+  `20260910123000`, scan Lovable) : un envoi sans ce préfixe est refusé.
 - Dette connue : plusieurs états métier vivent encore dans des notes
   `[AUTO]` de `contact_historique` parsées par regex (chantier §5.1 du
   rapport `AMELIORATIONS.md`).
