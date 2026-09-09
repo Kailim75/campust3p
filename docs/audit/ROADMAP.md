@@ -103,3 +103,20 @@ Objectif : réduire la dette qui freine l'évolution et préparer la montée en 
 - **Nécessite une confirmation dans le panneau Cloud** (🟡) avant d'agir : flags `public` des buckets, existence d'index, `verify_jwt` réel, grants `EXECUTE`, PITR — voir §4 du rapport.
 
 **Recommandation d'enchaînement :** Vague 1 (sécurité, en 1-2 sessions groupées avec l'agent) → Vague 2 points 1-3 (fiabilité perçue immédiate) → reste de la vague 2 → Vague 3 par sous-thème selon les priorités business (3a seulement si le 2ᵉ centre approche).
+
+---
+
+## Suivi d’exécution
+
+| Date | Lot | PR | État |
+|---|---|---|---|
+| 09/09/2026 | Quick wins ergonomie (⌘K, feedback présence/CMA, confirmations facture & résultats, onBlur, corbeille documents, URL 30 j, tokens Qualiopi, libellés, icône PWA) | #64 | ✅ en prod |
+| 09/09/2026 | **Vague 1 — sécurité** : RPC signature révoquées, public-sign-document point d’entrée unique (+ ip_signature), export-audit-pack et download-email-attachment cloisonnés, garde-fous soft_delete/restore, triggers d’audit sur 11 tables, incoming-webhook fail-closed, garde x-cron-secret (mode transition, CRON_SECRET à créer) | #65 | ✅ en prod (fonctions redéployées + 3 migrations appliquées, vérifiés par curl) |
+| 10/09/2026 | Vague 2 n°1 — état d’erreur explicite sur toutes les listes (composant ErrorState) | #67 | ✅ en prod |
+| 10/09/2026 | Vague 2 n°4 — un seul mot « apprenant » (31 libellés d’écran ; documents légaux inchangés) | #68 | ✅ en prod |
+| 10/09/2026 | Perf P1 — JS de démarrage 771 → 363 Ko gz (manualChunks fonction, helpers partagés, SuperAdmin/onboarding/assistant IA en lazy) | #69 | ✅ en prod |
+| 10/09/2026 | Vague 2 n°3 — confirmation avant envoi d’email : devis, lien Alma, renvoi/relance de signature (ConfirmSendDialog) | #70 | ✅ en prod |
+| 10/09/2026 | Perf P2 — onglets Finances en lazy (chunk 648 Ko → 8 Ko) | #71 | ✅ en prod |
+| 10/09/2026 | Archi P1 — reste à encaisser : formule unique jamais négative (lib/montants + 6 tests) | #72 | ✅ en prod |
+
+**Reste à faire (vague 2)** : messages d’erreur Supabase en français clair, fil d’Ariane visible, désinscription avec confirmation + brancher SoftDeleteConfirmDialog, garde anti-perte de saisie (brouillon), vue mobile de la session, accessibilité (aria-label, sélecteurs clavier), action groupée de statut. **Perf** : framer-motion hors chemin critique. **Vague 3a (avant le 2ᵉ centre)** : inchangée. **À activer** : `CRON_SECRET` (procédure dans supabase/CRON_JOBS.md).
