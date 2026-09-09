@@ -235,7 +235,7 @@ export function SessionFinancesTabContent({ sessionId }: SessionFinancesTabConte
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Stagiaire</TableHead>
+                <TableHead className="font-semibold">Apprenant</TableHead>
                 <TableHead className="font-semibold">Facture</TableHead>
                 <TableHead className="font-semibold text-right">Restant</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>

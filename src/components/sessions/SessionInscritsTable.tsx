@@ -172,7 +172,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
   };
 
   const handlePreviewBulkDocuments = (type: DocumentType) => {
-    if (!sessionInfo || !inscrits?.length) { toast.error("Aucun stagiaire inscrit"); return; }
+    if (!sessionInfo || !inscrits?.length) { toast.error("Aucun apprenant inscrit"); return; }
     setPreviewDocumentType(type);
     setPreviewDialogOpen(true);
   };
@@ -232,7 +232,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     setIsSendingBulkEmails(true);
     try {
       const inscribedWithEmail = inscrits.filter(i => i.contact?.email);
-      if (inscribedWithEmail.length === 0) { toast.error("Aucun stagiaire n'a d'adresse email"); return; }
+      if (inscribedWithEmail.length === 0) { toast.error("Aucun apprenant n'a d'adresse email"); return; }
       if (generateAndSend && sessionInfo) {
         const contactsInfo = inscribedWithEmail.map(inscrit => mapContactInfo(inscrit.contact));
         generateBulkDocuments(bulkEmailType as DocumentType, contactsInfo, sessionInfo);
@@ -254,7 +254,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
         },
       });
       if (error) throw error;
-      toast.success(`Documents envoyés à ${inscribedWithEmail.length} stagiaire(s)`);
+      toast.success(`Documents envoyés à ${inscribedWithEmail.length} apprenant(s)`);
       setBulkEmailDialogOpen(false); setBulkEmailType(''); setBulkEmailMessage('');
     } catch (error: any) { console.error('Erreur envoi emails:', error); toast.error("Erreur lors de l'envoi des emails"); }
     finally { setIsSendingBulkEmails(false); }
@@ -270,7 +270,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
     for (const contactId of contactsToAdd) {
       try { await addInscription.mutateAsync({ sessionId, contactId }); successCount++; } catch { errorCount++; }
     }
-    if (successCount > 0) toast.success(`${successCount} stagiaire(s) inscrit(s) avec succès`);
+    if (successCount > 0) toast.success(`${successCount} apprenant(s) inscrit(s) avec succès`);
     if (errorCount > 0) toast.error(`${errorCount} inscription(s) en erreur`);
     setContactsToAdd([]); setSearchQuery(''); setAddDialogOpen(false);
   };
@@ -409,7 +409,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
           <div className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Stagiaires ({inscrits?.length || 0})
+              Apprenants ({inscrits?.length || 0})
               {inscritSearchQuery && filteredInscrits.length !== (inscrits?.length || 0) && (
                 <Badge variant="secondary" className="text-[10px]">{filteredInscrits.length} résultat{filteredInscrits.length > 1 ? 's' : ''}</Badge>
               )}
@@ -477,7 +477,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucun stagiaire inscrit</TableCell>
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucun apprenant inscrit</TableCell>
                 </TableRow>
               )}
             </TableBody>

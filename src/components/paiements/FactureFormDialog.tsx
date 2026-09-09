@@ -379,7 +379,7 @@ export function FactureFormDialog({
                     name="contact_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Contact *</FormLabel>
+                        <FormLabel>Apprenant *</FormLabel>
                         <ContactCombobox
                           options={contacts.map((c) => ({
                             value: c.id,

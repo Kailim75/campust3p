@@ -363,7 +363,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
               <Users className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{contacts.length}</p>
-                <p className="text-xs text-muted-foreground">Stagiaires</p>
+                <p className="text-xs text-muted-foreground">Apprenants</p>
               </div>
             </div>
           </CardContent>
@@ -461,7 +461,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Stagiaire</TableHead>
+                        <TableHead>Apprenant</TableHead>
                         <TableHead className="text-center">Soir — Signature</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -505,7 +505,7 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Stagiaire</TableHead>
+                      <TableHead>Apprenant</TableHead>
                       <TableHead className="text-center">Signature</TableHead>
                     </TableRow>
                   </TableHeader>

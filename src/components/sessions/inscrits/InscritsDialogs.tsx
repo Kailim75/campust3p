@@ -129,7 +129,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
       <Dialog open={props.dialogEnvoi} onOpenChange={props.setDialogEnvoi}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Envoyer un document à {props.selectedIdsCount} stagiaire(s)</DialogTitle>
+            <DialogTitle>Envoyer un document à {props.selectedIdsCount} apprenant(s)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Select value={props.typeDocumentEnvoi} onValueChange={props.setTypeDocumentEnvoi}>
@@ -175,7 +175,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
         if (!open) { props.setSearchQuery(""); }
       }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Inscrire des stagiaires</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Inscrire des apprenants</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Command className="rounded-lg border">
               <CommandInput placeholder="Rechercher un contact..." value={props.searchQuery} onValueChange={props.setSearchQuery} />
@@ -221,7 +221,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>{props.emailsCount}</strong> stagiaire(s) avec email sur <strong>{props.totalInscrits}</strong> inscrit(s)
+                <strong>{props.emailsCount}</strong> apprenant(s) avec email sur <strong>{props.totalInscrits}</strong> inscrit(s)
               </p>
             </div>
             <div className="space-y-2">
@@ -248,7 +248,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
             </div>
             <Button className="w-full" onClick={props.handleBulkSendEmails} disabled={!props.bulkEmailType || props.emailsCount === 0 || props.isSendingBulkEmails}>
               {props.isSendingBulkEmails && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <Mail className="h-4 w-4 mr-2" /> Envoyer à {props.emailsCount} stagiaire(s)
+              <Mail className="h-4 w-4 mr-2" /> Envoyer à {props.emailsCount} apprenant(s)
             </Button>
           </div>
         </DialogContent>
