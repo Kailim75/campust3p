@@ -103,6 +103,7 @@ export function FactureDetailSheet({
 }: FactureDetailSheetProps) {
   const [showPaiementForm, setShowPaiementForm] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showSendEmailAlert, setShowSendEmailAlert] = useState(false);
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
@@ -649,7 +650,7 @@ export function FactureDetailSheet({
                         variant="outline"
                         className="justify-start h-11"
                         disabled={isSendingEmail}
-                        onClick={handleSendEmail}
+                        onClick={() => setShowSendEmailAlert(true)}
                       >
                         {isSendingEmail ? (
                           <Loader2 className="h-4 w-4 mr-3 animate-spin" />
@@ -658,6 +659,22 @@ export function FactureDetailSheet({
                         )}
                         Envoyer par email
                       </Button>
+                      <AlertDialog open={showSendEmailAlert} onOpenChange={setShowSendEmailAlert}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Envoyer la facture par email ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              La facture {facture.numero_facture} sera envoyée à{" "}
+                              <strong>{facture.contact?.email || (facture as unknown as { client_partner?: { email?: string | null } }).client_partner?.email || "aucun email renseigné"}</strong>.
+                              Vérifiez le destinataire avant de confirmer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSendEmail}>Envoyer</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <Button
                         variant="outline"
                         className="justify-start h-11"

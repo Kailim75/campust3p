@@ -103,6 +103,9 @@ export function CMATab({ contactId, contactPrenom, contactEmail, formation }: CM
       invalidate();
       toast.success("Document marqué comme reçu");
     },
+    onError: () => {
+      toast.error("Le document n'a pas pu être marqué comme reçu — réessayez");
+    },
   });
 
   // Action handlers with auto-note

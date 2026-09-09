@@ -6,7 +6,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Phone, MessageCircle, FileText, CreditCard, Info } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { cn } from "@/lib/utils";
 import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
@@ -202,7 +202,7 @@ export function ApprenantTableRow({
               }}
               aria-label="WhatsApp"
             >
-              <SiWhatsapp className="h-3.5 w-3.5" />
+              <WhatsappIcon className="h-3.5 w-3.5" />
             </Button>
           )}
           <Button

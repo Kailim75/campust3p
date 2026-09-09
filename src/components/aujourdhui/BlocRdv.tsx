@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CalendarCheck, Calendar, Mail, Phone, ExternalLink } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { LastActionLine, MarkDoneBtn, MarkAllDoneBtn } from "./AujourdhuiShared";
 import { isHandledToday } from "@/lib/aujourdhui-actions";
 import type { BlocProspectSharedProps } from "./aujourdhui-types";
@@ -94,7 +94,7 @@ export function BlocRdv({
                       <a href={`tel:${p.telephone}`} onClick={() => handleRdvAppel(p)}><Phone className="h-3 w-3 mr-1" /> Appeler</a>
                     </Button>
                     <Button size="sm" variant="ghost" className="h-7 text-[11px] text-success" onClick={() => handleRdvWhatsApp(p)}>
-                      <SiWhatsapp className="h-3 w-3" />
+                      <WhatsappIcon className="h-3 w-3" />
                     </Button>
                   </>
                 )}

@@ -12,7 +12,7 @@ import {
   Calendar, Clock, AlertTriangle, CheckCircle2, Phone, Mail,
   ExternalLink, Check, Bot, CalendarCheck, RotateCcw, CalendarPlus,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { useProspects, useUpdateProspect, type Prospect } from "@/hooks/useProspects";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -512,7 +512,7 @@ function AgendaCard({
               <a href={`tel:${p.telephone}`} onClick={() => onAppel(p)}><Phone className="h-3 w-3" /></a>
             </Button>
             <Button size="sm" variant="ghost" className="h-7 text-[10px] text-success" onClick={() => onWhatsApp(p)}>
-              <SiWhatsapp className="h-3 w-3" />
+              <WhatsappIcon className="h-3 w-3" />
             </Button>
           </>
         )}

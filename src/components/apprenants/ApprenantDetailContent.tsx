@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
-import { SiWhatsapp } from "react-icons/si";
 import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
 import { CMATab } from "./tabs/CMATab";
