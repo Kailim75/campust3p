@@ -23,10 +23,11 @@ import { RecurringSessionsDialog } from "./RecurringSessionsDialog";
 import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
 import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorState } from "@/components/ui/error-state";
 
 export function SessionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: sessions, isLoading, error } = useSessions();
+  const { data: sessions, isLoading, error, refetch } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();
   const { data: financials = {} } = useSessionFinancials();
   const { data: formateurs = [] } = useFormateursTable();
@@ -181,7 +182,7 @@ export function SessionsPage() {
         {viewMode === "list" && (
           <>
             {error ? (
-              <div className="card-elevated p-8 text-center text-destructive">Erreur lors du chargement des sessions</div>
+              <ErrorState title="Impossible de charger les sessions" onRetry={() => refetch()} />
             ) : (
               <SessionsGroupedTable
                 sessions={filteredSessions}

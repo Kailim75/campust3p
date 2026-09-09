@@ -66,6 +66,7 @@ import { SignatureFormDialog } from "./SignatureFormDialog";
 import { SignatureSigningDialog } from "./SignatureSigningDialog";
 import { SignaturesTrackingPanel } from "./SignaturesTrackingPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ErrorState } from "@/components/ui/error-state";
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   en_attente: { label: "En attente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -81,7 +82,7 @@ export function SignaturesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statutFilter, setStatutFilter] = useState<string>("all");
 
-  const { data: signatures = [], isLoading } = useSignatureRequests();
+  const { data: signatures = [], isLoading, isError, refetch } = useSignatureRequests();
   const sendRequest = useSendSignatureRequest();
   const deleteRequest = useDeleteSignatureRequest();
   const sendEmail = useSendSignatureEmail();
@@ -266,7 +267,13 @@ export function SignaturesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isError ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="p-0">
+                    <ErrorState compact className="rounded-none border-0" title="Impossible de charger les signatures" onRetry={() => refetch()} />
+                  </TableCell>
+                </TableRow>
+              ) : isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-10 w-40" /></TableCell>
