@@ -1,6 +1,6 @@
 # Rapport d'audit — CRM T3P Campus
 
-**Date :** 13 août 2026
+**Date :** 13 août 2026 — **revérifié le 9 septembre 2026 : aucun commit sur `main` depuis (toujours `33f87eea`), tous les constats restent d'actualité, aucun P0 corrigé.**
 **Périmètre :** dépôt `campust3p` (front React/Vite/TS + Supabase via Lovable Cloud), état `main` au commit `33f87eea`.
 **Méthode :** audit statique en lecture seule, 9 axes analysés en parallèle, chaque constat prouvé par `fichier:ligne`. Les constats critiques (P0/P1) ont été **contre-vérifiés** un à un dans le code. Aucun fichier de code n'a été modifié ; les seuls fichiers produits sont les trois livrables de `docs/audit/`.
 
