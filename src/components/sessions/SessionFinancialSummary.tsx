@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useSessionFactures";
 import { useSessionInscriptions } from "@/hooks/useSessions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { calculerResteAEncaisser } from "@/lib/montants";
 
 interface SessionFinancialSummaryProps {
   sessionId: string;
@@ -39,9 +40,9 @@ function calculerSynthese(
   const actives = data.factures.filter(estFactureActive);
   const totalFacture = actives.reduce((s, f) => s + f.montant_total, 0);
   const totalEncaisse = actives.reduce((s, f) => s + f.total_paye, 0);
-  const restantDu = actives.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
+  const restantDu = actives.reduce((s, f) => s + calculerResteAEncaisser(f.montant_total, f.total_paye), 0);
   const enRetard = actives.filter(estFactureEnRetard);
-  const retardMontant = enRetard.reduce((s, f) => s + Math.max(0, f.montant_total - f.total_paye), 0);
+  const retardMontant = enRetard.reduce((s, f) => s + calculerResteAEncaisser(f.montant_total, f.total_paye), 0);
   const tauxRecouvrement = totalFacture > 0 ? (totalEncaisse / totalFacture) * 100 : 0;
 
   const nonFactures = Object.entries(data.parInscription).filter(
