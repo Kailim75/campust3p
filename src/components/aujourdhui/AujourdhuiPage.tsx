@@ -163,7 +163,7 @@ export function buildPriorites(sources: {
 }
 
 export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiPageProps) {
-  const { data, isLoading, isError, refetch } = useAujourdhuiData();
+  const { data, isLoading, isError, isFetching, dataUpdatedAt, refetch } = useAujourdhuiData();
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -758,7 +758,10 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   }
 
   // Même règle que le retour isLoading ci-dessus : aucun hook ne doit suivre.
-  if (isError) {
+  // Uniquement sans donnée en mémoire : quand un refetch échoue sur un hub
+  // déjà chargé, démonter l'arbre emporterait aussi le composeur d'email et
+  // son brouillon (state local). Ce cas passe par le bandeau plus bas.
+  if (isError && !data) {
     return (
       <div className="space-y-6">
         <Header title="Aujourd'hui" subtitle="Vos actions du jour" />
@@ -767,6 +770,7 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             title="Impossible de charger votre journée"
             description="Les actions du jour n'ont pas pu être récupérées : cela ne veut pas dire qu'il n'y a rien à faire. Vérifiez votre connexion puis réessayez."
             onRetry={() => refetch()}
+            isRetrying={isFetching}
           />
         </div>
       </div>
@@ -845,7 +849,21 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
   const totalRaw = totalHandled + totalActions;
   const progressPercent = totalRaw > 0 ? Math.round(((totalHandled) / totalRaw) * 100) : 100;
 
-  const priorites = buildPriorites({ resultatsAVerifier, convocationsAttendues, sessionPrepItems, critiques, reprogramItems });
+  // Le bloc « Sessions critiques » est en sommeil, mais ses entrées (surtout
+  // des factures échues) restent des urgences : « Par quoi commencer » les
+  // garde, filtrées comme les autres sur les reports et les traités du jour.
+  const critiquesPourPriorites = activeCritiques
+    .filter(c => !isPostponedForBloc(c.id, "Critique"))
+    .filter(c => showHandled || !isHandledForBloc(c.id, CRITIQUE_KEYWORDS, "Critique"))
+    .slice(0, 10);
+
+  const priorites = buildPriorites({
+    resultatsAVerifier,
+    convocationsAttendues,
+    sessionPrepItems,
+    critiques: critiquesPourPriorites,
+    reprogramItems,
+  });
   const afficher = (bloc: FocusBlocKey) => !BLOCS_EN_SOMMEIL.has(bloc) && (!focusBloc || focusBloc === bloc);
 
   return (
@@ -858,6 +876,18 @@ export function AujourdhuiPage({ onNavigate, onNavigateWithParams }: AujourdhuiP
             : `Aucune urgence · ${totalActions} action${totalActions > 1 ? "s" : ""} de suivi`
         }
       />
+
+      {isError && (
+        <div className="px-8">
+          <ErrorState
+            compact
+            title="Impossible d'actualiser votre journée"
+            description={`Les actions affichées datent de ${format(new Date(dataUpdatedAt), "HH:mm")} : elles ont pu changer depuis. Vérifiez votre connexion puis réessayez.`}
+            onRetry={() => refetch()}
+            isRetrying={isFetching}
+          />
+        </div>
+      )}
 
       <div className="px-8">
         <HintBubble

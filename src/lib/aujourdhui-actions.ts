@@ -155,21 +155,41 @@ export async function deleteAutoNote(noteId: string): Promise<boolean> {
   return true;
 }
 
-export async function fetchTodayAutoNotes(): Promise<AutoNote[]> {
+async function queryTodayAutoNotes() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const { data, error } = await supabase
+  return supabase
     .from("contact_historique")
     .select("id, contact_id, titre, created_at, auto_category")
     .gte("date_echange", todayStart.toISOString())
     .like("titre", "[AUTO]%")
     .order("date_echange", { ascending: false });
+}
+
+/**
+ * Notes du jour, tolérant : un échec vaut « aucune action tracée ». Convient
+ * aux écrans où ces notes ne sont qu'un indicateur secondaire (agenda
+ * prospects, onglets session).
+ */
+export async function fetchTodayAutoNotes(): Promise<AutoNote[]> {
+  const { data, error } = await queryTodayAutoNotes();
 
   if (error) {
     console.error("Failed to fetch today's auto notes:", error);
     return [];
   }
+  return (data || []) as AutoNote[];
+}
+
+/**
+ * Même lecture, mais l'échec est une erreur : le hub « Aujourd'hui » en
+ * déduit ce qui a déjà été traité, un [] silencieux y reproposerait des
+ * relances déjà parties.
+ */
+export async function fetchTodayAutoNotesStrict(): Promise<AutoNote[]> {
+  const { data, error } = await queryTodayAutoNotes();
+  if (error) throw error;
   return (data || []) as AutoNote[];
 }
 

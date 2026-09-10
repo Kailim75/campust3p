@@ -74,6 +74,13 @@ export function useRappels() {
           fetchSharedRappelsActifs(queryClient),
         ]);
 
+      // postgrest-js ne lève pas : sans ce contrôle, un échec (session
+      // expirée, coupure réseau, 5xx) se lirait « Aucun retard ». Les
+      // requêtes partagées lèvent déjà (cf. shared-queries).
+      for (const res of [contactsRes, facturesRes, paiementsRes, sessionsRes, signaturesRes]) {
+        if (res.error) throw res.error;
+      }
+
       const contacts = (contactsRes.data || []) as (ContactBrut & { formation: string | null })[];
       const contactsParId = new Map<string, ContactBrut>(contacts.map((c) => [c.id, c]));
       const sessions = sessionsRes.data || [];
@@ -168,7 +175,17 @@ export function useRappels() {
     return query.data.filter((r) => !masques.has(r.id));
   }, [query.data, rejets]);
 
-  return { rappels, isLoading: query.isLoading, isError: query.isError, error: query.error, refetch: query.refetch };
+  return {
+    rappels,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    error: query.error,
+    /** 0 tant que rien n'a abouti : sert à dater les données conservées après un refetch en échec. */
+    dataUpdatedAt: query.dataUpdatedAt,
+    aDesDonnees: query.data !== undefined,
+    refetch: query.refetch,
+  };
 }
 
 interface RejetRappel {
