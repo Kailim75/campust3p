@@ -16,6 +16,7 @@ import {
   type ValidatedAttachment
 } from "../_shared/pdf-validator.ts";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
+import { cronSecretMatches } from "../_shared/cron-auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -85,46 +86,56 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized - Missing or invalid Authorization header' }), 
-      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  }
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
-  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } }
-  });
-  
-  const { data: { user }, error: userError } = await authClient.auth.getUser();
-  
-  if (userError || !user) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized - Invalid token' }), 
-      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+
+  // Deux voies d'authentification. Le job pg_cron `daily-automated-emails`
+  // envoie l'en-tete x-cron-secret : il n'a pas de session utilisateur, et la
+  // cle anon qu'il portait echouait sur getUser (401 systematique, aucun email
+  // automatique envoye). Le CRM, lui, envoie le JWT de l'utilisateur connecte.
+  // Variante STRICTE volontaire : sans CRON_SECRET configure, la voie cron est
+  // refusee (cette fonction est en verify_jwt = false).
+  const viaCron = cronSecretMatches(req);
+
+  if (!viaCron) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing or invalid Authorization header' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (roleError || !userRole || !['admin', 'staff'].includes(userRole.role)) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - Insufficient permissions' }), 
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    
   }
-  
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-  
-  const { data: userRole, error: roleError } = await supabaseAdmin
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
-  
-  if (roleError || !userRole || !['admin', 'staff'].includes(userRole.role)) {
-    return new Response(
-      JSON.stringify({ error: 'Forbidden - Insufficient permissions' }), 
-      { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  }
-  
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const results: EmailResult[] = [];
 
