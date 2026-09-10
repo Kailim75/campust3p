@@ -67,7 +67,7 @@ export function usePredictiveAnalysis() {
       return data;
     } catch (e) {
       console.error("Predictive analysis error:", e);
-      toast.error(messageErreur(e, "Erreur inconnue"));
+      toast.error(messageErreur(e, "Erreur lors de l'analyse prédictive"));
       return null;
     } finally {
       setIsAnalyzing(false);

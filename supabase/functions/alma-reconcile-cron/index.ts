@@ -1,17 +1,50 @@
 // Daily Alma reconciliation cron.
 // Lists recent Alma payments and inserts missing `paiements` rows (idempotent).
-// Invoked by pg_cron with the service role bearer; no end-user JWT.
+// Invoked by pg_cron with the service role bearer, or manually from the CRM
+// (bouton « Lancer maintenant » du panneau Finances) avec un JWT utilisateur.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+
+const ROLES_AUTORISES = ["admin", "staff", "super_admin"];
+
+/**
+ * Voie d'authentification alternative au secret cron : un JWT utilisateur
+ * admin/staff/super_admin. Le déclenchement manuel se fait depuis le
+ * navigateur, qui ne peut ni connaître ni envoyer `x-cron-secret`.
+ */
+async function estUtilisateurAutorise(req: Request): Promise<boolean> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !userData?.user) return false;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const { data: roles } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userData.user.id);
+  return (roles ?? []).some((r: { role: string }) => ROLES_AUTORISES.includes(r.role));
+}
 
 serve(async (req) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
   const corsHeaders = getCorsHeaders(req);
   const cronDenied = checkCronSecret(req);
-  if (cronDenied) return cronDenied;
+  if (cronDenied) {
+    if (!(await estUtilisateurAutorise(req))) return cronDenied;
+    console.info("[alma-reconcile-cron] déclenchement manuel autorisé par JWT utilisateur");
+  }
   const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
       status,

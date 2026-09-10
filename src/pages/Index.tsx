@@ -389,7 +389,7 @@ const Index = () => {
         onOpenChange={setShortcutsDialogOpen}
       />
       
-      <OnboardingChecklist />
+      <OnboardingChecklist onNavigateWithParams={handleNavigateWithParams} />
       <ContactFormDialog open={newContactOpen} onOpenChange={setNewContactOpen} />
       <ExpressEnrollmentDialog
         open={expressEnrollmentOpen}

@@ -637,9 +637,9 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
             <DialogTitle>Inscrire un apprenant</DialogTitle>
           </DialogHeader>
           <Command className="rounded-lg border">
-            <CommandInput placeholder="Rechercher un contact..." />
+            <CommandInput placeholder="Rechercher un apprenant…" />
             <CommandList className="max-h-64">
-              <CommandEmpty>Aucun contact trouvé</CommandEmpty>
+              <CommandEmpty>Aucun apprenant trouvé</CommandEmpty>
               <CommandGroup>
                 {availableContacts.map((contact) => (
                   <CommandItem

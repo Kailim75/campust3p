@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PATH_TO_SECTION } from "@/config/navigationRegistry";
 import { onboardingChecklistL10n } from "./locales/fr";
 import { OnboardingStepItem } from "./OnboardingStepItem";
 import { useOnboardingProgress, type OnboardingStep } from "@/hooks/useOnboardingProgress";
@@ -23,7 +24,13 @@ function fireConfetti() {
   })();
 }
 
-export function OnboardingChecklist() {
+interface OnboardingChecklistProps {
+  /** Fourni par Index : ouvre la section sur un onglet précis (`?tab=`).
+   *  Le widget vit hors du NavigationProvider, d'où le passage par prop. */
+  onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
+}
+
+export function OnboardingChecklist({ onNavigateWithParams }: OnboardingChecklistProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -66,6 +73,11 @@ export function OnboardingChecklist() {
 
   const handleCta = (step: OnboardingStep) => {
     setOpen(false);
+    const section = PATH_TO_SECTION[step.route.replace(/^\//, "")];
+    if (step.tab && section && onNavigateWithParams) {
+      onNavigateWithParams(section, { tab: step.tab });
+      return;
+    }
     navigate(step.route);
   };
 

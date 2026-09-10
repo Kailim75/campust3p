@@ -315,6 +315,7 @@ export function DevisDetailSheet({
   };
 
   const handleSendEmail = async () => {
+    if (isSending) return;
     if (!devis?.contact?.email) {
       toast.error("Ce contact n'a pas d'adresse email");
       return;
@@ -511,6 +512,7 @@ export function DevisDetailSheet({
                   onOpenChange={setConfirmEmailOpen}
                   title="Envoyer le devis par email ?"
                   recipient={devis?.contact?.email}
+                  pending={isSending}
                   onConfirm={handleSendEmail}
                 />
 

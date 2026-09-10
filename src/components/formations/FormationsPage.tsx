@@ -255,7 +255,7 @@ export function FormationsPage() {
                       variant="secondary"
                       className="ml-1.5 h-[18px] min-w-[18px] text-[10px] px-1 rounded-full bg-background/80 font-semibold"
                     >
-                      {count}
+                      {isError ? "—" : count}
                     </Badge>
                   </TabsTrigger>
                 );

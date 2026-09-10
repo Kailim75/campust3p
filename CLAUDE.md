@@ -77,8 +77,9 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   (jobs créés au dashboard, index…) : pour tout ce qui dépend du runtime,
   vérifier par SELECT avant d'affirmer.
 - **Jobs planifiés : référence versionnée dans `supabase/CRON_JOBS.md`**
-  (9 jobs pg_cron). Tout nouveau job : `cron.schedule` via l'éditeur SQL
-  (idempotent sur le nom) + mise à jour de ce fichier.
+  (9 jobs pg_cron, dont `sync-gmail-inbox-every-5min` à supprimer — sa
+  fonction n'existe plus). Tout nouveau job : `cron.schedule` via l'éditeur
+  SQL (idempotent sur le nom) + mise à jour de ce fichier.
 - Enums existants à réutiliser : `session_status`, `statut_cma`,
   `prospect_status`, `statut_apprenant`… — pas de nouveaux statuts en texte
   libre.
@@ -124,9 +125,10 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 
 ## Dettes connues (ne pas redécouvrir)
 
-- Crons : `CRON_SECRET` à configurer puis en-tête `x-cron-secret` à ajouter aux
-  jobs pg_cron (mode transition tant qu'il est absent) — procédure dans
-  `supabase/CRON_JOBS.md`.
+- Crons : en-tête `x-cron-secret` à ajouter aux jobs pg_cron **puis**
+  `CRON_SECRET` à configurer — dans cet ordre, sous peine de 401 sur les
+  7 crons entre les deux étapes (mode transition tant que le secret est
+  absent) — procédure dans `supabase/CRON_JOBS.md`.
 - `jspdf` et `vitest` à mettre à jour.
 - Chemins encore mono-centre (à corriger avant l'ouverture du 2ᵉ centre) :
   `send-automated-emails` (bulk, `centre_formation` limit(1)),

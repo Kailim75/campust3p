@@ -55,7 +55,7 @@ export function useActionPlan() {
       return data;
     } catch (e) {
       console.error("Action plan error:", e);
-      toast.error(messageErreur(e, "Erreur inconnue"));
+      toast.error(messageErreur(e, "Erreur lors de la génération du plan d'action"));
       return null;
     } finally {
       setIsGenerating(false);

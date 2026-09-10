@@ -29,9 +29,6 @@ verify_jwt = false                     # Public signing link (access_token in UR
 [functions.resolve-signing-token]
 verify_jwt = false                     # Exchanges access_token → signing_token (kept off URLs/emails)
 
-[functions.sync-gmail-inbox]
-verify_jwt = false                     # Google OAuth callback
-
 [functions.api-v1]
 verify_jwt = false                     # Auth via x-api-key (clé centre)
 
@@ -116,17 +113,9 @@ verify_jwt = true
 [functions.sync-driveflow]
 verify_jwt = true
 
-[functions.send-gmail-reply]
-verify_jwt = true
-
-[functions.send-gmail-new]
-verify_jwt = true
-
-[functions.promote-attachment]
-verify_jwt = true
-
-[functions.download-email-attachment]
-verify_jwt = true                      # + identité, rôle et centre (user_centres) revérifiés dans le code
+# Les 6 fonctions Gmail (sync-gmail-inbox, send-gmail-reply, send-gmail-new,
+# promote-attachment, download-email-attachment, gmail-thread-actions) ont été
+# retirées du repo le 10/09/2026 avec l'Inbox CRM : à désinstaller côté Lovable.
 
 [functions.manage-centre-api-key]
 verify_jwt = false

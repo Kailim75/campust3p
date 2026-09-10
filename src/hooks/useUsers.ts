@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { messageErreur } from "@/lib/erreurs";
+import { messageErreurInvoke } from "@/lib/erreurs";
+
+/** Le message utile de create-user / delete-user est dans le corps de la réponse, pas dans l'erreur. */
+function toastErreurInvoke(error: unknown, contexte: string) {
+  void messageErreurInvoke(error, contexte).then((message) => toast.error(message));
+}
 
 export interface User {
   id: string;
@@ -46,10 +51,10 @@ export function useCreateUser() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        throw response.error;
       }
 
-      if (response.data.error) {
+      if (response.data?.error) {
         throw new Error(response.data.error);
       }
 
@@ -60,7 +65,7 @@ export function useCreateUser() {
       toast.success("Utilisateur créé avec succès");
     },
     onError: (error: Error) => {
-      toast.error(messageErreur(error, "Erreur"));
+      toastErreurInvoke(error, "Erreur lors de la création de l'utilisateur");
     },
   });
 }
@@ -80,10 +85,10 @@ export function useDeleteUser() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        throw response.error;
       }
 
-      if (response.data.error) {
+      if (response.data?.error) {
         throw new Error(response.data.error);
       }
 
@@ -94,7 +99,7 @@ export function useDeleteUser() {
       toast.success("Utilisateur supprimé");
     },
     onError: (error: Error) => {
-      toast.error(messageErreur(error, "Erreur"));
+      toastErreurInvoke(error, "Erreur lors de la suppression de l'utilisateur");
     },
   });
 }

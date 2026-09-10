@@ -44,7 +44,8 @@ export function SmartSuggestionsCard({ onNavigate, onAction }: SmartSuggestionsC
       // Contacts without documents
       const { data: contactsWithDocs } = await supabase
         .from("contact_documents")
-        .select("contact_id");
+        .select("contact_id")
+        .is("deleted_at", null);
       
       const contactIdsWithDocs = new Set(contactsWithDocs?.map(d => d.contact_id) || []);
       

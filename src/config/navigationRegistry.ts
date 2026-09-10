@@ -54,8 +54,9 @@ export interface NavEntry {
  *
  * Sprint 4 — Simplification UX :
  *  - 4 hubs opérationnels (Aujourd'hui, Apprenants, Sessions, Finances).
- *    L'Inbox CRM a été retirée le 21/07/2026 (équipe travaillant hors CRM) :
- *    code et données conservés, surface débranchée — voir AMELIORATIONS.md.
+ *    L'Inbox CRM a été débranchée le 21/07/2026 (équipe travaillant hors CRM)
+ *    puis son code supprimé le 10/09/2026 (PR #77) : seules les données
+ *    `crm_email_*` subsistent, dormantes — voir AMELIORATIONS.md.
  *  - Pilotage (Dashboard) renvoyé en "Plus / Pilotage" pour clarifier la
  *    hiérarchie ; route "/" conservée pour ne pas casser les bookmarks.
  *  - Ma Journée découvrable depuis "Plus / Pilotage" (route /ma-journee
@@ -92,8 +93,12 @@ export const NAV_REGISTRY: NavEntry[] = [
   { id: "attestations-retard", label: "Attestations en retard",  icon: Award, group: "more", subgroup: "qualite", path: "/attestations-retard", pageName: "AttestationsEnRetardPage" },
 
   // Administration
-  { id: "automations",              label: "Modèles & automatisations", icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin"] },
-  { id: "corbeille",                label: "Corbeille",       icon: Trash2, group: "more", subgroup: "admin", path: "/corbeille",                pageName: "CorbeillePage",        allowedRoles: ["admin"] },
+  // « Modèles & automatisations » et « Corbeille » sont ouverts au staff :
+  // la RLS de document_templates et la garde serveur du soft-delete
+  // (assert_soft_delete_allowed → is_admin_or_staff) l'autorisent déjà, et
+  // « Générer un document » / « Administration › Corbeille » les lui promettent.
+  { id: "automations",              label: "Modèles & automatisations", icon: Zap,    group: "more", subgroup: "admin", path: "/automations",              pageName: "AutomationsPage",      allowedRoles: ["super_admin", "admin", "staff"] },
+  { id: "corbeille",                label: "Corbeille",       icon: Trash2, group: "more", subgroup: "admin", path: "/corbeille",                pageName: "CorbeillePage",        allowedRoles: ["super_admin", "admin", "staff"] },
   { id: "doublons-contacts",        label: "Doublons",        icon: Users,  group: "more", subgroup: "admin", path: "/doublons-contacts",        pageName: "DoublonsContactsPage", allowedRoles: ["admin"] },
 
   // ── Footer ────────────────────────────────────────────────────────────────

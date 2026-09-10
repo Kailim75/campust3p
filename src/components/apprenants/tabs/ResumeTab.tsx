@@ -25,7 +25,7 @@ import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requir
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
 import { ApprenantTimeline } from "@/components/apprenants/ApprenantTimeline";
-import { calculerResteAEncaisser } from "@/lib/montants";
+import { resteAEncaisserParFacture, sommeFactures, sommeMontants } from "@/lib/montants";
 
 interface ResumeTabProps {
   contactId: string;
@@ -50,11 +50,10 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
   const { data, isLoading } = useQuery({
     queryKey: ["apprenant-resume", contactId, formation],
     queryFn: async () => {
-      const [contactRes, docsRes, facturesRes, paiementsRes, inscRes, rappelsRes, notesRes, carteProRes] = await Promise.all([
+      const [contactRes, docsRes, facturesRes, inscRes, rappelsRes, notesRes, carteProRes] = await Promise.all([
         supabase.from("contacts").select("numero_carte_professionnelle, prefecture_carte, date_expiration_carte").eq("id", contactId).single(),
-        supabase.from("contact_documents").select("type_document").eq("contact_id", contactId),
-        supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contactId),
-        supabase.from("paiements").select("facture_id, montant").is("deleted_at", null),
+        supabase.from("contact_documents").select("type_document").eq("contact_id", contactId).is("deleted_at", null),
+        supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contactId).is("deleted_at", null),
         supabase.from("session_inscriptions").select("id, session_id, track, sessions(nom, date_debut, formation_type)").eq("contact_id", contactId).is("deleted_at", null).limit(1),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")
           .eq("contact_id", contactId).eq("alerte_active", true).not("date_rappel", "is", null)
@@ -89,10 +88,21 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
         : continuingCompletion.missing;
 
       const factures = facturesRes.data || [];
-      const paiementsList = paiementsRes.data || [];
-      const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = paiementsList.reduce((s, p) => s + Number((p as any).montant || 0), 0);
-      const restant = calculerResteAEncaisser(totalFacture, totalPaye);
+
+      // Versements des seules factures de ce contact (les RLS ne cloisonnent
+      // les paiements que par centre) — sinon le « payé » est celui du centre.
+      let paiementsList: Array<{ facture_id: string | null; montant: number }> = [];
+      if (factures.length > 0) {
+        const { data } = await supabase
+          .from("paiements")
+          .select("facture_id, montant")
+          .in("facture_id", factures.map((f) => f.id))
+          .is("deleted_at", null);
+        paiementsList = (data || []) as Array<{ facture_id: string | null; montant: number }>;
+      }
+      const totalFacture = sommeFactures(factures);
+      const totalPaye = sommeMontants(paiementsList);
+      const restant = resteAEncaisserParFacture(factures, paiementsList);
 
       const nextRappel = rappelsRes.data?.[0] || null;
 

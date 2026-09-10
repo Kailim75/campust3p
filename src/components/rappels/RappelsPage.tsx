@@ -43,7 +43,7 @@ const DELAI_APRES_RELANCE_JOURS = 7;
 
 export function RappelsPage() {
   const navigate = useNavigate();
-  const { rappels, isLoading, isError, refetch } = useRappels();
+  const { rappels, isLoading, isError, isFetching, dataUpdatedAt, aDesDonnees, refetch } = useRappels();
   const reporter = useReporterRappel();
   const cloturer = useCloturerRappelLibre();
 
@@ -128,36 +128,44 @@ export function RappelsPage() {
     }
   };
 
-  const afficherVide = !isLoading && !isError && visibles.length === 0;
+  // Un refetch en échec laisse les données précédentes en mémoire (TanStack
+  // v5) : on les garde à l'écran sous un bandeau qui les date, au lieu de
+  // vider la page. Sans aucune donnée, l'erreur remplace tout — et les
+  // compteurs, qui vaudraient « 0 », disparaissent avec.
+  const erreurBloquante = isError && !isLoading && !aDesDonnees;
+  const erreurPerimee = isError && !isLoading && aDesDonnees;
+  const afficherVide = !isLoading && !erreurBloquante && visibles.length === 0;
 
   return (
     <div className="min-h-screen">
       <Header title="Rappels" subtitle="Qui relancer, et quand" />
 
       <main className="animate-fade-in space-y-4 p-3 sm:space-y-6 sm:p-6">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Carte
-            icone={AlertTriangle}
-            valeur={String(compteurs.retard)}
-            libelle="en retard"
-            teinte="text-destructive"
-            fond="bg-destructive/10"
-          />
-          <Carte
-            icone={BellRing}
-            valeur={String(compteurs.aujourdhui)}
-            libelle="à faire aujourd'hui"
-            teinte="text-warning"
-            fond="bg-warning/10"
-          />
-          <Carte
-            icone={Euro}
-            valeur={`${montantEnRetard.toLocaleString("fr-FR")} €`}
-            libelle="impayés en retard"
-            teinte="text-primary"
-            fond="bg-primary/10"
-          />
-        </div>
+        {!erreurBloquante && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Carte
+              icone={AlertTriangle}
+              valeur={String(compteurs.retard)}
+              libelle="en retard"
+              teinte="text-destructive"
+              fond="bg-destructive/10"
+            />
+            <Carte
+              icone={BellRing}
+              valeur={String(compteurs.aujourdhui)}
+              libelle="à faire aujourd'hui"
+              teinte="text-warning"
+              fond="bg-warning/10"
+            />
+            <Carte
+              icone={Euro}
+              valeur={`${montantEnRetard.toLocaleString("fr-FR")} €`}
+              libelle="impayés en retard"
+              teinte="text-primary"
+              fond="bg-primary/10"
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex w-fit gap-1 rounded-xl bg-muted p-1">
@@ -174,7 +182,7 @@ export function RappelsPage() {
               >
                 {f.label}
                 <span className="ml-1.5 text-xs opacity-60">
-                  ({f.value === "tous" ? compteurs.tous : compteurs[f.value]})
+                  ({erreurBloquante ? "—" : f.value === "tous" ? compteurs.tous : compteurs[f.value]})
                 </span>
               </button>
             ))}
@@ -205,11 +213,22 @@ export function RappelsPage() {
           </div>
         )}
 
-        {isError && !isLoading && (
+        {erreurBloquante && (
           <ErrorState
             title="Impossible de charger les rappels"
             description="La liste des relances n'a pas pu être récupérée : ce que vous voyez ne reflète pas la situation réelle. Vérifiez votre connexion puis réessayez."
             onRetry={() => refetch()}
+            isRetrying={isFetching}
+          />
+        )}
+
+        {erreurPerimee && (
+          <ErrorState
+            compact
+            title="Impossible d'actualiser les rappels"
+            description={`Les données affichées datent de ${format(new Date(dataUpdatedAt), "HH:mm")} : elles ont pu changer depuis. Vérifiez votre connexion puis réessayez.`}
+            onRetry={() => refetch()}
+            isRetrying={isFetching}
           />
         )}
 
@@ -225,7 +244,7 @@ export function RappelsPage() {
           />
         )}
 
-        {!isLoading && !isError && visibles.length > 0 && (
+        {!isLoading && !erreurBloquante && visibles.length > 0 && (
           <div className="space-y-2">
             {visibles.map((rappel) => (
               <RappelLigne

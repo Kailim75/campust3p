@@ -264,7 +264,7 @@ export function EmailComposerModal({
       onOpenChange(false);
     } catch (err: any) {
       console.error("Email send error:", err);
-      toast.error("Erreur lors de l'envoi", { description: messageErreur(err, "Veuillez réessayer") });
+      toast.error("Erreur lors de l'envoi", { description: messageErreur(err) });
     } finally {
       setSending(false);
     }

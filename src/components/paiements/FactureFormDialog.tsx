@@ -387,9 +387,9 @@ export function FactureFormDialog({
                           }))}
                           value={field.value || ""}
                           onValueChange={field.onChange}
-                          placeholder="Rechercher un contact..."
+                          placeholder="Rechercher un apprenant…"
                           searchPlaceholder="Rechercher par nom..."
-                          emptyMessage="Aucun contact trouvé."
+                          emptyMessage="Aucun apprenant trouvé."
                         />
                         <FormMessage />
                       </FormItem>

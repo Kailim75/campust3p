@@ -173,7 +173,9 @@ export function SignaturesPage() {
           </TabsContent>
 
           <TabsContent value="all" className="mt-4 space-y-6">
-        {/* Stats Cards */}
+        {/* Stats Cards — masquées en erreur : cinq « 0 » au-dessus d'une
+            alerte se lisent comme une bonne nouvelle. */}
+        {!isError && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <Card className="card-elevated">
             <CardContent className="pt-6">
@@ -241,6 +243,7 @@ export function SignaturesPage() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Filter */}
         <div className="flex items-center gap-4">
@@ -430,6 +433,7 @@ export function SignaturesPage() {
         onOpenChange={(open) => { if (!open) setPendingSendId(null); }}
         title="Envoyer la demande de signature par email ?"
         recipient={pendingSendRecipient}
+        pending={sendEmail.isPending}
         onConfirm={() => { if (pendingSendId) handleSend(pendingSendId); }}
       />
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

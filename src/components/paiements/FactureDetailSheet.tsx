@@ -238,23 +238,26 @@ export function FactureDetailSheet({
 
 
   const handleSendEmail = async () => {
-    // Récupérer les données fraîches avant l'envoi
-    const { data: fresh } = await refetchFacture();
-    const facture = fresh ?? null;
-    if (!facture) return;
-    const partner = (facture as any).client_partner;
-    const montantRestant = Number(facture.montant_total) - facture.total_paye;
-    const email = facture.contact?.email || partner?.email;
-    const recipientName = facture.contact
-      ? `${facture.contact.prenom} ${facture.contact.nom}`
-      : (partner?.company_name || "");
-    const greeting = facture.contact ? facture.contact.prenom : (partner?.company_name || "");
-    if (!email) {
-      toast.error("Aucun email pour ce client");
-      return;
-    }
+    // Verrou posé AVANT le premier await : le bouton du dialogue reste
+    // cliquable pendant l'animation de fermeture Radix (~200 ms).
+    if (isSendingEmail) return;
     setIsSendingEmail(true);
     try {
+      // Récupérer les données fraîches avant l'envoi
+      const { data: fresh } = await refetchFacture();
+      const facture = fresh ?? null;
+      if (!facture) return;
+      const partner = (facture as any).client_partner;
+      const montantRestant = Number(facture.montant_total) - facture.total_paye;
+      const email = facture.contact?.email || partner?.email;
+      const recipientName = facture.contact
+        ? `${facture.contact.prenom} ${facture.contact.nom}`
+        : (partner?.company_name || "");
+      const greeting = facture.contact ? facture.contact.prenom : (partner?.company_name || "");
+      if (!email) {
+        toast.error("Aucun email pour ce client");
+        return;
+      }
       const contactInfo = facture.contact ? {
         nom: facture.contact.nom,
         prenom: facture.contact.prenom,
@@ -671,8 +674,10 @@ export function FactureDetailSheet({
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleSendEmail}>Envoyer</AlertDialogAction>
+                            <AlertDialogCancel disabled={isSendingEmail}>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSendEmail} disabled={isSendingEmail}>
+                              {isSendingEmail ? "Envoi…" : "Envoyer"}
+                            </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>

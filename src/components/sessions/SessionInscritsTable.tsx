@@ -368,7 +368,7 @@ export default function SessionInscritsTable({ sessionId }: SessionInscritsTable
 
   const getSelectedRecipients = (): EmailRecipient[] => {
     const selected = inscrits?.filter(i => selectedIds.includes(i.contact_id) && i.contact?.email) || [];
-    if (selected.length === 0) { toast.error("Aucun contact sélectionné avec email"); return []; }
+    if (selected.length === 0) { toast.error("Aucun apprenant sélectionné avec email"); return []; }
     return selected.map(i => ({ id: i.contact_id, email: i.contact!.email!, prenom: i.contact!.prenom || "", nom: i.contact!.nom || "" }));
   };
 

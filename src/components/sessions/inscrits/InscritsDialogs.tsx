@@ -178,9 +178,9 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
           <DialogHeader><DialogTitle>Inscrire des apprenants</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Command className="rounded-lg border">
-              <CommandInput placeholder="Rechercher un contact..." value={props.searchQuery} onValueChange={props.setSearchQuery} />
+              <CommandInput placeholder="Rechercher un apprenant…" value={props.searchQuery} onValueChange={props.setSearchQuery} />
               <CommandList className="max-h-64">
-                <CommandEmpty>Aucun contact trouvé</CommandEmpty>
+                <CommandEmpty>Aucun apprenant trouvé</CommandEmpty>
                 <CommandGroup>
                   {props.filteredContacts.map((contact) => (
                     <CommandItem key={contact.id} onSelect={() => props.toggleContactToAdd(contact.id)} className="cursor-pointer">
@@ -202,7 +202,7 @@ export function InscritsDialogs(props: InscritsDialogsProps) {
               </CommandList>
             </Command>
             {props.contactsToAdd.length > 0 && (
-              <div className="text-sm text-muted-foreground">{props.contactsToAdd.length} contact(s) sélectionné(s)</div>
+              <div className="text-sm text-muted-foreground">{props.contactsToAdd.length} apprenant(s) sélectionné(s)</div>
             )}
             <Button className="w-full" onClick={props.handleAddMultipleInscriptions} disabled={props.contactsToAdd.length === 0 || props.isAddPending}>
               {props.isAddPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
