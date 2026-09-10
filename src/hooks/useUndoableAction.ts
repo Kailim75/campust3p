@@ -126,7 +126,7 @@ const tableQueryKeys: Record<string, string[][]> = {
   factures: [["factures"]],
   catalogue_formations: [["catalogue-formations"]],
   email_templates: [["email-templates"]],
-  contact_documents: [["contact-documents"]],
+  contact_documents: [["contact-documents"], ["apprenant-resume"], ["apprenant-cockpit"]],
   generated_documents_v2: [["generated-docs-v2"]],
   paiements: [["paiements"], ["factures"]],
   devis: [["devis"]],
