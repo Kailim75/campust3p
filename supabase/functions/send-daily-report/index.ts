@@ -73,7 +73,7 @@ serve(async (req) => {
       .from("sessions")
       .select("id, nom, formation_type, date_debut, date_fin, nb_places, statut")
       .is("deleted_at", null)
-      .eq("archived", false)
+      .or("archived.is.null,archived.eq.false") // colonne nullable : NULL = false vaut NULL en SQL
       .gte("date_debut", todayISO)
       .lte("date_debut", in14Days)
       .order("date_debut", { ascending: true })
