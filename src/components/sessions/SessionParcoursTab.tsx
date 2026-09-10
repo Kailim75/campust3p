@@ -17,6 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -94,6 +104,27 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
   const [pendingReprogramAfterReactivation, setPendingReprogramAfterReactivation] = useState<{
     contactId: string; contactName: string; type: "theorie" | "pratique";
   } | null>(null);
+  // Correction d'un résultat déjà saisi : confirmation nominative avant
+  // d'effacer la ligne d'examen.
+  const [pendingAnnulation, setPendingAnnulation] = useState<{
+    contactId: string;
+    nom: string;
+    type: "theorie" | "pratique";
+    formationType: string;
+    libelle: string;
+    categorie: "résultat" | "statut";
+  } | null>(null);
+
+  const confirmAnnulation = () => {
+    if (!pendingAnnulation) return;
+    setExamResult({
+      contactId: pendingAnnulation.contactId,
+      type: pendingAnnulation.type,
+      value: null,
+      formationType: pendingAnnulation.formationType,
+    });
+    setPendingAnnulation(null);
+  };
 
   // Compute théorie counters
   const theorieStats = useMemo(() => {
@@ -696,19 +727,21 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                       size="sm"
                       variant="ghost"
                       className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        if (confirm(`Annuler le résultat "Réussi" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
-                          setExamResult({
-                            contactId: inscrit.contact_id,
-                            type,
-                            value: null,
-                            formationType:
-                              inscrit.contact?.formation ||
-                              session?.formation_type ||
-                              "VTC",
-                          });
-                        }
-                      }}
+                      onClick={() =>
+                        setPendingAnnulation({
+                          contactId: inscrit.contact_id,
+                          nom:
+                            `${inscrit.contact?.prenom ?? ""} ${inscrit.contact?.nom ?? ""}`.trim() ||
+                            "cet apprenant",
+                          type,
+                          formationType:
+                            inscrit.contact?.formation ||
+                            session?.formation_type ||
+                            "VTC",
+                          libelle: "Réussi",
+                          categorie: "résultat",
+                        })
+                      }
                     >
                       <Undo2 className="h-3 w-3 mr-0.5" />
                       Corriger
@@ -839,19 +872,21 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                     size="sm"
                     variant="ghost"
                     className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      if (confirm(`Annuler le résultat "Échoué" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
-                        setExamResult({
-                          contactId: inscrit.contact_id,
-                          type,
-                          value: null,
-                          formationType:
-                            inscrit.contact?.formation ||
-                            session?.formation_type ||
-                            "VTC",
-                        });
-                      }
-                    }}
+                    onClick={() =>
+                      setPendingAnnulation({
+                        contactId: inscrit.contact_id,
+                        nom:
+                          `${inscrit.contact?.prenom ?? ""} ${inscrit.contact?.nom ?? ""}`.trim() ||
+                          "cet apprenant",
+                        type,
+                        formationType:
+                          inscrit.contact?.formation ||
+                          session?.formation_type ||
+                          "VTC",
+                        libelle: "Échoué",
+                        categorie: "résultat",
+                      })
+                    }
                   >
                     <Undo2 className="h-3 w-3 mr-0.5" />
                     Corriger
@@ -939,19 +974,21 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
                     size="sm"
                     variant="ghost"
                     className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      if (confirm(`Annuler le statut "Absent" pour ${inscrit.contact?.prenom} ${inscrit.contact?.nom} ?`)) {
-                        setExamResult({
-                          contactId: inscrit.contact_id,
-                          type,
-                          value: null,
-                          formationType:
-                            inscrit.contact?.formation ||
-                            session?.formation_type ||
-                            "VTC",
-                        });
-                      }
-                    }}
+                    onClick={() =>
+                      setPendingAnnulation({
+                        contactId: inscrit.contact_id,
+                        nom:
+                          `${inscrit.contact?.prenom ?? ""} ${inscrit.contact?.nom ?? ""}`.trim() ||
+                          "cet apprenant",
+                        type,
+                        formationType:
+                          inscrit.contact?.formation ||
+                          session?.formation_type ||
+                          "VTC",
+                        libelle: "Absent",
+                        categorie: "statut",
+                      })
+                    }
                   >
                     <Undo2 className="h-3 w-3 mr-0.5" />
                     Corriger
@@ -1105,6 +1142,30 @@ export function SessionParcoursTab({ sessionId }: SessionParcoursTabProps) {
           }}
         />
       )}
+
+      <AlertDialog
+        open={pendingAnnulation !== null}
+        onOpenChange={(open) => { if (!open) setPendingAnnulation(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Annuler le {pendingAnnulation?.categorie} « {pendingAnnulation?.libelle} » de{" "}
+              {pendingAnnulation?.nom} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              L'apprenant revient en attente pour cette épreuve : vous pourrez ressaisir
+              son {pendingAnnulation?.categorie}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Conserver le {pendingAnnulation?.categorie}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAnnulation}>
+              Annuler le {pendingAnnulation?.categorie}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

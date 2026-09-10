@@ -55,6 +55,7 @@ export function FormationsPage() {
   const [editingFormation, setEditingFormation] = useState<CatalogueFormation | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("nom");
   const [showInactive, setShowInactive] = useState(true);
+  const [pendingRecalc, setPendingRecalc] = useState<CatalogueFormation | null>(null);
   
   const { data: formations = [], isLoading, isError, refetch } = useCatalogueFormations();
   const { centreFormation } = useCentreFormation();
@@ -135,10 +136,12 @@ export function FormationsPage() {
     toast.success("Programme téléchargé avec succès");
   };
 
-  const handleRecalcTrack = (formation: CatalogueFormation) => {
-    if (confirm(`Recalculer le parcours « ${formation.track === "initial" ? "Initial" : "Formation continue"} » pour toutes les sessions et inscriptions liées à "${formation.intitule}" ?`)) {
-      recalcTrack.mutate({ catalogueId: formation.id });
-    }
+  const handleRecalcTrack = (formation: CatalogueFormation) => setPendingRecalc(formation);
+
+  const confirmRecalcTrack = () => {
+    if (!pendingRecalc) return;
+    recalcTrack.mutate({ catalogueId: pendingRecalc.id });
+    setPendingRecalc(null);
   };
 
   const inactiveCount = formations.filter(f => !f.actif).length;
@@ -425,6 +428,25 @@ export function FormationsPage() {
         onOpenChange={handleCloseForm}
         formation={editingFormation}
       />
+
+      <AlertDialog open={pendingRecalc !== null} onOpenChange={(open) => { if (!open) setPendingRecalc(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Recalculer le parcours de « {pendingRecalc?.intitule} » ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Le parcours{" "}
+              <strong>{pendingRecalc?.track === "initial" ? "Initial" : "Formation continue"}</strong>{" "}
+              sera réappliqué à toutes les sessions et inscriptions liées à cet article.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRecalcTrack}>Recalculer le parcours</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
