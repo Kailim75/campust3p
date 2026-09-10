@@ -52,14 +52,31 @@ Depuis le 09/09/2026 (audit du 13/08, P1 : crons déclenchables par quiconque
 avec l'URL + la clé anon publique), chaque fonction cron passe par la garde
 `_shared/cron-auth.ts` : si le secret `CRON_SECRET` est configuré dans les
 secrets des edge functions, l'en-tête `x-cron-secret` est exigé (401 sinon).
-Tant qu'il n'est pas configuré, les appels sont acceptés avec un avertissement
-dans les logs (mode transition — aucune automatisation coupée).
+
+⚠️ **Deux variantes de garde — le mode transition n'est PAS universel :**
+
+| Variante | Fonctions | `CRON_SECRET` absent |
+|---|---|---|
+| `checkCronSecret` (tolérante) | les 7 crons purs | appel **accepté** avec un avertissement dans les logs (mode transition — aucune automatisation coupée) |
+| `cronSecretMatches` (STRICTE) | `send-automated-emails` **uniquement** | voie cron **refusée**, repli sur la garde JWT admin/staff → le job pg_cron reçoit 401 |
+
+`send-automated-emails` est le seul cas mixte : elle sert à la fois le job
+`daily-automated-emails` et les envois manuels du CRM. Sa voie cron n'est
+qu'une alternative au JWT, donc pas de mode transition — sinon retirer le
+secret rouvrirait la fonction à quiconque connaît l'URL (`verify_jwt = false`).
+Depuis le 10/09/2026 ses deux chemins sont **exclusifs** : avec
+`x-cron-secret`, seule la campagne automatique tourne (tout corps contenant
+`recipients` / `to` / `type` est refusé en 403) ; avec un JWT admin/staff,
+seuls les envois manuels sont acceptés (un corps non reconnu renvoie 400 au
+lieu de déclencher la campagne du jour).
 
 **L'ordre compte** : tant que le secret n'existe pas, l'en-tête est ignoré (il
 ne casse rien) ; dès qu'il existe, tout appel sans en-tête est refusé en 401.
 On ajoute donc l'en-tête AVANT de créer le secret — l'inverse couperait les
-7 crons pendant tout l'intervalle (relances horaires et jobs quotidiens
-tombant dans la fenêtre, sans autre alerte que les logs des fonctions).
+7 crons tolérants pendant tout l'intervalle (relances horaires et jobs
+quotidiens tombant dans la fenêtre, sans autre alerte que les logs des
+fonctions). `send-automated-emails` échappe à ce raisonnement : étant en
+variante stricte, sa voie cron ne s'ouvre qu'une fois le secret créé.
 
 Activation, dans cet ordre :
 1. Générer un secret fort (ex. `openssl rand -hex 32`) et le garder de côté,
@@ -70,13 +87,17 @@ Activation, dans cet ordre :
 2. Déclarer alors le secret dans les secrets des edge functions sous le nom
    `CRON_SECRET` (agent Lovable). La garde devient active immédiatement.
 3. Vérifier **tout de suite**, sans attendre le lendemain : un appel manuel
-   avec l'en-tête doit répondre 200 (`?dryRun=true` sur `send-convocation-cron`
-   ou `signature-reminders`), le même appel sans en-tête doit répondre 401.
+   avec l'en-tête **et `?dryRun=true`** doit répondre 200, le même appel sans
+   en-tête doit répondre 401. Toujours passer par `?dryRun=true` :
+   `send-convocation-cron`, `signature-reminders` et — depuis le 10/09/2026 —
+   `send-automated-emails` renvoient alors le décompte de ce qui **serait**
+   envoyé, sans appeler Resend ni écrire dans `email_logs`. Sans ce paramètre,
+   la vérification envoie de vrais emails aux candidats.
 
-Fonctions concernées : `alma-reconcile-cron`, `send-daily-report`,
+Fonctions concernées (**8**) : `alma-reconcile-cron`, `send-daily-report`,
 `send-convocation-cron`, `signature-reminders`, `send-exam-reminders`,
-`generate-notifications`, `process-payment-reminders`. Le test manuel
-`?dryRun=true` reste possible en envoyant l'en-tête.
+`generate-notifications`, `process-payment-reminders` et
+`send-automated-emails` (variante stricte — voir le tableau ci-dessus).
 
 ⚠️ `alma-reconcile-cron` a aussi un appelant **front** : le panneau
 « Réconciliation Alma » (`src/components/finances/AlmaCronMonitorPanel.tsx`)
@@ -85,6 +106,31 @@ l'invoque depuis le CRM avec le JWT de l'utilisateur, sans en-tête
 que la fonction n'accepte le JWT d'un admin comme alternative au secret
 (correctif traité dans un autre lot) — vérifier ce point avant de créer le
 secret, ou prévenir l'équipe.
+
+## `send-automated-emails` — panne silencieuse et déblocage en attente
+
+**Découvert le 10/09/2026, en vérifiant l'activation de `CRON_SECRET`.** La
+fonction répondait **401 depuis le 14/01/2026** : le job `daily-automated-emails`
+porte la clé anon, alors que la fonction exigeait `auth.getUser()` + un rôle
+admin/staff. Une clé anon n'est pas un utilisateur — l'échec était structurel,
+sans aucun rapport avec la bascule du secret.
+
+Conséquence sur toute la période : **aucune relance de paiement J-7 ni aucun
+rappel de formation J-7/J-1 n'est parti automatiquement.** (Les rappels
+d'examen, eux, continuaient de partir : `send-exam-reminders` n'a pas de garde
+JWT et tourne bien à 09:00 UTC.)
+
+⚠️ **Le déblocage attend une décision explicite de Karim — ne PAS redéployer
+la fonction sans son accord.** Au premier passage à 08:00 UTC qui suivra le
+redéploiement, la campagne du jour partira pour de bon : relances de paiement
+et rappels de formation à tous les candidats dont l'échéance tombe ce jour-là.
+Vérifier d'abord le volume attendu avec `?dryRun=true`.
+
+Corollaire déjà traité dans le code : le bloc « rappel examen T3P J-7 » de
+`send-automated-emails` faisait **doublon exact** avec `send-exam-reminders`
+(même table, même date, même statut, même sujet — mais deux `email_logs.type`
+différents, donc invisible à toute déduplication). Il a été retiré le
+10/09/2026 ; `send-exam-reminders` reste seule propriétaire de ce rappel.
 
 ## Modèle de création d'un job
 
