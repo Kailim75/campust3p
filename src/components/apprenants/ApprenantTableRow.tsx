@@ -13,7 +13,6 @@ import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getActiveReasons, getActiveReasonLabel, isActiveApprenant, getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
-import { calculerResteAEncaisser } from "@/lib/montants";
 
 const FORMATION_BADGE: Record<string, string> = {
   TAXI: "badge-soft badge-soft-blue",
@@ -42,13 +41,12 @@ function getPedagogicalStatus(statut: string | null): { label: string; className
   }
 }
 
-function getPaymentDisplay(status: string, totalFacture: number, totalPaye: number): { label: string; sublabel?: string; className: string } {
+function getPaymentDisplay(status: string, totalFacture: number, totalPaye: number, resteDu: number): { label: string; sublabel?: string; className: string } {
   if (totalFacture <= 0) return { label: "Non facturé", className: "text-muted-foreground" };
-  if (totalPaye >= totalFacture) return { label: "Soldé", className: "text-success font-medium" };
-  const restant = calculerResteAEncaisser(totalFacture, totalPaye);
-  if (totalPaye > 0) return { label: "Partiel", sublabel: `${restant}€ restant`, className: "text-warning font-medium" };
-  if (status === "retard") return { label: "Impayé", sublabel: `${totalFacture}€`, className: "text-destructive font-semibold" };
-  return { label: "En attente", sublabel: `${totalFacture}€`, className: "text-muted-foreground" };
+  if (resteDu <= 0) return { label: "Soldé", className: "text-success font-medium" };
+  if (totalPaye > 0) return { label: "Partiel", sublabel: `${resteDu}€ restant`, className: "text-warning font-medium" };
+  if (status === "retard") return { label: "Impayé", sublabel: `${resteDu}€`, className: "text-destructive font-semibold" };
+  return { label: "En attente", sublabel: `${resteDu}€`, className: "text-muted-foreground" };
 }
 
 interface ApprenantTableRowProps {
@@ -68,7 +66,7 @@ export function ApprenantTableRow({
 }: ApprenantTableRowProps) {
   const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
   const pedStatus = getPedagogicalStatus(contact.statut);
-  const payDisplay = getPaymentDisplay(contact.paymentStatus, contact.totalFacture, contact.totalPaye);
+  const payDisplay = getPaymentDisplay(contact.paymentStatus, contact.totalFacture, contact.totalPaye, contact.resteDu);
   const formationClass = contact.formation
     ? FORMATION_BADGE[contact.formation] || "badge-soft badge-soft-gray"
     : "";
@@ -303,12 +301,12 @@ export function ApprenantTableRow({
               <span
                 className={cn(
                   "text-xs font-mono",
-                  contact.totalFacture - contact.totalPaye > 0
+                  contact.resteDu > 0
                     ? "text-destructive font-medium"
                     : "text-emerald-600"
                 )}
               >
-                {Math.max(0, contact.totalFacture - contact.totalPaye)}€
+                {contact.resteDu}€
               </span>
             ) : (
               <span className="text-xs text-muted-foreground">—</span>

@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  estFactureComptee,
+  resteAEncaisserParFacture,
+  sommeFactures,
+  sommePaiementsFactures,
+  tropPercu,
+} from "@/lib/montants";
 import type { Contact } from "./useContacts";
 
 export interface EnrichedContact extends Contact {
@@ -10,6 +17,10 @@ export interface EnrichedContact extends Contact {
   // Payment info
   totalFacture: number;
   totalPaye: number;
+  /** Reste dû calculé facture par facture, comme sur la fiche apprenant. */
+  resteDu: number;
+  /** Excédent encaissé, facture par facture. */
+  tropPercu: number;
   dateEcheance: string | null;
   paymentStatus: "paye" | "partiel" | "retard" | "attente";
   // Documents info (expert)
@@ -21,19 +32,35 @@ export interface EnrichedContact extends Contact {
   progressionPercent: number | null;
 }
 
-function computePaymentStatus(
+/**
+ * Le solde vient de `resteDu` (calculé facture par facture) et non d'une
+ * comparaison de totaux : un apprenant en trop-perçu sur une facture et
+ * impayé sur une autre s'affichait « à jour » dans la liste et « en
+ * retard » dans sa fiche.
+ */
+export function computePaymentStatus(
   totalFacture: number,
   totalPaye: number,
+  resteDu: number,
   dateEcheance: string | null
 ): EnrichedContact["paymentStatus"] {
   if (totalFacture <= 0) return "attente";
-  if (totalPaye >= totalFacture) return "paye";
-  if (totalPaye > 0) {
-    if (dateEcheance && new Date(dateEcheance) < new Date()) return "retard";
-    return "partiel";
-  }
-  if (dateEcheance && new Date(dateEcheance) < new Date()) return "retard";
-  return "attente";
+  if (resteDu <= 0) return "paye";
+  const enRetard = !!dateEcheance && new Date(dateEcheance) < new Date();
+  if (totalPaye > 0) return enRetard ? "retard" : "partiel";
+  return enRetard ? "retard" : "attente";
+}
+
+interface FactureContact {
+  id: string;
+  montant_total: number | null;
+  statut: string | null;
+  date_echeance: string | null;
+}
+
+interface PaiementContact {
+  facture_id: string | null;
+  montant: number | null;
 }
 
 // Core required document types for a complete dossier
@@ -74,7 +101,7 @@ export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {
           .is("deleted_at", null),
         supabase
           .from("factures")
-          .select("contact_id, montant_total, date_echeance, statut")
+          .select("id, contact_id, montant_total, date_echeance, statut")
           .is("deleted_at", null),
         supabase
           .from("paiements")
@@ -112,30 +139,35 @@ export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {
         }
       }
 
-      // Factures per contact
-      const factureMap = new Map<string, { total: number; echeance: string | null }>();
+      // Factures per contact — la liste, pas la somme : le reste dû se calcule
+      // facture par facture. Brouillons et annulées écartés (lib/montants).
+      const factureMap = new Map<string, FactureContact[]>();
+      const echeanceMap = new Map<string, string>();
       if (facturesRes.data) {
         for (const f of facturesRes.data) {
-          if (f.statut === "annulee") continue;
-          const existing = factureMap.get(f.contact_id) || { total: 0, echeance: null };
-          existing.total += f.montant_total;
+          if (!f.contact_id || !estFactureComptee(f)) continue;
+          const liste = factureMap.get(f.contact_id);
+          if (liste) liste.push(f);
+          else factureMap.set(f.contact_id, [f]);
           if (f.date_echeance) {
-            if (!existing.echeance || f.date_echeance < existing.echeance) {
-              existing.echeance = f.date_echeance;
+            const actuelle = echeanceMap.get(f.contact_id);
+            if (!actuelle || f.date_echeance < actuelle) {
+              echeanceMap.set(f.contact_id, f.date_echeance);
             }
           }
-          factureMap.set(f.contact_id, existing);
         }
       }
 
-      // Paiements per contact
-      const paiementMap = new Map<string, number>();
+      // Paiements per contact — `facture_id` déjà chargé, aucune requête de plus
+      const paiementMap = new Map<string, PaiementContact[]>();
       if (paiementsRes.data) {
         for (const p of paiementsRes.data as any[]) {
           const contactId = p.factures?.contact_id;
-          if (contactId) {
-            paiementMap.set(contactId, (paiementMap.get(contactId) || 0) + p.montant);
-          }
+          if (!contactId) continue;
+          const ligne = { facture_id: p.facture_id, montant: p.montant };
+          const liste = paiementMap.get(contactId);
+          if (liste) liste.push(ligne);
+          else paiementMap.set(contactId, [ligne]);
         }
       }
 
@@ -172,11 +204,16 @@ export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {
       // Enrich contacts
       return contacts.map((c): EnrichedContact => {
         const session = sessionMap.get(c.id);
-        const facture = factureMap.get(c.id) || { total: 0, echeance: null };
-        const totalPaye = paiementMap.get(c.id) || 0;
+        const factures = factureMap.get(c.id) ?? [];
+        const paiements = paiementMap.get(c.id) ?? [];
         const docs = docMap.get(c.id) || new Set();
         const exam = examMap.get(c.id);
         const progress = progressMap.get(c.id) ?? null;
+
+        const totalFacture = sommeFactures(factures);
+        const totalPaye = sommePaiementsFactures(factures, paiements);
+        const resteDu = resteAEncaisserParFacture(factures, paiements);
+        const dateEcheance = echeanceMap.get(c.id) ?? null;
 
         const missingDocs = REQUIRED_DOC_TYPES.filter((t) => !docs.has(t)).length;
 
@@ -185,10 +222,12 @@ export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {
           sessionName: session?.name ?? null,
           sessionDateDebut: session?.dateDebut ?? null,
           sessionId: session?.id ?? null,
-          totalFacture: facture.total,
+          totalFacture,
           totalPaye,
-          dateEcheance: facture.echeance,
-          paymentStatus: computePaymentStatus(facture.total, totalPaye, facture.echeance),
+          resteDu,
+          tropPercu: tropPercu(factures, paiements),
+          dateEcheance,
+          paymentStatus: computePaymentStatus(totalFacture, totalPaye, resteDu, dateEcheance),
           documentsManquants: missingDocs,
           examDate: exam?.date ?? null,
           examResultat: exam?.resultat ?? null,

@@ -29,7 +29,14 @@ import { FinancementSection } from "./FinancementSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { creerFactureExpress } from "@/lib/facture-express";
-import { resteAEncaisserParFacture, sommeFactures, sommeMontants, tropPercu } from "@/lib/montants";
+import {
+  estFactureComptee,
+  parseMontantSaisi,
+  resteAEncaisserParFacture,
+  sommeFactures,
+  sommePaiementsFactures,
+  tropPercu,
+} from "@/lib/montants";
 import { messageErreur } from "@/lib/erreurs";
 
 /** Pré-remplissage de la facturation express (depuis l'inscription). */
@@ -135,16 +142,21 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
     });
   }
 
+  // Brouillons et annulées exclus des totaux comme des versements associés
+  // (règle unique : lib/montants).
   const montantTotal = sommeFactures(factures || []);
-  const montantPaye = sommeMontants(paiements || []);
+  const montantPaye = sommePaiementsFactures(factures || [], paiements || []);
   // Par facture : un trop-perçu sur l'une ne doit pas masquer l'impayé de l'autre.
   const restant = resteAEncaisserParFacture(factures || [], paiements || []);
   const excedent = tropPercu(factures || [], paiements || []);
+  // `null` tant que la saisie n'est pas un montant strictement positif.
+  const montantSaisi = parseMontantSaisi(formData.montant);
 
   const addPaiement = useMutation({
     mutationFn: async () => {
       let factureId = formData.factureId;
-      const montant = parseFloat(formData.montant);
+      const montant = parseMontantSaisi(formData.montant);
+      if (montant === null) throw new Error("Le montant du versement doit être supérieur à 0 €.");
 
       // If "new" selected, create a facture first
       if (factureId === "__new__" || (!factureId && (!factures || factures.length === 0))) {
@@ -194,8 +206,8 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
 
   const creerExpress = async () => {
     if (!express || !expressRequest) return;
-    const montant = parseFloat(express.montant);
-    if (!montant || montant <= 0) { toast.error("Montant invalide"); return; }
+    const montant = parseMontantSaisi(express.montant);
+    if (montant === null) { toast.error("Le montant de la facture doit être supérieur à 0 €."); return; }
     setExpressPending(true);
     try {
       const creee = await creerFactureExpress({
@@ -397,7 +409,10 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             </div>
             <div>
               <Label className="text-xs">Montant (€)</Label>
-              <Input type="number" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
+              <Input type="number" min="0.01" step="0.01" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
+              {formData.montant !== "" && montantSaisi === null && (
+                <p className="text-[11px] text-destructive mt-1">Le montant doit être supérieur à 0 €.</p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Mode</Label>
@@ -418,7 +433,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!formData.montant || !formData.factureId || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+            <Button size="sm" disabled={montantSaisi === null || !formData.factureId || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
               {addPaiement.isPending ? "..." : formData.factureId === "__new__" ? "Créer facture & enregistrer" : "Enregistrer"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
@@ -463,7 +478,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
                         const restantF = Number(f.montant_total || 0) - (paiements || [])
                           .filter((pmt: any) => pmt.facture_id === f.id)
                           .reduce((sm: number, pmt: any) => sm + Number(pmt.montant || 0), 0);
-                        return restantF > 0 && f.statut !== "annulee" ? (
+                        return restantF > 0 && estFactureComptee(f) ? (
                           <Button
                             size="sm" variant="outline"
                             className="h-7 text-[11px] gap-1 text-success border-success/30 hover:bg-success/10"
@@ -570,7 +585,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Montant (€, exonéré de TVA)</Label>
-                <Input type="number" className="h-9" value={express.montant}
+                <Input type="number" min="0.01" step="0.01" className="h-9" value={express.montant}
                   onChange={(e) => setExpress({ ...express, montant: e.target.value })} />
               </div>
               <div>
@@ -600,7 +615,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
               <Button variant="ghost" onClick={() => { setExpress(null); onExpressHandled?.(); }} disabled={expressPending}>
                 Annuler
               </Button>
-              <Button onClick={creerExpress} disabled={expressPending}>
+              <Button onClick={creerExpress} disabled={expressPending || parseMontantSaisi(express.montant) === null}>
                 <Zap className="h-3.5 w-3.5 mr-1.5" />
                 {expressPending ? "Création…" : "Créer la facture"}
               </Button>
