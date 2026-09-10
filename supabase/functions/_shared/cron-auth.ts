@@ -14,7 +14,13 @@
  *    supabase/CRON_JOBS.md.
  *
  * Le test manuel `?dryRun=true` reste possible : il suffit d'envoyer l'en-tête.
+ *
+ * La réponse 401 porte les en-têtes CORS : sans eux, un appel depuis le
+ * navigateur est bloqué avant lecture du corps et le front ne voit qu'un
+ * échec réseau opaque (« Failed to send a request to the Edge Function »).
  */
+
+import { getCorsHeaders } from "./cors.ts";
 
 function constantTimeEq(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -40,7 +46,7 @@ export function checkCronSecret(req: Request): Response | null {
     console.warn("[cron-auth] appel refusé : en-tête x-cron-secret absent ou invalide");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
   return null;
