@@ -4,10 +4,9 @@ import { useNavigation } from "@/contexts/NavigationContext";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
 import TemplateStudioPage from "@/components/template-studio/TemplateStudioPage";
-import IADirectorPage from "@/components/ia-director/IADirectorPage";
-import { Mail, Workflow, Palette, Zap } from "lucide-react";
+import { Mail, Workflow, Palette } from "lucide-react";
 
-const VALID_TABS = ["templates", "communications", "workflows", "ia"] as const;
+const VALID_TABS = ["templates", "communications", "workflows"] as const;
 
 type AutomationTab = (typeof VALID_TABS)[number];
 
@@ -21,20 +20,24 @@ function resolveTab(input?: string | null): AutomationTab {
 }
 
 export function AutomationsPage() {
-  const { activeTab } = useNavigation();
+  const { activeTab, setActiveTab } = useNavigation();
   const [tab, setTab] = useState<AutomationTab>(() => resolveTab(activeTab));
 
-  // One-shot sync : accepter un deep-link arrivant après mount.
+  // One-shot sync : accepter un deep-link arrivant après mount, puis le
+  // consommer. `activeTab` vit dans l'état d'Index pour toute la session :
+  // sans remise à zéro, chaque réouverture de la page rouvrirait l'onglet
+  // du dernier deep-link au lieu de celui par défaut.
   useEffect(() => {
     if (!activeTab) return;
     setTab(resolveTab(activeTab));
-  }, [activeTab]);
+    setActiveTab(undefined);
+  }, [activeTab, setActiveTab]);
 
   return (
     <div className="min-h-screen">
       <div className="px-6 pt-6 pb-2">
         <h1 className="text-2xl font-display font-bold text-foreground">Modèles & automatisations</h1>
-        <p className="text-sm text-muted-foreground">Modèles de documents et d'emails, workflows, assistant IA</p>
+        <p className="text-sm text-muted-foreground">Modèles de documents et d'emails, workflows</p>
       </div>
 
       <div className="px-6 pb-6">
@@ -49,9 +52,6 @@ export function AutomationsPage() {
             <TabsTrigger value="workflows" className="gap-1.5 text-xs">
               <Workflow className="h-3.5 w-3.5" /> Workflows
             </TabsTrigger>
-            <TabsTrigger value="ia" className="gap-1.5 text-xs">
-              <Zap className="h-3.5 w-3.5" /> IA
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="templates">
@@ -62,9 +62,6 @@ export function AutomationsPage() {
           </TabsContent>
           <TabsContent value="workflows">
             <WorkflowsPage />
-          </TabsContent>
-          <TabsContent value="ia">
-            <IADirectorPage />
           </TabsContent>
         </Tabs>
       </div>

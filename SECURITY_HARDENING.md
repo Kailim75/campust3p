@@ -27,14 +27,22 @@ Ajout de `.env.local`, `.env.*.local`, `.env.staging`, `.env.production`, `supab
 - **Public (verify_jwt = false)** — nécessaire :
   - `alma-webhook`, `incoming-webhook`, `public-sign-document`, `sync-gmail-inbox`
   - Crons : `send-automated-emails`, `send-exam-reminders`, `send-daily-report`, `generate-notifications`
-- **Protégé (verify_jwt = true)** — 21 fonctions user-facing sécurisées :
+- **Protégé (verify_jwt = true)** — 17 fonctions user-facing sécurisées :
   - `create-user`, `delete-user`, `list-users`, `ai-assistant`, `execute-workflow`,
   - `send-signature-email`, `send-enquete-email`, `alma-payment`,
-  - `prospect-scoring`, `centre-scoring`,
-  - `generate-template-ai`, `generate-workflow-ai`, `ia-action-plan`, `ia-predictive-analysis`,
+  - `generate-template-ai`, `generate-workflow-ai`,
   - `export-audit-pack`, `bulk-send-documents`,
   - `sync-driveflow`, `send-gmail-reply`, `send-gmail-new`,
   - `promote-attachment`, `get-service-key`
+
+> **Mise à jour du 10/09/2026 :** les **4 fonctions IA** (`prospect-scoring`,
+> `centre-scoring`, `ia-action-plan`, `ia-predictive-analysis`) sont retirées de
+> cette liste — plus aucun appelant depuis le retrait de l'onglet IA, et plus
+> aucune trace dans le repo (elles restent à désinstaller côté Lovable).
+> Les entrées Gmail des deux listes (`sync-gmail-inbox`, `send-gmail-reply`,
+> `send-gmail-new`, `promote-attachment`) sont, elles, périmées de la même
+> façon mais laissées telles quelles pour ne pas réécrire ce compte rendu du
+> 18/04/2026 : **l'état de référence des fonctions est `supabase/config.toml`.**
 
 > ⚠️ **Avant merge : tester en staging** que le frontend passe bien le JWT via `supabase.functions.invoke()`. Si tu utilises `fetch()` directement vers une edge function, il faut ajouter `Authorization: Bearer <jwt>` manuellement.
 

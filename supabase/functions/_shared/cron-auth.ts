@@ -31,6 +31,22 @@ function constantTimeEq(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Variante STRICTE, pour les fonctions dont la voie cron n'est qu'une
+ * alternative à une autre authentification (`send-automated-emails` est gardée
+ * par un JWT admin/staff, mais son job pg_cron n'a pas de session utilisateur).
+ *
+ * Différence avec `checkCronSecret` : pas de mode transition. Un `CRON_SECRET`
+ * absent renvoie `false` au lieu d'accepter l'appel — sinon, retirer le secret
+ * rouvrirait la fonction à quiconque connaît l'URL, ces endpoints étant en
+ * `verify_jwt = false`.
+ */
+export function cronSecretMatches(req: Request): boolean {
+  const expected = Deno.env.get("CRON_SECRET");
+  if (!expected) return false;
+  return constantTimeEq(req.headers.get("x-cron-secret") ?? "", expected);
+}
+
 export function checkCronSecret(req: Request): Response | null {
   const expected = Deno.env.get("CRON_SECRET");
   if (!expected) {

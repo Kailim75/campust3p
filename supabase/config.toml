@@ -86,19 +86,7 @@ verify_jwt = true
 [functions.alma-payment]
 verify_jwt = false
 
-[functions.prospect-scoring]
-verify_jwt = true
-
-[functions.centre-scoring]
-verify_jwt = true
-
 [functions.generate-template-ai]
-verify_jwt = true
-
-[functions.ia-action-plan]
-verify_jwt = true
-
-[functions.ia-predictive-analysis]
 verify_jwt = true
 
 [functions.generate-workflow-ai]
@@ -117,6 +105,11 @@ verify_jwt = true
 # promote-attachment, download-email-attachment, gmail-thread-actions) et
 # crm-analysis ont été retirées du repo le 10/09/2026 avec l'Inbox CRM, puis
 # désinstallées côté Lovable le même jour : elles ne sont plus déployées.
+
+# Les 4 fonctions IA (prospect-scoring, centre-scoring, ia-action-plan,
+# ia-predictive-analysis) ont été retirées du repo le 10/09/2026 avec l'onglet
+# IA : plus aucun appelant. À désinstaller côté Lovable — le sync GitHub ne
+# désinstalle rien. Les tables ia_* sont conservées, dormantes.
 
 [functions.manage-centre-api-key]
 verify_jwt = false

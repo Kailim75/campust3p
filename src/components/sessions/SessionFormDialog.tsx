@@ -33,6 +33,7 @@ import {
 import { useCreateSession, useUpdateSession, type Session, type SessionInsert } from "@/hooks/useSessions";
 import { useFormateursTable } from "@/hooks/useFormateurs";
 import { useCatalogueFormations } from "@/hooks/useCatalogueFormations";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { toast } from "sonner";
 import { Loader2, BookOpen, User, MapPin, Clock, Euro } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
@@ -167,7 +168,10 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
     }
   }, [watchCatalogueId, catalogueFormations, form, isEditing]);
 
+  // Réinitialisation à chaque ouverture : sans elle, un formulaire abandonné
+  // rouvrait avec l'ancienne saisie, et repartait donc « modifié ».
   useEffect(() => {
+    if (!open) return;
     if (session) {
       form.reset({
         nom: session.nom,
@@ -221,7 +225,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
         statut: "a_venir",
       });
     }
-  }, [session, form]);
+  }, [session, form, open]);
 
   const onSubmit = async (values: SessionFormValues) => {
     try {
@@ -280,9 +284,11 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
   const isLoading = createSession.isPending || updateSession.isPending;
   const activeFormateurs = formateurs.filter(f => f.actif);
 
+  const guard = useUnsavedChangesGuard({ isDirty: form.formState.isDirty, onOpenChange });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto sm:max-w-3xl max-sm:!max-w-[100vw] max-sm:!h-[100dvh] max-sm:!max-h-[100dvh] max-sm:!rounded-none max-sm:!top-0 max-sm:!translate-y-0">
+    <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto sm:max-w-3xl max-sm:!max-w-[100vw] max-sm:!h-[100dvh] max-sm:!max-h-[100dvh] max-sm:!rounded-none max-sm:!top-0 max-sm:!translate-y-0" {...guard.contentProps}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la session" : "Créer une session"}
@@ -775,7 +781,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
             </div>
 
             <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-background pb-2 sm:pb-0 sm:static border-t sm:border-t-0 mt-4 sm:mt-0 -mx-6 px-6 sm:mx-0 sm:px-0">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-10 sm:h-9">
+              <Button type="button" variant="outline" onClick={guard.requestClose} className="h-10 sm:h-9">
                 Annuler
               </Button>
               <Button type="submit" disabled={isLoading} className="h-10 sm:h-9">
@@ -786,6 +792,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
           </form>
         </Form>
       </DialogContent>
+      {guard.confirmDialog}
     </Dialog>
   );
 }

@@ -32,6 +32,7 @@ import {
 import { useCreateContact, useUpdateContact, DuplicateActiveContactError, type Contact, type ContactInsert } from "@/hooks/useContacts";
 import { useDuplicateCheck } from "@/hooks/useDuplicateCheck";
 import { useActiveDuplicateCheck } from "@/hooks/useActiveDuplicateCheck";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { DuplicateAlert } from "./DuplicateAlert";
 import { ActiveDuplicateAlert } from "./ActiveDuplicateAlert";
 import { getUserCentreId } from "@/utils/getCentreId";
@@ -309,9 +310,16 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const isLoading = createContact.isPending || updateContact.isPending;
   const blockedByActiveDuplicate = !!activeDup.match;
 
+  // La session d'intégration vit hors de react-hook-form : elle compte
+  // comme une saisie à protéger au même titre que les champs du formulaire.
+  const guard = useUnsavedChangesGuard({
+    isDirty: form.formState.isDirty || (!!selectedSessionId && selectedSessionId !== "none"),
+    onOpenChange,
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" {...guard.contentProps}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier le contact" : "Ajouter un apprenant"}
@@ -447,10 +455,23 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
             <ActiveDuplicateAlert
               match={activeDup.match}
               onOpenExisting={(id) => {
-                onOpenChange(false);
-                window.dispatchEvent(
-                  new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
-                );
+                // Aller voir le doublon ferme ce formulaire : même garde que
+                // les autres chemins, mais le libellé dit où l'on va.
+                const nomExistant = [activeDup.match?.prenom, activeDup.match?.nom]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim();
+                guard.requestCloseFor({
+                  title: "Ouvrir la fiche existante ?",
+                  description: `Vous allez quitter ce formulaire pour ouvrir la fiche ${
+                    nomExistant ? `de ${nomExistant}` : "existante"
+                  }. Les informations déjà saisies ici seront perdues.`,
+                  confirmLabel: "Ouvrir la fiche",
+                  onProceed: () =>
+                    window.dispatchEvent(
+                      new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
+                    ),
+                });
               }}
             />
 
@@ -1081,7 +1102,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
 
             {/* Submit */}
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={guard.requestClose}>
                 Annuler
               </Button>
               <Button type="submit" disabled={isLoading || blockedByActiveDuplicate}>
@@ -1094,6 +1115,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
           </form>
         </Form>
       </DialogContent>
+      {guard.confirmDialog}
     </Dialog>
   );
 }

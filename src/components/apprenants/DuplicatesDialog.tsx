@@ -9,6 +9,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -100,6 +110,7 @@ function useDuplicateContacts(enabled: boolean) {
 export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) {
   const { data: groups = [], isLoading } = useDuplicateContacts(open);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pendingArchiveIds, setPendingArchiveIds] = useState<string[] | null>(null);
   const queryClient = useQueryClient();
 
   const archiveMutation = useMutation({
@@ -132,8 +143,13 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
 
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Archiver ${selectedIds.size} contact(s) sélectionné(s) ? Cette action les retirera de la liste active.`)) return;
-    archiveMutation.mutate(Array.from(selectedIds));
+    setPendingArchiveIds(Array.from(selectedIds));
+  };
+
+  const confirmArchive = () => {
+    if (!pendingArchiveIds) return;
+    archiveMutation.mutate(pendingArchiveIds);
+    setPendingArchiveIds(null);
   };
 
   const totalDuplicates = groups.reduce((s, g) => s + g.contacts.length, 0);
@@ -150,8 +166,8 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
             {isLoading
               ? "Analyse en cours..."
               : groups.length === 0
-                ? "Aucun doublon détecté parmi vos contacts actifs."
-                : `${groups.length} groupe(s) de doublons détecté(s) (${totalDuplicates} contacts). Sélectionnez les contacts à archiver.`}
+                ? "Aucun doublon détecté parmi vos apprenants actifs."
+                : `${groups.length} groupe(s) de doublons détecté(s) (${totalDuplicates} apprenants). Sélectionnez les apprenants à archiver.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -202,7 +218,7 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
                   <div key={group.key} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs font-medium">
-                        {group.contacts.length} contacts
+                        {group.contacts.length} apprenants
                       </Badge>
                       <span className="text-sm font-medium text-muted-foreground">{label}</span>
                     </div>
@@ -212,7 +228,7 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-10" />
-                            <TableHead className="text-xs">Contact</TableHead>
+                            <TableHead className="text-xs">Apprenant</TableHead>
                             <TableHead className="text-xs">Email</TableHead>
                             <TableHead className="text-xs">Téléphone</TableHead>
                             <TableHead className="text-xs">Formation</TableHead>
@@ -288,6 +304,24 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={pendingArchiveIds !== null} onOpenChange={(open) => { if (!open) setPendingArchiveIds(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Archiver {pendingArchiveIds?.length} apprenant{(pendingArchiveIds?.length || 0) > 1 ? "s" : ""} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Ils seront retirés de la liste active. Les fiches restent consultables et
+              rien n'est supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmArchive}>Archiver</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

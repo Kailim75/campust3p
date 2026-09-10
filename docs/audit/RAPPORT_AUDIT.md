@@ -91,6 +91,7 @@ Efforts : **XS** <1 h · **S** <½ j · **M** 1–3 j · **L** >3 j.
 - **Impact :** envoi forcé d'emails réels à des candidats (convocations, relances) → atteinte réputation domaine + coût Resend ; bascule de statuts (`signature-reminders` passe des demandes à `expire`) ; runs de réconciliation Alma. Abus de ressources / intégrité des données.
 - **Recommandation :** ajouter un `CRON_SECRET` (header `Authorization: Bearer …` ou `x-cron-secret`) vérifié en tête de chaque cron via une garde partagée dans `_shared`, injecté par pg_cron ; rejeter sinon.
 - **Effort :** M
+- **✅ Résolu le 10/09/2026** *(note ajoutée après coup ; le constat ci-dessus reste celui du 13/08/2026)* **:** garde partagée `_shared/cron-auth.ts` livrée le 09/09 (#65), puis secret `CRON_SECRET` créé et activé le 10/09/2026 vers 11h15 UTC — les **8 jobs pg_cron portent l'en-tête `x-cron-secret`**. Vérifié le jour même sur `send-convocation-cron?dryRun=true` : **200** avec l'en-tête, **401** sans. Détail et procédure de rotation : `supabase/CRON_JOBS.md`.
 
 #### [P1][SECU] `incoming-webhook` — authentification « fail-open » + injection via `centre_id` du payload
 - **Localisation :** `supabase/functions/incoming-webhook/index.ts:20-29` (auth), `:51-68` (`centre_id` du payload / fallback 1er centre), `:255-289` (insertion de paiement).
@@ -562,7 +563,7 @@ Ces points nécessitent l'état réel de la base en ligne ou l'app en fonctionne
 4. **RLS `ENABLE` réellement active** sur les tables créées via dashboard (`envois_groupes`, 13 tables `lms_*`).
 5. **Flag `public` runtime des buckets** (le dépôt indique `produits-photos=true`).
 6. **Politique de sauvegarde / PITR** Supabase (rétention, fenêtre de restauration) — déterminant pour le risque des suppressions dures.
-7. **Secrets configurés en prod** : `ALMA_WEBHOOK_SECRET`, `WEBHOOK_SECRET`/`DRIVEFLOW_API_KEY` (sinon `incoming-webhook` fail-open), `CRON_SECRET` (inexistant).
+7. **Secrets configurés en prod** : `ALMA_WEBHOOK_SECRET`, `WEBHOOK_SECRET`/`DRIVEFLOW_API_KEY` (sinon `incoming-webhook` fail-open), `CRON_SECRET` (inexistant au 13/08/2026 — **créé et activé le 10/09/2026**, 8 jobs porteurs de l'en-tête, vérifié 200 avec / 401 sans).
 8. **Couverture de tests réelle** : installer `@vitest/coverage-v8` puis `vitest run --coverage`.
 9. **Comportement de `generate_numero_facture`** en conditions concurrentes ; existence de doublons/orphelins avant l'ouverture du 2ᵉ centre.
 10. **Mesures de performance runtime** : Lighthouse (mobile 4G, cache froid) sur `/dashboard` avant/après le correctif P1 ; nombre de requêtes Supabase/page.

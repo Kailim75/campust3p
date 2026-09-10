@@ -65,7 +65,7 @@ import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
 import type { SheetSize } from "@/hooks/useSheetSize";
-import { resteAEncaisserParFacture } from "@/lib/montants";
+import { estFactureComptee, resteAEncaisserParFacture } from "@/lib/montants";
 
 // ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
@@ -166,7 +166,13 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
 
       const hasInscription = inscriptions.length > 0;
       const hasDocuments = docTypes.size > 0;
-      const hasFacture = factures.length > 0;
+      // Un brouillon (comme une annulée) ne compte pas comme « facturé » : il
+      // n'entre ni dans le total facturé ni dans le reste à encaisser
+      // (lib/montants), cocher l'étape dessus annonce une créance inexistante.
+      const hasFacture = factures.some(estFactureComptee);
+      // …mais s'il existe un brouillon, le CTA ne doit surtout pas proposer de
+      // « générer la facture » : ce serait une seconde facture pour le même dû.
+      const hasFactureBrouillon = !hasFacture && factures.some((f) => f.statut === "brouillon");
       const hasPaid = factures.some((f) => f.statut === "payee" || f.statut === "partiel");
 
       // Track-aware completion
@@ -196,7 +202,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       const alreadyMarkedDone = todayAutoNotes.some(n => n.titre.includes("Marqué"));
 
       return {
-        hasInscription, hasDocuments, hasFacture, hasPaid,
+        hasInscription, hasDocuments, hasFacture, hasFactureBrouillon, hasPaid,
         trackCompletion,
         restantDu,
         nextRappel, nextSession,
@@ -248,6 +254,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const hasDocuments = cockpitData?.hasDocuments ?? false;
   const hasInscription = cockpitData?.hasInscription ?? false;
   const hasFacture = cockpitData?.hasFacture ?? false;
+  const hasFactureBrouillon = cockpitData?.hasFactureBrouillon ?? false;
   const hasPaid = cockpitData?.hasPaid ?? false;
 
   function getStepStatus(stepIndex: number): StepStatus {
@@ -265,7 +272,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
     { label: "Prospect", status: getStepStatus(0), tooltip: isProspect ? "En attente de conversion" : "Converti en stagiaire" },
     { label: "Dossier", status: getStepStatus(1), tooltip: getStepStatus(1) === "blocked" ? "Profil incomplet" : hasDocuments ? "Dossier complet" : "Documents à ajouter" },
     { label: "Session", status: getStepStatus(2), tooltip: hasInscription ? "Inscrit à une session" : "Pas encore inscrit" },
-    { label: "Facturé", status: getStepStatus(3), tooltip: hasFacture ? "Facture générée" : "Pas de facture" },
+    { label: "Facturé", status: getStepStatus(3), tooltip: hasFacture ? "Facture générée" : hasFactureBrouillon ? "Facture en brouillon — à émettre" : "Pas de facture" },
     { label: "Payé", status: getStepStatus(4), tooltip: hasPaid ? "Paiement reçu" : "En attente de paiement" },
   ];
 
@@ -273,7 +280,9 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
     if (isProspect) return "convert";
     if (!isProfileComplete || !hasDocuments) return "complete-profile";
     if (!hasInscription) return "assign-session";
-    if (!hasFacture) return "generate-invoice";
+    // Brouillon existant : on renvoie vers la facture à émettre, jamais vers la
+    // création d'une seconde facture.
+    if (!hasFacture) return hasFactureBrouillon ? "finalize-draft-invoice" : "generate-invoice";
     if (!hasPaid) return "record-payment";
     return "finalized";
   }
@@ -302,6 +311,12 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       case "assign-session": setShowAssignDialog(true); break;
       case "generate-invoice":
         demanderFactureExpress();
+        break;
+      case "finalize-draft-invoice":
+        // Surtout pas la facturation express ici : la facture existe déjà en
+        // brouillon, en créer une seconde ferait deux factures pour un seul dû.
+        setActiveTab("paiements");
+        toast.info("Une facture en brouillon existe déjà — ouvrez-la pour l'émettre.");
         break;
       case "record-payment":
         setActiveTab("paiements");

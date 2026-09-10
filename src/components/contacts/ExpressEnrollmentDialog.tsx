@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/hooks/useSessions";
 import { useCreateContact } from "@/hooks/useContacts";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -238,6 +239,33 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
     setMontantFacture("");
   };
 
+  // Pas de react-hook-form ici : on liste les champs réellement saisis par
+  // l'utilisateur. Les valeurs par défaut (financement, case « facturer »,
+  // montant hérité de la session) ne comptent que si elles ont été changées.
+  const saisieCommencee =
+    formData.prenom.trim() !== "" ||
+    formData.nom.trim() !== "" ||
+    formData.email.trim() !== "" ||
+    formData.telephone.trim() !== "" ||
+    formData.categorie !== "" ||
+    formData.typeFormation !== "" ||
+    formData.formation !== "" ||
+    formData.sessionId !== "" ||
+    formData.notes.trim() !== "" ||
+    formData.financement !== "personnel" ||
+    piecesFournies.size > 0 ||
+    !facturer ||
+    montantFacture !== "";
+
+  const guard = useUnsavedChangesGuard({
+    isDirty: saisieCommencee,
+    onOpenChange: (next) => {
+      // Abandon confirmé : la réouverture repart d'un formulaire vierge.
+      if (!next) resetForm();
+      onOpenChange(next);
+    },
+  });
+
   const handleSubmit = async () => {
     if (!canProceed()) return;
 
@@ -375,8 +403,8 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
+      <DialogContent className="sm:max-w-lg" {...guard.contentProps}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
@@ -788,6 +816,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
           )}
         </DialogFooter>
       </DialogContent>
+      {guard.confirmDialog}
     </Dialog>
   );
 }

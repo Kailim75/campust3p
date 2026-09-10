@@ -53,10 +53,6 @@ const GLOSSARY: { term: string; def: string }[] = [
     def: "Archive ZIP générée à la clôture d'une session, contenant tous les documents Qualiopi pour audit.",
   },
   {
-    term: "Score SAO",
-    def: "Score prédictif Sécurité-Activité-Opportunités sur 30 jours, calculé par l'IA Director.",
-  },
-  {
     term: "Factur-X / PDP",
     def: "Format de facturation électronique obligatoire dès 2026 (réforme française). Le CRM gère la génération et la soumission à la PDP.",
   },
@@ -94,7 +90,7 @@ const WORKFLOWS: { title: string; steps: string[] }[] = [
       "Détection automatique J+1 après échéance",
       "Relance email J+7 (template configurable)",
       "Relance J+14 + bascule en priorité Critique dans 'Aujourd'hui'",
-      "Relance J+30 + alerte dans IA Director",
+      "Relance J+30",
       "Décision manuelle : recouvrement, échéancier Alma, ou abandon créance",
     ],
   },

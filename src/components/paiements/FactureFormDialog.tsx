@@ -35,6 +35,7 @@ import { usePartners } from "@/hooks/usePartners";
 import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { Loader2, Plus, Trash2, Package, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -111,7 +112,8 @@ export function FactureFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lignes, setLignes] = useState<LigneFacture[]>([]);
   const [showAllCatalogue, setShowAllCatalogue] = useState(false);
-  
+  const [lignesModifiees, setLignesModifiees] = useState(false);
+
   const { data: contacts = [] } = useContacts();
   const { data: partners = [] } = usePartners();
   const { data: catalogue = [] } = useCatalogueFormations(true);
@@ -142,6 +144,7 @@ export function FactureFormDialog({
   const clientType = form.watch("client_type");
 
   useEffect(() => {
+    setLignesModifiees(false);
     if (facture) {
       const isPartner = !!facture.client_partner_id && !facture.contact_id;
       form.reset({
@@ -197,6 +200,14 @@ export function FactureFormDialog({
     }
   }, [isEditing, existingLignes, open]);
 
+  // Toute modification des lignes par l'utilisateur passe par ici : le garde
+  // anti-perte de saisie doit distinguer les lignes chargées d'une facture
+  // existante de celles réellement saisies.
+  const modifierLignes = (next: LigneFacture[]) => {
+    setLignesModifiees(true);
+    setLignes(next);
+  };
+
   const addLigne = (item?: CatalogueFormation) => {
     const prixApresRemiseCatalogue = item ? item.prix_ht * (1 - (item.remise_percent || 0) / 100) : 0;
     const newLigne: LigneFacture = {
@@ -209,22 +220,22 @@ export function FactureFormDialog({
       remise_percent: 0,
       offert: false,
     };
-    setLignes([...lignes, newLigne]);
+    modifierLignes([...lignes, newLigne]);
   };
 
   const updateLigne = (id: string, field: keyof LigneFacture, value: any) => {
-    setLignes(lignes.map(l => l.id === id ? { ...l, [field]: value } : l));
+    modifierLignes(lignes.map(l => l.id === id ? { ...l, [field]: value } : l));
   };
 
   const removeLigne = (id: string) => {
-    setLignes(lignes.filter(l => l.id !== id));
+    modifierLignes(lignes.filter(l => l.id !== id));
   };
 
   const selectCatalogueItem = (ligneId: string, catalogueId: string) => {
     const item = catalogue.find(c => c.id === catalogueId);
     if (item) {
       const prixApresRemiseCatalogue = item.prix_ht * (1 - (item.remise_percent || 0) / 100);
-      setLignes(lignes.map(l => l.id === ligneId ? {
+      modifierLignes(lignes.map(l => l.id === ligneId ? {
         ...l,
         catalogue_formation_id: item.id,
         description: getDescriptionFacture(item),
@@ -237,7 +248,7 @@ export function FactureFormDialog({
   };
 
   const toggleOffert = (ligneId: string) => {
-    setLignes(lignes.map(l => {
+    modifierLignes(lignes.map(l => {
       if (l.id !== ligneId) return l;
       const newOffert = !l.offert;
       if (newOffert) {
@@ -253,6 +264,11 @@ export function FactureFormDialog({
 
   const calculateLigneTotal = (l: LigneFacture) => Math.round(l.quantite * l.prix_unitaire_ht * (1 - l.remise_percent / 100));
   const totalMontant = lignes.reduce((acc, l) => acc + calculateLigneTotal(l), 0);
+
+  const guard = useUnsavedChangesGuard({
+    isDirty: form.formState.isDirty || lignesModifiees,
+    onOpenChange,
+  });
 
   const onSubmit = async (values: FormValues) => {
     if (lignes.length === 0) {
@@ -338,8 +354,8 @@ export function FactureFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+    <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
+      <DialogContent className="max-w-3xl" {...guard.contentProps}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Modifier la facture" : "Nouvelle facture"}
@@ -702,7 +718,7 @@ export function FactureFormDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={guard.requestClose}
               >
                 Annuler
               </Button>
@@ -714,6 +730,7 @@ export function FactureFormDialog({
           </form>
         </Form>
       </DialogContent>
+      {guard.confirmDialog}
     </Dialog>
   );
 }

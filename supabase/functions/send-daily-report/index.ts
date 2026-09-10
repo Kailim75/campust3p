@@ -73,7 +73,7 @@ serve(async (req) => {
       .from("sessions")
       .select("id, nom, formation_type, date_debut, date_fin, nb_places, statut")
       .is("deleted_at", null)
-      .eq("archived", false)
+      .or("archived.is.null,archived.eq.false") // colonne nullable : NULL = false vaut NULL en SQL
       .gte("date_debut", todayISO)
       .lte("date_debut", in14Days)
       .order("date_debut", { ascending: true })
@@ -88,7 +88,15 @@ serve(async (req) => {
         .select("session_id")
         .is("deleted_at", null)
         .in("session_id", sessionIds)
-        .in("statut", ["validee", "en_attente"]);
+        // Exclusion et non liste blanche : `session_inscriptions.statut` est du
+        // texte libre (ni enum ni contrainte), les valeurs réellement écrites
+        // sont valide/inscrit/encours/document/complexe — une liste blanche
+        // périmée renvoie 0 inscrit sans jamais lever d'erreur.
+        // `.or(...is.null...)` et non `.not(...)` seul : en SQL, `NOT (statut IN
+        // (...))` vaut NULL quand `statut` est NULL, et la ligne est écartée.
+        // La colonne n'ayant pas de contrainte NOT NULL, le cas n'a rien de
+        // théorique — un statut vide serait silencieusement décompté à zéro.
+        .or("statut.is.null,statut.not.in.(annule,report)");
 
       const countMap: Record<string, number> = {};
       inscriptionCounts?.forEach((i) => {
@@ -151,7 +159,10 @@ serve(async (req) => {
         .select("contact_id, session_id, contacts(nom, prenom, formation), sessions(nom, date_debut)")
         .is("deleted_at", null)
         .in("session_id", sessionIds)
-        .in("statut", ["validee", "en_attente"]);
+        // Même raison qu'au bloc 3 : on écarte les abandons, on n'énumère pas
+        // les statuts actifs d'une colonne texte libre — et on rattrape le
+        // statut vide, que `NOT (statut IN (...))` seul écarterait (NULL).
+        .or("statut.is.null,statut.not.in.(annule,report)");
 
       if (inscrits && inscrits.length > 0) {
         const contactIds = [...new Set(inscrits.map((i) => i.contact_id))];

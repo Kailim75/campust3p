@@ -25,7 +25,7 @@ import { computeTrackCompletion, getRequirementLabels } from "@/lib/track-requir
 import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { toast } from "sonner";
 import { ApprenantTimeline } from "@/components/apprenants/ApprenantTimeline";
-import { resteAEncaisserParFacture, sommeFactures, sommeMontants } from "@/lib/montants";
+import { resteAEncaisserParFacture, sommeFactures, sommePaiementsFactures } from "@/lib/montants";
 
 interface ResumeTabProps {
   contactId: string;
@@ -101,7 +101,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
         paiementsList = (data || []) as Array<{ facture_id: string | null; montant: number }>;
       }
       const totalFacture = sommeFactures(factures);
-      const totalPaye = sommeMontants(paiementsList);
+      const totalPaye = sommePaiementsFactures(factures, paiementsList);
       const restant = resteAEncaisserParFacture(factures, paiementsList);
 
       const nextRappel = rappelsRes.data?.[0] || null;
@@ -147,7 +147,7 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
   if (isLoading) return <Skeleton className="h-[300px] rounded-xl" />;
 
   const {
-    missingCMA = [], cmaReceived = 0, restant = 0, inscription, nextRappel,
+    missingCMA = [], cmaReceived = 0, restant = 0, totalFacture = 0, inscription, nextRappel,
     hasFacture, todayNotes = [], alreadyRelancedCMA, alreadyRelancedPaiement,
     lastContact, track = "initial", dossierShortLabel = "CMA", requiredTotal = 5,
     requirementLabels = CMA_DOC_LABELS,
@@ -198,8 +198,10 @@ export function ResumeTab({ contactId, formation, onNavigateTab }: ResumeTabProp
     },
     {
       label: "Paiement",
-      done: hasFacture && restant <= 0,
-      detail: hasFacture ? (restant > 0 ? `${restant.toLocaleString("fr-FR")}€ restant` : "Soldé") : "Pas de facture",
+      done: totalFacture > 0 && restant <= 0,
+      detail: totalFacture > 0
+        ? (restant > 0 ? `${restant.toLocaleString("fr-FR")}€ restant` : "Soldé")
+        : hasFacture ? "Aucune facture à encaisser" : "Pas de facture",
       tab: "paiements",
     },
     {
