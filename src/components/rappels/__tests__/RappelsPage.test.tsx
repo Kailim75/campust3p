@@ -73,8 +73,16 @@ const RAPPELS: Rappel[] = [
   },
 ];
 
-function afficher(rappels: Rappel[] = RAPPELS, isLoading = false, isError = false) {
-  rappelsMock.mockReturnValue({ rappels, isLoading, isError, refetch: vi.fn() });
+function afficher(rappels: Rappel[] = RAPPELS, isLoading = false, isError = false, aDesDonnees = !isError) {
+  rappelsMock.mockReturnValue({
+    rappels,
+    isLoading,
+    isError,
+    isFetching: false,
+    dataUpdatedAt: new Date("2026-09-10T09:32:00").getTime(),
+    aDesDonnees,
+    refetch: vi.fn(),
+  });
   return render(
     <MemoryRouter>
       <RappelsPage />
@@ -149,5 +157,22 @@ describe("RappelsPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger les rappels");
     expect(screen.queryByText("Aucun retard")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+  });
+
+  it("masque les compteurs quand le chargement échoue sans aucune donnée", () => {
+    afficher([], false, true);
+    // « 0 en retard / 0 € impayés » à côté de l'alerte se lit comme une bonne
+    // nouvelle : les cartes disparaissent, les filtres affichent « — ».
+    expect(screen.queryByText("impayés en retard")).not.toBeInTheDocument();
+    expect(screen.getByText("En retard").closest("button")).toHaveTextContent("(—)");
+  });
+
+  it("garde la liste et date les données quand seul le rafraîchissement échoue", () => {
+    afficher(RAPPELS, false, true, true);
+    // Les données en cache restent affichées, sous un bandeau qui les date.
+    expect(screen.getByText("Doudou MAHDI")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Impossible d'actualiser les rappels");
+    expect(screen.getByRole("alert")).toHaveTextContent("09:32");
+    expect(screen.getByText("990 €")).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import {
 } from "@/lib/shared-queries";
 import { addDays, differenceInCalendarDays, isToday, isPast, parseISO } from "date-fns";
 import {
-  fetchTodayAutoNotes,
+  fetchTodayAutoNotesStrict,
   fetchRecentAutoNotes,
   isProspectRdv,
   parsePostponedNote,
@@ -74,7 +74,7 @@ export function useAujourdhuiData() {
           .is("deleted_at", null),
         fetchSharedInscriptions(queryClient),
         fetchSharedRappelsActifs(queryClient),
-        fetchTodayAutoNotes(),
+        fetchTodayAutoNotesStrict(),
         supabase
           .from("contact_historique")
           .select("contact_id, titre, contenu, date_echange, created_at, auto_category, auto_metadata")
@@ -84,6 +84,16 @@ export function useAujourdhuiData() {
         supabase.from("examens_pratique").select("id, contact_id, date_examen, resultat, date_resultat_recu"),
         supabase.from("examens_t3p").select("id, contact_id, type_formation, date_examen, resultat, date_resultat_recu, date_reussite, date_convocation_pratique_recue, numero_convocation"),
       ]);
+
+      // postgrest-js ne lève pas : sans ce contrôle, un échec (session
+      // expirée, coupure réseau, 5xx) se lirait « Aucune urgence · 0 action
+      // de suivi ». Les requêtes partagées lèvent déjà (cf. shared-queries).
+      for (const res of [
+        contactsRes, facturesRes, paiementsRes, prospectsRes,
+        sessionsRes, postponedNotesRes, examensPratiqueRes, examensTheorieRes,
+      ]) {
+        if (res.error) throw res.error;
+      }
 
       const contacts = contactsRes.data || [];
       const factures = facturesRes.data || [];
@@ -305,7 +315,8 @@ export function useAujourdhuiData() {
             .select("contact_id, titre, auto_category")
             .in("contact_id", Array.from(pratiqueAdmisIds))
             .or(`auto_category.in.(${CARTE_PRO_CATEGORIES.join(",")}),titre.like.*Carte Pro*`)
-        : { data: [] };
+        : { data: [], error: null };
+      if (carteProNotesRes.error) throw carteProNotesRes.error;
       // Catégorie structurée en priorité ; motif de titre en repli pour les
       // notes antérieures au chantier §5.1 (auto_category NULL).
       const carteProSentIds = new Set(
@@ -335,7 +346,8 @@ export function useAujourdhuiData() {
             .select("contact_id, titre, auto_category")
             .in("contact_id", echoueContactIds)
             .or(`auto_category.in.(${REPROGRAM_CATEGORIES.join(",")}),titre.like.*[AUTO]*rogramm*`)
-        : { data: [] };
+        : { data: [], error: null };
+      if (reprogNotesRes.error) throw reprogNotesRes.error;
       const reprogrammedIds = new Set(
         (reprogNotesRes.data || [])
           .filter((n: { titre: string | null; auto_category: string | null }) =>
