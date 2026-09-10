@@ -109,28 +109,49 @@ function resolveEmailConfig(body: any) {
   };
 }
 
-/** Build a human-readable time string from sessionInfo fields sent by the client */
-function buildHeureDebut(si: Record<string, any>): string | undefined {
-  const fmt = (t: string) => {
-    const [h, m] = t.split(":");
-    return `${h}h${m}`;
-  };
-  const valid = (t?: string): t is string =>
-    !!t && t !== "00:00:00" && t !== "00:00";
+/**
+ * « 08:30:00 » → « 08h30 ». Rend `undefined` pour une heure absente ou à minuit
+ * (`00:00:00` est la valeur d'un champ jamais renseigné, pas un vrai horaire).
+ * Même convention que `send-convocation-cron` : les deux emails parlant de la
+ * MÊME session doivent annoncer le même horaire, à la minute et au format près.
+ */
+function fmtHeure(t?: string | null): string | undefined {
+  if (!t || t === "00:00:00" || t === "00:00") return undefined;
+  const [h, m] = t.split(":");
+  return `${h}h${m}`;
+}
 
-  if (valid(si.heure_debut_matin) && valid(si.heure_fin_matin) && valid(si.heure_debut_aprem) && valid(si.heure_fin_aprem)) {
-    return `${fmt(si.heure_debut_matin)} - ${fmt(si.heure_fin_matin)} / ${fmt(si.heure_debut_aprem)} - ${fmt(si.heure_fin_aprem)}`;
-  }
-  if (valid(si.heure_debut_matin) && valid(si.heure_fin_matin)) {
-    return `${fmt(si.heure_debut_matin)} - ${fmt(si.heure_fin_matin)}`;
-  }
-  if (valid(si.heure_debut) && valid(si.heure_fin)) {
-    return `${fmt(si.heure_debut)} - ${fmt(si.heure_fin)}`;
-  }
-  if (valid(si.heure_debut)) {
-    return fmt(si.heure_debut);
-  }
-  return undefined;
+/**
+ * Horaire lisible d'une session, construit par ORDRE DE PRÉCISION décroissante :
+ * journée coupée (matin + après-midi), demi-journée, plage simple, heure de début
+ * seule. Rend `undefined` quand AUCUNE colonne d'horaire n'est renseignée — un
+ * appelant ne doit alors annoncer aucune heure plutôt qu'en inventer une.
+ *
+ * Accepte indifféremment une ligne `sessions` (voie automatique) ou le
+ * `sessionInfo` envoyé par le CRM (voie manuelle) : mêmes noms de colonnes.
+ */
+function buildHeureDebut(si: Record<string, any>): string | undefined {
+  const dm = fmtHeure(si.heure_debut_matin), fm = fmtHeure(si.heure_fin_matin);
+  const da = fmtHeure(si.heure_debut_aprem), fa = fmtHeure(si.heure_fin_aprem);
+  if (dm && fm && da && fa) return `${dm} - ${fm} / ${da} - ${fa}`;
+  if (dm && fm) return `${dm} - ${fm}`;
+  const d = fmtHeure(si.heure_debut), f = fmtHeure(si.heure_fin);
+  if (d && f) return `${d} - ${f}`;
+  return d;
+}
+
+/**
+ * Ce que le rappel J-1 annonce dans le champ « ⏰ Heure ».
+ *
+ * Un horaire FAUX est pire que pas d'horaire : l'apprenant se présente au mauvais
+ * moment. Tant que la session porte un horaire, on l'annonce ; sinon on renvoie à
+ * la convocation, seul document qui fasse foi.
+ */
+function heureRappelJ1(session: Record<string, any>): string {
+  const horaire = buildHeureDebut(session);
+  return horaire
+    ? `${horaire} (merci d'arriver 15 minutes avant)`
+    : "Consultez votre convocation pour l'horaire exact";
 }
 
 const corsHeaders = {
@@ -910,7 +931,12 @@ serve(async (req) => {
         // `a_venir` et sa date — sans ce filtre elle enverrait ses rappels.
         // Les inscriptions supprimées, elles, sont écartées dans la boucle
         // (`deleted_at` remonté par le select imbriqué ci-dessus).
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        // Archivage : second mécanisme de retrait, INDÉPENDANT de la corbeille.
+        // Une session archivée garde elle aussi son statut `a_venir` et sa date.
+        // Même filtre que `send-daily-report`, pour que les deux fonctions
+        // voient la même population de sessions.
+        .eq("archived", false);
 
       if (sessionsJ7Error) {
         console.error("Error fetching J-7 sessions:", sessionsJ7Error);
@@ -1039,6 +1065,12 @@ serve(async (req) => {
           date_fin,
           lieu,
           formation_type,
+          heure_debut,
+          heure_fin,
+          heure_debut_matin,
+          heure_fin_matin,
+          heure_debut_aprem,
+          heure_fin_aprem,
           session_inscriptions(
             id,
             statut,
@@ -1049,7 +1081,9 @@ serve(async (req) => {
         .eq("date_debut", j1Date)
         .in("statut", ["a_venir", "complet"])
         // Même motif qu'au bloc J-7 : la corbeille ne doit pas envoyer d'email.
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        // Même motif qu'au bloc J-7 : une session archivée n'envoie rien.
+        .eq("archived", false);
 
       if (sessionsJ1Error) {
         console.error("Error fetching J-1 sessions:", sessionsJ1Error);
@@ -1114,7 +1148,10 @@ serve(async (req) => {
                   formationType: session.formation_type,
                   dateDebut: formatDateFr(session.date_debut),
                   lieu: session.lieu || undefined,
-                  heureDebut: "9h00 (merci d'arriver 15 minutes avant)",
+                  // L'horaire vient de la BASE, jamais d'une constante : « 9h00 »
+                  // était annoncé à tout le monde, y compris aux sessions de
+                  // 8h30 ou de 14h, qui se présentaient donc à la mauvaise heure.
+                  heureDebut: heureRappelJ1(session),
                 },
               });
 
@@ -1174,12 +1211,14 @@ serve(async (req) => {
     if (BLOCS_AUTOMATIQUES_ACTIFS.rappel_examen_pratique_j7) {
       console.log("Checking for practical exams in 7 days...");
     
-      // AUCUN filtre `deleted_at` ici, volontairement : `examens_pratique` ne
-      // PORTE PAS cette colonne (vérifié dans `src/integrations/supabase/types.ts`
-      // et dans les migrations), contrairement à `sessions` et
-      // `session_inscriptions`. L'ajouter ferait échouer la requête PostgREST
-      // entière (colonne inconnue) et éteindrait le bloc en silence — le
-      // `console.error` du bloc suivant serait la seule trace.
+      // NI `deleted_at` NI `archived` ici, volontairement : `examens_pratique`
+      // ne PORTE AUCUNE de ces deux colonnes (vérifié dans
+      // `src/integrations/supabase/types.ts` et dans les migrations),
+      // contrairement à `sessions` et `session_inscriptions`. En ajouter une
+      // ferait échouer la requête PostgREST entière (colonne inconnue) et
+      // éteindrait le bloc en silence — le `console.error` du bloc suivant
+      // serait la seule trace. Un examen retiré se retire par son `statut`
+      // (seul « planifie » est servi).
       const { data: examensPratiqueJ7, error: examensPratiqueError } = await supabase
         .from("examens_pratique")
         .select(`
@@ -1252,7 +1291,7 @@ serve(async (req) => {
                     <td style="background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px; padding: 18px 20px;">
                       <p style="margin: 0 0 6px 0; font-weight: 700; color: #0e7490;">Examen Pratique — ${examen.type_examen}</p>
                       <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
-                      ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                      ${fmtHeure(examen.heure_examen) ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${fmtHeure(examen.heure_examen)}</p>` : ""}
                       ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
                       ${examen.adresse_centre ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
                       ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}

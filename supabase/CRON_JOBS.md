@@ -144,8 +144,8 @@ le tableau ci-dessous). Vérifier d'abord le volume attendu avec `?dryRun=true`.
 | Bloc | État | Ce qui part |
 |---|---|---|
 | Relance de paiement J-7 | 🔴 **ÉTEINT** | **rien** — la table `factures` n'est même pas lue |
-| Rappel de formation J-7 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant dans 7 jours, **hors corbeille** → à **toutes les inscriptions sauf `annule` et `report`** (statut vide ou inconnu compris), **hors inscriptions supprimées** |
-| Rappel de formation J-1 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant demain, **hors corbeille** → même population qu'en J-7 |
+| Rappel de formation J-7 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant dans 7 jours, **hors corbeille et hors archivées** → à **toutes les inscriptions sauf `annule` et `report`** (statut vide ou inconnu compris), **hors inscriptions supprimées** |
+| Rappel de formation J-1 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant demain, **hors corbeille et hors archivées** → même population qu'en J-7 ; l'heure annoncée est celle de la session (colonnes `heure_debut*`), et à défaut le mail renvoie à la convocation |
 | Rappel d'examen pratique J-7 | 🟢 **ALLUMÉ** | examens pratiques `planifie` dans 7 jours (`examens_pratique` n'a pas de colonne `deleted_at` : rien à écarter) |
 
 > **Qui reçoit un rappel de formation — corrigé le 10/09/2026.** Les deux blocs
@@ -169,18 +169,33 @@ le tableau ci-dessous). Vérifier d'abord le volume attendu avec `?dryRun=true`.
 > depuis Communications › Relances automatiques
 > (`src/components/communications/RelancesAutoPanel.tsx`). La fonction repousse
 > chaque élément de la file dont le centre a `actif = false` ; sinon elle envoie.
-> **Son état réel en production est EN COURS DE VÉRIFICATION au 10/09/2026** —
-> à trancher par SELECT, l'interrupteur `BLOCS_AUTOMATIQUES_ACTIFS` n'ayant
-> aucune prise dessus :
+> **État réel constaté en base le 10/09/2026 — ce circuit n'a JAMAIS rien
+> envoyé, il est donc inactif :**
+>
+> | Vérification | Constat au 10/09/2026 |
+> |---|---|
+> | `relance_paiement_config` | **aucune ligne** — aucun centre n'a activé le système |
+> | `relance_paiement_queue` | **vide** |
+> | `email_logs` | **aucun** email de relance ni de paiement, sur 30 jours comme depuis toujours |
 >
 > ```sql
 > SELECT centre_id, actif, nb_relances_max FROM public.relance_paiement_config;
 > SELECT statut, count(*) FROM public.relance_paiement_queue GROUP BY statut;
 > ```
 >
-> Si l'intention est qu'**aucune** relance de paiement ne parte, éteindre le
-> bloc J-7 ne suffit pas : il faut aussi `actif = false` sur ce centre, ou mettre
-> le job en pause (`cron.alter_job`).
+> La colonne `actif` étant `DEFAULT true`, c'est bien l'**absence de ligne de
+> configuration** — et non un `actif = false` — qui explique le silence : le
+> système n'a jamais été mis en service. La décision du directeur (relances de
+> paiement éteintes) est donc respectée par les **deux** chemins.
+>
+> ⚠️ **Mais ce circuit n'est PAS couvert par `BLOCS_AUTOMATIQUES_ACTIFS`.** Son
+> silence tient à la donnée, pas au code. Il suffit que quelqu'un active
+> « Activer le système » dans Communications › Relances automatiques
+> (`src/components/communications/RelancesAutoPanel.tsx`) pour créer cette ligne
+> de configuration : les relances de paiement partiront alors par ce chemin-là,
+> **quel que soit l'état de l'interrupteur** — qui n'a aucune prise dessus.
+> Pour verrouiller côté infrastructure plutôt que côté donnée, mettre le job en
+> pause : `cron.alter_job(<jobid>, active := false)`.
 
 > **Décision de Karim (directeur), le 10/09/2026**, en deux temps :
 > « Pour les mails de relance automatique de paiement je veux pas les activer
