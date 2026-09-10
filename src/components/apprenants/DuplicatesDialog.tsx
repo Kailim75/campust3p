@@ -9,6 +9,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -100,6 +110,7 @@ function useDuplicateContacts(enabled: boolean) {
 export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) {
   const { data: groups = [], isLoading } = useDuplicateContacts(open);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pendingArchiveIds, setPendingArchiveIds] = useState<string[] | null>(null);
   const queryClient = useQueryClient();
 
   const archiveMutation = useMutation({
@@ -132,8 +143,13 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
 
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Archiver ${selectedIds.size} contact(s) sélectionné(s) ? Cette action les retirera de la liste active.`)) return;
-    archiveMutation.mutate(Array.from(selectedIds));
+    setPendingArchiveIds(Array.from(selectedIds));
+  };
+
+  const confirmArchive = () => {
+    if (!pendingArchiveIds) return;
+    archiveMutation.mutate(pendingArchiveIds);
+    setPendingArchiveIds(null);
   };
 
   const totalDuplicates = groups.reduce((s, g) => s + g.contacts.length, 0);
@@ -288,6 +304,24 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={pendingArchiveIds !== null} onOpenChange={(open) => { if (!open) setPendingArchiveIds(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Archiver {pendingArchiveIds?.length} apprenant{(pendingArchiveIds?.length || 0) > 1 ? "s" : ""} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Ils seront retirés de la liste active. Les fiches restent consultables et
+              rien n'est supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmArchive}>Archiver</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
