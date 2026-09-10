@@ -18,6 +18,27 @@ interface UnsavedChangesGuardOptions {
 }
 
 /**
+ * Fermeture programmatique « pour aller ailleurs » (ouvrir une autre fiche,
+ * enchaîner sur un autre écran…). L'utilisateur a un but légitime : la
+ * confirmation doit nommer ce but et ce qu'il coûte, pas se contenter d'un
+ * « Abandonner ? » qui ressemble à une erreur de manipulation.
+ */
+export interface CloseIntent {
+  /** Titre de la confirmation. */
+  title?: string;
+  /** Ce qui est perdu, formulé pour l'intention réelle de l'utilisateur. */
+  description?: string;
+  /** Libellé du bouton qui poursuit l'action. */
+  confirmLabel?: string;
+  /** Exécuté APRÈS la fermeture effective (navigation, événement…). */
+  onProceed?: () => void;
+}
+
+const TITRE_PAR_DEFAUT = "Abandonner les modifications ?";
+const TEXTE_PAR_DEFAUT = "Les informations saisies seront perdues.";
+const ACTION_PAR_DEFAUT = "Abandonner";
+
+/**
  * Garde anti-perte de saisie pour un dialogue de formulaire.
  *
  * Un formulaire à moitié rempli fermé par erreur perdait tout, sans le
@@ -33,22 +54,41 @@ interface UnsavedChangesGuardOptions {
  *     {guard.confirmDialog}
  *   </Dialog>
  *
- * `requestClose` sert au bouton « Annuler » du formulaire. La fermeture qui
- * suit un enregistrement réussi doit passer directement par le `onOpenChange`
- * d'origine : elle ne doit jamais être retenue.
+ * `requestClose` sert au bouton « Annuler » du formulaire, `requestCloseFor`
+ * aux fermetures programmatiques qui emmènent l'utilisateur ailleurs (ouvrir
+ * une autre fiche…) : elles passent par la même garde, avec un libellé qui
+ * dit où l'on va. La fermeture qui suit un enregistrement réussi doit passer
+ * directement par le `onOpenChange` d'origine : elle ne doit jamais être
+ * retenue.
  */
 export function useUnsavedChangesGuard({ isDirty, onOpenChange }: UnsavedChangesGuardOptions) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  // `null` = aucune confirmation en cours. Sinon, l'intention à confirmer
+  // (`{}` pour une simple fermeture, sans destination).
+  const [pending, setPending] = useState<CloseIntent | null>(null);
 
-  const close = useCallback(() => {
-    setConfirmOpen(false);
-    onOpenChange(false);
-  }, [onOpenChange]);
+  const close = useCallback(
+    (intent?: CloseIntent | null) => {
+      setPending(null);
+      onOpenChange(false);
+      // La destination n'est atteinte qu'une fois le formulaire refermé.
+      intent?.onProceed?.();
+    },
+    [onOpenChange],
+  );
 
+  const requestCloseFor = useCallback(
+    (intent: CloseIntent = {}) => {
+      if (isDirty) setPending(intent);
+      else close(intent);
+    },
+    [isDirty, close],
+  );
+
+  // Sans argument : ce callback est passé tel quel à `onClick`, il ne doit
+  // pas prendre l'événement souris pour une intention de fermeture.
   const requestClose = useCallback(() => {
-    if (isDirty) setConfirmOpen(true);
-    else close();
-  }, [isDirty, close]);
+    requestCloseFor();
+  }, [requestCloseFor]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -64,21 +104,23 @@ export function useUnsavedChangesGuard({ isDirty, onOpenChange }: UnsavedChanges
     (event: Event) => {
       if (!isDirty) return;
       event.preventDefault();
-      setConfirmOpen(true);
+      setPending({});
     },
     [isDirty],
   );
 
   const confirmDialog = (
-    <AlertDialog open={confirmOpen} onOpenChange={(open) => { if (!open) setConfirmOpen(false); }}>
+    <AlertDialog open={pending !== null} onOpenChange={(open) => { if (!open) setPending(null); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Abandonner les modifications ?</AlertDialogTitle>
-          <AlertDialogDescription>Les informations saisies seront perdues.</AlertDialogDescription>
+          <AlertDialogTitle>{pending?.title ?? TITRE_PAR_DEFAUT}</AlertDialogTitle>
+          <AlertDialogDescription>{pending?.description ?? TEXTE_PAR_DEFAUT}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Continuer la saisie</AlertDialogCancel>
-          <AlertDialogAction onClick={close}>Abandonner</AlertDialogAction>
+          <AlertDialogAction onClick={() => close(pending)}>
+            {pending?.confirmLabel ?? ACTION_PAR_DEFAUT}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -91,6 +133,12 @@ export function useUnsavedChangesGuard({ isDirty, onOpenChange }: UnsavedChanges
     contentProps: { onEscapeKeyDown: interceptDismiss, onPointerDownOutside: interceptDismiss },
     /** Pour le bouton « Annuler » du formulaire. */
     requestClose,
+    /**
+     * Pour une fermeture programmatique qui emmène ailleurs : même garde,
+     * mais la confirmation nomme la destination et l'action se déclenche
+     * une fois le formulaire refermé.
+     */
+    requestCloseFor,
     /** À rendre dans `<Dialog>`, à côté de `<DialogContent>`. */
     confirmDialog,
   };

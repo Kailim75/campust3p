@@ -11,9 +11,11 @@ import { useUnsavedChangesGuard } from "../useUnsavedChangesGuard";
  */
 function FormulaireTest({
   onOpenChange,
+  onProceed = () => {},
   dirtyInitial = false,
 }: {
   onOpenChange: (open: boolean) => void;
+  onProceed?: () => void;
   dirtyInitial?: boolean;
 }) {
   const [dirty, setDirty] = useState(dirtyInitial);
@@ -26,6 +28,18 @@ function FormulaireTest({
         <button onClick={() => setDirty(true)}>Saisir</button>
         <button onClick={() => setDirty(false)}>Enregistrer</button>
         <button onClick={guard.requestClose}>Annuler</button>
+        <button
+          onClick={() =>
+            guard.requestCloseFor({
+              title: DESTINATION,
+              description: "Vous allez quitter ce formulaire pour ouvrir la fiche de Jean Dupont.",
+              confirmLabel: "Ouvrir la fiche",
+              onProceed,
+            })
+          }
+        >
+          Ouvrir la fiche existante
+        </button>
       </DialogContent>
       {guard.confirmDialog}
     </Dialog>
@@ -33,6 +47,7 @@ function FormulaireTest({
 }
 
 const CONFIRMATION = "Abandonner les modifications ?";
+const DESTINATION = "Ouvrir la fiche existante ?";
 
 describe("useUnsavedChangesGuard", () => {
   it("ferme directement un formulaire resté intact", () => {
@@ -82,6 +97,55 @@ describe("useUnsavedChangesGuard", () => {
 
     expect(screen.queryByText(CONFIRMATION)).toBeNull();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("emmène directement à la destination quand rien n'a été saisi", () => {
+    const onOpenChange = vi.fn();
+    const onProceed = vi.fn();
+    render(<FormulaireTest onOpenChange={onOpenChange} onProceed={onProceed} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir la fiche existante" }));
+
+    // Rien à perdre : la question serait un obstacle absurde.
+    expect(screen.queryByText(DESTINATION)).toBeNull();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onProceed).toHaveBeenCalled();
+  });
+
+  it("prévient avec les mots de la destination avant de quitter une saisie en cours", () => {
+    const onOpenChange = vi.fn();
+    const onProceed = vi.fn();
+    render(<FormulaireTest onOpenChange={onOpenChange} onProceed={onProceed} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Saisir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir la fiche existante" }));
+
+    expect(screen.getByText(DESTINATION)).toBeInTheDocument();
+    expect(screen.queryByText(CONFIRMATION)).toBeNull();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onProceed).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir la fiche" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onProceed).toHaveBeenCalled();
+  });
+
+  it("n'emmène nulle part si l'utilisateur choisit de continuer la saisie", () => {
+    const onOpenChange = vi.fn();
+    const onProceed = vi.fn();
+    render(<FormulaireTest onOpenChange={onOpenChange} onProceed={onProceed} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Saisir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir la fiche existante" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuer la saisie" }));
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onProceed).not.toHaveBeenCalled();
+
+    // L'intention abandonnée ne doit pas déteindre sur la fermeture suivante.
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(screen.getByText(CONFIRMATION)).toBeInTheDocument();
+    expect(screen.queryByText(DESTINATION)).toBeNull();
   });
 
   it("intercepte aussi la croix et la touche Échap", () => {

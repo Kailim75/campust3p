@@ -455,10 +455,23 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
             <ActiveDuplicateAlert
               match={activeDup.match}
               onOpenExisting={(id) => {
-                onOpenChange(false);
-                window.dispatchEvent(
-                  new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
-                );
+                // Aller voir le doublon ferme ce formulaire : même garde que
+                // les autres chemins, mais le libellé dit où l'on va.
+                const nomExistant = [activeDup.match?.prenom, activeDup.match?.nom]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim();
+                guard.requestCloseFor({
+                  title: "Ouvrir la fiche existante ?",
+                  description: `Vous allez quitter ce formulaire pour ouvrir la fiche ${
+                    nomExistant ? `de ${nomExistant}` : "existante"
+                  }. Les informations déjà saisies ici seront perdues.`,
+                  confirmLabel: "Ouvrir la fiche",
+                  onProceed: () =>
+                    window.dispatchEvent(
+                      new CustomEvent("navigate-to-contact", { detail: { contactId: id } }),
+                    ),
+                });
               }}
             />
 
