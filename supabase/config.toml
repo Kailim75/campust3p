@@ -114,8 +114,9 @@ verify_jwt = true
 verify_jwt = true
 
 # Les 6 fonctions Gmail (sync-gmail-inbox, send-gmail-reply, send-gmail-new,
-# promote-attachment, download-email-attachment, gmail-thread-actions) ont été
-# retirées du repo le 10/09/2026 avec l'Inbox CRM : à désinstaller côté Lovable.
+# promote-attachment, download-email-attachment, gmail-thread-actions) et
+# crm-analysis ont été retirées du repo le 10/09/2026 avec l'Inbox CRM, puis
+# désinstallées côté Lovable le même jour : elles ne sont plus déployées.
 
 [functions.manage-centre-api-key]
 verify_jwt = false
