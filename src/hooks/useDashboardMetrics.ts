@@ -66,7 +66,8 @@ async function fetchMetricsForPeriod(from: Date, to: Date) {
       .select("id, archived")
       .eq("archived", false),
     supabase.from("contact_documents")
-      .select("contact_id, type_document"),
+      .select("contact_id, type_document")
+      .is("deleted_at", null),
     supabase.from("cartes_professionnelles")
       .select("contact_id, statut, date_expiration"),
     supabase.from("prospects")

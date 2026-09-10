@@ -40,7 +40,7 @@ const tableQueryKeys: Record<SoftDeleteTable, string[][]> = {
   session_inscriptions: [["session_inscriptions"]],
   factures: [["factures"]],
   paiements: [["paiements"], ["factures"]],
-  contact_documents: [["contact-documents"]],
+  contact_documents: [["contact-documents"], ["apprenant-resume"], ["apprenant-cockpit"]],
   prospects: [["prospects"]],
   devis: [["devis"]],
   emargements: [["emargements"]],

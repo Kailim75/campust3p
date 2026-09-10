@@ -65,7 +65,7 @@ import type { StatutApprenant } from "@/lib/apprenant-active";
 import { useActiveEnrollment } from "@/hooks/useActiveEnrollment";
 import { getTrackFromFormationType, TRACK_BADGES, type FormationTrack } from "@/lib/formation-track";
 import type { SheetSize } from "@/hooks/useSheetSize";
-import { calculerResteAEncaisser } from "@/lib/montants";
+import { resteAEncaisserParFacture } from "@/lib/montants";
 
 // ... keep existing code (FORMATION_COLORS, STATUT_BADGES)
 
@@ -136,7 +136,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       if (!contact) return null;
       const [inscRes, docRes, factRes, rappRes, notesRes, carteProRes] = await Promise.all([
         supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).is("deleted_at", null).limit(1),
-        supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id),
+        supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id).is("deleted_at", null),
         supabase.from("factures").select("id, statut, montant_total").eq("contact_id", contact.id).is("deleted_at", null),
         supabase.from("contact_historique").select("date_rappel, rappel_description, alerte_active")
           .eq("contact_id", contact.id).eq("alerte_active", true).not("date_rappel", "is", null)
@@ -154,14 +154,14 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
       const factureIds = factures.map((f) => f.id);
 
       // Fetch paiements only for this contact's factures
-      let paiements: { montant: number }[] = [];
+      let paiements: { facture_id: string | null; montant: number }[] = [];
       if (factureIds.length > 0) {
         const { data } = await supabase
           .from("paiements")
-          .select("montant")
+          .select("facture_id, montant")
           .in("facture_id", factureIds)
           .is("deleted_at", null);
-        paiements = (data || []) as { montant: number }[];
+        paiements = (data || []) as { facture_id: string | null; montant: number }[];
       }
 
       const hasInscription = inscriptions.length > 0;
@@ -180,9 +180,8 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
         },
       });
 
-      const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = paiements.reduce((s, p) => s + Number(p.montant || 0), 0);
-      const restantDu = calculerResteAEncaisser(totalFacture, totalPaye);
+      // Par facture : un trop-perçu sur l'une ne doit pas masquer l'impayé de l'autre.
+      const restantDu = resteAEncaisserParFacture(factures, paiements);
 
       const nextRappel = rappRes.data?.[0] || null;
       const nextSession = inscriptions[0] ? (inscriptions[0] as Record<string, unknown>).sessions as { nom?: string; date_debut?: string } | null : null;

@@ -29,7 +29,7 @@ import { FinancementSection } from "./FinancementSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { creerFactureExpress } from "@/lib/facture-express";
-import { calculerResteAEncaisser } from "@/lib/montants";
+import { resteAEncaisserParFacture, sommeFactures, sommeMontants, tropPercu } from "@/lib/montants";
 import { messageErreur } from "@/lib/erreurs";
 
 /** Pré-remplissage de la facturation express (depuis l'inscription). */
@@ -135,9 +135,11 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
     });
   }
 
-  const montantTotal = (factures || []).reduce((s, f) => s + Number(f.montant_total || 0), 0);
-  const montantPaye = (paiements || []).reduce((s, p) => s + Number(p.montant || 0), 0);
-  const restant = calculerResteAEncaisser(montantTotal, montantPaye);
+  const montantTotal = sommeFactures(factures || []);
+  const montantPaye = sommeMontants(paiements || []);
+  // Par facture : un trop-perçu sur l'une ne doit pas masquer l'impayé de l'autre.
+  const restant = resteAEncaisserParFacture(factures || [], paiements || []);
+  const excedent = tropPercu(factures || [], paiements || []);
 
   const addPaiement = useMutation({
     mutationFn: async () => {
@@ -353,6 +355,11 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
           <Badge variant="outline" className={cn("text-[10px] mt-1", restant > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success")}>
             {restant > 0 ? "Impayé" : "Soldé"}
           </Badge>
+          {excedent > 0 && (
+            <Badge variant="outline" className="text-[10px] mt-1 ml-1 bg-warning/15 text-warning">
+              Trop-perçu {excedent.toLocaleString("fr-FR")}€
+            </Badge>
+          )}
         </Card>
       </div>
 
