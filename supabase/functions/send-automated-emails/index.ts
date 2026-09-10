@@ -934,9 +934,11 @@ serve(async (req) => {
         .is("deleted_at", null)
         // Archivage : second mécanisme de retrait, INDÉPENDANT de la corbeille.
         // Une session archivée garde elle aussi son statut `a_venir` et sa date.
-        // Même filtre que `send-daily-report`, pour que les deux fonctions
-        // voient la même population de sessions.
-        .eq("archived", false);
+        // `sessions.archived` est NULLABLE (`boolean DEFAULT false` SANS NOT NULL,
+        // migration 20260204100123) : l'égalité seule est piégeuse, car `NULL =
+        // false` vaut NULL en SQL — une session à `archived` NULL était donc
+        // écartée, et ses inscrits ne recevaient aucun rappel.
+        .or("archived.is.null,archived.eq.false");
 
       if (sessionsJ7Error) {
         console.error("Error fetching J-7 sessions:", sessionsJ7Error);
@@ -1082,8 +1084,9 @@ serve(async (req) => {
         .in("statut", ["a_venir", "complet"])
         // Même motif qu'au bloc J-7 : la corbeille ne doit pas envoyer d'email.
         .is("deleted_at", null)
-        // Même motif qu'au bloc J-7 : une session archivée n'envoie rien.
-        .eq("archived", false);
+        // Même motif qu'au bloc J-7 : une session archivée n'envoie rien, et
+        // `archived` étant nullable, l'égalité seule écarterait les lignes à NULL.
+        .or("archived.is.null,archived.eq.false");
 
       if (sessionsJ1Error) {
         console.error("Error fetching J-1 sessions:", sessionsJ1Error);
@@ -1280,6 +1283,10 @@ serve(async (req) => {
           }
 
           try {
+            // Heure absente (`00:00:00` ou NULL) : la ligne « ⏰ Heure » disparaît,
+            // donc la consigne d'arrivée ne doit renvoyer à AUCUNE heure — même
+            // convention que `heureRappelJ1`, qui renvoie alors à la convocation.
+            const heureExamen = fmtHeure(examen.heure_examen);
             const emailHtml = buildEmailHtml({
               title: "🚗 Rappel Examen Pratique — J-7",
               accentColor: "#0891b2",
@@ -1291,7 +1298,7 @@ serve(async (req) => {
                     <td style="background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px; padding: 18px 20px;">
                       <p style="margin: 0 0 6px 0; font-weight: 700; color: #0e7490;">Examen Pratique — ${examen.type_examen}</p>
                       <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
-                      ${fmtHeure(examen.heure_examen) ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${fmtHeure(examen.heure_examen)}</p>` : ""}
+                      ${heureExamen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${heureExamen}</p>` : ""}
                       ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
                       ${examen.adresse_centre ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
                       ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
@@ -1304,7 +1311,7 @@ serve(async (req) => {
                   <li style="margin-bottom: 4px;">🆔 Pièce d'identité en cours de validité</li>
                   <li style="margin-bottom: 4px;">🪪 Permis de conduire</li>
                   <li style="margin-bottom: 4px;">📄 Attestation T3P</li>
-                  <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
+                  <li style="margin-bottom: 4px;">${heureExamen ? "⏰ Arrivez 30 minutes avant l'heure" : "⏰ Consultez votre convocation pour l'heure exacte, et présentez-vous 30 minutes avant"}</li>
                 </ul>
                 <p style="margin: 16px 0 0 0; color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
               `,
