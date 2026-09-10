@@ -87,6 +87,7 @@ export function AIAssistant() {
     originalMessage: string;
   }>({ open: false, pending: [], originalMessage: '' });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const quickActions = [
     { label: '📊 Stats', prompt: 'Statistiques du mois' },
@@ -107,6 +108,13 @@ export function AIAssistant() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // L'assistant est chargé paresseusement : quand FocusScope (Radix) pose le
+  // focus initial du dialogue, seule la croix « Close » existe encore. On
+  // reprend le focus sur le champ dès que l'assistant est monté.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const sendMessage = async (messageText: string, confirmedActions?: string[]) => {
     if (!messageText.trim() || progressStep !== 'idle') return;
@@ -360,6 +368,7 @@ export function AIAssistant() {
           <div className="p-3 border-t">
             <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
               <Input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}

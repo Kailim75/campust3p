@@ -141,6 +141,12 @@ export default defineConfig(({ mode }) => ({
           // celui-ci eager par ricochet.
           if (is(/[\\/]node_modules[\\/](clsx|tailwind-merge|class-variance-authority|react-is|tiny-invariant|prop-types|@babel[\\/]runtime)[\\/]/)) return "react-vendor";
           if (is(/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/)) return "react-vendor";
+          // Ces primitives ne sont atteignables que depuis des pages chargées
+          // paresseusement (attribution vérifiée sur les sourcemaps du build) :
+          // les laisser hors de radix-vendor les sort du JS de démarrage
+          // (363,8 → 357,4 Ko gz). Si une page NON lazy vient à en monter une,
+          // la retirer de cette liste.
+          if (is(/[\\/]node_modules[\\/]@radix-ui[\\/]react-(accordion|avatar|radio-group|slider|switch|tabs|toggle|toggle-group|use-is-hydrated)[\\/]/)) return undefined;
           if (is(/[\\/]node_modules[\\/]@radix-ui[\\/]/)) return "radix-vendor";
           if (is(/[\\/]node_modules[\\/](recharts|recharts-scale|react-smooth|victory-vendor|d3-[a-z-]+)[\\/]/)) return "charts-vendor";
           if (is(/[\\/]node_modules[\\/](jspdf|html2canvas|docxtemplater|pizzip|jszip)[\\/]/)) return "pdf-vendor";
