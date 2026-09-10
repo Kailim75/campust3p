@@ -134,10 +134,17 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - `send-automated-emails` répondait **401 depuis le 14/01/2026** (le job
   porte la clé anon, la fonction exigeait un vrai utilisateur) : aucune
   relance de paiement J-7 ni rappel de formation J-7/J-1 n'est parti
-  automatiquement sur toute la période. Correctif prêt, mais **le déblocage
-  attend une décision explicite de Karim : ne pas redéployer la fonction
-  sans son accord** (au premier passage à 08:00 UTC, la campagne du jour
-  part réellement). Détail dans `supabase/CRON_JOBS.md`.
+  automatiquement sur toute la période. Correctif prêt ; **la fonction n'a
+  pas encore été redéployée** (au premier passage à 08:00 UTC, la campagne
+  du jour part réellement).
+- **Décision du directeur du 10/09/2026 — interrupteur par bloc** dans
+  `send-automated-emails` (constante `BLOCS_AUTOMATIQUES_ACTIFS`, en tête du
+  fichier) : relance de paiement J-7 **ÉTEINTE** (« le processus de relance
+  n'est pas encore au point côté centre »), rappels de formation J-7 et J-1
+  et rappel d'examen pratique J-7 **ALLUMÉS**. Un bloc éteint ne fait aucune
+  requête, aucun envoi, aucune écriture dans `email_logs`, et se déclare
+  `actif: false` dans le résumé JSON. Rallumer = une ligne à passer à `true`
+  + redéploiement Lovable. Tableau et citations dans `supabase/CRON_JOBS.md`.
 - `jspdf` et `vitest` à mettre à jour.
 - Chemins encore mono-centre (à corriger avant l'ouverture du 2ᵉ centre) :
   `send-automated-emails` (bulk, `centre_formation` limit(1)),

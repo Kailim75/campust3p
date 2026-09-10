@@ -21,6 +21,49 @@ import { cronSecretMatches } from "../_shared/cron-auth.ts";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // ===============================================
+// INTERRUPTEURS DE LA CAMPAGNE AUTOMATIQUE QUOTIDIENNE
+// ===============================================
+// Décision du DIRECTEUR (Karim), le 10/09/2026, avant le redéploiement de cette
+// fonction (muette depuis le 14/01/2026 — détail dans supabase/CRON_JOBS.md) :
+//   « Pour les mails de relance automatique de paiement je veux pas les activer
+//     maintenant car je sais que c'est pas encore optimal de notre côté. »
+//   « Faut allumer uniquement les rappels de formations et d'examen. »
+// MOTIF de l'extinction de la relance de paiement : le processus de relance
+// n'est pas encore au point côté centre.
+//
+// Un bloc à `false` est sauté INTÉGRALEMENT : aucune requête à la base, aucun
+// appel à Resend, aucune écriture dans `email_logs`. Le résumé JSON le déclare
+// `actif: false` — à ne pas confondre avec un bloc allumé sans destinataire.
+//
+// RALLUMER UN BLOC = passer sa ligne ci-dessous de `false` à `true`, puis faire
+// redéployer la fonction par l'agent Lovable (le sync GitHub ne déploie pas les
+// edge functions).
+//
+// PORTÉE : la campagne automatique (voie `x-cron-secret`) UNIQUEMENT. Les envois
+// MANUELS du CRM (devis, facture, lien Alma, documents de session — 13 écrans)
+// passent par les branches `recipients` et `to`/`type`, qui ne consultent jamais
+// ces interrupteurs.
+const BLOCS_AUTOMATIQUES_ACTIFS = {
+  /** Relance de paiement J-7 — factures « emise »/« partiel » échéant dans 7 jours. */
+  relance_paiement_j7: false,
+  /** Rappel de formation J-7 — sessions « a_venir »/« complet » démarrant dans 7 jours. */
+  rappel_formation_j7: true,
+  /** Rappel de formation J-1 — sessions « a_venir »/« complet » démarrant demain. */
+  rappel_formation_j1: true,
+  /** Rappel d'examen pratique J-7 — examens « planifie » dans 7 jours. */
+  rappel_examen_pratique_j7: true,
+} as const;
+
+/** Motif porté par le résumé JSON pour chaque bloc éteint. */
+const MOTIFS_EXTINCTION: Partial<
+  Record<keyof typeof BLOCS_AUTOMATIQUES_ACTIFS, string>
+> = {
+  relance_paiement_j7:
+    "éteint le 10/09/2026 sur décision du directeur : le processus de relance " +
+    "n'est pas encore au point côté centre",
+};
+
+// ===============================================
 // CONFIGURATION EMAIL PAR DÉFAUT (fallback)
 // ===============================================
 const DEFAULT_EMAIL_CONFIG = {
@@ -654,409 +697,430 @@ serve(async (req) => {
       return !!data && data.length > 0;
     }
     
+    // Dates cibles de la campagne, calculées une fois AVANT les interrupteurs :
+    // `j7Date` sert au rappel de formation J-7 ET au rappel d'examen pratique
+    // J-7 — éteindre un bloc ne doit pas priver un autre bloc de sa date.
+    const dansSeptJours = new Date(today);
+    dansSeptJours.setDate(dansSeptJours.getDate() + 7);
+    const j7Date = dansSeptJours.toISOString().split("T")[0];
+
+    const demain = new Date(today);
+    demain.setDate(demain.getDate() + 1);
+    const j1Date = demain.toISOString().split("T")[0];
+
     // ========================================
     // 1. RELANCES PAIEMENT J-7
     // ========================================
-    console.log("Checking for invoices due in 7 days...");
+    // Interrupteur du bloc : voir BLOCS_AUTOMATIQUES_ACTIFS en tête de fichier.
+    // ÉTEINT le 10/09/2026 — la table `factures` n'est même pas interrogée.
+    if (BLOCS_AUTOMATIQUES_ACTIFS.relance_paiement_j7) {
+      console.log("Checking for invoices due in 7 days...");
     
-    const sevenDaysFromNowPayment = new Date(today);
-    sevenDaysFromNowPayment.setDate(sevenDaysFromNowPayment.getDate() + 7);
-    const paymentJ7Date = sevenDaysFromNowPayment.toISOString().split("T")[0];
+      const { data: upcomingInvoices, error: invoicesError } = await supabase
+        .from("factures")
+        .select(`
+          id,
+          numero_facture,
+          montant_total,
+          date_echeance,
+          contact:contacts(id, nom, prenom, email)
+        `)
+        .in("statut", ["emise", "partiel"])
+        .eq("date_echeance", j7Date);
 
-    const { data: upcomingInvoices, error: invoicesError } = await supabase
-      .from("factures")
-      .select(`
-        id,
-        numero_facture,
-        montant_total,
-        date_echeance,
-        contact:contacts(id, nom, prenom, email)
-      `)
-      .in("statut", ["emise", "partiel"])
-      .eq("date_echeance", paymentJ7Date);
-
-    if (invoicesError) {
-      console.error("Error fetching upcoming invoices:", invoicesError);
-    } else if (upcomingInvoices && upcomingInvoices.length > 0) {
-      console.log(`Found ${upcomingInvoices.length} invoices due in 7 days`);
+      if (invoicesError) {
+        console.error("Error fetching upcoming invoices:", invoicesError);
+      } else if (upcomingInvoices && upcomingInvoices.length > 0) {
+        console.log(`Found ${upcomingInvoices.length} invoices due in 7 days`);
       
-      for (const invoice of upcomingInvoices) {
-        const contact = invoice.contact as any;
-        if (!contact?.email) continue;
+        for (const invoice of upcomingInvoices) {
+          const contact = invoice.contact as any;
+          if (!contact?.email) continue;
 
-        const emailSubject = `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`;
+          const emailSubject = `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`;
 
-        if (await alreadySentToday("payment_reminder_j7", contact.id, (q) => q.eq("facture_id", invoice.id))) {
-          results.push({
-            type: "payment_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            factureId: invoice.id,
-            subject: emailSubject,
-            success: true,
-            skipped: true,
-            reason: "already_sent",
-          });
-          console.log(`Payment J-7 reminder déjà envoyé aujourd'hui à ${contact.email} (facture ${invoice.numero_facture})`);
-          continue;
-        }
+          if (await alreadySentToday("payment_reminder_j7", contact.id, (q) => q.eq("facture_id", invoice.id))) {
+            results.push({
+              type: "payment_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              factureId: invoice.id,
+              subject: emailSubject,
+              success: true,
+              skipped: true,
+              reason: "already_sent",
+            });
+            console.log(`Payment J-7 reminder déjà envoyé aujourd'hui à ${contact.email} (facture ${invoice.numero_facture})`);
+            continue;
+          }
 
-        if (dryRun) {
-          results.push({
-            type: "payment_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            factureId: invoice.id,
-            subject: emailSubject,
-            success: true,
-            reason: "dry_run",
-          });
-          continue;
-        }
+          if (dryRun) {
+            results.push({
+              type: "payment_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              factureId: invoice.id,
+              subject: emailSubject,
+              success: true,
+              reason: "dry_run",
+            });
+            continue;
+          }
 
-        try {
-          const emailHtml = buildEmailHtml({
-            title: "⏰ Rappel de paiement",
-            accentColor: "#d97706",
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            bodyHtml: `
-              <p style="margin: 0 0 12px 0;">Nous vous rappelons que la facture <strong>${invoice.numero_facture}</strong> 
-                 d'un montant de <strong>${Number(invoice.montant_total).toLocaleString("fr-FR")}€</strong> 
-                 arrive à échéance le <strong>${formatDateFr(invoice.date_echeance!)}</strong>.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
-                <tr>
-                  <td style="background-color: #fef3c7; border-left: 4px solid #d97706; border-radius: 6px; padding: 14px 18px;">
-                    <p style="margin: 0; font-weight: 700; color: #92400e;">L'échéance est dans 7 jours.</p>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin: 0 0 12px 0;">Nous vous remercions de bien vouloir procéder au règlement avant cette date.</p>
-              <p style="margin: 0; color: #888;">Si vous avez déjà effectué le paiement, veuillez ignorer ce message.</p>
-            `,
-          });
+          try {
+            const emailHtml = buildEmailHtml({
+              title: "⏰ Rappel de paiement",
+              accentColor: "#d97706",
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              bodyHtml: `
+                <p style="margin: 0 0 12px 0;">Nous vous rappelons que la facture <strong>${invoice.numero_facture}</strong> 
+                   d'un montant de <strong>${Number(invoice.montant_total).toLocaleString("fr-FR")}€</strong> 
+                   arrive à échéance le <strong>${formatDateFr(invoice.date_echeance!)}</strong>.</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+                  <tr>
+                    <td style="background-color: #fef3c7; border-left: 4px solid #d97706; border-radius: 6px; padding: 14px 18px;">
+                      <p style="margin: 0; font-weight: 700; color: #92400e;">L'échéance est dans 7 jours.</p>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin: 0 0 12px 0;">Nous vous remercions de bien vouloir procéder au règlement avant cette date.</p>
+                <p style="margin: 0; color: #888;">Si vous avez déjà effectué le paiement, veuillez ignorer ce message.</p>
+              `,
+            });
 
-          const emailResponse = await resend.emails.send({
-            from: EMAIL_CONFIG.FROM,
-            to: [contact.email],
-            subject: emailSubject,
-            reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: emailHtml,
-          });
+            const emailResponse = await resend.emails.send({
+              from: EMAIL_CONFIG.FROM,
+              to: [contact.email],
+              subject: emailSubject,
+              reply_to: EMAIL_CONFIG.REPLY_TO,
+              html: emailHtml,
+            });
 
-          await supabase.from("email_logs").insert({
-            type: "payment_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            facture_id: invoice.id,
-            subject: emailSubject,
-            template_used: "payment_reminder_j7",
-            status: "sent",
-            resend_id: emailResponse.data?.id,
-          });
+            await supabase.from("email_logs").insert({
+              type: "payment_reminder_j7",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              facture_id: invoice.id,
+              subject: emailSubject,
+              template_used: "payment_reminder_j7",
+              status: "sent",
+              resend_id: emailResponse.data?.id,
+            });
 
-          results.push({
-            type: "payment_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            factureId: invoice.id,
-            subject: emailSubject,
-            success: true,
-            resendId: emailResponse.data?.id,
-          });
-          console.log(`Payment J-7 reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
-        } catch (emailError: any) {
-          await supabase.from("email_logs").insert({
-            type: "payment_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            facture_id: invoice.id,
-            subject: emailSubject,
-            template_used: "payment_reminder_j7",
-            status: "failed",
-            error_message: emailError.message,
-          });
+            results.push({
+              type: "payment_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              factureId: invoice.id,
+              subject: emailSubject,
+              success: true,
+              resendId: emailResponse.data?.id,
+            });
+            console.log(`Payment J-7 reminder sent to ${contact.email} for invoice ${invoice.numero_facture}`);
+          } catch (emailError: any) {
+            await supabase.from("email_logs").insert({
+              type: "payment_reminder_j7",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              facture_id: invoice.id,
+              subject: emailSubject,
+              template_used: "payment_reminder_j7",
+              status: "failed",
+              error_message: emailError.message,
+            });
 
-          results.push({
-            type: "payment_reminder_j7",
-            recipient: contact.email,
-            subject: emailSubject,
-            success: false,
-            error: emailError.message,
-          });
-          console.error(`Failed to send payment reminder to ${contact.email}:`, emailError);
+            results.push({
+              type: "payment_reminder_j7",
+              recipient: contact.email,
+              subject: emailSubject,
+              success: false,
+              error: emailError.message,
+            });
+            console.error(`Failed to send payment reminder to ${contact.email}:`, emailError);
+          }
         }
       }
+    } else {
+      console.log(
+        "[AUTO-EMAILS] bloc relance_paiement_j7 ÉTEINT : aucune lecture de `factures`, aucun envoi.",
+      );
     }
 
     // ========================================
     // 2. RAPPELS FORMATION J-7
     // ========================================
-    console.log("Checking for sessions starting in 7 days...");
+    // Interrupteur du bloc : voir BLOCS_AUTOMATIQUES_ACTIFS en tête de fichier.
+    if (BLOCS_AUTOMATIQUES_ACTIFS.rappel_formation_j7) {
+      console.log("Checking for sessions starting in 7 days...");
     
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    const j7Date = sevenDaysFromNow.toISOString().split("T")[0];
-
-    const { data: sessionsJ7, error: sessionsJ7Error } = await supabase
-      .from("sessions")
-      .select(`
-        id,
-        nom,
-        date_debut,
-        date_fin,
-        lieu,
-        formation_type,
-        session_inscriptions(
+      const { data: sessionsJ7, error: sessionsJ7Error } = await supabase
+        .from("sessions")
+        .select(`
           id,
-          statut,
-          contact:contacts(id, nom, prenom, email)
-        )
-      `)
-      .eq("date_debut", j7Date)
-      .in("statut", ["a_venir", "complet"]);
+          nom,
+          date_debut,
+          date_fin,
+          lieu,
+          formation_type,
+          session_inscriptions(
+            id,
+            statut,
+            contact:contacts(id, nom, prenom, email)
+          )
+        `)
+        .eq("date_debut", j7Date)
+        .in("statut", ["a_venir", "complet"]);
 
-    if (sessionsJ7Error) {
-      console.error("Error fetching J-7 sessions:", sessionsJ7Error);
-    } else if (sessionsJ7 && sessionsJ7.length > 0) {
-      console.log(`Found ${sessionsJ7.length} sessions starting in 7 days`);
+      if (sessionsJ7Error) {
+        console.error("Error fetching J-7 sessions:", sessionsJ7Error);
+      } else if (sessionsJ7 && sessionsJ7.length > 0) {
+        console.log(`Found ${sessionsJ7.length} sessions starting in 7 days`);
       
-      for (const session of sessionsJ7) {
-        const inscriptions = session.session_inscriptions as any[];
-        if (!inscriptions) continue;
+        for (const session of sessionsJ7) {
+          const inscriptions = session.session_inscriptions as any[];
+          if (!inscriptions) continue;
 
-        for (const inscription of inscriptions) {
-          if (inscription.statut !== "inscrit") continue;
-          const contact = inscription.contact;
-          if (!contact?.email) continue;
+          for (const inscription of inscriptions) {
+            if (inscription.statut !== "inscrit") continue;
+            const contact = inscription.contact;
+            if (!contact?.email) continue;
 
-          const subjectJ7 = `Rappel J-7 : Votre formation ${session.nom} approche !`;
+            const subjectJ7 = `Rappel J-7 : Votre formation ${session.nom} approche !`;
 
-          if (await alreadySentToday("session_reminder_j7", contact.id, (q) => q.eq("session_id", session.id))) {
-            results.push({
-              type: "reminder_j7",
-              recipient: contact.email,
-              contactId: contact.id,
-              sessionId: session.id,
-              subject: subjectJ7,
-              success: true,
-              skipped: true,
-              reason: "already_sent",
-            });
-            continue;
-          }
+            if (await alreadySentToday("session_reminder_j7", contact.id, (q) => q.eq("session_id", session.id))) {
+              results.push({
+                type: "reminder_j7",
+                recipient: contact.email,
+                contactId: contact.id,
+                sessionId: session.id,
+                subject: subjectJ7,
+                success: true,
+                skipped: true,
+                reason: "already_sent",
+              });
+              continue;
+            }
 
-          if (dryRun) {
-            results.push({
-              type: "reminder_j7",
-              recipient: contact.email,
-              contactId: contact.id,
-              sessionId: session.id,
-              subject: subjectJ7,
-              success: true,
-              reason: "dry_run",
-            });
-            continue;
-          }
+            if (dryRun) {
+              results.push({
+                type: "reminder_j7",
+                recipient: contact.email,
+                contactId: contact.id,
+                sessionId: session.id,
+                subject: subjectJ7,
+                success: true,
+                reason: "dry_run",
+              });
+              continue;
+            }
 
-          try {
-            const emailHtml = buildEmailHtml({
-              title: "🎓 Rappel de formation — J-7",
-              accentColor: "#2563eb",
-              recipientName: `${contact.prenom} ${contact.nom}`,
-              bodyHtml: `
-                <p style="margin: 0 0 12px 0;">Nous vous rappelons que vous êtes inscrit(e) à la formation suivante :</p>
-                <h3 style="margin: 18px 0 10px 0; color: #333;">Documents à préparer :</h3>
-                <ul style="margin: 0; padding-left: 20px;">
-                  <li style="margin-bottom: 4px;">Pièce d'identité en cours de validité</li>
-                  <li style="margin-bottom: 4px;">Permis de conduire</li>
-                  <li style="margin-bottom: 4px;">Photo d'identité (si non fournie)</li>
-                </ul>
-                <p style="margin: 16px 0 0 0;">N'hésitez pas à nous contacter si vous avez des questions.</p>
-              `,
-              sessionInfo: {
-                nom: session.nom,
-                formationType: session.formation_type,
-                dateDebut: formatDateFr(session.date_debut),
-                dateFin: formatDateFr(session.date_fin),
-                lieu: session.lieu || undefined,
-              },
-            });
+            try {
+              const emailHtml = buildEmailHtml({
+                title: "🎓 Rappel de formation — J-7",
+                accentColor: "#2563eb",
+                recipientName: `${contact.prenom} ${contact.nom}`,
+                bodyHtml: `
+                  <p style="margin: 0 0 12px 0;">Nous vous rappelons que vous êtes inscrit(e) à la formation suivante :</p>
+                  <h3 style="margin: 18px 0 10px 0; color: #333;">Documents à préparer :</h3>
+                  <ul style="margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 4px;">Pièce d'identité en cours de validité</li>
+                    <li style="margin-bottom: 4px;">Permis de conduire</li>
+                    <li style="margin-bottom: 4px;">Photo d'identité (si non fournie)</li>
+                  </ul>
+                  <p style="margin: 16px 0 0 0;">N'hésitez pas à nous contacter si vous avez des questions.</p>
+                `,
+                sessionInfo: {
+                  nom: session.nom,
+                  formationType: session.formation_type,
+                  dateDebut: formatDateFr(session.date_debut),
+                  dateFin: formatDateFr(session.date_fin),
+                  lieu: session.lieu || undefined,
+                },
+              });
 
-            const emailResponse = await resend.emails.send({
-              from: EMAIL_CONFIG.FROM,
-              to: [contact.email],
-              subject: subjectJ7,
-              reply_to: EMAIL_CONFIG.REPLY_TO,
-              html: emailHtml,
-            });
+              const emailResponse = await resend.emails.send({
+                from: EMAIL_CONFIG.FROM,
+                to: [contact.email],
+                subject: subjectJ7,
+                reply_to: EMAIL_CONFIG.REPLY_TO,
+                html: emailHtml,
+              });
 
-            await supabase.from("email_logs").insert({
-              type: "session_reminder_j7",
-              recipient_email: contact.email,
-              recipient_name: `${contact.prenom} ${contact.nom}`,
-              contact_id: contact.id,
-              session_id: session.id,
-              subject: subjectJ7,
-              template_used: "session_reminder_j7",
-              status: "sent",
-              resend_id: emailResponse.data?.id,
-            });
+              await supabase.from("email_logs").insert({
+                type: "session_reminder_j7",
+                recipient_email: contact.email,
+                recipient_name: `${contact.prenom} ${contact.nom}`,
+                contact_id: contact.id,
+                session_id: session.id,
+                subject: subjectJ7,
+                template_used: "session_reminder_j7",
+                status: "sent",
+                resend_id: emailResponse.data?.id,
+              });
 
-            results.push({
-              type: "reminder_j7",
-              recipient: contact.email,
-              sessionId: session.id,
-              success: true,
-            });
-            console.log(`J-7 reminder sent to ${contact.email} for session ${session.nom}`);
-          } catch (emailError: any) {
-            results.push({
-              type: "reminder_j7",
-              recipient: contact.email,
-              success: false,
-              error: emailError.message,
-            });
+              results.push({
+                type: "reminder_j7",
+                recipient: contact.email,
+                sessionId: session.id,
+                success: true,
+              });
+              console.log(`J-7 reminder sent to ${contact.email} for session ${session.nom}`);
+            } catch (emailError: any) {
+              results.push({
+                type: "reminder_j7",
+                recipient: contact.email,
+                success: false,
+                error: emailError.message,
+              });
+            }
           }
         }
       }
+    } else {
+      console.log(
+        "[AUTO-EMAILS] bloc rappel_formation_j7 ÉTEINT : aucune lecture de `sessions`, aucun envoi.",
+      );
     }
 
     // ========================================
     // 3. RAPPELS FORMATION J-1
     // ========================================
-    console.log("Checking for sessions starting tomorrow...");
+    // Interrupteur du bloc : voir BLOCS_AUTOMATIQUES_ACTIFS en tête de fichier.
+    if (BLOCS_AUTOMATIQUES_ACTIFS.rappel_formation_j1) {
+      console.log("Checking for sessions starting tomorrow...");
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const j1Date = tomorrow.toISOString().split("T")[0];
-
-    const { data: sessionsJ1, error: sessionsJ1Error } = await supabase
-      .from("sessions")
-      .select(`
-        id,
-        nom,
-        date_debut,
-        date_fin,
-        lieu,
-        formation_type,
-        session_inscriptions(
+      const { data: sessionsJ1, error: sessionsJ1Error } = await supabase
+        .from("sessions")
+        .select(`
           id,
-          statut,
-          contact:contacts(id, nom, prenom, email)
-        )
-      `)
-      .eq("date_debut", j1Date)
-      .in("statut", ["a_venir", "complet"]);
+          nom,
+          date_debut,
+          date_fin,
+          lieu,
+          formation_type,
+          session_inscriptions(
+            id,
+            statut,
+            contact:contacts(id, nom, prenom, email)
+          )
+        `)
+        .eq("date_debut", j1Date)
+        .in("statut", ["a_venir", "complet"]);
 
-    if (sessionsJ1Error) {
-      console.error("Error fetching J-1 sessions:", sessionsJ1Error);
-    } else if (sessionsJ1 && sessionsJ1.length > 0) {
-      console.log(`Found ${sessionsJ1.length} sessions starting tomorrow`);
+      if (sessionsJ1Error) {
+        console.error("Error fetching J-1 sessions:", sessionsJ1Error);
+      } else if (sessionsJ1 && sessionsJ1.length > 0) {
+        console.log(`Found ${sessionsJ1.length} sessions starting tomorrow`);
       
-      for (const session of sessionsJ1) {
-        const inscriptions = session.session_inscriptions as any[];
-        if (!inscriptions) continue;
+        for (const session of sessionsJ1) {
+          const inscriptions = session.session_inscriptions as any[];
+          if (!inscriptions) continue;
 
-        for (const inscription of inscriptions) {
-          if (inscription.statut !== "inscrit") continue;
-          const contact = inscription.contact;
-          if (!contact?.email) continue;
+          for (const inscription of inscriptions) {
+            if (inscription.statut !== "inscrit") continue;
+            const contact = inscription.contact;
+            if (!contact?.email) continue;
 
-          const subjectJ1 = `C'est demain ! Rappel pour votre formation ${session.nom}`;
+            const subjectJ1 = `C'est demain ! Rappel pour votre formation ${session.nom}`;
 
-          if (await alreadySentToday("session_reminder_j1", contact.id, (q) => q.eq("session_id", session.id))) {
-            results.push({
-              type: "reminder_j1",
-              recipient: contact.email,
-              contactId: contact.id,
-              sessionId: session.id,
-              subject: subjectJ1,
-              success: true,
-              skipped: true,
-              reason: "already_sent",
-            });
-            continue;
-          }
+            if (await alreadySentToday("session_reminder_j1", contact.id, (q) => q.eq("session_id", session.id))) {
+              results.push({
+                type: "reminder_j1",
+                recipient: contact.email,
+                contactId: contact.id,
+                sessionId: session.id,
+                subject: subjectJ1,
+                success: true,
+                skipped: true,
+                reason: "already_sent",
+              });
+              continue;
+            }
 
-          if (dryRun) {
-            results.push({
-              type: "reminder_j1",
-              recipient: contact.email,
-              contactId: contact.id,
-              sessionId: session.id,
-              subject: subjectJ1,
-              success: true,
-              reason: "dry_run",
-            });
-            continue;
-          }
+            if (dryRun) {
+              results.push({
+                type: "reminder_j1",
+                recipient: contact.email,
+                contactId: contact.id,
+                sessionId: session.id,
+                subject: subjectJ1,
+                success: true,
+                reason: "dry_run",
+              });
+              continue;
+            }
 
-          try {
-            const emailHtml = buildEmailHtml({
-              title: "🎓 C'est demain !",
-              accentColor: "#059669",
-              recipientName: `${contact.prenom} ${contact.nom}`,
-              bodyHtml: `
-                <p style="margin: 0 0 12px 0;">Nous vous attendons <strong>demain</strong> pour le début de votre formation :</p>
-                <h3 style="margin: 18px 0 10px 0; color: #333;">Rappel des documents obligatoires :</h3>
-                <ul style="margin: 0; padding-left: 20px;">
-                  <li style="margin-bottom: 4px;">✅ Pièce d'identité en cours de validité</li>
-                  <li style="margin-bottom: 4px;">✅ Permis de conduire</li>
-                  <li style="margin-bottom: 4px;">✅ De quoi prendre des notes</li>
-                </ul>
-                <p style="margin: 16px 0 0 0; color: #059669; font-weight: bold;">Nous avons hâte de vous accueillir !</p>
-              `,
-              sessionInfo: {
-                nom: session.nom,
-                formationType: session.formation_type,
-                dateDebut: formatDateFr(session.date_debut),
-                lieu: session.lieu || undefined,
-                heureDebut: "9h00 (merci d'arriver 15 minutes avant)",
-              },
-            });
+            try {
+              const emailHtml = buildEmailHtml({
+                title: "🎓 C'est demain !",
+                accentColor: "#059669",
+                recipientName: `${contact.prenom} ${contact.nom}`,
+                bodyHtml: `
+                  <p style="margin: 0 0 12px 0;">Nous vous attendons <strong>demain</strong> pour le début de votre formation :</p>
+                  <h3 style="margin: 18px 0 10px 0; color: #333;">Rappel des documents obligatoires :</h3>
+                  <ul style="margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 4px;">✅ Pièce d'identité en cours de validité</li>
+                    <li style="margin-bottom: 4px;">✅ Permis de conduire</li>
+                    <li style="margin-bottom: 4px;">✅ De quoi prendre des notes</li>
+                  </ul>
+                  <p style="margin: 16px 0 0 0; color: #059669; font-weight: bold;">Nous avons hâte de vous accueillir !</p>
+                `,
+                sessionInfo: {
+                  nom: session.nom,
+                  formationType: session.formation_type,
+                  dateDebut: formatDateFr(session.date_debut),
+                  lieu: session.lieu || undefined,
+                  heureDebut: "9h00 (merci d'arriver 15 minutes avant)",
+                },
+              });
 
-            const emailResponse = await resend.emails.send({
-              from: EMAIL_CONFIG.FROM,
-              to: [contact.email],
-              subject: subjectJ1,
-              reply_to: EMAIL_CONFIG.REPLY_TO,
-              html: emailHtml,
-            });
+              const emailResponse = await resend.emails.send({
+                from: EMAIL_CONFIG.FROM,
+                to: [contact.email],
+                subject: subjectJ1,
+                reply_to: EMAIL_CONFIG.REPLY_TO,
+                html: emailHtml,
+              });
 
-            await supabase.from("email_logs").insert({
-              type: "session_reminder_j1",
-              recipient_email: contact.email,
-              recipient_name: `${contact.prenom} ${contact.nom}`,
-              contact_id: contact.id,
-              session_id: session.id,
-              subject: subjectJ1,
-              template_used: "session_reminder_j1",
-              status: "sent",
-              resend_id: emailResponse.data?.id,
-            });
+              await supabase.from("email_logs").insert({
+                type: "session_reminder_j1",
+                recipient_email: contact.email,
+                recipient_name: `${contact.prenom} ${contact.nom}`,
+                contact_id: contact.id,
+                session_id: session.id,
+                subject: subjectJ1,
+                template_used: "session_reminder_j1",
+                status: "sent",
+                resend_id: emailResponse.data?.id,
+              });
 
-            results.push({
-              type: "reminder_j1",
-              recipient: contact.email,
-              sessionId: session.id,
-              success: true,
-            });
-            console.log(`J-1 reminder sent to ${contact.email} for session ${session.nom}`);
-          } catch (emailError: any) {
-            results.push({
-              type: "reminder_j1",
-              recipient: contact.email,
-              success: false,
-              error: emailError.message,
-            });
+              results.push({
+                type: "reminder_j1",
+                recipient: contact.email,
+                sessionId: session.id,
+                success: true,
+              });
+              console.log(`J-1 reminder sent to ${contact.email} for session ${session.nom}`);
+            } catch (emailError: any) {
+              results.push({
+                type: "reminder_j1",
+                recipient: contact.email,
+                success: false,
+                error: emailError.message,
+              });
+            }
           }
         }
       }
+    } else {
+      console.log(
+        "[AUTO-EMAILS] bloc rappel_formation_j1 ÉTEINT : aucune lecture de `sessions`, aucun envoi.",
+      );
     }
 
     // Le rappel « examen T3P J-7 » a été retiré d'ici : il faisait doublon
@@ -1067,162 +1131,184 @@ serve(async (req) => {
     // ========================================
     // 4. RAPPELS EXAMEN PRATIQUE J-7
     // ========================================
-    console.log("Checking for practical exams in 7 days...");
+    // Interrupteur du bloc : voir BLOCS_AUTOMATIQUES_ACTIFS en tête de fichier.
+    if (BLOCS_AUTOMATIQUES_ACTIFS.rappel_examen_pratique_j7) {
+      console.log("Checking for practical exams in 7 days...");
     
-    const { data: examensPratiqueJ7, error: examensPratiqueError } = await supabase
-      .from("examens_pratique")
-      .select(`
-        id,
-        date_examen,
-        heure_examen,
-        centre_examen,
-        adresse_centre,
-        type_examen,
-        numero_tentative,
-        contact:contacts(id, nom, prenom, email),
-        vehicule:vehicules(immatriculation, marque, modele)
-      `)
-      .eq("date_examen", j7Date)
-      .eq("statut", "planifie");
+      const { data: examensPratiqueJ7, error: examensPratiqueError } = await supabase
+        .from("examens_pratique")
+        .select(`
+          id,
+          date_examen,
+          heure_examen,
+          centre_examen,
+          adresse_centre,
+          type_examen,
+          numero_tentative,
+          contact:contacts(id, nom, prenom, email),
+          vehicule:vehicules(immatriculation, marque, modele)
+        `)
+        .eq("date_examen", j7Date)
+        .eq("statut", "planifie");
 
-    if (examensPratiqueError) {
-      console.error("Error fetching practical exams:", examensPratiqueError);
-    } else if (examensPratiqueJ7 && examensPratiqueJ7.length > 0) {
-      console.log(`Found ${examensPratiqueJ7.length} practical exams in 7 days`);
+      if (examensPratiqueError) {
+        console.error("Error fetching practical exams:", examensPratiqueError);
+      } else if (examensPratiqueJ7 && examensPratiqueJ7.length > 0) {
+        console.log(`Found ${examensPratiqueJ7.length} practical exams in 7 days`);
       
-      for (const examen of examensPratiqueJ7) {
-        const contact = examen.contact as any;
-        const vehicule = examen.vehicule as any;
-        if (!contact?.email) continue;
+        for (const examen of examensPratiqueJ7) {
+          const contact = examen.contact as any;
+          const vehicule = examen.vehicule as any;
+          if (!contact?.email) continue;
 
-        const emailSubject = `Rappel : Votre examen pratique dans 7 jours`;
+          const emailSubject = `Rappel : Votre examen pratique dans 7 jours`;
 
-        // Clé métier dans metadata (motif CLAUDE.md) : pas de colonne examen_id
-        // sur email_logs, l'identifiant est déjà tracé dans metadata à l'insert.
-        if (await alreadySentToday("exam_pratique_reminder_j7", contact.id, (q) => q.contains("metadata", { examen_id: examen.id }))) {
-          results.push({
-            type: "exam_pratique_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            examenId: examen.id,
-            subject: emailSubject,
-            success: true,
-            skipped: true,
-            reason: "already_sent",
-          });
-          console.log(`Practical exam J-7 reminder déjà envoyé aujourd'hui à ${contact.email}`);
-          continue;
-        }
+          // Clé métier dans metadata (motif CLAUDE.md) : pas de colonne examen_id
+          // sur email_logs, l'identifiant est déjà tracé dans metadata à l'insert.
+          if (await alreadySentToday("exam_pratique_reminder_j7", contact.id, (q) => q.contains("metadata", { examen_id: examen.id }))) {
+            results.push({
+              type: "exam_pratique_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              examenId: examen.id,
+              subject: emailSubject,
+              success: true,
+              skipped: true,
+              reason: "already_sent",
+            });
+            console.log(`Practical exam J-7 reminder déjà envoyé aujourd'hui à ${contact.email}`);
+            continue;
+          }
 
-        if (dryRun) {
-          results.push({
-            type: "exam_pratique_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            examenId: examen.id,
-            subject: emailSubject,
-            success: true,
-            reason: "dry_run",
-          });
-          continue;
-        }
+          if (dryRun) {
+            results.push({
+              type: "exam_pratique_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              examenId: examen.id,
+              subject: emailSubject,
+              success: true,
+              reason: "dry_run",
+            });
+            continue;
+          }
 
-        try {
-          const emailHtml = buildEmailHtml({
-            title: "🚗 Rappel Examen Pratique — J-7",
-            accentColor: "#0891b2",
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            bodyHtml: `
-              <p style="margin: 0 0 12px 0;">Votre examen pratique approche ! Voici les détails :</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
-                <tr>
-                  <td style="background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px; padding: 18px 20px;">
-                    <p style="margin: 0 0 6px 0; font-weight: 700; color: #0e7490;">Examen Pratique — ${examen.type_examen}</p>
-                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
-                    ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
-                    ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
-                    ${examen.adresse_centre ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
-                    ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
-                    <p style="margin: 0; font-size: 13px; color: #555;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative || 1}</p>
-                  </td>
-                </tr>
-              </table>
-              <h3 style="margin: 18px 0 10px 0; color: #333;">À ne pas oublier :</h3>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li style="margin-bottom: 4px;">🆔 Pièce d'identité en cours de validité</li>
-                <li style="margin-bottom: 4px;">🪪 Permis de conduire</li>
-                <li style="margin-bottom: 4px;">📄 Attestation T3P</li>
-                <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
-              </ul>
-              <p style="margin: 16px 0 0 0; color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
-            `,
-          });
+          try {
+            const emailHtml = buildEmailHtml({
+              title: "🚗 Rappel Examen Pratique — J-7",
+              accentColor: "#0891b2",
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              bodyHtml: `
+                <p style="margin: 0 0 12px 0;">Votre examen pratique approche ! Voici les détails :</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+                  <tr>
+                    <td style="background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px; padding: 18px 20px;">
+                      <p style="margin: 0 0 6px 0; font-weight: 700; color: #0e7490;">Examen Pratique — ${examen.type_examen}</p>
+                      <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
+                      ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
+                      ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🏢 Centre :</strong> ${examen.centre_examen}</p>` : ""}
+                      ${examen.adresse_centre ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Adresse :</strong> ${examen.adresse_centre}</p>` : ""}
+                      ${vehicule ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>🚗 Véhicule :</strong> ${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})</p>` : ""}
+                      <p style="margin: 0; font-size: 13px; color: #555;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative || 1}</p>
+                    </td>
+                  </tr>
+                </table>
+                <h3 style="margin: 18px 0 10px 0; color: #333;">À ne pas oublier :</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 4px;">🆔 Pièce d'identité en cours de validité</li>
+                  <li style="margin-bottom: 4px;">🪪 Permis de conduire</li>
+                  <li style="margin-bottom: 4px;">📄 Attestation T3P</li>
+                  <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
+                </ul>
+                <p style="margin: 16px 0 0 0; color: #0891b2; font-weight: bold;">Bonne chance pour votre examen !</p>
+              `,
+            });
 
-          const emailResponse = await resend.emails.send({
-            from: EMAIL_CONFIG.FROM,
-            to: [contact.email],
-            subject: emailSubject,
-            reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: emailHtml,
-          });
+            const emailResponse = await resend.emails.send({
+              from: EMAIL_CONFIG.FROM,
+              to: [contact.email],
+              subject: emailSubject,
+              reply_to: EMAIL_CONFIG.REPLY_TO,
+              html: emailHtml,
+            });
 
-          await supabase.from("email_logs").insert({
-            type: "exam_pratique_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            subject: emailSubject,
-            template_used: "exam_pratique_reminder_j7",
-            status: "sent",
-            resend_id: emailResponse.data?.id,
-            metadata: { examen_id: examen.id, type_examen: examen.type_examen },
-          });
+            await supabase.from("email_logs").insert({
+              type: "exam_pratique_reminder_j7",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              subject: emailSubject,
+              template_used: "exam_pratique_reminder_j7",
+              status: "sent",
+              resend_id: emailResponse.data?.id,
+              metadata: { examen_id: examen.id, type_examen: examen.type_examen },
+            });
 
-          results.push({
-            type: "exam_pratique_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            examenId: examen.id,
-            subject: emailSubject,
-            success: true,
-            resendId: emailResponse.data?.id,
-          });
-          console.log(`Practical exam J-7 reminder sent to ${contact.email}`);
-        } catch (emailError: any) {
-          await supabase.from("email_logs").insert({
-            type: "exam_pratique_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            subject: emailSubject,
-            template_used: "exam_pratique_reminder_j7",
-            status: "failed",
-            error_message: emailError.message,
-          });
+            results.push({
+              type: "exam_pratique_reminder_j7",
+              recipient: contact.email,
+              recipientName: `${contact.prenom} ${contact.nom}`,
+              contactId: contact.id,
+              examenId: examen.id,
+              subject: emailSubject,
+              success: true,
+              resendId: emailResponse.data?.id,
+            });
+            console.log(`Practical exam J-7 reminder sent to ${contact.email}`);
+          } catch (emailError: any) {
+            await supabase.from("email_logs").insert({
+              type: "exam_pratique_reminder_j7",
+              recipient_email: contact.email,
+              recipient_name: `${contact.prenom} ${contact.nom}`,
+              contact_id: contact.id,
+              subject: emailSubject,
+              template_used: "exam_pratique_reminder_j7",
+              status: "failed",
+              error_message: emailError.message,
+            });
 
-          results.push({
-            type: "exam_pratique_reminder_j7",
-            recipient: contact.email,
-            success: false,
-            error: emailError.message,
-          });
-          console.error(`Failed to send practical exam reminder to ${contact.email}:`, emailError);
+            results.push({
+              type: "exam_pratique_reminder_j7",
+              recipient: contact.email,
+              success: false,
+              error: emailError.message,
+            });
+            console.error(`Failed to send practical exam reminder to ${contact.email}:`, emailError);
+          }
         }
       }
+    } else {
+      console.log(
+        "[AUTO-EMAILS] bloc rappel_examen_pratique_j7 ÉTEINT : aucune lecture de " +
+          "`examens_pratique`, aucun envoi.",
+      );
     }
 
     // ========================================
     // SUMMARY
     // ========================================
-    // En mode simulation, `envoyes` se lit « auraient été envoyés ».
-    const countBlock = (type: string) => ({
-      envoyes: results.filter((r) => r.type === type && r.success && !r.skipped).length,
-      deja_envoyes: results.filter((r) => r.type === type && r.skipped).length,
-      echecs: results.filter((r) => r.type === type && !r.success).length,
-    });
+    // Un bloc ÉTEINT n'a produit aucun résultat : il se déclare `actif: false`
+    // avec son motif, et n'expose AUCUN compteur — sans quoi il se lirait comme
+    // un bloc allumé n'ayant trouvé personne. En mode simulation, `envoyes` se
+    // lit « auraient été envoyés ».
+    const countBlock = (type: string, bloc: keyof typeof BLOCS_AUTOMATIQUES_ACTIFS) =>
+      BLOCS_AUTOMATIQUES_ACTIFS[bloc]
+        ? {
+            actif: true,
+            envoyes: results.filter((r) => r.type === type && r.success && !r.skipped).length,
+            deja_envoyes: results.filter((r) => r.type === type && r.skipped).length,
+            echecs: results.filter((r) => r.type === type && !r.success).length,
+          }
+        : {
+            actif: false,
+            motif: MOTIFS_EXTINCTION[bloc] ?? "bloc éteint (BLOCS_AUTOMATIQUES_ACTIFS)",
+          };
+
+    const blocsDesactives = (
+      Object.keys(BLOCS_AUTOMATIQUES_ACTIFS) as (keyof typeof BLOCS_AUTOMATIQUES_ACTIFS)[]
+    ).filter((bloc) => !BLOCS_AUTOMATIQUES_ACTIFS[bloc]);
 
     const summary = {
       timestamp: new Date().toISOString(),
@@ -1231,11 +1317,16 @@ serve(async (req) => {
       successful: results.filter((r) => r.success && !r.skipped).length,
       failed: results.filter((r) => !r.success).length,
       already_sent: results.filter((r) => r.skipped).length,
+      /** Blocs volontairement éteints : ils n'ont RIEN tenté (ni requête, ni envoi). */
+      blocs_desactives: blocsDesactives,
       breakdown: {
-        payment_reminders_j7: countBlock("payment_reminder_j7"),
-        formation_reminders_j7: countBlock("reminder_j7"),
-        formation_reminders_j1: countBlock("reminder_j1"),
-        exam_pratique_reminders_j7: countBlock("exam_pratique_reminder_j7"),
+        payment_reminders_j7: countBlock("payment_reminder_j7", "relance_paiement_j7"),
+        formation_reminders_j7: countBlock("reminder_j7", "rappel_formation_j7"),
+        formation_reminders_j1: countBlock("reminder_j1", "rappel_formation_j1"),
+        exam_pratique_reminders_j7: countBlock(
+          "exam_pratique_reminder_j7",
+          "rappel_examen_pratique_j7",
+        ),
       },
       details: results,
     };

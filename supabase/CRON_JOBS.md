@@ -119,7 +119,7 @@ passé avant (#82 — la fonction accepte le JWT d'un admin comme alternative au
 secret), il a donc survécu à l'activation du 10/09/2026. Point à re-vérifier
 avant toute rotation.
 
-## `send-automated-emails` — panne silencieuse et déblocage en attente
+## `send-automated-emails` — panne silencieuse, décision du 10/09/2026, redéploiement en attente
 
 **Découvert le 10/09/2026, en vérifiant l'activation de `CRON_SECRET`.** La
 fonction répondait **401 depuis le 14/01/2026** : le job `daily-automated-emails`
@@ -132,11 +132,44 @@ rappel de formation J-7/J-1 n'est parti automatiquement.** (Les rappels
 d'examen, eux, continuaient de partir : `send-exam-reminders` n'a pas de garde
 JWT et tourne bien à 09:00 UTC.)
 
-⚠️ **Le déblocage attend une décision explicite de Karim — ne PAS redéployer
-la fonction sans son accord.** Au premier passage à 08:00 UTC qui suivra le
-redéploiement, la campagne du jour partira pour de bon : relances de paiement
-et rappels de formation à tous les candidats dont l'échéance tombe ce jour-là.
+⚠️ **Au premier passage à 08:00 UTC qui suivra le redéploiement, la campagne du
+jour partira pour de bon**, dans les limites fixées par les interrupteurs
+ci-dessous : rappels de formation J-7/J-1 et rappel d'examen pratique J-7 à tous
+les candidats concernés ce jour-là. **Aucune relance de paiement ne partira.**
 Vérifier d'abord le volume attendu avec `?dryRun=true`.
+
+### État des 4 blocs automatiques — décision du directeur du 10/09/2026
+
+| Bloc | État | Ce qui part |
+|---|---|---|
+| Relance de paiement J-7 | 🔴 **ÉTEINT** | **rien** — la table `factures` n'est même pas lue |
+| Rappel de formation J-7 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant dans 7 jours, aux inscrits |
+| Rappel de formation J-1 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant demain, aux inscrits |
+| Rappel d'examen pratique J-7 | 🟢 **ALLUMÉ** | examens pratiques `planifie` dans 7 jours |
+
+> **Décision de Karim (directeur), le 10/09/2026**, en deux temps :
+> « Pour les mails de relance automatique de paiement je veux pas les activer
+> maintenant car je sais que c'est pas encore optimal de notre côté. » puis
+> « Faut allumer uniquement les rappels de formations et d'examen. »
+>
+> **Motif de l'extinction de la relance de paiement** : le processus de relance
+> n'est pas encore au point côté centre.
+
+L'interrupteur est la constante `BLOCS_AUTOMATIQUES_ACTIFS`, en tête de
+`supabase/functions/send-automated-emails/index.ts`. **Rallumer un bloc = passer
+sa ligne de `false` à `true`**, puis faire redéployer la fonction par l'agent
+Lovable (le sync GitHub ne déploie pas les edge functions).
+
+Un bloc éteint est sauté INTÉGRALEMENT : aucune requête à la base, aucun appel
+à Resend, aucune écriture dans `email_logs`. Le résumé JSON le déclare
+`actif: false` avec son motif et le liste dans `blocs_desactives` — ce qui le
+distingue d'un bloc allumé n'ayant trouvé aucun destinataire (`actif: true,
+envoyes: 0`). `?dryRun=true` ne décompte que les blocs allumés.
+
+Ces interrupteurs ne concernent QUE la campagne automatique (voie
+`x-cron-secret`). Les envois **manuels** déclenchés depuis le CRM (devis,
+facture, lien Alma, documents de session — 13 écrans) passent par les branches
+`recipients` et `to`/`type` et ne les consultent jamais.
 
 Corollaire déjà traité dans le code : le bloc « rappel examen T3P J-7 » de
 `send-automated-emails` faisait **doublon exact** avec `send-exam-reminders`
