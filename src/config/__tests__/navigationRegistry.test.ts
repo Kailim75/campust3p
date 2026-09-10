@@ -3,9 +3,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   NAV_REGISTRY,
+  MORE_ENTRIES,
   PATH_TO_SECTION,
   SECTION_TO_PATH,
   SECTION_TO_PAGE_NAME,
+  filterEntriesByRole,
   resolveNavTarget,
   getEntryById,
 } from "@/config/navigationRegistry";
@@ -99,6 +101,27 @@ describe("navigationRegistry ↔ Index.tsx — cohérence des pages montées", (
       orphans,
       `Cases sans entrée registre : ${orphans.join(", ")}`,
     ).toEqual([]);
+  });
+});
+
+describe("filterEntriesByRole — visibilité par rôle", () => {
+  it("montre au staff les entrées qu'il a le droit serveur d'utiliser", () => {
+    // La garde SQL du soft-delete (is_admin_or_staff) et la RLS de
+    // document_templates autorisent le staff : le menu doit suivre, sinon les
+    // libellés « Administration › Corbeille » pointent vers une entrée absente.
+    const visible = filterEntriesByRole(MORE_ENTRIES, "staff").map((e) => e.id);
+    expect(visible).toContain("corbeille");
+    expect(visible).toContain("automations");
+  });
+
+  it("garde les outils réservés hors de la vue staff", () => {
+    const visible = filterEntriesByRole(MORE_ENTRIES, "staff").map((e) => e.id);
+    expect(visible).not.toContain("dashboard");
+    expect(visible).not.toContain("doublons-contacts");
+  });
+
+  it("affiche tout tant que le rôle n'est pas chargé", () => {
+    expect(filterEntriesByRole(MORE_ENTRIES, null)).toHaveLength(MORE_ENTRIES.length);
   });
 });
 

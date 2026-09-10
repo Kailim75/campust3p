@@ -26,12 +26,19 @@ const STEP_ROUTES: Record<OnboardingStepId, string> = {
   send_invoice: "/finances",
 };
 
+/** Onglet à ouvrir sur la page cible, quand la racine n'est pas la bonne
+ *  destination (/automations ouvre les modèles de documents par défaut). */
+const STEP_TABS: Partial<Record<OnboardingStepId, string>> = {
+  customize_email: "communications",
+};
+
 export interface OnboardingStep {
   id: OnboardingStepId;
   title: string;
   hint: string;
   ctaLabel: string;
   route: string;
+  tab?: string;
   completed: boolean;
   skippable: boolean;
 }
@@ -111,6 +118,7 @@ export function useOnboardingProgress(enabled = true) {
       hint: meta.hint,
       ctaLabel: meta.cta,
       route: STEP_ROUTES[id],
+      tab: STEP_TABS[id],
       completed: !!raw[id],
       skippable: id === "invite_team",
     };

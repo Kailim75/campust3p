@@ -1,15 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigation } from "@/contexts/NavigationContext";
 import { CommunicationsPage } from "@/components/communications/CommunicationsPage";
 import { WorkflowsPage } from "@/components/workflows/WorkflowsPage";
 import TemplateStudioPage from "@/components/template-studio/TemplateStudioPage";
 import IADirectorPage from "@/components/ia-director/IADirectorPage";
 import { Mail, Workflow, Palette, Zap } from "lucide-react";
 
+const VALID_TABS = ["templates", "communications", "workflows", "ia"] as const;
+
+type AutomationTab = (typeof VALID_TABS)[number];
+
 // Les modèles de documents ouvrent en premier : c'est la destination de
 // « Générer un document » (menu Créer) et l'usage quotidien de la page.
+// Un appelant peut viser un autre onglet via onNavigateWithParams(…, { tab })
+// — ex. l'étape d'onboarding « Personnaliser un email » → communications.
+function resolveTab(input?: string | null): AutomationTab {
+  if (input && (VALID_TABS as readonly string[]).includes(input)) return input as AutomationTab;
+  return "templates";
+}
+
 export function AutomationsPage() {
-  const [tab, setTab] = useState("templates");
+  const { activeTab } = useNavigation();
+  const [tab, setTab] = useState<AutomationTab>(() => resolveTab(activeTab));
+
+  // One-shot sync : accepter un deep-link arrivant après mount.
+  useEffect(() => {
+    if (!activeTab) return;
+    setTab(resolveTab(activeTab));
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen">
@@ -19,7 +38,7 @@ export function AutomationsPage() {
       </div>
 
       <div className="px-6 pb-6">
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as AutomationTab)}>
           <TabsList className="bg-muted/50 mb-5">
             <TabsTrigger value="templates" className="gap-1.5 text-xs">
               <Palette className="h-3.5 w-3.5" /> Modèles de documents
