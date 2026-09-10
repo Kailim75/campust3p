@@ -166,8 +166,8 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
             {isLoading
               ? "Analyse en cours..."
               : groups.length === 0
-                ? "Aucun doublon détecté parmi vos contacts actifs."
-                : `${groups.length} groupe(s) de doublons détecté(s) (${totalDuplicates} contacts). Sélectionnez les contacts à archiver.`}
+                ? "Aucun doublon détecté parmi vos apprenants actifs."
+                : `${groups.length} groupe(s) de doublons détecté(s) (${totalDuplicates} apprenants). Sélectionnez les apprenants à archiver.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -218,7 +218,7 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
                   <div key={group.key} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs font-medium">
-                        {group.contacts.length} contacts
+                        {group.contacts.length} apprenants
                       </Badge>
                       <span className="text-sm font-medium text-muted-foreground">{label}</span>
                     </div>
@@ -228,7 +228,7 @@ export function DuplicatesDialog({ open, onOpenChange }: DuplicatesDialogProps) 
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-10" />
-                            <TableHead className="text-xs">Contact</TableHead>
+                            <TableHead className="text-xs">Apprenant</TableHead>
                             <TableHead className="text-xs">Email</TableHead>
                             <TableHead className="text-xs">Téléphone</TableHead>
                             <TableHead className="text-xs">Formation</TableHead>

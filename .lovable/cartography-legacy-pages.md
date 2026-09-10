@@ -6,6 +6,7 @@
 - ⚠️ **LEGACY BRANCHÉ** — Encore importé quelque part mais remplacé logiquement par un équivalent V2
 - 🔇 **ORPHELIN** — Aucun import trouvé, code mort probable
 - 🟡 **AMBIGU** — Importé mais usage réel incertain (import sans rendu, ou doublon fonctionnel)
+- 🗑️ **SUPPRIMÉ** — Dossier retiré du repo depuis la génération de cette cartographie
 
 ---
 
@@ -38,7 +39,7 @@
 | **`financial/`** | 🔇 ORPHELIN | Aucun import | Doublon de `cockpit-financier/` — `CockpitFinancierPage` existe dans les deux dossiers |
 | `formateurs/` | ✅ ACTIF | `Index.tsx` | Module formateurs |
 | `formations/` | ✅ ACTIF | `Index.tsx` | Catalogue formations |
-| `ia-director/` | ✅ ACTIF | `AutomationsPage` | Onglet IA dans Automations |
+| `ia-director/` | 🗑️ SUPPRIMÉ | — | Onglet IA retiré d'`AutomationsPage` le 10/09/2026 ; le dossier (16 fichiers) et les 7 hooks qu'il portait ont été supprimés, avec 4 edge functions IA |
 | `layout/` | ✅ ACTIF | `Index.tsx` | Sidebar, Header, QuickActions |
 | `learner/` | ✅ ACTIF | `LearnerPortal` | Portail apprenant public |
 | `legal/` | ✅ ACTIF | — | Mentions légales |

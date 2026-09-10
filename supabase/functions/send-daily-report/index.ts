@@ -88,7 +88,11 @@ serve(async (req) => {
         .select("session_id")
         .is("deleted_at", null)
         .in("session_id", sessionIds)
-        .in("statut", ["validee", "en_attente"]);
+        // Exclusion et non liste blanche : `session_inscriptions.statut` est du
+        // texte libre (ni enum ni contrainte), les valeurs réellement écrites
+        // sont valide/inscrit/encours/document/complexe — une liste blanche
+        // périmée renvoie 0 inscrit sans jamais lever d'erreur.
+        .not("statut", "in", "(annule,report)");
 
       const countMap: Record<string, number> = {};
       inscriptionCounts?.forEach((i) => {
@@ -151,7 +155,9 @@ serve(async (req) => {
         .select("contact_id, session_id, contacts(nom, prenom, formation), sessions(nom, date_debut)")
         .is("deleted_at", null)
         .in("session_id", sessionIds)
-        .in("statut", ["validee", "en_attente"]);
+        // Même raison qu'au bloc 3 : on écarte les abandons, on n'énumère pas
+        // les statuts actifs d'une colonne texte libre.
+        .not("statut", "in", "(annule,report)");
 
       if (inscrits && inscrits.length > 0) {
         const contactIds = [...new Set(inscrits.map((i) => i.contact_id))];

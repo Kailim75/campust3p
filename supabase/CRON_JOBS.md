@@ -40,24 +40,35 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 | `generate-notifications-daily` | `0 5 * * *` | `generate-notifications` | Notifications internes (cloche) — créé le 11/07/2026 ; depuis le 17/07/2026 inclut les alertes de parcours d'examen (type `parcours` : résultat non reçu ≥ 35 j, convocation CMA non reçue ≥ 28 j, seuils de `src/lib/parcours-examen.ts`) |
 | `process-payment-reminders-hourly` | `0 * * * *` | `process-payment-reminders` | File de relances de paiement (aussi dans la migration `20260114004035`) |
 | `send-convocation-cron-daily` | `0 8 * * *` | `send-convocation-cron` | Convocations automatiques J-7 |
-| `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — **à créer après déploiement de la fonction** (voir ci-dessous) |
+| `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — job créé et actif (cf. l'état en tête de fichier) |
 
 *(`sync-gmail-inbox-every-5min`, 9ᵉ job historique, a été supprimé le
 10/09/2026 en même temps que la fonction qu'il appelait — voir l'encadré en
 tête de fichier.)*
 
-## Secret des crons (`CRON_SECRET`) — activation
+## Secret des crons (`CRON_SECRET`) — ACTIF depuis le 10/09/2026
+
+> **Fait le 10/09/2026, vers 11h15 UTC.** Le secret `CRON_SECRET` est créé et
+> déclaré dans les secrets des edge functions, et les **8 jobs pg_cron portent
+> l'en-tête `x-cron-secret`**. La garde est active en production.
+>
+> **Vérification faite le jour même**, sur `send-convocation-cron?dryRun=true` :
+> appel **avec** l'en-tête → **200** ; appel **sans** l'en-tête → **401**.
+>
+> Ce qui suit n'est donc plus une activation à faire, mais la procédure de
+> référence : elle a été suivie ce jour-là, et doit l'être à nouveau, dans le
+> même ordre, pour toute **rotation** du secret.
 
 Depuis le 09/09/2026 (audit du 13/08, P1 : crons déclenchables par quiconque
 avec l'URL + la clé anon publique), chaque fonction cron passe par la garde
-`_shared/cron-auth.ts` : si le secret `CRON_SECRET` est configuré dans les
-secrets des edge functions, l'en-tête `x-cron-secret` est exigé (401 sinon).
+`_shared/cron-auth.ts` : le secret `CRON_SECRET` étant configuré, l'en-tête
+`x-cron-secret` est exigé (401 sinon).
 
 ⚠️ **Deux variantes de garde — le mode transition n'est PAS universel :**
 
 | Variante | Fonctions | `CRON_SECRET` absent |
 |---|---|---|
-| `checkCronSecret` (tolérante) | les 7 crons purs | appel **accepté** avec un avertissement dans les logs (mode transition — aucune automatisation coupée) |
+| `checkCronSecret` (tolérante) | les 7 crons purs | appel **accepté** avec un avertissement dans les logs (mode transition — sans objet depuis le 10/09/2026 : le secret existe, l'en-tête est exigé) |
 | `cronSecretMatches` (STRICTE) | `send-automated-emails` **uniquement** | voie cron **refusée**, repli sur la garde JWT admin/staff → le job pg_cron reçoit 401 |
 
 `send-automated-emails` est le seul cas mixte : elle sert à la fois le job
@@ -78,7 +89,8 @@ quotidiens tombant dans la fenêtre, sans autre alerte que les logs des
 fonctions). `send-automated-emails` échappe à ce raisonnement : étant en
 variante stricte, sa voie cron ne s'ouvre qu'une fois le secret créé.
 
-Activation, dans cet ordre :
+### Procédure de référence — suivie le 10/09/2026, à rejouer pour toute rotation
+
 1. Générer un secret fort (ex. `openssl rand -hex 32`) et le garder de côté,
    **sans le déclarer encore**. Mettre à jour chaque job pour envoyer
    l'en-tête : `cron.schedule` étant idempotent sur le nom, reprendre la
@@ -99,13 +111,13 @@ Fonctions concernées (**8**) : `alma-reconcile-cron`, `send-daily-report`,
 `generate-notifications`, `process-payment-reminders` et
 `send-automated-emails` (variante stricte — voir le tableau ci-dessus).
 
-⚠️ `alma-reconcile-cron` a aussi un appelant **front** : le panneau
+✅ `alma-reconcile-cron` a aussi un appelant **front** : le panneau
 « Réconciliation Alma » (`src/components/finances/AlmaCronMonitorPanel.tsx`)
 l'invoque depuis le CRM avec le JWT de l'utilisateur, sans en-tête
-`x-cron-secret`. Ce bouton se met donc à répondre 401 dès l'étape 2, à moins
-que la fonction n'accepte le JWT d'un admin comme alternative au secret
-(correctif traité dans un autre lot) — vérifier ce point avant de créer le
-secret, ou prévenir l'équipe.
+`x-cron-secret`. Ce bouton aurait répondu 401 dès l'étape 2 ; le correctif est
+passé avant (#82 — la fonction accepte le JWT d'un admin comme alternative au
+secret), il a donc survécu à l'activation du 10/09/2026. Point à re-vérifier
+avant toute rotation.
 
 ## `send-automated-emails` — panne silencieuse et déblocage en attente
 
@@ -159,6 +171,7 @@ SELECT cron.schedule(
 2. Tester d'abord à blanc : appeler la fonction avec `?dryRun=true` et
    vérifier le compte `expired` / `reminded` retourné.
 3. Créer le job seulement après un dry-run concluant.
+   *(Fait : `signature-reminders-daily` est actif, en-tête `x-cron-secret` compris.)*
 
 Garde-fous de la fonction : ne modifie que des demandes `envoye` (jamais une
 demande signée — gel par `trg_lock_signed_signature_request`), ne crée aucun

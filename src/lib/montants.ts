@@ -1,11 +1,19 @@
 /**
- * Calculs monétaires partagés — source de vérité unique.
+ * Calculs monétaires partagés — la référence, PAS ENCORE la seule source.
  *
  * Audit du 13/08/2026 (archi P1) : « reste à encaisser » était recalculé
  * inline dans dix écrans avec deux formules divergentes — clampé à 0 ici,
  * pouvant devenir négatif là. Une facture en trop-perçu affichait donc
  * « −250 € restant » sur la fiche apprenant et « 0 € » dans la synthèse
  * de session. Ces helpers figent la règle : un reste dû n'est jamais négatif.
+ *
+ * ⚠️ Centralisation INCOMPLÈTE au 10/09/2026 : cinq écrans filtrent encore
+ * les statuts à leur main et n'appellent pas ces helpers — `useDashboardStats`,
+ * `StrategicPillars`, `DashboardKPIRow`, `useSessionFinancials` et
+ * `useAujourdhuiData`. Effet concret : « Aujourd'hui » peut proposer de
+ * relancer le paiement d'un apprenant dont la fiche affiche « Soldé ».
+ * Chantier ouvert, suivi dans `docs/audit/ROADMAP.md` (point M1) — tant qu'il
+ * n'est pas fait, ne pas décrire cette règle comme appliquée partout.
  */
 
 import type { Database } from "@/integrations/supabase/types";
@@ -16,11 +24,12 @@ type FactureStatut = Database["public"]["Enums"]["facture_statut"];
  * Statuts qui ne comptent NI dans le total facturé NI dans le reste à
  * encaisser : un brouillon n'est pas encore dû, une annulée ne l'est plus.
  *
- * Règle unique du CRM (revue du 10/09/2026) : la fiche session, le tableau
- * de bord et Finances filtraient déjà ces deux statuts, la fiche apprenant
- * non — le même apprenant affichait deux « reste à encaisser » différents
- * selon l'écran ouvert. Typée sur l'enum Postgres : si un statut change
- * côté base, la compilation casse ici plutôt qu'en silence à l'écran.
+ * Revue du 10/09/2026 : la fiche session et Finances filtraient déjà ces deux
+ * statuts, la fiche apprenant non — le même apprenant affichait deux « reste à
+ * encaisser » différents selon l'écran ouvert. Typée sur l'enum Postgres : si
+ * un statut change côté base, la compilation casse ici plutôt qu'en silence à
+ * l'écran. (Sur la couverture réelle de la règle, voir l'avertissement en tête
+ * de fichier : cinq écrans gardent encore leur propre convention.)
  */
 export const STATUTS_FACTURE_EXCLUS: readonly FactureStatut[] = ["brouillon", "annulee"];
 
@@ -55,9 +64,31 @@ export function parseMontantSaisi(valeur: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Somme des `montant` d'une liste (paiements, versements…), valeurs manquantes = 0. */
-export function sommeMontants(items: ReadonlyArray<{ montant?: Montant }>): number {
-  return items.reduce((s, p) => s + num(p.montant), 0);
+/**
+ * Factures réellement encaissables : celles qui comptent dans les totaux.
+ *
+ * Un versement rattaché à une facture écartée est exclu du « Payé » et du
+ * reste à encaisser (`sommePaiementsFactures`) : proposer une telle facture
+ * à l'encaissement fait disparaître la saisie des totaux.
+ */
+export function facturesEncaissables<T extends { statut?: string | null }>(
+  factures: ReadonlyArray<T>,
+): T[] {
+  return factures.filter(estFactureComptee);
+}
+
+/**
+ * État du solde d'un apprenant, en TROIS cas et non deux.
+ *
+ * « Soldé » ne doit se dire que d'une dette réellement éteinte : sans ce
+ * troisième cas, un apprenant n'ayant qu'une facture en brouillon (donc hors
+ * total) affichait « Soldé » alors que rien n'a été facturé ni encaissé.
+ */
+export type EtatSolde = "rien" | "impaye" | "solde";
+
+export function etatSolde(montantTotal: Montant, restant: Montant): EtatSolde {
+  if (num(montantTotal) <= 0) return "rien";
+  return num(restant) > 0 ? "impaye" : "solde";
 }
 
 /** Somme des `montant_total` des factures comptées, valeurs manquantes = 0. */

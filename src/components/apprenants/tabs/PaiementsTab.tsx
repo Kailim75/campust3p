@@ -31,6 +31,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { creerFactureExpress } from "@/lib/facture-express";
 import {
   estFactureComptee,
+  etatSolde,
+  facturesEncaissables,
   parseMontantSaisi,
   resteAEncaisserParFacture,
   sommeFactures,
@@ -149,12 +151,31 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
   // Par facture : un trop-perçu sur l'une ne doit pas masquer l'impayé de l'autre.
   const restant = resteAEncaisserParFacture(factures || [], paiements || []);
   const excedent = tropPercu(factures || [], paiements || []);
+  // Trois états et non deux : sans « rien à encaisser », un apprenant n'ayant
+  // qu'un brouillon (hors total) s'affichait « Soldé » — 0 € facturé, 0 € payé,
+  // 0 € restant — là où il doit encore 990 €.
+  const solde = etatSolde(montantTotal, restant);
   // `null` tant que la saisie n'est pas un montant strictement positif.
   const montantSaisi = parseMontantSaisi(formData.montant);
 
+  // Seules les factures comptées s'encaissent : un versement rattaché à un
+  // brouillon ou à une annulée est exclu du « Payé » comme du reste à
+  // encaisser (sommePaiementsFactures) — la ligne apparaîtrait dans le tableau
+  // des versements sans jamais bouger les totaux.
+  const factureEncaissables = facturesEncaissables(factures || []);
+  // Pré-sélection RÉELLE : la valeur affichée par le <Select> est celle qui
+  // part dans la mutation, sinon le formulaire montre une facture qu'il
+  // n'enregistre pas.
+  const factureSelectionnee =
+    formData.factureId || (factureEncaissables.length === 1 ? factureEncaissables[0].id : "");
+  // Des factures existent, mais aucune n'est encaissable : la saisie est
+  // bloquée plutôt que détournée vers une nouvelle facture (doublon).
+  const aucuneFactureEncaissable =
+    factureEncaissables.length === 0 && (factures?.length ?? 0) > 0;
+
   const addPaiement = useMutation({
     mutationFn: async () => {
-      let factureId = formData.factureId;
+      let factureId = factureSelectionnee;
       const montant = parseMontantSaisi(formData.montant);
       if (montant === null) throw new Error("Le montant du versement doit être supérieur à 0 €.");
 
@@ -179,10 +200,19 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         if (fErr) throw fErr;
         factureId = newFacture.id;
       } else if (!factureId) {
-        factureId = factures?.[0]?.id;
+        // Ne JAMAIS retomber sur `factures[0]` : c'était le chemin par lequel
+        // un versement atterrissait sur un brouillon et disparaissait des
+        // totaux (ligne visible dans « Versements », « Payé » à 0 €).
+        throw new Error("Aucune facture à encaisser : émettez d'abord la facture.");
       }
 
       if (!factureId) throw new Error("Aucune facture sélectionnée");
+
+      // Garde de dernier recours, même si le select ne les propose plus.
+      const cible = (factures || []).find((f) => f.id === factureId);
+      if (cible && !estFactureComptee(cible)) {
+        throw new Error("Cette facture est en brouillon ou annulée : émettez-la d'abord pour l'encaisser.");
+      }
 
       const { error } = await supabase.from("paiements").insert({
         facture_id: factureId,
@@ -361,11 +391,19 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         </Card>
         <Card className="p-3 text-center">
           <p className="text-xs text-muted-foreground">Restant</p>
-          <p className={cn("text-lg font-display font-bold", restant > 0 ? "text-destructive" : "text-success")}>
+          <p className={cn(
+            "text-lg font-display font-bold",
+            solde === "impaye" ? "text-destructive" : solde === "solde" ? "text-success" : "text-muted-foreground",
+          )}>
             {restant.toLocaleString("fr-FR")}€
           </p>
-          <Badge variant="outline" className={cn("text-[10px] mt-1", restant > 0 ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success")}>
-            {restant > 0 ? "Impayé" : "Soldé"}
+          <Badge variant="outline" className={cn(
+            "text-[10px] mt-1",
+            solde === "impaye" ? "bg-destructive/15 text-destructive"
+              : solde === "solde" ? "bg-success/15 text-success"
+                : "bg-muted text-muted-foreground",
+          )}>
+            {solde === "impaye" ? "Impayé" : solde === "solde" ? "Soldé" : "Rien à encaisser"}
           </Badge>
           {excedent > 0 && (
             <Badge variant="outline" className="text-[10px] mt-1 ml-1 bg-warning/15 text-warning">
@@ -387,57 +425,78 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
 
       {showForm && (
         <Card className="p-4 space-y-3 border-primary/20">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label className="text-xs">Facture</Label>
-              <Select value={formData.factureId || (factures?.length === 1 ? factures[0].id : "")} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__new__">
-                    <span className="flex items-center gap-1.5">
-                      <Plus className="h-3.5 w-3.5" />
-                      Créer une nouvelle facture
-                    </span>
-                  </SelectItem>
-                  {(factures || []).map((f: any) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {aucuneFactureEncaissable ? (
+            // Saisie bloquée : ni un brouillon ni une annulée ne s'encaissent, et
+            // proposer « créer une nouvelle facture » ici ferait un doublon de la
+            // facture déjà saisie.
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">
+                Aucune facture à encaisser : émettez d'abord la facture
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Cet apprenant n'a que des factures en brouillon ou annulées. Un versement
+                rattaché à l'une d'elles n'entrerait ni dans « Payé » ni dans le reste à
+                encaisser. Ouvrez la facture ci-dessous et passez-la en « émise ».
+              </p>
+              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Fermer</Button>
             </div>
-            <div>
-              <Label className="text-xs">Montant (€)</Label>
-              <Input type="number" min="0.01" step="0.01" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
-              {formData.montant !== "" && montantSaisi === null && (
-                <p className="text-[11px] text-destructive mt-1">Le montant doit être supérieur à 0 €.</p>
-              )}
-            </div>
-            <div>
-              <Label className="text-xs">Mode</Label>
-              <Select value={formData.mode} onValueChange={(v) => setFormData((p) => ({ ...p, mode: v }))}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="especes">Espèces</SelectItem>
-                  <SelectItem value="cb">CB</SelectItem>
-                  <SelectItem value="virement">Virement</SelectItem>
-                  <SelectItem value="alma">Alma</SelectItem>
-                  <SelectItem value="cpf">CPF</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Référence</Label>
-              <Input className="h-9" value={formData.reference} onChange={(e) => setFormData((p) => ({ ...p, reference: e.target.value }))} placeholder="Réf. Alma/CPF" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" disabled={montantSaisi === null || !formData.factureId || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
-              {addPaiement.isPending ? "..." : formData.factureId === "__new__" ? "Créer facture & enregistrer" : "Enregistrer"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs">Facture</Label>
+                  <Select value={factureSelectionnee} onValueChange={(v) => setFormData((p) => ({ ...p, factureId: v }))}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Sélectionner une facture" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__new__">
+                        <span className="flex items-center gap-1.5">
+                          <Plus className="h-3.5 w-3.5" />
+                          Créer une nouvelle facture
+                        </span>
+                      </SelectItem>
+                      {/* Brouillons et annulées absents de la liste : un versement
+                          rattaché à l'une d'elles n'apparaîtrait dans aucun total. */}
+                      {factureEncaissables.map((f: any) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.numero_facture || "Sans numéro"} — {Number(f.montant_total).toLocaleString("fr-FR")}€
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Montant (€)</Label>
+                  <Input type="number" min="0.01" step="0.01" className="h-9" value={formData.montant} onChange={(e) => setFormData((p) => ({ ...p, montant: e.target.value }))} />
+                  {formData.montant !== "" && montantSaisi === null && (
+                    <p className="text-[11px] text-destructive mt-1">Le montant doit être supérieur à 0 €.</p>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs">Mode</Label>
+                  <Select value={formData.mode} onValueChange={(v) => setFormData((p) => ({ ...p, mode: v }))}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="especes">Espèces</SelectItem>
+                      <SelectItem value="cb">CB</SelectItem>
+                      <SelectItem value="virement">Virement</SelectItem>
+                      <SelectItem value="alma">Alma</SelectItem>
+                      <SelectItem value="cpf">CPF</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Référence</Label>
+                  <Input className="h-9" value={formData.reference} onChange={(e) => setFormData((p) => ({ ...p, reference: e.target.value }))} placeholder="Réf. Alma/CPF" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" disabled={montantSaisi === null || !factureSelectionnee || addPaiement.isPending} onClick={() => addPaiement.mutate()}>
+                  {addPaiement.isPending ? "..." : factureSelectionnee === "__new__" ? "Créer facture & enregistrer" : "Enregistrer"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+              </div>
+            </>
+          )}
         </Card>
       )}
 

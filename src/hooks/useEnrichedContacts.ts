@@ -5,7 +5,6 @@ import {
   resteAEncaisserParFacture,
   sommeFactures,
   sommePaiementsFactures,
-  tropPercu,
 } from "@/lib/montants";
 import type { Contact } from "./useContacts";
 
@@ -19,8 +18,6 @@ export interface EnrichedContact extends Contact {
   totalPaye: number;
   /** Reste dû calculé facture par facture, comme sur la fiche apprenant. */
   resteDu: number;
-  /** Excédent encaissé, facture par facture. */
-  tropPercu: number;
   dateEcheance: string | null;
   paymentStatus: "paye" | "partiel" | "retard" | "attente";
   // Documents info (expert)
@@ -225,7 +222,6 @@ export function useEnrichedContacts(options: { inclureHistorique?: boolean } = {
           totalFacture,
           totalPaye,
           resteDu,
-          tropPercu: tropPercu(factures, paiements),
           dateEcheance,
           paymentStatus: computePaymentStatus(totalFacture, totalPaye, resteDu, dateEcheance),
           documentsManquants: missingDocs,

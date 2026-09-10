@@ -9,6 +9,8 @@ export type WorkflowStep =
   | "complete-profile"
   | "assign-session"
   | "generate-invoice"
+  /** Une facture existe mais en brouillon : à émettre, surtout pas à recréer. */
+  | "finalize-draft-invoice"
   | "record-payment"
   | "finalized";
 
@@ -46,6 +48,12 @@ const stepConfig: Record<WorkflowStep, {
     icon: FileText,
     variant: "default",
     className: "bg-primary hover:bg-primary/90",
+  },
+  "finalize-draft-invoice": {
+    label: "Émettre la facture brouillon",
+    icon: FileText,
+    variant: "default",
+    className: "bg-warning text-warning-foreground hover:bg-warning/90",
   },
   "record-payment": {
     label: "Enregistrer paiement",

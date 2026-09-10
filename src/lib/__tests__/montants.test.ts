@@ -3,10 +3,11 @@ import {
   STATUTS_FACTURE_EXCLUS,
   calculerResteAEncaisser,
   estFactureComptee,
+  etatSolde,
+  facturesEncaissables,
   parseMontantSaisi,
   resteAEncaisserParFacture,
   sommeFactures,
-  sommeMontants,
   sommePaiementsFactures,
   tropPercu,
 } from "../montants";
@@ -54,14 +55,12 @@ describe("statuts de facture exclus", () => {
   });
 });
 
-describe("sommeMontants / sommeFactures", () => {
+describe("sommeFactures", () => {
   it("additionne en ignorant les valeurs manquantes ou non numériques", () => {
-    expect(sommeMontants([{ montant: 250 }, { montant: "740" }, { montant: null }, {}])).toBe(990);
     expect(sommeFactures([{ montant_total: 990 }, { montant_total: "250.5" }, { montant_total: undefined }])).toBe(1240.5);
   });
 
   it("vaut 0 sur une liste vide", () => {
-    expect(sommeMontants([])).toBe(0);
     expect(sommeFactures([])).toBe(0);
   });
 
@@ -188,5 +187,51 @@ describe("parseMontantSaisi", () => {
     expect(parseMontantSaisi("-50")).toBeNull();
     expect(parseMontantSaisi("")).toBeNull();
     expect(parseMontantSaisi("abc")).toBeNull();
+  });
+});
+
+describe("facturesEncaissables", () => {
+  it("ne garde que les factures qui comptent dans les totaux", () => {
+    const factures = [
+      { id: "f1", statut: "emise" },
+      { id: "f2", statut: "brouillon" },
+      { id: "f3", statut: "annulee" },
+      { id: "f4", statut: "partiel" },
+    ];
+    expect(facturesEncaissables(factures).map((f) => f.id)).toEqual(["f1", "f4"]);
+  });
+
+  it("ne propose rien à encaisser quand l'apprenant n'a qu'un brouillon", () => {
+    // Régression B2 : un versement rattaché à ce brouillon serait exclu du
+    // « Payé » comme du reste à encaisser — saisie visible, totaux immobiles.
+    expect(facturesEncaissables([{ id: "f1", statut: "brouillon" }])).toEqual([]);
+  });
+
+  it("garde une facture dont le statut n'a pas été chargé", () => {
+    expect(facturesEncaissables([{ id: "f1" }, { id: "f2", statut: null }])).toHaveLength(2);
+  });
+});
+
+describe("etatSolde", () => {
+  it("« rien à encaisser » quand rien n'est facturé — pas « soldé »", () => {
+    // Régression B3 : une seule facture de 990 € en brouillon sort du total
+    // facturé ; l'apprenant affichait 0/0/0 et le badge « Soldé ».
+    expect(etatSolde(0, 0)).toBe("rien");
+    expect(etatSolde(0, 0)).not.toBe("solde");
+  });
+
+  it("« impayé » tant qu'il reste quelque chose à encaisser", () => {
+    expect(etatSolde(990, 990)).toBe("impaye");
+    expect(etatSolde(990, 740)).toBe("impaye");
+  });
+
+  it("« soldé » seulement sur une créance réelle éteinte", () => {
+    expect(etatSolde(990, 0)).toBe("solde");
+  });
+
+  it("tolère les montants en chaîne et les valeurs absentes", () => {
+    expect(etatSolde("990", "0")).toBe("solde");
+    expect(etatSolde(null, null)).toBe("rien");
+    expect(etatSolde(undefined, 200)).toBe("rien");
   });
 });
