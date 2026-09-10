@@ -57,7 +57,33 @@ Vérifications :
 
 ## Étape 7 — Activer le secret des crons (optionnel mais recommandé, plus tard)
 
-Procédure complète dans `supabase/CRON_JOBS.md` § « Secret des crons » : créer `CRON_SECRET`, puis re-`cron.schedule` chaque job avec l'en-tête `x-cron-secret`. Tant que ce n'est pas fait, rien ne change pour les automatisations.
+Procédure complète dans `supabase/CRON_JOBS.md` § « Secret des crons ». **L'ordre compte** : tant que `CRON_SECRET` n'existe pas, l'en-tête est ignoré ; dès qu'il existe, tout appel sans en-tête est refusé en 401.
+
+1. Re-`cron.schedule` **d'abord** les 7 jobs avec l'en-tête `x-cron-secret` (sans effet tant que le secret n'existe pas).
+2. Créer **ensuite** le secret `CRON_SECRET` (agent Lovable).
+3. Vérifier immédiatement par un appel manuel : avec l'en-tête → 200, sans en-tête → 401.
+
+Créer le secret d'abord couperait les 7 crons jusqu'à la mise à jour du dernier job (rapport quotidien, notifications, relances de paiement horaires perdus, visibles seulement dans les logs des fonctions).
+
+Point d'attention : le panneau « Réconciliation Alma » du CRM appelle `alma-reconcile-cron` avec le JWT utilisateur et sans en-tête — il tombera en 401 à l'étape 2 si la fonction n'accepte pas le JWT admin en alternative au secret.
+
+Tant que rien de tout cela n'est fait, rien ne change pour les automatisations.
+
+## Étape 8 — Retirer les six fonctions Gmail (10/09/2026)
+
+L'Inbox CRM a été supprimée (PR #77) : plus aucun écran n'appelle les fonctions Gmail, retirées du repo et de `supabase/config.toml`. Le sync GitHub ne désinstalle rien — il faut le demander :
+
+> Désinstalle les edge functions **sync-gmail-inbox, send-gmail-reply, send-gmail-new, promote-attachment, download-email-attachment, gmail-thread-actions** — elles ont été retirées du repo, ne modifie aucun fichier.
+
+Tant qu'elles restent déployées, `sync-gmail-inbox` (public, `verify_jwt=false`, aucun `getUser`) et l'IDOR `contactId` de `promote-attachment` (§3.3 du rapport) restent joignables avec la clé anon. `download-email-attachment` avait été durci à l'étape 5 la veille de la suppression de son dernier appelant : il part avec le lot.
+
+Puis, dans l'éditeur SQL, supprimer le job devenu sans cible :
+
+```sql
+SELECT cron.unschedule('sync-gmail-inbox-every-5min');
+```
+
+Aucune table n'est supprimée : les données `crm_email_*` restent en base, dormantes.
 
 ---
 

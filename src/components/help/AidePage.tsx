@@ -3,19 +3,21 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { BookOpen, Keyboard, Sparkles, GitBranch } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { shortcutGroups } from "@/hooks/useKeyboardShortcuts";
 
-const SHORTCUTS: { keys: string; label: string }[] = [
-  { keys: "Cmd/Ctrl + K", label: "Ouvrir la palette de commandes" },
-  { keys: "?", label: "Afficher tous les raccourcis" },
-  { keys: "G puis D", label: "Aller au tableau de bord" },
-  { keys: "G puis A", label: "Aller à Aujourd'hui" },
-  { keys: "G puis S", label: "Aller aux Sessions" },
-  { keys: "G puis P", label: "Aller aux Prospects" },
-  { keys: "G puis F", label: "Aller aux Finances" },
-  { keys: "N puis A", label: "Nouvel apprenant" },
-  { keys: "N puis P", label: "Nouveau prospect" },
-  { keys: "Échap", label: "Fermer un dialogue / une fiche" },
-];
+/** Rend une combinaison telle qu'elle se tape : « ⌘ + K », « G puis D ». */
+function formatKeys(keys: string[]): string {
+  if (keys.length === 1) return keys[0];
+  if (keys[0] === "⌘") return `Cmd/Ctrl + ${keys.slice(1).join(" + ")}`;
+  return keys.join(" puis ");
+}
+
+// Source unique : la liste affichée ici et la fenêtre « ? » viennent du même
+// registre, pour qu'un raccourci retiré disparaisse des deux d'un coup.
+const SHORTCUT_GROUPS = shortcutGroups.map((group) => ({
+  title: group.title,
+  items: group.items.map((item) => ({ keys: formatKeys(item.keys), label: item.description })),
+}));
 
 const GLOSSARY: { term: string; def: string }[] = [
   {
@@ -112,20 +114,27 @@ export default function AidePage() {
               Raccourcis clavier
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {SHORTCUTS.map((s) => (
-                <div
-                  key={s.keys}
-                  className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2"
-                >
-                  <span className="text-sm text-foreground">{s.label}</span>
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {s.keys}
-                  </Badge>
+          <CardContent className="space-y-5">
+            {SHORTCUT_GROUPS.map((group) => (
+              <div key={group.title}>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.title}
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {group.items.map((s) => (
+                    <div
+                      key={s.keys}
+                      className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2"
+                    >
+                      <span className="text-sm text-foreground">{s.label}</span>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {s.keys}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 

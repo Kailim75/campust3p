@@ -161,7 +161,6 @@ export const shortcutGroups: Array<{
       { keys: ["G", "S"], description: "Sessions" },
       { keys: ["G", "F"], description: "Finances" },
       { keys: ["G", "C"], description: "Catalogue formations" },
-      { keys: ["G", "I"], description: "Inbox emails" },
       { keys: ["G", "R"], description: "Réglages" },
     ],
   },
@@ -219,7 +218,6 @@ export function useGlobalShortcutsV2(actions: {
   onGoSessions?: () => void;
   onGoFinances?: () => void;
   onGoFormations?: () => void;
-  onGoInbox?: () => void;
   onGoSettings?: () => void;
   // Creation
   onNewApprenant?: () => void;
@@ -243,7 +241,6 @@ export function useGlobalShortcutsV2(actions: {
       s: actions.onGoSessions || noop,
       f: actions.onGoFinances || noop,
       c: actions.onGoFormations || noop,
-      i: actions.onGoInbox || noop,
       r: actions.onGoSettings || noop,
     },
     n: {
