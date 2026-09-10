@@ -6153,6 +6153,7 @@ export type Database = {
           centre_id: string
           couleur: string | null
           created_at: string
+          delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
           icone: string | null
@@ -6168,6 +6169,7 @@ export type Database = {
           centre_id: string
           couleur?: string | null
           created_at?: string
+          delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           icone?: string | null
@@ -6183,6 +6185,7 @@ export type Database = {
           centre_id?: string
           couleur?: string | null
           created_at?: string
+          delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           icone?: string | null
