@@ -12,6 +12,12 @@ import { openWhatsApp } from "@/lib/phone-utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  estFactureComptee,
+  resteAEncaisserParFacture,
+  sommeFactures,
+  sommePaiementsFactures,
+} from "@/lib/montants";
 import type { Contact } from "@/hooks/useContacts";
 import { StatutApprenantDropdown } from "./StatutApprenantDropdown";
 import type { StatutApprenant } from "@/lib/apprenant-active";
@@ -50,8 +56,8 @@ export function ApprenantQuickView({ contact, isLoading, onClose }: ApprenantQui
       const [inscRes, docRes, factRes, paiRes] = await Promise.all([
         supabase.from("session_inscriptions").select("id, sessions(nom, date_debut)").eq("contact_id", contact.id).eq("statut", "inscrit").is("deleted_at", null).limit(1),
         supabase.from("contact_documents").select("type_document").eq("contact_id", contact.id).is("deleted_at", null),
-        supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contact.id).is("deleted_at", null).neq("statut", "annulee"),
-        supabase.from("paiements").select("montant, factures!inner(contact_id)").is("deleted_at", null).eq("factures.contact_id", contact.id),
+        supabase.from("factures").select("id, montant_total, statut").eq("contact_id", contact.id).is("deleted_at", null),
+        supabase.from("paiements").select("facture_id, montant, factures!inner(contact_id)").is("deleted_at", null).eq("factures.contact_id", contact.id),
       ]);
 
       const session = (inscRes.data as any)?.[0]?.sessions as { nom?: string; date_debut?: string } | null;
@@ -59,15 +65,21 @@ export function ApprenantQuickView({ contact, isLoading, onClose }: ApprenantQui
       const requiredDocs = ["piece_identite", "justificatif_domicile", "photo_identite", "permis_conduire"];
       const missingDocs = requiredDocs.filter(t => !docTypes.has(t)).length;
 
+      // Brouillons et annulées sont écartés par les helpers (lib/montants) et
+      // non par la requête : l'aperçu affiche alors les mêmes chiffres que la
+      // liste et que la fiche, qui comptent facture par facture.
       const factures = factRes.data || [];
-      const totalFacture = factures.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-      const totalPaye = (paiRes.data as any[] || []).reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
+      const paiements = (paiRes.data as any[]) || [];
+      const facturesComptees = factures.filter(estFactureComptee);
+      const totalFacture = sommeFactures(factures);
+      const totalPaye = sommePaiementsFactures(factures, paiements);
+      const resteDu = resteAEncaisserParFacture(factures, paiements);
 
       const isProspect = contact.statut === "En attente de validation" || !contact.statut;
       const isProfileComplete = !!(contact.email && contact.telephone && contact.date_naissance);
       const hasInscription = (inscRes.data?.length ?? 0) > 0;
-      const hasFacture = factures.length > 0;
-      const hasPaid = factures.some(f => f.statut === "payee" || f.statut === "partiel");
+      const hasFacture = facturesComptees.length > 0;
+      const hasPaid = facturesComptees.some(f => f.statut === "payee" || f.statut === "partiel");
 
       const steps = [!isProspect, isProfileComplete && missingDocs === 0, hasInscription, hasFacture, hasPaid];
       const progress = Math.round((steps.filter(Boolean).length / steps.length) * 100);
@@ -86,6 +98,7 @@ export function ApprenantQuickView({ contact, isLoading, onClose }: ApprenantQui
         missingDocs,
         totalFacture,
         totalPaye,
+        resteDu,
         progress,
         nextStep,
         isFinalized: progress === 100,
@@ -111,9 +124,9 @@ export function ApprenantQuickView({ contact, isLoading, onClose }: ApprenantQui
 
   const paymentLabel = (() => {
     if (!summary || summary.totalFacture <= 0) return { text: "Non facturé", className: "text-muted-foreground" };
-    if (summary.totalPaye >= summary.totalFacture) return { text: "Soldé", className: "text-success font-medium" };
-    if (summary.totalPaye > 0) return { text: `Partiel · ${summary.totalFacture - summary.totalPaye}€ restant`, className: "text-warning font-medium" };
-    return { text: `Impayé · ${summary.totalFacture}€`, className: "text-destructive font-medium" };
+    if (summary.resteDu <= 0) return { text: "Soldé", className: "text-success font-medium" };
+    if (summary.totalPaye > 0) return { text: `Partiel · ${summary.resteDu}€ restant`, className: "text-warning font-medium" };
+    return { text: `Impayé · ${summary.resteDu}€`, className: "text-destructive font-medium" };
   })();
 
   return (

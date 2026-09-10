@@ -89,9 +89,10 @@ export function SignaturesTrackingPanel() {
   const [search, setSearch] = useState("");
   const sendEmail = useSendSignatureEmail();
   const [pendingResend, setPendingResend] = useState<Row | null>(null);
-  // L'état de la mutation est global : sans l'id de la ligne en cours, un
-  // envoi sur la ligne A verrouille la confirmation de la ligne B.
-  const [envoiEnCours, setEnvoiEnCours] = useState<string | null>(null);
+  // L'état de la mutation est global à toutes les lignes. On suit donc les
+  // envois en vol par id : sans ce détail, un envoi sur la ligne A verrouille
+  // la ligne B, et la fin de A déverrouille B alors que B part encore.
+  const [enVol, setEnVol] = useState<ReadonlySet<string>>(() => new Set());
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["signature_requests", "tracking"],
@@ -190,13 +191,17 @@ export function SignaturesTrackingPanel() {
   };
 
   const resend = async (r: Row) => {
-    setEnvoiEnCours(r.id);
+    setEnVol((ids) => new Set(ids).add(r.id));
     try {
       await sendEmail.mutateAsync({ signatureRequestId: r.id, type: "signature_request" });
     } catch {
       /* handled in hook */
     } finally {
-      setEnvoiEnCours(null);
+      setEnVol((ids) => {
+        const restants = new Set(ids);
+        restants.delete(r.id);
+        return restants;
+      });
     }
   };
 
@@ -207,10 +212,11 @@ export function SignaturesTrackingPanel() {
         onOpenChange={(open) => { if (!open) setPendingResend(null); }}
         title="Renvoyer la demande de signature ?"
         recipient={pendingResend?.contact?.email}
-        pending={pendingResend !== null && envoiEnCours === pendingResend.id}
-        // Radix laisse le bouton cliquable pendant l'animation de sortie :
-        // un deuxième clic ne doit pas lancer un deuxième envoi réel.
-        onConfirm={() => { if (pendingResend && envoiEnCours === null) resend(pendingResend); }}
+        pending={pendingResend !== null && enVol.has(pendingResend.id)}
+        // Radix laisse le bouton cliquable pendant l'animation de sortie : un
+        // deuxième clic sur LA MÊME ligne ne doit pas lancer un deuxième envoi
+        // réel. Un envoi en cours sur une autre ligne, lui, ne bloque rien.
+        onConfirm={() => { if (pendingResend && !enVol.has(pendingResend.id)) resend(pendingResend); }}
       />
       {/* Global summary */}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
@@ -349,7 +355,7 @@ export function SignaturesTrackingPanel() {
                               <div className="flex justify-end gap-1">
                                 {(s === "envoye" || s === "expire" || s === "en_attente") && (
                                   <>
-                                    <Button size="sm" variant="ghost" onClick={() => setPendingResend(r)} title="Renvoyer" disabled={envoiEnCours === r.id}>
+                                    <Button size="sm" variant="ghost" onClick={() => setPendingResend(r)} title="Renvoyer" disabled={enVol.has(r.id)}>
                                       <Send className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => copyLink(r)} title="Copier le lien">
