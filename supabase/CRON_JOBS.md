@@ -135,17 +135,52 @@ JWT et tourne bien à 09:00 UTC.)
 ⚠️ **Au premier passage à 08:00 UTC qui suivra le redéploiement, la campagne du
 jour partira pour de bon**, dans les limites fixées par les interrupteurs
 ci-dessous : rappels de formation J-7/J-1 et rappel d'examen pratique J-7 à tous
-les candidats concernés ce jour-là. **Aucune relance de paiement ne partira.**
-Vérifier d'abord le volume attendu avec `?dryRun=true`.
+les candidats concernés ce jour-là. **Aucune relance de paiement ne partira DE
+CETTE FONCTION** (l'autre chemin de relance, hors interrupteur, est décrit sous
+le tableau ci-dessous). Vérifier d'abord le volume attendu avec `?dryRun=true`.
 
 ### État des 4 blocs automatiques — décision du directeur du 10/09/2026
 
 | Bloc | État | Ce qui part |
 |---|---|---|
 | Relance de paiement J-7 | 🔴 **ÉTEINT** | **rien** — la table `factures` n'est même pas lue |
-| Rappel de formation J-7 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant dans 7 jours, aux inscrits |
-| Rappel de formation J-1 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant demain, aux inscrits |
-| Rappel d'examen pratique J-7 | 🟢 **ALLUMÉ** | examens pratiques `planifie` dans 7 jours |
+| Rappel de formation J-7 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant dans 7 jours, **hors corbeille** → à **toutes les inscriptions sauf `annule` et `report`** (statut vide ou inconnu compris), **hors inscriptions supprimées** |
+| Rappel de formation J-1 | 🟢 **ALLUMÉ** | sessions `a_venir`/`complet` démarrant demain, **hors corbeille** → même population qu'en J-7 |
+| Rappel d'examen pratique J-7 | 🟢 **ALLUMÉ** | examens pratiques `planifie` dans 7 jours (`examens_pratique` n'a pas de colonne `deleted_at` : rien à écarter) |
+
+> **Qui reçoit un rappel de formation — corrigé le 10/09/2026.** Les deux blocs
+> filtraient `statut === "inscrit"`, une **liste blanche** sur une colonne de
+> **texte libre** (`session_inscriptions.statut` : ni enum, ni CHECK, ni NOT
+> NULL). Elle écartait **344 des 388 inscriptions actives** — `valide` (321),
+> `encours` (16), `document` (7) — ainsi que les inscriptions **express**, qui
+> naissent en `en_attente`. Un apprenant dont le dossier était *validé* ne
+> recevait donc jamais son « votre formation commence demain ». Le filtre
+> raisonne désormais par **exclusion** (`annule`, `report`), comme
+> `send-daily-report` : un statut vide ou inconnu reçoit son rappel — mieux vaut
+> un rappel de trop qu'un apprenant devant une porte close.
+
+> ⚠️ **Ce tableau ne couvre QUE `send-automated-emails`. Il existe un SECOND
+> chemin d'envoi de relances de paiement, que l'interrupteur ne touche pas.**
+> Le job horaire **`process-payment-reminders-hourly`** (`0 * * * *`) appelle
+> `supabase/functions/process-payment-reminders/index.ts`, qui **dépile la table
+> `relance_paiement_queue`**. Il n'est pas piloté par le code mais par la donnée :
+> **`relance_paiement_config.actif`** (colonne `boolean NOT NULL DEFAULT true`,
+> migration `20260424132817` — donc **active par défaut**, par centre), réglable
+> depuis Communications › Relances automatiques
+> (`src/components/communications/RelancesAutoPanel.tsx`). La fonction repousse
+> chaque élément de la file dont le centre a `actif = false` ; sinon elle envoie.
+> **Son état réel en production est EN COURS DE VÉRIFICATION au 10/09/2026** —
+> à trancher par SELECT, l'interrupteur `BLOCS_AUTOMATIQUES_ACTIFS` n'ayant
+> aucune prise dessus :
+>
+> ```sql
+> SELECT centre_id, actif, nb_relances_max FROM public.relance_paiement_config;
+> SELECT statut, count(*) FROM public.relance_paiement_queue GROUP BY statut;
+> ```
+>
+> Si l'intention est qu'**aucune** relance de paiement ne parte, éteindre le
+> bloc J-7 ne suffit pas : il faut aussi `actif = false` sur ce centre, ou mettre
+> le job en pause (`cron.alter_job`).
 
 > **Décision de Karim (directeur), le 10/09/2026**, en deux temps :
 > « Pour les mails de relance automatique de paiement je veux pas les activer

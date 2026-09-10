@@ -92,7 +92,11 @@ serve(async (req) => {
         // texte libre (ni enum ni contrainte), les valeurs réellement écrites
         // sont valide/inscrit/encours/document/complexe — une liste blanche
         // périmée renvoie 0 inscrit sans jamais lever d'erreur.
-        .not("statut", "in", "(annule,report)");
+        // `.or(...is.null...)` et non `.not(...)` seul : en SQL, `NOT (statut IN
+        // (...))` vaut NULL quand `statut` est NULL, et la ligne est écartée.
+        // La colonne n'ayant pas de contrainte NOT NULL, le cas n'a rien de
+        // théorique — un statut vide serait silencieusement décompté à zéro.
+        .or("statut.is.null,statut.not.in.(annule,report)");
 
       const countMap: Record<string, number> = {};
       inscriptionCounts?.forEach((i) => {
@@ -156,8 +160,9 @@ serve(async (req) => {
         .is("deleted_at", null)
         .in("session_id", sessionIds)
         // Même raison qu'au bloc 3 : on écarte les abandons, on n'énumère pas
-        // les statuts actifs d'une colonne texte libre.
-        .not("statut", "in", "(annule,report)");
+        // les statuts actifs d'une colonne texte libre — et on rattrape le
+        // statut vide, que `NOT (statut IN (...))` seul écarterait (NULL).
+        .or("statut.is.null,statut.not.in.(annule,report)");
 
       if (inscrits && inscrits.length > 0) {
         const contactIds = [...new Set(inscrits.map((i) => i.contact_id))];

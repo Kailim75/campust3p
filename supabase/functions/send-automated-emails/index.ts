@@ -64,6 +64,36 @@ const MOTIFS_EXTINCTION: Partial<
 };
 
 // ===============================================
+// QUI REÇOIT UN RAPPEL DE FORMATION
+// ===============================================
+// Raisonnement par EXCLUSION, et non par liste blanche : `session_inscriptions.statut`
+// est du TEXTE LIBRE (ni enum, ni contrainte CHECK, ni NOT NULL), donc une liste
+// blanche y devient fausse EN SILENCE dès qu'un écran écrit une valeur de plus —
+// aucune erreur, juste des apprenants qui cessent d'être servis. C'est ce qui se
+// passait ici : `statut !== "inscrit"` écartait 344 des 388 inscriptions actives
+// du 10/09/2026 (`valide` 321, `encours` 16, `document` 7), plus toutes les
+// inscriptions express, qui naissent en `en_attente`
+// (`src/components/contacts/ExpressEnrollmentDialog.tsx`) — et `inscrit` n'est
+// même pas une valeur proposée par l'IHM (`inscrits-types.ts`).
+// Même exclusion que `send-daily-report`, pour que les deux fonctions comptent
+// la même population.
+const STATUTS_INSCRIPTION_SANS_RAPPEL = ["annule", "report"];
+
+/**
+ * Un statut vide ou inconnu reçoit son rappel : mieux vaut un rappel de trop
+ * qu'un apprenant oublié devant une porte close. Une inscription mise à la
+ * corbeille (`deleted_at`), elle, n'en reçoit jamais.
+ */
+function inscriptionRecoitRappel(inscription: {
+  statut?: string | null;
+  deleted_at?: string | null;
+}): boolean {
+  if (inscription.deleted_at) return false;
+  const statut = (inscription.statut ?? "").trim().toLowerCase();
+  return !STATUTS_INSCRIPTION_SANS_RAPPEL.includes(statut);
+}
+
+// ===============================================
 // CONFIGURATION EMAIL PAR DÉFAUT (fallback)
 // ===============================================
 const DEFAULT_EMAIL_CONFIG = {
@@ -870,11 +900,17 @@ serve(async (req) => {
           session_inscriptions(
             id,
             statut,
+            deleted_at,
             contact:contacts(id, nom, prenom, email)
           )
         `)
         .eq("date_debut", j7Date)
-        .in("statut", ["a_venir", "complet"]);
+        .in("statut", ["a_venir", "complet"])
+        // Corbeille : une session annulée puis supprimée garde son statut
+        // `a_venir` et sa date — sans ce filtre elle enverrait ses rappels.
+        // Les inscriptions supprimées, elles, sont écartées dans la boucle
+        // (`deleted_at` remonté par le select imbriqué ci-dessus).
+        .is("deleted_at", null);
 
       if (sessionsJ7Error) {
         console.error("Error fetching J-7 sessions:", sessionsJ7Error);
@@ -886,7 +922,7 @@ serve(async (req) => {
           if (!inscriptions) continue;
 
           for (const inscription of inscriptions) {
-            if (inscription.statut !== "inscrit") continue;
+            if (!inscriptionRecoitRappel(inscription)) continue;
             const contact = inscription.contact;
             if (!contact?.email) continue;
 
@@ -1006,11 +1042,14 @@ serve(async (req) => {
           session_inscriptions(
             id,
             statut,
+            deleted_at,
             contact:contacts(id, nom, prenom, email)
           )
         `)
         .eq("date_debut", j1Date)
-        .in("statut", ["a_venir", "complet"]);
+        .in("statut", ["a_venir", "complet"])
+        // Même motif qu'au bloc J-7 : la corbeille ne doit pas envoyer d'email.
+        .is("deleted_at", null);
 
       if (sessionsJ1Error) {
         console.error("Error fetching J-1 sessions:", sessionsJ1Error);
@@ -1022,7 +1061,7 @@ serve(async (req) => {
           if (!inscriptions) continue;
 
           for (const inscription of inscriptions) {
-            if (inscription.statut !== "inscrit") continue;
+            if (!inscriptionRecoitRappel(inscription)) continue;
             const contact = inscription.contact;
             if (!contact?.email) continue;
 
@@ -1135,6 +1174,12 @@ serve(async (req) => {
     if (BLOCS_AUTOMATIQUES_ACTIFS.rappel_examen_pratique_j7) {
       console.log("Checking for practical exams in 7 days...");
     
+      // AUCUN filtre `deleted_at` ici, volontairement : `examens_pratique` ne
+      // PORTE PAS cette colonne (vérifié dans `src/integrations/supabase/types.ts`
+      // et dans les migrations), contrairement à `sessions` et
+      // `session_inscriptions`. L'ajouter ferait échouer la requête PostgREST
+      // entière (colonne inconnue) et éteindrait le bloc en silence — le
+      // `console.error` du bloc suivant serait la seule trace.
       const { data: examensPratiqueJ7, error: examensPratiqueError } = await supabase
         .from("examens_pratique")
         .select(`
