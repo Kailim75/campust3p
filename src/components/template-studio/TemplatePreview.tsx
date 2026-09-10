@@ -6,7 +6,18 @@ import { forwardRef } from "react";
 import DOMPurify from "dompurify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
 
+/**
+ * Données de test de l'aperçu.
+ *
+ * Elles ne doivent JAMAIS suggérer une identité légale que le centre n'a pas :
+ * `centre_nda` est vide (le centre n'a pas de numéro de déclaration d'activité),
+ * et le SIRET fictif « 00000000000000 » a été remplacé par une mention neutre.
+ * L'aperçu passait auparavant un faux NDA et n'appliquait pas le nettoyage : le
+ * directeur voyait « NDA : 00000000000 » dans l'éditeur, et un document sans
+ * mention à la génération.
+ */
 const SAMPLE_DATA: Record<string, string> = {
   nom: "Dupont",
   prenom: "Karim",
@@ -16,8 +27,8 @@ const SAMPLE_DATA: Record<string, string> = {
   centre_nom: "T3P Formation",
   centre_nom_legal: "T3P Formation SAS",
   centre_nom_commercial: "T3P Formation",
-  centre_siret: "00000000000000",
-  centre_nda: "00000000000",
+  centre_siret: "SIRET du centre",
+  centre_nda: "",
   centre_adresse: "12 rue de la Paix, 75001 Paris",
   centre_email: "contact@t3p-formation.fr",
   centre_telephone: "01 23 45 67 89",
@@ -48,7 +59,10 @@ const SAMPLE_DATA: Record<string, string> = {
 };
 
 function renderTemplate(body: string, data: Record<string, string> = SAMPLE_DATA): string {
-  return body.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+  // Même nettoyage qu'à la génération : l'aperçu doit montrer le document tel
+  // qu'il sera réellement produit, mention de NDA comprise (ou retirée).
+  const nettoye = stripNdaFromTemplate(body, data.centre_nda);
+  return nettoye.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
     if (varName in data) {
       return data[varName];
     }

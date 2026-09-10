@@ -113,20 +113,28 @@ export function ContratConduiteDialog({
           nom: contact.nom,
           prenom: contact.prenom,
           email: contact.email,
-          telephone: (contact as any).telephone,
-          adresse: (contact as any).adresse,
-          code_postal: (contact as any).code_postal,
-          ville: (contact as any).ville,
+          telephone: contact.telephone,
+          // Colonne RÉELLE de `contacts` : la table n'a pas de colonne
+          // `adresse` (rue / code_postal / ville), et `(contact as any).adresse`
+          // remontait donc toujours `undefined` — le contrat SIGNÉ affichait
+          // « À planifier » en guise d'adresse du stagiaire.
+          adresse: contact.rue,
+          code_postal: contact.code_postal,
+          ville: contact.ville,
         }
       : null,
+    // Colonnes RÉELLES de `centre_formation` : les anciens noms
+    // (raison_sociale, adresse, numero_da) n'existent pas dans la table et
+    // remontaient donc toujours `undefined` — l'identité légale du contrat
+    // tombait alors sur un repli inventé.
     centreData: centreFormation
       ? {
-          raison_sociale: (centreFormation as any).raison_sociale ?? (centreFormation as any).nom,
-          adresse: (centreFormation as any).adresse,
-          siret: (centreFormation as any).siret,
-          numero_da: (centreFormation as any).numero_da,
-          email: (centreFormation as any).email,
-          telephone: (centreFormation as any).telephone,
+          raison_sociale: centreFormation.nom_commercial || centreFormation.nom_legal,
+          adresse: centreFormation.adresse_complete,
+          siret: centreFormation.siret,
+          nda: centreFormation.nda,
+          email: centreFormation.email,
+          telephone: centreFormation.telephone,
         }
       : null,
   };

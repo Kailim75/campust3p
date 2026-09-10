@@ -185,7 +185,9 @@ export function BulkDocumentPreviewDialog({
   const generatePDFFromTextTemplate = (template: DocumentTemplate, contact: ContactInfo, session: SessionInfo): jsPDF => {
     const doc = new jsPDF();
     
-    const content = replaceVariables(template.contenu, contact, session);
+    // Identité du centre passée EXPLICITEMENT (cf. useDocumentTemplates) :
+    // l'aperçu et le document de masse portent les mêmes mentions légales.
+    const content = replaceVariables(template.contenu, contact, session, undefined, centreFormation);
     const cleanContent = DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
     
     doc.setFontSize(18);

@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
@@ -309,10 +309,14 @@ export function CentreFormationSettings() {
                   name="nda"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>N° de déclaration d'activité (NDA) *</FormLabel>
+                      <FormLabel>N° de déclaration d'activité (NDA)</FormLabel>
                       <FormControl>
                         <Input placeholder="11755030075" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        Laissez vide si votre centre n'est pas déclaré : la mention
+                        n'apparaîtra alors sur aucun document.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

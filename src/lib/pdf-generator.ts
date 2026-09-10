@@ -10,6 +10,9 @@ import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+// Garde UNIQUE du NDA (numéro de déclaration d'activité) : sans numéro, aucune
+// mention ne doit apparaître sur les documents. Voir centre-to-company.ts.
+import { hasNda, hasSiret } from "./centre-to-company";
 import { 
   ORGANISME,
   PROGRAMME_VTC, 
@@ -102,7 +105,9 @@ export const DEFAULT_COMPANY: CompanyInfo = {
   phone: "[Téléphone non configuré]",
   email: "[Email non configuré]",
   siret: "[SIRET non configuré]",
-  nda: "[NDA non configuré]",
+  // Volontairement vide : un NDA absent doit faire disparaître la mention,
+  // jamais imprimer un marqueur entre crochets (cf. hasNda).
+  nda: "",
 };
 
 export interface ContactInfo {
@@ -199,13 +204,18 @@ function buildAccreditationsLine(company: CompanyInfo): string[] {
   const parts1: string[] = [];
   const parts2: string[] = [];
   
-  // Première ligne : SIRET + NDA + Qualiopi
-  parts1.push(`SIRET: ${company.siret}`);
-  parts1.push(`NDA: ${company.nda}`);
+  // Première ligne : SIRET + NDA (chacun seulement s'il est exploitable) +
+  // Qualiopi. Un centre non configuré n'imprime donc pas « SIRET: [SIRET
+  // requis] » ; si rien n'est exploitable, la ligne entière est omise plutôt
+  // que rendue vide.
+  if (hasSiret(company.siret)) parts1.push(`SIRET: ${company.siret}`);
+  if (hasNda(company.nda)) parts1.push(`NDA: ${company.nda}`);
   if (company.qualiopi_numero) {
     parts1.push(`Qualiopi: ${company.qualiopi_numero}`);
   }
-  lines.push(parts1.join(" | "));
+  if (parts1.length > 0) {
+    lines.push(parts1.join(" | "));
+  }
   
   // Deuxième ligne : RNCP, RS, Préfecture, autres agréments
   if (company.code_rncp) {
@@ -696,7 +706,7 @@ export function generateFacturePDF(
 
   // Legal identifiers
   doc.setFontSize(7.5);
-  if (company.siret && !company.siret.includes("[")) {
+  if (hasSiret(company.siret)) {
     // Extract SIREN from SIRET (first 9 digits)
     const siren = company.siret.substring(0, 9);
     doc.text(`SIREN : ${siren}  |  SIRET : ${company.siret}`, colLeftX, yPos);
@@ -704,7 +714,7 @@ export function generateFacturePDF(
   }
 
   // NDA — formulation réglementaire complète
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") {
+  if (hasNda(company.nda)) {
     const ndaLine = company.region_declaration
       ? `Déclaration d'activité enregistrée sous le n° ${company.nda} auprès du préfet de région de ${company.region_declaration}`
       : `N° d'activité : ${company.nda}`;
@@ -1101,7 +1111,7 @@ export function generateFacturePDF(
   fY += 5;
 
   // NDA mention (footer repeat for conformity)
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") {
+  if (hasNda(company.nda)) {
     doc.setFontSize(6.5);
     doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
     const ndaFooter = company.region_declaration
@@ -1177,8 +1187,8 @@ export async function generateAttestationPDF(
   doc.setFontSize(7);
   setColor("text", COLORS.warmGray600);
   const rightLines = [
-    `SIRET ${company.siret}`,
-    `NDA ${company.nda}`,
+    hasSiret(company.siret) ? `SIRET ${company.siret}` : null,
+    hasNda(company.nda) ? `NDA ${company.nda}` : null,
     company.qualiopi_numero ? `Qualiopi ${company.qualiopi_numero}` : null,
   ].filter(Boolean) as string[];
   rightLines.forEach((l, i) => doc.text(l, pageW - marginX, headerY - 2 + i * 3.5, { align: "right" }));
@@ -1226,7 +1236,11 @@ export async function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setColor("text", COLORS.warmGray700);
-  const intro = `Je soussigné(e), représentant légal de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}${company.region_declaration ? ` auprès du préfet de région ${company.region_declaration}` : ""}, atteste que :`;
+  // Sans NDA, la phrase se referme directement après le nom de l'organisme :
+  // pas de « déclaré sous le numéro » amputé ni de virgule orpheline.
+  const intro = hasNda(company.nda)
+    ? `Je soussigné(e), représentant légal de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}${company.region_declaration ? ` auprès du préfet de région ${company.region_declaration}` : ""}, atteste que :`
+    : `Je soussigné(e), représentant légal de ${company.name}, atteste que :`;
   const introLines = doc.splitTextToSize(intro, contentW - 10) as string[];
   introLines.forEach(line => { doc.text(line, pageW / 2, y, { align: "center" }); y += 5; });
 
@@ -1387,8 +1401,8 @@ export async function generateAttestationPDF(
   doc.setFontSize(6.5);
   setColor("text", COLORS.warmGray600);
   const footRight = [
-    `SIRET ${company.siret}`,
-    `NDA ${company.nda}`,
+    hasSiret(company.siret) ? `SIRET ${company.siret}` : null,
+    hasNda(company.nda) ? `NDA ${company.nda}` : null,
     company.qualiopi_numero ? `Qualiopi ${company.qualiopi_numero}` : null,
   ].filter(Boolean).join("  ·  ");
   doc.text(footRight, pageW - marginX, pageH - 13, { align: "right" });
@@ -1570,20 +1584,42 @@ export function generateConventionPDF(
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
   doc.text(company.name, 25, yPos);
   yPos += 5;
-  doc.text(`SIRET : ${company.siret}`, 25, yPos);
-  yPos += 5;
+  // Sans SIRET exploitable, la ligne saute et yPos n'avance pas : l'adresse
+  // enchaîne sous le nom au pas courant, sans ligne blanche ni « [SIRET requis] ».
+  if (hasSiret(company.siret)) {
+    doc.text(`SIRET : ${company.siret}`, 25, yPos);
+    yPos += 5;
+  }
   const orgAddressLines = doc.splitTextToSize(company.address, pageWidth - 50);
   doc.text(orgAddressLines, 25, yPos);
-  yPos += orgAddressLines.length * 5 + 2;
-  doc.text(`Déclaration d'activité N° ${company.nda}`, 25, yPos);
-  yPos += 4;
-  doc.setFontSize(8);
-  doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text(`(Cette déclaration ne vaut pas agrément de l'État)`, 25, yPos);
-  
+  yPos += orgAddressLines.length * 5;
+
+  // ── Bloc NDA ──────────────────────────────────────────────────────────
+  // Le numéro et son disclaimer disparaissent ensemble faute de NDA (un
+  // disclaimer seul n'aurait plus d'objet) — ET AVEC EUX LES ÉCARTS QUI LES
+  // ENCADRENT : le +2 qui les précède, le +5 en préambule du bloc Agréments et
+  // le +3 final. Ces trois écarts appartiennent au bloc NDA ; les laisser en
+  // place laissait un trou.
+  //
+  // Mesuré sur le PDF rendu (positions Y extraites par pdfjs), NDA absent :
+  //   avant — adresse y=124,0 → « Représenté par… » y=139,0 (Δ 15 mm, soit
+  //           10 mm de blanc), et la ligne d'agréments à Δ 12 mm ;
+  //   après — Δ 5 mm, le pas courant du bloc, agréments compris.
+  // Avec un NDA renseigné les positions sont inchangées au dixième de
+  // millimètre (R2 : un 2ᵉ centre aura un numéro).
+  const ndaImprime = hasNda(company.nda);
+  if (ndaImprime) {
+    yPos += 2;
+    doc.text(`Déclaration d'activité N° ${company.nda}`, 25, yPos);
+    yPos += 4;
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
+    doc.text(`(Cette déclaration ne vaut pas agrément de l'État)`, 25, yPos);
+  }
+
   // Agréments si présents
   if (company.qualiopi_numero || company.agrement_prefecture || company.code_rs) {
-    yPos += 5;
+    if (ndaImprime) yPos += 5;
     doc.setFontSize(8);
     doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
     const agrementsLine: string[] = [];
@@ -1595,7 +1631,7 @@ export function generateConventionPDF(
     }
   }
   
-  yPos += 3;
+  if (ndaImprime) yPos += 3;
   doc.setFontSize(10);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
@@ -2334,7 +2370,9 @@ export function generateContratFormationPDF(
   yPos += lineH + 5;
 
   // --- Box Organisme (fond cream + accent gold) ---
-  const orgBoxH = 36;
+  // Sans NDA la boîte perd une ligne : on la raccourcit d'autant pour garder
+  // la même densité visuelle (et éviter un blanc en bas de cadre).
+  const orgBoxH = hasNda(company.nda) ? 36 : 32;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(marginLeft, yPos, contentWidth, orgBoxH, 3, 3, "F");
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
@@ -2351,18 +2389,32 @@ export function generateContratFormationPDF(
   doc.setFont("helvetica", "bold");
   doc.text(`${company.name}`, marginLeft + 8, orgY);
   doc.setFont("helvetica", "normal");
-  doc.text(` — SIRET : ${company.siret}`, marginLeft + 8 + doc.getTextWidth(`${company.name} `), orgY);
+  // Sans SIRET exploitable : le nom de l'organisme reste seul, sans tiret
+  // orphelin ni marqueur « [SIRET requis] » accolé.
+  if (hasSiret(company.siret)) {
+    doc.text(` — SIRET : ${company.siret}`, marginLeft + 8 + doc.getTextWidth(`${company.name} `), orgY);
+  }
   orgY += lineH;
   const addressLines = doc.splitTextToSize(company.address, contentWidth - 16) as string[];
   for (const line of addressLines) {
     doc.text(line, marginLeft + 8, orgY);
     orgY += lineH;
   }
-  doc.text(`Déclaration d'activité N° ${company.nda}`, marginLeft + 8, orgY);
-  orgY += lineH - 1;
+  // Le numéro et son disclaimer sautent ensemble faute de NDA, mais la clause
+  // « Ci-après dénommé « l'Organisme » » est contractuelle : elle reste, seule.
+  if (hasNda(company.nda)) {
+    doc.text(`Déclaration d'activité N° ${company.nda}`, marginLeft + 8, orgY);
+    orgY += lineH - 1;
+  }
   doc.setFontSize(7.5);
   doc.setTextColor(COLORS.warmGray500.r, COLORS.warmGray500.g, COLORS.warmGray500.b);
-  doc.text("(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", marginLeft + 8, orgY);
+  doc.text(
+    hasNda(company.nda)
+      ? "(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »"
+      : "Ci-après dénommé « l'Organisme »",
+    marginLeft + 8,
+    orgY
+  );
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 
   yPos += orgBoxH + 5;
@@ -2713,7 +2765,7 @@ export function generateConvocationPDF(
   // Références admin à droite dans le bandeau (conditionnelles)
   const adminParts: string[] = [];
   if (company.siret && !company.siret.includes("[")) adminParts.push(`SIRET ${company.siret}`);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") adminParts.push(`NDA ${company.nda}`);
+  if (hasNda(company.nda)) adminParts.push(`NDA ${company.nda}`);
 
   if (adminParts.length > 0) {
     doc.setFontSize(7);
@@ -3021,7 +3073,7 @@ export function generateConvocationPDF(
 
   const footerRight: string[] = [];
   if (company.siret && !company.siret.includes("[")) footerRight.push(`SIRET ${company.siret}`);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") footerRight.push(`NDA ${company.nda}`);
+  if (hasNda(company.nda)) footerRight.push(`NDA ${company.nda}`);
   if (footerRight.length > 0) {
     doc.text(footerRight.join("  •  "), pageWidth - mR, footerY + 5, { align: "right" });
   }
@@ -3092,7 +3144,12 @@ export function generateAttestationPresencePDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
 
-  const text1 = `Je soussigné(e), ${company.responsable_legal_nom || "le responsable"}, ${company.responsable_legal_fonction || "Directeur"} de ${company.name}, organisme de formation enregistré sous le numéro de déclaration d'activité ${company.nda}, certifie que :`;
+  // Idem attestation de fin de formation : sans NDA, la phrase se referme
+  // après le nom de l'organisme plutôt que sur un numéro manquant.
+  const soussigne = `Je soussigné(e), ${company.responsable_legal_nom || "le responsable"}, ${company.responsable_legal_fonction || "Directeur"} de ${company.name}`;
+  const text1 = hasNda(company.nda)
+    ? `${soussigne}, organisme de formation enregistré sous le numéro de déclaration d'activité ${company.nda}, certifie que :`
+    : `${soussigne}, certifie que :`;
   const splitText1 = doc.splitTextToSize(text1, pageWidth - 40);
   doc.text(splitText1, 20, yPos);
   yPos += splitText1.length * 7 + 15;

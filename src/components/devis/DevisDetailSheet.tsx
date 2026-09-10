@@ -27,6 +27,7 @@ import { usePublishedTemplate } from "@/hooks/usePublishedTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { ConfirmSendDialog } from "@/components/shared/ConfirmSendDialog";
@@ -211,7 +212,9 @@ export function DevisDetailSheet({
       return null;
     }
     const variables = await buildDevisVariables();
-    const rendered = publishedTemplate.template_body.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+    // NDA absent → la mention est retirée du gabarit avant substitution.
+    const body = stripNdaFromTemplate(publishedTemplate.template_body, variables.centre_nda);
+    const rendered = body.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
       if (varName in variables) return variables[varName];
       return "";
     });

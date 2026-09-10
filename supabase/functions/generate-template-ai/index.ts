@@ -152,6 +152,38 @@ Design moderne avec :
   },
 };
 
+/**
+ * Le NDA (numéro de déclaration d'activité) est FACULTATIF.
+ *
+ * Décision du directeur (10/09/2026) : le centre n'en a pas et ne veut aucune
+ * mention de déclaration d'activité sur ses documents. Un gabarit produit par
+ * l'IA échappe au nettoyage automatique du front (stripNdaFromTemplate), qui
+ * ne sait retirer qu'un fragment porteur du jeton {{centre_nda}} : un titre
+ * « Déclaration d'activité » écrit en dur par le modèle resterait à l'écran et
+ * à l'impression. La seule garde efficace est donc en amont, dans la consigne.
+ */
+function ndaRenseigne(nda: unknown): boolean {
+  return typeof nda === "string" && nda.trim() !== "" && !nda.includes("[");
+}
+
+/**
+ * Retire d'une consigne de document toute demande de mention du NDA, sans
+ * toucher au reste : la puce entièrement consacrée au NDA disparaît, et dans
+ * les autres seule la mention est retirée (« (SIRET, NDA) » → « (SIRET) »,
+ * « {{centre_siret}}, {{centre_nda}}, » → « {{centre_siret}}, »).
+ */
+function consigneSansNda(prompt: string): string {
+  return prompt
+    .split("\n")
+    .filter((ligne) => !/^\s*-\s*R[ée]f[ée]rence au NDA\b/i.test(ligne))
+    .map((ligne) =>
+      ligne
+        .replace(/\s*,\s*\{\{centre_nda\}\}/g, "")
+        .replace(/\s*,\s*NDA\s*(?=\))/g, "")
+    )
+    .join("\n");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -173,11 +205,15 @@ serve(async (req) => {
       );
     }
 
+    // Le NDA n'est transmis au modèle QUE s'il existe réellement. Le repli
+    // d'origine (`|| "{{centre_nda}}"`) réintroduisait le jeton — donc la
+    // mention — dans le gabarit d'un centre qui n'a pas de numéro.
+    const avecNda = ndaRenseigne(centre_info?.nda);
+
     const centreInfo = centre_info
       ? `\nInformations du centre de formation à utiliser :
 - Nom : ${centre_info.nom || "{{centre_nom}}"}
-- SIRET : ${centre_info.siret || "{{centre_siret}}"}
-- NDA : ${centre_info.nda || "{{centre_nda}}"}
+- SIRET : ${centre_info.siret || "{{centre_siret}}"}${avecNda ? `\n- NDA : ${centre_info.nda}` : ""}
 - Adresse : ${centre_info.adresse || "{{centre_adresse}}"}
 - Responsable : ${centre_info.responsable || "{{responsable_nom}}"}`
       : "";
@@ -206,15 +242,27 @@ RÈGLES DE DESIGN OBLIGATOIRES :
 
 RÈGLES DE VARIABLES :
 - Utilise des variables moustache {{variable}} pour toutes les données dynamiques
-- Variables obligatoires : {{centre_nom}}, {{centre_siret}}, {{centre_nda}}
+- Variables obligatoires : {{centre_nom}}, {{centre_siret}}${avecNda ? ", {{centre_nda}}" : ""}
 - Variables courantes : {{nom}}, {{prenom}}, {{email}}, {{telephone}}, {{date_naissance}}
 - Variables session : {{session_nom}}, {{session_date_debut}}, {{session_date_fin}}, {{duree_heures}}, {{intitule_formation}}
 - Variables financières : {{prix_total}}, {{numero_facture}}, {{modalites_paiement}}
 - Variables organisme : {{centre_adresse}}, {{responsable_nom}}
-
+${avecNda ? "" : `
+RÈGLE IMPÉRATIVE — AUCUNE DÉCLARATION D'ACTIVITÉ :
+Ce centre de formation n'a PAS de numéro de déclaration d'activité. Le document ne doit en porter AUCUNE trace :
+- ne produis aucune section, aucun titre (h1/h2/h3), aucun libellé, aucune ligne de tableau et aucune phrase mentionnant « déclaration d'activité », « NDA », « N° d'activité », « déclaré sous le numéro », « enregistré sous le numéro » ou « ne vaut pas agrément de l'État » ;
+- n'utilise pas la variable {{centre_nda}} ;
+- n'invente aucun numéro et n'écris aucun marqueur de remplacement (« [NDA requis] », « à compléter », « ____ »).
+L'identification légale de l'organisme se limite à son nom, son SIRET et son adresse.
+`}
 IMPORTANT : Retourne UNIQUEMENT le HTML, sans balises \`\`\`html ni explications. Commence directement par <div>.`;
 
-    const userPrompt = `${docConfig.prompt}${centreInfo}${customNote}${variationNote}
+    // Les consignes par type de document réclament l'identification de
+    // l'organisme « (SIRET, NDA) » ou la « Référence au NDA » : sans numéro,
+    // la demande est retirée avant d'atteindre le modèle.
+    const consigne = avecNda ? docConfig.prompt : consigneSansNda(docConfig.prompt);
+
+    const userPrompt = `${consigne}${centreInfo}${customNote}${variationNote}
 
 Génère le template HTML complet maintenant.`;
 

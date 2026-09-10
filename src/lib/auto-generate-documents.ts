@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { supabase } from "@/integrations/supabase/client";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
 import { buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
 import type { TrackScope } from "@/hooks/useTemplateStudioV2";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -190,8 +191,9 @@ export async function triggerAutoGeneration(params: {
           continue;
         }
 
-        // Render template body
-        const rendered = (tmpl.template_body || "").replace(
+        // Render template body — mention NDA retirée si le centre n'en a pas
+        const body = stripNdaFromTemplate(tmpl.template_body || "", variables.centre_nda);
+        const rendered = body.replace(
           /\{\{(\w+)\}\}/g,
           (_: string, v: string) => variables[v] || ""
         );

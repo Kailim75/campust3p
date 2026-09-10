@@ -64,6 +64,44 @@ export interface CompanyInfo {
   qualiopi_numero?: string;
 }
 
+// ==================== IDENTITÉ LÉGALE ====================
+/**
+ * Le NDA (numéro de déclaration d'activité) est-il réellement exploitable ?
+ *
+ * Décision du directeur (10/09/2026) : le centre n'a PAS de NDA, la mention ne
+ * doit donc apparaître nulle part — ni libellé, ni ligne vide, ni séparateur
+ * orphelin, ni phrase amputée du type « déclaré sous le numéro , atteste ».
+ * Valent absence : `null`/`undefined`, la chaîne vide, une chaîne d'espaces et
+ * les marqueurs entre crochets (« [NDA requis] », « [NDA non configuré] »)
+ * fabriqués par les mappeurs du front.
+ *
+ * Quand le NDA EST renseigné (un 2ᵉ centre est prévu, il en aura un), le rendu
+ * reste strictement celui d'avant. Aucune valeur de repli n'est inventée :
+ * un NDA fictif serait une mention légale fausse sur un document contractuel.
+ */
+function hasNda(company: CompanyInfo): boolean {
+  const nda = company.nda;
+  return typeof nda === "string" && nda.trim() !== "" && !nda.includes("[");
+}
+
+/**
+ * Le SIRET est-il réellement exploitable ?
+ *
+ * Même règle que `hasNda`, pour une raison différente : le SIRET est
+ * OBLIGATOIRE, mais tant que le centre n'est pas configuré le front fabrique un
+ * marqueur (« [SIRET requis] », « [SIRET non configuré] »). Ce marqueur est un
+ * repère d'écran, jamais une mention légale : l'imprimer sur une convocation ou
+ * une attestation publierait un identifiant faux. Sans valeur exploitable, le
+ * SIRET disparaît du rendu — et lui seul : le nom de l'organisme reste.
+ *
+ * Miroir Deno de `hasSiret` (src/lib/centre-to-company.ts) : les edge functions
+ * ne peuvent pas importer le front, les deux règles doivent rester alignées.
+ */
+function hasSiret(company: CompanyInfo): boolean {
+  const siret = company.siret;
+  return typeof siret === "string" && siret.trim() !== "" && !siret.includes("[");
+}
+
 // ==================== COLORS ====================
 const COLORS = {
   forestGreen: { r: 27, g: 77, b: 62 },
@@ -249,7 +287,13 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
   doc.text(`${company.address} | Tél: ${company.phone} | ${company.email}`, 20, 22);
 
   doc.setFontSize(6.5);
-  doc.text(`SIRET: ${company.siret} | NDA: ${company.nda}`, 20, 30);
+  // Sans NDA : le SIRET reste seul, sans séparateur « | » orphelin. Sans SIRET
+  // exploitable non plus : la ligne entière est omise plutôt que d'imprimer un
+  // marqueur de configuration (« SIRET: [SIRET requis] »).
+  const legalParts: string[] = [];
+  if (hasSiret(company)) legalParts.push(`SIRET: ${company.siret}`);
+  if (hasNda(company)) legalParts.push(`NDA: ${company.nda}`);
+  if (legalParts.length > 0) doc.text(legalParts.join(" | "), 20, 30);
 
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   doc.rect(0, headerHeight, pageWidth, 2, "F");
@@ -368,8 +412,8 @@ export function generateConvocationPDF(
 
   // Références admin à droite
   const adminParts: string[] = [];
-  if (company.siret && !company.siret.includes("[")) adminParts.push(`SIRET ${company.siret}`);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") adminParts.push(`NDA ${company.nda}`);
+  if (hasSiret(company)) adminParts.push(`SIRET ${company.siret}`);
+  if (hasNda(company)) adminParts.push(`NDA ${company.nda}`);
   if (adminParts.length > 0) {
     doc.setFontSize(7);
     doc.setTextColor(155, 185, 160);
@@ -650,8 +694,8 @@ export function generateConvocationPDF(
   doc.text(`Document généré le ${now.toLocaleDateString("fr-FR")}`, pageWidth / 2, footerY + 5, { align: "center" });
 
   const footerRight: string[] = [];
-  if (company.siret && !company.siret.includes("[")) footerRight.push(`SIRET ${company.siret}`);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim() !== "") footerRight.push(`NDA ${company.nda}`);
+  if (hasSiret(company)) footerRight.push(`SIRET ${company.siret}`);
+  if (hasNda(company)) footerRight.push(`NDA ${company.nda}`);
   if (footerRight.length > 0) {
     doc.text(footerRight.join("  •  "), pageWidth - mR, footerY + 5, { align: "right" });
   }
@@ -695,7 +739,11 @@ export function generateAttestationPDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
 
-  const text1 = `Je soussigné, représentant de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}, atteste que :`;
+  // Sans NDA : la subordonnée « organisme de formation déclaré sous le numéro … »
+  // disparaît entièrement — la phrase reste grammaticalement complète.
+  const text1 = hasNda(company)
+    ? `Je soussigné, représentant de ${company.name}, organisme de formation déclaré sous le numéro ${company.nda}, atteste que :`
+    : `Je soussigné, représentant de ${company.name}, atteste que :`;
   const splitText1 = doc.splitTextToSize(text1, pageWidth - 40);
   doc.text(splitText1, 20, yPos);
   yPos += splitText1.length * 7 + 15;
@@ -953,11 +1001,17 @@ export function generateContratFormationPDF(
   doc.text("L'organisme de formation :", 20, yPos);
   doc.setFont("helvetica", "normal");
   yPos += 5;
-  doc.text(`${company.name} - SIRET : ${company.siret}`, 25, yPos);
+  // Sans SIRET exploitable, le nom de l'organisme reste seul : on ne supprime
+  // que l'identifiant, jamais l'identification de la partie au contrat.
+  doc.text(hasSiret(company) ? `${company.name} - SIRET : ${company.siret}` : company.name, 25, yPos);
   yPos += 4.5;
   doc.text(`${company.address}`, 25, yPos);
-  yPos += 4.5;
-  doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
+  // Sans NDA : la ligne entière disparaît, et yPos n'avance pas — pas de trou
+  // entre l'adresse et « Ci-après dénommé ».
+  if (hasNda(company)) {
+    yPos += 4.5;
+    doc.text(`Déclaration d'activité N° ${company.nda} (ne vaut pas agrément de l'État)`, 25, yPos);
+  }
   yPos += 4.5;
   doc.text(`Ci-après dénommé « l'Organisme »`, 25, yPos);
 

@@ -6,6 +6,7 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { hasNda, hasSiret } from "../centre-to-company";
 import {
   getProgramme,
   getPrerequis,
@@ -129,11 +130,16 @@ function drawHeader(ctx: PdfContext): number {
 
   // Build accreditations
   const accredParts: string[] = [];
-  if (company.siret) accredParts.push(`SIRET: ${company.siret}`);
+  // SIRET : même garde que le NDA ci-dessous. Tant que « Paramètres > Centre »
+  // n'est pas rempli, le mappeur fabrique « [SIRET requis] » — un repère
+  // d'écran. Imprimé sur un programme remis au stagiaire ou à la CMA, il
+  // deviendrait un identifiant légal faux : seule la ligne SIRET disparaît,
+  // le reste de l'en-tête (nom, coordonnées, agréments) est conservé.
+  if (hasSiret(company.siret)) accredParts.push(`SIRET: ${company.siret}`);
   // NDA : masqué s'il n'est pas encore attribué (organisme non déclaré) —
   // pour un centre T3P, c'est l'agrément préfectoral (ligne suivante) qui
   // fait foi tant que la déclaration d'activité DREETS n'est pas faite.
-  if (company.nda) accredParts.push(`NDA: ${company.nda}`);
+  if (hasNda(company.nda)) accredParts.push(`NDA: ${company.nda}`);
   if (company.qualiopi_numero) accredParts.push(`Qualiopi: ${company.qualiopi_numero}`);
   const accredLine = accredParts.join(" | ");
 
@@ -144,7 +150,9 @@ function drawHeader(ctx: PdfContext): number {
 
   doc.setFont(F.primary, "normal");
   doc.setFontSize(6.5);
-  const allAccred = [accredLine];
+  // Ligne vide (ni SIRET, ni NDA, ni Qualiopi imprimables) : on ne réserve pas
+  // de hauteur pour elle. Strictement sans effet dès qu'un identifiant existe.
+  const allAccred = accredLine ? [accredLine] : [];
   if (accredParts2.length > 0) allAccred.push(accredParts2.join(" | "));
 
   const wrappedLines: string[] = [];

@@ -127,8 +127,16 @@ export function GenerateDocumentDialog({
         numero_certificat: certificateData?.numero_certificat || "",
       };
 
-      // Remplacer les variables
-      const content = replaceVariables(template.contenu, contactData, selectedSession || undefined);
+      // Remplacer les variables — identité du centre passée EXPLICITEMENT :
+      // un PDF téléchargé ne doit jamais perdre SIRET et nom d'organisme parce
+      // qu'un cache de module était froid.
+      const content = replaceVariables(
+        template.contenu,
+        contactData,
+        selectedSession || undefined,
+        undefined,
+        centreFormation
+      );
 
       // Générer le PDF
       const doc = new jsPDF();

@@ -134,9 +134,35 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - `send-automated-emails` répondait **401 depuis le 14/01/2026** (le job
   porte la clé anon, la fonction exigeait un vrai utilisateur) : aucune
   relance de paiement J-7 ni rappel de formation J-7/J-1 n'est parti
-  automatiquement sur toute la période. Correctif prêt ; **la fonction n'a
-  pas encore été redéployée** (au premier passage à 08:00 UTC, la campagne
-  du jour part réellement).
+  automatiquement sur toute la période. Corrigée et **redéployée le
+  10/09/2026** (dryRun du jour : 0 email, aucune session concernée).
+- **Décision du directeur du 10/09/2026 — le centre n'a PAS de NDA** :
+  « je ne souhaite pas faire apparaître cette mention sur les documents
+  officiels ». Le champ « N° de déclaration d'activité » de Réglages ›
+  Centre reste donc **vide et facultatif** (l'astérisque a été retiré ;
+  le schéma zod le déclarait déjà `optional`). Conséquences dans le code :
+  - garde unique `hasNda` / `hasSiret` (`src/lib/centre-to-company.ts`) —
+    ne pas recréer de prédicat local : six gardes ad hoc plus permissives
+    subsistent encore, à mutualiser ;
+  - les gabarits HTML vivent **en base** (seedés, éditables) : le
+    nettoyage se fait AU RENDU, par `stripNdaFromTemplate`
+    (`src/lib/template-renderer.ts`). Tout nouveau moteur de rendu doit
+    l'appeler, sinon la mention réapparaît ;
+  - **règle de coupe en deux classes, à ne pas assouplir** : les libellés
+    NOMINAUX (« NDA : », « N° DA ») partent partout ; les formulations
+    VERBALES portant un sujet (« organisme déclaré sous le numéro ») ne
+    partent QUE si le jeton termine son segment. Trois relecteurs ont
+    prouvé qu'une heuristique plus large SUPPRIME du texte contractuel
+    (sujet de clause, paragraphe entier, entité HTML scindée). **Ne jamais
+    supprimer ce qui n'est pas la mention prime sur faire disparaître la
+    mention** : un libellé orphelin est un défaut, une clause amputée une
+    faute.
+- **Aucune identité inventée** : `send-automated-emails` fabriquait un
+  centre fictif (SIRET « 123 456 789 00012 », NDA « 11 75 12345 75 ») quand
+  `centre_formation` était illisible, et ces valeurs alimentaient les PDF
+  joints. Supprimé : plus de centre lisible ⇒ **500 + aucun envoi** plutôt
+  qu'un document faux. À savoir avant un incident RLS : la campagne du jour
+  ne partirait pas du tout.
 - **Décision du directeur du 10/09/2026 — interrupteur par bloc** dans
   `send-automated-emails` (constante `BLOCS_AUTOMATIQUES_ACTIFS`, en tête du
   fichier) : relance de paiement J-7 **ÉTEINTE** (« le processus de relance

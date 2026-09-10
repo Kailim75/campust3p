@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { hasNda, hasSiret } from "./centre-to-company";
 
 interface QualiopiPreuve {
   id: string;
@@ -109,10 +110,25 @@ export function generateQualiopiAuditPDF(data: AuditReportData): Blob {
   
   const centreInfo = [
     [`Raison sociale :`, data.centre.nom_commercial],
-    [`SIRET :`, data.centre.siret],
-    [`N° Déclaration Activité :`, data.centre.nda],
-    [`Adresse :`, data.centre.adresse_complete],
   ];
+
+  // SIRET : même garde conditionnelle que le NDA ci-dessous. Sans centre
+  // configuré, le champ vaut « [SIRET requis] » ; ce rapport partant à
+  // l'auditeur Qualiopi, y imprimer ce repère d'écran reviendrait à lui
+  // déclarer un identifiant faux. Seule la ligne SIRET saute — la raison
+  // sociale et l'adresse restent.
+  if (hasSiret(data.centre.siret)) {
+    centreInfo.push([`SIRET :`, data.centre.siret]);
+  }
+
+  // NDA : ligne ajoutée seulement s'il existe réellement — sinon le rendu
+  // afficherait « N° Déclaration Activité :  - » (le repli `value || "-"`
+  // plus bas). Même motif conditionnel que les lignes Qualiopi ci-dessous.
+  if (hasNda(data.centre.nda)) {
+    centreInfo.push([`N° Déclaration Activité :`, data.centre.nda]);
+  }
+
+  centreInfo.push([`Adresse :`, data.centre.adresse_complete]);
 
   if (data.centre.qualiopi_numero) {
     centreInfo.push([`N° Certificat Qualiopi :`, data.centre.qualiopi_numero]);

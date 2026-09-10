@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Eye, FileDown, Printer } from "lucide-react";
 import { DocumentTemplate, replaceVariables } from "@/hooks/useDocumentTemplates";
+import { useCentreFormation } from "@/hooks/useCentreFormation";
 
 interface DocumentTemplatePreviewDialogProps {
   open: boolean;
@@ -67,10 +68,25 @@ export function DocumentTemplatePreviewDialog({
   onOpenChange,
   template,
 }: DocumentTemplatePreviewDialogProps) {
+  // Cet écran ne montait AUCUNE source d'identité du centre : depuis que les
+  // jetons non résolus sont vidés, son aperçu affichait nom, SIRET et adresse
+  // VIDES (avant le lot il montrait les jetons littéraux). On monte donc le
+  // hook du centre, comme les trois écrans de génération.
+  //
+  // Hook placé AVANT tout retour anticipé — le `if (!template) return null` vit
+  // plus bas dans ce composant.
+  const { centreFormation } = useCentreFormation();
+
   const previewContent = useMemo(() => {
     if (!template) return "";
-    return replaceVariables(template.contenu, exampleContact, exampleSession, exampleVehicule);
-  }, [template]);
+    return replaceVariables(
+      template.contenu,
+      exampleContact,
+      exampleSession,
+      exampleVehicule,
+      centreFormation
+    );
+  }, [template, centreFormation]);
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");

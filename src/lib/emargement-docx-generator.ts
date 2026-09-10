@@ -1,6 +1,7 @@
 import { format, eachDayOfInterval, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import JSZip from "jszip";
+import { hasNda, hasSiret } from "./centre-to-company";
 
 // ============================================================
 // FEUILLE D'ÉMARGEMENT DOCX — PREMIUM AUDIT-READY V3
@@ -257,8 +258,8 @@ function headerBand(session: SessionInfo): string {
 
   // Line 1: SIRET + NDA
   const legalParts: string[] = [];
-  if (session.centre_siret) legalParts.push(`SIRET : ${session.centre_siret}`);
-  if (session.centre_nda) legalParts.push(`Déclaration d'activité n° ${session.centre_nda}`);
+  if (hasSiret(session.centre_siret)) legalParts.push(`SIRET : ${session.centre_siret}`);
+  if (hasNda(session.centre_nda)) legalParts.push(`Déclaration d'activité n° ${session.centre_nda}`);
   if (legalParts.length > 0) bottomLines.push(legalParts.join("  ·  "));
 
   // Line 2: Certifications (Qualiopi, RNCP, RS)

@@ -41,7 +41,12 @@ export function centreToOrganismeData(centre: CentreFormation | null | undefined
       telephone: "[Téléphone non configuré]",
       email: "[Email non configuré]",
       siret: "[SIRET non configuré]",
-      nda: "[NDA non configuré]",
+      // Le NDA est FACULTATIF (décision du directeur) : pas de marqueur entre
+      // crochets ici, qui s'imprimerait tel quel dans le gabarit rendu. Une
+      // chaîne vide laisse le nettoyage (stripNdaFromTemplate) retirer la
+      // mention. Le SIRET, lui, reste obligatoire : son marqueur signale une
+      // configuration manquante et les rendus le filtrent (cf. hasSiret).
+      nda: "",
       responsablePedagogique: responsable,
     };
   }

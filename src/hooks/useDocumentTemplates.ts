@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
+import { useCentreFormation } from "./useCentreFormation";
 
 export interface DocumentTemplate {
   id: string;
@@ -146,18 +149,141 @@ export const placeholderAliases: Record<string, string[]> = {
   numero_certificat: ["certificate_number", "certificat_numero", "reference_certificat", "ref_certificat", "attestation_numero"],
 };
 
+// ── Identité du centre pour la substitution des jetons {{centre_*}} ──
+//
+// `replaceVariables` substituait chaque jeton NOMMÉMENT et ne fournissait AUCUNE
+// variable centre_*. Un fragment « NDA : {{centre_nda}} » — variable pourtant
+// proposée à l'utilisateur (catalogue `availableVariables`) — ressortait donc TEL
+// QUEL, accolades comprises, dans le PDF téléchargé (GenerateDocumentDialog) et
+// dans les documents envoyés par email (SendDocumentsToContactDialog,
+// BulkDocumentPreviewDialog).
+
+/** Champs de `centre_formation` utilisés pour l'identité de l'organisme. */
+export interface CentreIdentite {
+  nom_legal?: string | null;
+  nom_commercial?: string | null;
+  siret?: string | null;
+  nda?: string | null;
+  adresse_complete?: string | null;
+  email?: string | null;
+  telephone?: string | null;
+  forme_juridique?: string | null;
+  iban?: string | null;
+  bic?: string | null;
+  region_declaration?: string | null;
+  responsable_legal_nom?: string | null;
+  responsable_legal_fonction?: string | null;
+}
+
+const texte = (valeur: string | null | undefined): string =>
+  typeof valeur === "string" ? valeur : "";
+
+/**
+ * Mêmes clés que `buildVariablesForGeneration` (useTemplateStudioV2), pour que
+ * les deux chemins de génération rendent le même document.
+ */
+export function buildCentreVariables(
+  centre: CentreIdentite | null | undefined
+): Record<string, string> {
+  if (!centre) return {};
+  return {
+    centre_nom: texte(centre.nom_commercial) || texte(centre.nom_legal),
+    centre_nom_legal: texte(centre.nom_legal),
+    centre_nom_commercial: texte(centre.nom_commercial),
+    centre_siret: texte(centre.siret),
+    // Les deux jetons du NDA portent la même valeur réelle.
+    centre_nda: texte(centre.nda),
+    centre_numero_da: texte(centre.nda),
+    centre_adresse: texte(centre.adresse_complete),
+    centre_email: texte(centre.email),
+    centre_telephone: texte(centre.telephone),
+    centre_forme_juridique: texte(centre.forme_juridique),
+    centre_iban: texte(centre.iban),
+    centre_bic: texte(centre.bic),
+    centre_region: texte(centre.region_declaration),
+    responsable_nom: texte(centre.responsable_legal_nom),
+    responsable_fonction: texte(centre.responsable_legal_fonction),
+  };
+}
+
+/**
+ * REPLI — identité du centre en mémoire de module (mono-centre : une ligne).
+ *
+ * Ce n'est plus le chemin nominal : les quatre écrans qui produisent un
+ * document passent désormais le centre EXPLICITEMENT à `replaceVariables`
+ * (paramètre `centre`). Le repli ne sert qu'aux appelants qui ne le fournissent
+ * pas — et il ne doit jamais servir une identité périmée :
+ *
+ *  - il est amorcé au chargement des modèles (`primeCentreVariables`) ;
+ *  - il est RAFRAÎCHI par `useDocumentTemplates` à chaque changement de la
+ *    requête ['centre-formation'], la seule qu'invalide l'enregistrement du
+ *    centre (useCentreFormation). Sans cela, saisir le NDA du 2ᵉ centre puis
+ *    générer un document dans les 5 minutes (staleTime global) masquait encore
+ *    la mention alors que le centre en avait désormais un — R2 prise en défaut.
+ */
+let centreVariablesCache: Record<string, string> = {};
+
+/** Alimente le cache depuis la base. Ne rejette jamais. */
+export async function primeCentreVariables(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase
+      .from("centre_formation")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+    centreVariablesCache = buildCentreVariables(data as CentreIdentite | null);
+  } catch {
+    // L'identité du centre est un confort : son indisponibilité ne doit pas
+    // empêcher la liste des modèles de s'afficher.
+  }
+  return centreVariablesCache;
+}
+
+/** Identité du centre connue à cet instant (vide si jamais chargée). */
+export function getCentreVariables(): Record<string, string> {
+  return centreVariablesCache;
+}
+
+/**
+ * Remplace le repli par l'identité fraîchement lue en base. Appelé par
+ * `useDocumentTemplates` dès que la requête ['centre-formation'] change : c'est
+ * l'invalidation qui manquait au repli.
+ */
+export function setCentreVariables(centre: CentreIdentite | null | undefined): void {
+  centreVariablesCache = buildCentreVariables(centre);
+}
+
+/** Réinitialise le cache — réservé aux tests. */
+export function resetCentreVariables(): void {
+  centreVariablesCache = {};
+}
+
 export function useDocumentTemplates() {
+  // L'identité du centre vit dans SA requête (['centre-formation'], invalidée
+  // par l'enregistrement du centre). On s'y abonne ici pour tenir le repli à
+  // jour ; le chemin nominal, lui, passe `centreFormation` explicitement à
+  // `replaceVariables`. Aucun retour anticipé avant ces hooks.
+  const { centreFormation } = useCentreFormation();
+
+  useEffect(() => {
+    if (centreFormation) setCentreVariables(centreFormation);
+  }, [centreFormation]);
+
   return useQuery({
     queryKey: ["document-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("document_templates")
-        .select("*")
-        .order("categorie", { ascending: true })
-        .order("nom", { ascending: true });
+      const [modeles] = await Promise.all([
+        supabase
+          .from("document_templates")
+          .select("*")
+          .order("categorie", { ascending: true })
+          .order("nom", { ascending: true }),
+        // Alimente l'identité du centre pour `replaceVariables` (synchrone).
+        primeCentreVariables(),
+      ]);
 
-      if (error) throw error;
-      return data as DocumentTemplate[];
+      if (modeles.error) throw modeles.error;
+      return modeles.data as DocumentTemplate[];
     },
   });
 }
@@ -273,14 +399,30 @@ function escapeHtml(text: string): string {
 }
 
 // Fonction pour remplacer les variables par les valeurs (avec échappement HTML)
+//
+// `centre` est la source NOMINALE de l'identité de l'organisme : les quatre
+// écrans qui produisent un document (GenerateDocumentDialog,
+// SendDocumentsToContactDialog, BulkDocumentPreviewDialog,
+// DocumentTemplatePreviewDialog) montent tous `useCentreFormation` et la
+// passent explicitement. Un cache froid ne peut donc plus faire partir un
+// document sans SIRET ni nom de centre.
+//
+// À défaut — appelant hors React, ou centre pas encore chargé — on retombe sur
+// le repli de module, tenu à jour par `useDocumentTemplates`. Paramètre en FIN
+// de signature : les appels à trois arguments restent compilables.
 export function replaceVariables(
   template: string,
   contact: Record<string, any>,
   session?: Record<string, any>,
-  vehicule?: Record<string, any>
+  vehicule?: Record<string, any>,
+  centre?: CentreIdentite | null
 ): string {
-  let result = template;
-  
+  const centreVars = centre ? buildCentreVariables(centre) : getCentreVariables();
+
+  // NDA absent → la mention est retirée du gabarit AVANT toute substitution,
+  // exactement comme sur le chemin renderTemplateHtml.
+  let result = stripNdaFromTemplate(template, centreVars.centre_nda);
+
   // Variables du contact - escape HTML to prevent XSS
   Object.entries(contact).forEach(([key, value]) => {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
@@ -340,11 +482,21 @@ export function replaceVariables(
   }
   
   
+  // Variables du centre de formation - escape HTML to prevent XSS
+  Object.entries(centreVars).forEach(([key, value]) => {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+    result = result.replace(regex, escapeHtml(value));
+  });
+
   // Variables de date
   const now = new Date();
   result = result.replace(/\{\{date_jour\}\}/g, escapeHtml(now.toLocaleDateString("fr-FR")));
   result = result.replace(/\{\{annee\}\}/g, escapeHtml(now.getFullYear().toString()));
-  
+
+  // Aucun jeton ne doit survivre dans un document téléchargé ou envoyé : ce
+  // qui n'a pas été résolu est vidé, jamais imprimé avec ses accolades.
+  result = result.replace(/\{\{\s*\w+\s*\}\}/g, "");
+
   return result;
 }
 

@@ -18,6 +18,7 @@ import { Loader2, FileText, Download, Eye, Search, User, Calendar, CreditCard, B
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
 import DOMPurify from "dompurify";
 import type { StudioTemplate } from "@/constants/templateConstants";
 import { messageErreur } from "@/lib/erreurs";
@@ -314,7 +315,9 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
     setGenerating(true);
     try {
       const dataMap = await buildDataMap(entityType, selectedEntity.id);
-      const html = renderTemplate(template.template_body, dataMap);
+      // NDA absent → la mention est retirée du gabarit avant substitution.
+      const body = stripNdaFromTemplate(template.template_body, dataMap.centre_nda);
+      const html = renderTemplate(body, dataMap);
       const sanitized = DOMPurify.sanitize(html, { ADD_ATTR: ["style"], ADD_TAGS: ["mark"] });
       setGeneratedHtml(sanitized);
       setEditableHtml(sanitized);

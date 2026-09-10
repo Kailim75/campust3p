@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DOCUMENT_COLORS, DOCUMENT_FONTS } from "../document-styles";
 import type { ContactInfo, SessionInfo, CompanyInfo } from "../pdf-generator";
+import { hasNda } from "../centre-to-company";
 import { ORGANISME } from "@/constants/formations";
 
 const C = DOCUMENT_COLORS;
@@ -46,9 +47,10 @@ export function validateContratData(
   if (!company.email || company.email.includes("[")) {
     errors.push({ field: "company.email", message: "Email de l'organisme non configuré", severity: "blocking" });
   }
-  if (!company.nda || company.nda.includes("[")) {
-    errors.push({ field: "company.nda", message: "Numéro de déclaration d'activité (NDA) non configuré", severity: "warning" });
-  }
+  // Pas de contrôle sur le NDA : il est FACULTATIF par décision du directeur
+  // (10/09/2026). Le centre n'en a pas, et avertir « NDA non configuré » à
+  // chaque génération de contrat signalerait comme un défaut une situation
+  // voulue. Un centre qui en a un le voit imprimé normalement (cf. hasNda).
 
   // ── Stagiaire ──
   if (!contact.nom) {
@@ -420,9 +422,7 @@ export function generateContratFormationV2(
   ctx.yPos += 6;
 
   // Box Organisme
-  const ndaText = company.nda && !company.nda.includes("[") && company.nda.trim()
-    ? company.nda
-    : null;
+  const ndaText = hasNda(company.nda) ? company.nda : null;
   const orgLines: string[] = [company.name];
   if (company.siret && !company.siret.includes("[")) orgLines.push(`SIRET : ${company.siret}`);
   orgLines.push(company.address);
@@ -448,7 +448,15 @@ export function generateContratFormationV2(
   }
   doc.setFontSize(7);
   setColor(doc, C.warmGray500);
-  doc.text("(Cette déclaration ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", ctx.mL + 8, orgY);
+  // Sans NDA, « Cette déclaration » ne renverrait à rien dans le document :
+  // le renvoi disparaît avec la ligne, la clause contractuelle reste seule.
+  doc.text(
+    ndaText
+      ? "(Cette déclaration ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »"
+      : "Ci-après dénommé « l'Organisme »",
+    ctx.mL + 8,
+    orgY
+  );
   setColor(doc, C.warmGray800);
   ctx.yPos += orgBoxH + 4;
 
