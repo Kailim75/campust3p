@@ -120,15 +120,24 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - Lockfile de référence : **`bun.lock`** (`bun install --frozen-lockfile`).
   Le `package-lock.json` est désynchronisé — ne pas s'y fier.
 - Pour les envois d'emails : modes `dryRun` des fonctions cron
-  (`send-convocation-cron`, `signature-reminders` acceptent
-  `?dryRun=true`).
+  (`send-convocation-cron`, `signature-reminders` et, depuis le 10/09/2026,
+  `send-automated-emails` acceptent `?dryRun=true` — décompte de ce qui
+  serait envoyé, sans appel Resend ni écriture dans `email_logs`).
 
 ## Dettes connues (ne pas redécouvrir)
 
-- Crons : en-tête `x-cron-secret` à ajouter aux jobs pg_cron **puis**
-  `CRON_SECRET` à configurer — dans cet ordre, sous peine de 401 sur les
-  7 crons entre les deux étapes (mode transition tant que le secret est
-  absent) — procédure dans `supabase/CRON_JOBS.md`.
+- Crons : `CRON_SECRET` est configuré depuis le 10/09/2026 et les 8 jobs
+  envoient l'en-tête `x-cron-secret`. **8 fonctions** concernées, dont
+  `send-automated-emails` en variante **stricte** (`cronSecretMatches`) :
+  pour elle, pas de mode transition — le tableau des deux variantes est
+  dans `supabase/CRON_JOBS.md`.
+- `send-automated-emails` répondait **401 depuis le 14/01/2026** (le job
+  porte la clé anon, la fonction exigeait un vrai utilisateur) : aucune
+  relance de paiement J-7 ni rappel de formation J-7/J-1 n'est parti
+  automatiquement sur toute la période. Correctif prêt, mais **le déblocage
+  attend une décision explicite de Karim : ne pas redéployer la fonction
+  sans son accord** (au premier passage à 08:00 UTC, la campagne du jour
+  part réellement). Détail dans `supabase/CRON_JOBS.md`.
 - `jspdf` et `vitest` à mettre à jour.
 - Chemins encore mono-centre (à corriger avant l'ouverture du 2ᵉ centre) :
   `send-automated-emails` (bulk, `centre_formation` limit(1)),

@@ -78,6 +78,10 @@ interface EmailResult {
   subject?: string;
   success: boolean;
   resendId?: string;
+  /** Envoi volontairement non effectué (déjà parti aujourd'hui). */
+  skipped?: boolean;
+  /** "already_sent" | "dry_run" — motif d'un envoi non effectué. */
+  reason?: string;
   error?: string;
 }
 
@@ -141,12 +145,42 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null);
-    const EMAIL_CONFIG = resolveEmailConfig(body);
+
+    // Mode simulation du chemin automatique : `?dryRun=true` ou `{ dryRun: true }`
+    // — même convention que send-convocation-cron et signature-reminders.
+    // Aucun appel Resend, aucune écriture dans email_logs : c'est ce qui rend
+    // vérifiable l'étape 3 de la procédure d'activation de CRON_JOBS.md.
+    const dryRun =
+      new URL(req.url).searchParams.get("dryRun") === "true" || !!body?.dryRun;
+
+    // ========================================
+    // CHEMINS EXCLUSIFS : cron ⟂ envoi manuel
+    // ========================================
+    // Voie cron (x-cron-secret) : SEULE la campagne automatique est autorisée.
+    // Sans cette garde, quiconque détient le secret pourrait envoyer un email
+    // arbitraire — pièces jointes et BCC libres — depuis l'adresse du centre,
+    // via les deux branches manuelles ci-dessous.
+    if (viaCron && body && (body.recipients !== undefined || body.to !== undefined || body.type !== undefined)) {
+      console.warn("[AUTO-EMAILS] appel cron portant un corps d'envoi manuel : refusé");
+      return new Response(
+        JSON.stringify({
+          error:
+            "Forbidden - la voie cron (x-cron-secret) n'autorise que la campagne " +
+            "automatique quotidienne. Un envoi manuel (recipients / to / type) exige " +
+            "un JWT admin ou staff.",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Identité d'expédition : la voie cron n'a pas le droit de la surcharger
+    // (fromAddress / replyTo ne sont lus que d'un appel authentifié du CRM).
+    const EMAIL_CONFIG = viaCron ? DEFAULT_EMAIL_CONFIG : resolveEmailConfig(body);
     
     // ========================================
     // BULK EMAIL SENDING (with recipients array)
     // ========================================
-    if (body && body.recipients && Array.isArray(body.recipients) && body.recipients.length > 0) {
+    if (!viaCron && body && body.recipients && Array.isArray(body.recipients) && body.recipients.length > 0) {
       console.log("Processing bulk email send request:", body.type, "recipients:", body.recipients.length);
       
       const documentType = body.documentType || "Document";
@@ -430,7 +464,7 @@ serve(async (req) => {
     // ========================================
     // SINGLE EMAIL SENDING (prospect_email, document_envoi, direct_email)
     // ========================================
-    if (body && (body.type === "prospect_email" || body.type === "document_envoi" || body.type === "direct_email" || body.to)) {
+    if (!viaCron && body && (body.type === "prospect_email" || body.type === "document_envoi" || body.type === "direct_email" || body.to)) {
       console.log("Processing manual email send request:", body.type || "direct");
       
       const recipientEmail = body.to || body.recipientEmail;
@@ -555,11 +589,70 @@ serve(async (req) => {
       }
     }
     
+    // Appel authentifié (JWT admin/staff) dont le corps ne correspond à aucune
+    // branche d'envoi manuel : erreur explicite plutôt que le déclenchement
+    // silencieux de la campagne quotidienne.
+    if (!viaCron) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "corps de requête non reconnu — attendu { recipients: [...] } pour un envoi " +
+            "en lot, ou { to, subject, html } / { type: 'prospect_email' | 'document_envoi' " +
+            "| 'direct_email' } pour un envoi unitaire. La campagne automatique quotidienne " +
+            "n'est déclenchable que par le job pg_cron (en-tête x-cron-secret).",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // ========================================
     // AUTOMATED EMAILS (cron jobs)
     // ========================================
+    // À partir d'ici viaCron est vrai : seul le job pg_cron parvient jusqu'ici.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Fenêtre « journée en cours » pour la déduplication. Le runtime des edge
+    // functions est en UTC, comme tous les calculs de dates de ce fichier.
+    const dayStartIso = today.toISOString();
+    const dayEndIso = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+    /**
+     * Déduplication : un email automatique déjà parti aujourd'hui pour ce
+     * contact ne repart pas — sans quoi deux appels le même jour renvoient
+     * tout en double. Motif documenté dans CLAUDE.md (« traçage systématique
+     * dans email_logs ») et implémenté par signature-reminders.
+     *
+     * `refine` ajoute la clé métier du bloc (facture, session, examen) : sans
+     * elle, deux échéances distinctes tombant le même jour pour un même
+     * contact s'annuleraient mutuellement.
+     *
+     * Seuls les envois réussis (status='sent') bloquent : un échec doit rester
+     * rejouable. Et en cas d'erreur de lecture on laisse passer (fail-open) —
+     * une panne de SELECT ne doit pas couper toute la campagne.
+     */
+    async function alreadySentToday(
+      type: string,
+      contactId: string | null | undefined,
+      refine?: (q: any) => any,
+    ): Promise<boolean> {
+      if (!contactId) return false;
+      let q = supabase
+        .from("email_logs")
+        .select("id")
+        .eq("type", type)
+        .eq("contact_id", contactId)
+        .eq("status", "sent")
+        .gte("created_at", dayStartIso)
+        .lt("created_at", dayEndIso);
+      if (refine) q = refine(q);
+      const { data, error } = await q.limit(1);
+      if (error) {
+        console.error(`[DEDUP] vérification ${type} / ${contactId} impossible :`, error);
+        return false;
+      }
+      return !!data && data.length > 0;
+    }
     
     // ========================================
     // 1. RELANCES PAIEMENT J-7
@@ -592,6 +685,36 @@ serve(async (req) => {
         if (!contact?.email) continue;
 
         const emailSubject = `Rappel : Échéance de paiement dans 7 jours - Facture ${invoice.numero_facture}`;
+
+        if (await alreadySentToday("payment_reminder_j7", contact.id, (q) => q.eq("facture_id", invoice.id))) {
+          results.push({
+            type: "payment_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            factureId: invoice.id,
+            subject: emailSubject,
+            success: true,
+            skipped: true,
+            reason: "already_sent",
+          });
+          console.log(`Payment J-7 reminder déjà envoyé aujourd'hui à ${contact.email} (facture ${invoice.numero_facture})`);
+          continue;
+        }
+
+        if (dryRun) {
+          results.push({
+            type: "payment_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            factureId: invoice.id,
+            subject: emailSubject,
+            success: true,
+            reason: "dry_run",
+          });
+          continue;
+        }
 
         try {
           const emailHtml = buildEmailHtml({
@@ -711,6 +834,35 @@ serve(async (req) => {
           const contact = inscription.contact;
           if (!contact?.email) continue;
 
+          const subjectJ7 = `Rappel J-7 : Votre formation ${session.nom} approche !`;
+
+          if (await alreadySentToday("session_reminder_j7", contact.id, (q) => q.eq("session_id", session.id))) {
+            results.push({
+              type: "reminder_j7",
+              recipient: contact.email,
+              contactId: contact.id,
+              sessionId: session.id,
+              subject: subjectJ7,
+              success: true,
+              skipped: true,
+              reason: "already_sent",
+            });
+            continue;
+          }
+
+          if (dryRun) {
+            results.push({
+              type: "reminder_j7",
+              recipient: contact.email,
+              contactId: contact.id,
+              sessionId: session.id,
+              subject: subjectJ7,
+              success: true,
+              reason: "dry_run",
+            });
+            continue;
+          }
+
           try {
             const emailHtml = buildEmailHtml({
               title: "🎓 Rappel de formation — J-7",
@@ -738,7 +890,7 @@ serve(async (req) => {
             const emailResponse = await resend.emails.send({
               from: EMAIL_CONFIG.FROM,
               to: [contact.email],
-              subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
+              subject: subjectJ7,
               reply_to: EMAIL_CONFIG.REPLY_TO,
               html: emailHtml,
             });
@@ -749,7 +901,7 @@ serve(async (req) => {
               recipient_name: `${contact.prenom} ${contact.nom}`,
               contact_id: contact.id,
               session_id: session.id,
-              subject: `Rappel J-7 : Votre formation ${session.nom} approche !`,
+              subject: subjectJ7,
               template_used: "session_reminder_j7",
               status: "sent",
               resend_id: emailResponse.data?.id,
@@ -815,6 +967,35 @@ serve(async (req) => {
           const contact = inscription.contact;
           if (!contact?.email) continue;
 
+          const subjectJ1 = `C'est demain ! Rappel pour votre formation ${session.nom}`;
+
+          if (await alreadySentToday("session_reminder_j1", contact.id, (q) => q.eq("session_id", session.id))) {
+            results.push({
+              type: "reminder_j1",
+              recipient: contact.email,
+              contactId: contact.id,
+              sessionId: session.id,
+              subject: subjectJ1,
+              success: true,
+              skipped: true,
+              reason: "already_sent",
+            });
+            continue;
+          }
+
+          if (dryRun) {
+            results.push({
+              type: "reminder_j1",
+              recipient: contact.email,
+              contactId: contact.id,
+              sessionId: session.id,
+              subject: subjectJ1,
+              success: true,
+              reason: "dry_run",
+            });
+            continue;
+          }
+
           try {
             const emailHtml = buildEmailHtml({
               title: "🎓 C'est demain !",
@@ -842,7 +1023,7 @@ serve(async (req) => {
             const emailResponse = await resend.emails.send({
               from: EMAIL_CONFIG.FROM,
               to: [contact.email],
-              subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
+              subject: subjectJ1,
               reply_to: EMAIL_CONFIG.REPLY_TO,
               html: emailHtml,
             });
@@ -853,7 +1034,7 @@ serve(async (req) => {
               recipient_name: `${contact.prenom} ${contact.nom}`,
               contact_id: contact.id,
               session_id: session.id,
-              subject: `C'est demain ! Rappel pour votre formation ${session.nom}`,
+              subject: subjectJ1,
               template_used: "session_reminder_j1",
               status: "sent",
               resend_id: emailResponse.data?.id,
@@ -878,121 +1059,13 @@ serve(async (req) => {
       }
     }
 
-    // ========================================
-    // 4. RAPPELS EXAMEN T3P J-7
-    // ========================================
-    console.log("Checking for T3P exams in 7 days...");
-    
-    const { data: examensT3PJ7, error: examensT3PError } = await supabase
-      .from("examens_t3p")
-      .select(`
-        id,
-        date_examen,
-        heure_examen,
-        centre_examen,
-        type_formation,
-        numero_tentative,
-        contact:contacts(id, nom, prenom, email)
-      `)
-      .eq("date_examen", j7Date)
-      .eq("statut", "planifie");
-
-    if (examensT3PError) {
-      console.error("Error fetching T3P exams:", examensT3PError);
-    } else if (examensT3PJ7 && examensT3PJ7.length > 0) {
-      console.log(`Found ${examensT3PJ7.length} T3P exams in 7 days`);
-      
-      for (const examen of examensT3PJ7) {
-        const contact = examen.contact as any;
-        if (!contact?.email) continue;
-
-        const emailSubject = `Rappel : Votre examen T3P ${examen.type_formation} dans 7 jours`;
-
-        try {
-          const emailHtml = buildEmailHtml({
-            title: "📝 Rappel Examen T3P — J-7",
-            accentColor: "#7c3aed",
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            bodyHtml: `
-              <p style="margin: 0 0 12px 0;">Votre examen T3P approche ! Voici les détails :</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
-                <tr>
-                  <td style="background-color: #faf5ff; border-left: 4px solid #7c3aed; border-radius: 6px; padding: 18px 20px;">
-                    <p style="margin: 0 0 6px 0; font-weight: 700; color: #6d28d9;">Examen T3P — ${examen.type_formation}</p>
-                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📅 Date :</strong> ${formatDateFr(examen.date_examen)}</p>
-                    ${examen.heure_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>⏰ Heure :</strong> ${examen.heure_examen}</p>` : ""}
-                    ${examen.centre_examen ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #555;"><strong>📍 Centre :</strong> ${examen.centre_examen}</p>` : ""}
-                    <p style="margin: 0; font-size: 13px; color: #555;"><strong>🎯 Tentative n° :</strong> ${examen.numero_tentative}</p>
-                  </td>
-                </tr>
-              </table>
-              <h3 style="margin: 18px 0 10px 0; color: #333;">Conseils pour réussir :</h3>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li style="margin-bottom: 4px;">📖 Révisez les cours théoriques</li>
-                <li style="margin-bottom: 4px;">🆔 N'oubliez pas votre pièce d'identité</li>
-                <li style="margin-bottom: 4px;">⏰ Arrivez 30 minutes avant l'heure</li>
-                <li style="margin-bottom: 4px;">💤 Reposez-vous bien la veille</li>
-              </ul>
-              <p style="margin: 16px 0 0 0; color: #7c3aed; font-weight: bold;">Bonne chance pour votre examen !</p>
-            `,
-          });
-
-          const emailResponse = await resend.emails.send({
-            from: EMAIL_CONFIG.FROM,
-            to: [contact.email],
-            subject: emailSubject,
-            reply_to: EMAIL_CONFIG.REPLY_TO,
-            html: emailHtml,
-          });
-
-          await supabase.from("email_logs").insert({
-            type: "exam_t3p_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            subject: emailSubject,
-            template_used: "exam_t3p_reminder_j7",
-            status: "sent",
-            resend_id: emailResponse.data?.id,
-            metadata: { examen_id: examen.id, type_formation: examen.type_formation },
-          });
-
-          results.push({
-            type: "exam_t3p_reminder_j7",
-            recipient: contact.email,
-            recipientName: `${contact.prenom} ${contact.nom}`,
-            contactId: contact.id,
-            examenId: examen.id,
-            subject: emailSubject,
-            success: true,
-            resendId: emailResponse.data?.id,
-          });
-          console.log(`T3P exam J-7 reminder sent to ${contact.email}`);
-        } catch (emailError: any) {
-          await supabase.from("email_logs").insert({
-            type: "exam_t3p_reminder_j7",
-            recipient_email: contact.email,
-            recipient_name: `${contact.prenom} ${contact.nom}`,
-            contact_id: contact.id,
-            subject: emailSubject,
-            template_used: "exam_t3p_reminder_j7",
-            status: "failed",
-            error_message: emailError.message,
-          });
-
-          results.push({
-            type: "exam_t3p_reminder_j7",
-            recipient: contact.email,
-            success: false,
-            error: emailError.message,
-          });
-          console.error(`Failed to send T3P exam reminder to ${contact.email}:`, emailError);
-        }
-      }
-    }
+    // Le rappel « examen T3P J-7 » a été retiré d'ici : il faisait doublon
+    // exact avec send-exam-reminders (même table examens_t3p, même date J-7,
+    // même statut « planifie », même sujet). PROPRIÉTAIRE de ce rappel :
+    // send-exam-reminders, via le job exam-reminders-daily (09:00 UTC).
 
     // ========================================
-    // 5. RAPPELS EXAMEN PRATIQUE J-7
+    // 4. RAPPELS EXAMEN PRATIQUE J-7
     // ========================================
     console.log("Checking for practical exams in 7 days...");
     
@@ -1023,6 +1096,38 @@ serve(async (req) => {
         if (!contact?.email) continue;
 
         const emailSubject = `Rappel : Votre examen pratique dans 7 jours`;
+
+        // Clé métier dans metadata (motif CLAUDE.md) : pas de colonne examen_id
+        // sur email_logs, l'identifiant est déjà tracé dans metadata à l'insert.
+        if (await alreadySentToday("exam_pratique_reminder_j7", contact.id, (q) => q.contains("metadata", { examen_id: examen.id }))) {
+          results.push({
+            type: "exam_pratique_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            examenId: examen.id,
+            subject: emailSubject,
+            success: true,
+            skipped: true,
+            reason: "already_sent",
+          });
+          console.log(`Practical exam J-7 reminder déjà envoyé aujourd'hui à ${contact.email}`);
+          continue;
+        }
+
+        if (dryRun) {
+          results.push({
+            type: "exam_pratique_reminder_j7",
+            recipient: contact.email,
+            recipientName: `${contact.prenom} ${contact.nom}`,
+            contactId: contact.id,
+            examenId: examen.id,
+            subject: emailSubject,
+            success: true,
+            reason: "dry_run",
+          });
+          continue;
+        }
 
         try {
           const emailHtml = buildEmailHtml({
@@ -1112,22 +1217,30 @@ serve(async (req) => {
     // ========================================
     // SUMMARY
     // ========================================
+    // En mode simulation, `envoyes` se lit « auraient été envoyés ».
+    const countBlock = (type: string) => ({
+      envoyes: results.filter((r) => r.type === type && r.success && !r.skipped).length,
+      deja_envoyes: results.filter((r) => r.type === type && r.skipped).length,
+      echecs: results.filter((r) => r.type === type && !r.success).length,
+    });
+
     const summary = {
       timestamp: new Date().toISOString(),
+      dryRun,
       total_emails: results.length,
-      successful: results.filter((r) => r.success).length,
+      successful: results.filter((r) => r.success && !r.skipped).length,
       failed: results.filter((r) => !r.success).length,
+      already_sent: results.filter((r) => r.skipped).length,
       breakdown: {
-        payment_reminders_j7: results.filter((r) => r.type === "payment_reminder_j7").length,
-        formation_reminders_j7: results.filter((r) => r.type === "reminder_j7").length,
-        formation_reminders_j1: results.filter((r) => r.type === "reminder_j1").length,
-        exam_t3p_reminders_j7: results.filter((r) => r.type === "exam_t3p_reminder_j7").length,
-        exam_pratique_reminders_j7: results.filter((r) => r.type === "exam_pratique_reminder_j7").length,
+        payment_reminders_j7: countBlock("payment_reminder_j7"),
+        formation_reminders_j7: countBlock("reminder_j7"),
+        formation_reminders_j1: countBlock("reminder_j1"),
+        exam_pratique_reminders_j7: countBlock("exam_pratique_reminder_j7"),
       },
       details: results,
     };
 
-    console.log("Email automation completed:", JSON.stringify(summary, null, 2));
+    console.log(`Email automation completed${dryRun ? " [DRY RUN]" : ""}:`, JSON.stringify(summary, null, 2));
 
     return new Response(JSON.stringify(summary), {
       status: 200,
