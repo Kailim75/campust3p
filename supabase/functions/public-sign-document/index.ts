@@ -19,8 +19,10 @@ import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
  * 20260909230000 : ne pas les réutiliser.
  *
  * Toute comparaison de jeton est en temps constant. Un jeton stocké NULL ne
- * valide jamais (plus de « fallback legacy » : les liens antérieurs au
- * durcissement d'avril 2026 ont tous expiré — validité 30 jours).
+ * valide jamais (plus de « fallback legacy »). Le signing_token est créé par
+ * send-signature-email au premier envoi, ou par resolve-signing-token à la
+ * première ouverture d'une demande partagée via « Copier le lien » (jamais
+ * envoyée par email) ; il est remis à NULL après signature ou refus.
  */
 
 interface SignRequest {

@@ -17,7 +17,12 @@ import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
  *  - access_token matches
  *  - statut in ('en_attente','envoye')
  *  - date_expiration not in the past
- *  - signing_token NOT NULL (else the doc is already signed / invalidated)
+ *
+ * A request shared via « Copier le lien » never went through
+ * send-signature-email, so it has no signing_token yet: it is minted here on
+ * first resolve (guarded by the access_token check above, on a request that
+ * is still signable). A NULL signing_token on a signed/refused request never
+ * reaches that point: the status check rejects it first.
  *
  * All failures return a generic 401 to avoid leaking which check failed.
  */
@@ -94,11 +99,43 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Lien expiré" }, 410);
     }
 
-    if (!row.signing_token) {
-      return jsonResponse({ success: false, error: "Document déjà signé" }, 410);
+    let signingToken = row.signing_token as string | null;
+    if (!signingToken) {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      const minted = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+      // Conditions répétées dans l'UPDATE : jamais d'écriture sur une demande
+      // signée (trigger trg_lock_signed_signature_request) ni d'écrasement d'un
+      // jeton créé entre-temps par un appel concurrent.
+      const { data: updated, error: tokenError } = await supabase
+        .from("signature_requests")
+        .update({ signing_token: minted })
+        .eq("id", signatureId)
+        .is("signing_token", null)
+        .in("statut", ["en_attente", "envoye"])
+        .select("signing_token")
+        .maybeSingle();
+      if (tokenError) {
+        console.error("[resolve-signing-token] cannot mint signing_token", { signatureId, tokenError });
+        return jsonResponse({ success: false, error: "Erreur interne" }, 500);
+      }
+      if (updated?.signing_token) {
+        signingToken = updated.signing_token as string;
+      } else {
+        const { data: again } = await supabase
+          .from("signature_requests")
+          .select("signing_token")
+          .eq("id", signatureId)
+          .maybeSingle();
+        signingToken = (again?.signing_token as string | null) ?? null;
+      }
+      if (!signingToken) {
+        console.warn("[resolve-signing-token] signing_token still missing", { signatureId });
+        return jsonResponse({ success: false, error: "Lien invalide" }, 401);
+      }
     }
 
-    return jsonResponse({ success: true, signingToken: row.signing_token });
+    return jsonResponse({ success: true, signingToken });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur interne";
     console.error("[resolve-signing-token] error:", message);
