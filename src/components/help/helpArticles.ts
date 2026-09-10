@@ -210,31 +210,6 @@ Depuis la fiche apprenant → onglet **Examens** :
 ## Cas particulier CMA
 Pour les apprenants en parcours *Initial CMA*, la matrice des 5 documents doit être complète **avant** l'inscription à l'examen.`,
   },
-  {
-    id: "ia-director",
-    title: "Utiliser l'IA Director",
-    category: "demarrage",
-    contextPaths: ["/", "/dashboard"],
-    keywords: ["ia", "intelligence", "ai", "director", "analyse", "audit"],
-    body: `# IA Director
-
-L'IA Director scanne vos données quotidiennement et identifie :
-
-- Les **anomalies** (apprenants sans paiement, sessions sans formateur, documents manquants)
-- Les **opportunités** (prospects chauds non relancés, sessions remplies à 80% à 7 jours)
-- Le **score SAO** (Sécurité, Activité, Opportunités) sur 30 jours glissants
-
-## Lancement manuel
-**Dashboard → onglet Analyse IA → bouton "Lancer l'analyse"**.
-
-L'analyse prend 10–30 secondes et génère un rapport stratégique en langage naturel.
-
-## Plan d'action
-Chaque anomalie détectée est accompagnée d'une action concrète à effectuer. Cliquez sur l'action pour être redirigé vers l'écran concerné.
-
-## Sécurité
-L'IA n'effectue **aucune action destructive** sans validation humaine. Toutes les suggestions doivent être confirmées manuellement.`,
-  },
 ];
 
 export const HELP_CATEGORIES: { id: HelpArticle["category"]; label: string }[] = [
