@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { runComplianceCheck, COMPLIANCE_GATED_TYPES } from "@/lib/complianceEngine";
 import { messageErreur } from "@/lib/erreurs";
+import { stripNdaFromTemplate } from "@/lib/template-renderer";
 
 // ── Types ──
 
@@ -516,7 +517,8 @@ export function useGenerateDocument() {
       if (!tmpl) throw new Error("Template not found");
 
       // Render HTML
-      const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => params.variables[v] || "");
+      const body = stripNdaFromTemplate(tmpl.template_body, params.variables.centre_nda);
+      const rendered = body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => params.variables[v] || "");
 
       // Resolve centre_id from contact or session
       let centreIdForInsert: string | null = null;
@@ -656,7 +658,8 @@ export function useRetryFailedDocuments() {
           const tmpl = doc.template;
           if (!tmpl) { failed++; continue; }
 
-          const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
+          const body = stripNdaFromTemplate(tmpl.template_body, variables.centre_nda);
+          const rendered = body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
 
           // Reset to queued
           await (supabase as any).from("generated_documents_v2")
@@ -794,7 +797,8 @@ export function useGeneratePackDocuments() {
             .single();
           if (!tmpl) { failed++; continue; }
 
-          const rendered = tmpl.template_body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
+          const body = stripNdaFromTemplate(tmpl.template_body, variables.centre_nda);
+          const rendered = body.replace(/\{\{(\w+)\}\}/g, (_: string, v: string) => variables[v] || "");
 
           const { data: doc, error: docErr } = await (supabase as any)
             .from("generated_documents_v2")

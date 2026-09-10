@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import DOMPurify from "dompurify";
+import { stripNdaFromMarkdown } from "@/lib/template-renderer";
 
 export default function MentionsLegales() {
   const { activeMention, isLoadingActive } = useLegalMentions();
@@ -21,7 +22,9 @@ export default function MentionsLegales() {
       "{SIEGE_SOCIAL}": activeMention.siege_social || "[Non renseigné]",
       "{RCS}": activeMention.rcs || "[Non renseigné]",
       "{SIRET}": activeMention.siret || "[Non renseigné]",
-      "{NDA}": activeMention.nda || "[Non renseigné]",
+      // NDA absent : la ligne entière a déjà été retirée du gabarit
+      // (stripNdaFromMarkdown ci-dessous). Pas de marqueur affiché.
+      "{NDA}": activeMention.nda || "",
       "{DIRECTEUR_PUBLICATION}": activeMention.directeur_publication || "[Non renseigné]",
       "{HEBERGEUR_NOM}": activeMention.hebergeur_nom || "[Non renseigné]",
       "{HEBERGEUR_ADRESSE}": activeMention.hebergeur_adresse || "[Non renseigné]",
@@ -43,7 +46,8 @@ export default function MentionsLegales() {
 
   // Simple markdown to HTML (basic conversion)
   const renderMarkdown = (text: string) => {
-    const processed = processContent(text);
+    // NDA absent → la ligne du gabarit portant {NDA} disparaît entièrement.
+    const processed = processContent(stripNdaFromMarkdown(text, activeMention?.nda));
     
     // Convert markdown to HTML
     let html = processed

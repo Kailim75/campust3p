@@ -1,6 +1,7 @@
 import { Phone, MapPin, Calendar, Star, Trophy, Award, CheckCircle2, Clock, Users, Shield, Bike, CreditCard, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ORGANISME } from "@/constants/formations";
 
 export function FlyerVMDTR() {
   const modules = [
@@ -224,8 +225,10 @@ export function FlyerVMDTR() {
                 <span>Certification Qualiopi</span>
               </div>
             </div>
+            {/* SIRET réel lu dans la constante ORGANISME (aucune valeur en dur).
+                Pas de NDA : le centre n'en a pas (décision du directeur). */}
             <p className="text-xs text-white/70">
-              ECOLE T3P - SIRET: XXX XXX XXX XXXXX - NDA: XXXXXXXXXXX
+              {ORGANISME.nom} - SIRET: {ORGANISME.siret}
             </p>
           </div>
         </div>

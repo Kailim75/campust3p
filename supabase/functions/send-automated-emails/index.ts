@@ -285,11 +285,22 @@ serve(async (req) => {
       
       let centreData: CompanyInfo | null = null;
       try {
-        const { data: centreFormation } = await supabase
+        const { data: centreFormation, error: centreError } = await supabase
           .from("centre_formation")
           .select("*")
           .limit(1)
           .single();
+
+        if (centreError) {
+          console.error(
+            "[PDF-GEN] Lecture de centre_formation en échec :",
+            centreError.message
+          );
+        } else if (!centreFormation) {
+          console.error(
+            "[PDF-GEN] centre_formation ne renvoie aucune ligne : identité du centre inconnue."
+          );
+        }
         
         if (centreFormation) {
           centreData = {
@@ -303,17 +314,18 @@ serve(async (req) => {
           };
         }
       } catch (e) {
-        console.log("Could not fetch centre formation:", e);
+        console.error("[PDF-GEN] Lecture de centre_formation impossible :", e);
       }
       
-      const company: CompanyInfo = centreData || {
-        name: "Ecole T3P Montrouge",
-        address: "Montrouge",
-        phone: "01 23 45 67 89",
-        email: "montrouge@ecolet3p.fr",
-        siret: "123 456 789 00012",
-        nda: "11 75 12345 75",
-      };
+      // AUCUNE IDENTITÉ DE REPLI INVENTÉE.
+      // Jusqu'au 10/09/2026, l'absence de ligne dans `centre_formation` faisait
+      // basculer sur un centre FICTIF (SIRET « 123 456 789 00012 », NDA
+      // « 11 75 12345 75 ») qui alimentait la génération des PDF joints : des
+      // mentions légales FAUSSES sur des documents contractuels (convocation,
+      // attestation, contrat, convention) envoyés à de vrais candidats.
+      // Désormais : pas de centre lisible ⇒ pas de PDF, et l'envoi échoue
+      // bruyamment (voir la garde ci-dessous) plutôt que de produire un faux.
+      const company: CompanyInfo | null = centreData;
       
       const bulkResults: EmailResult[] = [];
       
@@ -336,6 +348,28 @@ serve(async (req) => {
         "reglement": "reglement",
         "Reglement": "reglement",
       };
+
+      // Résolus une seule fois : ils ne dépendent que du corps de la requête.
+      const pdfType = pdfDocTypes[documentType];
+      const wantsPdfAttachment = generatePdfAttachments && !!pdfType;
+
+      // Garde : un document officiel ne part JAMAIS avec une identité inventée.
+      if (wantsPdfAttachment && !company) {
+        const message =
+          "Identité du centre indisponible (table centre_formation vide ou illisible) : " +
+          "génération des PDF impossible. Aucun email n'a été envoyé — un document " +
+          "officiel ne doit jamais porter une identité légale inventée.";
+        console.error(`[PDF-GEN] ❌ ${message}`);
+        return new Response(
+          JSON.stringify({
+            error: message,
+            code: "centre_formation_indisponible",
+            sent: 0,
+            total: body.recipients.length,
+          }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
       
       for (const recipient of body.recipients) {
         if (!recipient.email) continue;
@@ -401,10 +435,9 @@ serve(async (req) => {
         
         let validatedAttachments: ValidatedAttachment[] = [];
         let pdfErrors: string[] = [];
-        const pdfType = pdfDocTypes[documentType];
-        const requiresAttachment = generatePdfAttachments && pdfType;
+        // `pdfType` et `wantsPdfAttachment` : résolus avant la boucle.
         
-        if (requiresAttachment && contactData) {
+        if (wantsPdfAttachment && company && contactData) {
           try {
             console.log(`[PDF-GEN] Génération PDF: ${pdfType} pour ${recipientName}`);
             const pdfDoc = generateDocumentPDF(pdfType, contactData, sessionDataForPdf, company);
@@ -429,7 +462,7 @@ serve(async (req) => {
           }
         }
         
-        if (requiresAttachment) {
+        if (wantsPdfAttachment) {
           const sendCheck = canSendEmailWithAttachments(validatedAttachments, 1);
           
           if (!sendCheck.allowed) {

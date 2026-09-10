@@ -22,7 +22,8 @@ export interface ContratConduiteVarsInput {
     raison_sociale?: string | null;
     adresse?: string | null;
     siret?: string | null;
-    numero_da?: string | null;
+    /** Colonne réelle de `centre_formation` (l'ancien `numero_da` n'existe pas). */
+    nda?: string | null;
     email?: string | null;
     telephone?: string | null;
   } | null;
@@ -56,6 +57,16 @@ const fmtMoney = (n: number | null | undefined): string => {
 
 const safe = (s?: string | null) => (s && s.trim().length ? s : PLACEHOLDER);
 
+/**
+ * Identité légale de l'organisme : JAMAIS de valeur de repli inventée.
+ *
+ * Ces champs sont imprimés sur un contrat que le stagiaire signe. « À planifier »
+ * à la place d'une raison sociale, d'un SIRET ou d'un numéro de déclaration
+ * d'activité serait une mention légale fausse : on préfère la chaîne vide, que
+ * le nettoyage NDA (stripNdaFromTemplate) sait faire disparaître proprement.
+ */
+const plain = (s?: string | null) => (s && s.trim().length ? s.trim() : "");
+
 export function buildContratConduiteVariables(input: ContratConduiteVarsInput): Record<string, string> {
   const produit = getProduitConduiteByFiliere(input.filiere);
   const filiereLabel = input.filiere === "taxi" ? "Taxi" : "VTC";
@@ -69,12 +80,16 @@ export function buildContratConduiteVariables(input: ContratConduiteVarsInput): 
     contact_code_postal: safe(input.contact?.code_postal),
     contact_ville: safe(input.contact?.ville),
 
-    centre_raison_sociale: safe(input.centre?.raison_sociale),
-    centre_adresse: safe(input.centre?.adresse),
-    centre_siret: safe(input.centre?.siret),
-    centre_numero_da: safe(input.centre?.numero_da),
-    centre_email: safe(input.centre?.email),
-    centre_telephone: safe(input.centre?.telephone),
+    centre_raison_sociale: plain(input.centre?.raison_sociale),
+    centre_adresse: plain(input.centre?.adresse),
+    centre_siret: plain(input.centre?.siret),
+    centre_email: plain(input.centre?.email),
+    centre_telephone: plain(input.centre?.telephone),
+    // Les DEUX jetons du NDA portent la même valeur réelle : `centre_nda` est
+    // celui que renderTemplateHtml consulte pour décider du masquage, et
+    // `centre_numero_da` reste alimenté pour un gabarit publié qui l'utiliserait.
+    centre_nda: plain(input.centre?.nda),
+    centre_numero_da: plain(input.centre?.nda),
 
     produit_filiere: filiereLabel,
     produit_intitule: produit.intitule,

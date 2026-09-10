@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DOCUMENT_COLORS, DOCUMENT_FONTS } from "../document-styles";
 import type { ContactInfo, SessionInfo, CompanyInfo } from "../pdf-generator";
+import { hasNda } from "../centre-to-company";
 import { ORGANISME, getObjectifs, getPrerequis } from "@/constants/formations";
 import type { TypeFormation } from "@/constants/formations";
 
@@ -319,7 +320,7 @@ export function generateConventionFormationV2(
   const orgLines: string[] = [company.name];
   if (company.siret && !company.siret.includes("[")) orgLines.push(`SIRET : ${company.siret}`);
   orgLines.push(company.address);
-  if (company.nda && !company.nda.includes("[") && company.nda.trim()) orgLines.push(`Déclaration d'activité N° ${company.nda}`);
+  if (hasNda(company.nda)) orgLines.push(`Déclaration d'activité N° ${company.nda}`);
   const orgBoxH = orgLines.length * ctx.lineH + 14;
 
   setFill(doc, C.creamLight);
@@ -338,7 +339,15 @@ export function generateConventionFormationV2(
   for (const line of orgLines) { doc.text(line, ctx.mL + 8, orgY); orgY += ctx.lineH; }
   doc.setFontSize(7);
   setColor(doc, C.warmGray500);
-  doc.text("(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »", ctx.mL + 8, orgY);
+  // Le « ne vaut pas agrément » se rapporte à la déclaration d'activité :
+  // sans numéro, il ne reste que la clause contractuelle.
+  doc.text(
+    hasNda(company.nda)
+      ? "(ne vaut pas agrément de l'État) — Ci-après dénommé « l'Organisme »"
+      : "Ci-après dénommé « l'Organisme »",
+    ctx.mL + 8,
+    orgY
+  );
   ctx.yPos += orgBoxH + 4;
 
   // Box Bénéficiaire (distinct du Stagiaire: c'est le financeur/employeur dans une convention)

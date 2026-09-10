@@ -234,7 +234,15 @@ export function SendDocumentsToContactDialog({
 
   // Generate PDF from text template
   const generatePdfFromTextTemplate = (template: { nom: string; contenu: string }) => {
-    const processedContent = replaceVariables(template.contenu, contactData, sessionData);
+    // Identité du centre passée EXPLICITEMENT : ce PDF part par email, il ne
+    // doit jamais sortir sans SIRET ni nom d'organisme.
+    const processedContent = replaceVariables(
+      template.contenu,
+      contactData,
+      sessionData,
+      undefined,
+      centreFormation
+    );
     
     // Create PDF
     const doc = new jsPDF();

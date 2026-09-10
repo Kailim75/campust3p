@@ -5,6 +5,7 @@
 
 import jsPDF from "jspdf";
 import JSZip from "jszip";
+import { hasNda, hasSiret } from "./centre-to-company";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -109,8 +110,11 @@ function addHeader(doc: jsPDF, title: string, company?: ConventionCompanyInfo): 
 
   // Build legal info line — skip empty fields
   const legalParts: string[] = [];
-  if (orgSiret && !orgSiret.includes("[")) legalParts.push(`SIRET: ${orgSiret}`);
-  if (orgNda && !orgNda.includes("[")) legalParts.push(`NDA: ${orgNda}`);
+  // Prédicat unique du projet (centre-to-company) plutôt qu'un test ad hoc :
+  // il rejette aussi les valeurs blanches, et une seule définition évite que
+  // l'en-tête et le pied de page divergent.
+  if (hasSiret(orgSiret)) legalParts.push(`SIRET: ${orgSiret}`);
+  if (hasNda(orgNda)) legalParts.push(`NDA: ${orgNda}`);
   if (company?.qualiopi_numero) legalParts.push(`Qualiopi: ${company.qualiopi_numero}`);
   if (company?.agrement_prefecture) legalParts.push(`Agrément Préf.: ${company.agrement_prefecture}`);
   if (company?.code_rs) legalParts.push(`RS: ${company.code_rs}`);
@@ -177,7 +181,12 @@ function addFooter(doc: jsPDF, pageNum: number, totalPages: number, company?: Co
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
 
-  doc.text(`${orgNom} - SIRET: ${orgSiret}`, MARGIN_LEFT, footerY + 6);
+  // Pied de page du règlement intérieur et des CGV (pièces jointes envoyées
+  // depuis SendDocumentsToContactDialog) : sans SIRET exploitable, SEULE la
+  // mention « - SIRET: … » disparaît. Le nom de l'organisme, lui, reste — un
+  // pied de page anonyme serait une perte de contenu, pas une correction.
+  const footerIdentite = hasSiret(orgSiret) ? `${orgNom} - SIRET: ${orgSiret}` : orgNom;
+  doc.text(footerIdentite, MARGIN_LEFT, footerY + 6);
   doc.text(`Page ${pageNum}/${totalPages}`, PAGE_WIDTH / 2, footerY + 6, { align: "center" });
   doc.text(`Généré le ${formatDateShort(new Date())}`, PAGE_WIDTH - MARGIN_RIGHT, footerY + 6, { align: "right" });
 }
@@ -375,7 +384,7 @@ export function generateConventionPDF(formation: Formation, beneficiaire: Benefi
     `SIRET: ${ORGANISME.siret}`,
     `Représenté par: ${ORGANISME.responsablePedagogique.nom}, ${ORGANISME.responsablePedagogique.fonction}`,
   ];
-  if (ORGANISME.nda) {
+  if (hasNda(ORGANISME.nda)) {
     orgInfoLines.splice(3, 0, `NDA: ${ORGANISME.nda}`);
   }
   yPos = addInfoBox(doc, "L'organisme de formation :", orgInfoLines, yPos);

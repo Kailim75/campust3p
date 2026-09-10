@@ -10,8 +10,55 @@ import type { CentreFormation } from "@/hooks/useCentreFormation";
 import type { CompanyInfo } from "./pdf-generator";
 
 /**
+ * Le NDA (numéro de déclaration d'activité) est FACULTATIF.
+ *
+ * Décision du directeur (10/09/2026) : tant que le centre n'a pas de numéro,
+ * AUCUNE mention de déclaration d'activité ne doit apparaître sur les documents
+ * officiels — ni libellé, ni ligne vide, ni disclaimer orphelin. Un 2ᵉ centre
+ * aura, lui, un NDA : le comportement avec numéro reste strictement inchangé.
+ *
+ * Cette fonction est le juge UNIQUE de « ce NDA est-il imprimable ? ». Elle
+ * traite comme absents : null/undefined, la chaîne vide ou blanche, et les
+ * marqueurs de configuration entre crochets ("[NDA requis]",
+ * "[NDA non configuré]") produits par les replis ci-dessous.
+ *
+ * Elle vit dans ce module volontairement : il n'a aucune dépendance runtime
+ * (son seul import est un `import type`, effacé au build), donc les pages qui
+ * l'importent — dont le rapport d'audit Qualiopi — n'embarquent pas pour
+ * autant tout le graphe de `pdf-generator.ts` (jspdf & co).
+ */
+export function hasNda(nda: string | null | undefined): boolean {
+  return valeurImprimable(nda);
+}
+
+/**
+ * Le SIRET est-il réellement imprimable ?
+ *
+ * Même règle que `hasNda`, pour une raison différente : le SIRET est
+ * OBLIGATOIRE, mais tant que le centre n'est pas configuré les mappeurs
+ * fabriquent un marqueur (« [SIRET requis] », « [SIRET non configuré] »). Ce
+ * marqueur est un repère d'écran, jamais une mention légale : l'imprimer sur
+ * une facture ou une attestation reviendrait à publier un identifiant faux.
+ * Sans valeur exploitable, le SIRET disparaît du rendu — et lui seul : le nom
+ * de l'organisme et la clause qui l'accompagnent restent.
+ */
+export function hasSiret(siret: string | null | undefined): boolean {
+  return valeurImprimable(siret);
+}
+
+/**
+ * Règle commune : une valeur est imprimable si elle n'est ni vide, ni blanche,
+ * ni un marqueur de configuration manquante entre crochets.
+ */
+function valeurImprimable(valeur: string | null | undefined): boolean {
+  if (!valeur) return false;
+  const nettoyee = valeur.trim();
+  return nettoyee !== "" && !nettoyee.includes("[");
+}
+
+/**
  * Convertit les données du centre de formation (DB) en format CompanyInfo (PDF)
- * 
+ *
  * @param centre - Données du centre depuis useCentreFormation()
  * @returns CompanyInfo formaté pour les générateurs PDF
  */
@@ -24,7 +71,9 @@ export function centreToCompanyInfo(centre: CentreFormation | null | undefined):
       phone: "[Téléphone requis]",
       email: "[Email requis]",
       siret: "[SIRET requis]",
-      nda: "[NDA requis]",
+      // Pas de marqueur ici : un NDA absent doit faire DISPARAÎTRE la mention
+      // des documents, pas y imprimer « [NDA requis] » (cf. hasNda ci-dessus).
+      nda: "",
     };
   }
 
