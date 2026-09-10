@@ -441,10 +441,10 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
               : "";
             const payLabel = (() => {
               if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };
-              if (contact.totalPaye >= contact.totalFacture) return { text: "Soldé", cls: "text-success" };
-              if (contact.totalPaye > 0) return { text: `Partiel · ${contact.totalFacture - contact.totalPaye}€`, cls: "text-warning" };
-              if (contact.paymentStatus === "retard") return { text: `Impayé · ${contact.totalFacture}€`, cls: "text-destructive" };
-              return { text: `En attente · ${contact.totalFacture}€`, cls: "text-muted-foreground" };
+              if (contact.resteDu <= 0) return { text: "Soldé", cls: "text-success" };
+              if (contact.totalPaye > 0) return { text: `Partiel · ${contact.resteDu}€`, cls: "text-warning" };
+              if (contact.paymentStatus === "retard") return { text: `Impayé · ${contact.resteDu}€`, cls: "text-destructive" };
+              return { text: `En attente · ${contact.resteDu}€`, cls: "text-muted-foreground" };
             })();
             return (
               <Card

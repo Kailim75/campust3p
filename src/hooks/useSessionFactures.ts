@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { estFactureComptee } from "@/lib/montants";
 
 /**
  * Factures d'une session, résolues par inscription avec le MÊME repli que
@@ -32,7 +33,7 @@ export interface SessionFacturesData {
 
 /** Une facture active compte dans les totaux (ni brouillon, ni annulée). */
 export function estFactureActive(f: { statut: string }): boolean {
-  return f.statut !== "brouillon" && f.statut !== "annulee";
+  return estFactureComptee(f);
 }
 
 /** Définition canonique du retard — identique à Finances et au Pilotage. */

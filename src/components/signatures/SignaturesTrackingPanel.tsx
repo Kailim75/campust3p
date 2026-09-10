@@ -89,6 +89,9 @@ export function SignaturesTrackingPanel() {
   const [search, setSearch] = useState("");
   const sendEmail = useSendSignatureEmail();
   const [pendingResend, setPendingResend] = useState<Row | null>(null);
+  // L'état de la mutation est global : sans l'id de la ligne en cours, un
+  // envoi sur la ligne A verrouille la confirmation de la ligne B.
+  const [envoiEnCours, setEnvoiEnCours] = useState<string | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["signature_requests", "tracking"],
@@ -187,10 +190,13 @@ export function SignaturesTrackingPanel() {
   };
 
   const resend = async (r: Row) => {
+    setEnvoiEnCours(r.id);
     try {
       await sendEmail.mutateAsync({ signatureRequestId: r.id, type: "signature_request" });
     } catch {
       /* handled in hook */
+    } finally {
+      setEnvoiEnCours(null);
     }
   };
 
@@ -201,8 +207,10 @@ export function SignaturesTrackingPanel() {
         onOpenChange={(open) => { if (!open) setPendingResend(null); }}
         title="Renvoyer la demande de signature ?"
         recipient={pendingResend?.contact?.email}
-        pending={sendEmail.isPending}
-        onConfirm={() => { if (pendingResend) resend(pendingResend); }}
+        pending={pendingResend !== null && envoiEnCours === pendingResend.id}
+        // Radix laisse le bouton cliquable pendant l'animation de sortie :
+        // un deuxième clic ne doit pas lancer un deuxième envoi réel.
+        onConfirm={() => { if (pendingResend && envoiEnCours === null) resend(pendingResend); }}
       />
       {/* Global summary */}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
@@ -341,7 +349,7 @@ export function SignaturesTrackingPanel() {
                               <div className="flex justify-end gap-1">
                                 {(s === "envoye" || s === "expire" || s === "en_attente") && (
                                   <>
-                                    <Button size="sm" variant="ghost" onClick={() => setPendingResend(r)} title="Renvoyer">
+                                    <Button size="sm" variant="ghost" onClick={() => setPendingResend(r)} title="Renvoyer" disabled={envoiEnCours === r.id}>
                                       <Send className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => copyLink(r)} title="Copier le lien">
