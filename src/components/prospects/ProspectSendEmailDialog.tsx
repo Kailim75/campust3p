@@ -146,7 +146,7 @@ export function ProspectSendEmailDialog({
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error("Erreur lors de l'envoi", {
-        description: messageErreur(error, "Veuillez réessayer"),
+        description: messageErreur(error),
       });
     } finally {
       setIsSending(false);

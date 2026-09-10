@@ -20,7 +20,6 @@ import {
   Webhook,
   CreditCard as CreditCardIcon,
   Palette,
-  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
@@ -122,6 +121,45 @@ function AlmaStatusCard() {
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * Doublon d'email à l'import : le trigger contacts_block_active_duplicate (ou
+ * l'index unique partiel) rejette le lot entier avec le code 23505 sans nommer
+ * la ligne du fichier — on retrouve l'adresse déjà enregistrée pour que
+ * l'utilisateur puisse corriger son fichier.
+ */
+async function decrireDoublonImport(
+  error: unknown,
+  lot: Array<Record<string, unknown>>,
+): Promise<string | null> {
+  const erreur = (error ?? {}) as { message?: unknown; code?: unknown };
+  const message = String(erreur.message ?? "");
+  const estDoublon = String(erreur.code ?? "") === "23505" || message.includes("DUPLICATE_ACTIVE_CONTACT");
+  if (!estDoublon) return null;
+
+  let enCause = message.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0] ?? null;
+  if (!enCause) {
+    const emailsDuLot = lot
+      .map((contact) => contact?.email)
+      .filter((email): email is string => typeof email === "string" && email !== "");
+    if (emailsDuLot.length > 0) {
+      const { data } = await supabase
+        .from("contacts")
+        .select("email")
+        .in("email", emailsDuLot)
+        .is("deleted_at", null)
+        .eq("archived", false)
+        .limit(5);
+      const trouves = (data ?? []).map((c) => c.email).filter(Boolean);
+      if (trouves.length > 0) enCause = trouves.join(", ");
+    }
+  }
+
+  const rejet = `Les ${lot.length} contacts de ce lot n'ont pas été importés.`;
+  return enCause
+    ? `Erreur lors de l'import : un contact actif existe déjà avec l'adresse ${enCause}. ${rejet} Corrigez le fichier puis relancez l'import.`
+    : `Erreur lors de l'import : une adresse email de ce lot appartient déjà à un contact actif. ${rejet} Corrigez le fichier puis relancez l'import.`;
 }
 
 export function SettingsPage() {
@@ -369,16 +407,16 @@ export function SettingsPage() {
     if (!importPreview || importPreview.length === 0) return;
 
     setIsImporting(true);
+    const batchSize = 50;
+    let imported = 0;
+    let lotCourant: NonNullable<typeof importPreview> = [];
     try {
-      const batchSize = 50;
-      let imported = 0;
-
       for (let i = 0; i < importPreview.length; i += batchSize) {
-        const batch = importPreview.slice(i, i + batchSize);
-        const { error } = await supabase.from("contacts").insert(batch);
-        
+        lotCourant = importPreview.slice(i, i + batchSize);
+        const { error } = await supabase.from("contacts").insert(lotCourant);
+
         if (error) throw error;
-        imported += batch.length;
+        imported += lotCourant.length;
       }
 
       toast.success(`${imported} contacts importés avec succès`);
@@ -388,7 +426,8 @@ export function SettingsPage() {
       setImportErrors([]);
     } catch (error: any) {
       console.error("Import error:", error);
-      toast.error(messageErreur(error, "Erreur lors de l'import"));
+      const doublon = await decrireDoublonImport(error, lotCourant);
+      toast.error(doublon ?? messageErreur(error, "Erreur lors de l'import"));
     } finally {
       setIsImporting(false);
     }
