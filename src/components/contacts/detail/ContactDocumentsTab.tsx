@@ -104,9 +104,9 @@ export function ContactDocumentsTab({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer ce document ?</AlertDialogTitle>
+                        <AlertDialogTitle>Envoyer cette pièce à la corbeille ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Cette action est irréversible.
+                          Elle reste récupérable depuis la Corbeille.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -118,7 +118,7 @@ export function ContactDocumentsTab({
                             contactId: doc.contact_id,
                           })}
                         >
-                          Supprimer
+                          Envoyer à la corbeille
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

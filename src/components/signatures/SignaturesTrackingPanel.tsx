@@ -201,6 +201,7 @@ export function SignaturesTrackingPanel() {
         onOpenChange={(open) => { if (!open) setPendingResend(null); }}
         title="Renvoyer la demande de signature ?"
         recipient={pendingResend?.contact?.email}
+        pending={sendEmail.isPending}
         onConfirm={() => { if (pendingResend) resend(pendingResend); }}
       />
       {/* Global summary */}

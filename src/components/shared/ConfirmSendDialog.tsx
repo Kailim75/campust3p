@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,8 @@ interface ConfirmSendDialogProps {
   /** Remplace le texte par défaut si besoin. */
   description?: ReactNode;
   confirmLabel?: string;
+  /** Envoi en cours : verrouille les deux boutons du dialogue. */
+  pending?: boolean;
   onConfirm: () => void;
 }
 
@@ -29,6 +32,9 @@ interface ConfirmSendDialogProps {
  * sans aperçu ni confirmation — un mauvais clic sur une ligne envoyait un
  * email réel, irréversible, au mauvais destinataire. Même filet que la
  * relance de paiement (PaiementsPage), généralisé.
+ *
+ * Le bouton de confirmation reste cliquable pendant l'animation de sortie
+ * Radix (~200 ms) : sans `pending`, un double clic part en deux envois réels.
  */
 export function ConfirmSendDialog({
   open,
@@ -37,6 +43,7 @@ export function ConfirmSendDialog({
   recipient,
   description,
   confirmLabel = "Envoyer",
+  pending = false,
   onConfirm,
 }: ConfirmSendDialogProps) {
   return (
@@ -55,8 +62,17 @@ export function ConfirmSendDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{confirmLabel}</AlertDialogAction>
+          <AlertDialogCancel disabled={pending}>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={pending}>
+            {pending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Envoi…
+              </>
+            ) : (
+              confirmLabel
+            )}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

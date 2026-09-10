@@ -666,7 +666,7 @@ export function PaiementsPage() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">N° Facture</TableHead>
-                  <TableHead className="font-semibold">Stagiaire</TableHead>
+                  <TableHead className="font-semibold">Apprenant</TableHead>
                   <TableHead className="font-semibold">Formation</TableHead>
                   <TableHead className="font-semibold">Financement</TableHead>
                   <TableHead className="font-semibold">Montant</TableHead>

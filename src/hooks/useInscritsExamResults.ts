@@ -117,7 +117,7 @@ export function useInscritsExamResults(contactIds: string[]) {
               .limit(1);
 
             if (!fiche || fiche.length === 0) {
-              throw new Error("Aucune fiche pratique trouvée pour ce stagiaire. Créez-en une d'abord.");
+              throw new Error("Aucune fiche pratique trouvée pour cet apprenant. Créez-en une d'abord.");
             }
 
             const { error } = await supabase.from('examens_pratique').insert({

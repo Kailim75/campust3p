@@ -270,7 +270,7 @@ export function ExpressEnrollmentDialog({ open, onOpenChange, onSuccess }: Expre
 
         if (inscError) {
           console.error("Inscription error:", inscError);
-          toast.error("Contact créé mais erreur lors de l'inscription à la session");
+          toast.error("Apprenant créé, mais l'inscription à la session a échoué");
         }
         inscriptionId = inscData?.id ?? null;
 

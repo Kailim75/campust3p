@@ -83,6 +83,7 @@ export function AlmaPaymentSection({
   };
 
   const handleSendAlmaLink = async () => {
+    if (isSendingLink) return;
     if (!almaUrl || !customerEmail) return;
     setIsSendingLink(true);
     try {
@@ -251,6 +252,7 @@ export function AlmaPaymentSection({
               onOpenChange={setConfirmLinkOpen}
               title="Envoyer le lien de paiement en plusieurs fois ?"
               recipient={customerEmail}
+              pending={isSendingLink}
               onConfirm={handleSendAlmaLink}
             />
           </div>
