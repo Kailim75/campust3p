@@ -90,7 +90,7 @@ export function BulkEmitConfirmDialog({
                 <thead className="sticky top-0 bg-muted/80">
                   <tr>
                     <th className="text-left p-2 font-medium">N° Facture</th>
-                    <th className="text-left p-2 font-medium">Stagiaire</th>
+                    <th className="text-left p-2 font-medium">Apprenant</th>
                     <th className="text-right p-2 font-medium">Montant</th>
                   </tr>
                 </thead>

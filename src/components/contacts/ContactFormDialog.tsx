@@ -393,7 +393,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" placeholder="email@exemple.com" onBlur={() => triggerDuplicateCheck()} />
+                        <Input {...field} type="email" placeholder="email@exemple.com" onBlur={() => { field.onBlur(); triggerDuplicateCheck(); }} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

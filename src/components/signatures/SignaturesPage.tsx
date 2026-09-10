@@ -433,6 +433,7 @@ export function SignaturesPage() {
         onOpenChange={(open) => { if (!open) setPendingSendId(null); }}
         title="Envoyer la demande de signature par email ?"
         recipient={pendingSendRecipient}
+        pending={sendEmail.isPending}
         onConfirm={() => { if (pendingSendId) handleSend(pendingSendId); }}
       />
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

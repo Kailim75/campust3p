@@ -195,7 +195,7 @@ export function useGenerateEmargements() {
 
       if (inscError) throw inscError;
       if (!inscriptions || inscriptions.length === 0) {
-        throw new Error("Aucun stagiaire inscrit à cette session");
+        throw new Error("Aucun apprenant inscrit à cette session");
       }
 
       const inscritContactIds = new Set(inscriptions.map(i => i.contact_id));
