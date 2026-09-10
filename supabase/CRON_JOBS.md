@@ -7,16 +7,15 @@ modification d'un job, mettre ce fichier à jour.
 
 Vérifier l'état réel : `SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;`
 
-**État au 21/07/2026 : 9 jobs, dont 8 actifs et 1 en pause** (`sync-gmail-inbox-every-5min`).
+**État au 10/09/2026 : 8 jobs, tous actifs.**
 
-> **À faire (10/09/2026)** : le 9ᵉ job, `sync-gmail-inbox-every-5min`, n'a plus
-> de fonction à appeler — l'Inbox CRM et les 6 edge functions Gmail ont été
-> supprimées du repo. Le supprimer pour de bon (`SELECT cron.unschedule(3);`,
-> ou `cron.unschedule('sync-gmail-inbox-every-5min')`) et demander à l'agent
-> Lovable de désinstaller les fonctions `sync-gmail-inbox`, `send-gmail-reply`,
-> `send-gmail-new`, `promote-attachment`, `download-email-attachment` et
-> `gmail-thread-actions` (le sync GitHub ne désinstalle rien). Les tables
-> `crm_email_*` sont conservées, dormantes — aucun écran ne les lit plus.
+> **Fait le 10/09/2026** : `sync-gmail-inbox-every-5min` (9ᵉ job, en pause
+> depuis le 21/07) a été supprimé par `cron.unschedule`, et l'agent Lovable a
+> désinstallé les 7 edge functions devenues sans appelant : `sync-gmail-inbox`,
+> `send-gmail-reply`, `send-gmail-new`, `promote-attachment`,
+> `download-email-attachment`, `gmail-thread-actions` et `crm-analysis`.
+> Les tables `crm_email_*` sont conservées, dormantes — aucun écran ne les lit
+> plus, et il n'existe plus de moyen de reconnecter un compte Gmail.
 
 ## Mettre un job en pause (plutôt que le supprimer)
 
@@ -42,7 +41,10 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 | `process-payment-reminders-hourly` | `0 * * * *` | `process-payment-reminders` | File de relances de paiement (aussi dans la migration `20260114004035`) |
 | `send-convocation-cron-daily` | `0 8 * * *` | `send-convocation-cron` | Convocations automatiques J-7 |
 | `signature-reminders-daily` | `30 6 * * *` | `signature-reminders` | Relance signatures J-3 + passage à `expire` — **à créer après déploiement de la fonction** (voir ci-dessous) |
-| `sync-gmail-inbox-every-5min` | `*/5 * * * *` | `sync-gmail-inbox` | Synchronisation Gmail — **EN PAUSE depuis le 21/07/2026** (`active = false`), **à supprimer** : l'Inbox CRM et la fonction `sync-gmail-inbox` n'existent plus depuis le 10/09/2026. Ne pas le réactiver (il appellerait une fonction absente ; aucun écran n'affiche plus les emails, aucun moyen de reconnecter un compte Gmail). `SELECT cron.unschedule(3);` |
+
+*(`sync-gmail-inbox-every-5min`, 9ᵉ job historique, a été supprimé le
+10/09/2026 en même temps que la fonction qu'il appelait — voir l'encadré en
+tête de fichier.)*
 
 ## Secret des crons (`CRON_SECRET`) — activation
 
