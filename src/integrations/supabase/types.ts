@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _mig_buffer: {
+        Row: {
+          part: number
+          txt: string
+        }
+        Insert: {
+          part: number
+          txt: string
+        }
+        Update: {
+          part?: number
+          txt?: string
+        }
+        Relationships: []
+      }
       action_logs: {
         Row: {
           action_type: string
@@ -8966,6 +8981,7 @@ export type Database = {
         Args: { p_facture_id: string }
         Returns: Json
       }
+      conseil_facture_emise: { Args: never; Returns: string }
       create_attestation_certificate: {
         Args: {
           p_contact_id: string
@@ -8981,6 +8997,8 @@ export type Database = {
       }
       dismiss_onboarding_checklist: { Args: never; Returns: undefined }
       export_contact_data: { Args: { p_contact_id: string }; Returns: Json }
+      factures_annulation_manuelle_permise: { Args: never; Returns: boolean }
+      factures_transmission_simulee_toleree: { Args: never; Returns: boolean }
       generate_breach_code: { Args: never; Returns: string }
       generate_numero_certificat: {
         Args: { p_type_attestation?: string }
@@ -9185,6 +9203,10 @@ export type Database = {
       has_session_centre_access: {
         Args: { _session_id: string }
         Returns: boolean
+      }
+      identite_acheteur_facture: {
+        Args: { p_client_partner_id: string; p_contact_id: string }
+        Returns: Json
       }
       is_admin_or_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
