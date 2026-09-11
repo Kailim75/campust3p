@@ -93,7 +93,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
           contact_id, client_partner_id, buyer_type, buyer_name_snapshot, buyer_address_snapshot, buyer_email_facturation, buyer_siret, buyer_tva_intracom,
           session_inscription:session_inscriptions(
             id, type_payeur, montant_pris_en_charge, reste_a_charge,
-            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret, tva_intracom),
             session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
           )
         `)
@@ -198,6 +198,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
           statut: "emise",
           contactId,
           totaux: { montant_ht: montant, montant_tva: 0 },
+          dateEmission: today,
         });
         const { data: newFacture, error: fErr } = await supabase
           .from("factures")
@@ -280,7 +281,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             contact_id, client_partner_id, buyer_type, buyer_name_snapshot, buyer_address_snapshot, buyer_email_facturation, buyer_siret, buyer_tva_intracom,
             session_inscription:session_inscriptions(
               id, type_payeur, montant_pris_en_charge, reste_a_charge,
-              payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+              payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret, tva_intracom),
               session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
             )
           `)
@@ -317,14 +318,22 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
     });
   };
 
+  /**
+   * Total encaissé sur une facture. Annoncé dans la confirmation d'annulation :
+   * D7 a reporté les remboursements, les paiements restent rattachés à la
+   * facture annulée et l'utilisateur doit le savoir AVANT de confirmer.
+   */
+  const totalPayeFacture = (factureId: string): number =>
+    (paiements || [])
+      .filter((p: any) => p.facture_id === factureId)
+      .reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
+
   const enrichFactureWithPayer = (f: any, client: ClientPdfFacture): FactureInfo => {
     const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = client;
     return {
       numero_facture: f.numero_facture || "",
       montant_total: Number(f.montant_total),
-      total_paye: (paiements || [])
-        .filter((p: any) => p.facture_id === f.id)
-        .reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+      total_paye: totalPayeFacture(f.id),
       statut: f.statut,
       type_financement: f.type_financement || "personnel",
       date_emission: f.date_emission,
@@ -651,7 +660,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
       <EditFactureLibreDialog
         open={!!editingFacture}
         onOpenChange={(v) => { if (!v) setEditingFacture(null); }}
-        facture={editingFacture}
+        facture={editingFacture ? { ...editingFacture, total_paye: totalPayeFacture(editingFacture.id) } : null}
         contactId={contactId}
       />
       {express && expressRequest && (

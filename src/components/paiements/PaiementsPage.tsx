@@ -756,16 +756,17 @@ export function PaiementsPage() {
                             )}
                           </span>
                         ) : facture.statut === "emise" || facture.statut === "partiel" ? (
+                          // Depuis la garde, la date d'échéance d'une facture
+                          // émise est figée : le badge ne peut plus inviter à la
+                          // saisir (le formulaire s'ouvre en lecture seule). Il
+                          // constate, il n'appelle plus à agir.
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-warning/40 text-warning cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(facture);
-                            }}
+                            className="text-[10px] border-warning/40 text-warning"
+                            title="Figée depuis l'émission : elle ne peut plus être saisie sur cette facture."
                           >
                             <AlertCircle className="h-3 w-3 mr-0.5" />
-                            Non définie
+                            Non renseignée — figée depuis l'émission
                           </Badge>
                         ) : (
                           "—"

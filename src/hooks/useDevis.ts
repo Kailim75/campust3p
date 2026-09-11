@@ -335,10 +335,12 @@ export function useConvertDevisToFacture() {
       // BEFORE UPDATE et ne s'exécutera pas. Acheteur et totaux HT/TVA sont
       // figés dans l'INSERT lui-même (D2 du 11/09/2026), faute de quoi le PDF
       // de cette facture suivrait la fiche contact vivante pour toujours.
+      const dateEmission = new Date().toISOString().split("T")[0];
       const bloc = await blocFigeNouvelleFacture({
         statut: "emise",
         contactId: devis.contact_id,
         lignes: lignes || [],
+        dateEmission,
       });
       const { data: facture, error: factureError } = await supabase
         .from("factures")
@@ -349,7 +351,7 @@ export function useConvertDevisToFacture() {
           session_inscription_id: devis.session_inscription_id,
           type_financement: devis.type_financement,
           montant_total: devis.montant_total,
-          date_emission: new Date().toISOString().split("T")[0],
+          date_emission: dateEmission,
           statut: "emise",
           commentaires: `Converti depuis le devis ${devis.numero_devis}`,
           ...bloc,

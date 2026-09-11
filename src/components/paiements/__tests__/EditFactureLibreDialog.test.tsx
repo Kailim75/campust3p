@@ -46,6 +46,7 @@ type FactureLibre = {
   type_financement?: string;
   statut: string;
   commentaires?: string | null;
+  total_paye?: number;
 };
 
 const base: FactureLibre = {
@@ -67,15 +68,23 @@ function afficher(facture: FactureLibre) {
 }
 
 function selectStatut(): HTMLSelectElement {
-  const trouve = screen.getAllByTestId("select-natif").find((s) => within(s).queryByText("Payée"));
+  // « Émise » est la seule option commune aux deux états du sélecteur.
+  const trouve = screen.getAllByTestId("select-natif").find((s) => within(s).queryByText("Émise"));
   if (!trouve) throw new Error("sélecteur de statut introuvable");
   return trouve as HTMLSelectElement;
+}
+
+function optionsStatutAffichees(): string[] {
+  return Array.from(selectStatut().querySelectorAll("option"))
+    .map((o) => o.textContent || "")
+    .filter(Boolean);
 }
 
 describe("EditFactureLibreDialog", () => {
   beforeEach(() => {
     journal.length = 0;
     vi.mocked(toast.error).mockClear();
+    vi.mocked(toast.info).mockClear();
     etat.statutEnBase = "brouillon";
     etat.lignes = [{ id: "l9", facture_id: "f2", description: "Forfait", quantite: 1, prix_unitaire_ht: 1000 }];
   });
@@ -129,5 +138,39 @@ describe("EditFactureLibreDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Confirmer l'annulation" }));
     await waitFor(() => expect(journal).toEqual([{ op: "updateFacture", args: { id: "f2", statut: "annulee" } }]));
+  });
+
+  it("la confirmation annonce l'argent déjà encaissé (D7)", async () => {
+    // Moitié des chemins d'annulation : depuis l'onglet Paiements d'un
+    // apprenant. PaiementsTab a les paiements en main — la boîte ne doit pas
+    // être muette sur l'argent qui restera rattaché à la facture annulée.
+    etat.statutEnBase = "emise";
+    afficher({ ...base, statut: "emise", total_paye: 900 });
+    await screen.findByDisplayValue("Forfait");
+
+    fireEvent.change(selectStatut(), { target: { value: "annulee" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer le statut" }));
+
+    expect(await screen.findByText(/900,00 € de paiements/)).toBeInTheDocument();
+  });
+
+  it("brouillon : seuls « Brouillon » et « Émise » sont proposés", async () => {
+    // Passer un brouillon directement à « Payée » le ferait sortir du brouillon
+    // sans armer le déclencheur de snapshot : mesuré au banc, buyer_*,
+    // montant_ht et montant_tva restent NULL et la garde gèle la facture.
+    afficher({ ...base });
+    await screen.findByDisplayValue("Forfait");
+    expect(optionsStatutAffichees()).toEqual(["Brouillon", "Émise"]);
+  });
+
+  it("statut non touché : aucune écriture, même si la facture a bougé en base", async () => {
+    etat.statutEnBase = "partiel";
+    afficher({ ...base, statut: "emise" });
+    await screen.findByDisplayValue("Forfait");
+
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer le statut" }));
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith("Aucune modification à enregistrer"));
+    expect(journal).toEqual([]);
   });
 });

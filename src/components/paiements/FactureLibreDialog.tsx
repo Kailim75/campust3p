@@ -15,6 +15,7 @@ import { useCreateFactureLignes } from "@/hooks/useFactureLignes";
 import { useProduitsServices, PRODUIT_TYPE_LABELS } from "@/hooks/useProduitsServices";
 import { usePartners, useCreatePartner } from "@/hooks/usePartners";
 import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
+import { messageLignesNonEnregistrees } from "@/lib/factures-emises";
 
 interface FactureLibreDialogProps {
   open: boolean;
@@ -191,6 +192,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         contactId: clientType === "particulier" ? contactId : null,
         partnerId: clientType === "entreprise" ? partnerId : null,
         lignes: [{ quantite: qte, prix_unitaire_ht: pu, tva_percent: tvaPct }],
+        dateEmission: today,
       });
 
       const newFacture = await createFacture.mutateAsync({
@@ -205,16 +207,27 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         ...bloc,
       } as any);
 
-      await createLignes.mutateAsync([{
-        facture_id: newFacture.id,
-        catalogue_formation_id: null,
-        produit_service_id: produitId && produitId !== "__libre__" ? produitId : null,
-        description: libelle,
-        quantite: qte,
-        prix_unitaire_ht: pu,
-        tva_percent: tvaPct,
-        ordre: 0,
-      } as any]);
+      // La facture est créée et ses montants sont figés : si les lignes échouent,
+      // la reprise n'est possible que dans les quinze minutes (garde). Le refus
+      // ne doit donc pas ressembler à « la facture n'a pas été créée ».
+      try {
+        await createLignes.mutateAsync([{
+          facture_id: newFacture.id,
+          catalogue_formation_id: null,
+          produit_service_id: produitId && produitId !== "__libre__" ? produitId : null,
+          description: libelle,
+          quantite: qte,
+          prix_unitaire_ht: pu,
+          tva_percent: tvaPct,
+          ordre: 0,
+        } as any]);
+      } catch (error) {
+        console.error(error);
+        toast.warning(messageLignesNonEnregistrees(newFacture.numero_facture));
+        resetForm();
+        onOpenChange(false);
+        return;
+      }
 
       toast.success("Facture créée");
       resetForm();

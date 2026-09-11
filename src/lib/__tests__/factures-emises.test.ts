@@ -5,10 +5,13 @@ import {
   demandeConfirmationAnnulation,
   executerPlanEnregistrement,
   interpreterAnnulationManuellePermise,
+  messageLignesNonEnregistrees,
   nettoyerActionsWorkflow,
+  optionsStatutBrouillon,
   optionsStatutFactureEmise,
   planifierEnregistrementFacture,
   texteConfirmationAnnulation,
+  STATUTS_FACTURE_AVANT_EMISSION,
   STATUTS_FACTURE_POUR_WORKFLOW,
   type PlanEnregistrementFacture,
 } from "@/lib/factures-emises";
@@ -82,6 +85,40 @@ describe("planifierEnregistrementFacture — brouillon en base (F1a)", () => {
     expect(appels).toEqual(["lignes"]);
   });
 
+  it("un brouillon ne peut pas sauter directement à « Payée » ni à « Annulée »", () => {
+    // Le déclencheur de snapshot ne s'arme que sur statut = 'emise'. Mesuré au
+    // banc : brouillon → 'payee' laisse buyer_*, montant_ht et montant_tva
+    // NULL, la garde gèle aussitôt la facture, le retour en brouillon est
+    // refusé et le PDF suit la fiche contact VIVANTE (D2 violée).
+    for (const statut of ["payee", "partiel", "impayee", "annulee"]) {
+      const plan = planifierEnregistrementFacture({
+        numeroFacture: "FAC-2026-9001",
+        statutOuverture: "brouillon",
+        statutEnBase: "brouillon",
+        valeursFacture: { ...valeursCompletes, statut },
+        avecLignes: true,
+      });
+      expect("message" in plan && plan.message).toMatch(/émettez d'abord la facture FAC-2026-9001/);
+    }
+  });
+
+  it("un brouillon reste modifiable et s'émet normalement", () => {
+    for (const statut of ["brouillon", "emise"]) {
+      const plan = ok(planifierEnregistrementFacture({
+        statutOuverture: "brouillon",
+        statutEnBase: "brouillon",
+        valeursFacture: { ...valeursCompletes, statut },
+        avecLignes: true,
+      }));
+      expect(plan.etapes).toEqual(["lignes", "facture"]);
+    }
+  });
+
+  it("seuls « Brouillon » et « Émise » sont proposés avant l'émission", () => {
+    expect(optionsStatutBrouillon().map((o) => o.value)).toEqual(["brouillon", "emise"]);
+    expect(STATUTS_FACTURE_AVANT_EMISSION).not.toContain("annulee");
+  });
+
   it("panne 2 : sans ligne à écrire, seule la facture est écrite", () => {
     const plan = ok(planifierEnregistrementFacture({
       statutOuverture: "brouillon",
@@ -127,6 +164,40 @@ describe("planifierEnregistrementFacture — facture émise en base (F1b)", () =
       avecLignes: true,
     }));
     expect(plan.etapes).toEqual([]);
+  });
+
+  it("sélecteur non touché mais facture passée à « partiel » en base : rien à écrire", () => {
+    // Le sélecteur porte la valeur de la copie en CACHE. Sans ce test, un clic
+    // sur « Enregistrer le statut » sans rien changer renvoyait { statut:
+    // 'emise' } : la garde l'accepte (transitions de règlement libres) et
+    // l'état de paiement réel est écrasé en silence.
+    const plan = ok(planifierEnregistrementFacture({
+      statutOuverture: "emise",
+      statutEnBase: "partiel",
+      valeursFacture: { ...valeursCompletes, statut: "emise" },
+      avecLignes: true,
+    }));
+    expect(plan.etapes).toEqual([]);
+  });
+
+  it("mais un changement réel du sélecteur reste écrit", () => {
+    const plan = ok(planifierEnregistrementFacture({
+      statutOuverture: "emise",
+      statutEnBase: "partiel",
+      valeursFacture: { ...valeursCompletes, statut: "payee" },
+      avecLignes: true,
+    }));
+    expect(plan.etapes).toEqual(["facture"]);
+    expect(plan.valeursFacture).toEqual({ statut: "payee" });
+  });
+
+  it("messageLignesNonEnregistrees dit de réessayer tout de suite", () => {
+    // Fenêtre de première saisie de la garde : aucune ligne existante ET
+    // facture créée il y a moins de quinze minutes.
+    const message = messageLignesNonEnregistrees("FAC-2026-0777");
+    expect(message).toMatch(/FAC-2026-0777/);
+    expect(message).toMatch(/réessayez immédiatement/);
+    expect(message).toMatch(/quinze minutes/);
   });
 
   it("facture émise ailleurs après l'ouverture en brouillon : refus, aucune écriture", () => {

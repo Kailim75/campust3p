@@ -226,11 +226,44 @@ describe("variablesGabaritFacture — gabarits Template Studio", () => {
         fiche,
       ),
     ).toEqual({
-      nom: "",
-      prenom: "Jean Ancien-Nom",
+      // Le nom figé est une chaîne unique côté PDF ; les variables du gabarit,
+      // elles, sont redécoupées : un modèle seedé qui écrit « Nom : {{nom}} »
+      // sans {{prenom}} imprimerait sinon une case vide.
+      nom: "Ancien-Nom",
+      prenom: "Jean",
       email: "fige@exemple.fr",
       adresse: "2 rue B, 92120, Montrouge",
     });
+  });
+
+  it("un gabarit qui n'utilise que {{nom}} garde le nom de famille figé", () => {
+    const variables = variablesGabaritFacture(
+      {
+        statut: "emise",
+        contact_id: "c1",
+        buyer_type: "b2c",
+        buyer_name_snapshot: "Jean Pierre Ancien-Nom",
+      },
+      fiche,
+    );
+    // Gabarit seedé « Nom : {{nom}} » (complianceEngine) : la case ne doit
+    // jamais être vide sur une facture émise.
+    expect(variables.nom).toBe("Pierre Ancien-Nom");
+    expect(`${variables.prenom} ${variables.nom}`.trim()).toBe("Jean Pierre Ancien-Nom");
+  });
+
+  it("acheteur figé ENTREPRISE : la raison sociale n'est pas coupée en prénom/nom", () => {
+    expect(
+      variablesGabaritFacture(
+        {
+          statut: "emise",
+          client_partner_id: "p1",
+          buyer_type: "b2b",
+          buyer_name_snapshot: "Transports Martin SARL",
+        },
+        null,
+      ),
+    ).toMatchObject({ nom: "Transports Martin SARL", prenom: "" });
   });
 
   it("brouillon : la fiche reste la source", () => {

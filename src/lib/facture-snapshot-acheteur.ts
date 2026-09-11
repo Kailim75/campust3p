@@ -207,10 +207,38 @@ export async function lireCoordonneesFigeesAcheteur(cible: {
   return null;
 }
 
+// ─── Mentions de TVA et date d'émission ──────────────────────────────────────
+
+/**
+ * Mention d'exonération posée par `snapshot_facture_on_emission`, mot pour mot
+ * (migration 20260519164035 : `NEW.motif_exoneration_tva := 'TVA non
+ * applicable, art. 261-4-4°a du CGI'`). Elle compte dans le score de
+ * conformité (règle INVOICE_MOTIF_EXO) et alimente generate-facturx.
+ *
+ * `regime_tva` n'est PAS repris ici : la colonne a un DEFAULT
+ * 'exonere_261_4_4_a' (migration 20260519121741), le déclencheur ne la touche
+ * donc jamais non plus (son `IF NEW.regime_tva IS NULL` ne passe pas après un
+ * INSERT). Les deux chemins produisent la même valeur.
+ */
+export const MOTIF_EXONERATION_TVA_EMISSION = "TVA non applicable, art. 261-4-4°a du CGI";
+
+/** Aujourd'hui au format ISO court, comme le `CURRENT_DATE` du déclencheur. */
+export function dateEmissionParDefaut(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /**
  * Bloc à fusionner dans l'INSERT d'une facture. Vide pour un brouillon : rien
  * ne change pour lui, ses coordonnées seront figées par le déclencheur au
  * moment de l'émission.
+ *
+ * Hors brouillon, le bloc reproduit TOUT ce que le déclencheur d'émission
+ * aurait posé — coordonnées de l'acheteur, totaux HT/TVA, **date d'émission et
+ * mention d'exonération de TVA**. Ces deux dernières manquaient : une facture
+ * née émise sans date d'émission est refusée par la conformité (INVOICE_DATE,
+ * bloquant) et, une fois la garde appliquée, plus rien ne peut la corriger —
+ * « Modification refusée : … est figé (date d'émission) ». D5 veut que la date
+ * d'émission soit le jour de l'émission : c'est ce que pose le défaut.
  */
 export async function blocFigeNouvelleFacture(params: {
   statut: string;
@@ -219,6 +247,8 @@ export async function blocFigeNouvelleFacture(params: {
   lignes?: LignePourTotaux[];
   /** Totaux déjà connus de l'appelant (facturation express, versement seul). */
   totaux?: { montant_ht: number; montant_tva: number };
+  /** Date d'émission saisie ; vide ⇒ aujourd'hui (D5). */
+  dateEmission?: string | null;
 }): Promise<Record<string, unknown>> {
   if (params.statut === "brouillon") return {};
 
@@ -231,5 +261,7 @@ export async function blocFigeNouvelleFacture(params: {
   return {
     ...(figees ?? {}),
     ...(totaux ? { montant_ht: totaux.montant_ht, montant_tva: totaux.montant_tva } : {}),
+    date_emission: texte(params.dateEmission) ?? dateEmissionParDefaut(),
+    motif_exoneration_tva: MOTIF_EXONERATION_TVA_EMISSION,
   };
 }

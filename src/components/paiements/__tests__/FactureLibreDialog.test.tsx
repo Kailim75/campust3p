@@ -9,8 +9,9 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
  * qu'on renomme le partenaire (D2 du 11/09/2026).
  */
 
-const { journal, fiches } = vi.hoisted(() => ({
+const { journal, fiches, etat } = vi.hoisted(() => ({
   journal: [] as { op: string; args: unknown }[],
+  etat: { echecCreationLignes: false },
   fiches: {
     partners: {
       company_name: "ACME SARL",
@@ -27,7 +28,7 @@ const { journal, fiches } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/ui/select", () => import("@/test/select-natif"));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => ({
@@ -69,7 +70,7 @@ vi.mock("@/hooks/useFactures", () => ({
   useCreateFacture: () => ({
     mutateAsync: async (args: unknown) => {
       journal.push({ op: "createFacture", args });
-      return { id: "nouvelle" };
+      return { id: "nouvelle", numero_facture: "FAC-2026-0700" };
     },
   }),
   useGenerateNumeroFacture: () => ({ data: "FAC-2026-0700" }),
@@ -78,10 +79,12 @@ vi.mock("@/hooks/useFactureLignes", () => ({
   useCreateFactureLignes: () => ({
     mutateAsync: async (args: unknown) => {
       journal.push({ op: "createLignes", args });
+      if (etat.echecCreationLignes) throw new Error("insertion refusée");
     },
   }),
 }));
 
+import { toast } from "sonner";
 import { FactureLibreDialog } from "../FactureLibreDialog";
 
 function remplirLaLigne() {
@@ -98,6 +101,10 @@ function soumettre() {
 describe("FactureLibreDialog — facture née émise", () => {
   beforeEach(() => {
     journal.length = 0;
+    etat.echecCreationLignes = false;
+    vi.mocked(toast.warning).mockClear();
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(toast.success).mockClear();
   });
 
   it("particulier : coordonnées figées de l'apprenant et montants dans l'INSERT", async () => {
@@ -139,5 +146,33 @@ describe("FactureLibreDialog — facture née émise", () => {
       buyer_tva_intracom: "FR70999888777",
       buyer_email_facturation: "factures@acme.fr",
     });
+  });
+
+  it("date d'émission et mention d'exonération figées dès l'INSERT (D5)", async () => {
+    render(<FactureLibreDialog open onOpenChange={() => {}} defaultContactId="c1" />);
+    remplirLaLigne();
+    soumettre();
+
+    await waitFor(() => expect(journal.length).toBeGreaterThan(0));
+    expect(journal[0].args).toMatchObject({
+      date_emission: new Date().toISOString().slice(0, 10),
+      motif_exoneration_tva: "TVA non applicable, art. 261-4-4°a du CGI",
+    });
+  });
+
+  it("lignes refusées : le message dit de réessayer tout de suite, pas « erreur de création »", async () => {
+    // La facture émise existe et ses montants sont figés ; la garde ne laisse
+    // rattraper les lignes que dans les quinze minutes.
+    etat.echecCreationLignes = true;
+    render(<FactureLibreDialog open onOpenChange={() => {}} defaultContactId="c1" />);
+    remplirLaLigne();
+    soumettre();
+
+    await waitFor(() =>
+      expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/réessayez immédiatement/)),
+    );
+    expect(vi.mocked(toast.warning).mock.calls[0][0]).toMatch(/FAC-2026-0700/);
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

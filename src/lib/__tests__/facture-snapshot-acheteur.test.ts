@@ -37,8 +37,12 @@ import {
   blocFigeNouvelleFacture,
   coordonneesFigeesContact,
   coordonneesFigeesPartenaire,
+  MOTIF_EXONERATION_TVA_EMISSION,
   totauxFigesDepuisLignes,
 } from "../facture-snapshot-acheteur";
+
+/** Calculé ici, pas repris de l'implémentation : c'est ce qu'on vérifie. */
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 describe("coordonnées figées de l'acheteur (création d'une facture émise)", () => {
   beforeEach(() => {
@@ -155,6 +159,59 @@ describe("coordonnées figées de l'acheteur (création d'une facture émise)", 
       contactId: "c1",
       totaux: { montant_ht: 990, montant_tva: 0 },
     });
-    expect(bloc).toEqual({ montant_ht: 990, montant_tva: 0 });
+    expect(bloc).toEqual({
+      montant_ht: 990,
+      montant_tva: 0,
+      date_emission: aujourdhui(),
+      motif_exoneration_tva: MOTIF_EXONERATION_TVA_EMISSION,
+    });
+  });
+});
+
+/**
+ * Le déclencheur d'émission pose AUSSI la date d'émission (CURRENT_DATE) et la
+ * mention d'exonération de TVA. Une facture née « emise » ne passe jamais par
+ * lui : sans ces deux valeurs, elle reste à jamais sans date d'émission
+ * (anomalie INVOICE_DATE, bloquante) et sans mention (INVOICE_MOTIF_EXO) —
+ * mesuré au banc, réparation ensuite REFUSÉE par la garde (« est figé (date
+ * d'émission) »). D5 : la date d'émission est le jour de l'émission.
+ */
+describe("date d'émission et mention d'exonération (D5)", () => {
+  it("facture née émise sans date saisie : date du jour et mention posées", async () => {
+    reponses.contacts = { prenom: "Jean", nom: "Dupont" };
+    const bloc = await blocFigeNouvelleFacture({
+      statut: "emise",
+      contactId: "c1",
+      lignes: [{ quantite: 1, prix_unitaire_ht: 1800, tva_percent: 0 }],
+    });
+    expect(bloc.date_emission).toBe(aujourdhui());
+    expect(bloc.motif_exoneration_tva).toBe("TVA non applicable, art. 261-4-4°a du CGI");
+  });
+
+  it("date saisie : elle est respectée", async () => {
+    reponses.contacts = { prenom: "Jean", nom: "Dupont" };
+    const bloc = await blocFigeNouvelleFacture({
+      statut: "emise",
+      contactId: "c1",
+      dateEmission: "2026-09-01",
+      totaux: { montant_ht: 1, montant_tva: 0 },
+    });
+    expect(bloc.date_emission).toBe("2026-09-01");
+  });
+
+  it("chaîne vide (champ facultatif laissé vide) : date du jour, jamais null", async () => {
+    reponses.contacts = { prenom: "Jean", nom: "Dupont" };
+    const bloc = await blocFigeNouvelleFacture({
+      statut: "emise",
+      contactId: "c1",
+      dateEmission: "",
+      totaux: { montant_ht: 1, montant_tva: 0 },
+    });
+    expect(bloc.date_emission).toBe(aujourdhui());
+  });
+
+  it("brouillon : ni date ni mention — le déclencheur les posera à l'émission", async () => {
+    const bloc = await blocFigeNouvelleFacture({ statut: "brouillon", contactId: "c1" });
+    expect(bloc).toEqual({});
   });
 });

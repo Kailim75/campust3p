@@ -223,4 +223,37 @@ describe("FactureDetailSheet — gestion", () => {
       email: "jean-bis@exemple.fr",
     });
   });
+
+  it("repli « fiche entreprise » : SIRET ET TVA intracommunautaire imprimés (F5)", async () => {
+    // Facture B2B ÉMISE AVANT l'existence des coordonnées figées
+    // (buyer_name_snapshot absent) : c'est exactement le repli que F5 vise. Il
+    // ne doit pas être moins complet que la branche figée sur une donnée
+    // obligatoire d'une facture entre professionnels.
+    etat.facture = facture("emise", {
+      contact: null,
+      contact_id: null,
+      client_partner_id: "p1",
+      client_partner: {
+        id: "p1",
+        company_name: "Transports Martin SARL",
+        email: "compta@martin.fr",
+        address: "4 rue C",
+        code_postal: "31000",
+        ville: "Toulouse",
+        phone: null,
+        siret: "12312312300045",
+        tva_intracom: "FR12123123123",
+      },
+    });
+    afficher();
+
+    fireEvent.click(screen.getByRole("button", { name: "Télécharger le PDF" }));
+
+    await waitFor(() => expect(generateFacturePDF).toHaveBeenCalled());
+    expect((generateFacturePDF.mock.calls[0][0] as { payer?: Record<string, unknown> }).payer).toMatchObject({
+      company_name: "Transports Martin SARL",
+      siret: "12312312300045",
+      tva_intracom: "FR12123123123",
+    });
+  });
 });

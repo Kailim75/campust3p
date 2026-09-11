@@ -56,6 +56,33 @@ export const STATUTS_FACTURE_APRES_EMISSION: readonly StatutFacture[] = [
 ];
 
 /**
+ * SEULS statuts qu'une facture peut prendre tant qu'elle n'est pas émise —
+ * à la création comme dans un dialogue d'édition ouvert sur un brouillon.
+ *
+ * Pourquoi cette liste, et pas les six statuts
+ * ────────────────────────────────────────────
+ * `snapshot_facture_on_emission` ne s'arme que sur `NEW.statut = 'emise'`.
+ * Un brouillon passé directement à « payee », « partiel », « impayee » ou
+ * « annulee » sort donc du brouillon SANS que rien ne soit figé :
+ * buyer_*, montant_ht et montant_tva restent NULL, `date_emission` aussi, et
+ * la garde gèle aussitôt cette facture vide — mesuré au banc PGlite
+ * (« Modification refusée : … est figé (type d'acheteur, nom de l'acheteur)… »,
+ * et « Retour en brouillon refusé… »). Le PDF d'une telle facture suit la
+ * fiche contact VIVANTE, ce que D2 interdit, et generate-facturx déclare
+ * LineTotalAmount = 0 face à un total non nul.
+ *
+ * Une facture ne sort donc du brouillon QUE par l'émission (D5 : la date
+ * d'émission est le jour de l'émission). Les statuts de règlement se posent
+ * ensuite, sur une facture déjà émise et figée.
+ */
+export const STATUTS_FACTURE_AVANT_EMISSION: readonly StatutFacture[] = ["brouillon", "emise"];
+
+/** Options du sélecteur de statut d'un brouillon (et d'une facture à créer). */
+export function optionsStatutBrouillon(): { value: StatutFacture; label: string }[] {
+  return STATUTS_FACTURE_AVANT_EMISSION.map((s) => ({ value: s, label: LIBELLES_STATUT_FACTURE[s] }));
+}
+
+/**
  * Statuts qu'un workflow automatique peut poser sur une facture : ni
  * « brouillon » (une facture émise ne redevient jamais brouillon), ni
  * « annulee » (annulation réservée à une personne connectée, qui confirme).
@@ -183,6 +210,18 @@ export function planifierEnregistrementFacture(entree: EntreePlanEnregistrement)
   }
 
   if (brouillonEnBase) {
+    // Une facture ne sort du brouillon QUE par l'émission : tout autre statut
+    // la ferait sortir sans snapshot (ni acheteur figé, ni montant HT, ni date
+    // d'émission), et la garde la gèlerait vide. Le sélecteur ne les propose
+    // plus (STATUTS_FACTURE_AVANT_EMISSION) ; ceci en est la garde de fond.
+    if (!(STATUTS_FACTURE_AVANT_EMISSION as readonly string[]).includes(entree.valeursFacture.statut)) {
+      return {
+        ok: false,
+        message: `Un brouillon ne peut pas passer directement au statut « ${
+          LIBELLES_STATUT_FACTURE[entree.valeursFacture.statut as StatutFacture] ?? entree.valeursFacture.statut
+        } » : émettez d'abord la facture${numero}, puis changez son statut.`,
+      };
+    }
     return {
       ok: true,
       etapes: entree.avecLignes ? ["lignes", "facture"] : ["facture"],
@@ -197,7 +236,13 @@ export function planifierEnregistrementFacture(entree: EntreePlanEnregistrement)
       message: `La facture${numero} est émise : elle ne peut plus redevenir un brouillon.`,
     };
   }
-  if (nouveauStatut === entree.statutEnBase) {
+  // Rien à écrire si le statut en base est déjà celui demandé, MAIS AUSSI si
+  // l'utilisateur n'a pas touché le sélecteur : sa valeur vient de la copie en
+  // cache de la facture, qui peut être périmée (un versement enregistré
+  // ailleurs l'a passée à « partiel »). Sans ce second test, un simple clic sur
+  // « Enregistrer le statut », sans rien changer, réécrivait « emise » par-dessus
+  // l'état de paiement réel — accepté par la garde, donc silencieux.
+  if (nouveauStatut === entree.statutEnBase || nouveauStatut === entree.statutOuverture) {
     return { ok: true, etapes: [], valeursFacture: {} };
   }
   return {
@@ -282,6 +327,22 @@ export function actionsGestionFacture(
     supprimer: !emise,
     annuler: emise && statut !== "annulee" && annulationPermise,
   };
+}
+
+// ─── Lignes non enregistrées après la création d'une facture émise ───────────
+
+/**
+ * Une facture émise et ses lignes s'écrivent en DEUX requêtes : si la seconde
+ * échoue, la facture existe, ses montants sont figés, et elle n'a aucune ligne.
+ * La garde ne laisse reprendre la saisie que dans une fenêtre étroite (aucune
+ * ligne existante ET facture créée il y a moins de 15 minutes — mesuré au banc :
+ * accepté à 5 minutes, « Ajout de ligne refusé » à 20). Passé ce délai, la
+ * facture reste définitivement sans détail et son PDF imprime un total sans
+ * aucune prestation. Le message doit donc dire de réessayer TOUT DE SUITE.
+ */
+export function messageLignesNonEnregistrees(numeroFacture?: string | null): string {
+  const numero = numeroFacture ? ` ${numeroFacture}` : "";
+  return `La facture${numero} a été créée, mais le détail de ses lignes n'a pas pu être enregistré. Rouvrez-la et réessayez immédiatement : passé quinze minutes, ses lignes seront figées et la facture restera sans détail.`;
 }
 
 // ─── Transmission PDP ────────────────────────────────────────────────────────

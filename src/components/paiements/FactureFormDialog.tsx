@@ -55,6 +55,8 @@ import {
   demandeConfirmationAnnulation,
   estFactureEmise,
   executerPlanEnregistrement,
+  messageLignesNonEnregistrees,
+  optionsStatutBrouillon,
   optionsStatutFactureEmise,
   planifierEnregistrementFacture,
 } from "@/lib/factures-emises";
@@ -102,7 +104,12 @@ type FormValues = z.infer<typeof formSchema>;
 interface FactureFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  facture?: Facture | null;
+  /**
+   * `total_paye` est porté par FactureWithDetails (liste des factures, fiche
+   * session) : il alimente la confirmation d'annulation, qui doit annoncer
+   * l'argent déjà encaissé (D7 — les remboursements sont reportés).
+   */
+  facture?: (Facture & { total_paye?: number | null }) | null;
   defaultContactId?: string;
   defaultSessionInscriptionId?: string;
 }
@@ -112,15 +119,6 @@ const financementOptions: { value: FinancementType; label: string }[] = [
   { value: "entreprise", label: "Entreprise" },
   { value: "cpf", label: "CPF" },
   { value: "opco", label: "OPCO" },
-];
-
-const statutOptions: { value: FactureStatut; label: string }[] = [
-  { value: "brouillon", label: "Brouillon" },
-  { value: "emise", label: "Émise" },
-  { value: "payee", label: "Payée" },
-  { value: "partiel", label: "Partiel" },
-  { value: "impayee", label: "Impayée" },
-  { value: "annulee", label: "Annulée" },
 ];
 
 export function FactureFormDialog({
@@ -377,6 +375,11 @@ export function FactureFormDialog({
             prix_unitaire_ht: l.prix_unitaire_ht,
             tva_percent: l.tva_percent,
           })),
+          // Le champ « Date d'émission » est facultatif : sans ce défaut, une
+          // facture créée « Émise » naissait sans date (le déclencheur, BEFORE
+          // UPDATE, ne passe pas) — anomalie bloquante de conformité, et
+          // définitive une fois la garde appliquée. D5 : le jour de l'émission.
+          dateEmission: values.date_emission,
         });
 
         const newFacture = await createFacture.mutateAsync({
@@ -393,8 +396,18 @@ export function FactureFormDialog({
           ...bloc,
         });
 
-        // Créer les lignes
-        await createLignes.mutateAsync(lignesAInserer(newFacture.id));
+        // Créer les lignes. La facture existe déjà et ses montants sont figés :
+        // si l'insertion échoue, la reprise n'est possible que dans les quinze
+        // minutes (fenêtre de première saisie de la garde), et le message doit
+        // le dire plutôt que laisser croire que rien n'a été créé.
+        try {
+          await createLignes.mutateAsync(lignesAInserer(newFacture.id));
+        } catch (error) {
+          console.error(error);
+          toast.warning(messageLignesNonEnregistrees(newFacture.numero_facture));
+          onOpenChange(false);
+          return;
+        }
 
         toast.success("Facture créée");
       }
@@ -426,9 +439,14 @@ export function FactureFormDialog({
     }).format(prix);
   };
 
+  // Facture neuve ou brouillon : « Brouillon » ou « Émise », rien d'autre.
+  // « Payée », « Partiel », « Impayée » et « Annulée » feraient sortir la
+  // facture du brouillon SANS armer `snapshot_facture_on_emission` (armé sur
+  // le seul statut 'emise') : buyer_*, montant_ht et date_emission resteraient
+  // NULL et la garde gèlerait une pièce vide, indestructible et incorrigible.
   const optionsStatut = lectureSeule && facture
     ? optionsStatutFactureEmise(facture.statut, annulationPermise)
-    : statutOptions;
+    : optionsStatutBrouillon();
 
   return (
     <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
@@ -843,6 +861,7 @@ export function FactureFormDialog({
         open={!!annulationAConfirmer}
         onOpenChange={(ouvert) => { if (!ouvert) setAnnulationAConfirmer(null); }}
         numeroFacture={facture?.numero_facture}
+        montantDejaPaye={facture?.total_paye}
         enCours={isSubmitting}
         onConfirm={() => {
           const valeurs = annulationAConfirmer;

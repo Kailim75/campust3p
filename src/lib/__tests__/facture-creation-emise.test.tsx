@@ -25,10 +25,11 @@ const { etat } = vi.hoisted(() => ({
       montant_total: 1200,
     } as Record<string, unknown>,
     devisLignes: [{ catalogue_formation_id: null, description: "Formation", quantite: 2, prix_unitaire_ht: 500, tva_percent: 20 }],
+    echecLignes: false,
   },
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/utils/getCentreId", () => ({ getUserCentreId: () => Promise.resolve("centre-1") }));
 vi.mock("@/integrations/supabase/client", () => {
   const donneesDe = (table: string) => {
@@ -54,9 +55,10 @@ vi.mock("@/integrations/supabase/client", () => {
         ...chaine(table),
         insert: (valeurs: Record<string, unknown>) => {
           etat.inserts.push({ table, valeurs });
+          const refus = table === "facture_lignes" && etat.echecLignes ? { message: "Ajout de ligne refusé" } : null;
           return {
             select: () => ({ single: () => Promise.resolve({ data: { id: "facture-creee", ...valeurs }, error: null }) }),
-            then: (resoudre: (v: unknown) => unknown) => resoudre({ data: null, error: null }),
+            then: (resoudre: (v: unknown) => unknown) => resoudre({ data: null, error: refus }),
           };
         },
       }),
@@ -65,6 +67,7 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
+import { toast } from "sonner";
 import { creerFactureExpress } from "@/lib/facture-express";
 import { useConvertDevisToFacture } from "@/hooks/useDevis";
 
@@ -76,6 +79,8 @@ function enveloppe({ children }: { children: React.ReactNode }) {
 describe("factures créées directement « emise »", () => {
   beforeEach(() => {
     etat.inserts = [];
+    etat.echecLignes = false;
+    vi.mocked(toast.warning).mockClear();
   });
 
   it("facturation express : acheteur figé et montants dans l'INSERT", async () => {
@@ -107,5 +112,37 @@ describe("factures créées directement « emise »", () => {
       montant_ht: 1000,
       montant_tva: 200,
     });
+  });
+
+  it("les cinq chemins posent la date d'émission ET la mention d'exonération (D5)", async () => {
+    // Le déclencheur (BEFORE UPDATE) ne passera jamais sur ces factures : sans
+    // ces deux valeurs, elles restent à jamais sans date d'émission (anomalie
+    // bloquante INVOICE_DATE) ni mention de TVA, et la garde refuse ensuite
+    // toute réparation.
+    await creerFactureExpress({ contactId: "c1", montant: 990, description: "Session VTC" });
+    const express = etat.inserts.find((i) => i.table === "factures");
+    expect(express?.valeurs).toMatchObject({
+      date_emission: new Date().toISOString().slice(0, 10),
+      motif_exoneration_tva: "TVA non applicable, art. 261-4-4°a du CGI",
+    });
+
+    etat.inserts = [];
+    const { result } = renderHook(() => useConvertDevisToFacture(), { wrapper: enveloppe });
+    result.current.mutate("d1");
+    await waitFor(() => expect(etat.inserts.some((i) => i.table === "factures")).toBe(true));
+    expect(etat.inserts.find((i) => i.table === "factures")?.valeurs).toMatchObject({
+      date_emission: new Date().toISOString().slice(0, 10),
+      motif_exoneration_tva: "TVA non applicable, art. 261-4-4°a du CGI",
+    });
+  });
+
+  it("facturation express : ligne refusée, le message dit de réessayer tout de suite", async () => {
+    // La facture émise existe avec ses montants figés ; la garde ne laisse
+    // rattraper ses lignes que dans les quinze minutes. Jusqu'ici l'échec
+    // n'était qu'un console.error : l'utilisateur ne savait rien.
+    etat.echecLignes = true;
+    await creerFactureExpress({ contactId: "c1", montant: 990, description: "Session VTC" });
+
+    expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/réessayez immédiatement/));
   });
 });

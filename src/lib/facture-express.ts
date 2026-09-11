@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
+import { messageLignesNonEnregistrees } from "@/lib/factures-emises";
+import { toast } from "sonner";
 
 /**
  * Facturation express (audit du 21/07/2026, demande du directeur : « très
@@ -52,6 +54,7 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
     statut: "emise",
     contactId: params.contactId,
     totaux: { montant_ht: params.montant, montant_tva: 0 },
+    dateEmission: aujourdhui,
   });
 
   const { data: facture, error: factureError } = await supabase
@@ -85,9 +88,11 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
     ordre: 1,
   } as never);
   // La ligne est descriptive : son échec ne doit pas laisser croire que la
-  // facture n'existe pas — on le signale mais la facture est créée.
+  // facture n'existe pas — on le signale mais la facture est créée. La reprise
+  // n'est possible que dans les quinze minutes (garde), d'où le message explicite.
   if (ligneError) {
     console.error("facture-express: ligne non créée", ligneError);
+    toast.warning(messageLignesNonEnregistrees((facture as FactureCreee).numero_facture));
   }
 
   return facture as FactureCreee;

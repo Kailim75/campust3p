@@ -129,6 +129,10 @@ function clientPdfDepuisFacture(facture: FactureWithDetails): ClientPdfFacture |
         address: [partner.address, partner.code_postal, partner.ville].filter(Boolean).join(" ") || undefined,
         email: partner.email || undefined,
         siret: partner.siret || undefined,
+        // Une facture B2B porte le n° de TVA intracommunautaire : le repli
+        // « fiche entreprise » ne doit pas être moins complet que la branche
+        // figée (facture ancienne, sans buyer_name_snapshot).
+        tva_intracom: partner.tva_intracom || undefined,
       },
       beneficiaire: undefined,
       montant_pris_en_charge: Number(facture.montant_total),

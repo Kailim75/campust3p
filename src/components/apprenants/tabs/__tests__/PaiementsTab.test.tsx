@@ -38,14 +38,39 @@ vi.mock("@/integrations/supabase/client", () => {
     return [];
   };
 
+  /**
+   * Le double projette le tiers payeur sur les colonnes RÉELLEMENT demandées
+   * par le select : sans cela, une requête qui oublie `siret` recevrait quand
+   * même le SIRET du fixture et aucun test ne pourrait voir le défaut.
+   */
+  const projeter = (table: string, donnees: unknown, colonnes: string) => {
+    if (table !== "factures" || !Array.isArray(donnees)) return donnees;
+    const bloc = /payeur_partner:[^(]*\(([^)]*)\)/.exec(colonnes || "");
+    if (!bloc) return donnees;
+    const champs = bloc[1].split(",").map((c) => c.trim());
+    return donnees.map((facture: Record<string, unknown>) => {
+      const inscription = facture.session_inscription as Record<string, unknown> | undefined;
+      const payeur = inscription?.payeur_partner as Record<string, unknown> | undefined;
+      if (!inscription || !payeur) return facture;
+      const projete: Record<string, unknown> = {};
+      for (const champ of champs) if (champ in payeur) projete[champ] = payeur[champ];
+      return { ...facture, session_inscription: { ...inscription, payeur_partner: projete } };
+    });
+  };
+
   const chaine = (table: string) => {
-    const resultat = () => ({ data: donneesDe(table), error: null });
+    let colonnes = "";
+    const resultat = () => ({ data: projeter(table, donneesDe(table), colonnes), error: null });
     const c: Record<string, unknown> = {
       single: () => Promise.resolve(resultat()),
       maybeSingle: () => Promise.resolve(resultat()),
       then: (resoudre: (v: unknown) => unknown) => resoudre(resultat()),
     };
-    for (const methode of ["select", "eq", "is", "in", "order", "limit"]) {
+    c.select = (cols?: unknown) => {
+      if (typeof cols === "string") colonnes = cols;
+      return c;
+    };
+    for (const methode of ["eq", "is", "in", "order", "limit"]) {
       c[methode] = () => c;
     }
     return c;
@@ -225,6 +250,10 @@ describe("PaiementsTab — versement rattaché à la bonne facture (B2)", () => 
       buyer_email_facturation: "sofia@exemple.fr",
       montant_ht: 990,
       montant_tva: 0,
+      // D5 : le déclencheur (BEFORE UPDATE) ne posera jamais ni la date
+      // d'émission ni la mention d'exonération sur une facture née émise.
+      date_emission: new Date().toISOString().slice(0, 10),
+      motif_exoneration_tva: "TVA non applicable, art. 261-4-4°a du CGI",
     });
   });
 });
@@ -294,6 +323,49 @@ describe("PaiementsTab — PDF d'une facture émise (F5)", () => {
       nom: "",
       rue: "3 rue Figée",
       email: "figee@exemple.fr",
+    });
+  });
+
+  it("tiers payeur : le PDF porte son SIRET et sa TVA intracommunautaire", async () => {
+    // Sans `siret, tva_intracom` dans le select du tiers payeur, extractPayerInfo
+    // ne peut rien remonter : la même facture sortait AVEC ces mentions depuis
+    // la fiche facture et SANS depuis l'onglet Paiements — deux documents
+    // comptables différents pour une seule pièce figée.
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+      session_inscription: {
+        id: "si1",
+        type_payeur: "opco",
+        montant_pris_en_charge: 500,
+        reste_a_charge: 0,
+        payeur_partner: {
+          id: "p1",
+          company_name: "OPCO Mobilités",
+          email: "compta@opco.fr",
+          address: "10 avenue des OPCO",
+          siret: "44455566600011",
+          tva_intracom: "FR30444555666",
+        },
+        session: null,
+      },
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Télécharger PDF");
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect((generateFacturePDF.mock.calls[0][0] as { payer?: Record<string, unknown> }).payer).toMatchObject({
+      company_name: "OPCO Mobilités",
+      siret: "44455566600011",
+      tva_intracom: "FR30444555666",
     });
   });
 });

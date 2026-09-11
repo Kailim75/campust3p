@@ -129,9 +129,16 @@ export function clientImprimeFacture(
  *
  * Un gabarit qui porte un numéro de facture imprime un client : il suit la même
  * règle D2 que les PDF de facture — l'acheteur FIGÉ dès que la facture n'est
- * plus un brouillon, la fiche seulement en repli. Le nom figé est une chaîne
- * unique « Prénom Nom » : elle est portée par `prenom`, comme dans
- * `clientImprimeFacture` (les gabarits composent « {{prenom}} {{nom}} »).
+ * plus un brouillon, la fiche seulement en repli.
+ *
+ * Le découpage INTERNE de `clientImprimeFacture` (nom figé entier dans
+ * `prenom`, `nom` vide — le PDF recompose « prénom nom ») ne doit PAS fuir dans
+ * les variables du gabarit : les gabarits vivent en base et sont rédigés
+ * librement, plusieurs modèles seedés écrivent « Nom : {{nom}} » ou
+ * « {{civilite}} {{nom}}, » sans {{prenom}}. Le nom figé est donc redécoupé ici
+ * comme une fiche : premier mot en prénom, le reste en nom. Un gabarit qui
+ * compose « {{prenom}} {{nom}} » retrouve la chaîne complète, un gabarit qui
+ * n'utilise que « {{nom}} » n'affiche plus une case vide.
  */
 export function variablesGabaritFacture(
   facture: FacturePourClientPdf,
@@ -151,12 +158,34 @@ export function variablesGabaritFacture(
     montant_pris_en_charge: undefined,
     reste_a_charge: undefined,
   });
+  const { prenom, nom } = decouperNomFige(client);
   return {
-    nom: client.contact.nom || "",
-    prenom: client.contact.prenom || "",
+    nom,
+    prenom,
     email: client.contact.email || "",
     adresse: [client.contact.rue, client.contact.code_postal, client.contact.ville].filter(Boolean).join(", "),
   };
+}
+
+/**
+ * Redécoupe le nom figé d'un PARTICULIER, et lui seul.
+ *
+ * Ce découpage ne s'applique que là où `clientImprimeFacture` a lui-même mis le
+ * nom figé entier dans `prenom` en vidant `nom` (branche b2c figée) : une fiche
+ * rendue en repli et un acheteur ENTREPRISE (raison sociale portée par `nom`)
+ * sont rendus tels quels — couper « Transports Martin SARL » en prénom et nom
+ * serait pire que le défaut corrigé.
+ */
+function decouperNomFige(client: { source: string; contact: { nom?: string; prenom?: string } }): {
+  prenom: string;
+  nom: string;
+} {
+  const p = (client.contact.prenom || "").trim();
+  const n = (client.contact.nom || "").trim();
+  if (client.source !== "coordonnees_figees" || !p || n) return { prenom: p, nom: n };
+  const mots = p.split(/\s+/);
+  if (mots.length === 1) return { prenom: "", nom: mots[0] };
+  return { prenom: mots[0], nom: mots.slice(1).join(" ") };
 }
 
 /**

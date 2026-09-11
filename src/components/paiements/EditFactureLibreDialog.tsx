@@ -24,6 +24,7 @@ import {
   demandeConfirmationAnnulation,
   estFactureEmise,
   executerPlanEnregistrement,
+  optionsStatutBrouillon,
   optionsStatutFactureEmise,
   planifierEnregistrementFacture,
 } from "@/lib/factures-emises";
@@ -39,6 +40,8 @@ interface EditFactureLibreDialogProps {
     type_financement?: string;
     statut: string;
     commentaires?: string | null;
+    /** Total déjà encaissé : annoncé dans la confirmation d'annulation (D7). */
+    total_paye?: number | null;
   } | null;
   contactId: string;
 }
@@ -48,15 +51,6 @@ const financementOptions: { value: FinancementType; label: string }[] = [
   { value: "entreprise", label: "Entreprise" },
   { value: "cpf", label: "CPF" },
   { value: "opco", label: "OPCO" },
-];
-
-const statutOptions: { value: FactureStatut; label: string }[] = [
-  { value: "brouillon", label: "Brouillon" },
-  { value: "emise", label: "Émise" },
-  { value: "payee", label: "Payée" },
-  { value: "partiel", label: "Partiel" },
-  { value: "impayee", label: "Impayée" },
-  { value: "annulee", label: "Annulée" },
 ];
 
 export function EditFactureLibreDialog({ open, onOpenChange, facture, contactId }: EditFactureLibreDialogProps) {
@@ -168,9 +162,13 @@ export function EditFactureLibreDialog({ open, onOpenChange, facture, contactId 
     await enregistrer();
   };
 
+  // Brouillon : « Brouillon » ou « Émise », rien d'autre. Les quatre autres
+  // statuts feraient sortir la facture du brouillon SANS armer le déclencheur
+  // de snapshot (il ne s'arme que sur statut = 'emise') : acheteur, montant HT
+  // et date d'émission resteraient NULL, et la garde gèlerait la facture vide.
   const optionsStatut = lectureSeule && facture
     ? optionsStatutFactureEmise(facture.statut, annulationPermise)
-    : statutOptions;
+    : optionsStatutBrouillon();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,6 +243,7 @@ export function EditFactureLibreDialog({ open, onOpenChange, facture, contactId 
         open={confirmationAnnulation}
         onOpenChange={setConfirmationAnnulation}
         numeroFacture={facture?.numero_facture}
+        montantDejaPaye={facture?.total_paye}
         enCours={isSubmitting}
         onConfirm={() => {
           setConfirmationAnnulation(false);
