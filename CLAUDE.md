@@ -38,6 +38,109 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   gèle les demandes signées. Aucune migration ne doit le désactiver.
   Corollaire : tout batch qui modifie `signature_requests` ne doit cibler
   que des lignes non signées (voir `signature-reminders`).
+- **Garde des factures émises** (`trg_garde_facture_emise` sur `factures`,
+  `trg_garde_lignes_facture_emise` / `trg_garde_lignes_facture_emise_insert` sur
+  `facture_lignes`, migration `20260912090100`) : décisions du directeur du
+  11/09/2026 — une facture qui n'est plus un brouillon ne se supprime pas (ni
+  DELETE, ni corbeille, ni TRUNCATE), ne redevient pas un brouillon, et son
+  contenu est figé (montants, lignes, numéro, dates, coordonnées de l'acheteur).
+  Aucune exemption de rôle : ni `service_role`, ni `super_admin`. Corollaires :
+  - **aucune migration ne doit désactiver ces déclencheurs** :
+    `ALTER TABLE public.factures DISABLE TRIGGER USER` (déjà fait une fois,
+    migration `20260306223257`) et `SET session_replication_role = replica`
+    désactivent aussi la garde. La seule désactivation ciblée admise est celle,
+    atomique et antérieure à la garde, du rattrapage de `20260912090100`
+    (`audit_factures`, `update_factures_updated_at`,
+    `trg_sync_inscription_paiement_on_facture`) ;
+  - le nom du déclencheur doit continuer à trier AVANT
+    `trg_snapshot_facture_on_emission` : les `BEFORE` d'une même table tirent
+    par ordre alphabétique, et la garde doit juger la demande de l'appelant
+    avant que le snapshot ne complète quoi que ce soit ;
+  - **chaque remplacement de déclencheur de ce lot tient dans UN bloc `DO`**
+    (`EXECUTE 'DROP TRIGGER IF EXISTS …'` puis `EXECUTE 'CREATE TRIGGER …'`), et
+    non en deux instructions. Un bloc `DO` est UNE instruction, donc atomique
+    même si le moteur n'ouvre pas de transaction. Écrits en deux instructions,
+    un arrêt entre les deux — lors d'un simple rejeu — retirerait une protection
+    RÉELLEMENT EN PLACE, sans aucun signal : mesuré, la suppression physique
+    d'une facture émise redevenait possible. Ne jamais « simplifier » ces blocs ;
+  - `factures.created_at` est posé par le serveur
+    (`trg_horodatage_creation_facture`) et ne se modifie plus : c'est la
+    référence de la fenêtre de 15 minutes qui autorise la première saisie des
+    lignes d'une facture créée déjà émise. Ne jamais l'écrire depuis le front,
+    une edge function ou une migration. Un `created_at` envoyé à l'INSERT est
+    **refusé**, pas écrasé (un import historique par `api-v1` POST perdrait
+    sinon ses dates en silence) ; à l'UPDATE, la comparaison se fait à la
+    milliseconde, parce qu'un client JSON renvoie l'horodatage arrondi. La
+    colonne n'est PAS dans les colonnes figées de la garde : son déclencheur
+    dédié la protège seul, avec un message qui nomme la colonne au lieu de
+    conseiller d'annuler la facture ;
+  - **montants dérivés** : `montant_ht` et `montant_tva` sont figés, à une
+    exception près — le passage de `NULL` à une valeur ÉGALE À LA SOMME DES
+    LIGNES de la facture (à 0,02 près), et seulement si elle a au moins une
+    ligne. C'est le seul recours des factures créées déjà « emise » puis
+    complétées par leurs lignes à la requête suivante (« Facture libre »,
+    conversion d'un devis) : sans cela elles resteraient sans montant HT ni
+    montant de TVA pour toujours. Ne pas retirer cette exception, et ne pas
+    l'élargir à une saisie libre ;
+  - `snapshot_facture_on_emission` (version 2) fige les coordonnées de
+    l'acheteur à l'INSERT d'une facture hors brouillon et au passage
+    brouillon → non brouillon, et ne les complète plus jamais ensuite. Le PDF
+    d'une facture émise lit ces colonnes `buyer_*` ; la fiche contact n'est
+    qu'un repli. Une fusion de contacts change le rattachement CRM, pas
+    l'identité imprimée ;
+  - la policy **`centre_delete_factures` doit rester en place**. Elle n'a pas
+    été supprimée, et il ne faut pas la supprimer : une table sans policy de
+    `DELETE` ne refuse pas un `DELETE` sous RLS — elle n'affecte simplement
+    aucune ligne et renvoie « succès, 0 ligne ». L'écran afficherait
+    « supprimée » alors que rien ne l'est. C'est la garde qui refuse, avec un
+    message lisible ; la policy sert à ce que la garde soit atteinte ;
+  - **transmission électronique et Factur-X** : `e_invoice_status`,
+    `platform_*` et `facturx_xml` ne sont figés qu'à partir d'une transmission
+    RÉELLE (statut de transmission renseigné ET `platform_reference_id` présent
+    et ne commençant pas par `LOCAL-`). `submit-pdp` écrit aujourd'hui
+    `e_invoice_status = 'envoye'` et une référence `LOCAL-<horodatage>` SANS
+    rien transmettre : ces marques restent corrigeables, exprès. Cette
+    tolérance est une **dette datée**, bornée par l'interrupteur
+    `public.factures_transmission_simulee_toleree()` : tant qu'il vaut `true`,
+    n'importe qui pouvant écrire `platform_reference_id` peut y poser
+    `LOCAL-…` pour garder le bloc réécrivable. **Le lot « vraie PDP » doit, dans
+    la MÊME migration que l'appel HTTP réel** : livrer la fonction
+    `SECURITY DEFINER` qui pose l'accusé de la plateforme, remettre à zéro les
+    marques `LOCAL-%` existantes, et passer cet interrupteur à `false`. À
+    défaut, la transmission réelle sera bloquée dès le premier accusé (l'écran
+    `PdpTransmissionPanel` resterait figé sur « envoye » et `generate-facturx`
+    échouerait par un toast) ;
+  - **aucun workflow ne doit annuler une facture ni la remettre en brouillon**
+    (`update_status` → `factures.statut`). `execute-workflow` écrit avec la clé
+    `service_role` : la garde refuserait, et `updateStatusAction` avale le refus
+    sans interrompre l'exécution — l'échec serait invisible. La migration
+    `20260912090100` refuse de s'appliquer tant qu'un tel workflow existe, et
+    SIGNALE tout workflow actif qui écrit `factures.statut` : celui-là tombera
+    en panne muette le jour où la facture visée est **annulée** (la garde y voit
+    une réactivation et exige une personne connectée). Le vrai correctif est
+    côté `execute-workflow` : `updateStatusAction` doit interrompre l'exécution
+    au lieu de la poursuivre ;
+  - **si l'application d'une migration de ce lot s'arrête en plein fichier**
+    (le moteur de l'agent Lovable n'ouvre pas forcément de transaction) : ne
+    rien annuler à la main. Lire le message, lever l'obstacle, rejouer le
+    FICHIER ENTIER. L'en-tête de `20260912090100` liste, point d'arrêt par
+    point d'arrêt, ce qui reste appliqué ;
+  - **interrupteur `public.factures_annulation_manuelle_permise()`** : `true`
+    tant que les avoirs n'existent pas (l'annulation manuelle d'une facture
+    émise reste possible, tracée dans `audit_logs` sous
+    `ANNULATION_MANUELLE` / `REACTIVATION_MANUELLE`, et réservée à une personne
+    connectée ayant le rôle admin, staff ou super_admin — jamais une clé API ni
+    un workflow ; la garde refuse explicitement `auth.role() = 'service_role'`,
+    sans se contenter de l'absence de `sub` dans le jeton). La migration qui
+    livrera l'avoir remplacera son corps par `SELECT false` ; rejouer
+    `20260912090100` ne le remet PAS à `true` (la fonction n'est créée que si
+    elle n'existe pas). Même règle pour
+    `public.factures_transmission_simulee_toleree()` ;
+  - **ce que la garde rend définitivement irréparable**, et qui a été compté
+    avant d'appliquer : une facture non brouillon **sans aucune ligne** ne peut
+    plus en recevoir, et n'aura donc jamais de montant HT ni de montant de TVA
+    (54 factures au 11/09/2026, signalées par un `RAISE NOTICE` de la
+    section 0j). C'est la conséquence assumée de la décision D2.
 - **Policies RLS durcies** : bucket `crm-email-attachments`, table
   `template_audit_log`. Ne pas élargir.
 - Les ~150 warnings SECURITY DEFINER sont **différés volontairement** : ne
