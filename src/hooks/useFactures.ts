@@ -5,6 +5,7 @@ import { getUserCentreId } from "@/utils/getCentreId";
 import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 import { messageErreur } from "@/lib/erreurs";
 import { facturesEncaissables, sommeFactures, sommePaiementsFactures } from "@/lib/montants";
+import { interpreterAnnulationManuellePermise } from "@/lib/factures-emises";
 
 // Types for factures (manually defined since types.ts hasn't updated yet)
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -78,6 +79,13 @@ export interface FactureWithDetails extends Facture {
     tva_intracom?: string | null;
   } | null;
   total_paye: number;
+  /** Coordonnées figées de l'acheteur (snapshot_facture_on_emission). */
+  buyer_type?: string | null;
+  buyer_name_snapshot?: string | null;
+  buyer_address_snapshot?: unknown;
+  buyer_email_facturation?: string | null;
+  buyer_siret?: string | null;
+  buyer_tva_intracom?: string | null;
 }
 
 export interface FactureInsert {
@@ -293,19 +301,53 @@ export function useUpdateFacture() {
   });
 }
 
-// Delete facture
+// Delete facture — brouillons uniquement (D1 du 11/09/2026). `mutateAsync`
+// résout `false` si la base a refusé (motif déjà affiché).
 export function useDeleteFacture() {
   const softDelete = useSoftDeleteWithUndo();
 
   return {
     mutate: (id: string) => {
-      softDelete({ table: "factures", id, message: "Facture supprimée" });
+      void softDelete({ table: "factures", id, message: "Facture supprimée" });
     },
-    mutateAsync: async (id: string) => {
-      await softDelete({ table: "factures", id, message: "Facture supprimée" });
-    },
+    mutateAsync: (id: string): Promise<boolean> =>
+      softDelete({ table: "factures", id, message: "Facture supprimée" }),
     isPending: false,
   };
+}
+
+/**
+ * Statut de la facture EN BASE, relu juste avant une écriture : c'est lui, et
+ * non la copie en cache du formulaire, qui décide de ce qu'on peut encore
+ * écrire (src/lib/factures-emises.ts).
+ */
+export async function lireStatutFactureEnBase(id: string): Promise<FactureStatut> {
+  const { data, error } = await supabase
+    .from("factures")
+    .select("statut")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data.statut as FactureStatut;
+}
+
+/**
+ * Phase du chantier des avoirs : l'annulation manuelle d'une facture émise
+ * est-elle encore permise ? Lit `factures_annulation_manuelle_permise()`, qui
+ * n'existe qu'une fois la garde appliquée ; absente, l'annulation est permise
+ * (interpreterAnnulationManuellePermise).
+ */
+export function useAnnulationManuellePermise(enabled = true) {
+  return useQuery({
+    queryKey: ["factures-annulation-manuelle-permise"],
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("factures_annulation_manuelle_permise" as never);
+      return interpreterAnnulationManuellePermise(data, error);
+    },
+  });
 }
 
 // Bulk emit draft factures

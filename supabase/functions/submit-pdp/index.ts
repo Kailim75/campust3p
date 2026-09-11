@@ -7,10 +7,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
+// ── Plateforme simulée : AUCUNE transmission (11/09/2026) ────────────────────
+// L'appel HTTP réel à la PDP n'est pas branché (étape 5 ci-dessous). La
+// simulation écrivait pourtant `e_invoice_status = 'envoye'` et une référence
+// « LOCAL-… » sur la facture, comme si elle était partie. Tant que le seuil de
+// conformité était infranchissable, personne n'y arrivait ; sa réparation le
+// rend franchissable. Tant que cette constante vaut true, la fonction refuse
+// toute demande AVANT toute lecture ou écriture.
+// Passer à false UNIQUEMENT dans le lot qui branche la vraie PDP, avec la
+// constante jumelle TRANSMISSION_PDP_SIMULEE (src/lib/factures-emises.ts).
+const PLATEFORME_PDP_SIMULEE = true;
+
+const MESSAGE_PLATEFORME_SIMULEE =
+  "Transmission refusée : la plateforme de dématérialisation (PDP) n'est pas encore branchée. Aucune facture n'a été transmise et rien n'a été enregistré.";
+
 Deno.serve(async (req) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
   const corsHeaders = getCorsHeaders(req);
+
+  if (PLATEFORME_PDP_SIMULEE) {
+    return new Response(
+      JSON.stringify({ error: MESSAGE_PLATEFORME_SIMULEE, transmis: false }),
+      { status: 501, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

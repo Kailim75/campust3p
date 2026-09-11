@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { messageErreur } from "@/lib/erreurs";
+import { messageErreur, messageErreurInvoke } from "@/lib/erreurs";
 
 export interface PdpTransmission {
   id: string;
@@ -71,7 +71,10 @@ export function usePdpTransmissions(factureId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["pdp-transmissions", factureId] });
       qc.invalidateQueries({ queryKey: ["factures"] });
     },
-    onError: (e: any) => toast.error(messageErreur(e, "Échec transmission PDP")),
+    // Le motif est dans le corps de la réponse de submit-pdp (« Transmission
+    // refusée : la plateforme… n'est pas encore branchée… ») : messageErreur
+    // seul n'y a pas accès et afficherait « Requête refusée par le serveur ».
+    onError: async (e: unknown) => toast.error(await messageErreurInvoke(e, "Échec transmission PDP")),
   });
 
   return { ...list, generateFacturX, submitPdp };

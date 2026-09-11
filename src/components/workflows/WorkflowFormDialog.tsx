@@ -15,6 +15,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { messageErreur } from "@/lib/erreurs";
+import {
+  LIBELLES_STATUT_FACTURE,
+  STATUTS_FACTURE_POUR_WORKFLOW,
+  actionWorkflowFactureInvalide,
+  statutWorkflowFactureAutorise,
+} from "@/lib/factures-emises";
 
 interface Props {
   open: boolean;
@@ -78,10 +84,13 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
     if (field === 'type') {
       updated[index] = { type: value, config: {} };
     } else {
-      updated[index] = { 
-        ...updated[index], 
-        config: { ...updated[index].config, [field]: value } 
-      };
+      const config = { ...updated[index].config, [field]: value };
+      // Une facture ne se remet jamais en brouillon par un workflow : un
+      // statut saisi pour une autre table n'est pas repris pour « factures ».
+      if (field === 'table' && value === 'factures' && !statutWorkflowFactureAutorise(config.new_status)) {
+        config.new_status = '';
+      }
+      updated[index] = { ...updated[index], config };
     }
     setActions(updated);
   };
@@ -147,6 +156,10 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
 
   const handleSubmit = () => {
     if (!nom || !triggerType || actions.length === 0) return;
+    if (actions.some(actionWorkflowFactureInvalide)) {
+      toast.error("Choisissez le nouveau statut de facture : émise, partiel, payée ou impayée. Un workflow ne remet jamais une facture en brouillon et ne l'annule pas.");
+      return;
+    }
 
     const data = {
       nom,
@@ -300,12 +313,28 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
             </div>
             <div>
               <Label className="text-xs">Nouveau statut</Label>
-              <Input
-                className="h-9"
-                value={action.config.new_status || ''}
-                onChange={(e) => handleActionChange(index, 'new_status', e.target.value)}
-                placeholder="Valeur du nouveau statut"
-              />
+              {action.config.table === 'factures' ? (
+                <Select
+                  value={statutWorkflowFactureAutorise(action.config.new_status) ? action.config.new_status : ''}
+                  onValueChange={(v) => handleActionChange(index, 'new_status', v)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Sélectionner un statut de facture" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUTS_FACTURE_POUR_WORKFLOW.map((s) => (
+                      <SelectItem key={s} value={s}>{LIBELLES_STATUT_FACTURE[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="h-9"
+                  value={action.config.new_status || ''}
+                  onChange={(e) => handleActionChange(index, 'new_status', e.target.value)}
+                  placeholder="Valeur du nouveau statut"
+                />
+              )}
             </div>
           </div>
         );

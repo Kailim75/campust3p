@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { WorkflowAction } from '@/hooks/useWorkflows';
 import { messageErreur } from "@/lib/erreurs";
+import { nettoyerActionsWorkflow } from "@/lib/factures-emises";
 
 interface AIWorkflowResult {
   nom: string;
@@ -55,7 +56,9 @@ export function WorkflowAIDialog({ open, onOpenChange, onResult }: Props) {
 
       const result = data.result as AIWorkflowResult;
       if (result?.nom && result?.trigger_type && result?.actions?.length) {
-        onResult(result);
+        // Statut de facture non autorisé (brouillon, annulee…) proposé par
+        // l'IA : vidé, l'utilisateur le choisit dans la liste.
+        onResult({ ...result, actions: nettoyerActionsWorkflow(result.actions) });
         onOpenChange(false);
         setDescription('');
         toast.success('Workflow généré par l\'IA — vérifiez et ajustez avant de sauvegarder');

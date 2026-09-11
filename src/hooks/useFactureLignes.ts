@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
+
+// Les toasts d'erreur passent par messageErreur (11/09/2026) : un refus de la
+// garde des factures émises (« Suppression de ligne refusée : la facture … est
+// émise et ses lignes sont figées… ») doit s'afficher tel quel, et non derrière
+// un texte fixe qui cache le motif.
 
 export interface FactureLigne {
   id: string;
@@ -75,9 +81,9 @@ export function useCreateFactureLigne() {
       queryClient.invalidateQueries({ queryKey: ["facture-lignes", data.facture_id] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error creating ligne:", error);
-      toast.error("Erreur lors de l'ajout de la ligne");
+      toast.error(messageErreur(error, "Erreur lors de l'ajout de la ligne"));
     },
   });
 }
@@ -101,9 +107,9 @@ export function useCreateFactureLignes() {
         queryClient.invalidateQueries({ queryKey: ["factures"] });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error creating lignes:", error);
-      toast.error("Erreur lors de l'ajout des lignes");
+      toast.error(messageErreur(error, "Erreur lors de l'ajout des lignes"));
     },
   });
 }
@@ -127,9 +133,9 @@ export function useUpdateFactureLigne() {
       queryClient.invalidateQueries({ queryKey: ["facture-lignes", data.factureId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error updating ligne:", error);
-      toast.error("Erreur lors de la mise à jour");
+      toast.error(messageErreur(error, "Erreur lors de la mise à jour de la ligne"));
     },
   });
 }
@@ -151,9 +157,9 @@ export function useDeleteFactureLigne() {
       queryClient.invalidateQueries({ queryKey: ["facture-lignes", data.factureId] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error deleting ligne:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error(messageErreur(error, "Erreur lors de la suppression de la ligne"));
     },
   });
 }
@@ -174,8 +180,9 @@ export function useDeleteFactureLignesByFacture() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["facture-lignes", data.factureId] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error deleting lignes:", error);
+      toast.error(messageErreur(error, "Erreur lors du remplacement des lignes"));
     },
   });
 }

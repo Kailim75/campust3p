@@ -80,9 +80,10 @@ vi.mock("@/components/paiements/EditFactureLibreDialog", () => ({ EditFactureLib
 vi.mock("../FinancementSection", () => ({ FinancementSection: () => null }));
 vi.mock("@/lib/facture-express", () => ({ creerFactureExpress: vi.fn() }));
 vi.mock("@/utils/getCentreId", () => ({ getUserCentreId: () => Promise.resolve("centre-1") }));
-vi.mock("@/lib/pdf-generator", () => ({
-  generateFacturePDF: () => ({ save: () => {}, output: () => "data:application/pdf;base64,XX" }),
+const { generateFacturePDF } = vi.hoisted(() => ({
+  generateFacturePDF: vi.fn((..._args: unknown[]) => ({ save: () => {}, output: () => "data:application/pdf;base64,XX" })),
 }));
+vi.mock("@/lib/pdf-generator", () => ({ generateFacturePDF }));
 
 import { PaiementsTab } from "../PaiementsTab";
 
@@ -198,5 +199,47 @@ describe("PaiementsTab — versement rattaché à la bonne facture (B2)", () => 
     // émet une facture comptée) reste ouvert : pas de message de blocage.
     expect(screen.queryByText(/Aucune facture à encaisser/)).toBeNull();
     expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+  });
+});
+
+/**
+ * F5 (11/09/2026) — le PDF d'une facture émise imprime l'acheteur figé à
+ * l'émission (buyer_*), et non la fiche contact telle qu'elle est aujourd'hui.
+ */
+describe("PaiementsTab — PDF d'une facture émise (F5)", () => {
+  beforeEach(() => {
+    etat.factures = [];
+    etat.paiements = [];
+    etat.inserts = [];
+    generateFacturePDF.mockClear();
+  });
+
+  it("imprime les coordonnées figées de l'acheteur, pas la fiche courante", async () => {
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Télécharger PDF");
+    // La fiche contact se charge en parallèle des factures : on reclique tant
+    // qu'elle n'est pas là (le clic sans fiche ne génère rien).
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect(generateFacturePDF.mock.calls[0][1]).toMatchObject({
+      prenom: "Sofia Karai-Figée",
+      nom: "",
+      rue: "3 rue Figée",
+      code_postal: "92120",
+      ville: "Montrouge",
+      email: "figee@exemple.fr",
+    });
   });
 });

@@ -26,12 +26,18 @@ export interface UndoableActionOptions {
 /**
  * Hook that exposes runUndoable — runs an action immediately, shows a custom
  * undo toast for `duration` ms, and reverts on click/Esc. Supports a max-3 queue.
+ *
+ * `runUndoable` résout `true` si l'action a réussi, `false` si elle a échoué
+ * (le motif est alors déjà affiché, via messageErreur). Avant le 11/09/2026
+ * elle résolvait `undefined` dans les deux cas : un appelant ne pouvait pas
+ * savoir qu'une suppression avait été REFUSÉE, et la fiche d'une facture
+ * affichait « Facture supprimée » puis se fermait après un refus.
  */
 export function useUndoableAction() {
   const enqueue = useUndoStore((s) => s.enqueue);
   const remove = useUndoStore((s) => s.remove);
 
-  const runUndoable = async (opts: UndoableActionOptions) => {
+  const runUndoable = async (opts: UndoableActionOptions): Promise<boolean> => {
     const duration = opts.duration ?? 5000;
 
     // 1. Optimistic UI
@@ -40,11 +46,11 @@ export function useUndoableAction() {
     // 2. Run the action (soft delete, etc.)
     try {
       await opts.action();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Undoable action failed:", err);
       opts.rollback?.();
       toast.error(messageErreur(err, "Action impossible"));
-      return;
+      return false;
     }
 
     // 3. Show the custom undo toast
@@ -99,6 +105,8 @@ export function useUndoableAction() {
         opts.commit?.().catch(() => {});
       }
     }, duration);
+
+    return true;
   };
 
   return { runUndoable };
@@ -135,6 +143,10 @@ const tableQueryKeys: Record<string, string[][]> = {
 /**
  * Convenience helper — soft-deletes a row with undo toast, reusing the existing
  * `soft_delete_record` / `restore_record` RPCs.
+ *
+ * Résout `true` si l'élément est bien parti à la corbeille, `false` si la base
+ * a refusé (motif déjà affiché) : l'appelant ne ferme rien et n'annonce rien
+ * dans ce cas.
  */
 export function useSoftDeleteWithUndo() {
   const queryClient = useQueryClient();
@@ -146,12 +158,12 @@ export function useSoftDeleteWithUndo() {
     label?: string;
     /** Override the toast message entirely */
     message?: string;
-  }) => {
+  }): Promise<boolean> => {
     const label = params.label || tableLabels[params.table] || "Élément";
     const message = params.message || `${label} supprimé(e)`;
     const keys = tableQueryKeys[params.table] || [[params.table]];
 
-    await runUndoable({
+    return runUndoable({
       successMessage: message,
       action: async () => {
         if (params.table === "sessions") {

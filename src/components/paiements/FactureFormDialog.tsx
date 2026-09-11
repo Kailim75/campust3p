@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import {
   Select,
@@ -32,12 +33,31 @@ import {
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { usePartners } from "@/hooks/usePartners";
-import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, Facture, FinancementType, FactureStatut } from "@/hooks/useFactures";
+import {
+  useCreateFacture,
+  useUpdateFacture,
+  useGenerateNumeroFacture,
+  useAnnulationManuellePermise,
+  lireStatutFactureEnBase,
+  Facture,
+  FactureUpdate,
+  FinancementType,
+  FactureStatut,
+} from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { Loader2, Plus, Trash2, Package, Gift } from "lucide-react";
+import { Loader2, Plus, Trash2, Package, Gift, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { messageErreur } from "@/lib/erreurs";
+import {
+  demandeConfirmationAnnulation,
+  estFactureEmise,
+  executerPlanEnregistrement,
+  optionsStatutFactureEmise,
+  planifierEnregistrementFacture,
+} from "@/lib/factures-emises";
+import { ConfirmationAnnulationFactureDialog } from "./ConfirmationAnnulationFactureDialog";
 
 /** Intitulés officiels pour les factures selon la catégorie */
 const INTITULE_FACTURE: Record<string, string> = {
@@ -113,18 +133,23 @@ export function FactureFormDialog({
   const [lignes, setLignes] = useState<LigneFacture[]>([]);
   const [showAllCatalogue, setShowAllCatalogue] = useState(false);
   const [lignesModifiees, setLignesModifiees] = useState(false);
+  const [annulationAConfirmer, setAnnulationAConfirmer] = useState<FormValues | null>(null);
+
+  const isEditing = !!facture;
+  // Facture déjà émise à l'ouverture : son contenu est figé (D2 du 11/09/2026),
+  // le formulaire passe en lecture seule et seul le statut reste modifiable.
+  const lectureSeule = isEditing && estFactureEmise(facture?.statut);
 
   const { data: contacts = [] } = useContacts();
   const { data: partners = [] } = usePartners();
   const { data: catalogue = [] } = useCatalogueFormations(true);
   const { data: nextNumero } = useGenerateNumeroFacture();
-  const { data: existingLignes = [], isLoading: lignesLoading } = useFactureLignes(facture?.id || null);
+  const { data: existingLignes = [] } = useFactureLignes(facture?.id || null);
+  const { data: annulationPermise = true } = useAnnulationManuellePermise(open && lectureSeule);
   const createFacture = useCreateFacture();
   const updateFacture = useUpdateFacture();
   const createLignes = useCreateFactureLignes();
   const deleteLignes = useDeleteFactureLignesByFacture();
-
-  const isEditing = !!facture;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -174,14 +199,14 @@ export function FactureFormDialog({
 
   // Charger les lignes existantes en mode édition - utiliser une ref pour éviter les boucles infinies
   const existingLignesLoadedRef = useRef(false);
-  
+
   useEffect(() => {
     // Reset le flag quand on ferme/ouvre ou change de facture
     if (!open) {
       existingLignesLoadedRef.current = false;
       return;
     }
-    
+
     if (isEditing && existingLignes.length > 0 && !existingLignesLoadedRef.current) {
       existingLignesLoadedRef.current = true;
       setLignes(existingLignes.map(l => ({
@@ -270,43 +295,70 @@ export function FactureFormDialog({
     onOpenChange,
   });
 
-  const onSubmit = async (values: FormValues) => {
-    if (lignes.length === 0) {
-      toast.error("Ajoutez au moins un article à la facture");
-      return;
-    }
+  const lignesAInserer = (factureId: string) =>
+    lignes.map((l, idx) => ({
+      facture_id: factureId,
+      catalogue_formation_id: l.catalogue_formation_id,
+      description: l.offert && !l.description.includes("(Offert)") ? `${l.description} (Offert)` : l.description,
+      quantite: l.quantite,
+      prix_unitaire_ht: l.offert ? 0 : l.prix_unitaire_ht,
+      tva_percent: l.tva_percent,
+      ordre: idx,
+    }));
 
+  const enregistrer = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       if (isEditing && facture) {
-        // Mise à jour facture
-        await updateFacture.mutateAsync({
-          id: facture.id,
-          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
-          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
-          montant_total: totalMontant,
-          type_financement: values.type_financement,
-          statut: values.statut,
-          date_emission: values.date_emission || null,
-          date_echeance: values.date_echeance || null,
-          commentaires: values.commentaires || null,
+        // Le statut EN BASE décide de ce qu'on peut encore écrire, pas la
+        // copie du formulaire (la facture a pu être émise ailleurs).
+        let statutEnBase: string;
+        try {
+          statutEnBase = await lireStatutFactureEnBase(facture.id);
+        } catch (error) {
+          toast.error(messageErreur(error, "Impossible de relire la facture avant l'enregistrement"));
+          return;
+        }
+
+        const plan = planifierEnregistrementFacture({
+          numeroFacture: facture.numero_facture,
+          statutOuverture: facture.statut,
+          statutEnBase,
+          valeursFacture: {
+            contact_id: values.client_type === "contact" ? values.contact_id || null : null,
+            client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
+            montant_total: totalMontant,
+            type_financement: values.type_financement,
+            statut: values.statut,
+            date_emission: values.date_emission || null,
+            date_echeance: values.date_echeance || null,
+            commentaires: values.commentaires || null,
+          },
+          avecLignes: true,
         });
-        
-        // Supprimer anciennes lignes et créer nouvelles
-        await deleteLignes.mutateAsync(facture.id);
-        await createLignes.mutateAsync(
-          lignes.map((l, idx) => ({
-            facture_id: facture.id,
-            catalogue_formation_id: l.catalogue_formation_id,
-            description: l.offert && !l.description.includes("(Offert)") ? `${l.description} (Offert)` : l.description,
-            quantite: l.quantite,
-            prix_unitaire_ht: l.offert ? 0 : l.prix_unitaire_ht,
-            tva_percent: l.tva_percent,
-            ordre: idx,
-          }))
-        );
-        
-        toast.success("Facture mise à jour");
+        if ("message" in plan) {
+          toast.error(plan.message);
+          return;
+        }
+        if (plan.etapes.length === 0) {
+          toast.info("Aucune modification à enregistrer");
+          onOpenChange(false);
+          return;
+        }
+
+        // Brouillon : lignes PUIS facture (une émission fige des lignes et un
+        // montant HT cohérents). Émise : { statut } seul, lignes intouchées.
+        await executerPlanEnregistrement(plan, {
+          ecrireLignes: async () => {
+            await deleteLignes.mutateAsync(facture.id);
+            await createLignes.mutateAsync(lignesAInserer(facture.id));
+          },
+          ecrireFacture: async (valeurs) => {
+            await updateFacture.mutateAsync({ id: facture.id, ...(valeurs as FactureUpdate) });
+          },
+        });
+
+        toast.success(lectureSeule && values.statut === "annulee" ? "Facture annulée" : "Facture mise à jour");
       } else {
         // Création facture
         const newFacture = await createFacture.mutateAsync({
@@ -323,27 +375,29 @@ export function FactureFormDialog({
         });
 
         // Créer les lignes
-        await createLignes.mutateAsync(
-          lignes.map((l, idx) => ({
-            facture_id: newFacture.id,
-            catalogue_formation_id: l.catalogue_formation_id,
-            description: l.offert && !l.description.includes("(Offert)") ? `${l.description} (Offert)` : l.description,
-            quantite: l.quantite,
-            prix_unitaire_ht: l.offert ? 0 : l.prix_unitaire_ht,
-            tva_percent: l.tva_percent,
-            ordre: idx,
-          }))
-        );
+        await createLignes.mutateAsync(lignesAInserer(newFacture.id));
 
         toast.success("Facture créée");
       }
       onOpenChange(false);
     } catch (error) {
+      // Le motif est déjà affiché par le hook de mutation (messageErreur).
       console.error("Error saving facture:", error);
-      toast.error("Erreur lors de la sauvegarde");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onSubmit = async (values: FormValues) => {
+    if (!lectureSeule && lignes.length === 0) {
+      toast.error("Ajoutez au moins un article à la facture");
+      return;
+    }
+    if (isEditing && facture && demandeConfirmationAnnulation(facture.statut, values.statut)) {
+      setAnnulationAConfirmer(values);
+      return;
+    }
+    await enregistrer(values);
   };
 
   const formatPrix = (prix: number) => {
@@ -353,18 +407,37 @@ export function FactureFormDialog({
     }).format(prix);
   };
 
+  const optionsStatut = lectureSeule && facture
+    ? optionsStatutFactureEmise(facture.statut, annulationPermise)
+    : statutOptions;
+
   return (
     <Dialog open={open} onOpenChange={guard.dialogProps.onOpenChange}>
       <DialogContent className="max-w-3xl" {...guard.contentProps}>
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Modifier la facture" : "Nouvelle facture"}
+            {isEditing
+              ? lectureSeule
+                ? `Facture ${facture?.numero_facture ?? ""}`.trim()
+                : "Modifier la facture"
+              : "Nouvelle facture"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-4">
+                {lectureSeule && (
+                  <Alert>
+                    <Lock className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      Cette facture est émise : son contenu est figé (client, lignes, montants, dates,
+                      financement, observations). Seul son statut peut encore changer. En cas d'erreur,
+                      passez-la au statut « Annulée » puis créez une nouvelle facture.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {!isEditing && nextNumero && (
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Numéro de facture</p>
@@ -378,7 +451,7 @@ export function FactureFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Type de client *</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={lectureSeule}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="contact">Particulier (apprenant)</SelectItem>
@@ -406,6 +479,7 @@ export function FactureFormDialog({
                           placeholder="Rechercher un apprenant…"
                           searchPlaceholder="Rechercher par nom..."
                           emptyMessage="Aucun apprenant trouvé."
+                          disabled={lectureSeule}
                         />
                         <FormMessage />
                       </FormItem>
@@ -418,7 +492,7 @@ export function FactureFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Entreprise *</FormLabel>
-                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                        <Select value={field.value || ""} onValueChange={field.onChange} disabled={lectureSeule}>
                           <SelectTrigger><SelectValue placeholder="Sélectionner une entreprise..." /></SelectTrigger>
                           <SelectContent>
                             {partners.map((p) => (
@@ -436,13 +510,16 @@ export function FactureFormDialog({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <FormLabel>Articles / Formations</FormLabel>
-                    <Button type="button" variant="outline" size="sm" onClick={() => addLigne()}>
-                      <Plus className="h-3 w-3 mr-1" />
-                      Ligne libre
-                    </Button>
+                    {!lectureSeule && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => addLigne()}>
+                        <Plus className="h-3 w-3 mr-1" />
+                        Ligne libre
+                      </Button>
+                    )}
                   </div>
 
                   {/* Catalogue rapide */}
+                  {!lectureSeule && (
                   <div className="flex flex-wrap gap-1">
                     {(showAllCatalogue ? catalogue : catalogue.slice(0, 8)).map((item) => (
                       <Button
@@ -480,22 +557,26 @@ export function FactureFormDialog({
                       </Button>
                     )}
                   </div>
+                  )}
 
                   {/* Liste des lignes */}
                   {lignes.length === 0 ? (
                     <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
                       <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Ajoutez des articles depuis le catalogue</p>
+                      <p className="text-sm">
+                        {lectureSeule ? "Aucune ligne enregistrée pour cette facture" : "Ajoutez des articles depuis le catalogue"}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {lignes.map((ligne, idx) => (
+                      {lignes.map((ligne) => (
                         <div key={ligne.id} className="flex gap-2 items-start p-2 border rounded-lg bg-muted/30">
                           <div className="flex-1 space-y-2">
                             <div className="flex gap-2">
-                              <Select 
-                                value={ligne.catalogue_formation_id || ""} 
+                              <Select
+                                value={ligne.catalogue_formation_id || ""}
                                 onValueChange={(v) => selectCatalogueItem(ligne.id, v)}
+                                disabled={lectureSeule}
                               >
                                 <SelectTrigger className="w-[200px]">
                                   <SelectValue placeholder="Choisir article..." />
@@ -513,6 +594,7 @@ export function FactureFormDialog({
                                 value={ligne.description}
                                 onChange={(e) => updateLigne(ligne.id, "description", e.target.value)}
                                 placeholder="Description"
+                                disabled={lectureSeule}
                               />
                             </div>
                             <div className="flex gap-2 items-center flex-wrap">
@@ -522,6 +604,7 @@ export function FactureFormDialog({
                                 size="sm"
                                 className={cn("h-7 text-xs gap-1", ligne.offert && "bg-success hover:bg-success/90 text-success-foreground")}
                                 onClick={() => toggleOffert(ligne.id)}
+                                disabled={lectureSeule}
                               >
                                 <Gift className="h-3 w-3" />
                                 Offert
@@ -535,6 +618,7 @@ export function FactureFormDialog({
                                       className="w-16"
                                       value={ligne.quantite}
                                       onChange={(e) => updateLigne(ligne.id, "quantite", parseInt(e.target.value) || 1)}
+                                      disabled={lectureSeule}
                                     />
                                     <span className="text-xs text-muted-foreground">×</span>
                                   </div>
@@ -545,6 +629,7 @@ export function FactureFormDialog({
                                       className="w-24"
                                       value={ligne.prix_unitaire_ht}
                                       onChange={(e) => updateLigne(ligne.id, "prix_unitaire_ht", parseFloat(e.target.value) || 0)}
+                                      disabled={lectureSeule}
                                     />
                                     <span className="text-xs text-muted-foreground">€</span>
                                   </div>
@@ -558,6 +643,7 @@ export function FactureFormDialog({
                                       value={ligne.remise_percent}
                                       onChange={(e) => updateLigne(ligne.id, "remise_percent", parseFloat(e.target.value) || 0)}
                                       placeholder="0"
+                                      disabled={lectureSeule}
                                     />
                                     <span className="text-xs text-muted-foreground">%</span>
                                   </div>
@@ -577,6 +663,7 @@ export function FactureFormDialog({
                                           updateLigne(ligne.id, "remise_percent", Math.max(0, Math.min(100, newRemise)));
                                         }
                                       }}
+                                      disabled={lectureSeule}
                                     />
                                     <span className="text-xs text-muted-foreground">€</span>
                                   </div>
@@ -589,15 +676,17 @@ export function FactureFormDialog({
                               )}
                             </div>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => removeLigne(ligne.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!lectureSeule && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => removeLigne(ligne.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -624,7 +713,7 @@ export function FactureFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Financement</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={lectureSeule}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -656,7 +745,7 @@ export function FactureFormDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {statutOptions.map((opt) => (
+                            {optionsStatut.map((opt) => (
                               <SelectItem key={opt.value} value={opt.value}>
                                 {opt.label}
                               </SelectItem>
@@ -677,7 +766,7 @@ export function FactureFormDialog({
                       <FormItem>
                         <FormLabel>Date d'émission</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} disabled={lectureSeule} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -691,7 +780,7 @@ export function FactureFormDialog({
                       <FormItem>
                         <FormLabel>Date d'échéance</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} disabled={lectureSeule} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -706,7 +795,7 @@ export function FactureFormDialog({
                     <FormItem>
                       <FormLabel>Commentaires</FormLabel>
                       <FormControl>
-                        <Textarea rows={2} {...field} />
+                        <Textarea rows={2} {...field} disabled={lectureSeule} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -722,15 +811,26 @@ export function FactureFormDialog({
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isSubmitting || lignes.length === 0}>
+              <Button type="submit" disabled={isSubmitting || (!lectureSeule && lignes.length === 0)}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isEditing ? "Enregistrer" : "Créer la facture"}
+                {isEditing ? (lectureSeule ? "Enregistrer le statut" : "Enregistrer") : "Créer la facture"}
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
       {guard.confirmDialog}
+      <ConfirmationAnnulationFactureDialog
+        open={!!annulationAConfirmer}
+        onOpenChange={(ouvert) => { if (!ouvert) setAnnulationAConfirmer(null); }}
+        numeroFacture={facture?.numero_facture}
+        enCours={isSubmitting}
+        onConfirm={() => {
+          const valeurs = annulationAConfirmer;
+          setAnnulationAConfirmer(null);
+          if (valeurs) void enregistrer(valeurs);
+        }}
+      />
     </Dialog>
   );
 }

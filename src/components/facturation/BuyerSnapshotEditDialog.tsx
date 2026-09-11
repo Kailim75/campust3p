@@ -39,6 +39,9 @@ interface BuyerForm {
   buyer_routing_code: string;
 }
 
+const MESSAGE_ACHETEUR_FIGE =
+  "Enregistrement refusé : cette facture n'est plus un brouillon (ou n'est plus accessible). Ses coordonnées acheteur sont figées depuis l'émission.";
+
 const empty: BuyerForm = {
   buyer_type: "b2c",
   buyer_name_snapshot: "",
@@ -118,8 +121,19 @@ export function BuyerSnapshotEditDialog({ factureId, open, onOpenChange }: Props
           country: (form.buyer_country || "FR").toUpperCase(),
         },
       };
-      const { error } = await supabase.from("factures").update(payload).eq("id", factureId);
+      // Hors brouillon, les coordonnées acheteur sont figées (D2 du 11/09/2026).
+      // Le bouton est désactivé, mais la facture a pu être émise ailleurs
+      // depuis l'ouverture : le filtre sur le statut rend le refus atomique,
+      // avec ou sans la garde en base.
+      if (!isDraft) throw new Error(MESSAGE_ACHETEUR_FIGE);
+      const { data, error } = await supabase
+        .from("factures")
+        .update(payload)
+        .eq("id", factureId)
+        .eq("statut", "brouillon")
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error(MESSAGE_ACHETEUR_FIGE);
     },
     onSuccess: () => {
       toast.success("Données acheteur mises à jour");

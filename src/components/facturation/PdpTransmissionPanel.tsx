@@ -7,6 +7,7 @@ import { usePdpTransmissions, type PdpTransmission } from "@/hooks/usePdpTransmi
 import { useEInvoicingSettings } from "@/hooks/useEInvoicingSettings";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { MESSAGE_TRANSMISSION_PDP_SIMULEE, TRANSMISSION_PDP_SIMULEE } from "@/lib/factures-emises";
 
 interface Props {
   factureId: string;
@@ -127,7 +128,7 @@ export function PdpTransmissionPanel({
           size="sm"
           className="justify-start"
           onClick={handleSubmit}
-          disabled={isDraft || !pdpChoisie || submitPdp.isPending}
+          disabled={TRANSMISSION_PDP_SIMULEE || isDraft || !pdpChoisie || submitPdp.isPending}
         >
           {submitPdp.isPending ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -137,7 +138,11 @@ export function PdpTransmissionPanel({
           Transmettre via la PDP
         </Button>
 
-        {isDraft && (
+        {TRANSMISSION_PDP_SIMULEE && (
+          <p className="text-[11px] text-warning">{MESSAGE_TRANSMISSION_PDP_SIMULEE}</p>
+        )}
+
+        {!TRANSMISSION_PDP_SIMULEE && isDraft && (
           <p className="text-[11px] text-muted-foreground">
             Émettez d'abord la facture pour activer la transmission.
           </p>
