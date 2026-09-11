@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _mig_buffer: {
-        Row: {
-          part: number
-          txt: string
-        }
-        Insert: {
-          part: number
-          txt: string
-        }
-        Update: {
-          part?: number
-          txt?: string
-        }
-        Relationships: []
-      }
       action_logs: {
         Row: {
           action_type: string
