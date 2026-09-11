@@ -145,4 +145,20 @@ describe("factures créées directement « emise »", () => {
 
     expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/réessayez immédiatement/));
   });
+
+  it("conversion d'un devis : lignes refusées → avertissement, devis converti, aucune seconde facture", async () => {
+    // La facture émise a bien été créée ; ses lignes échouent. La conversion ne
+    // doit PAS être relancée en erreur : sinon le devis n'est pas marqué
+    // « converti » et un second essai fabrique une deuxième facture émise
+    // indestructible. On avertit, et le devis passe quand même « converti ».
+    vi.mocked(toast.error).mockClear();
+    etat.echecLignes = true;
+    const { result } = renderHook(() => useConvertDevisToFacture(), { wrapper: enveloppe });
+    await result.current.mutateAsync("d1");
+
+    const facturesCreees = etat.inserts.filter((i) => i.table === "factures");
+    expect(facturesCreees).toHaveLength(1);
+    expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/réessayez immédiatement/));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
 });

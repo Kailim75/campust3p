@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
+import { messageLignesNonEnregistrees } from "@/lib/factures-emises";
 
 export type DevisStatut = "brouillon" | "envoye" | "accepte" | "refuse" | "expire" | "converti";
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -361,7 +362,13 @@ export function useConvertDevisToFacture() {
 
       if (factureError) throw factureError;
 
-      // 4. Copier les lignes vers facture_lignes
+      // 4. Copier les lignes vers facture_lignes.
+      // La facture est déjà « emise » et ses montants sont figés : si l'insertion
+      // des lignes échoue, on N'INTERROMPT PAS la conversion. Sinon l'étape 5 ne
+      // marquerait pas le devis « converti », et un second essai fabriquerait une
+      // deuxième facture émise — indestructible une fois la garde posée. On
+      // avertit ; le rattrapage des lignes reste possible dans les quinze minutes.
+      let lignesEnEchec = false;
       if (lignes && lignes.length > 0) {
         const factureLignes = lignes.map((ligne, index) => ({
           facture_id: facture.id,
@@ -377,10 +384,15 @@ export function useConvertDevisToFacture() {
           .from("facture_lignes")
           .insert(factureLignes);
 
-        if (lignesFactureError) throw lignesFactureError;
+        if (lignesFactureError) {
+          console.error(lignesFactureError);
+          toast.warning(messageLignesNonEnregistrees(facture.numero_facture));
+          lignesEnEchec = true;
+        }
       }
 
-      // 5. Mettre à jour le statut du devis
+      // 5. Marquer le devis « converti » — TOUJOURS, même si les lignes ont
+      // échoué, pour qu'un second essai ne crée pas une facture en double.
       const { error: updateError } = await supabase
         .from("devis")
         .update({ statut: "converti", facture_id: facture.id })
@@ -388,13 +400,13 @@ export function useConvertDevisToFacture() {
 
       if (updateError) throw updateError;
 
+      if (!lignesEnEchec) toast.success("Devis converti en facture avec succès");
       return facture;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devis"] });
       queryClient.invalidateQueries({ queryKey: ["devis-stats"] });
       queryClient.invalidateQueries({ queryKey: ["factures"] });
-      toast.success("Devis converti en facture avec succès");
     },
     onError: (error: any) => {
       console.error("Error converting devis to facture:", error);
