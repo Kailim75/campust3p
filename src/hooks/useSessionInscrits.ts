@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { messageErreur } from "@/lib/erreurs";
+import { creerFacturesUneParUne } from "./useBulkEnrollment";
 
 interface AjouterMultiplesParams {
   contactIds: string[];
@@ -73,52 +74,39 @@ export function useSessionInscrits(sessionId: string) {
       if (error) throw error;
 
       let facturesCreated = 0;
+      let facturesEnEchec = 0;
 
-      // Auto-créer les factures si demandé
+      // Auto-créer les factures si demandé — une par une, le numéro étant
+      // généré juste avant chaque insertion (même défaut que l'inscription
+      // groupée, corrigé le 11/09/2026 : voir creerFacturesUneParUne).
       if (autoCreateFacture && insertedInscriptions && insertedInscriptions.length > 0) {
-        const facturesToCreate = [];
-        
-        for (const inscription of insertedInscriptions) {
-          // Générer un numéro de facture unique
-          const { data: numeroFacture, error: numeroError } = await supabase.rpc("generate_numero_facture");
-          
-          if (numeroError) {
-            console.error("Erreur génération numéro facture:", numeroError);
-            continue;
-          }
-
-          facturesToCreate.push({
+        const bilan = await creerFacturesUneParUne(
+          insertedInscriptions.map((inscription) => ({
             contact_id: inscription.contact_id,
             session_inscription_id: inscription.id,
-            numero_facture: numeroFacture,
             montant_total: sessionPrix,
             type_financement: "personnel" as const,
             statut: "brouillon" as const,
             date_emission: new Date().toISOString().split("T")[0],
             commentaires: `Facture auto-générée pour la session: ${sessionNom}`,
-          });
-        }
-
-        if (facturesToCreate.length > 0) {
-          const { error: factureError } = await supabase
-            .from("factures")
-            .insert(facturesToCreate);
-
-          if (factureError) {
-            console.error("Erreur création factures:", factureError);
-          } else {
-            facturesCreated = facturesToCreate.length;
-          }
-        }
+          })),
+        );
+        facturesCreated = bilan.creees;
+        facturesEnEchec = bilan.enEchec.length;
       }
 
-      return { inscriptionsCount: nouveaux.length, facturesCreated };
+      return { inscriptionsCount: nouveaux.length, facturesCreated, facturesEnEchec };
     },
-    onSuccess: ({ inscriptionsCount, facturesCreated }) => {
+    onSuccess: ({ inscriptionsCount, facturesCreated, facturesEnEchec }) => {
       queryClient.invalidateQueries({ queryKey: ['session-inscrits-detail', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['factures'] });
-      
-      if (facturesCreated > 0) {
+
+      if (facturesEnEchec > 0) {
+        toast.error(`${inscriptionsCount} stagiaire(s) ajouté(s), mais ${facturesEnEchec} facture(s) non créée(s)`, {
+          description: "Créez les factures manquantes depuis l'onglet Finances de la session.",
+          duration: 15000,
+        });
+      } else if (facturesCreated > 0) {
         toast.success(`${inscriptionsCount} stagiaire(s) ajouté(s) avec ${facturesCreated} facture(s) générée(s)`);
       } else {
         toast.success(`${inscriptionsCount} stagiaire(s) ajouté(s)`);
