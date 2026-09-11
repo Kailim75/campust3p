@@ -77,14 +77,16 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
     .single();
   if (factureError) throw factureError;
 
+  // montant_ht, montant_tva et montant_ttc sont GENERATED ALWAYS sur
+  // facture_lignes : Postgres REFUSE l'INSERT si on leur donne une valeur (la
+  // ligne n'était donc jamais créée, la facture express restait sans détail).
+  // On ne pose que les colonnes de base ; la base calcule les montants.
   const { error: ligneError } = await supabase.from("facture_lignes").insert({
     facture_id: (facture as FactureCreee).id,
     description: params.description,
     quantite: 1,
     prix_unitaire_ht: params.montant,
-    montant_ht: params.montant,
-    montant_tva: 0,
-    montant_ttc: params.montant,
+    tva_percent: 0,
     ordre: 1,
   } as never);
   // La ligne est descriptive : son échec ne doit pas laisser croire que la
