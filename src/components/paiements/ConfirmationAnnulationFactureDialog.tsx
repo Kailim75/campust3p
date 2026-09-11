@@ -14,6 +14,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   numeroFacture?: string | null;
+  /** Total déjà encaissé : annoncé s'il est > 0 (D7, remboursements reportés). */
+  montantDejaPaye?: number | null;
   onConfirm: () => void;
   enCours?: boolean;
 }
@@ -23,7 +25,14 @@ interface Props {
  * « Annulée » (D6 du 11/09/2026) : elle garde son numéro, l'annulation est
  * tracée, un avoir devra être émis quand la fonction existera.
  */
-export function ConfirmationAnnulationFactureDialog({ open, onOpenChange, numeroFacture, onConfirm, enCours }: Props) {
+export function ConfirmationAnnulationFactureDialog({
+  open,
+  onOpenChange,
+  numeroFacture,
+  montantDejaPaye,
+  onConfirm,
+  enCours,
+}: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -31,7 +40,7 @@ export function ConfirmationAnnulationFactureDialog({ open, onOpenChange, numero
           <AlertDialogTitle>{TITRE_CONFIRMATION_ANNULATION}</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2 text-sm text-muted-foreground">
-              {texteConfirmationAnnulation(numeroFacture).map((phrase) => (
+              {texteConfirmationAnnulation(numeroFacture, montantDejaPaye).map((phrase) => (
                 <p key={phrase}>{phrase}</p>
               ))}
             </div>

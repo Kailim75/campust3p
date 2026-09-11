@@ -47,6 +47,7 @@ import {
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 import { Loader2, Plus, Trash2, Package, Gift, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { messageErreur } from "@/lib/erreurs";
@@ -360,10 +361,27 @@ export function FactureFormDialog({
 
         toast.success(lectureSeule && values.statut === "annulee" ? "Facture annulée" : "Facture mise à jour");
       } else {
-        // Création facture
+        // Création facture. Créée directement « Émise », elle ne passera jamais
+        // par `snapshot_facture_on_emission` (BEFORE UPDATE) : ses coordonnées
+        // d'acheteur et ses totaux HT/TVA sont figés dans l'INSERT (D2). Un
+        // brouillon, lui, ne change pas : le déclencheur les figera à son
+        // émission.
+        const contactId = values.client_type === "contact" ? values.contact_id || null : null;
+        const partnerId = values.client_type === "partner" ? values.client_partner_id || null : null;
+        const bloc = await blocFigeNouvelleFacture({
+          statut: values.statut,
+          contactId,
+          partnerId,
+          lignes: lignesAInserer("").map((l) => ({
+            quantite: l.quantite,
+            prix_unitaire_ht: l.prix_unitaire_ht,
+            tva_percent: l.tva_percent,
+          })),
+        });
+
         const newFacture = await createFacture.mutateAsync({
-          contact_id: values.client_type === "contact" ? values.contact_id || null : null,
-          client_partner_id: values.client_type === "partner" ? values.client_partner_id || null : null,
+          contact_id: contactId,
+          client_partner_id: partnerId,
           session_inscription_id: defaultSessionInscriptionId || null,
           numero_facture: nextNumero || `FAC-${Date.now()}`,
           montant_total: totalMontant,
@@ -372,6 +390,7 @@ export function FactureFormDialog({
           date_emission: values.date_emission || null,
           date_echeance: values.date_echeance || null,
           commentaires: values.commentaires || null,
+          ...bloc,
         });
 
         // Créer les lignes

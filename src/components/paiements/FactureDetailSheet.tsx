@@ -816,6 +816,7 @@ export function FactureDetailSheet({
         open={showAnnulationAlert}
         onOpenChange={setShowAnnulationAlert}
         numeroFacture={facture?.numero_facture}
+        montantDejaPaye={facture?.total_paye}
         enCours={isAnnulating}
         onConfirm={() => void handleAnnulerFacture()}
       />

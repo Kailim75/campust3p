@@ -58,6 +58,24 @@ describe("WorkflowFormDialog — statut de facture", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it("le refus nomme l'action fautive, pas seulement le statut attendu", () => {
+    // Un workflow existant peut porter plusieurs actions : sans l'indice,
+    // l'utilisateur venu corriger un libellé cherche parmi toutes.
+    const multi = {
+      ...workflow("payee"),
+      actions: [
+        { type: "send_email", config: { template_id: "t1" } },
+        { type: "update_status", config: { table: "factures", new_status: "annulee" } },
+      ],
+    } as unknown as Workflow;
+    render(<WorkflowFormDialog open onOpenChange={() => {}} workflow={multi} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^Action 2 :/));
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("enregistre un statut autorisé", () => {
     render(<WorkflowFormDialog open onOpenChange={() => {}} workflow={workflow("brouillon")} />);
 

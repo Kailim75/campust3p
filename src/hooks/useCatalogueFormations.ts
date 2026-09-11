@@ -184,11 +184,12 @@ export function useDeleteCatalogueFormation() {
 
   return {
     mutate: (id: string) => {
-      softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" });
+      void softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" });
     },
-    mutateAsync: async (id: string) => {
-      await softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" });
-    },
+    // Résout `false` si la base a refusé (motif déjà affiché) : un appelant qui
+    // enchaîne un toast de succès ou une fermeture doit pouvoir le savoir (F3).
+    mutateAsync: (id: string): Promise<boolean> =>
+      softDelete({ table: "catalogue_formations", id, message: "Formation supprimée" }),
     isPending: false,
   };
 }

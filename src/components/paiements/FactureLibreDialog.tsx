@@ -14,6 +14,7 @@ import { useCreateFacture, useGenerateNumeroFacture, FinancementType } from "@/h
 import { useCreateFactureLignes } from "@/hooks/useFactureLignes";
 import { useProduitsServices, PRODUIT_TYPE_LABELS } from "@/hooks/useProduitsServices";
 import { usePartners, useCreatePartner } from "@/hooks/usePartners";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 
 interface FactureLibreDialogProps {
   open: boolean;
@@ -182,6 +183,16 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
     try {
       const today = new Date().toISOString().split("T")[0];
 
+      // La facture naît « emise » : le déclencheur d'émission (BEFORE UPDATE)
+      // ne passera jamais. Ses coordonnées d'acheteur et ses totaux HT/TVA
+      // doivent être figés ICI, sans quoi le PDF suivra la fiche vivante à vie.
+      const bloc = await blocFigeNouvelleFacture({
+        statut: "emise",
+        contactId: clientType === "particulier" ? contactId : null,
+        partnerId: clientType === "entreprise" ? partnerId : null,
+        lignes: [{ quantite: qte, prix_unitaire_ht: pu, tva_percent: tvaPct }],
+      });
+
       const newFacture = await createFacture.mutateAsync({
         contact_id: clientType === "particulier" ? contactId : (null as any),
         ...(clientType === "entreprise" ? { client_partner_id: partnerId } : {}),
@@ -191,6 +202,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         statut: "emise",
         date_emission: today,
         commentaires: commentaires || null,
+        ...bloc,
       } as any);
 
       await createLignes.mutateAsync([{

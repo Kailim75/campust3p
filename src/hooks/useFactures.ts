@@ -64,6 +64,8 @@ export interface FactureWithDetails extends Facture {
       company_name: string;
       email: string | null;
       address: string | null;
+      siret?: string | null;
+      tva_intracom?: string | null;
     } | null;
   } | null;
   client_partner_id: string | null;
@@ -99,6 +101,21 @@ export interface FactureInsert {
   date_emission?: string | null;
   date_echeance?: string | null;
   commentaires?: string | null;
+  /**
+   * Coordonnées figées de l'acheteur et totaux HT/TVA, posés dès l'INSERT
+   * quand la facture naît déjà émise (src/lib/facture-snapshot-acheteur.ts) :
+   * `snapshot_facture_on_emission` est un déclencheur BEFORE UPDATE, il ne
+   * s'exécute jamais pour ces factures-là.
+   */
+  buyer_type?: string | null;
+  buyer_name_snapshot?: string | null;
+  buyer_address_snapshot?: unknown;
+  buyer_email_facturation?: string | null;
+  buyer_country?: string | null;
+  buyer_siret?: string | null;
+  buyer_tva_intracom?: string | null;
+  montant_ht?: number | null;
+  montant_tva?: number | null;
 }
 
 export interface FactureUpdate {
@@ -125,7 +142,7 @@ const FACTURE_SELECT = `
     montant_pris_en_charge,
     reste_a_charge,
     session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code)),
-    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret)
+    payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret, tva_intracom)
   )
 `;
 

@@ -22,6 +22,20 @@ const { journal, etat } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/ui/select", () => import("@/test/select-natif"));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: { prenom: "Jean", nom: "Dupont", email: "jean@example.fr", rue: "1 rue A", code_postal: "75001", ville: "Paris" },
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  },
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/components/ui/contact-combobox", async () => {
   const React = await import("react");
@@ -128,6 +142,50 @@ describe("FactureFormDialog — brouillon en base (F1a)", () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/a été émise depuis l'ouverture/)));
     expect(journal).toEqual([]);
+  });
+});
+
+describe("FactureFormDialog — création directement « Émise »", () => {
+  beforeEach(() => {
+    journal.length = 0;
+    etat.lignes = [];
+  });
+
+  it("fige les coordonnées de l'acheteur et le montant HT dans l'INSERT", async () => {
+    // `snapshot_facture_on_emission` est un BEFORE UPDATE : il ne passera jamais
+    // sur une facture née émise. Sans ce bloc, buyer_* et montant_ht restent
+    // NULL, la garde les gèle, et le PDF suit la fiche contact vivante à vie.
+    render(<FactureFormDialog open onOpenChange={() => {}} defaultContactId="k1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Ligne libre/ }));
+    fireEvent.change(screen.getByPlaceholderText("Description"), { target: { value: "Formation VTC" } });
+    const prix = document.querySelector('input[step="0.01"]') as HTMLInputElement;
+    fireEvent.change(prix, { target: { value: "1800" } });
+    fireEvent.change(selectStatut(), { target: { value: "emise" } });
+    fireEvent.click(screen.getByRole("button", { name: "Créer la facture" }));
+
+    await waitFor(() => expect(journal.map((j) => j.op)).toEqual(["createFacture", "createLignes"]));
+    expect(journal[0].args).toMatchObject({
+      statut: "emise",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Jean Dupont",
+      buyer_address_snapshot: { line1: "1 rue A", postal_code: "75001", city: "Paris", country: "FR" },
+      buyer_email_facturation: "jean@example.fr",
+      montant_ht: 1800,
+      montant_tva: 0,
+    });
+  });
+
+  it("un brouillon ne change pas : aucune coordonnée figée dans l'INSERT", async () => {
+    render(<FactureFormDialog open onOpenChange={() => {}} defaultContactId="k1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Ligne libre/ }));
+    fireEvent.change(screen.getByPlaceholderText("Description"), { target: { value: "Formation VTC" } });
+    fireEvent.click(screen.getByRole("button", { name: "Créer la facture" }));
+
+    await waitFor(() => expect(journal.map((j) => j.op)).toEqual(["createFacture", "createLignes"]));
+    expect(journal[0].args).not.toHaveProperty("buyer_name_snapshot");
+    expect(journal[0].args).not.toHaveProperty("montant_ht");
   });
 });
 

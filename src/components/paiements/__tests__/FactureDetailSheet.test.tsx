@@ -160,6 +160,16 @@ describe("FactureDetailSheet — gestion", () => {
     await waitFor(() => expect(journal).toEqual([{ op: "update", args: { id: "f1", statut: "annulee" } }]));
   });
 
+  it("annuler une facture déjà payée annonce les paiements encaissés (D7)", async () => {
+    etat.facture = facture("payee", { total_paye: 1000 });
+    afficher();
+
+    fireEvent.click(screen.getByRole("button", { name: "Annuler la facture" }));
+
+    expect(await screen.findByText(/de paiements/)).toBeInTheDocument();
+    expect(screen.getByText(/resteront rattachés à la facture annulée/)).toBeInTheDocument();
+  });
+
   it("émise, annulation manuelle close (avoirs livrés) : aucune action destructive", () => {
     etat.facture = facture("emise");
     etat.annulationPermise = false;
@@ -186,6 +196,30 @@ describe("FactureDetailSheet — gestion", () => {
       rue: "2 rue B",
       code_postal: "92120",
       ville: "Montrouge",
+      email: "jean-bis@exemple.fr",
+    });
+  });
+
+  it("la facture envoyée par email porte le MÊME acheteur figé (F5)", async () => {
+    // Chemin distinct du téléchargement (handleSendEmail reconstruit son PDF) :
+    // il n'était retenu par aucune assertion, une mutation ciblée passait au
+    // vert et la pièce jointe pouvait repartir sur la fiche du jour.
+    etat.facture = facture("emise", {
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Jean-bis Dupont",
+      buyer_address_snapshot: { line1: "2 rue B", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "jean-bis@exemple.fr",
+    });
+    afficher();
+
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer par email" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Envoyer" }));
+
+    await waitFor(() => expect(generateFacturePDF).toHaveBeenCalled());
+    expect(generateFacturePDF.mock.calls[0][1]).toMatchObject({
+      prenom: "Jean-bis Dupont",
+      nom: "",
+      rue: "2 rue B",
       email: "jean-bis@exemple.fr",
     });
   });

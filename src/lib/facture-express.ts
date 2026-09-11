@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 
 /**
  * Facturation express (audit du 21/07/2026, demande du directeur : « très
@@ -44,6 +45,15 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const echeance = params.dateEcheance || aujourdhui;
 
+  // Facture créée directement « emise » : le déclencheur de snapshot est un
+  // BEFORE UPDATE, il ne s'exécutera jamais pour elle. Coordonnées de
+  // l'acheteur figées dès l'INSERT (D2 du 11/09/2026).
+  const bloc = await blocFigeNouvelleFacture({
+    statut: "emise",
+    contactId: params.contactId,
+    totaux: { montant_ht: params.montant, montant_tva: 0 },
+  });
+
   const { data: facture, error: factureError } = await supabase
     .from("factures")
     .insert({
@@ -58,6 +68,7 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
       type_financement: params.financement ?? "personnel",
       date_emission: aujourdhui,
       date_echeance: echeance,
+      ...bloc,
     } as never)
     .select()
     .single();

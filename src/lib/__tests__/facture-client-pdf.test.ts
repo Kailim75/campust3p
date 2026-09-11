@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { clientImprimeFacture, extractPayerInfo, type ClientPdfFacture } from "@/lib/facture-payer-utils";
+import { clientImprimeFacture, extractPayerInfo, variablesGabaritFacture, type ClientPdfFacture } from "@/lib/facture-payer-utils";
 import { generateFacturePDF, type FactureInfo } from "@/lib/pdf-generator";
 
 /**
@@ -148,5 +148,97 @@ describe("PDF de facture (générateur front) — rendu mesuré", () => {
     expect(texte).toContain("TVA intracom. : FR12345678901");
     expect(texte).not.toContain("Nouveau Nom SARL");
     expect(texte).not.toContain("99999999900099");
+  });
+});
+
+/**
+ * Tiers payeur (OPCO, employeur) : c'est une facture B2B, le bloc « FACTURÉ À »
+ * doit porter le SIRET et la TVA intracommunautaire du payeur. `extractPayerInfo`
+ * ne les remontait pas : le SIRET n'apparaissait jamais sur ce chemin.
+ */
+describe("extractPayerInfo — identifiants du tiers payeur", () => {
+  it("remonte SIRET et TVA intracommunautaire du partenaire payeur", () => {
+    const { payer } = extractPayerInfo(
+      {
+        type_payeur: "opco",
+        montant_pris_en_charge: 1800,
+        reste_a_charge: 0,
+        payeur_partner: {
+          company_name: "OPCO Mobilités",
+          email: "contact@opco.fr",
+          address: "9 av Z 69000 Lyon",
+          siret: "44455566600077",
+          tva_intracom: "FR30444555666",
+        },
+      },
+      { nom: "Dupont", prenom: "Jean" },
+    );
+
+    expect(payer).toMatchObject({
+      company_name: "OPCO Mobilités",
+      siret: "44455566600077",
+      tva_intracom: "FR30444555666",
+    });
+  });
+
+  it("un payeur sans SIRET n'imprime pas de champ vide", () => {
+    const { payer } = extractPayerInfo(
+      {
+        type_payeur: "entreprise",
+        montant_pris_en_charge: 500,
+        reste_a_charge: 0,
+        payeur_partner: { company_name: "Employeur SARL", email: null, address: null, siret: "  ", tva_intracom: null },
+      },
+      null,
+    );
+
+    expect(payer?.siret).toBeUndefined();
+    expect(payer?.tva_intracom).toBeUndefined();
+  });
+});
+
+/**
+ * Template Studio : un gabarit généré pour une facture est un document imprimé
+ * portant un numéro de facture et un client. Il lisait {{nom}}, {{prenom}} et
+ * {{email}} sur la fiche contact vivante, jamais sur buyer_*.
+ */
+describe("variablesGabaritFacture — gabarits Template Studio", () => {
+  const fiche = {
+    nom: "Nouveau-Nom",
+    prenom: "Jean",
+    email: "nouveau@exemple.fr",
+    rue: "50 rue Déménagée",
+    code_postal: "13001",
+    ville: "Marseille",
+  };
+
+  it("facture émise : nom, e-mail et adresse figés", () => {
+    expect(
+      variablesGabaritFacture(
+        {
+          statut: "emise",
+          contact_id: "c1",
+          buyer_type: "b2c",
+          buyer_name_snapshot: "Jean Ancien-Nom",
+          buyer_address_snapshot: { line1: "2 rue B", postal_code: "92120", city: "Montrouge", country: "FR" },
+          buyer_email_facturation: "fige@exemple.fr",
+        },
+        fiche,
+      ),
+    ).toEqual({
+      nom: "",
+      prenom: "Jean Ancien-Nom",
+      email: "fige@exemple.fr",
+      adresse: "2 rue B, 92120, Montrouge",
+    });
+  });
+
+  it("brouillon : la fiche reste la source", () => {
+    expect(variablesGabaritFacture({ statut: "brouillon", contact_id: "c1" }, fiche)).toEqual({
+      nom: "Nouveau-Nom",
+      prenom: "Jean",
+      email: "nouveau@exemple.fr",
+      adresse: "50 rue Déménagée, 13001, Marseille",
+    });
   });
 });

@@ -29,6 +29,14 @@ import {
   classifyError,
   getErrorMessage,
 } from "@/lib/documents/documentErrors";
+import { clientImprimeFacture, type FacturePourClientPdf } from "@/lib/facture-payer-utils";
+
+/**
+ * Facture passée à `generateDocument` : les colonnes buyer_* de la ligne, quand
+ * l'appelant les a, s'ajoutent à ce que le PDF sait déjà afficher. Sans elles,
+ * le comportement est inchangé (repli sur la fiche).
+ */
+export type FacturePourDocument = FactureInfo & Partial<Omit<FacturePourClientPdf, "statut">>;
 
 export type { DocumentType } from "@/lib/documents/documentUtils";
 
@@ -52,7 +60,7 @@ export function useDocumentGenerator() {
       type: DocumentType,
       contact: ContactInfo,
       session?: SessionInfo,
-      facture?: FactureInfo
+      facture?: FacturePourDocument
     ) => {
       try {
         const company = getCompanyInfo();
@@ -73,8 +81,33 @@ export function useDocumentGenerator() {
               toast.error(getErrorMessage("MISSING_FACTURE"));
               return null;
             }
-            doc = generateFacturePDF(facture, contact, session, company);
-            filename = `facture-${facture.numero_facture}.pdf`;
+            {
+              // 5ᵉ point d'entrée d'un PDF de facture : il doit suivre la même
+              // règle D2 que la fiche facture et l'onglet Paiements — une
+              // facture qui n'est plus un brouillon imprime l'acheteur FIGÉ,
+              // la fiche ne servant que de repli
+              // (src/lib/facture-payer-utils.ts).
+              const client = clientImprimeFacture(facture, {
+                contact,
+                payer: facture.payer,
+                beneficiaire: facture.beneficiaire,
+                montant_pris_en_charge: facture.montant_pris_en_charge,
+                reste_a_charge: facture.reste_a_charge,
+              });
+              doc = generateFacturePDF(
+                {
+                  ...facture,
+                  payer: client.payer,
+                  beneficiaire: client.beneficiaire,
+                  montant_pris_en_charge: client.montant_pris_en_charge,
+                  reste_a_charge: client.reste_a_charge,
+                },
+                client.contact,
+                session,
+                company,
+              );
+              filename = `facture-${facture.numero_facture}.pdf`;
+            }
             break;
 
           case "attestation":

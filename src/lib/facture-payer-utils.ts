@@ -125,6 +125,41 @@ export function clientImprimeFacture(
 }
 
 /**
+ * Variables client d'un gabarit Template Studio pour une facture.
+ *
+ * Un gabarit qui porte un numéro de facture imprime un client : il suit la même
+ * règle D2 que les PDF de facture — l'acheteur FIGÉ dès que la facture n'est
+ * plus un brouillon, la fiche seulement en repli. Le nom figé est une chaîne
+ * unique « Prénom Nom » : elle est portée par `prenom`, comme dans
+ * `clientImprimeFacture` (les gabarits composent « {{prenom}} {{nom}} »).
+ */
+export function variablesGabaritFacture(
+  facture: FacturePourClientPdf,
+  fiche: { nom?: string | null; prenom?: string | null; email?: string | null; rue?: string | null; code_postal?: string | null; ville?: string | null } | null,
+): { nom: string; prenom: string; email: string; adresse: string } {
+  const client = clientImprimeFacture(facture, {
+    contact: {
+      nom: fiche?.nom || "",
+      prenom: fiche?.prenom || "",
+      email: fiche?.email || undefined,
+      rue: fiche?.rue || undefined,
+      code_postal: fiche?.code_postal || undefined,
+      ville: fiche?.ville || undefined,
+    },
+    payer: undefined,
+    beneficiaire: undefined,
+    montant_pris_en_charge: undefined,
+    reste_a_charge: undefined,
+  });
+  return {
+    nom: client.contact.nom || "",
+    prenom: client.contact.prenom || "",
+    email: client.contact.email || "",
+    adresse: [client.contact.rue, client.contact.code_postal, client.contact.ville].filter(Boolean).join(", "),
+  };
+}
+
+/**
  * Extract payer and beneficiary info from a facture's session_inscription data.
  * Returns null values when payer is the learner themselves.
  */
@@ -136,6 +171,8 @@ export function extractPayerInfo(inscription: {
     company_name: string;
     email: string | null;
     address: string | null;
+    siret?: string | null;
+    tva_intracom?: string | null;
   } | null;
 } | null, contact: {
   nom: string;
@@ -156,10 +193,14 @@ export function extractPayerInfo(inscription: {
     return { payer: undefined, beneficiaire: undefined, montant_pris_en_charge: undefined, reste_a_charge: undefined };
   }
 
+  // SIRET et TVA intracommunautaire du tiers payeur : une facture payée par un
+  // OPCO ou un employeur est une facture B2B, elle doit les porter.
   const payer: PayerInfo = {
     company_name: partner.company_name,
     address: partner.address || undefined,
     email: partner.email || undefined,
+    siret: texte(partner.siret) ?? undefined,
+    tva_intracom: texte(partner.tva_intracom) ?? undefined,
   };
 
   const beneficiaire: BeneficiaireInfo | undefined = contact

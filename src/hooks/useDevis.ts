@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 
 export type DevisStatut = "brouillon" | "envoye" | "accepte" | "refuse" | "expire" | "converti";
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -330,6 +331,15 @@ export function useConvertDevisToFacture() {
 
       // 3. Créer la facture
       const centreId = await getUserCentreId();
+      // La facture naît « emise » : `snapshot_facture_on_emission` est un
+      // BEFORE UPDATE et ne s'exécutera pas. Acheteur et totaux HT/TVA sont
+      // figés dans l'INSERT lui-même (D2 du 11/09/2026), faute de quoi le PDF
+      // de cette facture suivrait la fiche contact vivante pour toujours.
+      const bloc = await blocFigeNouvelleFacture({
+        statut: "emise",
+        contactId: devis.contact_id,
+        lignes: lignes || [],
+      });
       const { data: facture, error: factureError } = await supabase
         .from("factures")
         .insert({
@@ -342,6 +352,7 @@ export function useConvertDevisToFacture() {
           date_emission: new Date().toISOString().split("T")[0],
           statut: "emise",
           commentaires: `Converti depuis le devis ${devis.numero_devis}`,
+          ...bloc,
         })
         .select()
         .single();

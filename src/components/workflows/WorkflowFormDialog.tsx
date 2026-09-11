@@ -156,8 +156,14 @@ export function WorkflowFormDialog({ open, onOpenChange, workflow }: Props) {
 
   const handleSubmit = () => {
     if (!nom || !triggerType || actions.length === 0) return;
-    if (actions.some(actionWorkflowFactureInvalide)) {
-      toast.error("Choisissez le nouveau statut de facture : émise, partiel, payée ou impayée. Un workflow ne remet jamais une facture en brouillon et ne l'annule pas.");
+    // Un workflow DÉJÀ enregistré peut porter un statut désormais interdit :
+    // l'utilisateur venu corriger un libellé doit savoir LAQUELLE des actions
+    // le bloque, sinon il cherche parmi cinq.
+    const indexInvalide = actions.findIndex(actionWorkflowFactureInvalide);
+    if (indexInvalide !== -1) {
+      toast.error(
+        `Action ${indexInvalide + 1} : choisissez le nouveau statut de facture — émise, partiel, payée ou impayée. Un workflow ne remet jamais une facture en brouillon et ne l'annule pas.`,
+      );
       return;
     }
 

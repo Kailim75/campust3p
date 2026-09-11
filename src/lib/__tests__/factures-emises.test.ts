@@ -8,6 +8,7 @@ import {
   nettoyerActionsWorkflow,
   optionsStatutFactureEmise,
   planifierEnregistrementFacture,
+  texteConfirmationAnnulation,
   STATUTS_FACTURE_POUR_WORKFLOW,
   type PlanEnregistrementFacture,
 } from "@/lib/factures-emises";
@@ -172,6 +173,26 @@ describe("annulation manuelle (F1c, F2)", () => {
     expect(valeurs).toContain("annulee");
     expect(optionsStatutFactureEmise("emise", false).map((o) => o.value)).not.toContain("annulee");
     expect(optionsStatutFactureEmise("annulee", false).map((o) => o.value)).toContain("annulee");
+  });
+
+  it("phase des avoirs : une facture déjà annulée ne propose plus de réactivation", () => {
+    // La garde refuse « annulee → autre statut » quand l'interrupteur est à
+    // false (« Réactivation refusée ») : le sélecteur ne doit pas proposer une
+    // action vouée au refus.
+    expect(optionsStatutFactureEmise("annulee", false).map((o) => o.value)).toEqual(["annulee"]);
+    // Tant que l'annulation manuelle est permise, la liste reste complète.
+    expect(optionsStatutFactureEmise("annulee", true).map((o) => o.value)).toContain("emise");
+  });
+
+  it("la confirmation annonce les paiements déjà encaissés (D7)", () => {
+    const sansPaiement = texteConfirmationAnnulation("FAC-2026-0502", 0).join(" ");
+    expect(sansPaiement).not.toMatch(/de paiements/);
+
+    // Le séparateur de milliers de fr-FR varie selon l'ICU : on le neutralise.
+    const avecPaiement = texteConfirmationAnnulation("FAC-2026-0502", 1000).join(" ").replace(/\s/g, " ");
+    expect(avecPaiement).toMatch(/1 000,00 € de paiements/);
+    expect(avecPaiement).toMatch(/resteront rattachés à la facture annulée/);
+    expect(avecPaiement).toMatch(/remboursement se fait à part/);
   });
 });
 

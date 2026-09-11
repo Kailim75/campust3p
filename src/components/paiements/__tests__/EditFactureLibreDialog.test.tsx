@@ -36,6 +36,7 @@ vi.mock("@/hooks/useFactureLignes", () => ({
   }),
 }));
 
+import { toast } from "sonner";
 import { EditFactureLibreDialog } from "../EditFactureLibreDialog";
 
 type FactureLibre = {
@@ -74,6 +75,7 @@ function selectStatut(): HTMLSelectElement {
 describe("EditFactureLibreDialog", () => {
   beforeEach(() => {
     journal.length = 0;
+    vi.mocked(toast.error).mockClear();
     etat.statutEnBase = "brouillon";
     etat.lignes = [{ id: "l9", facture_id: "f2", description: "Forfait", quantite: 1, prix_unitaire_ht: 1000 }];
   });
@@ -95,6 +97,22 @@ describe("EditFactureLibreDialog", () => {
       statut: "emise",
       commentaires: null,
     });
+  });
+
+  it("facture émise ailleurs depuis l'ouverture : aucune écriture, message clair", async () => {
+    // Le statut RELU en base décide, pas la copie portée par la prop : sans
+    // cette relecture, un formulaire ouvert en brouillon réécrirait la ligne
+    // d'une facture devenue figée (corruptrice tant que la garde n'est pas là).
+    etat.statutEnBase = "emise";
+    afficher({ ...base });
+    await screen.findByDisplayValue("Forfait");
+
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/a été émise depuis l'ouverture/)),
+    );
+    expect(journal).toEqual([]);
   });
 
   it("facture émise : lecture seule, confirmation puis { statut } seul (F1b, F1c)", async () => {

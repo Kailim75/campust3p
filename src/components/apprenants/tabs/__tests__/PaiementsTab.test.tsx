@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
@@ -24,6 +24,7 @@ const { etat } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/components/ui/select", () => import("@/test/select-natif"));
 vi.mock("@/integrations/supabase/client", () => {
   const donneesDe = (table: string) => {
     if (table === "factures") return etat.factures;
@@ -41,6 +42,7 @@ vi.mock("@/integrations/supabase/client", () => {
     const resultat = () => ({ data: donneesDe(table), error: null });
     const c: Record<string, unknown> = {
       single: () => Promise.resolve(resultat()),
+      maybeSingle: () => Promise.resolve(resultat()),
       then: (resoudre: (v: unknown) => unknown) => resoudre(resultat()),
     };
     for (const methode of ["select", "eq", "is", "in", "order", "limit"]) {
@@ -200,6 +202,31 @@ describe("PaiementsTab — versement rattaché à la bonne facture (B2)", () => 
     expect(screen.queryByText(/Aucune facture à encaisser/)).toBeNull();
     expect(screen.getByRole("spinbutton")).toBeInTheDocument();
   });
+
+  it("la facture créée par un versement naît émise AVEC ses coordonnées figées", async () => {
+    // `snapshot_facture_on_emission` est un BEFORE UPDATE : cette facture,
+    // insérée déjà « emise », n'y passera jamais. Sans coordonnées figées dans
+    // l'INSERT, toute réimpression suivrait la fiche apprenant du jour.
+    afficher();
+    await ouvrirLeFormulaire();
+    const selectFacture = screen
+      .getAllByTestId("select-natif")
+      .find((s) => within(s).queryByText(/Créer une nouvelle facture/)) as HTMLSelectElement;
+    fireEvent.change(selectFacture, { target: { value: "__new__" } });
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "990" } });
+    fireEvent.click(screen.getByRole("button", { name: "Créer facture & enregistrer" }));
+
+    await waitFor(() => expect(etat.inserts.some((i) => i.table === "factures")).toBe(true));
+    const facture = etat.inserts.find((i) => i.table === "factures");
+    expect(facture?.valeurs).toMatchObject({
+      statut: "emise",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia KARAI",
+      buyer_email_facturation: "sofia@exemple.fr",
+      montant_ht: 990,
+      montant_tva: 0,
+    });
+  });
 });
 
 /**
@@ -239,6 +266,33 @@ describe("PaiementsTab — PDF d'une facture émise (F5)", () => {
       rue: "3 rue Figée",
       code_postal: "92120",
       ville: "Montrouge",
+      email: "figee@exemple.fr",
+    });
+  });
+
+  it("la pièce jointe envoyée par email porte le MÊME acheteur figé", async () => {
+    // Chemin distinct du téléchargement (buildFacturePdfBase64) : il n'était
+    // retenu par aucune assertion, une mutation ciblée passait au vert.
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Envoyer par email");
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect(generateFacturePDF.mock.calls[0][1]).toMatchObject({
+      prenom: "Sofia Karai-Figée",
+      nom: "",
+      rue: "3 rue Figée",
       email: "figee@exemple.fr",
     });
   });

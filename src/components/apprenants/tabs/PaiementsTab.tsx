@@ -25,6 +25,7 @@ import {
   type ClientPdfFacture,
   type FacturePourClientPdf,
 } from "@/lib/facture-payer-utils";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -190,6 +191,14 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         const { data: numero } = await supabase.rpc("generate_numero_facture");
         const centreId = await getUserCentreId();
         const today = new Date().toISOString().split("T")[0];
+        // Facture créée directement « emise » (le déclencheur de snapshot est
+        // un BEFORE UPDATE) : acheteur et totaux figés dans l'INSERT, sinon son
+        // PDF suivrait la fiche apprenant vivante à vie (D2 du 11/09/2026).
+        const bloc = await blocFigeNouvelleFacture({
+          statut: "emise",
+          contactId,
+          totaux: { montant_ht: montant, montant_tva: 0 },
+        });
         const { data: newFacture, error: fErr } = await supabase
           .from("factures")
           .insert({
@@ -200,6 +209,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             type_financement: "personnel" as any,
             date_emission: today,
             centre_id: centreId,
+            ...bloc,
           } as any)
           .select("id")
           .single();

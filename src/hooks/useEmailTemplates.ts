@@ -125,11 +125,12 @@ export function useDeleteEmailTemplate() {
 
   return {
     mutate: (id: string) => {
-      softDelete({ table: "email_templates", id, message: "Modèle email supprimé" });
+      void softDelete({ table: "email_templates", id, message: "Modèle email supprimé" });
     },
-    mutateAsync: async (id: string) => {
-      await softDelete({ table: "email_templates", id, message: "Modèle email supprimé" });
-    },
+    // Résout `false` si la base a refusé (motif déjà affiché) : un appelant qui
+    // enchaîne un toast de succès ou une fermeture doit pouvoir le savoir (F3).
+    mutateAsync: (id: string): Promise<boolean> =>
+      softDelete({ table: "email_templates", id, message: "Modèle email supprimé" }),
     isPending: false,
   };
 }

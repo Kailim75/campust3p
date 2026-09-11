@@ -108,11 +108,21 @@ export function restreindreAuxChampsModifiables(
   return resultat;
 }
 
-/** Options du sélecteur de statut d'une facture émise (sans « Brouillon »). */
+/**
+ * Options du sélecteur de statut d'une facture émise (sans « Brouillon »).
+ *
+ * Cas particulier de la phase 3 (avoirs livrés, interrupteur à false) : une
+ * facture DÉJÀ annulée ne peut plus changer de statut du tout — la garde refuse
+ * la branche « annulee → autre statut » (« Réactivation refusée »). Le sélecteur
+ * ne propose alors que son statut courant plutôt qu'une action vouée au refus.
+ */
 export function optionsStatutFactureEmise(
   statutActuel: string,
   annulationPermise: boolean,
 ): { value: StatutFacture; label: string }[] {
+  if (statutActuel === "annulee" && !annulationPermise) {
+    return [{ value: "annulee", label: LIBELLES_STATUT_FACTURE.annulee }];
+  }
   return STATUTS_FACTURE_APRES_EMISSION
     .filter((s) => s !== "annulee" || annulationPermise || statutActuel === "annulee")
     .map((s) => ({ value: s, label: LIBELLES_STATUT_FACTURE[s] }));
@@ -222,13 +232,31 @@ export function demandeConfirmationAnnulation(statutEnBase: string, nouveauStatu
 
 export const TITRE_CONFIRMATION_ANNULATION = "Annuler cette facture émise ?";
 
-export function texteConfirmationAnnulation(numeroFacture?: string | null): string[] {
+/**
+ * `montantDejaPaye` : total encaissé sur la facture. D7 a reporté les
+ * remboursements — les paiements restent rattachés à la facture annulée. La
+ * confirmation doit donc le DIRE, sinon on annule une facture payée en croyant
+ * corriger une erreur, et l'argent encaissé reste sur une facture annulée.
+ */
+export function texteConfirmationAnnulation(
+  numeroFacture?: string | null,
+  montantDejaPaye?: number | null,
+): string[] {
   const numero = numeroFacture ? ` ${numeroFacture}` : "";
-  return [
+  const phrases = [
     `La facture${numero} ne sera ni supprimée ni renumérotée : elle garde son numéro et reste dans la comptabilité avec le statut « Annulée ».`,
     "L'annulation est tracée (date, auteur).",
-    "Un avoir devra être émis pour cette facture dès que la fonction existera dans le logiciel.",
   ];
+  if (typeof montantDejaPaye === "number" && montantDejaPaye > 0) {
+    phrases.push(
+      `Cette facture a déjà reçu ${montantDejaPaye.toLocaleString("fr-FR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} € de paiements : ils resteront rattachés à la facture annulée. Le remboursement se fait à part.`,
+    );
+  }
+  phrases.push("Un avoir devra être émis pour cette facture dès que la fonction existera dans le logiciel.");
+  return phrases;
 }
 
 /**
