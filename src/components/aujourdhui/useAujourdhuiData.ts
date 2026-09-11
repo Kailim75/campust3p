@@ -28,6 +28,7 @@ import {
   isSettledPaymentStatus,
 } from "@/lib/session-readiness";
 import { computeCrmQuality } from "@/lib/crm-quality";
+import { compteCommeActivite, estFactureOuverte, estInscritSolde } from "./factures-ouvertes";
 import {
   computeParcours,
   classerExamensParContact,
@@ -152,14 +153,29 @@ export function useAujourdhuiData() {
       const inscribedContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
       const activeSessionContactIds = new Set(inscriptions.map((i: any) => i.contact_id));
 
-      const contactHasOpenFacture = new Set<string>();
       const contactHasLatePayment = new Set<string>();
+      // DEUX questions distinctes, que le hub confondait en une seule.
+      //
+      // 1. « Faut-il relancer ? » → facture OUVERTE : comptée ET non soldée
+      //    (`estFactureOuverte`). Le test d'avant — `statut !== "payee" &&
+      //    statut !== "annulee"` — retenait les BROUILLONS : une facture
+      //    jamais émise suffisait à proposer une relance sur un apprenant que
+      //    sa fiche dit « Soldé ». C'est le symptôme corrigé par ce lot.
+      //
+      // 2. « Ce contact est-il encore vivant ? » (`_isActive`, qui décide de
+      //    l'AFFICHAGE dans les blocs CMA et critiques) → ici on garde
+      //    EXACTEMENT le critère d'avant le lot, brouillon compris : resserrer
+      //    la relance ne doit pas faire disparaître des contacts de l'écran.
+      //    Ne pas l'élargir non plus : inclure les factures `payee` ferait
+      //    RÉAPPARAÎTRE des apprenants soldés et dormants.
+      const contactHasFactureActive = new Set<string>();
       factures.forEach((f: any) => {
-        if (f.statut !== "payee" && f.statut !== "annulee") {
-          contactHasOpenFacture.add(f.contact_id);
-          if (f.date_echeance && f.date_echeance < todayStr) {
-            contactHasLatePayment.add(f.contact_id);
-          }
+        if (f.contact_id && compteCommeActivite(f)) {
+          contactHasFactureActive.add(f.contact_id);
+        }
+        if (!estFactureOuverte(f, paiementsMap.get(f.id) || 0)) return;
+        if (f.date_echeance && f.date_echeance < todayStr) {
+          contactHasLatePayment.add(f.contact_id);
         }
       });
 
@@ -177,7 +193,8 @@ export function useAujourdhuiData() {
 
       const isContactActive = (c: any) => {
         if (activeSessionContactIds.has(c.id)) return true;
-        if (contactHasOpenFacture.has(c.id)) return true;
+        // Visibilité, pas créance : critère inchangé par rapport à `main`.
+        if (contactHasFactureActive.has(c.id)) return true;
         if (contactHasRappel.has(c.id)) return true;
         const contactDocs = docsMap.get(c.id) || new Set();
         const track = getContactTrack(c);
@@ -491,9 +508,11 @@ export function useAujourdhuiData() {
               const requiredDocs = getCmaRequiredDocsForTrack(track);
               const missingDocs = getMissingCmaDocs(contactDocs, track);
               const linkedFactures = facturesByInscriptionId.get(inscription.id) || [];
-              const factureSettled =
-                linkedFactures.length > 0 &&
-                linkedFactures.every((f: any) => f.statut === "payee" || f.statut === "annulee");
+              // Un brouillon parmi les factures liées faisait échouer le
+              // `every` : l'inscrit apparaissait NON PAYÉ dans la préparation
+              // de session. On ne juge donc que sur les factures comptées — et
+              // n'en avoir aucune ne vaut pas paiement (garde sur le vide).
+              const factureSettled = estInscritSolde(linkedFactures, paiementsMap);
               const statutPaiement = factureSettled ? "paye" : inscription.statut_paiement;
 
               return {

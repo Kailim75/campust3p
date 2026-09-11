@@ -5,6 +5,7 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase
 import { getUserCentreId } from "@/utils/getCentreId";
 import { toast } from "sonner";
 import { messageErreur } from "@/lib/erreurs";
+import { filtreFacturesComptees, sommeFactures } from "@/lib/montants";
 
 // Types
 export type Formateur = Tables<"formateurs">;
@@ -63,6 +64,13 @@ export function useFormateurs() {
   });
 }
 
+/** Ligne de facture telle que lue pour le CA par session. */
+interface FactureCA {
+  montant_total: number | string | null;
+  statut: string | null;
+  session_inscription: { session_id: string } | null;
+}
+
 // Get detailed stats per formateur
 export function useFormateursStats() {
   return useQuery({
@@ -83,16 +91,24 @@ export function useFormateursStats() {
 
       if (inscError) throw inscError;
 
-      // Fetch factures for CA
-      const { data: factures, error: factError } = await supabase
-        .from("factures")
-        .select(`
+      // Fetch factures for CA — assiette de `src/lib/montants.ts` : ni
+      // brouillon ni annulée. `statut` est SÉLECTIONNÉ parce que `sommeFactures`
+      // revérifie le prédicat côté JS ; sans la colonne, le filtre SQL serait
+      // seul à porter la règle.
+      const { data: factures, error: factError } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select(`
           montant_total,
+          statut,
           session_inscription:session_inscriptions (
             session_id
           )
         `)
-        .not("statut", "eq", "annulee");
+          // Sans ce filtre, une facture mise à la corbeille gonfle encore le
+          // « CA généré » de la fiche formateur : la suppression est douce.
+          .is("deleted_at", null),
+      );
 
       if (factError) throw factError;
 
@@ -102,14 +118,21 @@ export function useFormateursStats() {
         inscriptionsBySession[i.session_id] = (inscriptionsBySession[i.session_id] || 0) + 1;
       });
 
-      // CA per session
-      const caBySession: Record<string, number> = {};
-      factures?.forEach((f: any) => {
+      // CA per session. Le filtre de la requête n'écartait auparavant que les
+      // annulées : un devis resté en brouillon entrait donc dans le « CA généré »
+      // de la fiche formateur, alors qu'un brouillon n'est pas encore dû.
+      const facturesParSession: Record<string, FactureCA[]> = {};
+      for (const f of (factures || []) as unknown as FactureCA[]) {
         const sessionId = f.session_inscription?.session_id;
-        if (sessionId) {
-          caBySession[sessionId] = (caBySession[sessionId] || 0) + Number(f.montant_total);
-        }
-      });
+        if (!sessionId) continue;
+        if (!facturesParSession[sessionId]) facturesParSession[sessionId] = [];
+        facturesParSession[sessionId].push(f);
+      }
+
+      const caBySession: Record<string, number> = {};
+      for (const [sessionId, lignes] of Object.entries(facturesParSession)) {
+        caBySession[sessionId] = sommeFactures(lignes);
+      }
 
       // Group by formateur
       const formateurMap: Record<string, FormateurStats> = {};

@@ -2,13 +2,31 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, subMonths, format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { calculerResteAEncaisser } from "@/lib/montants";
+import {
+  estFactureComptee,
+  filtreFacturesComptees,
+  resteAEncaisserParFacture,
+  sommeFactures,
+  sommePaiementsFactures,
+} from "@/lib/montants";
 
 export interface MonthlyCA {
   mois: string;
   moisLabel: string;
   ca: number;
   paye: number;
+}
+
+/** Lignes minimales attendues des requêtes ci-dessous (le reste est ignoré). */
+interface FactureLigne {
+  id?: string | null;
+  montant_total?: number | string | null;
+  statut?: string | null;
+}
+
+interface PaiementLigne {
+  montant?: number | string | null;
+  facture_id?: string | null;
 }
 
 export interface FormationStats {
@@ -23,63 +41,109 @@ export interface InscriptionTrend {
   inscriptions: number;
 }
 
+/**
+ * CA émis et encaissé, mois par mois, sur les 12 derniers mois.
+ *
+ * Le « payé » d'un mois ne retient que les versements RATTACHÉS à une facture
+ * comptée : un versement encaissé sur un brouillon ou sur une annulée n'est pas
+ * du chiffre d'affaires, et le compter faisait passer la courbe « payé »
+ * au-dessus de la courbe « facturé ». Fonction pure, donc testable seule.
+ */
+export function buildMonthlyCA(
+  factures: ReadonlyArray<FactureLigne & { date_emission?: string | null }>,
+  paiements: ReadonlyArray<PaiementLigne & { date_paiement: string }>,
+  now: Date,
+): MonthlyCA[] {
+  const months: MonthlyCA[] = [];
+
+  for (let i = 11; i >= 0; i--) {
+    const monthStart = startOfMonth(subMonths(now, i));
+    const mois = format(monthStart, "yyyy-MM");
+    const moisLabel = format(monthStart, "MMM yy", { locale: fr });
+
+    const facturesDuMois = factures.filter(
+      (f) => f.date_emission && format(parseISO(f.date_emission), "yyyy-MM") === mois,
+    );
+    const paiementsDuMois = paiements.filter(
+      (p) => format(parseISO(p.date_paiement), "yyyy-MM") === mois,
+    );
+
+    months.push({
+      mois,
+      moisLabel,
+      // CA émis ce mois (basé sur date_emission)
+      ca: sommeFactures(facturesDuMois),
+      // Encaissé ce mois : versements du mois rattachés aux factures comptées,
+      // quel que soit le mois d'émission de la facture réglée.
+      paye: sommePaiementsFactures(factures, paiementsDuMois),
+    });
+  }
+
+  return months;
+}
+
 // CA mensuel sur les 12 derniers mois
 export function useMonthlyCA() {
   return useQuery({
     queryKey: ["dashboard", "monthly-ca"],
     queryFn: async () => {
-      const now = new Date();
-      const months: MonthlyCA[] = [];
-
       // Récupérer les factures avec leur date d'émission
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select("id, montant_total, date_emission, statut")
-        .not("statut", "eq", "annulee");
+      const { data: factures, error } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("id, montant_total, date_emission, statut")
+          // Une facture en corbeille ne doit plus peser dans ce total.
+          .is("deleted_at", null),
+      );
 
       if (error) throw error;
 
-      // Récupérer les paiements avec leur date
+      // Récupérer les paiements avec leur date et leur facture de rattachement
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
-        .select("montant, date_paiement, facture_id");
+        .select("montant, date_paiement, facture_id")
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 
-      // Créer un map des paiements par facture
-      const paiementsByFacture = (paiements || []).reduce((acc, p) => {
-        if (!acc[p.facture_id]) acc[p.facture_id] = [];
-        acc[p.facture_id].push(p);
-        return acc;
-      }, {} as Record<string, typeof paiements>);
-
-      // Générer les 12 derniers mois
-      for (let i = 11; i >= 0; i--) {
-        const monthStart = startOfMonth(subMonths(now, i));
-        const mois = format(monthStart, "yyyy-MM");
-        const moisLabel = format(monthStart, "MMM yy", { locale: fr });
-
-        // CA émis ce mois (basé sur date_emission)
-        const caEmis = (factures || [])
-          .filter((f) => f.date_emission && format(parseISO(f.date_emission), "yyyy-MM") === mois)
-          .reduce((acc, f) => acc + Number(f.montant_total), 0);
-
-        // Paiements reçus ce mois
-        const payeThisMonth = (paiements || [])
-          .filter((p) => format(parseISO(p.date_paiement), "yyyy-MM") === mois)
-          .reduce((acc, p) => acc + Number(p.montant), 0);
-
-        months.push({
-          mois,
-          moisLabel,
-          ca: caEmis,
-          paye: payeThisMonth,
-        });
-      }
-
-      return months;
+      return buildMonthlyCA(factures || [], paiements || [], new Date());
     },
   });
+}
+
+/**
+ * Une relation imbriquée PostgREST arrive tantôt en objet, tantôt en tableau
+ * selon la cardinalité inférée : on tolère les deux plutôt que de caster.
+ */
+type Relation<T> = T | T[] | null | undefined;
+
+const premier = <T,>(r: Relation<T>): T | undefined =>
+  (Array.isArray(r) ? r[0] : r) ?? undefined;
+
+type FactureFormation = FactureLigne & {
+  session_inscription?: Relation<{ sessions?: Relation<{ formation_type?: string | null }> }>;
+};
+
+/**
+ * CA par type de formation. Le total de chaque groupe passe par `sommeFactures`,
+ * qui applique le prédicat partagé : un brouillon ne gonfle plus le CA d'une
+ * formation. Fonction pure, donc testable seule.
+ */
+export function caParFormation(
+  factures: ReadonlyArray<FactureFormation>,
+): Record<string, number> {
+  const groupes = new Map<string, FactureFormation[]>();
+
+  for (const f of factures) {
+    const formation = premier(premier(f.session_inscription)?.sessions)?.formation_type || "Autre";
+    const liste = groupes.get(formation);
+    if (liste) liste.push(f);
+    else groupes.set(formation, [f]);
+  }
+
+  const parFormation: Record<string, number> = {};
+  for (const [formation, liste] of groupes) parFormation[formation] = sommeFactures(liste);
+  return parFormation;
 }
 
 // Répartition par type de formation
@@ -102,17 +166,17 @@ export function useFormationStats() {
       if (error) throw error;
 
       // Récupérer les factures pour le CA
-      const { data: factures, error: facturesError } = await supabase
-        .from("factures")
-        .select(`
+      const { data: factures, error: facturesError } = await filtreFacturesComptees(
+        supabase.from("factures").select(`
           montant_total,
+          statut,
           session_inscription:session_inscriptions (
             sessions (
               formation_type
             )
           )
-        `)
-        .not("statut", "eq", "annulee");
+        `).is("deleted_at", null),
+      );
 
       if (facturesError) throw facturesError;
 
@@ -128,12 +192,11 @@ export function useFormationStats() {
       });
 
       // Ajouter le CA par formation
-      (factures || []).forEach((f: any) => {
-        const formation = f.session_inscription?.sessions?.formation_type || "Autre";
+      Object.entries(caParFormation(factures || [])).forEach(([formation, ca]) => {
         if (!stats[formation]) {
           stats[formation] = { formation, count: 0, ca: 0 };
         }
-        stats[formation].ca += Number(f.montant_total);
+        stats[formation].ca += ca;
       });
 
       return Object.values(stats).sort((a, b) => b.count - a.count);
@@ -178,39 +241,63 @@ export function useInscriptionTrend() {
   });
 }
 
+/**
+ * Synthèse financière globale : facturé, encaissé, restant dû.
+ *
+ * `totalPaye` ne retient que les versements rattachés aux factures comptées —
+ * sommer TOUS les paiements faisait dépasser l'encaissé au-dessus du facturé et
+ * gonflait mécaniquement le taux de recouvrement. Le restant dû est calculé
+ * FACTURE PAR FACTURE : un trop-perçu sur l'une ne doit pas masquer l'impayé
+ * d'une autre.
+ *
+ * `enAttente` garde sa liste blanche (émise/partielle) : elle ne totalise pas
+ * « l'argent dû » mais sélectionne un ÉTAT — une facture impayée ou payée n'est
+ * pas « en attente ». Fonction pure, donc testable seule.
+ */
+export function resumeFinancier(
+  factures: ReadonlyArray<FactureLigne>,
+  paiements: ReadonlyArray<PaiementLigne>,
+) {
+  const totalFacture = sommeFactures(factures);
+  const totalPaye = sommePaiementsFactures(factures, paiements);
+  const totalImpaye = resteAEncaisserParFacture(factures, paiements);
+
+  const enAttente = sommeFactures(
+    factures.filter((f) => f.statut === "emise" || f.statut === "partiel"),
+  );
+
+  return {
+    totalFacture,
+    totalPaye,
+    totalImpaye,
+    enAttente,
+    tauxRecouvrement: totalFacture > 0 ? Math.round((totalPaye / totalFacture) * 100) : 0,
+  };
+}
+
 // Stats financières globales
 export function useFinancialSummary() {
   return useQuery({
     queryKey: ["dashboard", "financial-summary"],
     queryFn: async () => {
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select("montant_total, statut")
-        .not("statut", "eq", "annulee");
+      const { data: factures, error } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("id, montant_total, statut")
+          // Une facture en corbeille ne doit plus peser dans ce total.
+          .is("deleted_at", null),
+      );
 
       if (error) throw error;
 
       const { data: paiements, error: paiementsError } = await supabase
         .from("paiements")
-        .select("montant");
+        .select("montant, facture_id")
+        .is("deleted_at", null);
 
       if (paiementsError) throw paiementsError;
 
-      const totalFacture = (factures || []).reduce((acc, f) => acc + Number(f.montant_total), 0);
-      const totalPaye = (paiements || []).reduce((acc, p) => acc + Number(p.montant), 0);
-      const totalImpaye = calculerResteAEncaisser(totalFacture, totalPaye);
-
-      const enAttente = (factures || [])
-        .filter((f) => f.statut === "emise" || f.statut === "partiel")
-        .reduce((acc, f) => acc + Number(f.montant_total), 0);
-
-      return {
-        totalFacture,
-        totalPaye,
-        totalImpaye,
-        enAttente,
-        tauxRecouvrement: totalFacture > 0 ? Math.round((totalPaye / totalFacture) * 100) : 0,
-      };
+      return resumeFinancier(factures || [], paiements || []);
     },
   });
 }
@@ -258,38 +345,53 @@ export interface CAParSource {
   count: number;
 }
 
+type FactureSource = FactureLigne & { contact?: Relation<{ source?: string | null }> };
+
+/**
+ * CA par source de lead. `ca` et `count` reposent sur la MÊME assiette : compter
+ * une facture dont le montant est écarté afficherait « 3 factures / 0 € ».
+ * Fonction pure, donc testable seule.
+ */
+export function caParSource(factures: ReadonlyArray<FactureSource>): CAParSource[] {
+  const groupes = new Map<string, FactureSource[]>();
+
+  for (const f of factures) {
+    const source = premier(f.contact)?.source || "Non défini";
+    const liste = groupes.get(source);
+    if (liste) liste.push(f);
+    else groupes.set(source, [f]);
+  }
+
+  return [...groupes.entries()]
+    .map(([source, liste]) => ({
+      source,
+      ca: sommeFactures(liste),
+      count: liste.filter(estFactureComptee).length,
+    }))
+    .sort((a, b) => b.ca - a.ca);
+}
+
 // CA par source de lead
 export function useCAParSource() {
   return useQuery({
     queryKey: ["dashboard", "ca-par-source"],
     queryFn: async () => {
       // Récupérer les factures avec les contacts et leur source
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select(`
+      const { data: factures, error } = await filtreFacturesComptees(
+        supabase.from("factures").select(`
           montant_total,
           statut,
           contact:contacts (
             source
           )
         `)
-        .not("statut", "eq", "annulee");
+          // Une facture en corbeille ne doit plus peser dans ce total.
+          .is("deleted_at", null),
+      );
 
       if (error) throw error;
 
-      // Grouper par source
-      const sourceStats: Record<string, CAParSource> = {};
-
-      (factures || []).forEach((f: any) => {
-        const source = f.contact?.source || "Non défini";
-        if (!sourceStats[source]) {
-          sourceStats[source] = { source, ca: 0, count: 0 };
-        }
-        sourceStats[source].ca += Number(f.montant_total);
-        sourceStats[source].count += 1;
-      });
-
-      return Object.values(sourceStats).sort((a, b) => b.ca - a.ca);
+      return caParSource(factures || []);
     },
   });
 }

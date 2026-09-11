@@ -2,6 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDashboardPeriod } from "./useDashboardPeriod";
 import { format, parseISO } from "date-fns";
+import {
+  filtreFacturesComptees,
+  sommeFactures,
+  sommePaiementsFacturesPeriode,
+} from "@/lib/montants";
 
 export interface DynamicContactStats {
   total: number;
@@ -120,7 +125,7 @@ export function useDynamicSessionStats() {
       // Get inscriptions for these sessions
       const sessionIds = sessions?.map(s => s.id) || [];
       
-      let inscriptionCounts: Record<string, number> = {};
+      const inscriptionCounts: Record<string, number> = {};
       if (sessionIds.length > 0) {
         const { data: inscriptions, error: inscError } = await supabase
           .from("session_inscriptions")
@@ -159,6 +164,69 @@ export interface DynamicFinanceStats {
   payeChange: number;
 }
 
+/** Lignes minimales attendues des requêtes ci-dessous (le reste est ignoré). */
+export interface FactureLigne {
+  id?: string | null;
+  montant_total?: number | string | null;
+  statut?: string | null;
+  date_emission?: string | null;
+}
+
+export interface PaiementLigne {
+  montant?: number | string | null;
+  facture_id?: string | null;
+  date_paiement: string;
+}
+
+export interface FinancesDynamiques {
+  caThisPeriod: number;
+  caPreviousPeriod: number;
+  payeThisPeriod: number;
+  payePreviousPeriod: number;
+}
+
+/**
+ * CA émis et encaissé de la période courante ET de la précédente.
+ *
+ * Les quatre montants sortent d'une seule fonction à dessein : l'écran affiche
+ * un pourcentage d'évolution entre les deux bornes, et ne corriger que la
+ * période courante ferait apparaître une chute du CA là où seuls des brouillons
+ * ont cessé d'être comptés.
+ *
+ * Un BROUILLON ne compte plus dans le CA (il n'est pas encore dû), et le
+ * « payé » ne retient que les versements RATTACHÉS à une facture comptée :
+ * sommer tous les versements de la période faisait passer le payé au-dessus du
+ * facturé affiché juste à côté. Fonction pure, donc testable seule.
+ */
+export function calculerFinancesDynamiques(
+  factures: ReadonlyArray<FactureLigne>,
+  paiements: ReadonlyArray<PaiementLigne>,
+  currentStart: Date,
+  previousStart: Date,
+): FinancesDynamiques {
+  const emisesEntre = (debut: Date, fin?: Date) =>
+    factures.filter((f) => {
+      if (!f.date_emission) return false;
+      const d = parseISO(f.date_emission);
+      return d >= debut && (!fin || d < fin);
+    });
+
+  // Rattachement sur TOUTES les factures comptées : un versement de la période
+  // peut solder une facture émise avant elle.
+  const encaisseEntre = (debut: Date, fin?: Date) =>
+    sommePaiementsFacturesPeriode(factures, paiements, (p) => {
+      const d = parseISO(p.date_paiement);
+      return d >= debut && (!fin || d < fin);
+    });
+
+  return {
+    caThisPeriod: sommeFactures(emisesEntre(currentStart)),
+    caPreviousPeriod: sommeFactures(emisesEntre(previousStart, currentStart)),
+    payeThisPeriod: encaisseEntre(currentStart),
+    payePreviousPeriod: encaisseEntre(previousStart, currentStart),
+  };
+}
+
 export function useDynamicFinanceStats() {
   const { getStartDate, getPreviousPeriodStart, selectedPeriod } = useDashboardPeriod();
   
@@ -169,37 +237,30 @@ export function useDynamicFinanceStats() {
       const previousStart = getPreviousPeriodStart();
       
       // Get invoices
-      const { data: factures, error } = await supabase
-        .from("factures")
-        .select("montant_total, date_emission, statut")
-        .not("statut", "eq", "annulee");
+      // `deleted_at` : une facture en corbeille ne doit plus peser dans le CA
+      // de la période — la suppression est douce dans tout le CRM.
+      const { data: factures, error } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("id, montant_total, date_emission, statut")
+          .is("deleted_at", null),
+      );
 
       if (error) throw error;
 
       // Get payments
+      // `facture_id` est INDISPENSABLE : c'est la clé de rattachement des
+      // versements aux factures comptées. Sans elle, le payé retomberait à 0.
       const { data: paiements, error: pError } = await supabase
         .from("paiements")
-        .select("montant, date_paiement");
+        .select("montant, date_paiement, facture_id")
+        .is("deleted_at", null);
 
       if (pError) throw pError;
 
-      // Calculate CA for periods
-      const caThisPeriod = (factures || [])
-        .filter(f => f.date_emission && parseISO(f.date_emission) >= currentStart)
-        .reduce((acc, f) => acc + Number(f.montant_total), 0);
-
-      const caPreviousPeriod = (factures || [])
-        .filter(f => f.date_emission && parseISO(f.date_emission) >= previousStart && parseISO(f.date_emission) < currentStart)
-        .reduce((acc, f) => acc + Number(f.montant_total), 0);
-
-      // Calculate payments for periods
-      const payeThisPeriod = (paiements || [])
-        .filter(p => parseISO(p.date_paiement) >= currentStart)
-        .reduce((acc, p) => acc + Number(p.montant), 0);
-
-      const payePreviousPeriod = (paiements || [])
-        .filter(p => parseISO(p.date_paiement) >= previousStart && parseISO(p.date_paiement) < currentStart)
-        .reduce((acc, p) => acc + Number(p.montant), 0);
+      // CA émis et encaissé des deux périodes, sur la même assiette de factures.
+      const { caThisPeriod, caPreviousPeriod, payeThisPeriod, payePreviousPeriod } =
+        calculerFinancesDynamiques(factures || [], paiements || [], currentStart, previousStart);
 
       const calcChange = (current: number, previous: number) => {
         if (previous === 0) return current > 0 ? 100 : 0;

@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Euro, GraduationCap, BarChart3, AlertTriangle, TrendingDown } from "lucide-react";
+import { filtreFacturesComptees } from "@/lib/montants";
+import { calculerFinanceMois } from "./strategic-finance";
 
 interface StrategicPillarsProps {
   onNavigate: (section: string) => void;
@@ -20,8 +22,15 @@ function useStrategicData() {
       const todayStr = now.toISOString().split("T")[0];
 
       const [facturesRes, paiementsRes, sessionsRes, inscriptionsRes, contactsRes, chargesRes] = await Promise.all([
-        supabase.from("factures").select("montant_total, statut, date_emission").not("statut", "eq", "annulee"),
-        supabase.from("paiements").select("montant, date_paiement").is("deleted_at", null),
+        filtreFacturesComptees(
+          supabase
+            .from("factures")
+            .select("id, montant_total, statut, date_emission")
+            // Une facture mise à la corbeille ne doit plus peser dans le
+            // « CA confirmé » du pilier Finance.
+            .is("deleted_at", null),
+        ),
+        supabase.from("paiements").select("montant, date_paiement, facture_id").is("deleted_at", null),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut, formation_type").eq("archived", false).gte("date_fin", todayStr),
         supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
         supabase.from("contacts").select("id, statut, source").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
@@ -36,13 +45,12 @@ function useStrategicData() {
       const charges = chargesRes.data || [];
 
       // FINANCE
-      const caConfirme = factures
-        .filter(f => f.date_emission && parseISO(f.date_emission) >= monthStart && parseISO(f.date_emission) <= monthEnd)
-        .reduce((acc, f) => acc + Number(f.montant_total), 0);
-
-      const totalPaye = paiements
-        .filter(p => parseISO(p.date_paiement) >= monthStart)
-        .reduce((acc, p) => acc + Number(p.montant), 0);
+      const { caConfirme, totalPaye } = calculerFinanceMois(
+        factures,
+        paiements,
+        monthStart,
+        monthEnd,
+      );
 
       const inscCounts: Record<string, number> = {};
       inscriptions.forEach(i => { inscCounts[i.session_id] = (inscCounts[i.session_id] || 0) + 1; });

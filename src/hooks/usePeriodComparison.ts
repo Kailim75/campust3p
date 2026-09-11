@@ -1,19 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  startOfMonth, 
-  endOfMonth, 
-  startOfQuarter, 
-  endOfQuarter, 
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfQuarter,
+  endOfQuarter,
   startOfYear,
   endOfYear,
-  subMonths, 
+  subMonths,
   subQuarters,
   subYears,
-  format,
-  parseISO 
+  format
 } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  filtreFacturesComptees,
+  sommeFactures,
+  sommePaiementsFacturesPeriode,
+} from "@/lib/montants";
 
 export type ComparisonPeriod = "month" | "quarter" | "year";
 
@@ -139,6 +143,73 @@ function calculateChange(current: number, previous: number) {
   };
 }
 
+/** Lignes minimales attendues des requêtes ci-dessous (le reste est ignoré). */
+export interface FactureLigne {
+  id?: string | null;
+  montant_total?: number | string | null;
+  statut?: string | null;
+  date_emission?: string | null;
+}
+
+export interface PaiementLigne {
+  montant?: number | string | null;
+  facture_id?: string | null;
+  date_paiement: string;
+}
+
+export interface BornesPeriodes {
+  currentStart: string;
+  currentEnd: string;
+  previousStart: string;
+  previousEnd: string;
+}
+
+export interface FinancesComparees {
+  caCurrent: number;
+  caPrevious: number;
+  encaisseCurrent: number;
+  encaissePrevious: number;
+}
+
+/**
+ * CA émis et argent encaissé sur les DEUX bornes comparées.
+ *
+ * Les quatre montants sortent d'une seule fonction à dessein : cet écran met
+ * deux périodes en regard, et ne corriger qu'une des deux bornes fausserait la
+ * comparaison plus sûrement que le défaut d'origine — une période nettoyée de
+ * ses brouillons comparée à une période qui les compte encore afficherait une
+ * chute du CA qui n'a jamais eu lieu.
+ *
+ * Un BROUILLON ne compte plus dans le CA (il n'est pas encore dû), et
+ * l'encaissé ne retient que les versements RATTACHÉS à une facture comptée :
+ * sommer tous les versements de la période y faisait entrer l'argent reçu sur
+ * un brouillon ou sur une annulée. Fonction pure, donc testable seule.
+ */
+export function comparerFinancesPeriodes(
+  factures: ReadonlyArray<FactureLigne>,
+  paiements: ReadonlyArray<PaiementLigne>,
+  bornes: BornesPeriodes,
+): FinancesComparees {
+  const emisesEntre = (debut: string, fin: string) =>
+    factures.filter((f) => f.date_emission && f.date_emission >= debut && f.date_emission <= fin);
+
+  // Rattachement sur TOUTES les factures comptées : un versement de la période
+  // peut solder une facture émise avant elle.
+  const encaisseEntre = (debut: string, fin: string) =>
+    sommePaiementsFacturesPeriode(
+      factures,
+      paiements,
+      (p) => p.date_paiement >= debut && p.date_paiement <= fin,
+    );
+
+  return {
+    caCurrent: sommeFactures(emisesEntre(bornes.currentStart, bornes.currentEnd)),
+    caPrevious: sommeFactures(emisesEntre(bornes.previousStart, bornes.previousEnd)),
+    encaisseCurrent: encaisseEntre(bornes.currentStart, bornes.currentEnd),
+    encaissePrevious: encaisseEntre(bornes.previousStart, bornes.previousEnd),
+  };
+}
+
 export function usePeriodComparison(periodType: ComparisonPeriod) {
   return useQuery({
     queryKey: ["period-comparison", periodType],
@@ -151,15 +222,22 @@ export function usePeriodComparison(periodType: ComparisonPeriod) {
       const previousEndStr = dates.previousEnd.toISOString().split("T")[0];
 
       // Fetch all invoices
-      const { data: factures } = await supabase
-        .from("factures")
-        .select("montant_total, date_emission, statut")
-        .not("statut", "eq", "annulee");
+      // `deleted_at` : sans ce filtre, une facture mise à la corbeille reste
+      // comptée dans le CA comparé — la suppression est douce dans tout le CRM.
+      const { data: factures } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("id, montant_total, date_emission, statut")
+          .is("deleted_at", null),
+      );
 
       // Fetch all payments
+      // `facture_id` est INDISPENSABLE : c'est la clé de rattachement des
+      // versements aux factures comptées. Sans elle, l'encaissé retomberait à 0.
       const { data: paiements } = await supabase
         .from("paiements")
-        .select("montant, date_paiement");
+        .select("montant, date_paiement, facture_id")
+        .is("deleted_at", null);
 
       // Fetch all contacts
       const { data: contacts } = await supabase
@@ -185,23 +263,14 @@ export function usePeriodComparison(periodType: ComparisonPeriod) {
         .select("id, date_examen, resultat")
         .eq("statut", "passe");
 
-      // Calculate CA
-      const caCurrent = (factures || [])
-        .filter(f => f.date_emission && f.date_emission >= currentStartStr && f.date_emission <= currentEndStr)
-        .reduce((acc, f) => acc + Number(f.montant_total || 0), 0);
-
-      const caPrevious = (factures || [])
-        .filter(f => f.date_emission && f.date_emission >= previousStartStr && f.date_emission <= previousEndStr)
-        .reduce((acc, f) => acc + Number(f.montant_total || 0), 0);
-
-      // Calculate encaisse
-      const encaisseCurrent = (paiements || [])
-        .filter(p => p.date_paiement >= currentStartStr && p.date_paiement <= currentEndStr)
-        .reduce((acc, p) => acc + Number(p.montant || 0), 0);
-
-      const encaissePrevious = (paiements || [])
-        .filter(p => p.date_paiement >= previousStartStr && p.date_paiement <= previousEndStr)
-        .reduce((acc, p) => acc + Number(p.montant || 0), 0);
+      // CA émis et encaissé des deux périodes, sur la même assiette de factures.
+      const { caCurrent, caPrevious, encaisseCurrent, encaissePrevious } =
+        comparerFinancesPeriodes(factures || [], paiements || [], {
+          currentStart: currentStartStr,
+          currentEnd: currentEndStr,
+          previousStart: previousStartStr,
+          previousEnd: previousEndStr,
+        });
 
       // Calculate new contacts
       const nouveauxContactsCurrent = (contacts || [])

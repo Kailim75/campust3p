@@ -1,17 +1,60 @@
+/**
+ * Totaux financiers par session.
+ *
+ * Règle unique, déléguée à `src/lib/montants.ts` (source de vérité) : une
+ * facture en BROUILLON ou ANNULÉE ne compte dans aucun total, et les versements
+ * qui y sont rattachés non plus. Avant le 11/09/2026, seul `nb_non_factures`
+ * appliquait cette règle ; la boucle des totaux itérait sur TOUTES les
+ * factures, si bien qu'un devis resté en brouillon gonflait le chiffre
+ * d'affaires affiché sur la page Sessions.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  calculerResteAEncaisser,
+  facturesEncaissables,
+  sommeFactures,
+  sommePaiementsFactures,
+} from "@/lib/montants";
+
+interface PaiementRow {
+  montant: number | string | null;
+}
+
+interface FactureRow {
+  id: string;
+  montant_total: number | string | null;
+  statut: string | null;
+  date_echeance: string | null;
+  paiements: PaiementRow[] | null;
+}
+
+interface InscriptionRow {
+  session_id: string;
+  factures: FactureRow[] | null;
+}
 
 export interface SessionFinancialData {
   session_id: string;
-  ca_securise: number;       // sum of validated payments
-  ca_potentiel: number;      // sum of all invoice totals
-  nb_payes: number;          // inscriptions fully paid
-  nb_partiel: number;        // inscriptions partially paid
-  nb_en_retard: number;      // invoices past due with amount remaining
+  /** Encaissé sur les factures comptées (identique à `total_paye`). */
+  ca_securise: number;
+  /** Facturé sur les factures comptées (identique à `total_facture`). */
+  ca_potentiel: number;
+  /**
+   * ⚠️ Compte des FACTURES au statut « payee », pas des inscriptions : un
+   * inscrit portant deux factures soldées en vaut deux ici. Écart de sens
+   * connu, laissé tel quel — le corriger changerait la valeur affichée sur la
+   * page Sessions, ce n'est pas un correctif de statut.
+   */
+  nb_payes: number;
+  /** ⚠️ Compte des FACTURES au statut « partiel » — même écart que `nb_payes`. */
+  nb_partiel: number;
+  nb_en_retard: number;      // factures comptées, échues, avec un restant dû
   total_facture: number;     // total invoiced
   total_paye: number;        // total paid
   nb_inscriptions: number;   // inscriptions de la session
-  nb_non_factures: number;   // inscriptions sans aucune facture active
+  nb_non_factures: number;   // inscriptions sans aucune facture comptée
 }
 
 export function useSessionFinancials() {
@@ -32,14 +75,20 @@ export function useSessionFinancials() {
               montant
             )
           )
-        `);
+        `)
+        // Corbeille : le filtre doit porter sur la relation IMBRIQUÉE, sinon
+        // une facture supprimée continue de peser dans le CA de la session.
+        // Sur PostgREST, un `.is("deleted_at", null)` nu filtrerait les
+        // INSCRIPTIONS, pas les factures — d'où le préfixe de relation.
+        .is("factures.deleted_at", null)
+        .is("deleted_at", null);
 
       if (error) throw error;
 
       const map: Record<string, SessionFinancialData> = {};
       const today = new Date().toISOString().split("T")[0];
 
-      for (const inscription of rawData || []) {
+      for (const inscription of (rawData || []) as unknown as InscriptionRow[]) {
         const sid = inscription.session_id;
         if (!map[sid]) {
           map[sid] = {
@@ -57,35 +106,41 @@ export function useSessionFinancials() {
         }
 
         const entry = map[sid];
-        const factures = (inscription as any).factures || [];
+        const factures = inscription.factures || [];
+
+        // Une seule règle pour tout le hook : ni les brouillons ni les annulées
+        // (STATUTS_FACTURE_EXCLUS). Un brouillon n'est pas encore dû, une
+        // annulée ne l'est plus.
+        const facturesComptees = facturesEncaissables(factures);
+        // Versements rattachés à LEUR facture : un versement porté sur un
+        // brouillon ou une annulée est écarté comme la facture elle-même,
+        // sinon le payé peut dépasser le facturé.
+        const paiementsLies = facturesComptees.flatMap((f) =>
+          (f.paiements || []).map((p) => ({ facture_id: f.id, montant: p.montant })),
+        );
 
         // Alertes de la liste (refonte du 23/07/2026) : un inscrit sans
         // facture active doit se voir depuis la page Sessions.
         entry.nb_inscriptions += 1;
-        const facturesActives = (factures as { statut?: string }[]).filter(
-          (f) => f.statut !== "annulee" && f.statut !== "brouillon",
-        );
-        if (facturesActives.length === 0) entry.nb_non_factures += 1;
+        if (facturesComptees.length === 0) entry.nb_non_factures += 1;
 
-        for (const f of factures) {
-          const montant = Number(f.montant_total) || 0;
-          const paiements = f.paiements || [];
-          const totalPaye = paiements.reduce((s: number, p: any) => s + (Number(p.montant) || 0), 0);
+        const facture = sommeFactures(facturesComptees);
+        const paye = sommePaiementsFactures(facturesComptees, paiementsLies);
+        entry.total_facture += facture;
+        entry.ca_potentiel += facture;
+        entry.total_paye += paye;
+        entry.ca_securise += paye;
 
-          entry.total_facture += montant;
-          entry.total_paye += totalPaye;
-          entry.ca_potentiel += montant;
+        for (const f of facturesComptees) {
+          if (f.statut === "payee") entry.nb_payes += 1;
+          else if (f.statut === "partiel") entry.nb_partiel += 1;
 
-          if (f.statut === "payee") {
-            entry.ca_securise += totalPaye;
-            entry.nb_payes += 1;
-          } else if (f.statut === "partiel") {
-            entry.ca_securise += totalPaye;
-            entry.nb_partiel += 1;
-          }
-
-          // En retard: not fully paid and past due date
-          if (f.date_echeance && f.date_echeance < today && totalPaye < montant && f.statut !== "annulee") {
+          // En retard : échéance dépassée et restant dû > 0.
+          const restant = calculerResteAEncaisser(
+            f.montant_total,
+            sommePaiementsFactures([f], paiementsLies),
+          );
+          if (f.date_echeance && f.date_echeance < today && restant > 0) {
             entry.nb_en_retard += 1;
           }
         }

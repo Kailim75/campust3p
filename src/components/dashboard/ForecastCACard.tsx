@@ -5,6 +5,7 @@ import { Euro, TrendingUp, Calendar, ChevronRight } from "lucide-react";
 import { startOfMonth, endOfMonth, addMonths, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { filtreFacturesComptees, sommeFactures } from "@/lib/montants";
 
 interface ForecastCACardProps {
   onClick?: () => void;
@@ -20,13 +21,19 @@ export function ForecastCACard({ onClick }: ForecastCACardProps) {
       const nextMonthStart = startOfMonth(addMonths(now, 1));
       const nextMonthEnd = endOfMonth(addMonths(now, 1));
 
-      // Get invoices for current month (emises + payees)
-      const { data: currentMonthInvoices } = await supabase
-        .from("factures")
-        .select("montant_total, statut")
-        .gte("date_emission", currentMonthStart.toISOString())
-        .lte("date_emission", currentMonthEnd.toISOString())
-        .in("statut", ["emise", "payee", "partiel"]);
+      // Assiette de `src/lib/montants.ts` : ni brouillon ni annulée.
+      // La liste blanche d'avant (emise, payee, partiel) OMETTAIT `impayee` :
+      // une facture basculée en impayée DISPARAISSAIT du « CA du mois ».
+      // C'est le piège de la liste blanche — un statut ajouté ou oublié sort
+      // des totaux en silence ; la convention du projet est l'EXCLUSION.
+      const { data: currentMonthInvoices } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("montant_total, statut")
+          .gte("date_emission", currentMonthStart.toISOString())
+          .lte("date_emission", currentMonthEnd.toISOString())
+          .is("deleted_at", null),
+      );
 
       // Get upcoming sessions for next month with their prices
       const { data: nextMonthSessions } = await supabase
@@ -37,10 +44,9 @@ export function ForecastCACard({ onClick }: ForecastCACardProps) {
         .in("statut", ["a_venir", "complet"]);
 
       // Calculate current month CA
-      const currentMonthCA = currentMonthInvoices?.reduce(
-        (sum, inv) => sum + Number(inv.montant_total || 0), 
-        0
-      ) || 0;
+      // `sommeFactures` revérifie le prédicat côté JS : le filtre SQL n'est pas
+      // seul à porter la règle, et le calcul reste juste si la requête change.
+      const currentMonthCA = sommeFactures(currentMonthInvoices || []);
 
       // Calculate forecast based on enrolled students x session price
       const forecastCA = nextMonthSessions?.reduce((sum, session) => {
