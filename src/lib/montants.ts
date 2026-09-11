@@ -1,5 +1,5 @@
 /**
- * Calculs monétaires partagés — la référence, PAS ENCORE la seule source.
+ * Calculs monétaires partagés — SOURCE UNIQUE des statuts de facture.
  *
  * Audit du 13/08/2026 (archi P1) : « reste à encaisser » était recalculé
  * inline dans dix écrans avec deux formules divergentes — clampé à 0 ici,
@@ -7,13 +7,41 @@
  * « −250 € restant » sur la fiche apprenant et « 0 € » dans la synthèse
  * de session. Ces helpers figent la règle : un reste dû n'est jamais négatif.
  *
- * ⚠️ Centralisation INCOMPLÈTE au 10/09/2026 : cinq écrans filtrent encore
- * les statuts à leur main et n'appellent pas ces helpers — `useDashboardStats`,
- * `StrategicPillars`, `DashboardKPIRow`, `useSessionFinancials` et
- * `useAujourdhuiData`. Effet concret : « Aujourd'hui » peut proposer de
- * relancer le paiement d'un apprenant dont la fiche affiche « Soldé ».
- * Chantier ouvert, suivi dans `docs/audit/ROADMAP.md` (point M1) — tant qu'il
- * n'est pas fait, ne pas décrire cette règle comme appliquée partout.
+ * Lot du 11/09/2026 (point M1) : les écrans qui calculaient un total d'argent
+ * en énumérant les statuts à leur main passent par ces helpers —
+ * `filtreFacturesComptees` côté SQL, `estFactureComptee` / `sommeFactures` /
+ * `sommePaiementsFactures` côté JS. Effet visible : « Aujourd'hui » ne propose
+ * plus de relancer un apprenant dont la fiche affiche « Soldé ».
+ *
+ * ⚠️ TROIS AVERTISSEMENTS, et AUCUN INVENTAIRE.
+ *
+ * 1. UNE LISTE BLANCHE N'EST PAS FORCÉMENT UN OUBLI. Beaucoup de
+ *    `.in("statut", […])` du projet désignent un ÉTAT métier — « facture due,
+ *    à relancer », « en retard », « en attente » — et NON l'assiette d'un
+ *    total. Les aligner sur le prédicat partagé ferait entrer les factures
+ *    `payee` : elles deviendraient des alertes de paiement, et le directeur
+ *    recevrait des relances sur des apprenants soldés. Avant de convertir une
+ *    liste blanche, demande-toi si elle nourrit une SOMME ou une SÉLECTION.
+ *    Seules les sommes relèvent de ces helpers.
+ *
+ * 2. LE TAUX DE RECOUVREMENT PEUT DÉPASSER 100 %, et c'est voulu.
+ *    `sommePaiementsFactures` additionne l'encaissé réel de chaque facture
+ *    comptée SANS le borner à son montant, alors que `sommeFactures` borne le
+ *    dénominateur : 600 € facturés encaissés 650 € donnent 108 %. « Encaissé »
+ *    doit rester l'argent reçu ; le trop-perçu se lit avec `tropPercu()`.
+ *
+ * 3. NE PAS ÉCRIRE ICI D'INVENTAIRE DE « CE QUI RESTE À FAIRE ». Quatre
+ *    versions successives de cet en-tête en ont contenu un ; les quatre ont
+ *    été prises en défaut par la relecture — modules accusés à tort, modules
+ *    oubliés, comptes faux, garantie que le code ne tenait pas. Un dépôt de
+ *    cette taille compte des dizaines de chaînes de requêtes touchant à
+ *    l'argent : un recensement rédigé à la main est faux le lendemain, et un
+ *    en-tête faux est plus nuisible qu'un en-tête muet — il envoie le suivant
+ *    « corriger » du code correct. L'état réel se constate en ratissant le
+ *    dépôt, en distinguant la TABLE visée (plusieurs `.neq("statut","annulee")`
+ *    portent sur `sessions` ou `cartes_professionnelles`) et la nature de la
+ *    requête (lecture ou écriture). Le suivi du chantier vit dans
+ *    `docs/audit/ROADMAP.md`, où il peut être daté et corrigé.
  */
 
 import type { Database } from "@/integrations/supabase/types";
@@ -28,12 +56,50 @@ type FactureStatut = Database["public"]["Enums"]["facture_statut"];
  * statuts, la fiche apprenant non — le même apprenant affichait deux « reste à
  * encaisser » différents selon l'écran ouvert. Typée sur l'enum Postgres : si
  * un statut change côté base, la compilation casse ici plutôt qu'en silence à
- * l'écran. (Sur la couverture réelle de la règle, voir l'avertissement en tête
- * de fichier : cinq écrans gardent encore leur propre convention.)
+ * l'écran.
+ *
+ * Portée : cette liste dit ce qui est EXCLU d'un total. Elle ne dit pas que
+ * tout le dépôt s'y conforme — certains écrans gardent volontairement leur
+ * propre convention (relances, retards, vue « compte en banque »). Voir les
+ * trois avertissements en tête de fichier avant d'en aligner un.
  */
 export const STATUTS_FACTURE_EXCLUS: readonly FactureStatut[] = ["brouillon", "annulee"];
 
 const EXCLUS = new Set<string>(STATUTS_FACTURE_EXCLUS);
+
+/**
+ * La même liste, au format attendu par un `IN (…)` PostgREST.
+ * Construite DEPUIS `STATUTS_FACTURE_EXCLUS` : la liste des statuts n'est
+ * écrite qu'une fois dans le projet. Recopier « (brouillon,annulee) » à la
+ * main ailleurs casse le test « dérive de STATUTS_FACTURE_EXCLUS ».
+ */
+const FILTRE_IN_EXCLUS = `(${STATUTS_FACTURE_EXCLUS.join(",")})`;
+
+/** Le minimum qu'une requête doit savoir faire pour être filtrée ici. */
+type QueryFiltrable<Q> = {
+  not(colonne: string, operateur: string, valeur: string): Q;
+};
+
+/**
+ * Écarte côté SQL les factures qui ne comptent pas dans les totaux, et
+ * RENVOIE la requête pour permettre le chaînage (`.eq(…)`, `.select(…)`).
+ *
+ * Remplace le `.not("statut","eq","annulee")` recopié dans les écrans, qui
+ * n'excluait QUE les annulées : les brouillons entraient dans le chiffre
+ * d'affaires alors qu'un brouillon n'est pas encore dû.
+ *
+ * Pourquoi un `NOT IN` est EXACT ici : `factures.statut` est une colonne
+ * enum NOT NULL. En SQL, `NOT (statut IN (…))` vaut NULL — donc écarte la
+ * ligne — quand la colonne est NULL ; sur une colonne nullable il faut un
+ * `.or("statut.is.null,statut.not.in.(…)")`. Le rapport quotidien
+ * `send-daily-report` a été cassé par ce piège sur `session_inscriptions.statut`,
+ * qui est du texte libre nullable : des inscrits étaient silencieusement
+ * décomptés à zéro. Sur `factures.statut`, la contrainte NOT NULL rend le
+ * cas impossible ; si elle disparaissait, ce helper serait à revoir.
+ */
+export function filtreFacturesComptees<Q>(query: QueryFiltrable<Q>): Q {
+  return query.not("statut", "in", FILTRE_IN_EXCLUS);
+}
 
 /**
  * Cette facture compte-t-elle dans les totaux ?
@@ -141,6 +207,37 @@ export function sommePaiementsFactures(
     (s, f) => (estFactureComptee(f) && f.id ? s + (paye.get(f.id) ?? 0) : s),
     0,
   );
+}
+
+/**
+ * Total encaissé SUR UNE PÉRIODE, restreint aux factures comptées.
+ *
+ * Défaut réel qu'il empêche : le CA mensuel et les piliers stratégiques
+ * sommaient TOUS les versements du mois (`from("paiements").select("montant")`,
+ * sans même charger `facture_id`). Un acompte encaissé sur un devis resté en
+ * brouillon, ou un versement sur une facture annulée, gonflait donc la barre
+ * « payé » du mois — qui pouvait dépasser le « facturé » affiché juste à côté.
+ *
+ * La période est passée en prédicat plutôt qu'en bornes : les appelants ne
+ * découpent pas le temps de la même façon (clé de mois « yyyy-MM » ici,
+ * `>= début du mois` là), et ce module reste sans dépendance à une
+ * bibliothèque de dates — il est importé par des écrans légers.
+ *
+ * Exception assumée : `useDashboardData.encaissements` ne doit PAS utiliser
+ * ce helper (vue « compte en banque », cf. en-tête du fichier).
+ *
+ * `NoInfer` sur le prédicat : sans lui, un prédicat déclaré à part
+ * (`const enSeptembre = (p: { date_paiement: string }) => …`) sert lui aussi
+ * à deviner `P`, les deux candidats se contredisent et TypeScript retombe sur
+ * la contrainte — l'appelant reçoit alors une erreur incompréhensible sur son
+ * propre prédicat. Le type des paiements vient de la LISTE, et d'elle seule.
+ */
+export function sommePaiementsFacturesPeriode<P extends PaiementLigne>(
+  factures: ReadonlyArray<FactureLigne>,
+  paiements: ReadonlyArray<P>,
+  dansLaPeriode: (paiement: NoInfer<P>) => boolean,
+): number {
+  return sommePaiementsFactures(factures, paiements.filter(dansLaPeriode));
 }
 
 /**

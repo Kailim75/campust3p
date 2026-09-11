@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { filtreFacturesComptees } from "@/lib/montants";
 import { startOfMonth, subMonths, format } from "date-fns";
 
 export interface ExamSuccessStats {
@@ -234,11 +235,15 @@ export function useCAByFormationType() {
   return useQuery({
     queryKey: ["ca-by-formation-type"],
     queryFn: async (): Promise<CAByFormationType[]> => {
-      // Get invoices
-      const { data: factures } = await supabase
-        .from("factures")
-        .select("id, montant_total, contact_id")
-        .in("statut", ["emise", "payee", "partiel"]);
+      // Assiette de `src/lib/montants.ts` : ni brouillon ni annulée.
+      // La liste blanche d'avant OMETTAIT `impayee` : une facture impayée
+      // disparaissait du CA par type de formation, alors qu'elle est bien due.
+      const { data: factures } = await filtreFacturesComptees(
+        supabase
+          .from("factures")
+          .select("id, montant_total, contact_id, statut")
+          .is("deleted_at", null),
+      );
 
       if (!factures || factures.length === 0) return [];
 

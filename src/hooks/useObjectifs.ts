@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { filtreFacturesComptees, sommeFactures } from '@/lib/montants';
 import { startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -144,13 +145,18 @@ export function useCurrentObjectifsWithProgress() {
 
         switch (obj.type_objectif) {
           case 'ca': {
-            const { data } = await supabase
-              .from('factures')
-              .select('montant_total')
-              .gte('date_emission', startStr)
-              .lte('date_emission', endStr)
-              .neq('statut', 'annulee');
-            valeur_actuelle = data?.reduce((sum, f) => sum + (f.montant_total || 0), 0) || 0;
+            // Assiette de `src/lib/montants.ts` : ni brouillon ni annulée.
+            // Le filtre d'avant n'écartait que les annulées — un devis resté
+            // en brouillon faisait donc croire l'objectif de CA atteint.
+            const { data } = await filtreFacturesComptees(
+              supabase
+                .from('factures')
+                .select('montant_total, statut')
+                .gte('date_emission', startStr)
+                .lte('date_emission', endStr)
+                .is('deleted_at', null),
+            );
+            valeur_actuelle = sommeFactures(data || []);
             break;
           }
           case 'encaissements': {
@@ -158,7 +164,9 @@ export function useCurrentObjectifsWithProgress() {
               .from('paiements')
               .select('montant')
               .gte('date_paiement', startStr)
-              .lte('date_paiement', endStr);
+              .lte('date_paiement', endStr)
+              // Un versement mis à la corbeille ne compte plus dans l'objectif.
+              .is('deleted_at', null);
             valeur_actuelle = data?.reduce((sum, p) => sum + (p.montant || 0), 0) || 0;
             break;
           }

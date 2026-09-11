@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getUserCentreId } from "@/utils/getCentreId";
 import { useSoftDeleteWithUndo } from "@/hooks/useUndoableAction";
 import { messageErreur } from "@/lib/erreurs";
+import { facturesEncaissables, sommeFactures, sommePaiementsFactures } from "@/lib/montants";
 
 // Types for factures (manually defined since types.ts hasn't updated yet)
 export type FinancementType = "personnel" | "entreprise" | "cpf" | "opco";
@@ -351,6 +352,26 @@ export function useFacturesStats() {
       if (facturesRes.error) throw facturesRes.error;
       if (paiementsRes.error) throw paiementsRes.error;
 
+      const allFactures = facturesRes.data || [];
+      const paiements = paiementsRes.data || [];
+
+      // Assiette des totaux : ni brouillon ni annulée (règle unique de
+      // `src/lib/montants.ts`).
+      const activeFactures = facturesEncaissables(allFactures);
+
+      // Les brouillons sont comptés À PART, pour l'encart « à émettre » : ils
+      // sont hors CA, pas hors écran.
+      const brouillons = allFactures.filter(f => f.statut === "brouillon");
+      const brouillonCount = brouillons.length;
+      const brouillonMontant = brouillons.reduce((s, f) => s + Number(f.montant_total), 0);
+
+      const total = sommeFactures(activeFactures);
+      // Le payé est RATTACHÉ aux factures comptées par `facture_id`. Sommer
+      // tous les versements comptait l'acompte encaissé sur une facture
+      // ensuite annulée, exclue du total juste au-dessus : « Taux recouvrement »
+      // (payé / total, PaiementsPage) pouvait alors dépasser 100 %.
+      const paye = sommePaiementsFactures(activeFactures, paiements);
+
       // Définition canonique (cf. useFinancesKpis) — alignée avec le
       // Pilotage pour que les deux écrans affichent LE MÊME reste à
       // encaisser (audit Finances du 21/07 : 33 524 € vs 28 253 €, l'ancien
@@ -358,22 +379,13 @@ export function useFacturesStats() {
       // infobulle, et soustrayait les paiements globalement) :
       //   impaye = Σ max(0, montant_total − paiements de LA facture)
       //            WHERE statut ∈ {emise, partiel, impayee}
-      const allFactures = facturesRes.data || [];
-      const activeFactures = allFactures.filter(f => f.statut !== "brouillon" && f.statut !== "annulee");
-      const brouillonCount = allFactures.filter(f => f.statut === "brouillon").length;
-      const brouillonMontant = allFactures
-        .filter(f => f.statut === "brouillon")
-        .reduce((s, f) => s + Number(f.montant_total), 0);
-
-      let total = 0;
-      for (const f of activeFactures) total += Number(f.montant_total);
-      let paye = 0;
+      // Cette liste dit un ÉTAT (facture due), pas l'assiette des totaux : une
+      // facture « payee » n'est pas un impayé. Elle ne se remplace donc pas par
+      // le prédicat partagé.
       const payeParFacture = new Map<string, number>();
-      for (const p of paiementsRes.data || []) {
-        paye += Number(p.montant);
-        if (p.facture_id) {
-          payeParFacture.set(p.facture_id, (payeParFacture.get(p.facture_id) || 0) + Number(p.montant));
-        }
+      for (const p of paiements) {
+        if (!p.facture_id) continue;
+        payeParFacture.set(p.facture_id, (payeParFacture.get(p.facture_id) || 0) + Number(p.montant));
       }
       const impaye = activeFactures
         .filter(f => ["emise", "partiel", "impayee"].includes(f.statut))

@@ -1,6 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO } from "date-fns";
+import {
+  filtreFacturesComptees,
+  sommeFactures,
+  sommePaiementsFactures,
+} from "@/lib/montants";
+
+/**
+ * Taux de recouvrement (encaissé / facturé, en %) qui alimente 30 points du
+ * score de santé.
+ *
+ * Les deux termes reposent sur la même assiette : les factures comptées. Avant,
+ * le numérateur sommait TOUS les paiements — y compris ceux rattachés à un
+ * brouillon ou à une annulée absents du dénominateur — et le taux pouvait
+ * dépasser 100 %, saturant le score sur une base fausse.
+ * Fonction pure, donc testable seule.
+ */
+export function calculerRecouvrement(
+  factures: ReadonlyArray<{ id?: string | null; montant_total?: number | string | null; statut?: string | null }>,
+  paiements: ReadonlyArray<{ montant?: number | string | null; facture_id?: string | null }>,
+): number {
+  const totalFacture = sommeFactures(factures);
+  const totalPaye = sommePaiementsFactures(factures, paiements);
+  return totalFacture > 0 ? Math.round((totalPaye / totalFacture) * 100) : 100;
+}
 
 export interface HealthScoreData {
   score: number;
@@ -25,8 +49,14 @@ export function useDashboardHealthScore() {
         supabase.from("contacts").select("id, statut").eq("archived", false).is("deleted_at", null).eq("is_historical_import", false),
         supabase.from("sessions").select("id, places_totales, prix, statut, date_debut").eq("archived", false).gte("date_fin", todayStr),
         supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
-        supabase.from("factures").select("montant_total, statut, date_echeance").is("deleted_at", null).not("statut", "eq", "annulee"),
-        supabase.from("paiements").select("montant").is("deleted_at", null),
+        filtreFacturesComptees(
+          supabase.from("factures").select("id, montant_total, statut, date_echeance").is("deleted_at", null),
+        ),
+        supabase.from("paiements").select("montant, facture_id").is("deleted_at", null),
+        // Liste blanche VOLONTAIRE : ces trois statuts désignent un ÉTAT
+        // (« paiement à relancer »), pas un total d'argent dû. L'aligner sur le
+        // prédicat partagé ferait entrer les factures PAYÉES dans le compte des
+        // urgences — une facture soldée deviendrait une alerte de paiement.
         supabase.from("factures").select("id").is("deleted_at", null).in("statut", ["emise", "partiel", "impayee"]),
       ]);
 
@@ -73,9 +103,7 @@ export function useDashboardHealthScore() {
       const tauxRemplissage = totalPlaces > 0 ? Math.round((filledPlaces / totalPlaces) * 100) : 0;
 
       // 3. CA confirmé vs objectif (simplified: payé / facturé)
-      const totalFacture = factures.reduce((acc, f) => acc + Number(f.montant_total), 0);
-      const totalPaye = paiements.reduce((acc, p) => acc + Number(p.montant), 0);
-      const caConfirmeVsObjectif = totalFacture > 0 ? Math.round((totalPaye / totalFacture) * 100) : 100;
+      const caConfirmeVsObjectif = calculerRecouvrement(factures, paiements);
 
       // 4. Count urgences
       const nbUrgences = unpaidCount;

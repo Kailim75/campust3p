@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { estOperationnellementActif, TOOLTIP_SMARTOF_EXCLUS } from "@/lib/apprenant-active";
+import { filtreFacturesComptees, sommeFactures } from "@/lib/montants";
 
 interface DashboardKPIRowProps {
   onNavigate: (section: string) => void;
@@ -21,10 +22,14 @@ function useKPIData() {
       const todayStr = now.toISOString().split("T")[0];
 
       const [facturesRes, sessionsRes, contactsRes, inscriptionsRes, prospectsRes] = await Promise.all([
-        supabase.from("factures").select("montant_total, statut, date_emission")
-          .not("statut", "eq", "annulee")
-          .gte("date_emission", monthStart)
-          .lte("date_emission", monthEnd),
+        filtreFacturesComptees(
+          supabase.from("factures").select("montant_total, statut, date_emission")
+            .gte("date_emission", monthStart)
+            .lte("date_emission", monthEnd)
+            // Une facture mise à la corbeille ne doit plus peser dans le KPI
+            // « CA du mois » : la suppression est douce dans tout le CRM.
+            .is("deleted_at", null),
+        ),
         supabase.from("sessions").select("id, statut, date_debut, date_fin")
           .eq("archived", false)
           .gte("date_fin", todayStr),
@@ -49,7 +54,8 @@ function useKPIData() {
         inscriptions.map((i: any) => i.contact_id).filter(Boolean),
       );
 
-      const caMonth = factures.reduce((s, f) => s + (f.montant_total || 0), 0);
+      // « CA du mois » : brouillons et annulées écartés par le prédicat partagé.
+      const caMonth = sommeFactures(factures);
       const activeSessions = sessions.filter(s => s.statut === "en_cours" || s.statut === "a_venir").length;
       const activeApprenants = contacts.filter((c: any) =>
         estOperationnellementActif({

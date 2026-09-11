@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, subDays } from "date-fns";
+import {
+  calculerResteAEncaisser,
+  filtreFacturesComptees,
+  sommeFactures,
+} from "@/lib/montants";
 
 export interface SubScore {
   label: string;
@@ -56,6 +61,107 @@ function deficitScore(rate: number) {
   return 10;
 }
 
+/** Lignes minimales attendues des requêtes ci-dessous (le reste est ignoré). */
+export interface FactureLigne {
+  id?: string | null;
+  montant_total?: number | string | null;
+  statut?: string | null;
+  date_emission?: string | null;
+  date_echeance?: string | null;
+}
+
+export interface PaiementLigne {
+  montant?: number | string | null;
+  facture_id?: string | null;
+}
+
+/**
+ * CA réalisé du mois, mis en regard de l'objectif de budget (sous-score S1).
+ *
+ * Comptait auparavant les seules factures `payee` ou `emise` — une facture
+ * réglée en partie passe au statut `partiel` et DISPARAISSAIT donc du réalisé :
+ * encaisser un acompte faisait BAISSER le CA du mois. L'assiette partagée
+ * retient toutes les factures comptées (émise, partielle, impayée, payée) et
+ * continue d'écarter le brouillon, qui n'est pas encore dû.
+ */
+export function calculerCaConfirme(
+  factures: ReadonlyArray<FactureLigne>,
+  depuis: string,
+): number {
+  return sommeFactures(factures.filter((f) => f.date_emission && f.date_emission >= depuis));
+}
+
+export interface FactureEnAttente {
+  facture: FactureLigne;
+  /** Ce qu'il RESTE à encaisser sur cette facture, jamais négatif. */
+  reste: number;
+  joursDeRetard: number;
+}
+
+export interface AnalyseEncaissement {
+  enAttente: FactureEnAttente[];
+  nombre: number;
+  resteTotal: number;
+  ageMoyen: number;
+}
+
+/**
+ * Liste blanche VOLONTAIRE : ces trois statuts désignent un ÉTAT (« paiement à
+ * relancer »), pas un total d'argent dû. L'aligner sur le prédicat partagé
+ * ferait entrer les factures PAYÉES dans le risque d'impayé. Le brouillon et
+ * l'annulée en sont absents, donc une facture jamais émise ne peut pas y entrer.
+ */
+const STATUTS_EN_ATTENTE = ["emise", "impayee", "partiel"];
+
+/**
+ * Encours réel : ce qu'il reste à encaisser FACTURE PAR FACTURE (sous-score S4,
+ * alertes et recommandations d'encaissement).
+ *
+ * Les versements étaient chargés puis jamais utilisés : une facture de 1 200 €
+ * réglée à 1 150 € était annoncée « impayée — 1 200 € ». Le reste dû se juge
+ * facture par facture, granularité que `resteAEncaisserParFacture` ne rend pas
+ * (il n'en renvoie que le total) ; la règle du reste jamais négatif reste celle
+ * de `calculerResteAEncaisser`. Fonction pure, donc testable seule.
+ */
+export function analyserEncaissement(
+  factures: ReadonlyArray<FactureLigne>,
+  paiements: ReadonlyArray<PaiementLigne>,
+  now: Date,
+): AnalyseEncaissement {
+  const payeParFacture = new Map<string, number>();
+  for (const p of paiements) {
+    if (!p.facture_id) continue;
+    payeParFacture.set(
+      p.facture_id,
+      (payeParFacture.get(p.facture_id) ?? 0) + Number(p.montant || 0),
+    );
+  }
+
+  const enAttente = factures
+    .filter((f) => f.statut && STATUTS_EN_ATTENTE.includes(f.statut))
+    .map((f) => {
+      const echeance = f.date_echeance || f.date_emission;
+      return {
+        facture: f,
+        reste: calculerResteAEncaisser(
+          f.montant_total,
+          f.id ? payeParFacture.get(f.id) ?? 0 : 0,
+        ),
+        joursDeRetard: echeance
+          ? Math.max(0, differenceInDays(now, parseISO(echeance)))
+          : 0,
+      };
+    });
+
+  const nombre = enAttente.length;
+  return {
+    enAttente,
+    nombre,
+    resteTotal: enAttente.reduce((a, f) => a + f.reste, 0),
+    ageMoyen: nombre > 0 ? enAttente.reduce((a, f) => a + f.joursDeRetard, 0) / nombre : 0,
+  };
+}
+
 export function usePredictiveScoring() {
   return useQuery({
     queryKey: ["dashboard", "predictive-scoring"],
@@ -70,8 +176,10 @@ export function usePredictiveScoring() {
         supabase.from("sessions").select("id, nom, places_totales, prix, statut, date_debut, formation_type")
           .eq("archived", false).gte("date_debut", todayStr).lte("date_debut", in30Str),
         supabase.from("session_inscriptions").select("session_id").is("deleted_at", null),
-        supabase.from("factures").select("id, montant_total, statut, date_echeance, date_emission, contact_id")
-          .is("deleted_at", null).not("statut", "eq", "annulee"),
+        filtreFacturesComptees(
+          supabase.from("factures").select("id, montant_total, statut, date_echeance, date_emission, contact_id")
+            .is("deleted_at", null),
+        ),
         supabase.from("paiements").select("montant, facture_id").is("deleted_at", null),
         supabase.from("prospects").select("id, statut, created_at, updated_at, nom, prenom")
           .eq("is_active", true),
@@ -94,11 +202,9 @@ export function usePredictiveScoring() {
       const objectifCA = budget.reduce((a, b) => a + Number(b.montant_prevu || 0), 0);
       const hasObjectif = objectifCA > 0;
 
-      // CA confirmé = factures payées/partielles this month
+      // CA réalisé du mois, sur l'assiette partagée des factures comptées.
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-      const caConfirme = factures
-        .filter(f => (f.statut === "payee" || f.statut === "emise") && f.date_emission && f.date_emission >= monthStart)
-        .reduce((a, f) => a + Number(f.montant_total || 0), 0);
+      const caConfirme = calculerCaConfirme(factures, monthStart);
 
       // CA probable from sessions in next 30 days
       let caProbable = 0;
@@ -147,15 +253,10 @@ export function usePredictiveScoring() {
       const s3 = clamp(tc - penalite);
 
       // ═══ S4 — Risque Encaissement ═══
-      const unpaid = factures.filter(f => f.statut === "emise" || f.statut === "impayee" || f.statut === "partiel");
-      const fi = unpaid.length;
-      const mi = unpaid.reduce((a, f) => a + Number(f.montant_total || 0), 0);
-      const avgAge = fi > 0
-        ? unpaid.reduce((a, f) => {
-            const echeance = f.date_echeance || f.date_emission;
-            return a + (echeance ? Math.max(0, differenceInDays(now, parseISO(echeance))) : 0);
-          }, 0) / fi
-        : 0;
+      const encaissement = analyserEncaissement(factures, paiements, now);
+      const fi = encaissement.nombre;
+      const mi = encaissement.resteTotal;
+      const avgAge = encaissement.ageMoyen;
       const penS4 = fi * 4 + (avgAge > 10 ? 15 : 0) + (avgAge > 20 ? 15 : 0);
       const s4 = clamp(100 - penS4);
 
@@ -200,19 +301,18 @@ export function usePredictiveScoring() {
       }
 
       // Factures impayées critiques
-      unpaid
-        .filter(f => {
-          const echeance = f.date_echeance || f.date_emission;
-          return echeance && differenceInDays(now, parseISO(echeance)) > 10 && Number(f.montant_total) > 500;
-        })
-        .sort((a, b) => Number(b.montant_total) - Number(a.montant_total))
+      // Seuils jugés sur le RESTE dû : une facture de 1 200 € réglée à 1 150 €
+      // n'est pas une alerte de 1 200 €, et soldée elle n'en est plus une.
+      encaissement.enAttente
+        .filter(f => f.joursDeRetard > 10 && f.reste > 500)
+        .sort((a, b) => b.reste - a.reste)
         .slice(0, 2)
         .forEach(f => {
           alerts.push({
-            id: `facture-${f.id}`,
-            severity: Number(f.montant_total) > 1500 ? "critical" : "important",
-            title: `Facture impayée — ${Number(f.montant_total).toLocaleString("fr-FR")} €`,
-            impact: Number(f.montant_total),
+            id: `facture-${f.facture.id}`,
+            severity: f.reste > 1500 ? "critical" : "important",
+            title: `Facture impayée — ${f.reste.toLocaleString("fr-FR")} €`,
+            impact: f.reste,
             action: { label: "Voir factures", section: "facturation" },
           });
         });
@@ -249,9 +349,9 @@ export function usePredictiveScoring() {
       }
 
       // Encaissements
-      const bigUnpaid = unpaid.filter(f => Number(f.montant_total) > 1000);
+      const bigUnpaid = encaissement.enAttente.filter(f => f.reste > 1000);
       if (bigUnpaid.length > 0) {
-        const totalUnpaid = bigUnpaid.reduce((a, f) => a + Number(f.montant_total), 0);
+        const totalUnpaid = bigUnpaid.reduce((a, f) => a + f.reste, 0);
         recommendations.push({
           id: "encaissements",
           text: `Prioriser encaissements : ${bigUnpaid.length} facture(s) > 1 000 € en retard`,

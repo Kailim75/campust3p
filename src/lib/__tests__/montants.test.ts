@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
+// Type seul : importer la valeur construirait un client Supabase dans les tests.
+import type { supabase } from "@/integrations/supabase/client";
 import {
   STATUTS_FACTURE_EXCLUS,
   calculerResteAEncaisser,
   estFactureComptee,
   etatSolde,
   facturesEncaissables,
+  filtreFacturesComptees,
   parseMontantSaisi,
   resteAEncaisserParFacture,
   sommeFactures,
   sommePaiementsFactures,
+  sommePaiementsFacturesPeriode,
   tropPercu,
 } from "../montants";
 
@@ -209,6 +213,135 @@ describe("facturesEncaissables", () => {
 
   it("garde une facture dont le statut n'a pas été chargé", () => {
     expect(facturesEncaissables([{ id: "f1" }, { id: "f2", statut: null }])).toHaveLength(2);
+  });
+});
+
+// Vérification de TYPE, jamais exécutée : `tsc` prouve ici que le helper se
+// chaîne sur une vraie requête PostgREST et renvoie un type encore chaînable.
+// Sans elle, une régression de typage ne se verrait qu'à l'usage, dans les
+// écrans. `import type` : aucun client Supabase n'est construit par les tests.
+export function _verifieChainageSupabase(client: typeof supabase) {
+  return filtreFacturesComptees(client.from("factures").select("id, montant_total, statut"))
+    .is("deleted_at", null)
+    .eq("contact_id", "peu-importe");
+}
+
+// Les 6 valeurs de l'enum Postgres `facture_statut`, telles qu'elles sont en
+// base — et la liste blanche que les écrans écrivaient à la main.
+const TOUS_LES_STATUTS = ["brouillon", "emise", "payee", "partiel", "impayee", "annulee"];
+const LISTE_BLANCHE = ["emise", "partiel", "impayee", "payee"];
+
+/** Requête factice : capture les arguments passés au filtre et se chaîne. */
+type QueryFactice = {
+  appels: Array<[string, string, string]>;
+  not: (colonne: string, operateur: string, valeur: string) => QueryFactice;
+};
+
+function queryFactice(): QueryFactice {
+  const query: QueryFactice = {
+    appels: [],
+    not: (colonne, operateur, valeur) => {
+      query.appels.push([colonne, operateur, valeur]);
+      return query;
+    },
+  };
+  return query;
+}
+
+describe("filtreFacturesComptees", () => {
+  it("écarte brouillon ET annulée, là où les écrans n'écartaient que l'annulée", () => {
+    // Défaut réel : `.not("statut","eq","annulee")` laissait les brouillons
+    // entrer dans le chiffre d'affaires — un devis non émis était facturé.
+    const query = queryFactice();
+    filtreFacturesComptees(query);
+    expect(query.appels).toEqual([["statut", "in", "(brouillon,annulee)"]]);
+  });
+
+  it("renvoie la requête pour ne pas casser le chaînage", () => {
+    const query = queryFactice();
+    expect(filtreFacturesComptees(query)).toBe(query);
+  });
+
+  it("dérive la chaîne de STATUTS_FACTURE_EXCLUS, sans recopie en dur", () => {
+    // La constante ne peut pas être mutée depuis le test : on verrouille donc
+    // l'égalité STRICTE avec ce qu'elle produit. Une liste recopiée à la main
+    // dans le helper — ou un statut ajouté à la constante sans toucher au
+    // filtre SQL — fait tomber ce test.
+    const query = queryFactice();
+    filtreFacturesComptees(query);
+    expect(query.appels[0][2]).toBe(`(${STATUTS_FACTURE_EXCLUS.join(",")})`);
+  });
+
+  it("écarte côté SQL exactement ce qu'estFactureComptee écarte côté JS", () => {
+    // Le vrai risque n'est pas la faute de frappe, c'est la DÉRIVE : un filtre
+    // SQL et un filtre JS qui ne disent plus la même chose donnent un total
+    // « facturé » et un total « payé » calculés sur deux lots différents.
+    const query = queryFactice();
+    filtreFacturesComptees(query);
+    const exclusParSQL = query.appels[0][2].slice(1, -1).split(",");
+    for (const statut of TOUS_LES_STATUTS) {
+      expect(exclusParSQL.includes(statut)).toBe(!estFactureComptee({ statut }));
+    }
+  });
+});
+
+describe("liste blanche et exclusion sur les 6 valeurs de l'enum", () => {
+  it("donnent le même résultat aujourd'hui — mais c'est l'exclusion qui fait foi", () => {
+    // Elles coïncident tant que l'enum vaut ces 6 valeurs. Si un statut est
+    // ajouté demain (« en_litige »…), la liste blanche le ferait disparaître
+    // des totaux EN SILENCE, alors que l'exclusion le comptera. C'est pourquoi
+    // les écrans passent par estFactureComptee / filtreFacturesComptees et
+    // jamais par une énumération des statuts valides.
+    for (const statut of TOUS_LES_STATUTS) {
+      expect(estFactureComptee({ statut })).toBe(LISTE_BLANCHE.includes(statut));
+    }
+  });
+
+  it("compte un statut ajouté demain plutôt que de le perdre", () => {
+    expect(LISTE_BLANCHE.includes("en_litige")).toBe(false);
+    expect(estFactureComptee({ statut: "en_litige" })).toBe(true);
+  });
+});
+
+describe("sommePaiementsFacturesPeriode", () => {
+  const factures = [
+    { id: "f1", montant_total: 990, statut: "payee" },
+    { id: "f2", montant_total: 500, statut: "brouillon" },
+    { id: "f3", montant_total: 300, statut: "annulee" },
+  ];
+  const versements = [
+    { facture_id: "f1", montant: 400, date_paiement: "2026-09-03" },
+    { facture_id: "f1", montant: 590, date_paiement: "2026-08-28" },
+    { facture_id: "f2", montant: 250, date_paiement: "2026-09-05" },
+    { facture_id: "f3", montant: 300, date_paiement: "2026-09-07" },
+  ];
+  const enSeptembre = (p: { date_paiement: string }) => p.date_paiement.startsWith("2026-09");
+
+  it("n'ajoute au payé du mois que les versements rattachés à une facture comptée", () => {
+    // Défaut réel : le CA mensuel et les piliers sommaient TOUS les paiements
+    // du mois — les 250 € encaissés sur un brouillon et les 300 € d'une
+    // annulée gonflaient la barre « payé ».
+    expect(sommePaiementsFacturesPeriode(factures, versements, enSeptembre)).toBe(400);
+  });
+
+  it("empêche le payé du mois de dépasser le facturé affiché à côté", () => {
+    expect(sommePaiementsFacturesPeriode(factures, versements, enSeptembre)).toBeLessThanOrEqual(
+      sommeFactures(factures),
+    );
+  });
+
+  it("laisse dehors le versement du mois précédent sur la même facture", () => {
+    expect(sommePaiementsFactures(factures, versements)).toBe(990);
+    expect(sommePaiementsFacturesPeriode(factures, versements, enSeptembre)).toBe(400);
+  });
+
+  it("vaut 0 sur une période sans versement", () => {
+    expect(sommePaiementsFacturesPeriode(factures, versements, () => false)).toBe(0);
+  });
+
+  it("ignore les versements rattachés à une facture inconnue du lot", () => {
+    const orphelin = [{ facture_id: "f9", montant: 800, date_paiement: "2026-09-02" }];
+    expect(sommePaiementsFacturesPeriode(factures, orphelin, enSeptembre)).toBe(0);
   });
 });
 
