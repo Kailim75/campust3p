@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserCentreId } from "@/utils/getCentreId";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
+import { messageLignesNonEnregistrees } from "@/lib/factures-emises";
+import { toast } from "sonner";
 
 /**
  * Facturation express (audit du 21/07/2026, demande du directeur : « très
@@ -44,6 +47,16 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const echeance = params.dateEcheance || aujourdhui;
 
+  // Facture créée directement « emise » : le déclencheur de snapshot est un
+  // BEFORE UPDATE, il ne s'exécutera jamais pour elle. Coordonnées de
+  // l'acheteur figées dès l'INSERT (D2 du 11/09/2026).
+  const bloc = await blocFigeNouvelleFacture({
+    statut: "emise",
+    contactId: params.contactId,
+    totaux: { montant_ht: params.montant, montant_tva: 0 },
+    dateEmission: aujourdhui,
+  });
+
   const { data: facture, error: factureError } = await supabase
     .from("factures")
     .insert({
@@ -58,25 +71,30 @@ export async function creerFactureExpress(params: FactureExpressParams): Promise
       type_financement: params.financement ?? "personnel",
       date_emission: aujourdhui,
       date_echeance: echeance,
+      ...bloc,
     } as never)
     .select()
     .single();
   if (factureError) throw factureError;
 
+  // montant_ht, montant_tva et montant_ttc sont GENERATED ALWAYS sur
+  // facture_lignes : Postgres REFUSE l'INSERT si on leur donne une valeur (la
+  // ligne n'était donc jamais créée, la facture express restait sans détail).
+  // On ne pose que les colonnes de base ; la base calcule les montants.
   const { error: ligneError } = await supabase.from("facture_lignes").insert({
     facture_id: (facture as FactureCreee).id,
     description: params.description,
     quantite: 1,
     prix_unitaire_ht: params.montant,
-    montant_ht: params.montant,
-    montant_tva: 0,
-    montant_ttc: params.montant,
+    tva_percent: 0,
     ordre: 1,
   } as never);
   // La ligne est descriptive : son échec ne doit pas laisser croire que la
-  // facture n'existe pas — on le signale mais la facture est créée.
+  // facture n'existe pas — on le signale mais la facture est créée. La reprise
+  // n'est possible que dans les quinze minutes (garde), d'où le message explicite.
   if (ligneError) {
     console.error("facture-express: ligne non créée", ligneError);
+    toast.warning(messageLignesNonEnregistrees((facture as FactureCreee).numero_facture));
   }
 
   return facture as FactureCreee;

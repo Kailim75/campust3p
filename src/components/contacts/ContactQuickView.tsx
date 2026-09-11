@@ -134,12 +134,13 @@ export function ContactQuickView({
 
   const handleDelete = async () => {
     if (!contact) return;
-    await softDelete({
+    const archive = await softDelete({
       table: "contacts",
       id: contact.id,
       message: `${contact.prenom} ${contact.nom} archivé(e)`,
     });
-    onOpenChange(false);
+    // Refus de la base : le motif est affiché, la fiche reste ouverte.
+    if (archive) onOpenChange(false);
   };
 
   if (!contactId) return null;

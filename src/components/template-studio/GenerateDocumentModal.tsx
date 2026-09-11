@@ -18,6 +18,7 @@ import { Loader2, FileText, Download, Eye, Search, User, Calendar, CreditCard, B
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate } from "./TemplatePreview";
+import { variablesGabaritFacture } from "@/lib/facture-payer-utils";
 import { stripNdaFromTemplate } from "@/lib/template-renderer";
 import DOMPurify from "dompurify";
 import type { StudioTemplate } from "@/constants/templateConstants";
@@ -167,16 +168,19 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
         map.horaires = (data as any).horaires || "";
       }
     } else if (type === "paiement") {
-      const { data } = await supabase.from("factures").select("*, contacts(nom, prenom, email)").eq("id", id).maybeSingle();
+      const { data } = await supabase
+        .from("factures")
+        .select("*, contacts(nom, prenom, email, rue, code_postal, ville)")
+        .eq("id", id)
+        .maybeSingle();
       if (data) {
         map.numero_facture = data.numero_facture || "";
         map.montant_total = String(data.montant_total || "");
         map.prix_total = String(data.montant_total || "");
-        if (data.contacts) {
-          map.nom = (data.contacts as any).nom || "";
-          map.prenom = (data.contacts as any).prenom || "";
-          map.email = (data.contacts as any).email || "";
-        }
+        // Un gabarit qui porte un numéro de facture imprime un client : il suit
+        // la même règle D2 que les PDF de facture — acheteur FIGÉ dès que la
+        // facture n'est plus un brouillon, fiche en repli seulement.
+        Object.assign(map, variablesGabaritFacture(data as any, (data.contacts as any) || null));
       }
     } else if (type === "devis") {
       const { data } = await supabase

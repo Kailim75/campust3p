@@ -23,6 +23,7 @@ import {
   Check, X, Pencil, Copy,
 } from "lucide-react";
 import type { FactureWithDetails } from "@/hooks/useFactures";
+import { actionsGestionFacture } from "@/lib/factures-emises";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
 import { INSCRIPTION_STATUTS, getUrgency, type InscritRow, type ExamResult, type ExamResultValue } from "./inscrits-types";
 
@@ -201,7 +202,11 @@ export function InscritTableRow({
                           {Number(f.montant_total).toFixed(2)}€ — {f.statut}
                         </span>
                       </button>
-                      {onDeleteFacture && (
+                      {/* D1 (11/09/2026) : une facture émise ne se supprime
+                          pas, ici non plus. Même règle unique que la fiche
+                          facture — actionsGestionFacture. L'annulation, elle,
+                          se fait depuis la fiche (confirmation + trace). */}
+                      {onDeleteFacture && actionsGestionFacture(f.statut, true).supprimer && (
                         <Button
                           variant="ghost"
                           size="icon"

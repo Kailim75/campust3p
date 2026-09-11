@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
@@ -24,6 +24,7 @@ const { etat } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/components/ui/select", () => import("@/test/select-natif"));
 vi.mock("@/integrations/supabase/client", () => {
   const donneesDe = (table: string) => {
     if (table === "factures") return etat.factures;
@@ -37,13 +38,39 @@ vi.mock("@/integrations/supabase/client", () => {
     return [];
   };
 
+  /**
+   * Le double projette le tiers payeur sur les colonnes RÉELLEMENT demandées
+   * par le select : sans cela, une requête qui oublie `siret` recevrait quand
+   * même le SIRET du fixture et aucun test ne pourrait voir le défaut.
+   */
+  const projeter = (table: string, donnees: unknown, colonnes: string) => {
+    if (table !== "factures" || !Array.isArray(donnees)) return donnees;
+    const bloc = /payeur_partner:[^(]*\(([^)]*)\)/.exec(colonnes || "");
+    if (!bloc) return donnees;
+    const champs = bloc[1].split(",").map((c) => c.trim());
+    return donnees.map((facture: Record<string, unknown>) => {
+      const inscription = facture.session_inscription as Record<string, unknown> | undefined;
+      const payeur = inscription?.payeur_partner as Record<string, unknown> | undefined;
+      if (!inscription || !payeur) return facture;
+      const projete: Record<string, unknown> = {};
+      for (const champ of champs) if (champ in payeur) projete[champ] = payeur[champ];
+      return { ...facture, session_inscription: { ...inscription, payeur_partner: projete } };
+    });
+  };
+
   const chaine = (table: string) => {
-    const resultat = () => ({ data: donneesDe(table), error: null });
+    let colonnes = "";
+    const resultat = () => ({ data: projeter(table, donneesDe(table), colonnes), error: null });
     const c: Record<string, unknown> = {
       single: () => Promise.resolve(resultat()),
+      maybeSingle: () => Promise.resolve(resultat()),
       then: (resoudre: (v: unknown) => unknown) => resoudre(resultat()),
     };
-    for (const methode of ["select", "eq", "is", "in", "order", "limit"]) {
+    c.select = (cols?: unknown) => {
+      if (typeof cols === "string") colonnes = cols;
+      return c;
+    };
+    for (const methode of ["eq", "is", "in", "order", "limit"]) {
       c[methode] = () => c;
     }
     return c;
@@ -80,9 +107,10 @@ vi.mock("@/components/paiements/EditFactureLibreDialog", () => ({ EditFactureLib
 vi.mock("../FinancementSection", () => ({ FinancementSection: () => null }));
 vi.mock("@/lib/facture-express", () => ({ creerFactureExpress: vi.fn() }));
 vi.mock("@/utils/getCentreId", () => ({ getUserCentreId: () => Promise.resolve("centre-1") }));
-vi.mock("@/lib/pdf-generator", () => ({
-  generateFacturePDF: () => ({ save: () => {}, output: () => "data:application/pdf;base64,XX" }),
+const { generateFacturePDF } = vi.hoisted(() => ({
+  generateFacturePDF: vi.fn((..._args: unknown[]) => ({ save: () => {}, output: () => "data:application/pdf;base64,XX" })),
 }));
+vi.mock("@/lib/pdf-generator", () => ({ generateFacturePDF }));
 
 import { PaiementsTab } from "../PaiementsTab";
 
@@ -198,5 +226,146 @@ describe("PaiementsTab — versement rattaché à la bonne facture (B2)", () => 
     // émet une facture comptée) reste ouvert : pas de message de blocage.
     expect(screen.queryByText(/Aucune facture à encaisser/)).toBeNull();
     expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+  });
+
+  it("la facture créée par un versement naît émise AVEC ses coordonnées figées", async () => {
+    // `snapshot_facture_on_emission` est un BEFORE UPDATE : cette facture,
+    // insérée déjà « emise », n'y passera jamais. Sans coordonnées figées dans
+    // l'INSERT, toute réimpression suivrait la fiche apprenant du jour.
+    afficher();
+    await ouvrirLeFormulaire();
+    const selectFacture = screen
+      .getAllByTestId("select-natif")
+      .find((s) => within(s).queryByText(/Créer une nouvelle facture/)) as HTMLSelectElement;
+    fireEvent.change(selectFacture, { target: { value: "__new__" } });
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "990" } });
+    fireEvent.click(screen.getByRole("button", { name: "Créer facture & enregistrer" }));
+
+    await waitFor(() => expect(etat.inserts.some((i) => i.table === "factures")).toBe(true));
+    const facture = etat.inserts.find((i) => i.table === "factures");
+    expect(facture?.valeurs).toMatchObject({
+      statut: "emise",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia KARAI",
+      buyer_email_facturation: "sofia@exemple.fr",
+      montant_ht: 990,
+      montant_tva: 0,
+      // D5 : le déclencheur (BEFORE UPDATE) ne posera jamais ni la date
+      // d'émission ni la mention d'exonération sur une facture née émise.
+      date_emission: new Date().toISOString().slice(0, 10),
+      motif_exoneration_tva: "TVA non applicable, art. 261-4-4°a du CGI",
+    });
+  });
+});
+
+/**
+ * F5 (11/09/2026) — le PDF d'une facture émise imprime l'acheteur figé à
+ * l'émission (buyer_*), et non la fiche contact telle qu'elle est aujourd'hui.
+ */
+describe("PaiementsTab — PDF d'une facture émise (F5)", () => {
+  beforeEach(() => {
+    etat.factures = [];
+    etat.paiements = [];
+    etat.inserts = [];
+    generateFacturePDF.mockClear();
+  });
+
+  it("imprime les coordonnées figées de l'acheteur, pas la fiche courante", async () => {
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Télécharger PDF");
+    // La fiche contact se charge en parallèle des factures : on reclique tant
+    // qu'elle n'est pas là (le clic sans fiche ne génère rien).
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect(generateFacturePDF.mock.calls[0][1]).toMatchObject({
+      prenom: "Sofia Karai-Figée",
+      nom: "",
+      rue: "3 rue Figée",
+      code_postal: "92120",
+      ville: "Montrouge",
+      email: "figee@exemple.fr",
+    });
+  });
+
+  it("la pièce jointe envoyée par email porte le MÊME acheteur figé", async () => {
+    // Chemin distinct du téléchargement (buildFacturePdfBase64) : il n'était
+    // retenu par aucune assertion, une mutation ciblée passait au vert.
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Envoyer par email");
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect(generateFacturePDF.mock.calls[0][1]).toMatchObject({
+      prenom: "Sofia Karai-Figée",
+      nom: "",
+      rue: "3 rue Figée",
+      email: "figee@exemple.fr",
+    });
+  });
+
+  it("tiers payeur : le PDF porte son SIRET et sa TVA intracommunautaire", async () => {
+    // Sans `siret, tva_intracom` dans le select du tiers payeur, extractPayerInfo
+    // ne peut rien remonter : la même facture sortait AVEC ces mentions depuis
+    // la fiche facture et SANS depuis l'onglet Paiements — deux documents
+    // comptables différents pour une seule pièce figée.
+    etat.factures = [{
+      ...emise,
+      contact_id: "c1",
+      buyer_type: "b2c",
+      buyer_name_snapshot: "Sofia Karai-Figée",
+      buyer_address_snapshot: { line1: "3 rue Figée", postal_code: "92120", city: "Montrouge", country: "FR" },
+      buyer_email_facturation: "figee@exemple.fr",
+      session_inscription: {
+        id: "si1",
+        type_payeur: "opco",
+        montant_pris_en_charge: 500,
+        reste_a_charge: 0,
+        payeur_partner: {
+          id: "p1",
+          company_name: "OPCO Mobilités",
+          email: "compta@opco.fr",
+          address: "10 avenue des OPCO",
+          siret: "44455566600011",
+          tva_intracom: "FR30444555666",
+        },
+        session: null,
+      },
+    }];
+
+    afficher();
+    const bouton = await screen.findByTitle("Télécharger PDF");
+    await waitFor(() => {
+      fireEvent.click(bouton);
+      expect(generateFacturePDF).toHaveBeenCalled();
+    });
+
+    expect((generateFacturePDF.mock.calls[0][0] as { payer?: Record<string, unknown> }).payer).toMatchObject({
+      company_name: "OPCO Mobilités",
+      siret: "44455566600011",
+      tva_intracom: "FR30444555666",
+    });
   });
 });

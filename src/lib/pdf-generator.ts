@@ -168,6 +168,8 @@ export interface PayerInfo {
   email?: string;
   /** SIRET or other identifier */
   siret?: string;
+  /** N° de TVA intracommunautaire (acheteur entreprise) */
+  tva_intracom?: string;
 }
 
 /** Info about the beneficiary learner when payer differs */
@@ -764,7 +766,7 @@ export function generateFacturePDF(
   yPos += 5;
 
   // Compute dynamic box height based on content
-  const clientBoxH = hasPayer ? 42 : 28;
+  const clientBoxH = hasPayer ? (facture.payer?.tva_intracom ? 46 : 42) : 28;
   doc.setFillColor(COLORS.creamLight.r, COLORS.creamLight.g, COLORS.creamLight.b);
   doc.roundedRect(colRightX - 3, yPos - 4, colW + 6, clientBoxH, 2, 2, "F");
   doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
@@ -796,6 +798,10 @@ export function generateFacturePDF(
     }
     if (payer.siret) {
       doc.text(`SIRET : ${payer.siret}`, colRightX + 2, yPos);
+      yPos += 4;
+    }
+    if (payer.tva_intracom) {
+      doc.text(`TVA intracom. : ${payer.tva_intracom}`, colRightX + 2, yPos);
       yPos += 4;
     }
 

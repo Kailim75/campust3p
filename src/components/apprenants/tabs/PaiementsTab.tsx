@@ -18,8 +18,14 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { FactureLibreDialog } from "@/components/paiements/FactureLibreDialog";
 import { EditFactureLibreDialog } from "@/components/paiements/EditFactureLibreDialog";
-import { generateFacturePDF, type FactureInfo, type ContactInfo, type SessionInfo } from "@/lib/pdf-generator";
-import { extractPayerInfo } from "@/lib/facture-payer-utils";
+import { generateFacturePDF, type FactureInfo, type SessionInfo } from "@/lib/pdf-generator";
+import {
+  clientImprimeFacture,
+  extractPayerInfo,
+  type ClientPdfFacture,
+  type FacturePourClientPdf,
+} from "@/lib/facture-payer-utils";
+import { blocFigeNouvelleFacture } from "@/lib/facture-snapshot-acheteur";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
 import { centreToCompanyInfo } from "@/lib/centre-to-company";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
@@ -84,9 +90,10 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         .from("factures")
         .select(`
           id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
+          contact_id, client_partner_id, buyer_type, buyer_name_snapshot, buyer_address_snapshot, buyer_email_facturation, buyer_siret, buyer_tva_intracom,
           session_inscription:session_inscriptions(
             id, type_payeur, montant_pris_en_charge, reste_a_charge,
-            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+            payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret, tva_intracom),
             session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
           )
         `)
@@ -184,6 +191,15 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         const { data: numero } = await supabase.rpc("generate_numero_facture");
         const centreId = await getUserCentreId();
         const today = new Date().toISOString().split("T")[0];
+        // Facture créée directement « emise » (le déclencheur de snapshot est
+        // un BEFORE UPDATE) : acheteur et totaux figés dans l'INSERT, sinon son
+        // PDF suivrait la fiche apprenant vivante à vie (D2 du 11/09/2026).
+        const bloc = await blocFigeNouvelleFacture({
+          statut: "emise",
+          contactId,
+          totaux: { montant_ht: montant, montant_tva: 0 },
+          dateEmission: today,
+        });
         const { data: newFacture, error: fErr } = await supabase
           .from("factures")
           .insert({
@@ -194,6 +210,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
             type_financement: "personnel" as any,
             date_emission: today,
             centre_id: centreId,
+            ...bloc,
           } as any)
           .select("id")
           .single();
@@ -261,9 +278,10 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
           .from("factures")
           .select(`
             id, numero_facture, montant_total, statut, type_financement, date_emission, commentaires,
+            contact_id, client_partner_id, buyer_type, buyer_name_snapshot, buyer_address_snapshot, buyer_email_facturation, buyer_siret, buyer_tva_intracom,
             session_inscription:session_inscriptions(
               id, type_payeur, montant_pris_en_charge, reste_a_charge,
-              payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address),
+              payeur_partner:partners!session_inscriptions_payeur_partner_id_fkey(id, company_name, email, address, siret, tva_intracom),
               session:sessions(id, nom, formation_type, date_debut, date_fin, duree_heures, catalogue_formation:catalogue_formations(id, intitule, code))
             )
           `)
@@ -280,16 +298,42 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
     }
   };
 
-  const enrichFactureWithPayer = (f: any): FactureInfo => {
-    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = extractPayerInfo(
-      f.session_inscription, contact
-    );
+  // Client imprimé : coordonnées figées de la facture émise, fiche contact en
+  // repli (clientImprimeFacture, décision D2 du 11/09/2026).
+  const clientPdf = (
+    f: FacturePourClientPdf & { session_inscription?: Parameters<typeof extractPayerInfo>[0] },
+  ): ClientPdfFacture | null => {
+    if (!contact) return null;
+    return clientImprimeFacture(f, {
+      contact: {
+        nom: contact.nom,
+        prenom: contact.prenom,
+        email: contact.email || "",
+        telephone: contact.telephone || "",
+        rue: contact.rue || "",
+        code_postal: contact.code_postal || "",
+        ville: contact.ville || "",
+      },
+      ...extractPayerInfo(f.session_inscription, contact),
+    });
+  };
+
+  /**
+   * Total encaissé sur une facture. Annoncé dans la confirmation d'annulation :
+   * D7 a reporté les remboursements, les paiements restent rattachés à la
+   * facture annulée et l'utilisateur doit le savoir AVANT de confirmer.
+   */
+  const totalPayeFacture = (factureId: string): number =>
+    (paiements || [])
+      .filter((p: any) => p.facture_id === factureId)
+      .reduce((s: number, p: any) => s + Number(p.montant || 0), 0);
+
+  const enrichFactureWithPayer = (f: any, client: ClientPdfFacture): FactureInfo => {
+    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = client;
     return {
       numero_facture: f.numero_facture || "",
       montant_total: Number(f.montant_total),
-      total_paye: (paiements || [])
-        .filter((p: any) => p.facture_id === f.id)
-        .reduce((s: number, p: any) => s + Number(p.montant || 0), 0),
+      total_paye: totalPayeFacture(f.id),
       statut: f.statut,
       type_financement: f.type_financement || "personnel",
       date_emission: f.date_emission,
@@ -314,32 +358,21 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
   };
 
   const handlePrintFacture = (f: any) => {
-    if (!contact) { toast.error("Informations contact manquantes"); return; }
+    const client = clientPdf(f);
+    if (!client) { toast.error("Informations contact manquantes"); return; }
     const company = centreToCompanyInfo(centreFormation);
-    const factureInfo = enrichFactureWithPayer(f);
-    const contactInfo: ContactInfo = {
-      nom: contact.nom,
-      prenom: contact.prenom,
-      email: contact.email || "",
-      telephone: contact.telephone || "",
-      rue: contact.rue || "",
-      code_postal: contact.code_postal || "",
-      ville: contact.ville || "",
-    };
-    const doc = generateFacturePDF(factureInfo, contactInfo, buildSessionInfo(f), company);
+    const factureInfo = enrichFactureWithPayer(f, client);
+    const doc = generateFacturePDF(factureInfo, client.contact, buildSessionInfo(f), company);
     doc.save(`facture-${f.numero_facture || "sans-numero"}.pdf`);
     toast.success("Facture téléchargée");
   };
 
   const buildFacturePdfBase64 = (f: any): { base64: string; filename: string } | null => {
-    if (!contact) return null;
+    const client = clientPdf(f);
+    if (!client) return null;
     const company = centreToCompanyInfo(centreFormation);
-    const factureInfo = enrichFactureWithPayer(f);
-    const contactInfo: ContactInfo = {
-      nom: contact.nom, prenom: contact.prenom, email: contact.email || "", telephone: contact.telephone || "",
-      rue: contact.rue || "", code_postal: contact.code_postal || "", ville: contact.ville || "",
-    };
-    const doc = generateFacturePDF(factureInfo, contactInfo, buildSessionInfo(f), company);
+    const factureInfo = enrichFactureWithPayer(f, client);
+    const doc = generateFacturePDF(factureInfo, client.contact, buildSessionInfo(f), company);
     const base64 = doc.output("datauristring").split(",")[1];
     const filename = `facture-${f.numero_facture || "sans-numero"}.pdf`;
     return { base64, filename };
@@ -627,7 +660,7 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
       <EditFactureLibreDialog
         open={!!editingFacture}
         onOpenChange={(v) => { if (!v) setEditingFacture(null); }}
-        facture={editingFacture}
+        facture={editingFacture ? { ...editingFacture, total_paye: totalPayeFacture(editingFacture.id) } : null}
         contactId={contactId}
       />
       {express && expressRequest && (

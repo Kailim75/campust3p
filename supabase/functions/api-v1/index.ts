@@ -461,7 +461,11 @@ serve(async (req) => {
             .is("deleted_at", null);
           if (error) {
             console.error("api-v1 soft-delete error:", error);
-            return json(400, { error: "Suppression impossible" });
+            // Motif de la base rendu tel quel (11/09/2026) : un refus de la
+            // garde des factures émises (« Mise à la corbeille refusée : la
+            // facture … est émise… ») doit parvenir à l'intégrateur, comme
+            // dans le PATCH.
+            return json(400, { error: error.message || "Suppression impossible" });
           }
           return json(200, { success: true, soft_deleted: true });
         }

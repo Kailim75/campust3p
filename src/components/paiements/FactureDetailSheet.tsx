@@ -28,18 +28,29 @@ import {
   Receipt,
   Send,
   Pencil,
+  Ban,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useFacture, FactureStatut, FinancementType, useDeleteFacture } from "@/hooks/useFactures";
+import {
+  useFacture,
+  FactureStatut,
+  FinancementType,
+  useDeleteFacture,
+  useUpdateFacture,
+  useAnnulationManuellePermise,
+  type FactureWithDetails,
+} from "@/hooks/useFactures";
 import { useFacturePaiements, useDeletePaiement, ModePaiement } from "@/hooks/usePaiements";
 import { commissionPourPaiement } from "@/lib/alma-commission";
 import { PaiementFormDialog } from "./PaiementFormDialog";
 import { toast } from "sonner";
 import { useDocumentGenerator } from "@/hooks/useDocumentGenerator";
 import { generateFacturePDF, downloadPDF, preloadCompanyImages } from "@/lib/pdf-generator";
-import { extractPayerInfo } from "@/lib/facture-payer-utils";
+import { clientImprimeFacture, extractPayerInfo, type ClientPdfFacture } from "@/lib/facture-payer-utils";
+import { actionsGestionFacture } from "@/lib/factures-emises";
+import { ConfirmationAnnulationFactureDialog } from "./ConfirmationAnnulationFactureDialog";
 import { AlmaPaymentSection } from "./AlmaPaymentSection";
 import { PdpTransmissionPanel } from "@/components/facturation/PdpTransmissionPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +98,50 @@ const modeIcons: Record<ModePaiement, React.ReactNode> = {
   alma: <CreditCard className="h-4 w-4" />,
 };
 
+/**
+ * Client imprimé sur le PDF : fiche contact ou entreprise (repli, construit
+ * comme avant), remplacée par les coordonnées figées de l'acheteur dès que la
+ * facture est émise et qu'elles existent (clientImprimeFacture).
+ */
+function clientPdfDepuisFacture(facture: FactureWithDetails): ClientPdfFacture | null {
+  const partner = facture.client_partner;
+  let repli: ClientPdfFacture | null = null;
+  if (facture.contact) {
+    repli = {
+      contact: {
+        nom: facture.contact.nom,
+        prenom: facture.contact.prenom,
+        email: facture.contact.email || undefined,
+        telephone: facture.contact.telephone || undefined,
+      },
+      ...extractPayerInfo(facture.session_inscription, facture.contact),
+    };
+  } else if (partner) {
+    repli = {
+      contact: {
+        nom: partner.company_name || "",
+        prenom: "",
+        email: partner.email || undefined,
+        telephone: partner.phone || undefined,
+      },
+      payer: {
+        company_name: partner.company_name || "",
+        address: [partner.address, partner.code_postal, partner.ville].filter(Boolean).join(" ") || undefined,
+        email: partner.email || undefined,
+        siret: partner.siret || undefined,
+        // Une facture B2B porte le n° de TVA intracommunautaire : le repli
+        // « fiche entreprise » ne doit pas être moins complet que la branche
+        // figée (facture ancienne, sans buyer_name_snapshot).
+        tva_intracom: partner.tva_intracom || undefined,
+      },
+      beneficiaire: undefined,
+      montant_pris_en_charge: Number(facture.montant_total),
+      reste_a_charge: 0,
+    };
+  }
+  return repli ? clientImprimeFacture(facture, repli) : null;
+}
+
 const modeLabels: Record<ModePaiement, string> = {
   cb: "Carte bancaire",
   virement: "Virement",
@@ -107,10 +162,15 @@ export function FactureDetailSheet({
   const [showSendEmailAlert, setShowSendEmailAlert] = useState(false);
   const [deletingPaiementId, setDeletingPaiementId] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [showAnnulationAlert, setShowAnnulationAlert] = useState(false);
+  const [isAnnulating, setIsAnnulating] = useState(false);
 
   const { data: facture, isLoading, refetch: refetchFacture } = useFacture(factureId);
   const { data: paiements = [] } = useFacturePaiements(factureId);
   const deleteFacture = useDeleteFacture();
+  const updateFacture = useUpdateFacture();
+  // Base actuelle sans la fonction : annulation permise (voir le hook).
+  const { data: annulationPermise = true } = useAnnulationManuellePermise(open && !!factureId);
   const deletePaiement = useDeletePaiement();
   const { getCompanyInfo } = useDocumentGenerator();
 
@@ -126,12 +186,27 @@ export function FactureDetailSheet({
 
   const handleDeleteFacture = async () => {
     if (!factureId) return;
+    // `false` : la base a refusé, le motif est déjà affiché. On n'annonce rien
+    // et le panneau reste ouvert.
+    const supprimee = await deleteFacture.mutateAsync(factureId);
+    if (!supprimee) return;
+    toast.success("Facture supprimée");
+    onOpenChange(false);
+  };
+
+  // Annulation d'une facture émise (D6) : on n'envoie QUE le statut.
+  const handleAnnulerFacture = async () => {
+    if (!factureId || isAnnulating) return;
+    setIsAnnulating(true);
     try {
-      await deleteFacture.mutateAsync(factureId);
-      toast.success("Facture supprimée");
-      onOpenChange(false);
+      await updateFacture.mutateAsync({ id: factureId, statut: "annulee" });
+      toast.success("Facture annulée");
+      setShowAnnulationAlert(false);
     } catch (error) {
-      toast.error("Erreur lors de la suppression");
+      // Motif déjà affiché par useUpdateFacture (messageErreur).
+      console.error("Erreur annulation facture:", error);
+    } finally {
+      setIsAnnulating(false);
     }
   };
 
@@ -152,41 +227,12 @@ export function FactureDetailSheet({
       const { data: fresh } = await refetchFacture();
       const facture = fresh ?? null;
       if (!facture) return;
-      const partner = (facture as any).client_partner;
-    const contactInfo = facture.contact ? {
-      nom: facture.contact.nom,
-      prenom: facture.contact.prenom,
-      email: facture.contact.email || undefined,
-      telephone: facture.contact.telephone || undefined,
-    } : partner ? {
-      nom: partner.company_name || "",
-      prenom: "",
-      email: partner.email || undefined,
-      telephone: partner.phone || undefined,
-      raison_sociale: partner.company_name,
-      siret: partner.siret,
-      tva_intracom: partner.tva_intracom,
-      adresse: partner.address,
-      code_postal: partner.code_postal,
-      ville: partner.ville,
-    } as any : null;
-    if (!contactInfo) {
+      const client = clientPdfDepuisFacture(facture);
+    if (!client) {
       toast.error("Aucun client associé à cette facture");
       return;
     }
-    const { payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = facture.contact
-      ? extractPayerInfo(facture.session_inscription, facture.contact)
-      : {
-          payer: {
-            company_name: partner?.company_name || "",
-            address: [partner?.address, partner?.code_postal, partner?.ville].filter(Boolean).join(" ") || undefined,
-            email: partner?.email || undefined,
-            siret: partner?.siret || undefined,
-          },
-          beneficiaire: undefined,
-          montant_pris_en_charge: Number(facture.montant_total),
-          reste_a_charge: 0,
-        };
+    const { contact: contactInfo, payer, beneficiaire, montant_pris_en_charge, reste_a_charge } = client;
     // Récupérer les lignes fraîches de la facture
     const { data: lignesData } = await supabase
       .from("facture_lignes")
@@ -258,36 +304,12 @@ export function FactureDetailSheet({
         toast.error("Aucun email pour ce client");
         return;
       }
-      const contactInfo = facture.contact ? {
-        nom: facture.contact.nom,
-        prenom: facture.contact.prenom,
-        email: facture.contact.email || undefined,
-        telephone: facture.contact.telephone || undefined,
-      } : {
-        nom: partner?.company_name || "",
-        prenom: "",
-        email: partner?.email || undefined,
-        telephone: partner?.phone || undefined,
-        raison_sociale: partner?.company_name,
-        siret: partner?.siret,
-        tva_intracom: partner?.tva_intracom,
-        adresse: partner?.address,
-        code_postal: partner?.code_postal,
-        ville: partner?.ville,
-      } as any;
-      const { payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = facture.contact
-        ? extractPayerInfo(facture.session_inscription, facture.contact)
-        : {
-            payer: {
-              company_name: partner?.company_name || "",
-              address: [partner?.address, partner?.code_postal, partner?.ville].filter(Boolean).join(" ") || undefined,
-              email: partner?.email || undefined,
-              siret: partner?.siret || undefined,
-            },
-            beneficiaire: undefined,
-            montant_pris_en_charge: Number(facture.montant_total),
-            reste_a_charge: 0,
-          };
+      const client = clientPdfDepuisFacture(facture);
+      if (!client) {
+        toast.error("Aucun client associé à cette facture");
+        return;
+      }
+      const { contact: contactInfo, payer, beneficiaire, montant_pris_en_charge: mpc, reste_a_charge: rac } = client;
       const { data: lignesData } = await supabase
         .from("facture_lignes")
         .select("description, quantite, prix_unitaire_ht, ordre")
@@ -719,14 +741,42 @@ export function FactureDetailSheet({
                           Modifier la facture
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        className="justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20"
-                        onClick={() => setShowDeleteAlert(true)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-3" />
-                        Supprimer la facture
-                      </Button>
+                      {(() => {
+                        // Brouillon : Supprimer. Émise non annulée : Annuler
+                        // (D1, D6 du 11/09/2026) — jamais de suppression.
+                        const actions = actionsGestionFacture(facture.statut, annulationPermise);
+                        return (
+                          <>
+                            {actions.supprimer && (
+                              <Button
+                                variant="outline"
+                                className="justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20"
+                                onClick={() => setShowDeleteAlert(true)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-3" />
+                                Supprimer la facture
+                              </Button>
+                            )}
+                            {actions.annuler && (
+                              <Button
+                                variant="outline"
+                                className="justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20"
+                                disabled={isAnnulating}
+                                onClick={() => setShowAnnulationAlert(true)}
+                              >
+                                <Ban className="h-4 w-4 mr-3" />
+                                Annuler la facture
+                              </Button>
+                            )}
+                            {!actions.supprimer && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Une facture émise ne se supprime pas
+                                {actions.annuler ? " : en cas d'erreur, annulez-la puis créez une nouvelle facture." : "."}
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -765,6 +815,15 @@ export function FactureDetailSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConfirmationAnnulationFactureDialog
+        open={showAnnulationAlert}
+        onOpenChange={setShowAnnulationAlert}
+        numeroFacture={facture?.numero_facture}
+        montantDejaPaye={facture?.total_paye}
+        enCours={isAnnulating}
+        onConfirm={() => void handleAnnulerFacture()}
+      />
 
       <AlertDialog
         open={!!deletingPaiementId}

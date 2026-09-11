@@ -125,11 +125,12 @@ export function useDeleteDocument() {
 
   return {
     mutate: (params: { id: string; filePath: string; contactId: string }) => {
-      softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" });
+      void softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" });
     },
-    mutateAsync: async (params: { id: string; filePath: string; contactId: string }) => {
-      await softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" });
-    },
+    // Résout `false` si la base a refusé (motif déjà affiché) : un appelant qui
+    // enchaîne un toast de succès ou une fermeture doit pouvoir le savoir (F3).
+    mutateAsync: (params: { id: string; filePath: string; contactId: string }): Promise<boolean> =>
+      softDelete({ table: "contact_documents", id: params.id, message: "Document supprimé" }),
     isPending: false,
   };
 }
