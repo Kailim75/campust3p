@@ -220,8 +220,9 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 - `./node_modules/.bin/tsc -p tsconfig.app.json --noEmit`
 - `./node_modules/.bin/vitest run` (59+ tests, dont cohérence navigation)
 - `node node_modules/vite/bin/vite.js build`
-- Lockfile de référence : **`bun.lock`** (`bun install --frozen-lockfile`).
-  Le `package-lock.json` est désynchronisé — ne pas s'y fier.
+- Lockfile de référence unique : **`bun.lock`** (`bun install --frozen-lockfile`).
+  `package-lock.json` (npm, désynchronisé) supprimé le 12/09/2026 — ne pas le
+  régénérer. `bun.lockb` (ancien format binaire) subsiste, redondant avec `bun.lock`.
 - Pour les envois d'emails : modes `dryRun` des fonctions cron
   (`send-convocation-cron`, `signature-reminders` et, depuis le 10/09/2026,
   `send-automated-emails` acceptent `?dryRun=true` — décompte de ce qui
