@@ -1,0 +1,57 @@
+name: CI
+
+# Barrière de qualité automatique.
+#
+# Sur chaque proposition de changement (pull request) vers main, et sur main lui-même,
+# on réinstalle les dépendances depuis le lockfile figé (bun.lock — le même lockfile et
+# le même registre que la prod Lovable), puis on :
+#   1. vérifie les types (TypeScript)
+#   2. lance les 657 tests (Vitest)
+#   3. construit le bundle de production (Vite)
+# Si l'une de ces trois étapes échoue, l'exécution est rouge.
+#
+# Pour que ce contrôle BLOQUE réellement la fusion, il faut l'activer une fois côté GitHub :
+#   Settings → Branches → Add branch protection rule sur « main »
+#   → Require status checks to pass before merging → cocher « quality ».
+#
+# L'analyse de code (eslint) est exécutée en INFORMATION SEULEMENT pour l'instant
+# (continue-on-error) : elle compte ~1039 erreurs héritées. Une fois ce stock résorbé,
+# retirer la ligne « continue-on-error: true » pour la rendre bloquante elle aussi.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Annule une exécution encore en cours sur la même branche quand un nouveau commit arrive.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Installer les dépendances (lockfile figé)
+        run: bun install --frozen-lockfile
+
+      - name: Vérifier les types (TypeScript)
+        run: bun run typecheck
+
+      - name: Lancer les tests (Vitest)
+        run: bun run test
+
+      - name: Construire le bundle de production
+        run: bun run build
+
+      - name: Analyse de code (eslint) — information seulement pour l'instant
+        run: bun run lint
+        continue-on-error: true
