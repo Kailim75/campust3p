@@ -164,7 +164,7 @@ export function WorkflowsPage() {
         trigger_data: { test: true, workflow_name: workflow.nom },
         workflow_id: workflow.id
       });
-      toast.success('Workflow testé avec succès');
+      toast.success('Simulation réussie : le workflow est valide (aucun envoi réel).');
     } catch (error: any) {
       toast.error(messageErreur(error, "Erreur lors du test"));
     }

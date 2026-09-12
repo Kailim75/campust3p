@@ -361,6 +361,26 @@ serve(async (req) => {
       }
 
       try {
+        // Bouton « Tester » : simulation. On NE déclenche PAS les actions réelles
+        // (aucun email envoyé, aucune écriture) et on ne fait donc pas échouer le
+        // test faute de contact/enregistrement réel. Accès et centre sont déjà
+        // vérifiés ; on résume simplement ce qui serait fait. Les VRAIS
+        // déclencheurs (données réelles, sans test:true) suivent la voie normale,
+        // où un échec d'action marque désormais l'exécution « failed ».
+        if (donnees?.test === true) {
+          const apercu = (workflow.actions ?? []).map((a: WorkflowAction) => a.type);
+          await supabase
+            .from('workflow_executions')
+            .update({
+              status: 'completed',
+              result: { simulation: true, actions_prevues: apercu, declenche_par: appelant.userId },
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', execution.id);
+          results.push({ workflow_id: workflow.id, success: true, simulation: true, actions: apercu });
+          continue;
+        }
+
         // Vérifier les conditions du trigger
         if (!checkConditions(workflow.trigger_conditions, donnees)) {
           await supabase
@@ -381,17 +401,29 @@ serve(async (req) => {
           actionResults.push(result);
         }
 
-        // Mettre à jour l'exécution
+        // Une action peut échouer en RETOURNANT { success: false } (destinataire
+        // manquant, template hors centre, clé Resend absente, type inconnu…) SANS
+        // lever d'exception. Sans ce contrôle, l'exécution était marquée
+        // « completed » et renvoyée « success: true » alors qu'une action avait
+        // échoué : panne silencieuse (l'opérateur croyait l'action faite).
+        const resume = resumerActions(actionResults);
+
+        // Mettre à jour l'exécution — 'failed' si au moins une action a échoué.
         await supabase
           .from('workflow_executions')
           .update({
-            status: 'completed',
+            status: resume.echec ? 'failed' : 'completed',
+            error_message: resume.messageErreur,
             result: { actions: actionResults, declenche_par: appelant.userId },
             completed_at: new Date().toISOString()
           })
           .eq('id', execution.id);
 
-        results.push({ workflow_id: workflow.id, success: true, actions: actionResults });
+        results.push(
+          resume.echec
+            ? { workflow_id: workflow.id, success: false, error: resume.messageErreur, actions: actionResults }
+            : { workflow_id: workflow.id, success: true, actions: actionResults }
+        );
 
       } catch (actionError: any) {
         console.error('Error executing workflow:', actionError);
@@ -408,13 +440,30 @@ serve(async (req) => {
       }
     }
 
-    return jsonResponse(200, { success: true, results });
+    // La réponse ne peut plus être « success: true » si un workflow a échoué.
+    const succesGlobal = results.every((r) => r.success !== false);
+    return jsonResponse(200, { success: succesGlobal, results });
 
   } catch (error: any) {
     console.error('Workflow execution error:', error);
     return jsonResponse(500, { success: false, error: error.message });
   }
 });
+
+// Une exécution est en échec dès qu'UNE action retourne { success: false }
+// (échec renvoyé, sans exception levée). Seuls les échecs EXPLICITES comptent :
+// un résultat sans champ `success` (ou success !== false) est considéré réussi,
+// pour ne pas transformer un succès en faux échec.
+export function resumerActions(
+  actionResults: any[],
+): { echec: boolean; messageErreur: string | null } {
+  const enEchec = actionResults.filter((r) => r?.success === false);
+  if (enEchec.length === 0) return { echec: false, messageErreur: null };
+  const messageErreur = enEchec
+    .map((r) => r?.error ?? 'action en échec')
+    .join(' ; ');
+  return { echec: true, messageErreur };
+}
 
 function checkConditions(conditions: Record<string, any>, data: Record<string, any>): boolean {
   if (!conditions || Object.keys(conditions).length === 0) {
