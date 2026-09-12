@@ -332,8 +332,23 @@ export function useExecuteWorkflow() {
       const { data, error } = await supabase.functions.invoke('execute-workflow', {
         body: params
       });
-      
+
       if (error) throw error;
+
+      // L'edge function répond en 200 même quand un workflow échoue : l'échec est
+      // porté par data.success / data.results[].success. Sans ce contrôle, le
+      // bouton « Tester » afficherait « succès » alors qu'une action a échoué.
+      if (data && data.success === false) {
+        const details = Array.isArray(data.results)
+          ? data.results
+              .filter((r: any) => r?.success === false)
+              .map((r: any) => r?.error)
+              .filter(Boolean)
+              .join(' ; ')
+          : '';
+        throw new Error(details || "L'exécution du workflow a échoué.");
+      }
+
       return data;
     }
   });
