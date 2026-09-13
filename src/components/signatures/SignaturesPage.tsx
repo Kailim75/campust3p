@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ouvrirSignature } from "@/lib/signatures";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -391,7 +392,7 @@ export function SignaturesPage() {
                               </>
                             )}
                             {sig.statut === "signe" && sig.signature_url && (
-                              <DropdownMenuItem onClick={() => window.open(sig.signature_url!, "_blank")}>
+                              <DropdownMenuItem onClick={() => ouvrirSignature(sig.signature_url)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 Voir signature
                               </DropdownMenuItem>
