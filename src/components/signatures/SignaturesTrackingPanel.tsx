@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ouvrirSignature } from "@/lib/signatures";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -364,7 +365,7 @@ export function SignaturesTrackingPanel() {
                                   </>
                                 )}
                                 {s === "signe" && r.signature_url && (
-                                  <Button size="sm" variant="ghost" onClick={() => window.open(r.signature_url!, "_blank")}>
+                                  <Button size="sm" variant="ghost" onClick={() => ouvrirSignature(r.signature_url)}>
                                     Voir
                                   </Button>
                                 )}
