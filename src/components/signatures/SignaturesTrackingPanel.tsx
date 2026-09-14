@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ouvrirSignature } from "@/lib/signatures";
+import { DocumentSigneDialog } from "@/components/signatures/DocumentSigneDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,8 @@ type Row = {
   date_expiration: string | null;
   access_token: string | null;
   signature_url: string | null;
+  document_storage_path: string | null;
+  document_storage_bucket: string | null;
   created_at: string;
   contact: { id: string; nom: string; prenom: string; email: string | null } | null;
   session_inscription: {
@@ -88,6 +91,7 @@ function StatutBadge({ statut }: { statut: string }) {
 
 export function SignaturesTrackingPanel() {
   const [search, setSearch] = useState("");
+  const [docSigne, setDocSigne] = useState<Row | null>(null);
   const sendEmail = useSendSignatureEmail();
   const [pendingResend, setPendingResend] = useState<Row | null>(null);
   // L'état de la mutation est global à toutes les lignes. On suit donc les
@@ -102,7 +106,8 @@ export function SignaturesTrackingPanel() {
         .from("signature_requests")
         .select(`
           id, contact_id, session_inscription_id, type_document, titre, statut,
-          date_envoi, date_signature, date_expiration, access_token, signature_url, created_at,
+          date_envoi, date_signature, date_expiration, access_token, signature_url,
+          document_storage_path, document_storage_bucket, created_at,
           contact:contacts(id, nom, prenom, email),
           session_inscription:session_inscriptions(id, session:sessions(id, nom, date_debut, formation_type))
         `)
@@ -364,8 +369,14 @@ export function SignaturesTrackingPanel() {
                                     </Button>
                                   </>
                                 )}
-                                {s === "signe" && r.signature_url && (
-                                  <Button size="sm" variant="ghost" onClick={() => ouvrirSignature(r.signature_url)}>
+                                {s === "signe" && (r.document_storage_path || r.signature_url) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      r.document_storage_path ? setDocSigne(r) : ouvrirSignature(r.signature_url)
+                                    }
+                                  >
                                     Voir
                                   </Button>
                                 )}
@@ -382,6 +393,12 @@ export function SignaturesTrackingPanel() {
           })}
         </Accordion>
       )}
+
+      <DocumentSigneDialog
+        open={!!docSigne}
+        onOpenChange={(o) => !o && setDocSigne(null)}
+        signature={docSigne}
+      />
     </div>
   );
 }

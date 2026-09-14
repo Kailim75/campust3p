@@ -7,12 +7,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { resoudreObjetSignature } from "@/lib/signatures";
 import { composerPdfSigne, legendeSignature } from "@/lib/documentSigne";
-import type { SignatureRequest } from "@/hooks/useSignatures";
+
+/**
+ * Champs minimaux nécessaires à l'affichage — satisfait aussi bien par
+ * SignatureRequest (page principale) que par les lignes du panneau de suivi.
+ */
+export type SignatureAAfficher = {
+  titre?: string | null;
+  signature_url: string | null;
+  document_storage_path: string | null;
+  document_storage_bucket: string | null;
+  date_signature: string | null;
+  contact?: { nom?: string | null; prenom?: string | null } | null;
+};
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  signature: SignatureRequest | null;
+  signature: SignatureAAfficher | null;
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
