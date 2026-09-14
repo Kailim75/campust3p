@@ -10,6 +10,8 @@ export interface SignatureRequest {
   titre: string;
   description: string | null;
   document_url: string | null;
+  document_storage_path: string | null;
+  document_storage_bucket: string | null;
   statut: string;
   date_envoi: string | null;
   date_signature: string | null;

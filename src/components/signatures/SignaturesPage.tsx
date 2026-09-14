@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ouvrirSignature } from "@/lib/signatures";
+import { DocumentSigneDialog } from "@/components/signatures/DocumentSigneDialog";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +82,7 @@ const STATUT_CONFIG: Record<string, { label: string; color: string; icon: any }>
 export function SignaturesPage() {
   const [showForm, setShowForm] = useState(false);
   const [signingRequest, setSigningRequest] = useState<SignatureRequest | null>(null);
+  const [docSigne, setDocSigne] = useState<SignatureRequest | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statutFilter, setStatutFilter] = useState<string>("all");
 
@@ -391,10 +393,16 @@ export function SignaturesPage() {
                                 </DropdownMenuItem>
                               </>
                             )}
+                            {sig.statut === "signe" && sig.document_storage_path && (
+                              <DropdownMenuItem onClick={() => setDocSigne(sig)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Voir le document signé
+                              </DropdownMenuItem>
+                            )}
                             {sig.statut === "signe" && sig.signature_url && (
                               <DropdownMenuItem onClick={() => ouvrirSignature(sig.signature_url)}>
                                 <Eye className="h-4 w-4 mr-2" />
-                                Voir signature
+                                Voir la signature seule
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -451,6 +459,12 @@ export function SignaturesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentSigneDialog
+        open={!!docSigne}
+        onOpenChange={(o) => !o && setDocSigne(null)}
+        signature={docSigne}
+      />
     </div>
   );
 }
