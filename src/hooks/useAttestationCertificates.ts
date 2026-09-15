@@ -85,7 +85,7 @@ export function useAttestationCertificates() {
     }: CreateCertificateParams): Promise<CertificateResult> => {
       const { data, error } = await supabase.rpc('create_attestation_certificate', {
         p_contact_id: contactId,
-        p_session_id: sessionId,
+        p_session_id: sessionId ?? undefined,
         p_type_attestation: typeAttestation,
         p_metadata: metadata as unknown as Record<string, never>,
       });
@@ -129,7 +129,7 @@ export function useAttestationCertificates() {
     mutationFn: async ({ certificateId, reason }: { certificateId: string; reason?: string }) => {
       const { data, error } = await supabase.rpc('revoke_certificate', {
         p_certificate_id: certificateId,
-        p_reason: reason || null,
+        p_reason: reason || undefined,
       });
 
       if (error) throw error;
@@ -152,7 +152,7 @@ export function useAttestationCertificates() {
     mutationFn: async ({ certificateId, reason }: { certificateId: string; reason?: string }) => {
       const { data, error } = await supabase.rpc('cancel_certificate', {
         p_certificate_id: certificateId,
-        p_reason: reason || null,
+        p_reason: reason || undefined,
       });
 
       if (error) throw error;

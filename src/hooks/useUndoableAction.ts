@@ -169,14 +169,14 @@ export function useSoftDeleteWithUndo() {
         if (params.table === "sessions") {
           const { error } = await supabase.rpc("soft_delete_session", {
             p_session_id: params.id,
-            p_reason: null,
+            p_reason: undefined,
           });
           if (error) throw error;
         } else {
           const { error } = await supabase.rpc("soft_delete_record", {
             p_table_name: params.table,
             p_record_id: params.id,
-            p_reason: null,
+            p_reason: undefined,
           });
           if (error) throw error;
         }

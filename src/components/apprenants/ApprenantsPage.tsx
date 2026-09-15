@@ -437,7 +437,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           {paginatedFiltered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
             const formationClass = contact.formation
-              ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
+              ? ({ TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" } as Record<string, string>)[contact.formation] || "badge-soft badge-soft-gray"
               : "";
             const payLabel = (() => {
               if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };

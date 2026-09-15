@@ -238,7 +238,7 @@ export function PeriodComparisonDashboard() {
                  data?.metrics.ca.trend === "down" ? "En baisse" : "Stable"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {data?.metrics.ca.changePercent > 0 && "+"}
+                {(data?.metrics.ca.changePercent ?? 0) > 0 && "+"}
                 {data?.metrics.ca.changePercent}% vs période précédente
               </p>
             </div>

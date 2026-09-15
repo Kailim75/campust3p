@@ -51,8 +51,8 @@ export function ContactProgressBar({
   const hasPermis = !!contact.numero_permis;
   const isInscribed = inscriptions.length > 0;
   const hasPaidInvoice = factures.some(f => f.statut === "payee" || f.statut === "partiel");
-  const hasPassedExam = examens?.t3p?.some(e => e.resultat === "admis") || 
-                         examens?.pratique?.some(e => e.resultat === "admis");
+  const hasPassedExam = !!(examens?.t3p?.some(e => e.resultat === "admis") ||
+                         examens?.pratique?.some(e => e.resultat === "admis"));
   const hasCartePro = !!contact.numero_carte_professionnelle;
 
   const steps: Step[] = [

@@ -221,7 +221,7 @@ export function SessionResumeTab({
             variant="default"
             className="text-xs"
             onClick={onOpenClosure}
-            disabled={inscriptionCount === 0 || session.statut === "terminee" || session.archived}
+            disabled={!!(inscriptionCount === 0 || session.statut === "terminee" || session.archived)}
           >
             <CheckCircle2 className="h-3 w-3 mr-1" /> Clôturer la session
           </Button>

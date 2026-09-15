@@ -18,13 +18,13 @@ interface Reclamation {
   id: string;
   titre: string;
   description: string;
-  statut: string;
-  priorite?: string;
-  categorie?: string;
-  created_at: string;
-  date_resolution?: string;
-  resolution?: string;
-  delai_traitement_jours?: number;
+  statut: string | null;
+  priorite?: string | null;
+  categorie?: string | null;
+  created_at: string | null;
+  date_resolution?: string | null;
+  resolution?: string | null;
+  delai_traitement_jours?: number | null;
   contact?: { nom: string; prenom: string } | null;
   session?: { nom: string } | null;
 }
@@ -77,7 +77,7 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
         <ScrollArea className="h-[400px]">
           <div className="space-y-4">
             {reclamations.map((reclamation) => {
-              const statut = statutConfig[reclamation.statut] || statutConfig.nouvelle;
+              const statut = statutConfig[reclamation.statut ?? ""] || statutConfig.nouvelle;
               const priorite = prioriteConfig[reclamation.priorite || "normale"];
               const StatusIcon = statut.icon;
 
@@ -121,7 +121,7 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
                     )}
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(reclamation.created_at), {
+                      {formatDistanceToNow(new Date(reclamation.created_at ?? 0), {
                         addSuffix: true,
                         locale: fr,
                       })}
@@ -135,7 +135,7 @@ export const ReclamationsListSection = forwardRef<HTMLDivElement, ReclamationsLi
                     <div className="flex items-center gap-2 pt-2 border-t">
                       <span className="text-sm text-muted-foreground">Changer le statut :</span>
                       <Select
-                        value={reclamation.statut}
+                        value={reclamation.statut ?? ""}
                         onValueChange={(value) => onUpdateStatus(reclamation.id, value)}
                         disabled={isUpdating}
                       >
