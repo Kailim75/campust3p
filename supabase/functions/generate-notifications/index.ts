@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "generate-notifications";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +32,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
     const today = new Date();
     const notifications: NotificationToCreate[] = [];
@@ -46,6 +50,7 @@ serve(async (req) => {
 
     const userIds = [...new Set(userRoles?.map(r => r.user_id) || [])];
     if (userIds.length === 0) {
+      await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
       return new Response(
         JSON.stringify({ message: "No users to notify", notifications: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -464,6 +469,7 @@ serve(async (req) => {
 
     console.log(`Generated ${notifications.length} notifications`);
 
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -485,11 +491,20 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Error in generate-notifications:", error);
+    // `supabase` est déclaré dans le bloc try : on en recrée un pour le
+    // seul battement de cœur (même motif que send-daily-report).
+    try {
+      const errClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      await reportHeartbeat(errClient, HEARTBEAT_JOB, "error", error.message);
+    } catch (_) { /* ignore */ }
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }

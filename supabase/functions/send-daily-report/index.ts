@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "send-daily-report";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +37,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
     const now = new Date();
     const todayISO = now.toISOString().slice(0, 10);
@@ -262,6 +266,31 @@ serve(async (req) => {
       .gte("created_at", yesterdayIso);
 
     // ==========================================
+    // 9. SANTÉ DES CRONS (battement de cœur — supervision minimale 15/09/2026)
+    // ==========================================
+    // Un job est jugé silencieux si son dernier succès remonte à plus de 26h
+    // (marge sur les jobs quotidiens à 24h) — ou s'il n'a jamais réussi alors
+    // qu'il a déjà tourné au moins une fois (last_run_at posé, last_ok_at nul).
+    // Un job qui n'a JAMAIS tourné (aucune ligne) n'est pas signalé ici : ce
+    // serait un job non instrumenté ou pas encore déployé, pas une panne.
+    const cutoff26h = new Date(now.getTime() - 26 * 3600 * 1000);
+    const { data: heartbeats, error: heartbeatsErr } = await supabase
+      .from("cron_heartbeats")
+      .select("job, last_run_at, last_ok_at, last_status, last_error");
+
+    if (heartbeatsErr) {
+      console.error("[send-daily-report] Erreur lecture cron_heartbeats:", heartbeatsErr);
+    }
+
+    const cronsSilencieux = (heartbeats || [])
+      .filter((h) => {
+        if (!h.last_run_at) return false;
+        if (!h.last_ok_at) return true;
+        return new Date(h.last_ok_at).getTime() < cutoff26h.getTime();
+      })
+      .sort((a, b) => (a.job > b.job ? 1 : -1));
+
+    // ==========================================
     // BUILD HTML REPORT
     // ==========================================
     const dateFr = now.toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -284,6 +313,7 @@ serve(async (req) => {
       totalEmailsEchecs24h,
       signaturesExpirees24h: signaturesExpirees24h ?? 0,
       notificationsCreees24h: notificationsCreees24h ?? 0,
+      cronsSilencieux,
     });
 
     // ==========================================
@@ -327,6 +357,7 @@ serve(async (req) => {
         emails_echecs_24h: totalEmailsEchecs24h,
         signatures_expirees_24h: signaturesExpirees24h ?? 0,
         notifications_creees_24h: notificationsCreees24h ?? 0,
+        crons_silencieux_24h: cronsSilencieux.length,
         generation_ms: Date.now() - startTime,
       },
     });
@@ -337,6 +368,7 @@ serve(async (req) => {
 
     console.log(`[send-daily-report] Rapport envoyé avec succès en ${Date.now() - startTime}ms`);
 
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
     return new Response(
       JSON.stringify({
         success: true,
@@ -369,6 +401,7 @@ serve(async (req) => {
         status: "failed",
         error_message: error.message,
       });
+      await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", error.message);
     } catch (_) { /* ignore log failure */ }
 
     return new Response(
@@ -387,7 +420,7 @@ function buildReportHtml(data: any): string {
     sessionsFaibleRemplissage, facturesAvecSolde, dossiersIncomplets,
     examensT3P, examensPratique, encaissements, totalEncaisse, totalResteAPayer,
     santeParType, totalEmailsEnvoyes24h, totalEmailsEchecs24h,
-    signaturesExpirees24h, notificationsCreees24h,
+    signaturesExpirees24h, notificationsCreees24h, cronsSilencieux,
   } = data;
 
   const kpiCards = [
@@ -605,6 +638,32 @@ function buildReportHtml(data: any): string {
   </p>
 </td></tr>
 
+<!-- SECTION: SANTÉ DES CRONS -->
+<tr><td style="padding:28px 28px 24px;">
+  ${sectionHeader("💓 Santé des crons", cronsSilencieux.length > 0
+    ? `⚠️ ${cronsSilencieux.length} job(s) pg_cron silencieux depuis plus de 26 h`
+    : "Tous les jobs pg_cron ont un battement de cœur récent")}
+  ${cronsSilencieux.length > 0 ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;margin-bottom:12px;">
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;">Job</td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;">Dernier succès</td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;">Dernière exécution</td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;">Dernière erreur</td>
+      </tr>
+      ${cronsSilencieux.map((h: any, i: number) => `
+        <tr style="background:${i % 2 === 0 ? '#fff' : '#fafafa'};">
+          <td style="padding:8px 12px;font-size:13px;color:#333;"><strong>${h.job}</strong></td>
+          <td style="padding:8px 12px;font-size:12px;color:#e74c3c;">${h.last_ok_at ? formatDateTimeFr(h.last_ok_at) : "jamais"}</td>
+          <td style="padding:8px 12px;font-size:12px;color:#666;">${formatDateTimeFr(h.last_run_at)}</td>
+          <td style="padding:8px 12px;font-size:12px;color:#666;">${h.last_error ? String(h.last_error).slice(0, 140) : "—"}</td>
+        </tr>
+      `).join("")}
+    </table>
+    <p style="font-size:12px;color:#e67e22;margin:0;">Vérifier supabase/CRON_JOBS.md et les logs de la fonction concernée — un job silencieux peut être en panne sans qu'aucun email ne le signale.</p>
+  ` : `<p style="color:#999;font-size:13px;font-style:italic;">Aucun job en retard de plus de 26 h.</p>`}
+</td></tr>
+
 <!-- FOOTER -->
 <tr><td style="padding:28px 28px;background:#f8f9fa;border-top:1px solid #eee;text-align:center;">
   <p style="margin:0 0 4px;font-size:12px;color:#999;"><strong>Ecole T3P Montrouge</strong> — Centre de formation Taxi, VTC et VMDTR</p>
@@ -635,6 +694,16 @@ function formatDateShort(d: string | null): string {
   if (!d) return "—";
   try {
     return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+  } catch { return d; }
+}
+
+function formatDateTimeFr(d: string | null): string {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleString("fr-FR", {
+      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+      timeZone: "Europe/Paris",
+    });
   } catch { return d; }
 }
 

@@ -5,6 +5,9 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { getFromAddress, EMAIL_CONFIG } from "../_shared/email-config.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "process-payment-reminders";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +33,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
   const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
   // Fetch due relances
   const { data: queue, error: qErr } = await supabase
@@ -41,6 +45,7 @@ Deno.serve(async (req) => {
 
   if (qErr) {
     console.error("Queue fetch error:", qErr);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", qErr.message);
     return new Response(JSON.stringify({ error: qErr.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -174,6 +179,7 @@ Deno.serve(async (req) => {
     }
   }
 
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
   return new Response(JSON.stringify({ processed: results.length, results }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

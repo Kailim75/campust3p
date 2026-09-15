@@ -22,6 +22,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "signature-reminders";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,14 +57,16 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendKey = Deno.env.get("RESEND_API_KEY");
+  const supabase = createClient(supabaseUrl, serviceKey);
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
   if (!resendKey) {
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", "RESEND_API_KEY missing");
     return new Response(JSON.stringify({ error: "RESEND_API_KEY missing" }), {
       status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey);
   const resend = new Resend(resendKey);
 
   // Overrides de test : ?days=5&dryRun=true ou body { daysBefore, dryRun }
@@ -124,6 +129,7 @@ serve(async (req) => {
 
   if (dueErr) {
     console.error("[SIG-REMINDERS] Erreur sélection relances:", dueErr);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", dueErr.message);
     return new Response(JSON.stringify({ error: dueErr.message }), {
       status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
@@ -243,6 +249,7 @@ serve(async (req) => {
 
   console.log(`[SIG-REMINDERS] Done. expired=${expiredCount} reminded=${reminded} skipped=${skipped} failed=${failed}`);
 
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
   return new Response(
     JSON.stringify({ ok: true, dryRun, daysBefore, expired: expiredCount, reminded, skipped, failed, outcomes }),
     { headers: { "Content-Type": "application/json", ...corsHeaders } },

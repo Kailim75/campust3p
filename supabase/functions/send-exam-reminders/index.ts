@@ -3,6 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "send-exam-reminders";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -38,6 +41,7 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
   const results: EmailResult[] = [];
   const today = new Date();
@@ -283,12 +287,14 @@ serve(async (req) => {
 
     console.log("Exam reminders job completed:", summary.totals);
 
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
     return new Response(JSON.stringify(summary), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in send-exam-reminders:", error);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", error.message);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

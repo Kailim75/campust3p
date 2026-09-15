@@ -17,6 +17,12 @@ import {
 } from "../_shared/pdf-validator.ts";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { cronSecretMatches } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+// Battement de cœur réservé au chemin cron (job `daily-automated-emails`) :
+// les envois manuels du CRM (bulk / direct) ne sont pas un job pg_cron et ne
+// doivent pas polluer `cron_heartbeats`.
+const HEARTBEAT_JOB = "send-automated-emails";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -235,6 +241,7 @@ serve(async (req) => {
     
   }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  if (viaCron) await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
   const results: EmailResult[] = [];
 
   try {
@@ -1457,12 +1464,14 @@ serve(async (req) => {
 
     console.log(`Email automation completed${dryRun ? " [DRY RUN]" : ""}:`, JSON.stringify(summary, null, 2));
 
+    if (viaCron) await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
     return new Response(JSON.stringify(summary), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in automated emails function:", error);
+    if (viaCron) await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
