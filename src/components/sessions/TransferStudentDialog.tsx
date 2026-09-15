@@ -16,13 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ArrowRightLeft, Calendar, MapPin, Users, Search, Loader2,
-} from "lucide-react";
+import { ArrowRightLeft, Calendar, MapPin, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { supabase } from "@/integrations/supabase/client";

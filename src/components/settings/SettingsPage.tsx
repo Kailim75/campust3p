@@ -21,7 +21,6 @@ import {
   CreditCard as CreditCardIcon,
   Palette,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { EInvoicingSettings } from "./EInvoicingSettings";
@@ -30,7 +29,6 @@ import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
 import { EmailSenderSettings } from "./EmailSenderSettings";
-import { NotificationSettings } from "./NotificationSettings";
 import { CustomizationSettings } from "./CustomizationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,8 +49,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { messageErreur } from "@/lib/erreurs";
-// XLSX loaded dynamically for performance
-type XLSXModule = typeof import("xlsx");
 
 // CSV columns mapping
 const CSV_COLUMNS = [

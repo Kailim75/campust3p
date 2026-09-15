@@ -33,17 +33,7 @@ import {
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { usePartners } from "@/hooks/usePartners";
-import {
-  useCreateFacture,
-  useUpdateFacture,
-  useGenerateNumeroFacture,
-  useAnnulationManuellePermise,
-  lireStatutFactureEnBase,
-  Facture,
-  FactureUpdate,
-  FinancementType,
-  FactureStatut,
-} from "@/hooks/useFactures";
+import { useCreateFacture, useUpdateFacture, useGenerateNumeroFacture, useAnnulationManuellePermise, lireStatutFactureEnBase, Facture, FactureUpdate, FinancementType } from "@/hooks/useFactures";
 import { useCatalogueFormations, type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 import { useCreateFactureLignes, useDeleteFactureLignesByFacture, useFactureLignes } from "@/hooks/useFactureLignes";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";

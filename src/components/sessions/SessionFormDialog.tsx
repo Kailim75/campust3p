@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TRACK_BADGES } from "@/lib/formation-track";
 import { generateSessionName } from "@/lib/session-naming";
@@ -120,7 +120,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
     },
   });
 
-  const watchPrix = form.watch("prix_ht");
+  form.watch("prix_ht");
   const watchCatalogueId = form.watch("catalogue_formation_id");
   const watchFormationType = form.watch("formation_type");
   const watchDateDebut = form.watch("date_debut");

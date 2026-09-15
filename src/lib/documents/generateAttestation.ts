@@ -23,10 +23,7 @@ import {
   isMobiliteFormation,
   type CertificateInfo,
 } from "./documentUtils";
-import {
-  DocumentGenerationError,
-  classifyError,
-} from "./documentErrors";
+import { DocumentGenerationError } from "./documentErrors";
 
 interface CentreFormationData {
   nom_commercial?: string;

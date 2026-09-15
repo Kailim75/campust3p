@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -34,17 +33,7 @@ import {
   useSignEmargement,
   useTogglePresence,
 } from "@/hooks/useEmargements";
-import {
-  ClipboardList,
-  Loader2,
-  RefreshCw,
-  PenTool,
-  Check,
-  X,
-  Calendar,
-  Users,
-  Download,
-} from "lucide-react";
+import { ClipboardList, Loader2, RefreshCw, PenTool, Check, Calendar, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { generateEmargementDocx } from "@/lib/emargement-docx-generator";
 import { supabase } from "@/integrations/supabase/client";

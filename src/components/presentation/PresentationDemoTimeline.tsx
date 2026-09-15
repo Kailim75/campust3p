@@ -45,7 +45,7 @@ export function PresentationDemoTimeline() {
           <div className="absolute left-6 top-0 bottom-0 w-px bg-gray-200 hidden sm:block" />
 
           <div className="space-y-8">
-            {steps.map((s, i) => (
+            {steps.map((s, _i) => (
               <div key={s.step} className="relative flex gap-5">
                 {/* Dot */}
                 <div className="relative z-10 w-12 h-12 rounded-full bg-[hsl(222,47%,11%)] flex items-center justify-center shrink-0">

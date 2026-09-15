@@ -7,18 +7,7 @@ import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { hasNda, hasSiret } from "../centre-to-company";
-import {
-  getProgramme,
-  getPrerequis,
-  getObjectifs,
-  getProgrammeMobilite,
-  PREREQUIS_MOBILITE,
-  OBJECTIFS_MOBILITE,
-  type TypeFormation,
-  type FormationMode,
-  type MobiliteDept,
-  type ModuleFormation,
-} from "@/constants/formations";
+import { getProgramme, getPrerequis, getObjectifs, getProgrammeMobilite, PREREQUIS_MOBILITE, OBJECTIFS_MOBILITE, type TypeFormation, type FormationMode, type MobiliteDept } from "@/constants/formations";
 import {
   getPublicVise,
   getCompetencesVisees,

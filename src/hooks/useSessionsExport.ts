@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 // XLSX loaded dynamically for performance
 import { Session } from './useSessions';
 import { format } from 'date-fns';

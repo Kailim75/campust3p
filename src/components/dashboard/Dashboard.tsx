@@ -16,7 +16,7 @@
  * - Sticky header with mini summary
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { GraduationCap, CalendarCheck } from "lucide-react";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { ExpressEnrollmentDialog } from "@/components/contacts/ExpressEnrollmentDialog";
@@ -40,7 +40,7 @@ interface DashboardProps {
   onNavigateWithParams?: (section: string, params: Record<string, string>) => void;
 }
 
-export function Dashboard({ onNavigate, onNavigateWithContact, onNavigateWithParams }: DashboardProps) {
+export function Dashboard({ onNavigate, onNavigateWithContact: _onNavigateWithContact, onNavigateWithParams }: DashboardProps) {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [expressOpen, setExpressOpen] = useState(false);

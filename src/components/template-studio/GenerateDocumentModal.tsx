@@ -2,10 +2,8 @@
 // Generate Document Modal — Pick entity, render template, create instance
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef } from "react";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,8 +54,8 @@ export default function GenerateDocumentModal({ open, onOpenChange, template, in
   const [generating, setGenerating] = useState(false);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
   const [editableHtml, setEditableHtml] = useState<string>("");
-  const [isEditing, setIsEditing] = useState(true);
-  const [generatedInstanceId, setGeneratedInstanceId] = useState<string | null>(null);
+  const [_isEditing, setIsEditing] = useState(true);
+  const [_generatedInstanceId, setGeneratedInstanceId] = useState<string | null>(null);
 
   // Reset on open
   useEffect(() => {

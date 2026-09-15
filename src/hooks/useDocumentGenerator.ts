@@ -1,19 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { useCentreFormation } from "@/hooks/useCentreFormation";
-import {
-  generateFacturePDF,
-  generateConventionPDF as generateConventionPDFLegacy,
-  generateContratFormationPDF as generateContratPDFLegacy,
-  generateConvocationPDF,
-  generateProgrammePDF,
-  generateAttestationPresencePDF,
-  downloadPDF,
-  preloadCompanyImages,
-  type ContactInfo,
-  type SessionInfo,
-  type FactureInfo,
-} from "@/lib/pdf-generator";
+import { generateFacturePDF, generateConvocationPDF, generateProgrammePDF, generateAttestationPresencePDF, downloadPDF, preloadCompanyImages, type ContactInfo, type SessionInfo, type FactureInfo } from "@/lib/pdf-generator";
 import { generateContratFormationV2, validateContratData } from "@/lib/documents/generateContratFormation";
 import { generateConventionFormationV2 } from "@/lib/documents/generateConventionFormation";
 import { buildCompanyInfo } from "@/lib/documents/companyInfo";

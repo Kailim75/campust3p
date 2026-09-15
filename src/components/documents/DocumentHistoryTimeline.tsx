@@ -2,7 +2,6 @@
 // DocumentHistoryTimeline — Chronological audit trail for a document
 // ═══════════════════════════════════════════════════════════════
 
-import { Badge } from "@/components/ui/badge";
 import {
   FileCheck, Send, CheckCircle, XCircle, Archive, Eye, MessageCircle,
 } from "lucide-react";

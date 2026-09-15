@@ -41,7 +41,6 @@ function BlockageCard({
   onAction: () => void;
 }) {
   const config = SEVERITY_CONFIG[blockage.severity];
-  const Icon = config.icon;
 
   return (
     <div className="p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors space-y-2">

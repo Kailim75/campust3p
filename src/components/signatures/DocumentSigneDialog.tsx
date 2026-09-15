@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, Download } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PDFViewer } from "@/components/ui/pdf-viewer";
 import { resoudreObjetSignature } from "@/lib/signatures";

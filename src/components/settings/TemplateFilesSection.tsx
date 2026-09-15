@@ -110,9 +110,6 @@ export function TemplateFilesSection() {
     await setDefaultTemplate.mutateAsync({ templateId: template.id, isDefault: newIsDefault });
   };
 
-  const getCategoryLabel = (value: string) =>
-    documentCategories.find((c) => c.value === value)?.label || value;
-
   const getDocTypeLabel = (value: string | null) =>
     templateDocumentTypes.find((t) => t.value === value)?.label || value || "Autre";
 

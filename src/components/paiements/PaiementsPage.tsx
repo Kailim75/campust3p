@@ -677,7 +677,6 @@ export function PaiementsPage() {
               </TableHeader>
               <TableBody>
                 {paginatedFactures.map((facture) => {
-                  const paidPercentage = (facture.total_paye / Number(facture.montant_total)) * 100;
                   const montantRestant = Number(facture.montant_total) - facture.total_paye;
                   
                   return (

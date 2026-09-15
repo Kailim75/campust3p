@@ -78,7 +78,7 @@ export function useDeletePaiement() {
 
   return useMutation({
     mutationFn: async ({ id, factureId }: { id: string; factureId: string }) => {
-      const { data, error } = await supabase.rpc("soft_delete_record", {
+      const { error } = await supabase.rpc("soft_delete_record", {
         p_table_name: "paiements",
         p_record_id: id,
         p_reason: undefined,

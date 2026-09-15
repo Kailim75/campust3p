@@ -24,7 +24,7 @@ interface TokenData {
 
 export default function EnquetePage() {
   const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
+  useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

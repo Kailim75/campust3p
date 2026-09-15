@@ -2,11 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Calendar, Edit, Trash2, Copy, AlertTriangle, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -73,7 +68,7 @@ export function SessionCardMobile({
   session,
   inscrits,
   financial,
-  health,
+  health: _health,
   isCritical,
   isActive,
   statusConfig,

@@ -26,7 +26,6 @@ function CrmCustomizationInit() {
 }
 
 // Lazy loaded pages
-const Index = lazy(() => import("./pages/Index"));
 const Enquete = lazy(() => import("./pages/Enquete"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
@@ -46,7 +45,6 @@ const FormateurPortal = lazy(() => import("./pages/FormateurPortal"));
 const Install = lazy(() => import("./pages/Install").then(m => ({ default: m.InstallPage })));
 const ActionLogs = lazy(() => import("./pages/ActionLogs"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LazyFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -205,8 +203,7 @@ const App = () => (
                 {/*
                   Fallback intelligent : tout chemin inconnu de l'app
                   (utilisateur authentifié) est redirigé vers la meilleure
-                  entrée de la sidebar via resolveNavTarget(). Le NotFound
-                  reste utilisé pour les URLs publiques hors-app via le
+                  entrée de la sidebar via resolveNavTarget(), via ce
                   catch-all final.
                 */}
                 <Route

@@ -3,11 +3,7 @@
 // DocumentWorkflowItem[]
 // ═══════════════════════════════════════════════════════════════
 
-import type {
-  DocumentWorkflowItem,
-  DocumentHistoryEntry,
-  DocumentSourceSystem,
-} from "./types";
+import type { DocumentWorkflowItem, DocumentHistoryEntry } from "./types";
 import { getDocumentTypeConfig, getVisibleConfigs } from "./documentBlockConfig";
 import { computeBusinessStatus, type StatusInput } from "./documentBusinessStatus";
 import {

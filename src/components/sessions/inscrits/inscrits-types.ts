@@ -1,7 +1,4 @@
 import type { FactureWithDetails } from "@/hooks/useFactures";
-import type { EmailRecipient } from "@/components/email/EmailComposerModal";
-import type { DocumentType } from "@/hooks/useDocumentGenerator";
-
 export interface InscritContact {
   id: string;
   civilite?: string | null;

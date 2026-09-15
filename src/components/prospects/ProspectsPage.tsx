@@ -37,7 +37,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, isBefore, isToday, startOfDay, endOfDay, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/error-state";

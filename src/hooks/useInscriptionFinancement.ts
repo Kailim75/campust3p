@@ -97,7 +97,7 @@ export function useUpdateFinancement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, params) => {
+    onSuccess: (_, _params) => {
       queryClient.invalidateQueries({ queryKey: ["contact-financement"] });
       queryClient.invalidateQueries({ queryKey: ["session-inscrits-detail"] });
       toast.success("Financement mis à jour");

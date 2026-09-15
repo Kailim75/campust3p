@@ -13,26 +13,11 @@ import { fr } from "date-fns/locale";
 // Garde UNIQUE du NDA (numéro de déclaration d'activité) : sans numéro, aucune
 // mention ne doit apparaître sur les documents. Voir centre-to-company.ts.
 import { hasNda, hasSiret } from "./centre-to-company";
-import { 
-  ORGANISME,
-  PROGRAMME_VTC, 
-  PROGRAMME_TAXI, 
-  PROGRAMME_TAXI_75,
-  PROGRAMME_VMDTR,
-  getPrerequis, 
-  getObjectifs,
-  getProgramme,
-  type TypeFormation,
-  type ModuleFormation
-} from "@/constants/formations";
+import { ORGANISME, PROGRAMME_VTC, PROGRAMME_TAXI, PROGRAMME_TAXI_75, PROGRAMME_VMDTR, getPrerequis, getObjectifs, type TypeFormation } from "@/constants/formations";
 
 // ==================== IMPORT CHARTE GRAPHIQUE CENTRALISÉE ====================
 // Utilise la configuration centralisée pour tous les documents PDF
-import { 
-  DOCUMENT_COLORS as COLORS_CENTRAL,
-  DOCUMENT_FONTS,
-  DOCUMENT_LAYOUT 
-} from "./document-styles";
+import { DOCUMENT_COLORS as COLORS_CENTRAL } from "./document-styles";
 
 // Re-export pour compatibilité avec le code existant
 const COLORS = {
@@ -277,7 +262,7 @@ function addHeader(doc: jsPDF, company: CompanyInfo): number {
 
   // Logo (à droite du header) - ajouté si disponible
   const logoX = pageWidth - 20 - 28; // 28mm de large max
-  const logoAdded = addLogoImage(doc, company, logoX, 4, 28, 14);
+  addLogoImage(doc, company, logoX, 4, 28, 14);
 
   // Nom de l'entreprise en blanc
   doc.setFontSize(16);
@@ -331,50 +316,6 @@ function addFooter(doc: jsPDF, pageNum: number = 1) {
   doc.text(`${pageNum}`, pageWidth - 25, pageHeight - 14, { align: "center" });
   
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-}
-
-function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number, title: string = "Participant"): number {
-  if (title) {
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(COLORS.forestGreen.r, COLORS.forestGreen.g, COLORS.forestGreen.b);
-    doc.text(title, x, y);
-    y += 7;
-  }
-  
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-  
-  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  doc.text(fullName, x, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-  
-  if (contact.rue) {
-    y += 6;
-    doc.text(contact.rue, x, y);
-  }
-  
-  if (contact.code_postal || contact.ville) {
-    y += 6;
-    doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), x, y);
-  }
-  
-  if (contact.email) {
-    y += 6;
-    doc.text(contact.email, x, y);
-  }
-  
-  if (contact.telephone) {
-    y += 6;
-    doc.text(contact.telephone, x, y);
-  }
-  
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  return y + 12;
 }
 
 // Fonction pour dessiner un titre de document avec style
@@ -2106,8 +2047,8 @@ export function generateConventionPDF(
   doc.text("(Cachet et signature)", col1X, yPos);
   
   // Add stamp image below text with proper spacing
-  const stampAdded = addStampImage(doc, company, col1X, yPos + 4, 35, 22);
-  
+  addStampImage(doc, company, col1X, yPos + 4, 35, 22);
+
   doc.text("(Signature précédée de", col2X, yPos);
   doc.text("\"Lu et approuvé, bon pour accord\")", col2X, yPos + 4);
   
@@ -2324,18 +2265,6 @@ export function generateContratFormationPDF(
     doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
     doc.setFont("helvetica", "normal");
     yPos += lineH + 8;
-  }
-
-  function writeBullet(text: string): void {
-    doc.setFontSize(9);
-    doc.setTextColor(COLORS.warmGray700.r, COLORS.warmGray700.g, COLORS.warmGray700.b);
-    const lines = doc.splitTextToSize(text, contentWidth - 12) as string[];
-    for (let i = 0; i < lines.length; i++) {
-      checkPageBreak(lineH + 1);
-      doc.text(lines[i], marginLeft + (i === 0 ? 4 : 9), yPos);
-      yPos += lineH;
-    }
-    doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
   }
 
   const headerEndY = addHeader(doc, company);
@@ -2666,7 +2595,7 @@ export function generateContratFormationPDF(
   doc.text("(Cachet et signature)", marginLeft + 4, yPos + 12);
 
   // Stamp placed below the text labels, not overlapping
-  const stampAdded = addStampImage(doc, company, marginLeft + 4, yPos + 15, 35, 20);
+  addStampImage(doc, company, marginLeft + 4, yPos + 15, 35, 20);
 
   // Box droite - Stagiaire
   const rightX = marginLeft + halfW + 10;
@@ -2725,7 +2654,6 @@ export function generateConvocationPDF(
   const cOrangeLight = { r: 254, g: 243, b: 230 };  // Orange très léger
   const cText = { r: 33, g: 37, b: 41 };
   const cTextMuted = { r: 100, g: 116, b: 125 };
-  const cTextLight = { r: 148, g: 163, b: 170 };
   const cBorder = { r: 220, g: 228, b: 222 };
   const cBgSubtle = { r: 247, g: 250, b: 248 };
   const cWhite = { r: 255, g: 255, b: 255 };

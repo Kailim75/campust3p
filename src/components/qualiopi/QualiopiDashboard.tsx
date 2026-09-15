@@ -154,7 +154,6 @@ export default function QualiopiDashboard() {
   const tauxConformite = stats.total > 0 
     ? Math.round((stats.conformes / stats.total) * 100) : 0;
 
-  const actionsEnCours = actions?.filter(a => a.statut === 'en_cours' || a.statut === 'a_faire').length || 0;
   const prochainAudit = audits?.find(a => a.statut === 'planifie');
 
   const scoreColor = centreData?.scoreLevel === 'ready' 
