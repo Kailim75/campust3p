@@ -23,10 +23,7 @@ import {
   isMobiliteFormation,
   type CertificateInfo,
 } from "./documentUtils";
-import {
-  DocumentGenerationError,
-  classifyError,
-} from "./documentErrors";
+import { DocumentGenerationError } from "./documentErrors";
 
 interface CentreFormationData {
   nom_commercial?: string;
@@ -38,8 +35,16 @@ interface CentreFormationData {
   nda: string;
 }
 
-/** Enriched contact data that may contain extra fields from ContactDocumentData. */
-type EnrichedContact = ContactInfo & Partial<ContactDocumentData>;
+/**
+ * Enriched contact data: fusion à l'exécution de ContactInfo (champs de base)
+ * et de ContactDocumentData (champs DB, nullable). `keyof ContactInfo` est
+ * un sous-ensemble strict de `keyof ContactDocumentData`, donc une simple
+ * intersection donnerait un `civilite?: string` non-null en conflit avec le
+ * `civilite?: string | null` réellement renvoyé par la fiche contact —
+ * Partial<ContactDocumentData> seul reflète fidèlement ce que `{ ...contact,
+ * ...extra }` produit réellement.
+ */
+type EnrichedContact = Partial<ContactDocumentData>;
 
 function buildAttestationVariableData(
   fullContact: EnrichedContact,
@@ -49,24 +54,27 @@ function buildAttestationVariableData(
 ) {
   return buildVariableData(
     {
-      civilite: fullContact.civilite,
+      // fullContact peut porter les champs nullable de ContactDocumentData
+      // (enrichissement DB) ; buildVariableData les traite avec `|| ""`,
+      // donc null et undefined sont déjà équivalents à l'exécution.
+      civilite: fullContact.civilite ?? undefined,
       nom: fullContact.nom,
       prenom: fullContact.prenom,
-      email: fullContact.email,
-      telephone: fullContact.telephone,
-      rue: fullContact.rue,
-      code_postal: fullContact.code_postal,
-      ville: fullContact.ville,
-      date_naissance: fullContact.date_naissance,
-      ville_naissance: fullContact.ville_naissance,
-      pays_naissance: fullContact.pays_naissance,
-      numero_carte_professionnelle: fullContact.numero_carte_professionnelle,
-      prefecture_carte: fullContact.prefecture_carte,
-      date_expiration_carte: fullContact.date_expiration_carte,
-      numero_permis: fullContact.numero_permis,
-      prefecture_permis: fullContact.prefecture_permis,
-      date_delivrance_permis: fullContact.date_delivrance_permis,
-      formation: fullContact.formation,
+      email: fullContact.email ?? undefined,
+      telephone: fullContact.telephone ?? undefined,
+      rue: fullContact.rue ?? undefined,
+      code_postal: fullContact.code_postal ?? undefined,
+      ville: fullContact.ville ?? undefined,
+      date_naissance: fullContact.date_naissance ?? undefined,
+      ville_naissance: fullContact.ville_naissance ?? undefined,
+      pays_naissance: fullContact.pays_naissance ?? undefined,
+      numero_carte_professionnelle: fullContact.numero_carte_professionnelle ?? undefined,
+      prefecture_carte: fullContact.prefecture_carte ?? undefined,
+      date_expiration_carte: fullContact.date_expiration_carte ?? undefined,
+      numero_permis: fullContact.numero_permis ?? undefined,
+      prefecture_permis: fullContact.prefecture_permis ?? undefined,
+      date_delivrance_permis: fullContact.date_delivrance_permis ?? undefined,
+      formation: fullContact.formation ?? undefined,
     },
     {
       nom: session.nom,

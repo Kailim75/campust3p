@@ -31,26 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  User, 
-  Users, 
-  Calendar, 
-  Euro, 
-  TrendingUp,
-  BarChart3,
-  CalendarDays,
-  CheckCircle,
-  Clock,
-  ArrowUpRight,
-  Plus,
-  Eye,
-  Edit,
-  Trash2,
-  Phone,
-  Mail,
-  Award,
-  UserPlus
-} from "lucide-react";
+import { User, Users, Calendar, Euro, BarChart3, CalendarDays, CheckCircle, Clock, ArrowUpRight, Eye, Edit, Trash2, Phone, Mail, Award, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -104,9 +85,6 @@ export function FormateursPage() {
   const totalSessions = formateursStats?.reduce((acc, f) => acc + f.sessionsTotal, 0) || 0;
   const totalStagiaires = formateursStats?.reduce((acc, f) => acc + f.stagiairesFormes, 0) || 0;
   const totalCA = formateursStats?.reduce((acc, f) => acc + f.caGenere, 0) || 0;
-  const avgRemplissage = formateursStats?.length 
-    ? Math.round(formateursStats.reduce((acc, f) => acc + f.tauxRemplissage, 0) / formateursStats.length)
-    : 0;
 
   // Chart data
   const sessionsChartData = formateursStats?.slice(0, 6).map((f, i) => ({

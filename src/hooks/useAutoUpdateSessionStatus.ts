@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from './useSessions';
-import { parseISO, isAfter, isBefore, isToday, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 
 type SessionStatus = 'a_venir' | 'en_cours' | 'terminee' | 'annulee' | 'complet';
 

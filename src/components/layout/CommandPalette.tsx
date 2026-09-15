@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Search, Users, GraduationCap, Calendar, Receipt, Settings,
-  BarChart3, Briefcase, UserCheck, Shield,
-  Trash2, FileText, TrendingUp, BookOpen, Plus, Clock,
-} from "lucide-react";
+import { Users, GraduationCap, Calendar, Receipt, Settings, BarChart3, Briefcase, UserCheck, Shield, Trash2, FileText, TrendingUp, BookOpen, Plus, Clock } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRecentItems } from "@/hooks/useRecentItems";
-import { useCommandPalette } from "@/hooks/useCommandPalette";
-
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

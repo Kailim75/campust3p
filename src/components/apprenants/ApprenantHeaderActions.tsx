@@ -17,10 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Mail, StickyNote, CalendarPlus, CreditCard, FileText, Award,
-  Phone, SquareUser, FileCheck, Star, MoreHorizontal, Plus, Sparkles,
-} from "lucide-react";
+import { Mail, StickyNote, CalendarPlus, CreditCard, FileText, Award, Phone, SquareUser, FileCheck, Star, MoreHorizontal, Sparkles } from "lucide-react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { useState } from "react";
 

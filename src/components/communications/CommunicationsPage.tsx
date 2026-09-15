@@ -30,18 +30,6 @@ import { EmailTemplatePreviewDialog } from "./EmailTemplatePreviewDialog";
 import { RelancesAutoPanel } from "./RelancesAutoPanel";
 import { EnvoisMonitoringPanel } from "./EnvoisMonitoringPanel";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-
 const categorieConfig: Record<string, { label: string; icon: React.ElementType; class: string }> = {
   inscription: { label: "Inscription", icon: UserPlus, class: "bg-success/10 text-success border-success/20" },
   convocation: { label: "Convocation", icon: Calendar, class: "bg-primary/10 text-primary border-primary/20" },

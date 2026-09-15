@@ -24,7 +24,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, filterEntriesByRole, type NavSubgroup, type SidebarRole } from "@/config/navigationRegistry";
+import { HUB_ENTRIES, MORE_ENTRIES, MORE_SUBGROUPS, filterEntriesByRole, type SidebarRole } from "@/config/navigationRegistry";
 import { useCurrentUserRole } from "@/hooks/useUsers";
 
 interface SidebarProps {
@@ -37,7 +37,6 @@ interface SidebarProps {
 }
 
 // Source unique de vérité : voir src/config/navigationRegistry.ts
-const menuItems = HUB_ENTRIES;
 const moreMenuItems = MORE_ENTRIES;
 
 /** Map id de hub → clé du compteur sidebar (useSidebarBadges). */
@@ -255,7 +254,7 @@ function SidebarContent({
     });
   }, [user?.id]);
 
-  const handleRecentItemClick = (type: string, id: string) => {
+  const handleRecentItemClick = (type: string, _id: string) => {
     if (type === "contact") onSectionChange("contacts");
     else if (type === "session") onSectionChange("sessions");
     else if (type === "facture") onSectionChange("finances");

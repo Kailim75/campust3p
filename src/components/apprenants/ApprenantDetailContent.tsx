@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,18 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Phone, Mail, FolderOpen, GraduationCap,
-  MessageCircle, FileText, LayoutDashboard, FileCheck, IdCard, Award,
-  CheckCircle2, AlertTriangle, Clock, Send, Bot, CreditCard,
-  Edit, Trash2, Star, SquareUser, CalendarPlus, StickyNote,
-} from "lucide-react";
+import { FolderOpen, GraduationCap, MessageCircle, FileText, LayoutDashboard, IdCard, Award, CheckCircle2, AlertTriangle, Send, Bot, CreditCard, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { ResumeTab } from "./tabs/ResumeTab";
 import { DossierTab } from "./tabs/DossierTab";
-import { CMATab } from "./tabs/CMATab";
-import { CarteProTab } from "./tabs/CarteProTab";
 import { PaiementsTab, type FactureExpressRequest } from "./tabs/PaiementsTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { SuiviTab } from "./tabs/SuiviTab";
@@ -110,7 +103,7 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const queryClient = useQueryClient();
   const { composerProps, openComposer } = useEmailComposer();
   const deleteContact = useDeleteContact();
-  const { generateDocument, getCompanyInfo } = useDocumentGenerator();
+  const { generateDocument } = useDocumentGenerator();
   const { data: activeEnrollment } = useActiveEnrollment(contact?.id);
   const { data: envoiEvents = [] } = useDocumentEnvoiHistory(contact?.id);
 
@@ -330,7 +323,6 @@ export function ApprenantDetailContent({ contact, isLoading, onEdit, onClose, sh
   const cmaReceived = trackComp.received;
   const cmaTotal = trackComp.total;
   const cmaMissing = trackComp.missing.length;
-  const cmaPct = trackComp.pct;
   const restantDu = cockpitData?.restantDu ?? 0;
   const nextRappel = cockpitData?.nextRappel;
   const nextSession = cockpitData?.nextSession;

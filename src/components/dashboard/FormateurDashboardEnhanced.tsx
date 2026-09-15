@@ -24,8 +24,6 @@ import { format, parseISO, isToday, isTomorrow, isThisWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useFormateursStats, useFormateursDisponibilite, useFormateursTable } from "@/hooks/useFormateurs";
 import { useSessions } from "@/hooks/useSessions";
-import { useSessionInscrits } from "@/hooks/useSessionInscrits";
-import { useEmargements } from "@/hooks/useEmargements";
 import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailSheet";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

@@ -4,7 +4,6 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -12,17 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  ChevronDown,
-  LogIn,
-  ClipboardList,
-  GraduationCap,
-  Receipt,
-  FolderOpen,
-  CheckCircle2,
-  AlertTriangle,
-  Download,
-} from "lucide-react";
+import { ChevronDown, LogIn, ClipboardList, GraduationCap, Receipt, FolderOpen, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LearnerDocumentItemCard } from "./LearnerDocumentItemCard";
 import type { DocumentBlockSummary, DocumentWorkflowItem, DocumentBlock } from "@/lib/document-workflow/types";

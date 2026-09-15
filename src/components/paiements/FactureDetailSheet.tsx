@@ -9,27 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Euro,
-  Calendar,
-  User,
-  FileText,
-  Plus,
-  Trash2,
-  CreditCard,
-  Banknote,
-  Landmark,
-  Wallet,
-  BookOpen,
-  Loader2,
-  Download,
-  MessageCircle,
-  Mail,
-  Receipt,
-  Send,
-  Pencil,
-  Ban,
-} from "lucide-react";
+import { Calendar, User, FileText, Plus, Trash2, CreditCard, Banknote, Landmark, Wallet, BookOpen, Loader2, Download, MessageCircle, Mail, Receipt, Send, Pencil, Ban } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";

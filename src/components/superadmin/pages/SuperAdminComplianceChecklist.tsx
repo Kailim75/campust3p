@@ -9,23 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  MinusCircle,
-  ChevronDown,
-  ChevronRight,
-  Shield,
-  Award,
-  FileText,
-  Download,
-  History,
-  AlertTriangle,
-  ClipboardCheck,
-  Lightbulb,
-  ArrowRight
-} from "lucide-react";
+import { CheckCircle2, XCircle, Clock, MinusCircle, ChevronDown, ChevronRight, Shield, Award, Download, History, AlertTriangle, ClipboardCheck, Lightbulb, ArrowRight } from "lucide-react";
 import { useComplianceChecklist, ItemWithValidation, ValidationStatut } from "@/hooks/useComplianceChecklist";
 import { toast } from "sonner";
 import { format } from "date-fns";

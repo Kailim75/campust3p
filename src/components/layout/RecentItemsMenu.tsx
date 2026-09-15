@@ -1,14 +1,7 @@
 import { useState } from "react";
-import { useRecentItems, FavoriteItem, RecentItem } from "@/hooks/useRecentItems";
+import { useRecentItems, FavoriteItem } from "@/hooks/useRecentItems";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, User, Calendar, FileText, CreditCard, Trash2, StarOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";

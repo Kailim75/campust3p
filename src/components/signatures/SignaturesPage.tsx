@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ouvrirSignature } from "@/lib/signatures";
 import { DocumentSigneDialog } from "@/components/signatures/DocumentSigneDialog";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +55,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isPast } from "date-fns";
-import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   useSignatureRequests,
@@ -87,7 +86,7 @@ export function SignaturesPage() {
   const [statutFilter, setStatutFilter] = useState<string>("all");
 
   const { data: signatures = [], isLoading, isError, refetch } = useSignatureRequests();
-  const sendRequest = useSendSignatureRequest();
+  useSendSignatureRequest();
   const deleteRequest = useDeleteSignatureRequest();
   const sendEmail = useSendSignatureEmail();
   const [pendingSendId, setPendingSendId] = useState<string | null>(null);

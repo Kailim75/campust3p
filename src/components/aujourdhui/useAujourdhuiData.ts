@@ -51,7 +51,6 @@ export function useAujourdhuiData() {
     queryKey: ["aujourdhui-inbox"],
     queryFn: async () => {
       const todayStr = new Date().toISOString().split("T")[0];
-      const in14Days = addDays(new Date(), 14).toISOString().split("T")[0];
 
       const postponeSince = addDays(new Date(), -90).toISOString();
       // docs / inscriptions / rappels passent par les requêtes partagées

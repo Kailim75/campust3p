@@ -24,7 +24,7 @@ export default function TemplateStudioPage() {
     setScreen("editor");
   };
 
-  const handleCreate = (presetType?: string) => {
+  const handleCreate = (_presetType?: string) => {
     setSelectedTemplateId(null);
     setIsCreating(true);
     setAiPrefilledBody(null);

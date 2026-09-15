@@ -11,10 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  AlertTriangle, CheckCircle2, XCircle, Loader2, Play, Square, FileText, Mail,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2, XCircle, Play, Square, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import type { SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 

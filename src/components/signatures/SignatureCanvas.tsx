@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser, Check, RotateCcw } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 
 interface SignatureCanvasProps {
   onSignatureChange: (dataUrl: string | null) => void;

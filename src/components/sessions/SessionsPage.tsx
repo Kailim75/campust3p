@@ -104,8 +104,6 @@ export function SessionsPage() {
     } catch { toast.error("Erreur lors de la duplication"); }
   };
 
-  const handleCreateRecurring = (session: Session) => setRecurringTemplate(session);
-
 
 
 

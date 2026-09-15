@@ -158,7 +158,7 @@ export function useQualiteClient() {
         
         if (reclamation) {
           const delai = Math.ceil(
-            (new Date().getTime() - new Date(reclamation.created_at).getTime()) / (1000 * 60 * 60 * 24)
+            (new Date().getTime() - new Date(reclamation.created_at ?? 0).getTime()) / (1000 * 60 * 60 * 24)
           );
           updates.delai_traitement_jours = delai;
         }

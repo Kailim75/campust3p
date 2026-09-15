@@ -9,10 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { 
-  Building2, Phone, Mail, MapPin, Calendar, Euro, Users, 
-  TrendingUp, Pencil, Plus, Percent, UserPlus 
-} from "lucide-react";
+import { Building2, Phone, Mail, MapPin, Calendar, Euro, Users, TrendingUp, Pencil, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { usePartners, usePartnerStatsById, usePartnerContacts, usePayPartnerCommission, type Partner, type PartnerType, type PartnerStatus, type PartnerRemunerationMode } from "@/hooks/usePartners";

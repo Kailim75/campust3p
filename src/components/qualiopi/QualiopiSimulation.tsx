@@ -5,11 +5,8 @@ import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Target, CheckCircle2, AlertTriangle, XCircle, FileText, TrendingUp, ShieldAlert, Zap, ClipboardList } from 'lucide-react';
+import { Loader2, Target, CheckCircle2, AlertTriangle, FileText, ShieldAlert, Zap, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-
 const CRITERES_LABELS: Record<number, string> = {
   1: 'Information du public',
   2: 'Identification des objectifs',

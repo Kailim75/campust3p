@@ -13,13 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,27 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Award,
-  GraduationCap,
-  Euro,
-  FileText,
-  Edit,
-  Trash2,
-  Plus,
-  Calendar,
-  Loader2,
-  CheckCircle,
-  Clock,
-  XCircle,
-} from "lucide-react";
+import { User, Mail, Phone, MapPin, Award, GraduationCap, FileText, Edit, Trash2, Plus, Calendar, Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   useFormateur,
@@ -77,7 +52,7 @@ const factureStatutConfig: Record<string, { label: string; icon: any; class: str
 
 export function FormateurDetailSheet({ formateurId, open, onOpenChange, onEdit }: FormateurDetailSheetProps) {
   const { data: formateur, isLoading } = useFormateur(formateurId);
-  const { data: documents = [] } = useFormateurDocuments(formateurId);
+  const { data: _documents = [] } = useFormateurDocuments(formateurId);
   const { data: factures = [] } = useFormateurFactures(formateurId);
   
   const createFacture = useCreateFormateurFacture();

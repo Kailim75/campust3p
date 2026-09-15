@@ -33,9 +33,9 @@ export function useDuplicateCheck() {
       const { data, error } = await supabase.rpc("check_duplicate_contacts", {
         p_nom: nom,
         p_prenom: prenom,
-        p_email: email || null,
-        p_date_naissance: dateNaissance || null,
-        p_exclude_id: excludeId || null,
+        p_email: email || undefined,
+        p_date_naissance: dateNaissance || undefined,
+        p_exclude_id: excludeId || undefined,
       });
 
       if (error) {

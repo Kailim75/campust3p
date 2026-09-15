@@ -14,11 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  Mail, CheckCircle2, XCircle, Loader2, AlertTriangle, Send, Eye,
-  UserX, FileX,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Mail, CheckCircle2, XCircle, Loader2, Send, Eye, UserX, FileX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SessionDocumentMatrixRow } from "@/lib/document-workflow/types";
@@ -57,7 +53,7 @@ export function BulkEmailDialog({
   open,
   onOpenChange,
   sessionId,
-  sessionName,
+  sessionName: _sessionName,
   rows,
   selectedContactIds,
   onComplete,

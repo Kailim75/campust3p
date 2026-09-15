@@ -1,5 +1,3 @@
-import type { ActionCategory } from "@/lib/aujourdhui-actions";
-import type { UrgencyInfo } from "@/lib/urgency-utils";
 import type { Prospect } from "@/hooks/useProspects";
 import type { CrmQualityItem, CrmQualitySummary } from "@/lib/crm-quality";
 import type { UrgenceNiveau, ExamenSource } from "@/lib/parcours-examen";

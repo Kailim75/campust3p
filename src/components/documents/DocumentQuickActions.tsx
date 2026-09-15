@@ -16,10 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Eye, Download, Mail, RefreshCw, MoreHorizontal,
-  MessageCircle, AlertCircle, ExternalLink,
-} from "lucide-react";
+import { Eye, Download, Mail, RefreshCw, MoreHorizontal, AlertCircle } from "lucide-react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import type { DocumentWorkflowItem } from "@/lib/document-workflow/types";

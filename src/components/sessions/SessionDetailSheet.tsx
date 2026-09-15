@@ -13,22 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Calendar,
-  MapPin,
-  Users,
-  Euro,
-  ClipboardList,
-  Info,
-  FileText,
-  Clock,
-  GraduationCap,
-  CheckCircle2,
-  Archive,
-  ArchiveRestore,
-  Shield,
-  LayoutDashboard,
-} from "lucide-react";
+import { Calendar, MapPin, Users, Euro, ClipboardList, Info, FileText, Clock, GraduationCap, CheckCircle2, Archive, ArchiveRestore, LayoutDashboard } from "lucide-react";
 import { SessionResumeTab } from "./tabs/SessionResumeTab";
 import { cn } from "@/lib/utils";
 import { useSession, useSessionInscriptions, useAddInscription, type Session } from "@/hooks/useSessions";
@@ -59,7 +44,6 @@ import { CloseSessionDialog } from "./CloseSessionDialog";
 import { useArchiveSession, useUnarchiveSession, useCanArchiveSession } from "@/hooks/useSessionArchive";
 import SessionInscritsTable from "./SessionInscritsTable";
 import { useSheetSize } from "@/hooks/useSheetSize";
-import { SessionQualiopiTab } from "./SessionQualiopiTab";
 import { useSessionQualiopi } from "@/hooks/useSessionQualiopi";
 import { SessionQuickActions } from "./SessionQuickActions";
 import { SessionParcoursTab } from "./SessionParcoursTab";
@@ -372,7 +356,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               {/* Quick Actions Bar */}
               <SessionQuickActions
                 inscriptionCount={inscriptionCount}
-                archived={session.archived}
+                archived={session.archived ?? undefined}
                 isTerminee={session.statut === "terminee"}
                 onSendDocuments={() => openDocSend()}
                 onSendEmail={() => {
@@ -717,7 +701,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
             setClosureWizardOpen(false);
             openDocSend(scope);
           }}
-          onSendEmail={(template) => {
+          onSendEmail={(_template) => {
             setClosureWizardOpen(false);
             openEmailForSession(
               `${session.nom} — Enquête de satisfaction`,

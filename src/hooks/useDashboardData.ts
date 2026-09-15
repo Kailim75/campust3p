@@ -204,7 +204,7 @@ export interface DashboardData {
 // ─── Centralized fetch ───
 
 async function fetchAllDashboardData(period: PeriodValue): Promise<DashboardData> {
-  const centreId = await getUserCentreId();
+  await getUserCentreId();
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const prev = getPreviousPeriod(period);

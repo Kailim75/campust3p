@@ -26,6 +26,9 @@ export interface FactureLigne {
 export interface FactureLigneInsert {
   facture_id: string;
   catalogue_formation_id?: string | null;
+  // Colonne réelle de `facture_lignes` (types.ts) absente jusqu'ici de cette
+  // interface, alors que FactureLibreDialog l'envoyait déjà via `as any`.
+  produit_service_id?: string | null;
   description: string;
   quantite?: number;
   prix_unitaire_ht: number;

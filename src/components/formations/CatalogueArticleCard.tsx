@@ -11,10 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-  Clock, Euro, Edit, Trash2, Download, Percent, 
-  Car, Truck, Bike, Briefcase, Package, EyeOff, RefreshCw
-} from "lucide-react";
+import { Clock, Euro, Edit, Trash2, Download, Percent, Car, Bike, Briefcase, Package, EyeOff, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 

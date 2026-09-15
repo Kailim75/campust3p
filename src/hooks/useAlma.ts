@@ -1,11 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface AlmaEligibilityParams {
-  amount: number; // in cents
-  installments?: number[];
-}
-
 interface AlmaCreatePaymentParams {
   amount: number; // in cents
   installments?: number;

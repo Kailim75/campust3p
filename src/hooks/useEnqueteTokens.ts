@@ -17,7 +17,7 @@ interface CreateTokenResult {
 }
 
 export function useEnqueteTokens() {
-  const queryClient = useQueryClient();
+  useQueryClient();
 
   // Créer un token pour un candidat
   const createToken = useMutation({

@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 // QuickActionsMenu remplacé par GlobalCreateMenu dans le Header (Chantier 1)
 import { KeyboardShortcutsDialog } from "@/components/layout/KeyboardShortcutsDialog";
 import { ProactiveAlertsToast } from "@/components/layout/ProactiveAlertsToast";
-import { OnboardingTour, useOnboarding } from "@/components/onboarding/OnboardingTour";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { useGlobalShortcutsV2 } from "@/hooks/useKeyboardShortcuts";
 import { ShortcutSequenceIndicator } from "@/components/shortcuts/ShortcutSequenceIndicator";
@@ -103,7 +102,6 @@ const Index = () => {
   const [blockagePanelOpen, setBlockagePanelOpen] = useState(false);
   const [routeCheckOpen, setRouteCheckOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { showTour, completeTour } = { showTour: false, completeTour: () => {} };
   const undoAction = useUndoStore((state) => state.undoLast);
 
   /** Core navigation: updates state + URL pathname */

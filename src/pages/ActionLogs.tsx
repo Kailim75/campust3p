@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { History, Filter, CheckCircle2, CalendarClock, ArrowRight } from "lucide-react";
+import { History, Filter, CheckCircle2, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {

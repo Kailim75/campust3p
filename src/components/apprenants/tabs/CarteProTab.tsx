@@ -21,7 +21,7 @@ interface CarteProTabProps {
   formation: string | null;
 }
 
-export function CarteProTab({ contactId, contactPrenom, formation }: CarteProTabProps) {
+export function CarteProTab({ contactId, contactPrenom: _contactPrenom, formation }: CarteProTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({

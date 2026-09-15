@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Bell, CheckCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

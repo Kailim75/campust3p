@@ -28,19 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  FileText,
-  Plus,
-  Edit,
-  Check,
-  History,
-  Eye,
-  Loader2,
-  Building2,
-  Globe,
-  Server,
-  ExternalLink,
-} from "lucide-react";
+import { FileText, Plus, Edit, Check, History, Eye, Loader2, Building2, Server, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 

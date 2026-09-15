@@ -8,13 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import {
-  GraduationCap, Users, Calendar, Search, Loader2, CheckCircle2,
-} from "lucide-react";
+import { GraduationCap, Users, Calendar, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { supabase } from "@/integrations/supabase/client";
