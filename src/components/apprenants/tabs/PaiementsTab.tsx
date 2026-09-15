@@ -46,6 +46,7 @@ import {
   tropPercu,
 } from "@/lib/montants";
 import { messageErreur } from "@/lib/erreurs";
+import type { Enums, TablesInsert } from "@/integrations/supabase/types";
 
 /** Pré-remplissage de la facturation express (depuis l'inscription). */
 export interface FactureExpressRequest {
@@ -200,18 +201,19 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
           totaux: { montant_ht: montant, montant_tva: 0 },
           dateEmission: today,
         });
+        const nouvelleFacture: TablesInsert<"factures"> = {
+          contact_id: contactId,
+          numero_facture: numero || `FAC-${Date.now()}`,
+          montant_total: montant,
+          statut: "emise",
+          type_financement: "personnel",
+          date_emission: today,
+          centre_id: centreId,
+          ...bloc,
+        };
         const { data: newFacture, error: fErr } = await supabase
           .from("factures")
-          .insert({
-            contact_id: contactId,
-            numero_facture: numero || `FAC-${Date.now()}`,
-            montant_total: montant,
-            statut: "emise" as any,
-            type_financement: "personnel" as any,
-            date_emission: today,
-            centre_id: centreId,
-            ...bloc,
-          } as any)
+          .insert(nouvelleFacture)
           .select("id")
           .single();
         if (fErr) throw fErr;
@@ -231,13 +233,16 @@ export function PaiementsTab({ contactId, expressRequest, onExpressHandled }: Pa
         throw new Error("Cette facture est en brouillon ou annulée : émettez-la d'abord pour l'encaisser.");
       }
 
-      const { error } = await supabase.from("paiements").insert({
+      const nouveauPaiement: TablesInsert<"paiements"> = {
         facture_id: factureId,
         montant,
-        mode_paiement: formData.mode as any,
+        // Le <Select> du formulaire (plus bas) ne propose que des valeurs de
+        // l'énum mode_paiement ; formData.mode reste `string` côté état React.
+        mode_paiement: formData.mode as Enums<"mode_paiement">,
         reference: formData.reference || null,
         date_paiement: new Date().toISOString().split("T")[0],
-      } as any);
+      };
+      const { error } = await supabase.from("paiements").insert(nouveauPaiement);
       if (error) throw error;
     },
     onSuccess: () => {

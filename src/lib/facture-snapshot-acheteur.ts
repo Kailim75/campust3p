@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 
 /**
  * Coordonnées figées de l'acheteur, posées DÈS LA CRÉATION d'une facture qui
@@ -56,6 +57,11 @@ export interface AdresseFigee {
   postal_code: string | null;
   city: string | null;
   country: string;
+  // Index signature : la colonne `factures.buyer_address_snapshot` est un
+  // jsonb typé `Json` côté Supabase ; sans elle, TS refuse d'assigner cette
+  // interface nommée à `Json` (même structurellement compatible) faute de
+  // signature d'index — voir blocFigeNouvelleFacture.
+  [key: string]: Json | undefined;
 }
 
 export interface CoordonneesFigeesAcheteur {
@@ -249,7 +255,7 @@ export async function blocFigeNouvelleFacture(params: {
   totaux?: { montant_ht: number; montant_tva: number };
   /** Date d'émission saisie ; vide ⇒ aujourd'hui (D5). */
   dateEmission?: string | null;
-}): Promise<Record<string, unknown>> {
+}): Promise<Partial<TablesInsert<"factures">>> {
   if (params.statut === "brouillon") return {};
 
   const figees = await lireCoordonneesFigeesAcheteur({
