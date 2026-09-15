@@ -1,3 +1,33 @@
+## ⚠️ AVANT de fusionner `fix/cron-secret-strict` et de faire redéployer par l'agent Lovable
+
+`checkCronSecret` (`supabase/functions/_shared/cron-auth.ts`) est devenue
+**stricte** : un `CRON_SECRET` absent côté serveur fait désormais **refuser
+(401)** l'appel, au lieu de l'accepter comme avant (« mode transition »).
+Ce changement ne prend effet qu'au **redéploiement** des edge functions
+(le sync GitHub seul ne déploie pas `supabase/functions/`).
+
+- [ ] Ouvrir Lovable Cloud → Settings → Edge Functions → Secrets et
+      **vérifier que `CRON_SECRET` y est bien présent** (ce fichier documente
+      son activation le 10/09/2026 — reconfirmer avant de fusionner, un
+      secret a pu être retiré ou tourné depuis sans mise à jour de ce fichier).
+- [ ] S'il est absent, le **positionner AVANT** de demander le redéploiement —
+      **jamais après**. Dans l'ordre inverse, les fonctions ci-dessous
+      répondraient 401 à tous leurs jobs pg_cron dès le redéploiement : plus
+      aucune relance de paiement, aucun email automatique, aucune notification,
+      aucune réconciliation Alma, jusqu'à correction.
+- [ ] Une fois le secret confirmé et la PR fusionnée, demander à l'agent
+      Lovable de redéployer les **8 fonctions concernées** (liste ci-dessous).
+- [ ] Sonder chacune juste après (appel sans en-tête `x-cron-secret` → 401
+      attendu ; avec l'en-tête → 200, idéalement via `?dryRun=true` pour
+      celles qui le supportent).
+
+Fonctions concernées par `checkCronSecret` (7) : `alma-reconcile-cron`,
+`generate-notifications`, `process-payment-reminders`, `send-convocation-cron`,
+`send-daily-report`, `send-exam-reminders`, `signature-reminders`. Plus
+`send-automated-emails` (variante stricte `cronSecretMatches`, déjà stricte
+avant ce changement — non affectée par ce durcissement, incluse ici pour
+mémoire car elle appartient aux 8 fonctions gardées par ce fichier).
+
 # Jobs planifiés (pg_cron) — état de référence
 
 Les jobs ci-dessous vivent dans la base (table `cron.job`), pas dans les
@@ -46,7 +76,7 @@ Les horaires sont en **UTC** (Paris = UTC+1 hiver / UTC+2 été).
 10/09/2026 en même temps que la fonction qu'il appelait — voir l'encadré en
 tête de fichier.)*
 
-## Secret des crons (`CRON_SECRET`) — ACTIF depuis le 10/09/2026
+## Secret des crons (`CRON_SECRET`) — ACTIF depuis le 10/09/2026, garde STRICTE depuis `fix/cron-secret-strict`
 
 > **Fait le 10/09/2026, vers 11h15 UTC.** Le secret `CRON_SECRET` est créé et
 > déclaré dans les secrets des edge functions, et les **8 jobs pg_cron portent
@@ -64,30 +94,33 @@ avec l'URL + la clé anon publique), chaque fonction cron passe par la garde
 `_shared/cron-auth.ts` : le secret `CRON_SECRET` étant configuré, l'en-tête
 `x-cron-secret` est exigé (401 sinon).
 
-⚠️ **Deux variantes de garde — le mode transition n'est PAS universel :**
+✅ **Depuis `fix/cron-secret-strict` (15/09/2026), les deux variantes de garde
+se comportent maintenant de façon identique face à un secret absent :**
 
-| Variante | Fonctions | `CRON_SECRET` absent |
+| Variante | Fonctions | `CRON_SECRET` absent côté serveur |
 |---|---|---|
-| `checkCronSecret` (tolérante) | les 7 crons purs | appel **accepté** avec un avertissement dans les logs (mode transition — sans objet depuis le 10/09/2026 : le secret existe, l'en-tête est exigé) |
-| `cronSecretMatches` (STRICTE) | `send-automated-emails` **uniquement** | voie cron **refusée**, repli sur la garde JWT admin/staff → le job pg_cron reçoit 401 |
+| `checkCronSecret` | les 7 crons purs | appel **refusé (401)**, erreur dans les logs — **avant ce changement**, l'appel était accepté avec un avertissement (« mode transition ») ; ce mode n'existe plus |
+| `cronSecretMatches` (variante stricte historique) | `send-automated-emails` **uniquement** | voie cron **refusée** (comportement inchangé), repli sur la garde JWT admin/staff → le job pg_cron reçoit 401 |
 
 `send-automated-emails` est le seul cas mixte : elle sert à la fois le job
 `daily-automated-emails` et les envois manuels du CRM. Sa voie cron n'est
-qu'une alternative au JWT, donc pas de mode transition — sinon retirer le
-secret rouvrirait la fonction à quiconque connaît l'URL (`verify_jwt = false`).
+qu'une alternative au JWT — c'est pour cela qu'elle était déjà en variante
+stricte avant ce changement, sans mode transition, sinon retirer le secret
+rouvrirait la fonction à quiconque connaît l'URL (`verify_jwt = false`).
 Depuis le 10/09/2026 ses deux chemins sont **exclusifs** : avec
 `x-cron-secret`, seule la campagne automatique tourne (tout corps contenant
 `recipients` / `to` / `type` est refusé en 403) ; avec un JWT admin/staff,
 seuls les envois manuels sont acceptés (un corps non reconnu renvoie 400 au
 lieu de déclencher la campagne du jour).
 
-**L'ordre compte** : tant que le secret n'existe pas, l'en-tête est ignoré (il
-ne casse rien) ; dès qu'il existe, tout appel sans en-tête est refusé en 401.
-On ajoute donc l'en-tête AVANT de créer le secret — l'inverse couperait les
-7 crons tolérants pendant tout l'intervalle (relances horaires et jobs
-quotidiens tombant dans la fenêtre, sans autre alerte que les logs des
-fonctions). `send-automated-emails` échappe à ce raisonnement : étant en
-variante stricte, sa voie cron ne s'ouvre qu'une fois le secret créé.
+⚠️ **Ce que la garde stricte suppose désormais** : `CRON_SECRET` doit être
+présent dans les secrets des edge functions **avant** tout redéploiement des
+8 fonctions listées plus bas — voir la checklist en tête de ce fichier. Le
+raisonnement « on ajoute l'en-tête avant de créer le secret, sans casser
+personne dans l'intervalle » (valable le 10/09/2026, quand `checkCronSecret`
+tolérait encore l'absence de secret) **ne s'applique plus** à
+`checkCronSecret` : un redéploiement sans secret positionné coupe
+immédiatement les 7 crons purs, pas seulement `send-automated-emails`.
 
 ### Procédure de référence — suivie le 10/09/2026, à rejouer pour toute rotation
 
