@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { messageErreur } from "@/lib/erreurs";
+import { getUserCentreId } from "@/utils/getCentreId";
+import { cheminSignatureCentre } from "@/lib/signatures";
 
 export interface Emargement {
   id: string;
@@ -94,8 +96,11 @@ export function useSignEmargement() {
       sessionId: string;
       signatureData: string;
     }) => {
-      // Upload signature to storage
-      const fileName = `emargement_${emargementId}_${Date.now()}.png`;
+      // Upload signature to storage — préfixé par le centre : la policy RLS
+      // "sig_insert" du bucket privé "signatures" exige
+      // storage_object_centre_id(name) IS NOT NULL (1er segment = centre_id).
+      const centreId = await getUserCentreId();
+      const fileName = cheminSignatureCentre(centreId, `emargement_${emargementId}_${Date.now()}.png`);
       const base64Data = signatureData.split(",")[1];
       const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
@@ -108,16 +113,22 @@ export function useSignEmargement() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Bucket privé : getPublicUrl renverrait une URL 403. URL signée,
+      // ré-signée à la volée à l'ouverture (cf. src/lib/signatures.ts).
+      const { data: urlData, error: urlError } = await supabase.storage
         .from("signatures")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60);
+
+      if (urlError || !urlData?.signedUrl) {
+        throw urlError ?? new Error("Impossible de générer l'URL de la signature");
+      }
 
       // Update emargement
       const { data, error } = await supabase
         .from("emargements")
         .update({
           present: true,
-          signature_url: urlData.publicUrl,
+          signature_url: urlData.signedUrl,
           signature_data: signatureData,
           ip_signature: "N/A", // Could be fetched from a service
           user_agent_signature: navigator.userAgent,

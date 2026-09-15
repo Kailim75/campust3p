@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
-import { resoudreObjetSignature } from "@/lib/signatures";
+import { resoudreObjetSignature, cheminSignatureCentre } from "@/lib/signatures";
 
 describe("resoudreObjetSignature — bucket + chemin depuis une signature_url hétérogène", () => {
   it("chemin brut du flux de signature publique → bucket generated-documents", () => {
@@ -45,5 +45,22 @@ describe("resoudreObjetSignature — bucket + chemin depuis une signature_url h�
   it("vide → null", () => {
     expect(resoudreObjetSignature("")).toBeNull();
     expect(resoudreObjetSignature("   ")).toBeNull();
+  });
+});
+
+describe("cheminSignatureCentre — chemin d'upload préfixé par le centre (bucket signatures)", () => {
+  it("préfixe le nom de fichier par le centre_id", () => {
+    expect(cheminSignatureCentre("97e69258-aaaa-bbbb-cccc-000000000001", "abc_123.png")).toBe(
+      "97e69258-aaaa-bbbb-cccc-000000000001/abc_123.png",
+    );
+  });
+
+  it("round-trip avec resoudreObjetSignature : reconnu comme un chemin du bucket signatures", () => {
+    // Régression du bug RLS : un chemin à plat (sans préfixe centre) est
+    // refusé par la policy sig_insert. Le chemin composé ici doit rester
+    // reconnu par resoudreObjetSignature (bucket "signatures", pas
+    // "generated-documents" — réservé au préfixe littéral "centre/").
+    const chemin = cheminSignatureCentre("97e69258-aaaa-bbbb-cccc-000000000001", "emargement_42_1789.png");
+    expect(resoudreObjetSignature(chemin)).toEqual({ bucket: "signatures", path: chemin });
   });
 });
