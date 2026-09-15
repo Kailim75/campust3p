@@ -25,12 +25,14 @@ import { format, isToday, isPast, isFuture } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { SignatureCanvas } from "@/components/signatures/SignatureCanvas";
+import { messageErreurInvoke } from "@/lib/erreurs";
 
 interface LearnerEmargementTabProps {
   contactId: string;
+  token: string;
 }
 
-export function LearnerEmargementTab({ contactId }: LearnerEmargementTabProps) {
+export function LearnerEmargementTab({ contactId, token }: LearnerEmargementTabProps) {
   const queryClient = useQueryClient();
   const [signingEmargement, setSigningEmargement] = useState<any>(null);
   const [signatureData, setSignatureData] = useState<string | null>(null);
@@ -65,38 +67,22 @@ export function LearnerEmargementTab({ contactId }: LearnerEmargementTabProps) {
       sessionId: string;
       signature: string;
     }) => {
-      // Upload signature
-      const fileName = `learner_${emargementId}_${Date.now()}.png`;
+      // Le portail est anonyme (jeton, pas de session Supabase) : le rôle
+      // anon n'a aucun droit sur le bucket privé "signatures". L'upload
+      // passe donc par une edge function service_role qui revalide le
+      // jeton elle-même — voir supabase/functions/portal-upload-signature.
       const base64Data = signature.split(",")[1];
-      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-
-      const { error: uploadError } = await supabase.storage
-        .from("signatures")
-        .upload(fileName, binaryData, {
-          contentType: "image/png",
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("signatures")
-        .getPublicUrl(fileName);
-
-      // Update emargement
-      const { error } = await supabase
-        .from("emargements")
-        .update({
-          present: true,
-          signature_url: urlData.publicUrl,
-          signature_data: signature,
-          ip_signature: "learner-portal",
-          user_agent_signature: navigator.userAgent,
-          date_signature: new Date().toISOString(),
-        })
-        .eq("id", emargementId);
+      const { data, error } = await supabase.functions.invoke("portal-upload-signature", {
+        body: {
+          token,
+          emargementId,
+          signatureDataBase64: base64Data,
+          userAgent: navigator.userAgent,
+        },
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erreur lors de la signature");
       return sessionId;
     },
     onSuccess: () => {
@@ -105,9 +91,9 @@ export function LearnerEmargementTab({ contactId }: LearnerEmargementTabProps) {
       setSigningEmargement(null);
       setSignatureData(null);
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error("Sign error:", error);
-      toast.error("Erreur lors de la signature");
+      toast.error(await messageErreurInvoke(error, "Erreur lors de la signature"));
     },
   });
 

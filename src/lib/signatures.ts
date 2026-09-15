@@ -17,6 +17,19 @@ import { toast } from "sonner";
  */
 
 /**
+ * Compose le chemin de téléversement dans le bucket privé "signatures",
+ * préfixé par le centre. La policy RLS "sig_insert" (migration
+ * 20260305171158) exige `storage_object_centre_id(name) IS NOT NULL`, qui
+ * lit le centre au 1er segment du chemin — sans ce préfixe, l'upload est
+ * refusé pour tout le monde (staff authentifié inclus). Fonction PURE
+ * (testable), partagée par useSignDocument (useSignatures.ts) et
+ * useSignEmargement (useEmargements.ts).
+ */
+export function cheminSignatureCentre(centreId: string, nomFichier: string): string {
+  return `${centreId}/${nomFichier}`;
+}
+
+/**
  * Déduit le bucket et le chemin de l'objet à signer à partir d'une valeur
  * `signature_url` hétérogène. Fonction PURE (testable).
  * Renvoie null pour une URL externe qu'on ne sait pas re-signer.
