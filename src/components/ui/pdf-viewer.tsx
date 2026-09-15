@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2, AlertCircle, Download } from "lucide-react";
+import { getPdfDocument } from "@/lib/pdfjsLoader";
 interface PDFViewerProps {
   pdfData: string | Blob | ArrayBuffer | null;
   className?: string;
@@ -21,26 +22,6 @@ export function PDFViewer({ pdfData, className, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.0);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
-
-  // Load PDF.js dynamically
-  const loadPdfJs = useCallback(async () => {
-    if ((window as any).pdfjsLib) {
-      return (window as any).pdfjsLib;
-    }
-
-    // Load PDF.js from CDN
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      script.onload = () => {
-        const pdfjsLib = (window as any).pdfjsLib;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        resolve(pdfjsLib);
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }, []);
 
   // Render a specific page
   const renderPage = useCallback(async (pdf: any, pageNumber: number) => {
@@ -89,16 +70,14 @@ export function PDFViewer({ pdfData, className, onDownload }: PDFViewerProps) {
       setError(null);
 
       try {
-        const pdfjsLib = await loadPdfJs();
-
-        let loadingTask;
+        let pdf;
 
         if (typeof pdfData === 'string') {
           if (pdfData.startsWith('blob:')) {
             // Fetch blob URL and convert to ArrayBuffer
             const response = await fetch(pdfData);
             const arrayBuffer = await response.arrayBuffer();
-            loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            pdf = await getPdfDocument({ data: arrayBuffer });
           } else if (pdfData.startsWith('data:')) {
             // Base64 data URL
             const base64 = pdfData.split(',')[1];
@@ -107,20 +86,18 @@ export function PDFViewer({ pdfData, className, onDownload }: PDFViewerProps) {
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
-            loadingTask = pdfjsLib.getDocument({ data: bytes });
+            pdf = await getPdfDocument({ data: bytes });
           } else {
-            loadingTask = pdfjsLib.getDocument(pdfData);
+            pdf = await getPdfDocument(pdfData);
           }
         } else if (pdfData instanceof Blob) {
           const arrayBuffer = await pdfData.arrayBuffer();
-          loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          pdf = await getPdfDocument({ data: arrayBuffer });
         } else if (pdfData instanceof ArrayBuffer) {
-          loadingTask = pdfjsLib.getDocument({ data: pdfData });
+          pdf = await getPdfDocument({ data: pdfData });
         } else {
           throw new Error('Format PDF non supporté');
         }
-
-        const pdf = await loadingTask.promise;
 
         if (cancelled) return;
 
@@ -145,7 +122,7 @@ export function PDFViewer({ pdfData, className, onDownload }: PDFViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [pdfData, loadPdfJs]);
+  }, [pdfData]);
 
   // Re-render when page or scale changes
   useEffect(() => {
