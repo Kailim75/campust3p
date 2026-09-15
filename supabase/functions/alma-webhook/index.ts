@@ -11,7 +11,7 @@ import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
  * When the secret is set AND a signature is provided, mismatched signatures
  * are rejected with 401.
  */
-async function verifyAlmaSignature(rawBody: string, signature: string | null): Promise<{
+export async function verifyAlmaSignature(rawBody: string, signature: string | null): Promise<{
   ok: boolean;
   reason?: string;
 }> {
