@@ -18,17 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertTriangle,
-  FileDown,
-  Loader2,
-  Mail,
-  Send,
-  CheckCircle2,
-  FileText,
-  Award,
-  Package,
-} from "lucide-react";
+import { FileDown, Loader2, Mail, Send, CheckCircle2, FileText, Award, Package } from "lucide-react";
 import { toast } from "sonner";
 import {
   generateAttachmentsForContact,
@@ -47,13 +37,6 @@ export interface DocSendInscrit {
   contact_id: string;
   contact?: InscritContact | null;
 }
-
-const DOC_ICONS: Record<SessionDocumentType, typeof Send> = {
-  convocation: Send,
-  programme: FileText,
-  attestation: Award,
-  pack: Package,
-};
 
 const ACTION_CATEGORY_MAP: Record<SessionDocumentType, ActionCategory> = {
   convocation: "session_envoi_convocation",

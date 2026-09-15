@@ -34,7 +34,7 @@ export function useActiveDuplicateCheck() {
         const { data, error } = await supabase.rpc("check_active_duplicate_email", {
           p_email: e,
           p_centre_id: centreId,
-          p_exclude_id: excludeId ?? null,
+          p_exclude_id: excludeId ?? undefined,
         });
         if (error) {
           console.error("[useActiveDuplicateCheck] error:", error);

@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -122,8 +121,6 @@ export function FormationTab({ contactId, contactPrenom, contactEmail }: Formati
             ) : (
               inscriptions.map((ins: any) => {
                 const session = ins.sessions;
-                const presence = PRESENCE_CONFIG[ins.statut || "en_cours"] || PRESENCE_CONFIG.en_cours;
-                const PresenceIcon = presence.icon;
                 return (
                   <TableRow key={ins.id} className="group">
                     <TableCell className="font-medium text-sm">

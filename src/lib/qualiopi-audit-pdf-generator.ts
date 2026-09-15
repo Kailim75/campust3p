@@ -25,7 +25,7 @@ interface QualiopiIndicateur {
 
 interface QualiopiAction {
   id: string;
-  indicateur_id: string;
+  indicateur_id: string | null;
   titre: string;
   description: string | null;
   statut: string;

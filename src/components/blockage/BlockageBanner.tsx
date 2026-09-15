@@ -1,4 +1,3 @@
-import { ShieldAlert } from "lucide-react";
 import { useBlockageDiagnostic } from "@/hooks/useBlockageDiagnostic";
 import { useCurrentUserRole } from "@/hooks/useUsers";
 
@@ -10,7 +9,7 @@ interface BlockageBannerProps {
  * Compact admin-only chip. Only shown to admin/staff when there are active blockages.
  * Replaces the old full-width red banner.
  */
-export function BlockageBanner({ onOpenPanel }: BlockageBannerProps) {
+export function BlockageBanner({ onOpenPanel: _onOpenPanel }: BlockageBannerProps) {
   const { data, isLoading } = useBlockageDiagnostic();
   const { data: userRole } = useCurrentUserRole();
 

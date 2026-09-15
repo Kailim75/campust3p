@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCentreFormation, CentreFormationInput } from '@/hooks/useCentreFormation';
+import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { Loader2, Building2, Upload, X, Image, Award, Shield, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';

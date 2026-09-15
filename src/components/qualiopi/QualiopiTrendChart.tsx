@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { format, subMonths, startOfMonth, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, isBefore, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { TrendingUp } from 'lucide-react';
 import type { QualiopiAudit } from '@/hooks/useQualiopiAudits';

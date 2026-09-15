@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,18 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { 
-  Plus, Search, Edit, Trash2, GraduationCap, Clock, Euro,
-  LayoutGrid, List, Percent, Download, ArrowUpDown, Filter, EyeOff
-} from "lucide-react";
+import { Plus, Search, Edit, Trash2, GraduationCap, LayoutGrid, List, Download, ArrowUpDown, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   useCatalogueFormations, useDeleteCatalogueFormation, useRecalcTrackForCatalogue,

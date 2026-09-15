@@ -136,7 +136,6 @@ export function useFormateursStats() {
 
       // Group by formateur
       const formateurMap: Record<string, FormateurStats> = {};
-      const today = new Date();
 
       sessions?.forEach((session) => {
         const formateur = session.formateur!;

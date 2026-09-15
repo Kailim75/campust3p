@@ -3,9 +3,8 @@
  * Shows top overdue invoices and encaissements summary.
  */
 
-import { ArrowRight, FileText, Euro, CreditCard } from "lucide-react";
+import { ArrowRight, FileText, Euro } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DashboardMetrics, TopFacture } from "@/hooks/useDashboardData";
 import { formatEur } from "@/lib/format-currency";

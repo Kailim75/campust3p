@@ -11,11 +11,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Download, Mail, RefreshCw, X, Calendar, User, FileText, Tag,
-} from "lucide-react";
+import { Download, Mail, RefreshCw, Calendar, User, FileText, Tag } from "lucide-react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";

@@ -5,17 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileCheck, FileDown, Mail, ExternalLink, Filter, CheckCircle2, ListChecks, Bot, CheckSquare } from "lucide-react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
-import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { CMA_DOC_LABELS } from "@/lib/cma-constants";
 import { exportToExcel } from "@/hooks/useExportData";
-import { isHandledToday } from "@/lib/aujourdhui-actions";
 import { UrgencyDot, LastActionLine, MarkDoneBtn, PostponeBtn } from "./AujourdhuiShared";
 import type { BlocSharedProps, CmaFilter } from "./aujourdhui-types";
-import { CMA_KEYWORDS } from "./aujourdhui-types";
-
 const CMA_INITIAL_LIMIT = 5;
 
 interface BlocCmaProps extends BlocSharedProps {

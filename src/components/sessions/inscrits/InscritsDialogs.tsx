@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,8 +27,6 @@ import type { FactureWithDetails } from "@/hooks/useFactures";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
 import type { Contact } from "@/hooks/useContacts";
 import type { CompanyInfo } from "@/lib/pdf-generator";
-import type { InscritContact } from "./inscrits-types";
-
 interface InscritsDialogsProps {
   sessionId: string;
 

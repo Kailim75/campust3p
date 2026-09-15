@@ -169,7 +169,6 @@ export function useSessionDocumentMatrix({
 
         // Contract frame from inscription
         const contractDocType = (insc as any).contract_document_type as string | null;
-        const contractStatus = (insc as any).contract_frame_status as string | null;
         const qualSource = (insc as any).qualification_source as string | null;
 
         const contractFrame = contractDocType === "contrat" ? "contrat"

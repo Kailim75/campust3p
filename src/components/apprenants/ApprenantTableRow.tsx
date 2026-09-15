@@ -1,18 +1,17 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Phone, MessageCircle, FileText, CreditCard, Info } from "lucide-react";
+import { Phone, FileText, Info } from "lucide-react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { openWhatsApp } from "@/lib/phone-utils";
 import { cn } from "@/lib/utils";
 import type { EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getActiveReasons, getActiveReasonLabel, isActiveApprenant, getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
+import { getActiveReasons, getActiveReasonLabel, getStatutApprenantLabel, type StatutApprenant } from "@/lib/apprenant-active";
 
 const FORMATION_BADGE: Record<string, string> = {
   TAXI: "badge-soft badge-soft-blue",

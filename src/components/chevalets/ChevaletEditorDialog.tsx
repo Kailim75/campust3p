@@ -53,7 +53,7 @@ export function ChevaletEditorDialog({
   onOpenChange,
   prenom,
   nom,
-  contactId,
+  contactId: _contactId,
   formationType = "",
 }: ChevaletEditorDialogProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -214,7 +214,7 @@ export function DevisDetailSheet({
     const variables = await buildDevisVariables();
     // NDA absent → la mention est retirée du gabarit avant substitution.
     const body = stripNdaFromTemplate(publishedTemplate.template_body, variables.centre_nda);
-    const rendered = body.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+    const rendered = body.replace(/\{\{(\w+)\}\}/g, (_match, varName) => {
       if (varName in variables) return variables[varName];
       return "";
     });
@@ -295,7 +295,6 @@ export function DevisDetailSheet({
 
       while (remainingHeight > 0) {
         if (yOffset !== 10) pdf.addPage();
-        const pageImgHeight = Math.min(remainingHeight, pdfHeight - 20);
         // Draw portion of the image
         pdf.addImage(imgData, "JPEG", 10, yOffset, imgWidth, imgHeight, undefined, "FAST", 0);
         if (remainingHeight > pdfHeight - 20) {

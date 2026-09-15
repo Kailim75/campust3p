@@ -1,17 +1,13 @@
-import { useMemo, useCallback } from "react";
+import { useCallback } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  CheckCircle2, Circle, AlertTriangle, ArrowRight, Mail, Send,
-  Clock, Bot, FileText,
-} from "lucide-react";
+import { CheckCircle2, Circle, AlertTriangle, ArrowRight, Mail, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, isToday, differenceInDays } from "date-fns";
+import { format, parseISO, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   CMA_DOC_LABELS,

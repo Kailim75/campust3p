@@ -6,8 +6,6 @@ import {
   FileDown, FileText, Mail, Send, Award, CheckSquare, Loader2,
 } from "lucide-react";
 import type { DocumentType } from "@/hooks/useDocumentGenerator";
-import type { EmailRecipient } from "@/components/email/EmailComposerModal";
-
 /* ── Global actions (all inscrits) ── */
 
 interface InscritsGlobalActionsProps {

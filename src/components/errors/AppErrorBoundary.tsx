@@ -48,7 +48,7 @@ export class AppErrorBoundary extends React.Component<
         });
     }
 
-    this.setState({ componentStack: info.componentStack });
+    this.setState({ componentStack: info.componentStack ?? undefined });
   }
 
   private handleReload = () => {

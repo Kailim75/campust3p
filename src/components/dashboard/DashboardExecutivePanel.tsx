@@ -8,8 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { DashboardMetrics } from "@/hooks/useDashboardData";
 import { formatEur } from "@/lib/format-currency";
-import { Progress } from "@/components/ui/progress";
-
 interface Props {
   metrics: DashboardMetrics | undefined;
   isLoading: boolean;

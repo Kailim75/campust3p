@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,15 +23,6 @@ const RESULTAT_BADGES: Record<string, { label: string; emoji: string; className:
   en_attente: { label: "En attente", emoji: "🔵", className: "bg-info/15 text-info" },
 };
 
-const STATUT_BADGES: Record<string, { label: string; className: string }> = {
-  planifie: { label: "Planifié", className: "bg-info/10 text-info" },
-  passe: { label: "Passé", className: "bg-muted text-muted-foreground" },
-  reussi: { label: "Réussi", className: "bg-success/10 text-success" },
-  echoue: { label: "Échoué", className: "bg-destructive/10 text-destructive" },
-  absent: { label: "Absent", className: "bg-warning/10 text-warning" },
-  reporte: { label: "Reporté", className: "bg-muted text-muted-foreground" },
-};
-
 interface ExamensTabProps {
   contactId: string;
   formation: string | null;
@@ -40,7 +30,7 @@ interface ExamensTabProps {
   track?: FormationTrack;
 }
 
-export function ExamensTab({ contactId, formation, track }: ExamensTabProps) {
+export function ExamensTab({ contactId, formation: _formation, track }: ExamensTabProps) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ type_examen: "", date_examen: "", numero_dossier: "" });

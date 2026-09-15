@@ -147,6 +147,15 @@ export function SuperAdminCentres() {
     const centreData = {
       ...fullCentre,
       plan_type: (fullCentre.plan_type || "essentiel") as "essentiel" | "pro" | "premium",
+      // Colonnes nullables en base (jamais observées null en pratique pour un
+      // centre existant) : mêmes valeurs de repli que celles déjà utilisées à
+      // la création d'un centre (cf. useCentres.ts) pour max_users/max_contacts ;
+      // null et false sont équivalents dans tous les usages booléens de `actif`.
+      actif: fullCentre.actif ?? false,
+      max_users: fullCentre.max_users ?? 5,
+      max_contacts: fullCentre.max_contacts ?? 500,
+      created_at: fullCentre.created_at ?? "",
+      updated_at: fullCentre.updated_at ?? "",
     };
     
     setCurrentCentre(centreData);

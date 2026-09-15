@@ -122,7 +122,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
       return;
     }
     try {
-      const created: any = await createPartner.mutateAsync({
+      const created = await createPartner.mutateAsync({
         company_name: newPartner.company_name.trim(),
         email: newPartner.email.trim() || null,
         address: newPartner.address.trim() || null,
@@ -135,7 +135,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         ...(newPartner.tva_intracom ? { tva_intracom: newPartner.tva_intracom.trim() } : {}),
         ...(newPartner.code_postal ? { code_postal: newPartner.code_postal.trim() } : {}),
         ...(newPartner.ville ? { ville: newPartner.ville.trim() } : {}),
-      } as any);
+      });
       setPartnerId(created.id);
       setShowNewPartner(false);
     } catch (e) {
@@ -149,7 +149,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
       return;
     }
     try {
-      const created: any = await createContact.mutateAsync({
+      const created = await createContact.mutateAsync({
         prenom: newContact.prenom.trim(),
         nom: newContact.nom.trim(),
         email: newContact.email.trim() || null,
@@ -158,7 +158,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         code_postal: newContact.code_postal.trim() || null,
         ville: newContact.ville.trim() || null,
         statut_apprenant: "actif",
-      } as any);
+      });
       setContactId(created.id);
       setShowNewContact(false);
       toast.success("Client créé");
@@ -196,7 +196,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
       });
 
       const newFacture = await createFacture.mutateAsync({
-        contact_id: clientType === "particulier" ? contactId : (null as any),
+        contact_id: clientType === "particulier" ? contactId : null,
         ...(clientType === "entreprise" ? { client_partner_id: partnerId } : {}),
         numero_facture: nextNumero || `FAC-${Date.now()}`,
         montant_total: Number(totalTTC.toFixed(2)),
@@ -205,7 +205,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
         date_emission: today,
         commentaires: commentaires || null,
         ...bloc,
-      } as any);
+      });
 
       // La facture est créée et ses montants sont figés : si les lignes échouent,
       // la reprise n'est possible que dans les quinze minutes (garde). Le refus
@@ -220,7 +220,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
           prix_unitaire_ht: pu,
           tva_percent: tvaPct,
           ordre: 0,
-        } as any]);
+        }]);
       } catch (error) {
         console.error(error);
         toast.warning(messageLignesNonEnregistrees(newFacture.numero_facture));
@@ -262,7 +262,7 @@ export function FactureLibreDialog({ open, onOpenChange, defaultContactId }: Fac
           )}
 
           {/* Type de client */}
-          <Tabs value={clientType} onValueChange={(v) => setClientType(v as any)}>
+          <Tabs value={clientType} onValueChange={(v) => setClientType(v as "particulier" | "entreprise")}>
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="particulier">Particulier (apprenant/contact)</TabsTrigger>
               <TabsTrigger value="entreprise"><Building2 className="h-4 w-4 mr-1" />Entreprise</TabsTrigger>

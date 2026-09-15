@@ -109,13 +109,13 @@ export async function processDocxWithVariables(
     // Simple approach: remove XML tags between { and } to merge them
     // Look for patterns like: {</w:t></w:r>...<w:r><w:t>{ or }</w:t></w:r>...<w:r><w:t>}
     const placeholderSplitPattern = /(\{+)(<\/w:t><\/w:r>(?:<w:r[^>]*>)?<w:t[^>]*>)(\{*)/g;
-    result = result.replace(placeholderSplitPattern, (_, open, middle, extra) => {
+    result = result.replace(placeholderSplitPattern, (_, open, _middle, extra) => {
       return open + (extra || '');
     });
-    
+
     // Fix closing braces split across runs
     const closingSplitPattern = /(\}+)(<\/w:t><\/w:r>(?:<w:r[^>]*>)?<w:t[^>]*>)(\}+)/g;
-    result = result.replace(closingSplitPattern, (_, close1, middle, close2) => {
+    result = result.replace(closingSplitPattern, (_, close1, _middle, close2) => {
       return close1 + close2;
     });
     
@@ -760,8 +760,7 @@ export function buildVariableData(
 
   // Nom complet composé
   const nomComplet = [contact.prenom, contact.nom].filter(Boolean).join(" ");
-  const nomCompletInverse = [contact.nom, contact.prenom].filter(Boolean).join(" ");
-  
+
   // Lieu de naissance complet
   const lieuNaissance = [contact.ville_naissance, contact.pays_naissance]
     .filter(Boolean)

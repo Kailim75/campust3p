@@ -50,7 +50,7 @@ export function useProspectDuplicateCheck(params: DuplicateCheckParams) {
       const { data: contactDups } = await supabase.rpc("check_duplicate_contacts", {
         p_nom: debouncedNom,
         p_prenom: debouncedPrenom,
-        p_email: debouncedEmail || null,
+        p_email: debouncedEmail || undefined,
       });
 
       if (contactDups) {
@@ -67,14 +67,6 @@ export function useProspectDuplicateCheck(params: DuplicateCheckParams) {
           });
         }
       }
-
-      // Check prospects by name/email
-      let prospectQuery = supabase
-        .from("prospects")
-        .select("id, nom, prenom, email, telephone, formation_souhaitee")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .limit(5);
 
       // Email match
       if (debouncedEmail) {

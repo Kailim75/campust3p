@@ -2,9 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, Download, UserX, Search, FileJson, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Shield, Download, UserX, Search, FileJson, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -96,7 +94,7 @@ export default function SuperAdminGDPR() {
 
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.rpc("anonymize_contact", {
+      const { error } = await supabase.rpc("anonymize_contact", {
         p_contact_id: selectedContact.id,
       });
 

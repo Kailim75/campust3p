@@ -113,7 +113,6 @@ function drawRoundedRect(
 
 function generateRectoPage(doc: jsPDF, config: FlyerConfig) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
   let y = 0;
 
   // Header avec gradient simulé

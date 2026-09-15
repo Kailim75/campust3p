@@ -1,73 +1,58 @@
-# Welcome to your Lovable project
+# T3P Campus
 
-## Project info
+CRM multi-tenant pour centres de formation de chauffeurs (Taxi, VTC, VMDTR).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Documentation de référence : [`CLAUDE.md`](./CLAUDE.md)** — règles Lovable,
+canaux de déploiement, zones sensibles, CI, dettes connues. À lire avant
+toute intervention sur ce dépôt.
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Démarrage local
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
-**Edit a file directly in GitHub**
+`bun.lock` est le lockfile de référence unique — ne pas régénérer
+`package-lock.json` ni lancer `npm install`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Scripts
 
-**Use GitHub Codespaces**
+| Commande | Rôle |
+|---|---|
+| `bun run dev` | Serveur de développement (Vite) |
+| `bun run build` | Build de production |
+| `bun run test` | Tests unitaires (Vitest) |
+| `bun run typecheck` | Vérification des types (`tsc --noEmit`) |
+| `bun run lint` | ESLint complet (dette existante, non bloquant en CI) |
+| `bun run lint:hooks` | Règle `react-hooks/rules-of-hooks` seule, **bloquante** |
+| `bun run lint:ratchet` | Gel de la dette lint (`lint-baseline.json`), **bloquant** |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Architecture — repères
 
-## What technologies are used for this project?
+- **Stack** : React 18 + Vite + TypeScript + Tailwind + shadcn/Radix.
+- **Backend** : Supabase via **Lovable Cloud** (Postgres + RLS, edge
+  functions Deno). Le développeur local n'a pas de compte Supabase direct :
+  la base n'est accessible que via le panneau Cloud de Lovable.
+- **Multi-tenant** : cloisonnement par `centre_id` — RLS active sur
+  (quasi) toutes les tables métier, et par premier segment du chemin pour
+  le stockage (buckets Storage).
+- **Données** : hooks TanStack Query dans `src/hooks/` (un fichier par
+  domaine), variantes paginées à préférer pour les listes.
+- **Emails** : Resend, gabarit commun côté edge functions.
+- **Paiements** : Alma.
+- **Tests** : Vitest (`src/**/__tests__`), harnais dédiés pour les edge
+  functions Deno critiques (stubs `Deno`/`supabase-js`/`resend`).
+- **CI** : GitHub Actions bloquante sur `main` (types, tests, build, règle
+  des hooks React, gel de la dette lint) — détails dans `CLAUDE.md`.
 
-This project is built with:
+## Déploiement — 3 canaux réels
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Front** : bouton **Publier** dans Lovable (Share → Publish).
+2. **Edge functions et migrations SQL** : outil de migration de l'agent
+   Lovable — le sync GitHub ne déploie ni les migrations ni les edge
+   functions.
+3. **Canal de secours** (SQL collé dans l'éditeur du panneau Cloud) :
+   dérogation exceptionnelle, jamais un mode normal.
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Détail complet, historique et garde-fous : voir `CLAUDE.md`.

@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, X, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Send, Loader2, Sparkles, FileText, Paperclip, ShieldAlert } from "lucide-react";
 import type { EmailAttachment } from "@/lib/session-document-helpers";
 import { formatFileSize, getAttachmentsTotalSize, isAttachmentTooLarge } from "@/lib/session-document-helpers";
 import { toast } from "sonner";

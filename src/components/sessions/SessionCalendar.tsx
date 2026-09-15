@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, GripVertical, Calendar as CalendarIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, parseISO, addDays, differenceInDays } from "date-fns";
@@ -31,7 +30,7 @@ interface DragState {
   dragOffset: number; // Difference in days from drag start
 }
 
-export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: SessionCalendarProps) {
+export function SessionCalendar({ sessions, onSessionClick, onSessionEdit: _onSessionEdit }: SessionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
@@ -46,20 +45,8 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
   
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Group sessions by start date for the current month view
-  const sessionsByDate = useMemo(() => {
-    const map: Record<string, Session[]> = {};
-    sessions.forEach((session) => {
-      const startDate = session.date_debut;
-      if (!map[startDate]) map[startDate] = [];
-      map[startDate].push(session);
-    });
-    return map;
-  }, [sessions]);
-
   // Get sessions that span across multiple days
   const getSessionsForDay = useCallback((date: Date): Session[] => {
-    const dateStr = format(date, "yyyy-MM-dd");
     return sessions.filter((session) => {
       const start = parseISO(session.date_debut);
       const end = parseISO(session.date_fin);
@@ -70,13 +57,6 @@ export function SessionCalendar({ sessions, onSessionClick, onSessionEdit }: Ses
   // Check if a session starts on this day
   const isSessionStart = (session: Session, date: Date): boolean => {
     return isSameDay(parseISO(session.date_debut), date);
-  };
-
-  // Calculate session duration in days (for display width)
-  const getSessionDuration = (session: Session): number => {
-    const start = parseISO(session.date_debut);
-    const end = parseISO(session.date_fin);
-    return differenceInDays(end, start) + 1;
   };
 
   const handleDragStart = (e: React.DragEvent, session: Session) => {

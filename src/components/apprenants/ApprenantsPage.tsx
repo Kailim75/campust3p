@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileWarning, Download, RefreshCw, CheckSquare, Send, GraduationCap, XCircle, Archive } from "lucide-react";
+import { Users, Download, RefreshCw, GraduationCap, XCircle, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnrichedContacts, type EnrichedContact } from "@/hooks/useEnrichedContacts";
 import { isActiveApprenant, isTerminated, type StatutApprenant } from "@/lib/apprenant-active";
@@ -16,12 +16,11 @@ import { ApprenantDetailSheet } from "@/components/apprenants/ApprenantDetailShe
 import { ContactFormDialog as EditContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ContactFormDialog } from "@/components/contacts/ContactFormDialog";
 import { ProspectFormDialog } from "@/components/prospects/ProspectFormDialog";
-import { EmptyState, EmptyStateAction } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ApprenantsToolbar } from "./ApprenantsToolbar";
 import { ApprenantTableRow } from "./ApprenantTableRow";
 import { DuplicatesDialog } from "./DuplicatesDialog";
 import { differenceInDays } from "date-fns";
-import { openWhatsApp } from "@/lib/phone-utils";
 import { toast } from "sonner";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { BulkActionBar, BulkActionButton } from "@/components/shared/BulkActionBar";
@@ -44,7 +43,7 @@ interface ApprenantsPageProps {
 }
 
 export function ApprenantsPage({ initialContactId, onContactOpened }: ApprenantsPageProps = {}) {
-  const { data: contacts, isLoading, isError, refetch } = useEnrichedContacts();
+  const { data: contacts, isError, refetch } = useEnrichedContacts();
   const updateContact = useUpdateContact();
   const [search, setSearch] = useState("");
   const [formationFilter, setFormationFilter] = useState("all");
@@ -437,7 +436,7 @@ export function ApprenantsPage({ initialContactId, onContactOpened }: Apprenants
           {paginatedFiltered.map((contact) => {
             const initials = `${contact.prenom.charAt(0)}${contact.nom.charAt(0)}`.toUpperCase();
             const formationClass = contact.formation
-              ? { TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" }[contact.formation] || "badge-soft badge-soft-gray"
+              ? ({ TAXI: "badge-soft badge-soft-blue", VTC: "badge-soft badge-soft-gray", VMDTR: "badge-soft badge-soft-teal" } as Record<string, string>)[contact.formation] || "badge-soft badge-soft-gray"
               : "";
             const payLabel = (() => {
               if (contact.totalFacture <= 0) return { text: "Non facturé", cls: "text-muted-foreground" };

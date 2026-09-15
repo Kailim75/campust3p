@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -34,17 +33,7 @@ import {
   useSignEmargement,
   useTogglePresence,
 } from "@/hooks/useEmargements";
-import {
-  ClipboardList,
-  Loader2,
-  RefreshCw,
-  PenTool,
-  Check,
-  X,
-  Calendar,
-  Users,
-  Download,
-} from "lucide-react";
+import { ClipboardList, Loader2, RefreshCw, PenTool, Check, Calendar, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { generateEmargementDocx } from "@/lib/emargement-docx-generator";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,8 +46,8 @@ interface EmargementSheetProps {
     nom: string;
     date_debut: string;
     date_fin: string;
-    lieu?: string;
-    formation_type?: string;
+    lieu?: string | null;
+    formation_type?: string | null;
     formateur_id?: string | null;
     horaire_type?: string | null;
   };
@@ -278,8 +267,8 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       nom: session.nom,
       date_debut: session.date_debut,
       date_fin: session.date_fin,
-      lieu: session.lieu,
-      formation_type: session.formation_type,
+      lieu: session.lieu ?? undefined,
+      formation_type: session.formation_type ?? undefined,
       formateur_nom: formateurNom || undefined,
       centre_nom: centre?.nom_commercial || undefined,
       centre_adresse: centre?.adresse_complete || undefined,

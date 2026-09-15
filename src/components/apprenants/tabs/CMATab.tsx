@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  CheckCircle2, Circle, Upload, Send, Mail, FileText, Clock, Bot,
-} from "lucide-react";
+import { CheckCircle2, Circle, Upload, Send, Mail, FileText, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContactDocuments } from "@/hooks/useContactDocuments";
 import { useContactHistorique } from "@/hooks/useContactHistorique";
@@ -24,7 +22,6 @@ import {
   hasCmaDocument,
 } from "@/lib/cma-constants";
 import { getTrackFromFormationType } from "@/lib/formation-track";
-import { createAutoNote, deleteAutoNote } from "@/lib/aujourdhui-actions";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 
