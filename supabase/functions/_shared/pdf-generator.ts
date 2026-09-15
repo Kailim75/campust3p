@@ -322,25 +322,6 @@ function addFooter(doc: jsPDF, pageNum: number = 1) {
   doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
 }
 
-function addContactBlock(doc: jsPDF, contact: ContactInfo, x: number, y: number): number {
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-
-  const fullName = `${contact.civilite || ""} ${contact.prenom} ${contact.nom}`.trim();
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  doc.text(fullName, x, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(COLORS.warmGray600.r, COLORS.warmGray600.g, COLORS.warmGray600.b);
-
-  if (contact.rue) { y += 5; doc.text(contact.rue, x, y); }
-  if (contact.code_postal || contact.ville) { y += 5; doc.text(`${contact.code_postal || ""} ${contact.ville || ""}`.trim(), x, y); }
-  if (contact.email) { y += 5; doc.text(contact.email, x, y); }
-
-  doc.setTextColor(COLORS.warmGray800.r, COLORS.warmGray800.g, COLORS.warmGray800.b);
-  return y + 10;
-}
-
 // Helper function to format full address (server-side)
 function formatFullAddress(session: SessionInfo): string {
   const parts: string[] = [];
@@ -891,7 +872,7 @@ export function generateProgrammePDF(
   yPos += sanctionLines.length * 5 + 10;
 
   // Modules détaillés
-  programme.modules.forEach((mod, index) => {
+  programme.modules.forEach((mod, _index) => {
     yPos = checkPageBreak(35 + mod.contenu.length * 5);
 
     // Module header

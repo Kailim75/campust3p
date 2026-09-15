@@ -3,8 +3,6 @@ import { Users, AlertTriangle, DollarSign, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseISO } from "date-fns";
 import { Session } from "@/hooks/useSessions";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SessionFinancialData } from "@/hooks/useSessionFinancials";
 

@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { RefreshCw, TrendingUp, TrendingDown, Target, AlertTriangle, CheckCircle2, HelpCircle, ArrowRight } from "lucide-react";
+import { RefreshCw, TrendingUp, Target, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend, Line, ComposedChart, ReferenceLine, Area, AreaChart,
@@ -70,7 +69,7 @@ export function PrevisionnelTab() {
 // ─── KPIs Synthèse ───
 function SyntheseKPIs({ year }: { year: number }) {
   const { data: budget = [] } = useBudgetPrevisionnel(year);
-  const { data: params } = useParametresFinanciers();
+  const { data: _params } = useParametresFinanciers();
   const currentMonth = new Date().getMonth() + 1;
   const isCurrentYear = year === new Date().getFullYear();
 

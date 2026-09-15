@@ -107,7 +107,7 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
   const watchEmail = form.watch("email");
   const watchTelephone = form.watch("telephone");
 
-  const { duplicates, isChecking: isCheckingDuplicates, hasDuplicates } = useProspectDuplicateCheck({
+  const { duplicates, hasDuplicates } = useProspectDuplicateCheck({
     nom: isEditing ? "" : watchNom,
     prenom: isEditing ? "" : watchPrenom,
     email: isEditing ? undefined : watchEmail,

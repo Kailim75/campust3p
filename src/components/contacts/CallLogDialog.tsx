@@ -12,13 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Phone, Loader2, Bell, PhoneOff, PhoneMissed, Check } from "lucide-react";
 import { useCreateHistorique } from "@/hooks/useContactHistorique";
 import { Badge } from "@/components/ui/badge";

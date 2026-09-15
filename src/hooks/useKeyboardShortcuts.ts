@@ -1,18 +1,7 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useShortcutSequence } from "@/hooks/useShortcutSequence";
 
 type ShortcutHandler = () => void;
-
-interface Shortcut {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  handler: ShortcutHandler;
-  description: string;
-}
-
-const shortcuts: Shortcut[] = [];
 
 /** Returns true if the keyboard event originated from an editable element. */
 function isEditableTarget(target: EventTarget | null): boolean {

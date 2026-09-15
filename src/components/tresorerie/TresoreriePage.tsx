@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, CalendarDays } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { TresorerieDashboard } from "./TresorerieDashboard";
 import { ImportBancaireTab } from "./ImportBancaireTab";
 import { RapprochementTab } from "./RapprochementTab";

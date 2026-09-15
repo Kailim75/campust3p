@@ -1,4 +1,4 @@
-import { Phone, MapPin, Calendar, Star, Trophy, Award, CheckCircle2, Clock, Users, Shield, Car, CreditCard, BookOpen, Banknote } from "lucide-react";
+import { Phone, MapPin, Star, Award, CheckCircle2, Clock, Users, Shield, Car, CreditCard, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ORGANISME } from "@/constants/formations";

@@ -797,7 +797,7 @@ export function renderTemplateHtml(
 ): string {
   // NDA absent → la mention est retirée du gabarit AVANT substitution.
   const body = stripNdaFromTemplate(templateBody, variables.centre_nda);
-  const rendered = body.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+  const rendered = body.replace(/\{\{(\w+)\}\}/g, (_match, varName) => {
     if (varName in variables) return variables[varName];
     return ""; // Remove unknown variables in production render
   });

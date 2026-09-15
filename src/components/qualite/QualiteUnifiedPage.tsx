@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Award, Star, BarChart3, ClipboardList, CheckSquare, Calendar, Target, Shield } from "lucide-react";
+import { Award, Star, BarChart3, ClipboardList, CheckSquare, Calendar, Target } from "lucide-react";
 import QualiopiDashboard from "@/components/qualiopi/QualiopiDashboard";
 import QualiopiCriteres from "@/components/qualiopi/QualiopiCriteres";
 import QualiopiActions from "@/components/qualiopi/QualiopiActions";

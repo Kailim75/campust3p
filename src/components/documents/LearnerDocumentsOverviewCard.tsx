@@ -6,10 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  FileText, CheckCircle2, Clock, AlertTriangle, Send, PenTool,
-  Package, Eye, RefreshCw, Loader2,
-} from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Send, PenTool, Package, RefreshCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OverviewStats {

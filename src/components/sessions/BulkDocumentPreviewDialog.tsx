@@ -20,21 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  FileText,
-  FileDown,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  Loader2,
-  Eye,
-  AlertCircle,
-  FileCode,
-  Sparkles,
-  Upload,
-  File,
-  FileWarning,
-} from 'lucide-react';
+import { FileText, FileDown, ChevronLeft, ChevronRight, Users, Loader2, Eye, AlertCircle, FileCode, Sparkles, Upload, File } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -56,7 +42,7 @@ import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentDa
 import { PDFViewer } from '@/components/ui/pdf-viewer';
 import { centreToCompanyInfo } from '@/lib/centre-to-company';
 import { usePublishedTemplate } from '@/hooks/usePublishedTemplate';
-import { renderTemplateHtml, buildDocumentVariables, printHtmlDocument } from '@/lib/template-renderer';
+import { renderTemplateHtml, buildDocumentVariables } from '@/lib/template-renderer';
 
 interface Inscrit {
   id: string;

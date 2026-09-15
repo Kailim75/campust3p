@@ -50,7 +50,7 @@ interface Props {
   aiPrefilledType?: string | null;
 }
 
-export default function TemplateEditorV2({ templateId, isCreating, onBack, onGenerate, aiPrefilledBody, aiPrefilledType }: Props) {
+export default function TemplateEditorV2({ templateId, isCreating, onBack, onGenerate: _onGenerate, aiPrefilledBody, aiPrefilledType }: Props) {
   const { data: template, isLoading } = useTemplateV2(templateId);
   const createTemplate = useCreateTemplateV2();
   const updateTemplate = useUpdateTemplateV2();

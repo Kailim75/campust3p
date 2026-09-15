@@ -2,7 +2,7 @@
 // Audit Export — Generate structured document audit data
 // ═══════════════════════════════════════════════════════════════
 
-import type { DocumentWorkflowItem, DocumentBlockSummary, SessionDocumentMatrixRow } from "./types";
+import type { DocumentBlockSummary, SessionDocumentMatrixRow } from "./types";
 import { DOCUMENT_BLOCKS } from "./documentBlockConfig";
 import { BUSINESS_STATUS_META } from "./documentBusinessStatus";
 

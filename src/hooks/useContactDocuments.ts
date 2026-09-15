@@ -81,7 +81,6 @@ export function useUploadDocument() {
       commentaires?: string;
     }) => {
       // Upload file to storage
-      const fileExt = file.name.split(".").pop();
       const fileName = `${contactId}/${Date.now()}-${file.name}`;
 
       const { error: uploadError } = await supabase.storage

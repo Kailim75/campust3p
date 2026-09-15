@@ -34,29 +34,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Database, 
-  Plus, 
-  Edit, 
-  Archive, 
-  FileDown, 
-  History, 
-  Loader2,
-  Shield,
-  Clock,
-  Users,
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
-} from "lucide-react";
+import { Database, Plus, Edit, Archive, FileDown, History, Loader2, Shield, Clock, Users, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useGdprProcessingRegister, GdprProcessing, GdprProcessingHistory } from "@/hooks/useGdprProcessingRegister";
 import { generateGdprRegisterPdf } from "@/lib/gdpr-register-pdf-generator";
 import { format } from "date-fns";
@@ -565,7 +543,7 @@ function ProcessingForm({
   formData,
   setFormData,
   legalBases,
-  categoriesPersonnes,
+  categoriesPersonnes: _categoriesPersonnes,
 }: {
   formData: any;
   setFormData: (data: any) => void;

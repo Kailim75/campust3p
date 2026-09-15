@@ -1,4 +1,4 @@
-import { Package, Euro, Clock, ToggleRight, TrendingUp } from "lucide-react";
+import { Package, Euro, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CatalogueFormation } from "@/hooks/useCatalogueFormations";
 

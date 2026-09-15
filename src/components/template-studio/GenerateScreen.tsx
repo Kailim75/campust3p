@@ -11,7 +11,7 @@ interface Props {
   onBack: () => void;
 }
 
-export default function GenerateScreen({ preselectedTemplateId, onBack }: Props) {
+export default function GenerateScreen({ preselectedTemplateId, onBack: _onBack }: Props) {
   const { data: templates, isLoading } = useTemplatesV2({});
   const [selectedId, setSelectedId] = useState<string | null>(preselectedTemplateId);
 

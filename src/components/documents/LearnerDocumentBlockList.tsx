@@ -6,8 +6,7 @@ import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import { downloadPdf, downloadPdfAsBase64, isPdfReadyForSignature } from "@/lib/documents/pdfResolver";
-import { openWhatsApp } from "@/lib/phone-utils";
+import { downloadPdf, downloadPdfAsBase64 } from "@/lib/documents/pdfResolver";
 import { useLearnerDocumentBlocks } from "@/hooks/useLearnerDocumentBlocks";
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { useGenerateDocument, useDownloadGeneratedDoc, buildVariablesForGeneration } from "@/hooks/useTemplateStudioV2";
@@ -50,7 +49,7 @@ export function LearnerDocumentBlockList({
 
   // Generation
   const generateDoc = useGenerateDocument();
-  const downloadDoc = useDownloadGeneratedDoc();
+  useDownloadGeneratedDoc();
   const [regeneratingIds, setRegeneratingIds] = useState<Set<string>>(new Set());
 
   // Preview

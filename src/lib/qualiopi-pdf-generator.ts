@@ -122,7 +122,6 @@ export function generateQualiopiSynthesisPDF({ indicateurs, audits, centreName }
     
     const indicateursCritere = indicateurs.filter(i => i.critere === critere);
     const conformesCritere = indicateursCritere.filter(i => i.statut === 'conforme').length;
-    const partielsCritere = indicateursCritere.filter(i => i.statut === 'partiellement_conforme').length;
     const tauxCritere = indicateursCritere.length > 0 ? Math.round((conformesCritere / indicateursCritere.length) * 100) : 0;
 
     // Critère number and label

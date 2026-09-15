@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 

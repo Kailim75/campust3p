@@ -30,7 +30,7 @@ import {
   TrendingUp,
   Filter
 } from 'lucide-react';
-import { useWorkflows, useAllWorkflowExecutions, TRIGGER_TYPES, ACTION_TYPES, WORKFLOW_TEMPLATES } from '@/hooks/useWorkflows';
+import { useWorkflows, useAllWorkflowExecutions, TRIGGER_TYPES, ACTION_TYPES } from '@/hooks/useWorkflows';
 import { WorkflowFormDialog } from './WorkflowFormDialog';
 import { WorkflowExecutionsSheet } from './WorkflowExecutionsSheet';
 import { WorkflowTemplatesDialog } from './WorkflowTemplatesDialog';

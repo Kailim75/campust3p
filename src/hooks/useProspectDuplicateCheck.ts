@@ -68,14 +68,6 @@ export function useProspectDuplicateCheck(params: DuplicateCheckParams) {
         }
       }
 
-      // Check prospects by name/email
-      let prospectQuery = supabase
-        .from("prospects")
-        .select("id, nom, prenom, email, telephone, formation_souhaitee")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .limit(5);
-
       // Email match
       if (debouncedEmail) {
         const { data: emailMatches } = await supabase

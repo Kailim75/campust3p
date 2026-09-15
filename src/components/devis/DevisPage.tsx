@@ -17,10 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  FileText, MoreHorizontal, Send, Loader2, Filter, X, Check, XCircle,
-  ArrowRight, Eye, Edit, Trash2, FileCheck, TrendingUp, Clock, Euro, BarChart3
-} from "lucide-react";
+import { FileText, MoreHorizontal, Send, Loader2, Filter, X, Check, XCircle, ArrowRight, Eye, Edit, Trash2, FileCheck, TrendingUp, Clock, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast } from "date-fns";
 import { fr } from "date-fns/locale";

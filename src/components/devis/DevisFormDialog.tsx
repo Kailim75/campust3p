@@ -19,9 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useContacts } from "@/hooks/useContacts";
 import { useCatalogueFormations } from "@/hooks/useCatalogueFormations";
 import {
@@ -143,27 +141,6 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
     setLignes(
       lignes.map((l) => (l.id === id ? { ...l, [field]: value } : l))
     );
-  };
-
-  const selectCatalogueItem = (ligneId: string, catalogueId: string) => {
-    const item = catalogue.find((c) => c.id === catalogueId);
-    if (item) {
-      const prixApresRemise = item.prix_ht * (1 - (item.remise_percent || 0) / 100);
-      setLignes(
-        lignes.map((l) =>
-          l.id === ligneId
-            ? {
-                ...l,
-                catalogue_formation_id: catalogueId,
-                description: item.intitule,
-                prix_unitaire_ht: prixApresRemise,
-                tva_percent: item.tva_percent,
-                remise_percent: 0, // La remise catalogue est déjà appliquée au prix
-              }
-            : l
-        )
-      );
-    }
   };
 
   const calculateLigneTotal = (ligne: LigneForm) => {
@@ -374,7 +351,7 @@ export function DevisFormDialog({ open, onOpenChange, devis }: DevisFormDialogPr
             ) : (
               <div className="border rounded-lg divide-y">
                 {lignes.map((ligne, index) => {
-                  const { ht, ttc } = calculateLigneTotal(ligne);
+                  const { ht } = calculateLigneTotal(ligne);
                   return (
                     <div key={ligne.id} className="p-4 space-y-3">
                       <div className="flex items-start gap-4">

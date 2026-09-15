@@ -27,7 +27,7 @@ import {
   File,
   FileSignature
 } from 'lucide-react';
-import { useDocumentGenerator, type DocumentType } from '@/hooks/useDocumentGenerator';
+import { useDocumentGenerator } from '@/hooks/useDocumentGenerator';
 import {
   generateConventionPDF,
   generateContratFormationPDF,
@@ -41,8 +41,8 @@ import { generateReglementInterieurPDF, generateCGVPDF, type ConventionCompanyIn
 import { useCreateDocumentEnvoi } from '@/hooks/useDocumentEnvois';
 import { useDocumentEnvoiHistory, getContactEnvoiSummaries } from '@/hooks/useDocumentEnvoiHistory';
 import { EnvoiAlreadySentWarning } from '@/components/documents/EnvoiAlreadySentWarning';
-import { useDocumentTemplateFiles, downloadTemplateFile } from '@/hooks/useDocumentTemplateFiles';
-import { useDocumentTemplates, replaceVariables } from '@/hooks/useDocumentTemplates';
+import { useDocumentTemplateFiles } from '@/hooks/useDocumentTemplateFiles';
+import { useDocumentTemplates } from '@/hooks/useDocumentTemplates';
 import { useCentreFormation } from '@/hooks/useCentreFormation';
 import { useCreateSignatureRequest, useSendSignatureEmail } from '@/hooks/useSignatures';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,7 +131,7 @@ export function SendDocumentsToContactDialog({
   const [isSending, setIsSending] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('standard');
 
-  const { generateDocument } = useDocumentGenerator();
+  const { generateDocument: _generateDocument } = useDocumentGenerator();
   const createEnvoi = useCreateDocumentEnvoi();
   const { centreFormation } = useCentreFormation();
   const createSignatureRequest = useCreateSignatureRequest();
@@ -189,77 +189,8 @@ export function SendDocumentsToContactDialog({
     );
   };
 
-  // Build contact data for variable replacement
-  const contactData = useMemo(() => ({
-    civilite: contact.civilite || '',
-    nom: contact.nom,
-    prenom: contact.prenom,
-    email: contact.email || '',
-    telephone: contact.telephone || '',
-    rue: contact.rue || '',
-    code_postal: contact.code_postal || '',
-    ville: contact.ville || '',
-    date_naissance: contact.date_naissance || '',
-    ville_naissance: contact.ville_naissance || '',
-    pays_naissance: contact.pays_naissance || '',
-    numero_permis: contact.numero_permis || '',
-    prefecture_permis: contact.prefecture_permis || '',
-    date_delivrance_permis: contact.date_delivrance_permis || '',
-    numero_carte_professionnelle: contact.numero_carte_professionnelle || '',
-    prefecture_carte: contact.prefecture_carte || '',
-    date_expiration_carte: contact.date_expiration_carte || '',
-    formation: contact.formation || sessionInfo.formation_type || '',
-  }), [contact, sessionInfo.formation_type]);
-
-  // Build session data for variable replacement
-  const sessionData = useMemo(() => ({
-    nom: sessionInfo.nom,
-    numero_session: sessionInfo.id.slice(0, 8).toUpperCase(),
-    date_debut: sessionInfo.date_debut,
-    date_fin: sessionInfo.date_fin,
-    heure_debut: sessionInfo.heure_debut || '',
-    heure_fin: sessionInfo.heure_fin || '',
-    lieu: sessionInfo.lieu || '',
-    adresse_rue: sessionInfo.adresse_rue || '',
-    adresse_code_postal: sessionInfo.adresse_code_postal || '',
-    adresse_ville: sessionInfo.adresse_ville || '',
-    formateur: sessionInfo.formateur || '',
-    prix_ht: sessionInfo.prix?.toString() || '',
-    tva_percent: sessionInfo.tva_percent?.toString() || '0',
-    duree_heures: sessionInfo.duree_heures?.toString() || '',
-    places_totales: sessionInfo.places_totales?.toString() || '',
-    objectifs: sessionInfo.objectifs || '',
-    prerequis: sessionInfo.prerequis || '',
-  }), [sessionInfo]);
 
   // Generate PDF from text template
-  const generatePdfFromTextTemplate = (template: { nom: string; contenu: string }) => {
-    // Identité du centre passée EXPLICITEMENT : ce PDF part par email, il ne
-    // doit jamais sortir sans SIRET ni nom d'organisme.
-    const processedContent = replaceVariables(
-      template.contenu,
-      contactData,
-      sessionData,
-      undefined,
-      centreFormation
-    );
-    
-    // Create PDF
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    
-    doc.setFontSize(16);
-    doc.text(template.nom, pageWidth / 2, 20, { align: 'center' });
-    
-    doc.setFontSize(11);
-    const lines = doc.splitTextToSize(processedContent.replace(/<[^>]*>/g, ''), maxWidth);
-    doc.text(lines, margin, 35);
-    
-    return doc;
-  };
-
   const handleSend = async () => {
     const totalSelected = selectedDocuments.length + selectedTemplateFiles.length + selectedTextTemplates.length;
     
@@ -273,49 +204,7 @@ export function SendDocumentsToContactDialog({
     try {
       // 1. Generate standard documents
       for (const docType of selectedDocuments) {
-        const contactInfo = {
-          id: contact.id, // Nécessaire pour générer le numéro de certificat
-          civilite: contact.civilite || undefined,
-          nom: contact.nom,
-          prenom: contact.prenom,
-          email: contact.email || undefined,
-          telephone: contact.telephone || undefined,
-          rue: contact.rue || undefined,
-          code_postal: contact.code_postal || undefined,
-          ville: contact.ville || undefined,
-          date_naissance: contact.date_naissance || undefined,
-          ville_naissance: contact.ville_naissance || undefined,
-          pays_naissance: contact.pays_naissance || undefined,
-          numero_carte_professionnelle: contact.numero_carte_professionnelle || undefined,
-          prefecture_carte: contact.prefecture_carte || undefined,
-          date_expiration_carte: contact.date_expiration_carte || undefined,
-          numero_permis: contact.numero_permis || undefined,
-          prefecture_permis: contact.prefecture_permis || undefined,
-          date_delivrance_permis: contact.date_delivrance_permis || undefined,
-          formation: contact.formation || undefined,
-        };
-
-        const sessionDataForDoc = {
-          id: sessionInfo.id,
-          nom: sessionInfo.nom,
-          formation_type: sessionInfo.formation_type,
-          date_debut: sessionInfo.date_debut,
-          date_fin: sessionInfo.date_fin,
-          lieu: sessionInfo.lieu || undefined,
-          duree_heures: sessionInfo.duree_heures || 35,
-          prix: sessionInfo.prix,
-          heure_debut: sessionInfo.heure_debut || undefined,
-          heure_fin: sessionInfo.heure_fin || undefined,
-          heure_debut_matin: sessionInfo.heure_debut_matin || undefined,
-          heure_fin_matin: sessionInfo.heure_fin_matin || undefined,
-          heure_debut_aprem: sessionInfo.heure_debut_aprem || undefined,
-          heure_fin_aprem: sessionInfo.heure_fin_aprem || undefined,
-          formateur: sessionInfo.formateur || undefined,
-        };
-
-        if (['convocation', 'convention', 'contrat', 'attestation', 'programme'].includes(docType)) {
-          // Document generation handled server-side for email; no local download
-        }
+        // Document generation handled server-side for email; no local download
 
         await createEnvoi.mutateAsync({
           contact_id: contact.id,
@@ -331,7 +220,6 @@ export function SendDocumentsToContactDialog({
         const template = activeTextTemplates.find(t => t.id === templateId);
         if (!template) continue;
 
-        const doc = generatePdfFromTextTemplate(template);
         // No local download — document sent via email only
 
         await createEnvoi.mutateAsync({

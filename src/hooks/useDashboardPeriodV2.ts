@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
+import { subDays, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 
 export type PeriodRange = "today" | "7d" | "month" | "custom";
 
