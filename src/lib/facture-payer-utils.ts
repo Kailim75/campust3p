@@ -203,7 +203,7 @@ export function extractPayerInfo(inscription: {
     siret?: string | null;
     tva_intracom?: string | null;
   } | null;
-} | null, contact: {
+} | null | undefined, contact: {
   nom: string;
   prenom: string;
   civilite?: string | null;

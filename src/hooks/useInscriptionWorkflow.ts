@@ -146,7 +146,7 @@ export function useWorkflowAlerts(centreId: string | null | undefined) {
           "alert_attestation_late.eq.true"
         );
       if (error) throw error;
-      const items = (data ?? []).map(mapRow);
+      const items: InscriptionWorkflow[] = (data ?? []).map(mapRow);
       return {
         items,
         counts: {

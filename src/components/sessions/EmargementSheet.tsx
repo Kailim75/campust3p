@@ -46,8 +46,8 @@ interface EmargementSheetProps {
     nom: string;
     date_debut: string;
     date_fin: string;
-    lieu?: string;
-    formation_type?: string;
+    lieu?: string | null;
+    formation_type?: string | null;
     formateur_id?: string | null;
     horaire_type?: string | null;
   };
@@ -267,8 +267,8 @@ export function EmargementSheet({ session }: EmargementSheetProps) {
       nom: session.nom,
       date_debut: session.date_debut,
       date_fin: session.date_fin,
-      lieu: session.lieu,
-      formation_type: session.formation_type,
+      lieu: session.lieu ?? undefined,
+      formation_type: session.formation_type ?? undefined,
       formateur_nom: formateurNom || undefined,
       centre_nom: centre?.nom_commercial || undefined,
       centre_adresse: centre?.adresse_complete || undefined,

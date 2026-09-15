@@ -55,7 +55,7 @@ export async function getOrCreateCertificateNumber(
       "create_attestation_certificate",
       {
         p_contact_id: contactId,
-        p_session_id: sessionId || null,
+        p_session_id: sessionId || undefined,
         p_type_attestation: typeAttestation,
         p_metadata: {},
       }

@@ -450,9 +450,9 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                         {activeFormateurs.map((formateur) => (
                           <SelectItem key={formateur.id} value={formateur.id}>
                             {formateur.prenom} {formateur.nom}
-                            {formateur.specialites?.length > 0 && (
+                            {(formateur.specialites?.length ?? 0) > 0 && (
                               <span className="text-muted-foreground ml-2">
-                                ({formateur.specialites.join(", ")})
+                                ({formateur.specialites?.join(", ")})
                               </span>
                             )}
                           </SelectItem>

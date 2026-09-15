@@ -356,7 +356,7 @@ export function SessionDetailSheet({ sessionId, open, onOpenChange, onEdit }: Se
               {/* Quick Actions Bar */}
               <SessionQuickActions
                 inscriptionCount={inscriptionCount}
-                archived={session.archived}
+                archived={session.archived ?? undefined}
                 isTerminee={session.statut === "terminee"}
                 onSendDocuments={() => openDocSend()}
                 onSendEmail={() => {

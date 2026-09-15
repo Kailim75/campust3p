@@ -50,7 +50,7 @@ export function useProspectDuplicateCheck(params: DuplicateCheckParams) {
       const { data: contactDups } = await supabase.rpc("check_duplicate_contacts", {
         p_nom: debouncedNom,
         p_prenom: debouncedPrenom,
-        p_email: debouncedEmail || null,
+        p_email: debouncedEmail || undefined,
       });
 
       if (contactDups) {

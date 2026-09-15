@@ -280,7 +280,7 @@ export function GenerateDocumentDialog({
             heure_debut_aprem: (selectedSession as any).heure_debut_aprem,
             heure_fin_aprem: (selectedSession as any).heure_fin_aprem,
             formation_type: selectedSession.formation_type,
-            duree_heures: selectedSession.duree_heures,
+            duree_heures: selectedSession.duree_heures ?? undefined,
             formateur: (() => {
               const f = selectedSession.formateur as any;
               if (f && typeof f === 'object' && f.nom) {
