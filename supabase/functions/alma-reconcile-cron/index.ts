@@ -6,8 +6,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
 
 const ROLES_AUTORISES = ["admin", "staff", "super_admin"];
+const HEARTBEAT_JOB = "alma-reconcile-cron";
 
 /**
  * Voie d'authentification alternative au secret cron : un JWT utilisateur
@@ -53,6 +55,9 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  await reportHeartbeat(admin, HEARTBEAT_JOB, "running");
+
   const ALMA_API_KEY = Deno.env.get("ALMA_API_KEY");
   let rawMode = Deno.env.get("ALMA_MODE") || "test";
   if (rawMode.startsWith("sk_")) rawMode = rawMode.startsWith("sk_live_") ? "live" : "test";
@@ -60,9 +65,10 @@ serve(async (req) => {
     ? "https://api.getalma.eu/v1"
     : "https://api.sandbox.getalma.eu/v1";
 
-  if (!ALMA_API_KEY) return json(500, { error: "ALMA_API_KEY not configured" });
-
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  if (!ALMA_API_KEY) {
+    await reportHeartbeat(admin, HEARTBEAT_JOB, "error", "ALMA_API_KEY not configured");
+    return json(500, { error: "ALMA_API_KEY not configured" });
+  }
 
   // Lookback window
   const url = new URL(req.url);
@@ -81,7 +87,9 @@ serve(async (req) => {
       headers: { Authorization: `Alma-Auth ${ALMA_API_KEY}` },
     });
     if (!res.ok) {
-      return json(502, { error: "Alma list payments failed", status: res.status, detail: await res.text() });
+      const detail = await res.text();
+      await reportHeartbeat(admin, HEARTBEAT_JOB, "error", `Alma list payments failed (${res.status})`);
+      return json(502, { error: "Alma list payments failed", status: res.status, detail });
     }
     const body = await res.json();
     const items: any[] = body.data ?? body.payments ?? body ?? [];
@@ -165,5 +173,6 @@ serve(async (req) => {
   }
 
   console.log("[alma-reconcile-cron]", JSON.stringify(results));
+  await reportHeartbeat(admin, HEARTBEAT_JOB, "ok");
   return json(200, { ok: true, mode: rawMode, lookback_days: lookbackDays, ...results });
 });

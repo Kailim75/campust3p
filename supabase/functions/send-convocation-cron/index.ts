@@ -24,6 +24,9 @@ import {
 } from "../_shared/pdf-generator.ts";
 import { buildEmailHtml, formatDateFr } from "../_shared/email-template.ts";
 import { checkCronSecret } from "../_shared/cron-auth.ts";
+import { reportHeartbeat } from "../_shared/heartbeat.ts";
+
+const HEARTBEAT_JOB = "send-convocation-cron";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,14 +72,16 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendKey = Deno.env.get("RESEND_API_KEY");
+  const supabase = createClient(supabaseUrl, serviceKey);
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "running");
 
   if (!resendKey) {
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", "RESEND_API_KEY missing");
     return new Response(JSON.stringify({ error: "RESEND_API_KEY missing" }), {
       status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey);
   const resend = new Resend(resendKey);
 
   // Allow override for testing: ?days=3 or body { daysAhead: 3, dryRun: true }
@@ -112,6 +117,7 @@ serve(async (req) => {
 
   if (sErr) {
     console.error("[CONVOC-CRON] Erreur sessions:", sErr);
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "error", sErr.message);
     return new Response(JSON.stringify({ error: sErr.message }), {
       status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
@@ -119,6 +125,7 @@ serve(async (req) => {
 
   if (!sessions || sessions.length === 0) {
     console.log("[CONVOC-CRON] Aucune session cible.");
+    await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
     return new Response(JSON.stringify({ ok: true, sessionsProcessed: 0, sent: 0 }), {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
@@ -379,6 +386,7 @@ serve(async (req) => {
 
   console.log(`[CONVOC-CRON] Done. sent=${sent} skipped=${skipped} failed=${failed} sessions=${sessions.length}`);
 
+  await reportHeartbeat(supabase, HEARTBEAT_JOB, "ok");
   return new Response(
     JSON.stringify({
       ok: true,

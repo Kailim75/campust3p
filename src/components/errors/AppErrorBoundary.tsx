@@ -1,5 +1,12 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { createErrorThrottle, buildClientErrorKey } from "@/lib/client-error-throttle";
+
+// Supervision minimale (15/09/2026) — même fondation de capture serveur
+// que main.tsx (voir ce fichier), pour les erreurs de rendu React attrapées
+// ici plutôt que par les listeners globaux `error`/`unhandledrejection`.
+const shouldReportBoundaryError = createErrorThrottle();
 
 type AppErrorBoundaryState = {
   hasError: boolean;
@@ -27,6 +34,19 @@ export class AppErrorBoundary extends React.Component<
     console.error("[AppErrorBoundary] Caught error", error);
     // eslint-disable-next-line no-console
     console.error("[AppErrorBoundary] Component stack", info.componentStack);
+
+    const message = error instanceof Error ? error.message : "Erreur de rendu inconnue";
+    const stack = error instanceof Error ? error.stack : info.componentStack ?? undefined;
+    const key = buildClientErrorKey(message, stack);
+    if (shouldReportBoundaryError(key)) {
+      supabase.functions
+        .invoke("report-client-error", {
+          body: { message, stack, url: window.location.href },
+        })
+        .catch(() => {
+          // Best-effort : ne doit jamais changer le comportement de rendu.
+        });
+    }
 
     this.setState({ componentStack: info.componentStack });
   }
