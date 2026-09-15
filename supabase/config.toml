@@ -32,6 +32,15 @@ verify_jwt = false                     # Exchanges access_token → signing_toke
 [functions.api-v1]
 verify_jwt = false                     # Auth via x-api-key (clé centre)
 
+[functions.portal-upload-signature]
+verify_jwt = false                     # Portail apprenant anonyme — revalide son propre jeton (validate_learner_portal_token), écrit avec service_role. Doc CLAUDE.md 15/09/2026.
+
+[functions.track-link]
+verify_jwt = false                     # Lien de redirection cliqué depuis un email (aucune session) — logging fire-and-forget avec service_role. Doc CLAUDE.md 15/09/2026.
+
+[functions.track-open]
+verify_jwt = false                     # Pixel de tracking d'ouverture d'email (aucune session). Doc CLAUDE.md 15/09/2026.
+
 # ----------------------------------------------------------------------------
 # CRON / SCHEDULED — invoked by service_role, not by end users.
 # Keep public but ensure internal auth (bearer secret) is enforced.
@@ -57,6 +66,9 @@ verify_jwt = false                     # Cron, invoked by service_role
 
 [functions.signature-reminders]
 verify_jwt = false                     # Cron : relance J-3 + passage à expire des signatures
+
+[functions.process-payment-reminders]
+verify_jwt = false                     # Cron horaire (process-payment-reminders-hourly, supabase/CRON_JOBS.md) — checkCronSecret, aucun appelant front. Doc CLAUDE.md 15/09/2026.
 
 # ----------------------------------------------------------------------------
 # PROTECTED — called by authenticated frontend. JWT now required.
@@ -100,6 +112,15 @@ verify_jwt = true
 
 [functions.sync-driveflow]
 verify_jwt = true
+
+[functions.alma-reconcile]
+verify_jwt = true                      # Réconciliation manuelle Alma — appelée depuis AlmaReconciliationPage.tsx (admin/staff) ; vérifie déjà elle-même auth.getUser() + rôle en interne. Doc CLAUDE.md 15/09/2026.
+
+[functions.generate-facturx]
+verify_jwt = true                      # Génère le XML Factur-X d'une facture — appelée depuis PdpTransmissionPanel (usePdpTransmissions.ts, admin/staff) ; AUCUNE vérification d'auth interne (RLS seule). Doc CLAUDE.md 15/09/2026.
+
+[functions.submit-pdp]
+verify_jwt = true                      # Transmission PDP d'une facture — même appelant que generate-facturx (usePdpTransmissions.ts) ; AUCUNE vérification d'auth interne ; fonctionnellement désactivée tant que PLATEFORME_PDP_SIMULEE=true. Doc CLAUDE.md 15/09/2026.
 
 # Les 6 fonctions Gmail (sync-gmail-inbox, send-gmail-reply, send-gmail-new,
 # promote-attachment, download-email-attachment, gmail-thread-actions) et
