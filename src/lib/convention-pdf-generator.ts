@@ -8,16 +8,7 @@ import JSZip from "jszip";
 import { hasNda, hasSiret } from "./centre-to-company";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import {
-  ORGANISME,
-  getProgramme,
-  getPrerequis,
-  getObjectifs,
-  type TypeFormation,
-  type Beneficiaire,
-  type Formation,
-  type ModuleFormation,
-} from "@/constants/formations";
+import { ORGANISME, getProgramme, getPrerequis, getObjectifs, type Beneficiaire, type Formation, type ModuleFormation } from "@/constants/formations";
 import {
   REGLEMENT_INTERIEUR,
   type Article,
@@ -30,12 +21,7 @@ import {
 } from "@/templates/conditionsGeneralesVente";
 
 // ==================== IMPORT CHARTE GRAPHIQUE CENTRALISÉE ====================
-import { 
-  DOCUMENT_COLORS,
-  DOCUMENT_FONTS,
-  DOCUMENT_LAYOUT,
-  loadImageAsBase64 
-} from "./document-styles";
+import { DOCUMENT_COLORS, loadImageAsBase64 } from "./document-styles";
 
 // Cache local pour les images (logo, cachet)
 const convImageCache: Map<string, string> = new Map();
@@ -290,7 +276,7 @@ function addInfoBox(doc: jsPDF, title: string, lines: string[], yPos: number): n
 }
 
 // ==================== SIGNATURE BLOCK ====================
-function addSignatureBlock(doc: jsPDF, yPos: number, formation?: Formation, beneficiaire?: Beneficiaire, company?: ConventionCompanyInfo): number {
+function addSignatureBlock(doc: jsPDF, yPos: number, _formation?: Formation, beneficiaire?: Beneficiaire, company?: ConventionCompanyInfo): number {
   yPos = checkPageBreak(doc, yPos, 55);
 
   const halfWidth = CONTENT_WIDTH / 2 - 5;

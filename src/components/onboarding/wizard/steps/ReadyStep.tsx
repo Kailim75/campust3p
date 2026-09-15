@@ -30,7 +30,7 @@ export function ReadyStep({
   onPrev, 
   onComplete, 
   isSubmitting,
-  centreId 
+  centreId: _centreId
 }: ReadyStepProps) {
   const navigate = useNavigate();
   const [isCompleted, setIsCompleted] = useState(false);

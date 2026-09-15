@@ -1314,7 +1314,14 @@ export const getTarif = (type: TypeFormation, modalite: Modalite): number => {
 };
 
 export const getHoraires = (modalite: Modalite) => {
-  return HORAIRES[modalite];
+  // TODO(strict): `Modalite` ("journée" | "soirée", accentué) ne correspond
+  // JAMAIS aux clés de HORAIRES ("journee" | "soiree", sans accent) : cette
+  // fonction a toujours renvoyé `undefined`, quel que soit l'argument. Bug
+  // révélé par noImplicitAny (TS2551 sur l'ancienne indexation directe) ;
+  // non corrigé ici car `getHoraires` n'est appelée nulle part dans le code
+  // (seulement exportée) — comportement runtime inchangé, à trancher en revue
+  // humaine (accentuer les clés de HORAIRES, ou désaccentuer Modalite ?).
+  return HORAIRES[modalite as keyof typeof HORAIRES];
 };
 
 // ═══════════════════════════════════════════════════════════════════

@@ -20,21 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  FileText,
-  FileDown,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  Loader2,
-  Eye,
-  AlertCircle,
-  FileCode,
-  Sparkles,
-  Upload,
-  File,
-  FileWarning,
-} from 'lucide-react';
+import { FileText, FileDown, ChevronLeft, ChevronRight, Users, Loader2, Eye, AlertCircle, FileCode, Sparkles, Upload, File } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -56,7 +42,7 @@ import { fetchContactDocumentData } from '@/lib/documents/fetchContactDocumentDa
 import { PDFViewer } from '@/components/ui/pdf-viewer';
 import { centreToCompanyInfo } from '@/lib/centre-to-company';
 import { usePublishedTemplate } from '@/hooks/usePublishedTemplate';
-import { renderTemplateHtml, buildDocumentVariables, printHtmlDocument } from '@/lib/template-renderer';
+import { renderTemplateHtml, buildDocumentVariables } from '@/lib/template-renderer';
 
 interface Inscrit {
   id: string;
@@ -308,10 +294,18 @@ export function BulkDocumentPreviewDialog({
 
   // Cleanup blob URLs on unmount only
   useEffect(() => {
+    // TODO(strict): `currentUrl` n'est jamais réassigné dans cet effet — il
+    // reste toujours `null`, donc ce nettoyage n'a jamais rien révoqué (code
+    // mort). Le typage strict le prouve (currentUrl se réduit à `never` après
+    // le `&&`, d'où le cast ci-dessous, minimal, pour compiler sans changer
+    // le comportement). Le second effet juste en dessous (dépendance
+    // `[pdfDataUrl]`) fait, lui, le vrai suivi et la vraie révocation — à
+    // confirmer en revue humaine si ce premier effet doit être supprimé ou
+    // corrigé (ex. capturer pdfDataUrl au montage).
     let currentUrl: string | null = null;
-    
+
     return () => {
-      if (currentUrl && currentUrl.startsWith('blob:')) {
+      if (currentUrl && (currentUrl as string).startsWith('blob:')) {
         URL.revokeObjectURL(currentUrl);
       }
     };

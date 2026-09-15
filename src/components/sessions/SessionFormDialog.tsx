@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TRACK_BADGES } from "@/lib/formation-track";
 import { generateSessionName } from "@/lib/session-naming";
@@ -120,7 +120,7 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
     },
   });
 
-  const watchPrix = form.watch("prix_ht");
+  form.watch("prix_ht");
   const watchCatalogueId = form.watch("catalogue_formation_id");
   const watchFormationType = form.watch("formation_type");
   const watchDateDebut = form.watch("date_debut");
@@ -450,9 +450,9 @@ export function SessionFormDialog({ open, onOpenChange, session }: SessionFormDi
                         {activeFormateurs.map((formateur) => (
                           <SelectItem key={formateur.id} value={formateur.id}>
                             {formateur.prenom} {formateur.nom}
-                            {formateur.specialites?.length > 0 && (
+                            {(formateur.specialites?.length ?? 0) > 0 && (
                               <span className="text-muted-foreground ml-2">
-                                ({formateur.specialites.join(", ")})
+                                ({formateur.specialites?.join(", ")})
                               </span>
                             )}
                           </SelectItem>

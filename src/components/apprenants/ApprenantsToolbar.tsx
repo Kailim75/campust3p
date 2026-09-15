@@ -5,8 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Flame, ToggleLeft, ToggleRight, Copy, Settings2 } from "lucide-react";
 import { getRecentDaysThreshold, setRecentDaysThreshold } from "@/lib/apprenant-active";
-import { useState } from "react";
-
 interface ApprenantsToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;

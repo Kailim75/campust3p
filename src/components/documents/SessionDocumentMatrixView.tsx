@@ -26,7 +26,7 @@ import { BulkGenerationDialog } from "./BulkGenerationDialog";
 import { BulkEmailDialog } from "./BulkEmailDialog";
 import { ExportAuditPackDialog } from "./ExportAuditPackDialog";
 import { InlineContractQualifier } from "./InlineContractQualifier";
-import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem, ContractFrameDisplay } from "@/lib/document-workflow/types";
+import type { DocumentBlock, DocumentBlockSummary, SessionDocumentMatrixRow, DocumentWorkflowItem } from "@/lib/document-workflow/types";
 
 interface SessionDocumentMatrixViewProps {
   sessionId: string;

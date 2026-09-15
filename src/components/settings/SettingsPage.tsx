@@ -21,7 +21,6 @@ import {
   CreditCard as CreditCardIcon,
   Palette,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { DocumentTemplatesSection } from "./DocumentTemplatesSection";
 import { FinancialSettingsSection } from "./FinancialSettingsSection";
 import { EInvoicingSettings } from "./EInvoicingSettings";
@@ -30,7 +29,6 @@ import { DefaultTemplatesSection } from "./DefaultTemplatesSection";
 import { UserManagementSection } from "./UserManagementSection";
 import { CentreFormationSettings } from "./CentreFormationSettings";
 import { EmailSenderSettings } from "./EmailSenderSettings";
-import { NotificationSettings } from "./NotificationSettings";
 import { CustomizationSettings } from "./CustomizationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,8 +49,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { messageErreur } from "@/lib/erreurs";
-// XLSX loaded dynamically for performance
-type XLSXModule = typeof import("xlsx");
 
 // CSV columns mapping
 const CSV_COLUMNS = [
@@ -322,7 +318,20 @@ export function SettingsPage() {
   // Parse XLSX file
   const parseXLSX = async (buffer: ArrayBuffer): Promise<{ headers: string[]; rows: string[][] }> => {
     const XLSX = await import("xlsx");
+    // xlsx@0.18.5 porte 2 CVE connues, sans correctif publié à ce jour :
+    //   - CVE-2023-30533 : pollution de prototype via un fichier forgé
+    //   - CVE-2024-22363 : ReDoS (expression régulière catastrophique) sur
+    //     certains contenus de cellule lors du parsing
+    // Remplacer la librairie (ex. exceljs) ajouterait une dépendance npm —
+    // hors périmètre ici (le lockfile bun.lock ne peut pas être régénéré
+    // localement) ; ce remplacement reste un P1 à traiter par l'agent
+    // Lovable. Mitigation en place en attendant : fichier borné en taille
+    // (voir handleFileSelect, MAX_XLSX_FILE_SIZE) et une seule feuille lue
+    // (SheetNames[0] ci-dessous, jamais de boucle sur tout le classeur) —
+    // ce qui réduit fortement la surface d'entrée non fiable exposée au
+    // parseur.
     const workbook = XLSX.read(buffer, { type: "array" });
+    // Ne lire que la première feuille (jamais de boucle sur XLSX.SheetNames).
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
     const data: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -363,6 +372,15 @@ export function SettingsPage() {
 
     if (!isCSV && !isXLSX) {
       toast.error("Veuillez sélectionner un fichier CSV ou Excel (.xlsx, .xls)");
+      return;
+    }
+
+    // Limite de taille avant tout parsing xlsx (durcissement CVE-2023-30533 /
+    // CVE-2024-22363, voir le commentaire dans parseXLSX) : borne l'entrée
+    // fournie au parseur, sans changer de librairie.
+    const MAX_XLSX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo
+    if (isXLSX && file.size > MAX_XLSX_FILE_SIZE) {
+      toast.error("Le fichier Excel dépasse la taille maximale autorisée (5 Mo).");
       return;
     }
 

@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserCentreId } from "@/utils/getCentreId";
+import { cheminSignatureCentre } from "@/lib/signatures";
 
 export interface SignatureRequest {
   id: string;
@@ -162,8 +164,11 @@ export function useSignDocument() {
       ipAddress?: string;
       userAgent?: string;
     }) => {
-      // Upload signature image to storage
-      const fileName = `${id}_${Date.now()}.png`;
+      // Upload signature image to storage — préfixé par le centre : la
+      // policy RLS "sig_insert" du bucket privé "signatures" exige
+      // storage_object_centre_id(name) IS NOT NULL (1er segment = centre_id).
+      const centreId = await getUserCentreId();
+      const fileName = cheminSignatureCentre(centreId, `${id}_${Date.now()}.png`);
       const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, "");
       const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
@@ -175,10 +180,15 @@ export function useSignDocument() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      // Bucket privé : getPublicUrl renverrait une URL 403. URL signée,
+      // ré-signée à la volée à l'ouverture (cf. src/lib/signatures.ts).
+      const { data: urlData, error: urlError } = await supabase.storage
         .from("signatures")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60);
+
+      if (urlError || !urlData?.signedUrl) {
+        throw urlError ?? new Error("Impossible de générer l'URL de la signature");
+      }
 
       // Update signature request
       const { data, error } = await supabase
@@ -186,7 +196,7 @@ export function useSignDocument() {
         .update({
           statut: "signe",
           date_signature: new Date().toISOString(),
-          signature_url: urlData.publicUrl,
+          signature_url: urlData.signedUrl,
           ip_signature: ipAddress || null,
           user_agent_signature: userAgent || null,
         })

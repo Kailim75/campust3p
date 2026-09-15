@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { SuperAdminSidebar } from "./SuperAdminSidebar";
-import { SuperAdminHeader } from "./SuperAdminHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 

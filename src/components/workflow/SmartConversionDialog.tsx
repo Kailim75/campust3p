@@ -27,7 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSessions, useAllSessionInscriptionsCounts } from "@/hooks/useSessions";
 import { type Prospect } from "@/hooks/useProspects";
-import { useDuplicateCheck, type DuplicateContact } from "@/hooks/useDuplicateCheck";
+import { useDuplicateCheck } from "@/hooks/useDuplicateCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -74,7 +74,7 @@ export function SmartConversionDialog({
   const [creerFacture, setCreerFacture] = useState(true);
   const [createdContactId, setCreatedContactId] = useState<string | null>(null);
   const [createdSessionName, setCreatedSessionName] = useState("");
-  const [linkedContactId, setLinkedContactId] = useState<string | null>(null);
+  const [_linkedContactId, setLinkedContactId] = useState<string | null>(null);
 
   const { data: sessions = [], isLoading } = useSessions();
   const { data: inscriptionsCounts = {} } = useAllSessionInscriptionsCounts();

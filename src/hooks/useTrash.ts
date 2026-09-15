@@ -17,8 +17,8 @@ export function useTrashItems(tableFilter: string | null = null, search: string 
     queryKey: ["trash", tableFilter, search],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_trash_items", {
-        p_table_filter: tableFilter,
-        p_search: search || null,
+        p_table_filter: tableFilter ?? undefined,
+        p_search: search || undefined,
         p_limit: 200,
         p_offset: 0,
       });

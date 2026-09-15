@@ -5,15 +5,11 @@ import { useContacts, useUpdateContact, Contact } from "@/hooks/useContacts";
 import { useProspects, useUpdateProspect, type Prospect } from "@/hooks/useProspects";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import {
-  Search, Users, Target, TrendingUp, AlertTriangle, Lightbulb, Clock, DollarSign, ArrowRight,
-} from "lucide-react";
+import { Search, Users, Target, TrendingUp, AlertTriangle, Lightbulb, Clock, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -88,12 +84,6 @@ function getScoreColor(score: number) {
   if (score >= 75) return "text-success";
   if (score >= 50) return "text-warning";
   return "text-destructive";
-}
-
-function getScoreBg(score: number) {
-  if (score >= 75) return "bg-success";
-  if (score >= 50) return "bg-warning";
-  return "bg-destructive";
 }
 
 // ─── FORMATION STYLE ─────────────────────────────────────
@@ -356,7 +346,7 @@ function AcquisitionScoreCard({
 function ObjectifCard({
   inscriptionsActuelles,
   objectif,
-  manqueAGagner,
+  manqueAGagner: _manqueAGagner,
 }: {
   inscriptionsActuelles: number;
   objectif: number;
@@ -654,7 +644,7 @@ export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
       if (!destination) return;
 
       const newColumnId = destination.droppableId;
-      const [type, rawId] = draggableId.split("-") as [string, string];
+      const [type, _rawId] = draggableId.split("-") as [string, string];
       const realId = draggableId.substring(type.length + 1);
 
       if (type === "prospect") {

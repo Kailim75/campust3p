@@ -1,35 +1,18 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getPdfDocument } from "@/lib/pdfjsLoader";
 
 /**
  * Compose un PDF « document signé » : le document RÉELLEMENT signé (rendu tel
  * quel, jamais régénéré — intégrité légale) avec l'image de signature incrustée
  * sur la dernière page. Aucune dépendance nouvelle : rendu via pdf.js (le même
- * chargeur CDN que le visualiseur existant), réassemblage via jsPDF.
+ * chargeur bundlé — src/lib/pdfjsLoader.ts — que le visualiseur existant),
+ * réassemblage via jsPDF.
  *
  * NB : le PDF produit est « aplati » (pages rendues en image) — c'est le prix à
  * payer sans lib d'édition PDF, et c'est acceptable pour une pièce à archiver.
  */
-
-// Chargeur pdf.js identique à celui de components/ui/pdf-viewer.tsx (même version
-// CDN, même global window.pdfjsLib → pas de double chargement).
-function loadPdfJs(): Promise<any> {
-  const w = window as unknown as { pdfjsLib?: any };
-  if (w.pdfjsLib) return Promise.resolve(w.pdfjsLib);
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    script.onload = () => {
-      const pdfjsLib = (window as unknown as { pdfjsLib: any }).pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      resolve(pdfjsLib);
-    };
-    script.onerror = () => reject(new Error("Chargement de pdf.js impossible"));
-    document.head.appendChild(script);
-  });
-}
 
 function chargerImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -105,9 +88,8 @@ export async function composerPdfSigne(
   signatureDataUrl: string,
   legende: string,
 ): Promise<Blob> {
-  const pdfjsLib = await loadPdfJs();
   const img = await chargerImage(signatureDataUrl);
-  const pdf = await pdfjsLib.getDocument({ data: docPdf }).promise;
+  const pdf = await getPdfDocument({ data: docPdf });
   const nbPages: number = pdf.numPages;
   const RENDER = 2; // sur-échantillonnage pour une image nette à l'impression
 
@@ -121,7 +103,7 @@ export async function composerPdfSigne(
     canvas.height = Math.ceil(vp.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D indisponible");
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    await page.render({ canvas, canvasContext: ctx, viewport: vp }).promise;
 
     if (i === nbPages) incrusterSignature(ctx, canvas, img, legende);
 

@@ -2,7 +2,6 @@
 // SessionDocumentMatrixCell — Single block cell in the matrix
 // ═══════════════════════════════════════════════════════════════
 
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,

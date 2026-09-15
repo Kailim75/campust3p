@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SignatureCanvas } from "./SignatureCanvas";
 import { useSignDocument, useRefuseSignature, SignatureRequest } from "@/hooks/useSignatures";
 import { toast } from "sonner";
+import { messageErreur } from "@/lib/erreurs";
 import { 
   FileSignature, 
   Check, 
@@ -67,7 +68,7 @@ export function SignatureSigningDialog({
       onOpenChange(false);
       resetState();
     } catch (error) {
-      toast.error("Erreur lors de la signature");
+      toast.error(messageErreur(error, "Erreur lors de la signature"));
     }
   };
 

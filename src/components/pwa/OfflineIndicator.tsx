@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { WifiOff, Wifi, RefreshCw } from "lucide-react";
+import { WifiOff, Wifi } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

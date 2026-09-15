@@ -3,7 +3,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -13,16 +12,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Calendar, MapPin, Edit, Trash2, Copy, ChevronDown, ChevronRight,
-  Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, BookOpen,
-} from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Edit, Trash2, Copy, ChevronDown, ChevronRight, Layers, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -625,48 +616,12 @@ export function SessionsGroupedTable({
   );
 }
 
-function getBusinessPriority(session: Session, inscriptionsCounts: Record<string, number>) {
-  const inscrits = inscriptionsCounts[session.id] || 0;
-  const fillRate = session.places_totales > 0 ? (inscrits / session.places_totales) * 100 : 100;
-  const daysUntil = Math.ceil(
-    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
-  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) {
-    return { emoji: "🔴", label: "Risque élevé", class: "bg-destructive/10 text-destructive border-destructive/20" };
-  }
-  if (fillRate < 70) {
-    return { emoji: "🟡", label: "À surveiller", class: "bg-warning/10 text-warning border-warning/20" };
-  }
-  return { emoji: "🟢", label: "OK", class: "bg-success/10 text-success border-success/20" };
-}
-
 /** Unified fill-rate color: red < 50, warning 50-69, success 70-99, strong-success ≥ 100 */
 function getFillColor(fillRate: number) {
   if (fillRate >= 100) return { text: "text-emerald-600 dark:text-emerald-400", bar: "[&>div]:bg-emerald-600 dark:[&>div]:bg-emerald-400" };
   if (fillRate >= 70) return { text: "text-success", bar: "[&>div]:bg-success" };
   if (fillRate >= 50) return { text: "text-warning", bar: "[&>div]:bg-warning" };
   return { text: "text-destructive", bar: "[&>div]:bg-destructive" };
-}
-
-/** Micro-synthesis: one-line business interpretation */
-function getMicroSynthesis(session: Session, fillRate: number, fin?: SessionFinancialData): string {
-  const daysUntil = Math.ceil(
-    (new Date(session.date_debut).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
-  if (session.statut === 'annulee') return "Session annulée";
-  if (session.statut === 'terminee') {
-    if (fillRate >= 80 && fin && fin.ca_securise > 0) return "Session terminée — rentable";
-    if (fillRate < 50) return "Session terminée — faible performance";
-    return "Session terminée";
-  }
-  if (fillRate >= 100 && fin && fin.ca_securise > 0) return "Session complète — rentable";
-  if (fillRate >= 100) return "Session complète";
-  if (fillRate < 50 && daysUntil <= 14 && daysUntil >= 0) return "Remplissage insuffisant — à risque";
-  if (fillRate < 50 && daysUntil <= 7 && daysUntil >= 0) return "Démarrage imminent — critique";
-  if (daysUntil <= 7 && daysUntil >= 0 && fillRate < 70) return "Démarrage proche — attention";
-  if (fillRate < 50) return "Remplissage insuffisant";
-  if (fillRate < 70) return "Remplissage en cours";
-  return "Bonne trajectoire";
 }
 
 interface SessionRowProps {
@@ -683,7 +638,7 @@ interface SessionRowProps {
 }
 
 function SessionRow({
-  session, inscriptionsCounts, financials, showProfitability,
+  session, inscriptionsCounts, financials, showProfitability: _showProfitability,
   isActive, isCritical, onViewDetail, onEdit, onDuplicate, onDelete,
 }: SessionRowProps) {
   const formationColor = getFormationColor(session.formation_type);

@@ -5,15 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  TrendingUp,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  BookOpen,
-  Award,
-} from "lucide-react";
+import { TrendingUp, Calendar, Clock, CheckCircle2, BookOpen, Award } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -24,7 +16,7 @@ interface LearnerProgressionTabProps {
 
 export function LearnerProgressionTab({
   contactId,
-  contactFormation,
+  contactFormation: _contactFormation,
 }: LearnerProgressionTabProps) {
   // Fetch session inscriptions
   const { data: inscriptions = [], isLoading: loadingInsc } = useQuery({
@@ -107,10 +99,6 @@ export function LearnerProgressionTab({
   const activeSession = inscriptions.find(
     (i: any) => i.session?.statut === "en_cours"
   );
-  const completedSessions = inscriptions.filter(
-    (i: any) => i.session?.statut === "terminee"
-  ).length;
-
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -227,7 +215,6 @@ export function LearnerProgressionTab({
 
                 const isCompleted = session.statut === "terminee";
                 const isCurrent = session.statut === "en_cours";
-                const isUpcoming = session.statut === "planifiee";
 
                 return (
                   <div

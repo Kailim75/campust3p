@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Shield, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
 import type { SessionQualiopiScore } from "@/hooks/useSessionQualiopi";
 
 interface SessionQualiopiBadgeProps {

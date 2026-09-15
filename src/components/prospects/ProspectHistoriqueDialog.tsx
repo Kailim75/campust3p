@@ -40,7 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Phone, Mail, MessageSquare, Calendar, FileText, RefreshCw, Plus, Trash2 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
   useProspectHistorique, 

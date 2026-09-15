@@ -53,7 +53,7 @@ import { useSession, useSessions, useAddInscription } from "@/hooks/useSessions"
 import { useEmailComposer } from "@/hooks/useEmailComposer";
 import { EmailComposerModal } from "@/components/email/EmailComposerModal";
 import type { EmailRecipient } from "@/components/email/EmailComposerModal";
-import { createAutoNote, fetchTodayAutoNotes, isHandledToday, type ActionCategory } from "@/lib/aujourdhui-actions";
+import { createAutoNote, fetchTodayAutoNotes, isHandledToday } from "@/lib/aujourdhui-actions";
 import { format } from "date-fns";
 import { shouldReactivate } from "@/lib/automationRules";
 import { toast } from "sonner";

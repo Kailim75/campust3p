@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSessionInscrits } from '@/hooks/useSessionInscrits';
 import { useDocumentEnvoiHistory, getLatestEnvoiForContact } from '@/hooks/useDocumentEnvoiHistory';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { useContacts } from '@/hooks/useContacts';
 import { useSession } from '@/hooks/useSessions';
 import { useInscritsExamResults } from '@/hooks/useInscritsExamResults';
@@ -33,7 +31,7 @@ import { processDocxWithVariables, buildVariableData } from '@/lib/docx-processo
 import { useEmailComposer } from '@/hooks/useEmailComposer';
 import type { EmailRecipient } from '@/components/email/EmailComposerModal';
 import type { Contact } from '@/hooks/useContacts';
-import type { CompanyInfo, AgrementsAutre } from '@/lib/pdf-generator';
+import type { CompanyInfo } from '@/lib/pdf-generator';
 
 // Sub-components
 import { InscritTableRow } from './inscrits/InscritTableRow';

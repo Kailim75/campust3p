@@ -4,17 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useTresorerieStats, useTransactionsBancaires } from "@/hooks/useTresorerie";
 import { formatEuro } from "@/lib/formatFinancial";
-import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
-  Wallet,
-  Upload,
-  FileSpreadsheet,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, CheckCircle2, AlertTriangle, TrendingUp, Wallet, Upload, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   BarChart,

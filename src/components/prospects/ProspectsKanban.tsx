@@ -93,11 +93,6 @@ export function ProspectsKanban({ onViewDetail }: ProspectsKanbanProps) {
     setSelectedProspect(null);
   };
 
-  const confirmConvert = () => {
-    setConvertDialogOpen(false);
-    setSelectedProspect(null);
-  };
-
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "medium" | "none-action">("all");
 
   const matchesPriority = (p: Prospect) => {

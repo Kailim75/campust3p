@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, CalendarClock, Check, ExternalLink, CheckCheck } from "lucide-react";
+import { Bot, CalendarClock, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addDays, format, parseISO, differenceInDays } from "date-fns";
 import type { UrgencyInfo } from "@/lib/urgency-utils";

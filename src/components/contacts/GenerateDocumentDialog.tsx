@@ -68,7 +68,7 @@ export function GenerateDocumentDialog({
   const { data: sessions = [] } = useSessions();
   const { centreFormation } = useCentreFormation();
   const saveDocument = useSaveGeneratedDocument();
-  const { generateDocument } = useDocumentGenerator();
+  const { generateDocument: _generateDocument } = useDocumentGenerator();
   const { getOrCreateCertificate, updateDocumentUrl } = useAttestationCertificates();
 
   // Filtrer les sessions auxquelles le contact est inscrit
@@ -280,7 +280,7 @@ export function GenerateDocumentDialog({
             heure_debut_aprem: (selectedSession as any).heure_debut_aprem,
             heure_fin_aprem: (selectedSession as any).heure_fin_aprem,
             formation_type: selectedSession.formation_type,
-            duree_heures: selectedSession.duree_heures,
+            duree_heures: selectedSession.duree_heures ?? undefined,
             formateur: (() => {
               const f = selectedSession.formateur as any;
               if (f && typeof f === 'object' && f.nom) {
@@ -322,7 +322,6 @@ export function GenerateDocumentDialog({
 
       // For non-DOCX files (PDF), generate a simple PDF
       const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
 
       doc.setFontSize(16);

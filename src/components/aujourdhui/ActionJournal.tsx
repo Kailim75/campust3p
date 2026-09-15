@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollText, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
-
 interface JournalEntry {
   id: string;
   contact_id: string;

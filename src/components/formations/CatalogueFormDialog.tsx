@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,7 @@ export function CatalogueFormDialog({
   const [track, setTrack] = useState<"initial" | "continuing">("initial");
   const [dureeHeures, setDureeHeures] = useState("14");
   const [prixHt, setPrixHt] = useState("0");
-  const [tvaPercent, setTvaPercent] = useState("0");
+  const [_tvaPercent, setTvaPercent] = useState("0");
   const [remisePercent, setRemisePercent] = useState("0");
   const [actif, setActif] = useState(true);
   const [prerequis, setPrerequis] = useState("");
