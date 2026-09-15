@@ -171,7 +171,7 @@ export default function LearnerPortal() {
           </TabsContent>
 
           <TabsContent value="emargements" className="space-y-6">
-            {contact && <LearnerEmargementTab contactId={contact.id} />}
+            {contact && token && <LearnerEmargementTab contactId={contact.id} token={token} />}
           </TabsContent>
 
 
