@@ -97,7 +97,10 @@ export function SessionDocumentFiltersBar({
 
         <div className="flex items-center gap-1 flex-wrap">
           {STATUS_FILTERS.map(({ value, label }) => {
-            const count = counts[value === "all" ? "all" : value] ?? 0;
+            // STATUS_FILTERS ne contient jamais "empty" (absent de `counts`) ;
+            // le cast reflète juste que `value` est typé plus large que les
+            // clés réellement possibles ici — `?? 0` gérait déjà l'absence.
+            const count = counts[(value === "all" ? "all" : value) as keyof typeof counts] ?? 0;
             return (
               <Button
                 key={value}

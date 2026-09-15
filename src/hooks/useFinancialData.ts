@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from "date-fns";
+import type { Enums, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export type Periode = "mois" | "trimestre" | "annee" | "personnalise";
 
@@ -88,6 +89,18 @@ export function useVersementsPrev(range: PeriodRange) {
   });
 }
 
+/**
+ * Forme jointe de `factures(id, contact_id, contacts(id, nom, prenom, formation))` :
+ * `factures.contact_id → contacts.id` n'est pas déclaré comme clé étrangère
+ * dans les métadonnées générées (types.ts), donc supabase-js ne peut pas
+ * inférer le type de la ressource imbriquée `contacts` toute seule.
+ */
+interface FactureAvecContact {
+  id: string;
+  contact_id: string | null;
+  contacts: { id: string; nom: string; prenom: string; formation: string | null } | null;
+}
+
 // ── Versements enrichis (avec contact info via paiement → facture → contact) ──
 export function useVersementsEnriched(range: PeriodRange) {
   return useQuery({
@@ -128,8 +141,8 @@ export function useVersementsEnriched(range: PeriodRange) {
 
       return versements.map(v => {
         const paiement = paiementMap.get(v.paiement_id);
-        const facture = paiement ? factureMap.get(paiement.facture_id) : null;
-        const contact = (facture as any)?.contacts;
+        const facture = paiement ? (factureMap.get(paiement.facture_id) as FactureAvecContact | undefined) : null;
+        const contact = facture?.contacts;
         return {
           ...v,
           contactNom: contact ? `${contact.prenom} ${contact.nom}` : "—",
@@ -219,9 +232,19 @@ export function useCreateCharge() {
       prestataire?: string;
       notes?: string;
     }) => {
+      // categorie/type_charge/periodicite restent `string` côté formulaire
+      // (ChargesTab) : seules les valeurs offertes par ses <Select> sont
+      // envoyées, sous-ensemble des énums réels — cast précis, pas de valeur
+      // changée.
+      const payload: TablesInsert<"charges"> = {
+        ...charge,
+        categorie: charge.categorie as Enums<"charge_categorie">,
+        type_charge: charge.type_charge as Enums<"type_charge">,
+        periodicite: charge.periodicite as Enums<"charge_periodicite">,
+      };
       const { data, error } = await supabase
         .from("charges")
-        .insert(charge as any)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
@@ -256,7 +279,7 @@ export function useCancelCharge() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("charges")
-        .update({ statut: "annulee" as any })
+        .update({ statut: "annulee" })
         .eq("id", id);
       if (error) throw error;
     },
@@ -357,13 +380,18 @@ export function useUpsertBudget() {
       categorie: string;
       montant_prevu: number;
     }) => {
+      // `entry.type` reste `string` côté appelant (PrevisionnelTab) ; seules
+      // les valeurs de l'énum budget_type sont proposées — cast précis, pas
+      // de valeur changée.
+      const type = entry.type as Enums<"budget_type">;
+
       // Try to find existing
       const { data: existing } = await supabase
         .from("budget_previsionnel")
         .select("id")
         .eq("annee", entry.annee)
         .eq("mois", entry.mois)
-        .eq("type", entry.type as any)
+        .eq("type", type)
         .eq("categorie", entry.categorie)
         .maybeSingle();
 
@@ -374,9 +402,10 @@ export function useUpsertBudget() {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
+        const payload: TablesInsert<"budget_previsionnel"> = { ...entry, type };
         const { error } = await supabase
           .from("budget_previsionnel")
-          .insert(entry as any);
+          .insert(payload);
         if (error) throw error;
       }
     },
@@ -402,7 +431,7 @@ export function use12MonthsHistory() {
 
         const [versRes, chargesRes] = await Promise.all([
           supabase.from("versements").select("montant").gte("date_encaissement", mStart).lte("date_encaissement", mEnd),
-          supabase.from("charges").select("montant").gte("date_charge", mStart).lte("date_charge", mEnd).eq("statut", "active" as any),
+          supabase.from("charges").select("montant").gte("date_charge", mStart).lte("date_charge", mEnd).eq("statut", "active"),
         ]);
 
         const ca = (versRes.data || []).reduce((s, v) => s + Number(v.montant), 0);

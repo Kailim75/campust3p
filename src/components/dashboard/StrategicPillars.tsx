@@ -160,7 +160,7 @@ export function StrategicPillars({ onNavigate }: StrategicPillarsProps) {
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">CA confirmé ce mois</p>
             {(m?.caConfirme ?? 0) > 0 ? (
-              <p className="text-3xl font-bold tabular-nums text-success">{formatEuro(m.caConfirme)}</p>
+              <p className="text-3xl font-bold tabular-nums text-success">{formatEuro(m?.caConfirme ?? 0)}</p>
             ) : (
               <p className="text-sm text-muted-foreground italic mt-1">Aucun encaissement enregistré ce mois</p>
             )}

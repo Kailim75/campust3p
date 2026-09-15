@@ -68,7 +68,7 @@ export function useDeleteSession() {
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
       const { data, error } = await supabase.rpc("soft_delete_session", {
         p_session_id: id,
-        p_reason: reason || null,
+        p_reason: reason || undefined,
       });
       if (error) throw error;
       return data;

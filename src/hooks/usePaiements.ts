@@ -81,7 +81,7 @@ export function useDeletePaiement() {
       const { data, error } = await supabase.rpc("soft_delete_record", {
         p_table_name: "paiements",
         p_record_id: id,
-        p_reason: null,
+        p_reason: undefined,
       });
       if (error) throw error;
       return { factureId };

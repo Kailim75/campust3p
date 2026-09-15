@@ -67,7 +67,7 @@ export function useSoftDelete() {
       if (table === "sessions") {
         const { data, error } = await supabase.rpc("soft_delete_session", {
           p_session_id: id,
-          p_reason: reason || null,
+          p_reason: reason || undefined,
         });
         if (error) throw error;
         return data;
@@ -77,7 +77,7 @@ export function useSoftDelete() {
       const { data, error } = await supabase.rpc("soft_delete_record", {
         p_table_name: table,
         p_record_id: id,
-        p_reason: reason || null,
+        p_reason: reason || undefined,
       });
       if (error) throw error;
       return data;

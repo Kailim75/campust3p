@@ -77,7 +77,10 @@ export function PriorityActionCard({ onNavigate, onNavigateWithContact }: Priori
   // Get the most urgent action (first high priority alert)
   const priorityAction = alerts.find(a => a.priority === "high") || alerts[0];
   
-  const config = priorityAction ? actionConfig[priorityAction.type] : null;
+  // "rappel" existe dans les types d'alerte mais n'a pas d'entrée dans
+  // actionConfig : config vaut alors undefined et les `config?.` plus bas
+  // retombent déjà sur Zap / "alertes" (comportement préexistant, inchangé).
+  const config = priorityAction ? actionConfig[priorityAction.type as keyof typeof actionConfig] : null;
   const Icon = config?.icon || Zap;
 
   const handleClick = () => {

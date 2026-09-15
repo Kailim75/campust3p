@@ -134,9 +134,14 @@ export function useCentreAlerts() {
       if (error) throw error;
 
       for (const centre of centresStats || []) {
+        // id/nom viennent de colonnes NOT NULL de la table centres ;
+        // la vue centres_stats les type nullable, mais elles ne le sont
+        // jamais en pratique — garde défensive pour rester type-safe.
+        if (!centre.id || !centre.nom) continue;
+
         // 1. Centres bloqués en onboarding (> 5 jours)
         if (!centre.onboarding_completed_at) {
-          const createdAt = new Date(centre.created_at);
+          const createdAt = new Date(centre.created_at ?? 0);
           const daysSince = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
           
           if (daysSince > 5) {
@@ -224,9 +229,9 @@ export function useOnboardingFunnel() {
       // Comptage par étape
       const comptes = await supabase.from("centres_stats").select("id, nb_users, nb_contacts, nb_sessions");
       
-      const centresWithUsers = comptes.data?.filter(c => c.nb_users > 0)?.length || 0;
-      const centresWithLearners = comptes.data?.filter(c => c.nb_contacts > 0)?.length || 0;
-      const centresWithSessions = comptes.data?.filter(c => c.nb_sessions > 0)?.length || 0;
+      const centresWithUsers = comptes.data?.filter(c => (c.nb_users ?? 0) > 0)?.length || 0;
+      const centresWithLearners = comptes.data?.filter(c => (c.nb_contacts ?? 0) > 0)?.length || 0;
+      const centresWithSessions = comptes.data?.filter(c => (c.nb_sessions ?? 0) > 0)?.length || 0;
       const centresCompleted = centres?.filter(c => c.onboarding_completed_at)?.length || 0;
 
       const steps: OnboardingFunnelStep[] = [

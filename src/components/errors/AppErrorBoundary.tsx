@@ -28,7 +28,7 @@ export class AppErrorBoundary extends React.Component<
     // eslint-disable-next-line no-console
     console.error("[AppErrorBoundary] Component stack", info.componentStack);
 
-    this.setState({ componentStack: info.componentStack });
+    this.setState({ componentStack: info.componentStack ?? undefined });
   }
 
   private handleReload = () => {

@@ -130,7 +130,7 @@ export default function EnquetePage() {
           p_note_locaux: noteLocaux,
           p_nps_score: npsScore,
           p_objectifs_atteints: objectifsAtteints,
-          p_commentaire: commentaire || null,
+          p_commentaire: commentaire || undefined,
         });
 
       if (error) throw error;

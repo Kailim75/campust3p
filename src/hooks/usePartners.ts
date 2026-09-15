@@ -72,6 +72,13 @@ export interface PartnerInsert {
   montant_forfait?: number;
   date_debut_contrat?: string | null;
   date_fin_contrat?: string | null;
+  // Colonnes réelles de `partners` (types.ts) absentes jusqu'ici de cette
+  // interface, alors qu'elles étaient déjà envoyées via `as any` par certains
+  // appelants (ex. FactureLibreDialog, création rapide d'entreprise cliente).
+  siret?: string | null;
+  tva_intracom?: string | null;
+  code_postal?: string | null;
+  ville?: string | null;
 }
 
 export interface PartnerUpdate {

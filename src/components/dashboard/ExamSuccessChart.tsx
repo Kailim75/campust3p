@@ -71,8 +71,8 @@ export function ExamSuccessChart({ onClick }: ExamSuccessChartProps) {
               <span className="text-sm font-medium">Examen T3P</span>
               <Badge variant="outline" className={cn(
                 "text-xs",
-                data?.t3p.tauxReussite >= 70 ? "bg-success/10 text-success" : 
-                data?.t3p.tauxReussite >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                (data?.t3p.tauxReussite ?? 0) >= 70 ? "bg-success/10 text-success" :
+                (data?.t3p.tauxReussite ?? 0) >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
               )}>
                 {data?.t3p.tauxReussite}%
               </Badge>
@@ -91,8 +91,8 @@ export function ExamSuccessChart({ onClick }: ExamSuccessChartProps) {
               <span className="text-sm font-medium">Examen Pratique</span>
               <Badge variant="outline" className={cn(
                 "text-xs",
-                data?.pratique.tauxReussite >= 70 ? "bg-success/10 text-success" : 
-                data?.pratique.tauxReussite >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                (data?.pratique.tauxReussite ?? 0) >= 70 ? "bg-success/10 text-success" :
+                (data?.pratique.tauxReussite ?? 0) >= 50 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
               )}>
                 {data?.pratique.tauxReussite}%
               </Badge>

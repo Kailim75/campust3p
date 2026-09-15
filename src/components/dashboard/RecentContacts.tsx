@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ChevronRight } from "lucide-react";
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; class: string }> = {
   "En attente de validation": { label: "En attente", class: "bg-info/10 text-info" },
   "Client": { label: "Client", class: "bg-success/10 text-success" },
   "Bravo": { label: "Bravo", class: "bg-warning/10 text-warning" },
