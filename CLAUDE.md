@@ -12,17 +12,72 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   la stack ou l'outillage de build (Vite, Tailwind, ESLint, configs TS).
 - Ne jamais travailler en parallèle d'une session d'édition Lovable active.
 - Petits commits réversibles, un lot à la fois, PR relue avant merge.
-- **Le sync GitHub ne déploie PAS les edge functions** : après un merge qui
-  modifie `supabase/functions/`, demander à l'agent Lovable de redéployer
-  (« Redéploie X — le code est à jour dans le repo, ne modifie aucun
-  fichier »).
-- **Les migrations du repo ne s'appliquent PAS automatiquement**, et
-  l'éditeur SQL du panneau Cloud refuse le DDL (« Request cancelled »).
-  Tout changement de schéma passe par l'agent Lovable (qui crée et applique
-  la migration). Les SELECT et `cron.schedule` passent, eux, par l'éditeur
-  SQL du panneau Cloud.
 - Le développeur local n'a PAS de compte Supabase : la base n'est
   accessible que via le panneau Cloud de Lovable (app desktop ou web).
+
+### Canaux de déploiement — 3, réels
+
+1. **Front** : bouton **Publier** (Lovable, Share → Publish). Seul canal qui
+   déploie le bundle React/Vite servi aux utilisateurs — un merge GitHub seul
+   ne publie rien côté front.
+2. **Edge functions et migrations SQL — canal normal** : l'**outil de
+   migration de l'agent Lovable** (rôle privilégié, a accès au schéma `auth`,
+   contrairement à l'accès direct). Le sync GitHub NE déploie PAS les edge
+   functions : après un merge qui modifie `supabase/functions/`, demander à
+   l'agent de redéployer (« Redéploie X — le code est à jour dans le repo, ne
+   modifie aucun fichier »). Les migrations du repo NE s'appliquent PAS
+   automatiquement non plus : tout changement de schéma passe par cet outil
+   (qui crée et applique la migration). Exemple de bonne pratique : le lot
+   avoirs (#92) a été transféré par table temporaire avec **vérification
+   md5** avant exécution.
+3. **Canal de secours — SQL collé dans l'éditeur du panneau Cloud** :
+   l'éditeur SQL refuse normalement le DDL (« Request cancelled ») — c'est
+   pourquoi tout changement de schéma passe par le canal 2. Il a
+   **exceptionnellement accepté le DDL le 14/09/2026**, pour la migration
+   `20260914120000` (`CREATE OR REPLACE FUNCTION` d'une ligne, rendant
+   `storage_object_centre_id` tolérante au préfixe `centre/` — cf. « piège du
+   préfixe `centre/` » plus bas), collée directement dans l'éditeur. **Ceci
+   reste une DÉROGATION, jamais un mode normal** : n'y recourir qu'en dernier
+   ressort, et la faire suivre SYSTÉMATIQUEMENT d'une **réconciliation** —
+   vérifier que la définition appliquée en base correspond EXACTEMENT au
+   fichier de migration du repo (la sonde de vérification déjà incluse dans
+   le fichier `20260914120000`, ou `pg_get_functiondef`/`\sf` sur la fonction
+   concernée), pour éviter toute dérive silencieuse entre le repo et la prod.
+   Les SELECT et `cron.schedule`, eux, passent normalement par cet éditeur
+   (aucune dérogation nécessaire, ce ne sont pas des DDL).
+
+## CI (GitHub Actions)
+
+- **Barrière de qualité bloquante sur `main`** : ruleset GitHub **id
+  22995679** (« main — barriere CI quality »), condition
+  `required_status_checks` sur le seul check **« quality »** — le job unique
+  de `.github/workflows/ci.yml` (installation depuis `bun.lock`, `typecheck`,
+  `lint:hooks` bloquant, `lint:ratchet` bloquant, tests Vitest, build Vite ;
+  `eslint` complet lancé en information seule via `continue-on-error: true`
+  tant que la dette n'est pas résorbée à 0).
+- **Bypass** : l'app GitHub Lovable (`actor_id` **818760**, type
+  `Integration`) est exemptée du ruleset en mode **`always`**
+  (`bypass_actors`) — ses pushs directs sur `main` (sync bidirectionnel
+  Lovable ↔ GitHub) ne sont jamais bloqués par le check « quality ».
+- **Si Lovable se retrouve bloqué en push** malgré ce bypass (ex. l'`actor_id`
+  de l'app change, ruleset mal configuré après une modification) : GitHub →
+  Settings → Rules → Rulesets → ouvrir « main — barriere CI quality »
+  (id 22995679) → vérifier/rétablir le bypass sur l'app Lovable, ou
+  désactiver temporairement le ruleset (`enforcement: disabled`) le temps de
+  rétablir le sync — jamais en supprimant le check « quality » lui-même ni en
+  élargissant le bypass à d'autres acteurs.
+- **Gel de la dette lint** (PR #103) : `lint-baseline.json` (`{"errors": N}`
+  à la racine) + `scripts/lint-ratchet.mjs` (`bun run lint:ratchet` /
+  `node scripts/lint-ratchet.mjs`) — mesure le total d'erreurs `eslint .` et
+  échoue s'il dépasse `N`. Baisser `N` dans `lint-baseline.json` dès que le
+  total mesuré est strictement inférieur (le script l'indique lui-même).
+  Baseline mesurée le 15/09/2026 : **1046** erreurs — vérifier
+  `lint-baseline.json` pour la valeur courante, elle évolue à chaque PR qui
+  résorbe de la dette.
+- **`react-hooks/rules-of-hooks` bloquante en CI** (PR #103) : portée par la
+  config ESLint dédiée `eslint.hooks.config.js` (une seule règle activée,
+  indépendante de la dette lint générale — voir aussi § Vérifications plus
+  bas), exécutée via `bun run lint:hooks`.
 
 ## Zones sensibles — NE PAS TOUCHER sans accord explicite
 
@@ -199,6 +254,54 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   (`<centre_id>/<fichier>`, lu par `storage_object_centre_id`). Vrai pour tous
   les buckets, y compris `produits-photos` depuis le 10/09/2026 (migration
   `20260910123000`, scan Lovable) : un envoi sans ce préfixe est refusé.
+  - **Piège : DEUX conventions coexistent pour ce premier segment**
+    (inventaire par grep, 15/09/2026). Ne pas les confondre — la fonction RLS
+    `storage_object_centre_id` tolère les deux, mais le CODE APPLICATIF, lui,
+    utilise le préfixe littéral `centre/` comme **discriminant de bucket**
+    dans plusieurs lecteurs : le confondre casse le routage, pas la RLS.
+    - **Convention « `centre/` » (préfixe littéral, uuid au 2ᵉ segment),
+      bucket `generated-documents` / `generated-docs`** : écrite par
+      `public-sign-document/index.ts` (`centre/<centreId>/signatures/…`,
+      bucket `generated-documents`) et `src/lib/auto-generate-documents.ts`
+      (`centre/<centreId>/contacts/…`, bucket `generated-docs`) ; lue par
+      `src/lib/signatures.ts` (`resoudreObjetSignature`, teste
+      `startsWith("centre/")` pour choisir `generated-documents`),
+      `src/lib/documents/pdfResolver.ts` (`detectBucket`, même test pour
+      choisir `generated-docs`) et
+      `supabase/functions/bulk-send-documents/index.ts` (même test inline).
+      C'est ce préfixe littéral que la fonction RLS tolère depuis le
+      14/09/2026 (migration `20260914120000`, canal de secours ci-dessus) —
+      sans lui, `storage_object_centre_id` renvoyait NULL et la RLS refusait
+      la lecture à tout le monde.
+    - **Convention canonique (pas de préfixe, l'uuid du centre est le 1ᵉʳ
+      segment), bucket `signatures`** : `cheminSignatureCentre` dans
+      `src/lib/signatures.ts` (`${centreId}/${nomFichier}`), utilisée par
+      `useSignDocument` (`src/hooks/useSignatures.ts`) et `useSignEmargement`
+      (`src/hooks/useEmargements.ts`) ; et, depuis le 15/09/2026 (PR #113),
+      `supabase/functions/portal-upload-signature/index.ts`
+      (`${session.centre_id}/emargements/…`). C'est la forme d'origine de
+      `storage_object_centre_id` et celle documentée au point ci-dessus.
+    - **Historique** : `public-sign-document` et `auto-generate-documents.ts`
+      (plus anciens) écrivent avec le préfixe `centre/` dans les buckets
+      `generated-documents`/`generated-docs`. Trois AUTRES chemins de
+      téléversement (`useSignDocument`, `useSignEmargement`, le portail
+      apprenant) écrivaient eux des noms de fichier à plat, SANS AUCUN
+      préfixe centre — panne corrigée le 15/09/2026 (PR #113) en les alignant
+      sur la convention canonique (bucket `signatures`), pas sur la
+      convention `centre/`. Les deux conventions n'ont donc jamais été
+      unifiées : le 14/09 a rendu la RLS tolérante aux deux plutôt que de
+      corriger les écrivains `centre/` ; le 15/09 a corrigé les écrivains à
+      plat vers la forme canonique.
+    - **Risque si on les confond** : le préfixe `centre/` sert maintenant à
+      DEUX choses — l'extraction du centre par la RLS (tolérante aux deux
+      formes) ET le choix du bucket dans `resoudreObjetSignature`,
+      `detectBucket` et `bulk-send-documents` (qui ne connaissent QUE ce
+      test littéral). Retirer le préfixe `centre/` de `public-sign-document`
+      ou d'`auto-generate-documents.ts` pour « nettoyer » vers la forme
+      canonique, sans mettre à jour ces trois lecteurs, ferait router l'objet
+      vers le MAUVAIS bucket (`signatures` au lieu de
+      `generated-documents`/`generated-docs`) — silencieusement, la RLS
+      n'y verrait que du feu.
 - Dette connue : plusieurs états métier vivent encore dans des notes
   `[AUTO]` de `contact_historique` parsées par regex (chantier §5.1 du
   rapport `AMELIORATIONS.md`).
@@ -218,7 +321,10 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   contrôle « aucune erreur console » sur l'écran de connexion ne prouve
   rien pour un composant qui n'y est jamais monté.
 - `./node_modules/.bin/tsc -p tsconfig.app.json --noEmit`
-- `./node_modules/.bin/vitest run` (59+ tests, dont cohérence navigation)
+- `./node_modules/.bin/vitest run` — chiffre volatile, ne pas le figer :
+  **700 tests, 66 fichiers** mesurés le 15/09/2026 (dont cohérence
+  navigation) ; relancer la commande pour le chiffre courant avant de le
+  citer.
 - `node node_modules/vite/bin/vite.js build`
 - Lockfile de référence unique : **`bun.lock`** (`bun install --frozen-lockfile`).
   `package-lock.json` (npm, désynchronisé) supprimé le 12/09/2026 — ne pas le
