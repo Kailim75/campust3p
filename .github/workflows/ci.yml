@@ -6,17 +6,20 @@ name: CI
 # on réinstalle les dépendances depuis le lockfile figé (bun.lock — le même lockfile et
 # le même registre que la prod Lovable), puis on :
 #   1. vérifie les types (TypeScript)
-#   2. lance les 657 tests (Vitest)
+#   2. lance les tests Vitest
 #   3. construit le bundle de production (Vite)
-# Si l'une de ces trois étapes échoue, l'exécution est rouge.
+#   4. vérifie la règle des hooks React (react-hooks/rules-of-hooks, bloquant)
+#   5. vérifie que la dette lint n'augmente pas (bloquant, cf. lint-baseline.json)
+# Si l'une de ces étapes échoue, l'exécution est rouge.
 #
 # Pour que ce contrôle BLOQUE réellement la fusion, il faut l'activer une fois côté GitHub :
 #   Settings → Branches → Add branch protection rule sur « main »
 #   → Require status checks to pass before merging → cocher « quality ».
 #
-# L'analyse de code (eslint) est exécutée en INFORMATION SEULEMENT pour l'instant
-# (continue-on-error) : elle compte ~1039 erreurs héritées. Une fois ce stock résorbé,
-# retirer la ligne « continue-on-error: true » pour la rendre bloquante elle aussi.
+# L'analyse de code (eslint) complète est exécutée en INFORMATION SEULEMENT pour l'instant
+# (continue-on-error) : la dette lint est gelée par lint-baseline.json (cf. étape « Gel de la
+# dette lint » ci-dessous, qui elle est bloquante). Une fois le stock résorbé à 0, retirer la
+# ligne « continue-on-error: true » de l'étape eslint pour la rendre bloquante elle aussi.
 
 on:
   pull_request:
@@ -45,6 +48,12 @@ jobs:
 
       - name: Vérifier les types (TypeScript)
         run: bun run typecheck
+
+      - name: Règle des hooks React (bloquant)
+        run: bun run lint:hooks
+
+      - name: Gel de la dette lint (bloquant)
+        run: bun run lint:ratchet
 
       - name: Lancer les tests (Vitest)
         run: bun run test
