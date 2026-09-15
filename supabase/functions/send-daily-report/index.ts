@@ -310,7 +310,7 @@ serve(async (req) => {
       recipient_name: "Direction",
       subject,
       template_used: "daily_crm_report",
-      status: emailError ? "error" : "sent",
+      status: emailError ? "failed" : "sent",
       error_message: emailError ? JSON.stringify(emailError) : null,
       resend_id: resendId || null,
       metadata: {
@@ -366,7 +366,7 @@ serve(async (req) => {
         recipient_name: "Direction",
         subject: "Rapport CRM quotidien (ÉCHEC)",
         template_used: "daily_crm_report",
-        status: "error",
+        status: "failed",
         error_message: error.message,
       });
     } catch (_) { /* ignore log failure */ }
