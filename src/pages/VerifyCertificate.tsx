@@ -366,7 +366,7 @@ export default function VerifyCertificate() {
       {/* Footer */}
       <footer className="border-t mt-auto py-6 bg-muted/30">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Portail de vérification des certificats - Conforme Qualiopi</p>
+          <p>Portail de vérification des certificats</p>
         </div>
       </footer>
     </div>

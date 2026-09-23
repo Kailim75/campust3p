@@ -32,7 +32,7 @@ export function FlyerFormationContinue() {
     { icon: Star, text: "94% de réussite", color: "text-yellow-500" },
     { icon: Calendar, text: "Sessions toute l'année", color: "text-blue-500" },
     { icon: Trophy, text: "Centre agréé T3P", color: "text-emerald-500" },
-    { icon: Shield, text: "Certification Qualiopi", color: "text-purple-500" },
+    { icon: Shield, text: "Centre agréé préfecture", color: "text-purple-500" },
   ];
 
   return (
@@ -243,10 +243,6 @@ export function FlyerFormationContinue() {
             <div className="flex items-center gap-2">
               <Award className="h-5 w-5 text-[#D4A853]" />
               <span>Centre agréé préfecture</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-[#D4A853]" />
-              <span>Certification Qualiopi</span>
             </div>
           </div>
           <p className="text-xs text-white/60">

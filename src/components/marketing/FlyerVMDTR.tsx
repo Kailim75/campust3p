@@ -57,7 +57,7 @@ export function FlyerVMDTR() {
                 { icon: Clock, text: "14 heures", subtext: "2 jours" },
                 { icon: Star, text: "94% réussite", subtext: "Taux de satisfaction" },
                 { icon: Users, text: "10 max", subtext: "Petit groupe" },
-                { icon: Shield, text: "Qualiopi", subtext: "Certifié" },
+                { icon: Shield, text: "Agréé préfecture", subtext: `N° ${ORGANISME.agreementVMDTR}` },
               ].map((item, index) => (
                 <div key={index} className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md">
                   <item.icon className="h-10 w-10 text-orange-500 mb-2" />
@@ -219,10 +219,6 @@ export function FlyerVMDTR() {
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-[#D4A853]" />
                 <span>Centre agréé préfecture</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-[#D4A853]" />
-                <span>Certification Qualiopi</span>
               </div>
             </div>
             {/* SIRET réel lu dans la constante ORGANISME (aucune valeur en dur).

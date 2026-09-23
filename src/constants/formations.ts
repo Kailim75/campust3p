@@ -22,6 +22,9 @@ export const ORGANISME = {
   email: "montrouge@ecolet3p.fr",
   siret: "94856480200023",
   nda: "", // Pas de NDA actuellement — ne pas afficher
+  // Pas de certification Qualiopi (décision du directeur, 23/09/2026).
+  // Ne JAMAIS réintroduire la mention en dur : voir qualiopi-mention.test.ts.
+  qualiopi: "",
   numeroRS: "",
   agreementVTCTAXI: "23/005",
   agreementVMDTR: "23/006",
