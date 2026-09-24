@@ -20,7 +20,7 @@ export interface ActiveDuplicateMatch {
 export function useActiveDuplicateCheck() {
   const [match, setMatch] = useState<ActiveDuplicateMatch | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const check = useCallback(
     async (email: string | null | undefined, centreId: string | null | undefined, excludeId?: string | null) => {

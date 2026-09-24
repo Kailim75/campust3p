@@ -88,7 +88,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: ContactFormDi
   const { duplicates, checkDuplicates, clearDuplicates } = useDuplicateCheck();
   const activeDup = useActiveDuplicateCheck();
   const [currentCentreId, setCurrentCentreId] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isEditing = !!contact;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
 
