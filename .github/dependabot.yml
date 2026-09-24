@@ -1,7 +1,12 @@
 version: 2
 
 updates:
-  - package-ecosystem: "npm"
+  # « bun » et non « npm » : l'écosystème npm ne lit pas bun.lock. Les PR
+  # Dependabot ne modifiaient que package.json, et la CI les refusait toutes à
+  # l'étape `bun install --frozen-lockfile` (« lockfile had changes, but
+  # lockfile is frozen ») — avant même le typecheck et les tests. Cinq PR sont
+  # restées rouges du 15 au 24/09/2026 sans que leur contenu ait été jugé.
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -18,6 +23,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Les majeures se font à la main, par lots, avec vérification à l'écran.
+    # Proposées automatiquement, elles arrivent ÉCLATÉES (react, react-dom et
+    # leurs types en quatre PR), et aucune n'est mergeable seule.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
