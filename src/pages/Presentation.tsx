@@ -19,7 +19,7 @@ export default function Presentation() {
   // formulaire de contact (retour directeur du 23/07).
   const [offre, setOffre] = useState<string | null>(null);
 
-  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth" });
   };
 

@@ -5,7 +5,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // `.claude/` : les sous-agents y créent des copies complètes du dépôt
+  // (worktrees). Sans cet ignore, `eslint .` les lint comme du code du CRM et
+  // la dette locale triple (4029 au lieu de 1046, 24/09/2026) — une fausse
+  // alerte que la CI, partie d'un dépôt propre, ne voit jamais.
+  { ignores: ["dist", ".claude"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
