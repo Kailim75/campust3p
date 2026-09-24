@@ -1,7 +1,7 @@
 # CLAUDE.md — T3P Campus
 
 CRM multi-tenant pour centres de formation de chauffeurs (Taxi, VTC, VMDTR).
-Stack : React 18 + Vite + TypeScript + Tailwind + shadcn/Radix, Supabase
+Stack : React 19 + Vite + TypeScript + Tailwind + shadcn/Radix, Supabase
 via **Lovable Cloud** (Postgres + RLS par `centre_id`, edge functions Deno),
 emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
 « Règles Lovable ».
@@ -322,7 +322,7 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   rien pour un composant qui n'y est jamais monté.
 - `./node_modules/.bin/tsc -p tsconfig.app.json --noEmit`
 - `./node_modules/.bin/vitest run` — chiffre volatile, ne pas le figer :
-  **696 tests, 64 fichiers** mesurés le 24/09/2026 (dont cohérence
+  **701 tests, 65 fichiers** mesurés le 24/09/2026 (dont cohérence
   navigation) ; relancer la commande pour le chiffre courant avant de le
   citer.
 - `node node_modules/vite/bin/vite.js build`
@@ -338,6 +338,12 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   que Dependabot (écosystème `bun`) ne sait pas lire. Il doit rester en version 1
   (`head -3 bun.lock`). La version de bun est épinglée en CI (1.4.2) : monter
   celle de la CI et la locale ensemble.
+- **`"overrides": { "react-is": … }` dans `package.json` — ne pas le
+  retirer** (React 19, 24/09/2026). recharts dépend de `react-is` ; resté en
+  18, il ne reconnaît plus les fragments de React 19 et une série posée dans
+  un `<>…</>` disparaît du graphique, SANS erreur. Cet override doit suivre la
+  version majeure de `react`. Le test `src/test/fumee/react19-fumee.test.tsx`
+  échoue s'il manque (témoin négatif vérifié).
 - Les pushs de Lovable **contournent la CI** (ruleset 22995679, bypass de
   l'application Lovable). Du code généré par Lovable peut donc arriver sur main
   sans typecheck ni tests : relancer la CI localement après une session Lovable.
