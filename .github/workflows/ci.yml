@@ -42,6 +42,13 @@ jobs:
 
       - name: Installer Bun
         uses: oven-sh/setup-bun@v2
+        # Version ÉPINGLÉE. Sans elle, la CI prend la dernière bun publiée : une
+        # montée de bun peut changer le format de bun.lock (lockfileVersion 2,
+        # que Dependabot ne sait pas lire) ou la résolution des dépendances, et
+        # faire rougir une PR qui n'y est pour rien. On la monte volontairement,
+        # en même temps que la bun locale.
+        with:
+          bun-version: "1.4.2"
 
       - name: Installer les dépendances (lockfile figé)
         run: bun install --frozen-lockfile
