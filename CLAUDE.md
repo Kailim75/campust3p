@@ -322,13 +322,25 @@ emails Resend, paiements Alma. **Repo synchronisé avec Lovable** — voir
   rien pour un composant qui n'y est jamais monté.
 - `./node_modules/.bin/tsc -p tsconfig.app.json --noEmit`
 - `./node_modules/.bin/vitest run` — chiffre volatile, ne pas le figer :
-  **700 tests, 66 fichiers** mesurés le 15/09/2026 (dont cohérence
+  **696 tests, 64 fichiers** mesurés le 24/09/2026 (dont cohérence
   navigation) ; relancer la commande pour le chiffre courant avant de le
   citer.
 - `node node_modules/vite/bin/vite.js build`
-- Lockfile de référence unique : **`bun.lock`** (`bun install --frozen-lockfile`).
-  `package-lock.json` (npm, désynchronisé) supprimé le 12/09/2026 — ne pas le
-  régénérer. `bun.lockb` (ancien format binaire) subsiste, redondant avec `bun.lock`.
+- Lockfile unique : **`bun.lock`** (`bun install --frozen-lockfile`).
+  `package-lock.json` (npm, désynchronisé) supprimé le 12/09/2026. `bun.lockb`
+  supprimé le 24/09/2026 : ce n'était pas un doublon mais un fossile du gabarit
+  Lovable (un seul commit, 01/01/2025), auquel il manquait 25 des 91
+  dépendances directes. bun lit `bun.lock` en priorité, la CI et le build
+  Publier aussi.
+- **`bun.lock` se met à jour SUR PLACE, il ne se régénère jamais** : `bun add`,
+  `bun update` ou `bun install` après modification de `package.json`. Ne jamais
+  le supprimer pour le recréer : bun 1.4 réécrirait un `lockfileVersion: 2`,
+  que Dependabot (écosystème `bun`) ne sait pas lire. Il doit rester en version 1
+  (`head -3 bun.lock`). La version de bun est épinglée en CI (1.4.2) : monter
+  celle de la CI et la locale ensemble.
+- Les pushs de Lovable **contournent la CI** (ruleset 22995679, bypass de
+  l'application Lovable). Du code généré par Lovable peut donc arriver sur main
+  sans typecheck ni tests : relancer la CI localement après une session Lovable.
 - Pour les envois d'emails : modes `dryRun` des fonctions cron
   (`send-convocation-cron`, `signature-reminders` et, depuis le 10/09/2026,
   `send-automated-emails` acceptent `?dryRun=true` — décompte de ce qui

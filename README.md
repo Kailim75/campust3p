@@ -13,8 +13,9 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-`bun.lock` est le lockfile de référence unique — ne pas régénérer
-`package-lock.json` ni lancer `npm install`.
+`bun.lock` est le seul fichier de verrouillage. Il se met à jour sur place
+(`bun add`, `bun update`) et ne se régénère jamais — pas de `package-lock.json`,
+pas de `npm install`, pas de `bun.lockb`.
 
 ## Scripts
 
