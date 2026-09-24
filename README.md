@@ -31,7 +31,7 @@ pas de `npm install`, pas de `bun.lockb`.
 
 ## Architecture — repères
 
-- **Stack** : React 18 + Vite + TypeScript + Tailwind + shadcn/Radix.
+- **Stack** : React 19 + Vite + TypeScript + Tailwind + shadcn/Radix.
 - **Backend** : Supabase via **Lovable Cloud** (Postgres + RLS, edge
   functions Deno). Le développeur local n'a pas de compte Supabase direct :
   la base n'est accessible que via le panneau Cloud de Lovable.

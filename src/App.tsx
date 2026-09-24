@@ -136,7 +136,16 @@ const RootGate = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    {/* Application 100 % navigateur : le script anti-clignotement de next-themes,
+        prévu pour le rendu serveur, n'est jamais exécuté. Le déclarer comme bloc
+        de données évite l'erreur console « Encountered a script tag » de React 19. */}
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      disableTransitionOnChange
+      scriptProps={{ type: "application/json" }}
+    >
       <TooltipProvider>
         <CrmCustomizationInit />
         <Toaster />
